@@ -1038,6 +1038,18 @@ void output_option_description(const std::string &option_name, const po::options
             option.description().c_str());
 }
 
+MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
+                             std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    try {
+        options::parse_command_line(argc, argv, options, names_by_values_out);
+        return true;
+    } catch (const std::runtime_error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        // TODO(OPTIONS): Output option description
+        return false;
+    }
+}
+
 MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     try {
         int style =
@@ -1059,6 +1071,17 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
         return false;
     }
     return true;
+}
+
+MUST_USE bool parse_config_file_flat(const std::string &config_filepath,
+                                     const std::vector<options::option_t> &options,
+                                     std::map<std::string, std::vector<std::string> > *names_by_values_ref) {
+    (void)config_filepath;
+    (void)options;
+    (void)names_by_values_ref;
+    // TODO(OPTIONS): Implement this.  We need to smartly merge in config value
+    // options with existing names_by_values_ref options?
+    return false;
 }
 
 MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
@@ -1092,6 +1115,26 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
         throw;
     }
     return true;
+}
+
+MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
+                                  std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    try {
+        std::map<std::string, std::vector<std::string> > names_by_values;
+        parse_command_line(argc, argv, options, &names_by_values);
+        auto config_file_it = names_by_values.find("config-file");
+        if (config_file_it != names_by_values.end()) {
+            if (!parse_config_file_flat(config_file_it->second[0], options, &names_by_values)) {
+                return false;
+            }
+        }
+        names_by_values_out->swap(names_by_values);
+        return true;
+    } catch (const std::runtime_error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        // TODO(OPTION): output option description
+        return false;
+    }
 }
 
 MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {

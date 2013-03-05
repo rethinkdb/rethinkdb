@@ -88,7 +88,7 @@ private:
 // Outputs names by values.  Outputs empty-string values for appearances of
 // OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option
 // (the first parameter passed to names_t) for map keys.
-void parse_command_line(int argc, char **argv, const std::vector<option_t> &options,
+void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *names_by_values_out);
 
 
