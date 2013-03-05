@@ -885,7 +885,7 @@ options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::client_port)));
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
-#endif
+#endif  // NDEBUG
 
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
                                              options::OPTIONAL_REPEAT));
@@ -905,6 +905,47 @@ po::options_description get_rethinkdb_admin_options() {
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a rethinkdb node to connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     return desc;
+}
+
+options::help_section_t get_rethinkdb_import_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Allowed options");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif  // NDEBUG
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--table"),
+                                             options::MANDATORY));
+    help.add("--table db_name.table_name", "the database and table into which to import");
+
+    // TODO(OPTIONS) Fix parsing of datacenter -- in cases where we expected an
+    // empty string, now we just get an empty vector.
+    options_out->push_back(options::option_t(options::names_t("--datacenter"),
+                                             options::OPTIONAL));
+    help.add("--datacenter name", "the datacenter into which to create a table");
+
+    options_out->push_back(options::option_t(options::names_t("--primary-key"),
+                                             options::OPTIONAL,
+                                             "id"));
+    help.add("--primary-key key", "the primary key to create a new table with, or expected primary key");
+
+    options_out->push_back(options::option_t(options::names_t("--separators", "-s"),
+                                             options::OPTIONAL,
+                                             "\t,"));
+    help.add("-s [ --separators ]", "list of characters to be used as whitespace -- uses tabs and commas by default");
+
+    options_out->push_back(options::option_t(options::names_t("--input-file"),
+                                             options::MANDATORY));
+    help.add("--input-file path", "the csv input file");
+
+    return help;
 }
 
 po::options_description get_rethinkdb_import_options() {
