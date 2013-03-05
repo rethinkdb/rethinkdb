@@ -1166,28 +1166,42 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
     return true;
 }
 
+std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts, std::string name) {
+    auto it = opts.find(name);
+    if (it == opts.end()) {
+        throw std::logic_error("Missing option '%s'.  (It does not have a default value.)");
+    }
+    if (it->second.size() != 1) {
+        throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
+    }
+    return it->second.at(0);
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     try {
-        po::variables_map vm;
-        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+        std::vector<options::option_t> options;
+        {
+            std::vector<options::help_section_t> help;
+            get_rethinkdb_create_options(&help, &options);
+        }
+
+        std::map<std::string, std::vector<std::string> > opts;
+        // TODO(OPTIONS): Just make parse_commands_deep throw an exception?
+        if (!parse_commands_deep(argc, argv, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (opts.find("--help") != opts.end()) {
             help_rethinkdb_create();
             return EXIT_SUCCESS;
         }
 
-        io_backend_t io_backend;
-        if (!pull_io_backend_option(vm, &io_backend)) {
-            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-            return EXIT_FAILURE;
-        }
+        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
 
-        const base_path_t base_path(vm["directory"].as<std::string>());
+        const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
 
-        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
             fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
