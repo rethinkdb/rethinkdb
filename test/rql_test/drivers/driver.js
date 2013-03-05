@@ -173,7 +173,6 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                             printTestFailure(testName, src,
                                                 "Error running test on CPP server:"+
                                                 "\n\tERROR: "+cpp_err.toString()+
-                                                "\n\tEXPECTED "+exp_fun.toString());
                                         }
                                     } else if (!exp_fun(cpp_res)) {
                                         printTestFailure(testName, src,
@@ -192,7 +191,6 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                             printTestFailure(testName, src,
                                                 "Error running test on JS server:"+
                                                 "\n\tERROR: "+cpp_err.toString()+
-                                                "\n\tEXPECTED "+exp_fun.toString());
                                         }
                                     } else if (!exp_fun(js_res)) {
                                         printTestFailure(testName, src,
