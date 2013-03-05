@@ -163,7 +163,7 @@ tests:
       
     # Insert three more elements (and error on three)
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
-      py: r.expr([1,2,3]).for_each(lambda row:tbl.insert([tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })]))
+      py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
       ot: ({'inserted':3,'errors':3,'first_error':'Duplicate primary key.'})
 
     - cd: tbl.count()
