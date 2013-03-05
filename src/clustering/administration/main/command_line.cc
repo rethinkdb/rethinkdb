@@ -105,6 +105,8 @@ int write_pid_file(const std::string &pid_filepath) {
     return EXIT_SUCCESS;
 }
 
+// Extracts an option that appears either zero or once.  Multiple appearances are not allowed (or
+// expected).
 boost::optional<std::string> get_optional_option(const std::map<std::string, std::vector<std::string> > &opts,
                                                  const std::string &name) {
     auto it = opts.find(name);
@@ -119,15 +121,18 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, std
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
 }
 
+// Maybe writes a pid file, using the --pid-file option, if it's present.
 int write_pid_file(const std::map<std::string, std::vector<std::string> > &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
-    if (!pid_filepath || pid_filepath->size() == 0) {
+    if (!pid_filepath || pid_filepath->empty()) {
         return EXIT_SUCCESS;
     }
 
     return write_pid_file(*pid_filepath);
 }
 
+// Extracts an option that must appear exactly once.  (This is often used for optional arguments
+// that have a default value.)
 std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts,
                               const std::string &name) {
     boost::optional<std::string> value = get_optional_option(opts, name);
@@ -256,16 +261,8 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     return result;
 }
 
-struct port_command_line_options_t {
-    std::set<ip_address_t> local_addresses;
-    int cluster_port;
-    int http_port;
-    bool http_admin_is_disabled;
-    int cluster_client_port;
-    int reql_port;
-    int port_offset;
-};
-
+// Returns the options vector for a given option name.  The option must *exist*!  Typically this is
+// for OPTIONAL_REPEAT options with a default value being the empty vector.
 const std::vector<std::string> &all_options(const std::map<std::string, std::vector<std::string> > &opts,
                                             const std::string &name) {
     auto it = opts.find(name);
@@ -275,6 +272,7 @@ const std::vector<std::string> &all_options(const std::map<std::string, std::vec
     return it->second;
 }
 
+// Gets a single integer option, often an optional integer option with a default value.
 int get_single_int(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
     const std::string value = get_single_option(opts, name);
     int64_t x;
@@ -287,6 +285,8 @@ int get_single_int(const std::map<std::string, std::vector<std::string> > &opts,
                                        name.c_str(), value.c_str()));
 }
 
+// Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
+// option exists.
 bool exists_option(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
     auto it = opts.find(name);
     return it != opts.end() && it->second.size() > 0;
@@ -296,31 +296,19 @@ int offseted_port(const int port, const int port_offset) {
     return port == 0 ? 0 : port + port_offset;
 }
 
-service_address_ports_t get_service_address_ports(port_command_line_options_t options) {
-    return service_address_ports_t(options.local_addresses,
-                                   offseted_port(options.cluster_port, options.port_offset),
-                                   options.cluster_client_port,
-                                   options.http_admin_is_disabled,
-                                   offseted_port(options.http_port, options.port_offset),
-                                   offseted_port(options.reql_port, options.port_offset),
-                                   options.port_offset);
-}
-
 service_address_ports_t get_service_address_ports(const std::map<std::string, std::vector<std::string> > &opts) {
-    port_command_line_options_t options;
-    options.local_addresses = get_local_addresses(all_options(opts, "--bind"));
-    options.cluster_port = get_single_int(opts, "--cluster-port");
-    options.http_port = get_single_int(opts, "--http-port");
-    options.http_admin_is_disabled = exists_option(opts, "--no-http-admin");
+    const int port_offset = get_single_int(opts, "--port-offset");
+    return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
+                                   offseted_port(get_single_int(opts, "--cluster-port"), port_offset),
 #ifndef NDEBUG
-    options.cluster_client_port = get_single_int(opts, "--client-port");
+                                   get_single_int(opts, "--client-port"),
 #else
-    options.cluster_client_port = port_defaults::client_port;
+                                   port_defaults::client_port,
 #endif
-    options.reql_port = get_single_int(opts, "--driver-port");
-    options.port_offset = get_single_int(opts, "--port-offset");
-
-    return get_service_address_ports(options);
+                                   exists_option(opts, "--no-http-admin"),
+                                   offseted_port(get_single_int(opts, "--http-port"), port_offset),
+                                   offseted_port(get_single_int(opts, "--driver-port"), port_offset),
+                                   port_offset);
 }
 
 
