@@ -286,8 +286,8 @@ bool notf(bool x);
 bool hex_to_int(char c, int *out);
 char int_to_hex(int i);
 
-std::string read_file(const char *path);
-bool read_file(const char *path, std::string *contents_out);
+std::string blocking_read_file(const char *path);
+bool blocking_read_file(const char *path, std::string *contents_out);
 
 struct path_t {
     std::vector<std::string> nodes;

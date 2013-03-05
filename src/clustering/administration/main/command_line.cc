@@ -807,7 +807,7 @@ MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::o
 std::map<std::string, std::vector<std::string> > parse_config_file_flat(const std::string &config_filepath,
                                                                         const std::vector<options::option_t> &options) {
     std::string file;
-    if (!read_file(config_filepath.c_str(), &file)) {
+    if (!blocking_read_file(config_filepath.c_str(), &file)) {
         throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
     }
 
