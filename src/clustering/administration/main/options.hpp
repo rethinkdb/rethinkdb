@@ -26,7 +26,7 @@ struct file_parse_error_t : public std::runtime_error {
 class names_t {
 public:
     // Include dashes.  For example, name might be "--blah".
-    explicit names_t(std::string name) {
+    explicit names_t(const std::string &name) {
         names.push_back(name);
     }
     // Include the right amount of dashes.  For example, official_name might
@@ -144,7 +144,8 @@ std::map<std::string, std::vector<std::string> > parse_config_file(const std::st
                                                                    const std::string &filepath,
                                                                    const std::vector<option_t> &options);
 
-
+// A help_line_t is a syntax description and a blurb.  When used in a help_section_t, the blurbs get
+// aligned and word-wrapped.
 struct help_line_t {
     help_line_t(const std::string &_syntax_description,
                 const std::string &_blurb)
@@ -154,6 +155,8 @@ struct help_line_t {
     std::string blurb;
 };
 
+// A help_section_t is a titled list of syntax descriptions and blurbs.  When rendered with
+// format_help, all the blurbs get aligned and word-wrapped.
 struct help_section_t {
     help_section_t() { }
     help_section_t(const std::string &_section_name)
@@ -169,6 +172,7 @@ struct help_section_t {
     std::vector<help_line_t> help_lines;
 };
 
+// Creates a help string suitable for output from --help, aligning and word-wrapping the blurbs.
 std::string format_help(const std::vector<help_section_t> &help);
 
 
