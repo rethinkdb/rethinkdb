@@ -363,7 +363,7 @@ const std::string &val_t::as_str() {
 
 void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
     rcheck(type.raw_type == expected_raw_type,
-           strprintf("Expected type %s but found type %s:\n%s",
+           strprintf("Expected type %s but found %s:\n%s",
                      type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
