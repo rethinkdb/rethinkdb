@@ -121,7 +121,7 @@ private:
         metadata_search_status_t status;
         db_searcher->find_uniq(db_name, &status);
         rcheck(status == METADATA_ERR_NONE,
-               strprintf("Database \"%s\" already exists.", db_name.c_str()));
+               strprintf("Database `%s` already exists.", db_name.c_str()));
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
@@ -169,7 +169,7 @@ private:
         namespace_predicate_t pred(&tbl_name, &db_id);
         ns_searcher->find_uniq(pred, &status);
         rcheck(status == METADATA_ERR_NONE,
-               strprintf("Table \"%s\" already exists.", tbl_name.c_str()));
+               strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
         on_thread_t write_rethreader(metadata_home_thread);
 
@@ -226,7 +226,7 @@ private:
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher->find_uniq(db_name, &status);
         rcheck(status == METADATA_SUCCESS,
-               strprintf("Database \"%s\" does not exist.", db_name.c_str()));
+               strprintf("Database `%s` does not exist.", db_name.c_str()));
         guarantee(!db_metadata->second.is_deleted());
         uuid_u db_id = db_metadata->first;
 
@@ -273,7 +273,7 @@ private:
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata = ns_searcher->find_uniq(pred, &status);
         rcheck(status == METADATA_SUCCESS,
-               strprintf("Table \"%s\" does not exist.", tbl_name.c_str()));
+               strprintf("Table `%s` does not exist.", tbl_name.c_str()));
         guarantee(!ns_metadata->second.is_deleted());
 
         // Delete table and join.
