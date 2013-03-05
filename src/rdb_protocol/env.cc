@@ -22,7 +22,7 @@ void env_t::push_implicit(const datum_t **val) {
     implicit_var.push(val);
 }
 const datum_t **env_t::top_implicit(const rcheckable_t *caller) {
-    rcheck_target(caller, !implicit_var.empty(), "Cannot use r.row in nested queries. Use functions instead.");
+    rcheck_target(caller, !implicit_var.empty(), "No implicit variable is bound.");
     rcheck_target(caller, implicit_var.size() == 1,
                   "Cannot use r.row in nested queries. Use functions instead.");
     return implicit_var.top();
