@@ -104,7 +104,7 @@ tests:
     
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type SELECTION but found ARRAY.', [0])
+      ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
 
     # TODO: test between on non-selections
     # TODO: test between without the first argument
