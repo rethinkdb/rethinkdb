@@ -45,7 +45,7 @@ tests:
     # TODO: test upsert option
     # TODO: test auto pkey generation
     # TODO: test auto pkey generation when pkey other than id is passed to table_create
-    # TODO: test pkey clash error case
+    # TODO: test pkey clash error case (inserting a pkey that already exists)
     # TODO: test what happens if one tries to insert into a non-insertable object
     
     # TODO: in all data modification operations (insert, update,

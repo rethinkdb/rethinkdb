@@ -288,13 +288,13 @@ class RDBZip extends RDBOp
     type: tp "Sequence -> Sequence"
     op: (args) -> args[0].zip()
 
-class RDBCoerce extends RDBOp
+class RDBCoerceTo extends RDBOp
     type: tp "Top, STRING -> Top"
-    op: new RqlRuntimeError "Not implemented"
+    op: (args) -> args[0].coerceTo args[1]
 
 class RDBTypeOf extends RDBOp
     type: tp "Top -> STRING"
-    op: new RqlRuntimeError "Not implemented"
+    op: (args) -> args[1].typeString()
 
 class RDBUpdate extends RDBOp
     type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
@@ -335,7 +335,7 @@ class RDBDbList extends RDBOp
 
 class RDBTableCreate extends RDBWriteOp
     type: tp "Database, STRING, {datacenter:STRING; primary_key:STRING; cache_size:NUMBER} -> OBJECT"
-    op: (args) -> args[0].createTable args[1]
+    op: (args, optargs) -> args[0].createTable args[1], optargs
 
 class RDBTableDrop extends RDBWriteOp
     type: tp "Database, STRING -> OBJECT"

@@ -14,6 +14,13 @@ CPPPORT = int(sys.argv[2])
 
 # -- utilities --
 
+def print_test_failure(test_name, test_src, message):
+    print ''
+    print "TEST FAILURE: %s" % test_name
+    print "TEST BODY: %s" % test_src
+    print message
+    print ''
+
 class Lst:
     def __init__(self, lst):
         self.lst = lst
@@ -93,11 +100,14 @@ class Err:
         return True
 
     def __repr__(self):
-        return "%s(%s)" % (self.etyp, repr(self.emsg) or '')
+        return "%s(\"%s\")" % (self.etyp, repr(self.emsg) or '')
 
 # -- Curried output test functions --
 
 def eq(exp):
+    if exp == ():
+        return lambda x: True
+
     if isinstance(exp, list):
         exp = Lst(exp)
     elif isinstance(exp, dict):
@@ -105,8 +115,6 @@ def eq(exp):
 
     def sub(val):
         if not (val == exp):
-            print "Equality comparison failed"
-            print "Value:", repr(val), "Expected:", repr(exp)
             return False
         else:
             return True
@@ -119,6 +127,7 @@ class PyTestDriver:
         print 'Connecting to JS server on port ' + str(JSPORT)
         self.js_conn = r.connect(host='localhost', port=JSPORT)
         print 'Connecting to CPP server on port ' + str(CPPPORT)
+        print ''
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
         self.scope = {}
 
@@ -129,42 +138,68 @@ class PyTestDriver:
 
         # Try to build the expected result
         if expected:
-            exp_fun = eval(expected, dict(globals().items() + self.scope.items()))
+            exp_val = eval(expected, dict(globals().items() + self.scope.items()))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
-            exp_fun = lambda v: True
+            #exp_fun = lambda v: True
+            exp_val = ()
 
         # If left off the comparison function is equality by default
-        if not isinstance(exp_fun, types.FunctionType):
-            exp_fun = eq(exp_fun)
+        #if not isinstance(exp_fun, types.FunctionType):
+        #    exp_fun = eq(exp_fun)
 
         # Try to build the test
         try:
             query = eval(src, dict(globals().items() + self.scope.items()))
         except Exception as err:
-            if not exp_fun(err):
-                print "Python error on construction of query %s:" % name, str(err), 'in:\n', src
-                return # Can't continue with this test if there is no test query
+            if not isinstance(exp_val, Err):
+                print_test_failure(name, src, "Error eval'ing test src:\n\t%s" % repr(err))
+            elif not eq(exp_val)(err):
+                print_test_failure(name, src,
+                    "Error eval'ing test src not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
+                        (repr(err), repr(exp_val))
+                )
+
+            return # Can't continue with this test if there is no test query
 
         # Try actually running the test
         try:
             cppres = query.run(self.cpp_conn)
 
             # And comparing the expected result
-            if not exp_fun(cppres):
-                print " in CPP version of:", src
+            if not eq(exp_val)(cppres):
+                print_test_failure(name, src,
+                    "CPP result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
+                        (repr(cppres), repr(exp_val))
+                )
 
         except Exception as err:
-            if not exp_fun(err):
-                print "Error on running of query %s on CPP server:" % name, str(err), 'in:\n', src
+            if not isinstance(exp_val, Err):
+                print_test_failure(name, src, "Error running test on CPP server:\n\t%s" % repr(err))
+            elif not eq(exp_val)(err):
+                print_test_failure(name, src,
+                    "Error running test on CPP server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
+                        (repr(err), repr(exp_val))
+                )
 
         try:
             jsres = query.run(self.js_conn)
-            if not exp_fun(jsres):
-                print " in JS version of:", src
+
+            # And comparing the expected result
+            if not eq(exp_val)(jsres):
+                print_test_failure(name, src,
+                    "JS result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
+                        (repr(jsres), repr(exp_val))
+                )
+
         except Exception as err:
-            if not exp_fun(err):
-                print "Error on running of query %s on JS server:" % name, str(err), 'in:\n', src
+            if not isinstance(exp_val, Err):
+                print_test_failure(name, src, "Error running test on JS server:\n\t%s" % repr(err))
+            elif not eq(exp_val)(err):
+                print_test_failure(name, src,
+                    "Error running test on JS server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
+                        (repr(err), repr(exp_val))
+                )
 
 driver = PyTestDriver()
 driver.connect()
