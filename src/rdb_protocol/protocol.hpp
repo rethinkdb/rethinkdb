@@ -567,7 +567,8 @@ struct rdb_protocol_t {
                 int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
-                context_t *ctx);
+                context_t *ctx,
+                io_backender_t *io);
         ~store_t();
 
     private:

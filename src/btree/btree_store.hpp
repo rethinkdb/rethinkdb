@@ -43,7 +43,8 @@ public:
                   int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
-                  typename protocol_t::context_t *);
+                  typename protocol_t::context_t *,
+                  io_backender_t *io_backender);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
@@ -372,6 +373,7 @@ public: // <--- so this is some bullshit right here
     perfmon_collection_t perfmon_collection;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
+    io_backender_t *io_backender_;
     perfmon_membership_t perfmon_collection_membership;
 
     boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;

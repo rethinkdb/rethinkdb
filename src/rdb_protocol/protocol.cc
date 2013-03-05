@@ -712,8 +712,9 @@ store_t::store_t(serializer_t *serializer,
                  int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
-                 context_t *_ctx) :
-    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target, create, parent_perfmon_collection, _ctx),
+                 context_t *_ctx,
+                 io_backender_t *io) :
+    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target, create, parent_perfmon_collection, _ctx, io),
     ctx(_ctx)
 { }
 

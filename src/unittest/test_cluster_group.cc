@@ -222,7 +222,10 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
         serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
-        stores.push_back(new typename protocol_t::store_t(&serializers[i], files[i].name(), GIGABYTE, true, NULL, &ctx));
+        stores.push_back(
+                new typename protocol_t::store_t(
+                    &serializers[i], files[i].name(), GIGABYTE, 
+                    true, NULL, &ctx, io_backender.get()));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));

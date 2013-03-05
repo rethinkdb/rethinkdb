@@ -37,7 +37,7 @@ public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *_ctx) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
             serializer(create_and_construct_serializer(&temp_file, io_backender)), ctx(_ctx),
-            store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), ctx) {
+            store(serializer.get(), temp_file.name(), GIGABYTE, true, &get_global_perfmon_collection(), ctx, io_backender) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;

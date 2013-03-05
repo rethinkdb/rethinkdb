@@ -88,7 +88,8 @@ void run_sindex_post_construction() {
             GIGABYTE,
             true,
             &get_global_perfmon_collection(),
-            NULL);
+            NULL,
+            io_backender.get());
 
     cond_t dummy_interuptor;
 

@@ -14,9 +14,11 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                          int64_t cache_target,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
-                                         typename protocol_t::context_t *)
+                                         typename protocol_t::context_t *,
+                                         io_backender_t *io_backender)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
+      io_backender_(io_backender),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
 {
     if (create) {
