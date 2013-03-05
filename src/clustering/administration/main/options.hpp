@@ -57,8 +57,10 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
-    friend void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                                   std::map<std::string, std::vector<std::string> > *const names_by_values_out);
+    friend void do_parse_command_line(int argc, const char *const *argv,
+                                      const std::vector<option_t> &options,
+                                      bool ignore_unrecognized,
+                                      std::map<std::string, std::vector<std::string> > *names_by_values_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
 
     // Names for the option, e.g. "-j", "--join"
@@ -90,6 +92,9 @@ private:
 // (the first parameter passed to names_t) for map keys.
 void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *names_by_values_out);
+
+void parse_command_line_ignore_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
+                                            std::map<std::string, std::vector<std::string> > *names_by_values_out);
 
 
 struct help_line_t {

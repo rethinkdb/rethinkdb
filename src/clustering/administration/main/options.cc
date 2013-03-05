@@ -79,8 +79,9 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
     return NULL;
 }
 
-void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
+void do_parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
+                           bool ignore_unrecognized,
+                           std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
     guarantee(argc >= 0);
 
     std::map<std::string, std::vector<std::string> > names_by_values;
@@ -94,7 +95,9 @@ void parse_command_line(const int argc, const char *const *const argv, const std
 
         const option_t *const option = find_option(option_name, options);
         if (!option) {
-            if (looks_like_option_name(option_name)) {
+            if (ignore_unrecognized) {
+                continue;
+            } else if (looks_like_option_name(option_name)) {
                 throw parse_error_t(strprintf("unrecognized option '%s'", option_name));
             } else {
                 throw parse_error_t(strprintf("unexpected unnamed value '%s' (did you forget "
@@ -139,6 +142,16 @@ void parse_command_line(const int argc, const char *const *const argv, const std
     }
 
     names_by_values_out->swap(names_by_values);
+}
+
+void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
+                        std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
+    do_parse_command_line(argc, argv, options, false, names_by_values_out);
+}
+
+void parse_command_line_ignore_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
+                                            std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    do_parse_command_line(argc, argv, options, true, names_by_values_out);
 }
 
 std::vector<std::string> split_by_spaces(const std::string &s) {
