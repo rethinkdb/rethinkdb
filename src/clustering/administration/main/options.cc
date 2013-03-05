@@ -79,13 +79,9 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
     return NULL;
 }
 
-bool parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *const names_by_values_out,
-                        std::string *const error_out) {
+void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
+                        std::map<std::string, std::vector<std::string> > *const names_by_values_out) {
     guarantee(argc >= 0);
-
-    names_by_values_out->clear();
-    error_out->clear();
 
     std::map<std::string, std::vector<std::string> > names_by_values;
 
@@ -99,13 +95,11 @@ bool parse_command_line(const int argc, const char *const *const argv, const std
         const option_t *const option = find_option(option_name, options);
         if (!option) {
             if (looks_like_option_name(option_name)) {
-                *error_out = strprintf("unrecognized option '%s'", option_name);
-                return false;
+                throw parse_error_t(strprintf("unrecognized option '%s'", option_name));
             } else {
-                *error_out = strprintf("unexpected unnamed value '%s' (did you forget "
-                                       "the option name, or forget to quote a parameter list?)",
-                                       option_name);
-                return false;
+                throw parse_error_t(strprintf("unexpected unnamed value '%s' (did you forget "
+                                              "the option name, or forget to quote a parameter list?)",
+                                              option_name));
             }
         }
 
@@ -113,9 +107,8 @@ bool parse_command_line(const int argc, const char *const *const argv, const std
 
         std::vector<std::string> *const option_parameters = &names_by_values[official_name];
         if (option_parameters->size() == static_cast<size_t>(option->max_appearances)) {
-            *error_out = strprintf("option '%s' appears too many times (i.e. more than %zu times)",
-                                   option_name, option->max_appearances);
-            return false;
+            throw parse_error_t(strprintf("option '%s' appears too many times (i.e. more than %zu times)",
+                                          option_name, option->max_appearances));
         }
 
         if (option->no_parameter) {
@@ -124,16 +117,14 @@ bool parse_command_line(const int argc, const char *const *const argv, const std
             option_parameters->push_back("");
         } else {
             if (i == argc) {
-                *error_out = strprintf("option '%s' is missing its parameter", option_name);
-                return false;
+                throw parse_error_t(strprintf("option '%s' is missing its parameter", option_name));
             }
 
             const char *const option_parameter = argv[i];
             ++i;
 
             if (looks_like_option_name(option_parameter)) {
-                *error_out = strprintf("option '%s' is missing its parameter (because '%s' looks like another option name)", option_name, option_parameter);
-                return false;
+                throw parse_error_t(strprintf("option '%s' is missing its parameter (because '%s' looks like another option name)", option_name, option_parameter));
             }
 
             option_parameters->push_back(option_parameter);
@@ -141,7 +132,6 @@ bool parse_command_line(const int argc, const char *const *const argv, const std
     }
 
     names_by_values_out->swap(names_by_values);
-    return true;
 }
 
 

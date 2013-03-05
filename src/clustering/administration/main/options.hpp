@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -48,9 +49,8 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
-    friend bool parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
-                                   std::map<std::string, std::vector<std::string> > *const names_by_values_out,
-                                   std::string *const error_out);
+    friend void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
+                                   std::map<std::string, std::vector<std::string> > *const names_by_values_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
 
     // Names for the option, e.g. "-j", "--join"
@@ -77,12 +77,15 @@ private:
     std::vector<std::string> default_values;
 };
 
+struct parse_error_t : public std::runtime_error {
+    parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
+};
+
 // Outputs names by values.  Outputs empty-string values for appearances of
 // OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option
 // (the first parameter passed to names_t) for map keys.
-bool parse_command_line(int argc, char **argv, const std::vector<option_t> &options,
-                        std::map<std::string, std::vector<std::string> > *names_by_values_out,
-                        std::string *error_out);
+void parse_command_line(int argc, char **argv, const std::vector<option_t> &options,
+                        std::map<std::string, std::vector<std::string> > *names_by_values_out);
 
 
 struct help_line_t {
