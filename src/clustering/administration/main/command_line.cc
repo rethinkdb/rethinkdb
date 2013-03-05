@@ -1743,25 +1743,37 @@ void help_rethinkdb_create() {
 }
 
 void help_rethinkdb_serve() {
-    std::stringstream sstream;
-    sstream << get_rethinkdb_serve_options_visible();
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_serve_options(&help_sections, &options);
+    }
+
     help_pager_t help;
     help.pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
-    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_proxy() {
-    std::stringstream sstream;
-    sstream << get_rethinkdb_proxy_options_visible();
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_serve_options(&help_sections, &options);
+    }
+
     help_pager_t help;
     help.pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
-    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_import() {
-    std::stringstream sstream;
-    sstream << get_rethinkdb_import_options();
+    std::vector<options::help_section_t> help_sections;
+    {
+        std::vector<options::option_t> options;
+        get_rethinkdb_serve_options(&help_sections, &options);
+    }
+
     help_pager_t help;
     help.pagef("'rethinkdb import' imports content from a CSV file.\n");
-    help.pagef("%s\n", sstream.str().c_str());
+    help.pagef("%s", format_help(help_sections).c_str());
 }
