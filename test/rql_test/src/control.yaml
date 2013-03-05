@@ -132,7 +132,6 @@ tests:
       ot: "'foobar'"
 
     # js error cases
-    # YYY
     - cd: r.js('(function() { return 1; })')
       ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
 
