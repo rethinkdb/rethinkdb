@@ -144,7 +144,9 @@ void do_parse_command_line(const int argc, const char *const *const argv, const 
     }
 
     names_by_values_out->swap(names_by_values);
-    unrecognized_out->swap(unrecognized);
+    if (unrecognized_out != NULL) {
+        unrecognized_out->swap(unrecognized);
+    }
 }
 
 void parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,

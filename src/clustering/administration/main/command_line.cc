@@ -1273,40 +1273,31 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
     bool result = false;
-    po::variables_map vm;
-    po::options_description options;
-    options.add(get_rethinkdb_admin_options());
 
     try {
-        po::command_line_parser parser(argc - 1, &argv[1]);
-        parser.options(options);
-        parser.allow_unregistered();
-        po::parsed_options parsed = parser.run();
-        po::store(parsed, vm);
-        po::notify(vm);
+        std::vector<options::option_t> options;
+        get_rethinkdb_admin_options(&options);
+
+        std::vector<std::string> command_args;
+        std::map<std::string, std::vector<std::string> > opts;
+        parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
+                                                    &command_args,
+                                                    &opts);
 
         std::vector<host_and_port_t> joins;
-        if (vm.count("join") > 0) {
-            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+            joins.push_back(parse_host_and_port(*it));
         }
+
 #ifndef NDEBUG
-        int client_port = vm["client-port"].as<int>();
+        const int client_port = get_single_int(opts, "--client-port");
 #else
-        int client_port = port_defaults::client_port;
+        const int client_port = port_defaults::client_port;
 #endif
-        bool exit_on_failure = false;
-        if (vm.count("exit-failure") > 0)
-            exit_on_failure = true;
-
-        std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional);
-
-        // This is an ugly hack, but it seems boost will ignore an empty flag at the end, which is very useful for completions
-        std::string last_arg(argv[argc - 1]);
-        if (last_arg == "-" || last_arg == "--")
-            cmd_args.push_back(last_arg);
+        const bool exit_on_failure = exists_option(opts, "--exit-failure");
 
         const int num_workers = get_cpu_count();
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, command_args, exit_on_failure, &result),
                            num_workers);
 
     } catch (const std::exception& ex) {
