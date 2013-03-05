@@ -801,22 +801,15 @@ MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::o
     }
 }
 
-void parse_config_file_flat(const std::string &config_filepath,
-                            const std::vector<options::option_t> &options,
-                            std::map<std::string, std::vector<std::string> > *names_by_values_ref) {
-
+std::map<std::string, std::vector<std::string> > parse_config_file_flat(const std::string &config_filepath,
+                                                                        const std::vector<options::option_t> &options) {
     std::string file;
     if (!read_file(config_filepath.c_str(), &file)) {
         throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
     }
 
-    std::map<std::string, std::vector<std::string> > file_opts = parse_config_file(file, config_filepath,
-                                                                                   options);
-
-    // We give priority to the stuff in names_by_values_ref, which were command line options.
-    options::merge_new_values(*names_by_values_ref, &file_opts);
-
-    names_by_values_ref->swap(file_opts);
+    return options::parse_config_file(file, config_filepath,
+                                      options);
 }
 
 MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
@@ -829,8 +822,8 @@ MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<optio
             if (config_file_it->second.size() != 1) {
                 throw std::runtime_error("expecting only one --config-file option");
             }
-            std::map<std::string, std::vector<std::string> > config_file_names_by_values;
-            parse_config_file_flat(config_file_it->second[0], options, &config_file_names_by_values);
+            std::map<std::string, std::vector<std::string> > config_file_names_by_values
+                = parse_config_file_flat(config_file_it->second[0], options);
 
             options::merge_new_values(names_by_values, &config_file_names_by_values);
             names_by_values.swap(config_file_names_by_values);
