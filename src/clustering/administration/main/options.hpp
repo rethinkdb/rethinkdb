@@ -7,6 +7,14 @@
 
 namespace options {
 
+struct parse_error_t : public std::runtime_error {
+    parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
+};
+
+struct validation_error_t : public std::runtime_error {
+    validation_error_t(const std::string &msg) : std::runtime_error(msg) { }
+};
+
 class names_t {
 public:
     // Include dashes.  For example, name might be "--blah".
@@ -75,10 +83,6 @@ private:
     // The value(s) to use if no appearances of the command line option are
     // available.  This is only relevant if min_appearances == 0.
     std::vector<std::string> default_values;
-};
-
-struct parse_error_t : public std::runtime_error {
-    parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
 };
 
 // Outputs names by values.  Outputs empty-string values for appearances of

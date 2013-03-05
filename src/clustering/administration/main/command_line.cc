@@ -21,6 +21,7 @@
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/import.hpp"
 #include "clustering/administration/main/json_import.hpp"
+#include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -545,6 +546,19 @@ po::options_description get_config_file_options() {
 po::options_description config_file_attach_wrapper(po::options_description desc) {
     desc.add(get_config_file_options());
     return desc;
+}
+
+host_and_port_t parse_host_and_port(const std::string &option) {
+    size_t colon_loc = option.find_first_of(':');
+    if (colon_loc != std::string::npos) {
+        std::string host = option.substr(0, colon_loc);
+        int port = atoi(option.substr(colon_loc + 1).c_str());
+        if (host.size() != 0 && port != 0) {
+            return host_and_port_t(host, port);
+        }
+    }
+
+    throw options::validation_error_t(strprintf("Invalid host-and-port-number: %s", option.c_str()));
 }
 
 /* This allows `host_and_port_t` to be used as a command-line argument with
