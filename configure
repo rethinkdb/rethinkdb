@@ -21,7 +21,7 @@ init () {
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
     support_libs="unwind tcmalloc_minimal v8 protobuf"
-    mostly_recommended_static="boost_serialization boost_program_options protobuf"
+    mostly_recommended_static="boost_program_options protobuf"
     recommended_static="tcmalloc_minimal"
     default_static="$mostly_recommended_static $recommended_static"
 
@@ -599,20 +599,10 @@ optional_dep () {
 }
 
 # An assoc-list of c++ code to test if a library works
-lib_test_code=':~
-  ~boost_serialization:
-    #include <fstream>
-    #include <boost/archive/text_oarchive.hpp>
-    #include <boost/archive/text_iarchive.hpp>
-    int main () {
-      std::ofstream ofs("filename");
-      boost::archive::text_oarchive oa(ofs);
-      return 0;
-    }'
+lib_test_code=':~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~
-  ~boost_serialization:boost_serialization-mt~'
+lib_alias=':~'
 
 # check_lib <name>
 # Check for the presence of a library and set the correct make flags for it

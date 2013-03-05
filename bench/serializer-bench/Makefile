@@ -1,9 +1,8 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2013 RethinkDB, all rights reserved.
 DEBUG?=0
 CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
 LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -pthread -lv8 -lcrypto
 OBJDIR:=../../build/release/obj
-#STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 STATIC_LIBRARIES:=protobuf boost_program_options
 EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 
