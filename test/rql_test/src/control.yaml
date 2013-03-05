@@ -44,8 +44,8 @@ tests:
       ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
       
     # YYY
-    #- cd: "r.do(1)"
-    #  ot: err("RqlRuntimeError", 'Expected type Function(*) but found NUMBER.', [1])
+    - cd: "r.do(1)"
+      ot: err("RqlRuntimeError", 'Expected type Function(*) but found NUMBER.', [1])
 
     - js: r.do(1, function(x) {})
       cd: []
@@ -134,8 +134,8 @@ tests:
 
     # js error cases
     # YYY
-    #- cd: r.js('(function() { return 1; })')
-    #  ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
+    - cd: r.js('(function() { return 1; })')
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
