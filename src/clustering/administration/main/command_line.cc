@@ -824,7 +824,7 @@ MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<optio
             opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
         }
         opts = options::merge(opts, default_values_map(options));
-        verify_option_counts(options, opts);
+        options::verify_option_counts(options, opts);
         *names_by_values_out = opts;
         return true;
     } catch (const std::exception &e) {
@@ -971,10 +971,12 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         get_rethinkdb_admin_options(&options);
 
         std::vector<std::string> command_args;
-        std::map<std::string, std::vector<std::string> > opts = options::default_values_map(options);
-        parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
-                                                    &command_args,
-                                                    &opts);
+        std::map<std::string, std::vector<std::string> > opts
+            = options::merge(options::parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
+                                                                                  &command_args),
+                             options::default_values_map(options));
+
+        options::verify_option_counts(options, opts);
 
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {

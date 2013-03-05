@@ -118,9 +118,9 @@ std::map<std::string, std::vector<std::string> > parse_command_line(int argc, co
 // order that they appeared in the options list.  This can lead to some weird situations, if you
 // passed "--recognized-foo 3 --unrecognized --recognized-bar 4 5" on the command line.  You would
 // get ["--unrecognized", "5"] in `*unrecognized_out`.
-void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
-                                                 std::vector<std::string> *unrecognized_out,
-                                                 std::map<std::string, std::vector<std::string> > *names_by_values_ref);
+std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
+    int argc, const char *const *argv, const std::vector<option_t> &options,
+    std::vector<std::string> *unrecognized_out);
 
 // Merges option values from two different sources together, with higher precedence going to the
 // left-hand argument.  Example usage:

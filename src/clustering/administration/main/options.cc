@@ -166,13 +166,15 @@ std::map<std::string, std::vector<std::string> > parse_command_line(const int ar
     return names_by_values;
 }
 
-void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
-                                                 std::vector<std::string> *unrecognized_out,
-                                                 std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
+    int argc, const char *const *argv, const std::vector<option_t> &options,
+    std::vector<std::string> *unrecognized_out) {
     // We check that unrecognized_out is not NULL because do_parse_command_line
     // throws some exceptions depending on the nullness of that value.
     guarantee(unrecognized_out != NULL);
-    do_parse_command_line(argc, argv, options, unrecognized_out, names_by_values_out);
+    std::map<std::string, std::vector<std::string> > ret;
+    do_parse_command_line(argc, argv, options, unrecognized_out, &ret);
+    return ret;
 }
 
 void verify_option_counts(const std::vector<option_t> &options,
