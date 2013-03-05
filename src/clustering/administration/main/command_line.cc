@@ -522,6 +522,17 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
     }
 }
 
+options::help_section_t get_machine_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Machine name options");
+    options_out->push_back(options::option_t(options::names_t("--machine-name", "-n"),
+                                             options::OPTIONAL,
+                                             get_random_machine_name()));
+    help.add("-n [ --machine-name ] arg",
+             "the name for this machine (as will appear in the metadata).  If not"
+             " specified, it will be randomly chosen from a short list of names.");
+    return help;
+}
+
 po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
@@ -537,11 +548,28 @@ po::options_description get_machine_options_visible() {
     return desc;
 }
 
+options::help_section_t get_file_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("File path options");
+    options_out->push_back(options::option_t(options::names_t("--directory", "-d"),
+                                             options::OPTIONAL,
+                                             "rethinkdb_data"));
+    help.add("-d [ --directory ] path", "specify directory to store data and metadata");
+    return help;
+}
+
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_data"), "specify directory to store data and metadata");
     return desc;
+}
+
+options::help_section_t get_config_file_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Configuration file options");
+    options_out->push_back(options::option_t(options::names_t("--config-file"),
+                                             options::OPTIONAL));
+    help.add("--config-file", "take options from a configuration file");
+    return help;
 }
 
 po::options_description get_config_file_options() {

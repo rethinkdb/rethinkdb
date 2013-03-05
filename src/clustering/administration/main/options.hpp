@@ -102,8 +102,15 @@ struct help_line_t {
 };
 
 struct help_section_t {
+    help_section_t() { }
+    help_section_t(const std::string &_section_name)
+        : section_name(_section_name) { }
     help_section_t(const std::string &_section_name, const std::vector<help_line_t> &_help_lines)
         : section_name(_section_name), help_lines(_help_lines) { }
+
+    void add(const std::string &syntax_description, const std::string &blurb) {
+        help_lines.push_back(help_line_t(syntax_description, blurb));
+    }
 
     std::string section_name;
     std::vector<help_line_t> help_lines;
