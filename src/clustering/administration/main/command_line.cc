@@ -1625,51 +1625,51 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     try {
-        po::variables_map vm;
-        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_porcelain_options())) {
+        std::vector<options::option_t> options;
+        {
+            std::vector<options::help_section_t> help;
+            get_rethinkdb_porcelain_options(&help, &options);
+        }
+
+        std::map<std::string, std::vector<std::string> > opts;
+        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (exists_option(opts, "--help")) {
             help_rethinkdb_porcelain();
             return EXIT_SUCCESS;
         }
-
-        const base_path_t base_path(vm["directory"].as<std::string>());
+        const base_path_t base_path(get_single_option(opts, "--directory"));
         const std::string logfilepath = get_logfilepath(base_path);
 
-        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
             fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
         std::vector<host_and_port_t> joins;
-        if (vm.count("join") > 0) {
-            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+            joins.push_back(parse_host_and_port(*it));
         }
 
-        service_address_ports_t address_ports;
-        address_ports = get_service_address_ports(vm);
+        const service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(vm, argv);
+        const std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend;
-        if (!pull_io_backend_option(vm, &io_backend)) {
-            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-            return EXIT_FAILURE;
-        }
+        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
-        const int num_workers = vm["cores"].as<int>();
+        const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
             return EXIT_FAILURE;
         }
 
-        if (write_pid_file(vm) != EXIT_SUCCESS) {
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -1689,8 +1689,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         install_fallback_log_writer(logfilepath);
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                                optional_variable_value<std::string>(vm["config-file"]));
-
+                                get_optional_option(opts, "--config-file"));
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
