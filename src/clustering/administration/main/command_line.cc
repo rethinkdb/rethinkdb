@@ -940,8 +940,6 @@ options::help_section_t get_rethinkdb_import_options(std::vector<options::option
                                              options::MANDATORY));
     help.add("--table db_name.table_name", "the database and table into which to import");
 
-    // TODO(OPTIONS) Fix parsing of datacenter -- in cases where we expected an
-    // empty string, now we just get an empty vector.
     options_out->push_back(options::option_t(options::names_t("--datacenter"),
                                              options::OPTIONAL));
     help.add("--datacenter name", "the datacenter into which to create a table");
@@ -1016,7 +1014,6 @@ MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::o
         return true;
     } catch (const std::runtime_error &e) {
         fprintf(stderr, "%s\n", e.what());
-        // TODO(OPTIONS): Output option description
         return false;
     }
 }
@@ -1150,7 +1147,6 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         }
 
         std::map<std::string, std::vector<std::string> > opts;
-        // TODO(OPTIONS): Just make parse_commands_deep throw an exception?
         if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
