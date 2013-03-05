@@ -840,6 +840,21 @@ po::options_description get_rethinkdb_serve_options_visible() {
     return desc;
 }
 
+void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
+                                 std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_network_options(true, options_out));
+    help_out->push_back(get_web_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
+
+    options::help_section_t help("Log options");
+    options_out->push_back(options::option_t(options::names_t("--log-file"),
+                                             options::OPTIONAL,
+                                             "log_file"));
+    help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
+    help_out->push_back(help);
+}
+
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options(true));
