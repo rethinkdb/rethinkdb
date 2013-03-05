@@ -329,6 +329,10 @@ std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
         it = jt;
     }
 
+    if (ret.empty()) {
+        ret.push_back("");
+    }
+
     return ret;
 }
 
