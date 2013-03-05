@@ -155,16 +155,25 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
+        const char *fail_msg = "FOREACH expects one or more write queries.";
+
         datum_stream_t *ds = arg(0)->as_seq();
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *row = ds->next()) {
-            const datum_t *d = arg(1)->as_func()->call(row)->as_datum();
-            if (d->get_type() == datum_t::R_OBJECT) {
-                stats = stats->merge(env, d, stats_merge);
-            } else {
-                for (size_t i = 0; i < d->size(); ++i) {
-                    stats = stats->merge(env, d->el(i), stats_merge);
+            val_t *v = arg(1)->as_func()->call(row);
+            try {
+                const datum_t *d = v->as_datum();
+                if (d->get_type() == datum_t::R_OBJECT) {
+                    stats = stats->merge(env, d, stats_merge);
+                } else {
+                    for (size_t i = 0; i < d->size(); ++i) {
+                        stats = stats->merge(env, d->el(i), stats_merge);
+                    }
                 }
+            } catch (const exc_t &e) {
+                throw exc_t(fail_msg, e.backtrace);
+            } catch (const datum_exc_t &de) {
+                rfail_target(v, "%s", fail_msg);
             }
         }
         return new_val(stats);

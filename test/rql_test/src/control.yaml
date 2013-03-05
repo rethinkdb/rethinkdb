@@ -180,14 +180,14 @@ tests:
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
-      ot: 'err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
     
     - cd: r.expr([1, 2, 3]).for_each(r.row)
-      ot: err("RqlRuntimeError", "Expected type WriteQuery but found NUMBER.", [0])
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
-      ot: err("RqlRuntimeError", "Expected type WriteQuery but found Table.", [0])
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
     
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
