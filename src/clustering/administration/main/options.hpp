@@ -1,5 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -7,12 +8,15 @@ namespace options {
 
 class names_t {
 public:
+    // Include dashes.  For example, name might be "--blah".
     explicit names_t(std::string name) {
         names.push_back(name);
     }
-    names_t(std::string name1, std::string name2) {
-        names.push_back(name1);
-        names.push_back(name2);
+    // Include the right amount of dashes.  For example, official_name might
+    // be "--help", and other_name might be "-h".
+    names_t(std::string official_name, std::string other_name) {
+        names.push_back(official_name);
+        names.push_back(other_name);
     }
 private:
     friend class option_t;
@@ -44,6 +48,11 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
+    friend bool parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options,
+                                   std::map<std::string, std::vector<std::string> > *const names_by_values_out,
+                                   std::string *const error_out);
+    friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
+
     // Names for the option, e.g. "-j", "--join"
     std::vector<std::string> names;
 
@@ -56,8 +65,8 @@ private:
     //
     // It must be the case that 0 <= min_appearances <= max_appearances <=
     // INT_MAX.
-    int min_appearances;
-    int max_appearances;
+    size_t min_appearances;
+    size_t max_appearances;
 
     // True if an option doesn't take a parameter.  For example, "--help" would
     // take no parameter.
@@ -67,6 +76,14 @@ private:
     // available.  This is only relevant if min_appearances == 0.
     std::vector<std::string> default_values;
 };
+
+// Outputs names by values.  Outputs empty-string values for appearances of
+// OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option
+// (the first parameter passed to names_t) for map keys.
+bool parse_command_line(int argc, char **argv, const std::vector<option_t> &options,
+                        std::map<std::string, std::vector<std::string> > *names_by_values_out,
+                        std::string *error_out);
+
 
 struct help_line_t {
     help_line_t(const std::string &_syntax_description,
