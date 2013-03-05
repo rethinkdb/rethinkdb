@@ -68,6 +68,27 @@ private:
     std::vector<std::string> default_values;
 };
 
+struct help_line_t {
+    help_line_t(const std::string &_syntax_description,
+                const std::string &_blurb)
+        : syntax_description(_syntax_description), blurb(_blurb) { }
+
+    std::string syntax_description;
+    std::string blurb;
+};
+
+struct help_section_t {
+    help_section_t(const std::string &_section_name, const std::vector<help_line_t> &_help_lines)
+        : section_name(_section_name), help_lines(_help_lines) { }
+
+    std::string section_name;
+    std::vector<help_line_t> help_lines;
+};
+
+
+
+
+
 
 
 }  // namespace options
