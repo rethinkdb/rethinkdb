@@ -19,6 +19,10 @@ struct file_parse_error_t : public std::runtime_error {
     file_parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
 };
 
+// Represents an option's names.  Be sure to include dashes!  Usage:
+//
+//     names_t("--max-foobars")  // An option name.
+//     names_t("--cores", "-c")  // An option name with an abbreviation
 class names_t {
 public:
     // Include dashes.  For example, name might be "--blah".
@@ -50,6 +54,17 @@ enum appearance_t {
     OPTIONAL_NO_PARAMETER
 };
 
+// A command line option with a name, specification of how many times it may appear, and whether it
+// takes a parameter.
+//
+// Examples:
+//     // An option that may be used at most once, with no parameter.
+//     option_t(names_t("--help", "-h"), OPTIONAL_NO_PARAMETER)
+//     // An option that may be used at most once, with a default value.  The user
+//     // could pass --cores 3 or -c 3, but not a naked -c.
+//     option_t(names_t("--cores", "-c"), OPTIONAL, strprintf("%d", get_cpu_count()));
+//     // An option that must appear one or more times.
+//     option_t(names_t("--join", "-j"), MANDATORY_REPEAT)
 class option_t {
 public:
     // Creates an option with the appropriate name and appearance specifier,
@@ -92,27 +107,40 @@ private:
     std::vector<std::string> default_values;
 };
 
-// Outputs names by values.  Outputs empty-string values for appearances of
-// OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option
-// (the first parameter passed to names_t) for map keys.
+// Merges new command line names and values into `*names_by_values_ref`.  Uses empty-string
+// parameter values for appearances of OPTIONAL_NO_PARAMETER options.  Uses the *official name* of
+// the option (the first parameter passed to names_t) for map keys.  The value
+// `*names_by_values_ref` should have been initialized using `default_values_map(...)`, or
+// theoretically even a parsing of options by another source (that wouldn't mind getting overridden
+// by the command line).
 void parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options,
                         std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
+// Like `parse_command_line`, except that it tolerates unrecognized options.  Out-of-place
+// positional parameters and unrecognized options are output to `*unrecognized_out`, in the same
+// order that they appeared in the options list.  This can lead to some weird situations, if you
+// passed "--recognized-foo 3 --unrecognized --recognized-bar 4 5" on the command line.  You would
+// get ["--unrecognized", "5"] in `*unrecognized_out`.
 void parse_command_line_and_collect_unrecognized(int argc, const char *const *argv, const std::vector<option_t> &options,
                                                  std::vector<std::string> *unrecognized_out,
                                                  std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
-// new_values overwrites the values in names_by_values_ref.
+// Merges new option values into lower-priority option specifications already present in
+// `*names_by_values_ref`.  For example, command line options override config file options, and
+// config file options override default values.
 void merge_new_values(const std::map<std::string, std::vector<std::string> > &new_values,
                       std::map<std::string, std::vector<std::string> > *names_by_values_ref);
 
+// Verifies that given options build the right amount of times.  This is separate from option
+// parsing because we need to accumulate options from both the command line and config file.
 void verify_option_counts(const std::vector<option_t> &options,
                           const std::map<std::string, std::vector<std::string> > &names_by_values);
 
+// Constructs a map of default option values.
 std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
 
-// We parse the file contents, using filepath solely for error messages,
-// retrieving some options.
+// Parses the file contents, using filepath solely to help build error messages, retrieving some
+// options.
 std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &contents,
                                                                    const std::string &filepath,
                                                                    const std::vector<option_t> &options);
