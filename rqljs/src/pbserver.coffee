@@ -175,7 +175,7 @@ class RDBPbServer
             when Term2.TermType.OUTER_JOIN   then RDBOuterJoin
             when Term2.TermType.EQ_JOIN      then RDBEqJoin
             when Term2.TermType.ZIP          then RDBZip
-            when Term2.TermType.COERCE       then RDBCoerce
+            when Term2.TermType.COERCE_TO    then RDBCoerceTo
             when Term2.TermType.TYPEOF       then RDBTypeOf
             when Term2.TermType.UPDATE       then RDBUpdate
             when Term2.TermType.DELETE       then RDBDelete

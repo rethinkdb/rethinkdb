@@ -57,7 +57,7 @@ class RDBVal extends TermBase
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
     zip: -> new Zip {}, @
-    coerce: ar (type) -> new Coerce {}, @, type
+    coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: -> new TypeOf {}, @
     update: ar (func) -> new Update {}, @, funcWrap(func)
     delete: -> new Delete {}, @
@@ -379,8 +379,8 @@ class Zip extends RDBOp
     mt: 'zip'
 
 class Coerce extends RDBOp
-    tt: Term2.TermType.COERCE
-    mt: 'coerce'
+    tt: Term2.TermType.COERCE_TO
+    mt: 'coerceTo'
 
 class TypeOf extends RDBOp
     tt: Term2.TermType.TYPEOF

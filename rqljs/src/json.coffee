@@ -33,6 +33,12 @@ class RDBType
         else if typeof @asJSON() is 'string'
             RDBType.STRING
 
+    # A noop for now. What type conversions would matter?
+    coerceTo: (other_type) -> @
+        
+
+    typeString: -> TypeName::typeOf(@).toString()
+
     asJSON: -> throw new ServerError "Abstract method"
     copy:   -> throw new ServerError "Abstract method"
 

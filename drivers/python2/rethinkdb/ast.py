@@ -14,7 +14,7 @@ class RDBBase():
     def __repr__(self):
         return "<RDBBase instance: %s >" % str(self)
 
-class RDBComparable:
+class RDBAllValues:
     def __eq__(self, other):
         return Eq(self, other)
 
@@ -33,7 +33,13 @@ class RDBComparable:
     def __ge__(self, other):
         return Ge(self, other)
 
-class RDBValue(RDBBase, RDBComparable):
+    def coerce_to(self, other_type):
+        return CoerceTo(self, other_type)
+
+    def type_of(self):
+        return TypeOf(self)
+
+class RDBValue(RDBBase, RDBAllValues):
     def __invert__(self):
         return Not(self)
 
@@ -129,7 +135,7 @@ class RDBOp(RDBBase):
             pair.key = k
             self.optargs[k].build(pair.val)
 
-class RDBSequence(RDBBase, RDBComparable):
+class RDBSequence(RDBBase, RDBAllValues):
     def append(self, val):
         return Append(self, val)
 
@@ -548,6 +554,14 @@ class EqJoin(RDBSeqOp, RDBMethod):
 class Zip(RDBSeqOp, RDBMethod):
     tt = p.Term2.ZIP
     st = 'zip'
+
+class CoerceTo(RDBAnyOp):
+    tt = p.Term2.COERCE_TO
+    mt = 'coerce_to'
+
+class TypeOf(RDBAnyOp):
+    tt = p.Term2.TYPEOF
+    mt = 'type_of'
 
 class Update(RDBOp, RDBMethod):
     tt = p.Term2.UPDATE
