@@ -707,11 +707,29 @@ po::options_description get_network_options(bool join_required) {
     return desc;
 }
 
+options::help_section_t get_disk_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Disk I/O options");
+    options_out->push_back(options::option_t(options::names_t("--io-backend"),
+                                             options::OPTIONAL,
+                                             "pool"));
+    help.add("--io-backend backend", "event backend to use: native or pool");
+    return help;
+}
+
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
         ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.");
     return desc;
+}
+
+options::help_section_t get_cpu_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("CPU options");
+    options_out->push_back(options::option_t(options::names_t("--cores", "-c"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", get_cpu_count())));
+    help.add("-c [ --cores ] n", "the number of cores to use");
+    return help;
 }
 
 po::options_description get_cpu_options() {
@@ -721,11 +739,27 @@ po::options_description get_cpu_options() {
     return desc;
 }
 
+options::help_section_t get_service_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Service options");
+    options_out->push_back(options::option_t(options::names_t("--pid-file"),
+                                             options::OPTIONAL));
+    help.add("--pid-file path", "a file in which to write the process id when the process is running");
+    return help;
+}
+
 po::options_description get_service_options() {
     po::options_description desc("Service options");
     desc.add_options()
         ("pid-file", po::value<std::string>(), "specify a file in which to stash the pid when the process is running");
     return desc;
+}
+
+options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Help options");
+    options_out->push_back(options::option_t(options::names_t("--help", "-h"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("-h [ --help ]", "print this help");
+    return help;
 }
 
 po::options_description get_help_options() {
