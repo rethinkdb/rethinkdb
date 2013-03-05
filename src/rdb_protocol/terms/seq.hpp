@@ -125,7 +125,8 @@ private:
 
 class union_term_t : public op_term_t {
 public:
-    union_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(0, -1)) { }
+    union_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual val_t *eval_impl() {
         std::vector<datum_stream_t *> streams;

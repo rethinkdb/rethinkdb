@@ -19,7 +19,8 @@
 namespace js {
 
 // Returns an empty pointer on error.
-boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg);
+boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value,
+                                         std::string *errmsg);
 
 // Should never error.
 v8::Handle<v8::Value> fromJSON(const cJSON &json);

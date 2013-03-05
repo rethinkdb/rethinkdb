@@ -140,7 +140,8 @@ void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
 }
 
 // ----- runner_t::run_task_t -----
-runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
+runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config,
+                                 const task_t &task)
     : runner_(runner)
 {
     guarantee(!runner_->running_task_);
@@ -231,11 +232,12 @@ struct eval_task_t : auto_task_t<eval_task_t> {
 
             } else {
 
-                // Scripts that evaluate to functions become RQL Func terms that can be passed
-                // to map, filter, reduce, etc.
+                // Scripts that evaluate to functions become RQL Func terms that
+                // can be passed to map, filter, reduce, etc.
                 if (result_val->IsFunction()) {
 
-                    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(result_val);
+                    v8::Handle<v8::Function> func
+                        = v8::Handle<v8::Function>::Cast(result_val);
                     result = env->rememberValue(func);
 
                 } else {
@@ -320,14 +322,16 @@ struct call_task_t : auto_task_t<call_task_t> {
         std::string *errmsg = boost::get<std::string>(&result);
 
         v8::HandleScope handle_scope;
-        v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
+        v8::Handle<v8::Function> func
+            = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
         guarantee(!func.IsEmpty());
 
         v8::Handle<v8::Value> value = eval(func, errmsg);
         if (!value.IsEmpty()) {
-            
+
             if (value->IsFunction()) {
-                v8::Handle<v8::Function> sub_func = v8::Handle<v8::Function>::Cast(value);
+                v8::Handle<v8::Function> sub_func
+                    = v8::Handle<v8::Function>::Cast(value);
                 result = env->rememberValue(sub_func);
             } else {
 

@@ -18,7 +18,8 @@ name_string_t get_name(val_t *val, const term_t *caller) {
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, assignment_successful,
-                  strprintf("Database name \"%s\" invalid (%s).", raw_name.c_str(), valid_char_msg));
+                  strprintf("Database name \"%s\" invalid (%s).",
+                            raw_name.c_str(), valid_char_msg));
     return name;
 }
 
@@ -100,7 +101,8 @@ private:
     virtual val_t *eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
-                                     strprintf("Database \"%s\" does not exist.", db_name.c_str()), this));
+                                     strprintf("Database \"%s\" does not exist.",
+                                               db_name.c_str()), this));
     }
     RDB_NAME("db");
 };
@@ -118,12 +120,14 @@ private:
         // Ensure database doesn't already exist.
         metadata_search_status_t status;
         db_searcher->find_uniq(db_name, &status);
-        rcheck(status == METADATA_ERR_NONE, strprintf("Database \"%s\" already exists.", db_name.c_str()));
+        rcheck(status == METADATA_ERR_NONE,
+               strprintf("Database \"%s\" already exists.", db_name.c_str()));
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
         db.name = vclock_t<name_string_t>(db_name, env->this_machine);
-        metadata.databases.databases.insert(std::make_pair(generate_uuid(), make_deletable(db)));
+        metadata.databases.databases.insert(std::make_pair(generate_uuid(),
+                                                           make_deletable(db)));
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(),
                                env->this_machine, false);
@@ -164,7 +168,8 @@ private:
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
         ns_searcher->find_uniq(pred, &status);
-        rcheck(status == METADATA_ERR_NONE, strprintf("Table \"%s\" already exists.", tbl_name.c_str()));
+        rcheck(status == METADATA_ERR_NONE,
+               strprintf("Table \"%s\" already exists.", tbl_name.c_str()));
 
         on_thread_t write_rethreader(metadata_home_thread);
 
@@ -178,7 +183,8 @@ private:
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
                 change(&metadata.rdb_namespaces);
-            change.get()->namespaces.insert(std::make_pair(namespace_id, make_deletable(ns)));
+            change.get()->namespaces.insert(std::make_pair(namespace_id,
+                                                           make_deletable(ns)));
         }
         try {
             fill_in_blueprints(&metadata, directory_metadata->get(),
@@ -219,7 +225,8 @@ private:
         metadata_search_status_t status;
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = db_searcher->find_uniq(db_name, &status);
-        rcheck(status == METADATA_SUCCESS, strprintf("Database \"%s\" does not exist.", db_name.c_str()));
+        rcheck(status == METADATA_SUCCESS,
+               strprintf("Database \"%s\" does not exist.", db_name.c_str()));
         guarantee(!db_metadata->second.is_deleted());
         uuid_u db_id = db_metadata->first;
 
@@ -265,7 +272,8 @@ private:
         namespace_predicate_t pred(&tbl_name, &db_id);
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata = ns_searcher->find_uniq(pred, &status);
-        rcheck(status == METADATA_SUCCESS, strprintf("Table \"%s\" does not exist.", tbl_name.c_str()));
+        rcheck(status == METADATA_SUCCESS,
+               strprintf("Table \"%s\" does not exist.", tbl_name.c_str()));
         guarantee(!ns_metadata->second.is_deleted());
 
         // Delete table and join.

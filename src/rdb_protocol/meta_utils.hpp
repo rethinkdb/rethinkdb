@@ -5,7 +5,12 @@
 
 #include "clustering/administration/metadata.hpp"
 
-void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor, boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t);
+void wait_for_rdb_table_readiness(
+    namespace_repo_t<rdb_protocol_t> *ns_repo,
+    namespace_id_t namespace_id,
+    signal_t *interruptor,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        semilattice_metadata) THROWS_ONLY(interrupted_exc_t);
 
 namespace ql {
 
@@ -33,7 +38,7 @@ static uuid_u meta_get_uuid(T *searcher, const U &predicate,
                             const std::string &message, V *caller) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
-    rcheck_target(caller, status == METADATA_SUCCESS, message); 
+    rcheck_target(caller, status == METADATA_SUCCESS, message);
     return entry->first;
 }
 

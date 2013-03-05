@@ -35,7 +35,8 @@ class scoped_id_t {
     friend class runner_t;
 
   public:
-    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID) : parent_(parent), id_(id) {}
+    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID)
+        : parent_(parent), id_(id) {}
     ~scoped_id_t();
 
     bool empty() const { return id_ == INVALID_ID; }
