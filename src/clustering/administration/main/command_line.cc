@@ -84,7 +84,7 @@ MUST_USE bool numwrite(const char *path, int number) {
     return true;
 }
 
-static std::string pid_file = NULL;
+static std::string pid_file;
 
 void remove_pid_file() {
     if (!pid_file.empty()) {
