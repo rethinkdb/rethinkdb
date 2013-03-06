@@ -37,6 +37,10 @@ tests:
         }())
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
       ot: ({'inserted':100})
+    
+    # Table type
+    - cd: tbl.type_of()
+      ot: "'TABLE'"
 
     # Missing db case
     - cd: r.db('missing').table('bar')
