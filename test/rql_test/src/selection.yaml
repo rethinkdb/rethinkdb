@@ -49,19 +49,19 @@ tests:
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
-      ot: {'inserted':1}
+      ot: ({'inserted':1})
 
     # make sure we can query json docs by arbitrary unicode attrs
     - js:
         cd: tbl3.get('Здравствуй')
-        ot: {'id':'Здравствуй','value':'Земля!'}
+        ot: ({'id':'Здравствуй','value':'Земля!'})
       py:
         cd: tbl3.get(u'Здравствуй')
-        ot: "{u'id':u'Здравствуй',u'value':u'Земля!'}"
+        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
       
     - js:
         cd: tbl3.filter({'value':'Земля!'})
-        ot: [{'id':'Здравствуй','value':'Земля!'}]
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
       py:
         cd: tbl3.filter({'value':u'Земля!'})
         ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"

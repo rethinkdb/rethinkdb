@@ -101,7 +101,14 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     testName = testPair[2];
 
-                    var exp_fun = eval(testPair[1]);
+                    try {
+                        var exp_fun = eval(testPair[1]);
+                    } catch (err) {
+                        // Oops, this shouldn't have happened
+                        console.log(testName);
+                        console.log(testPair[1]);
+                        throw err;
+                    }
                     if (!exp_fun)
                         exp_fun = function() { return true; };
 
