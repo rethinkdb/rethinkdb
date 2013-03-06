@@ -5,6 +5,19 @@ var CPPPORT = process.argv[3]
 
 // -- utilities --
 
+Object.prototype.toString = function() {
+    var s = '{'
+    for (k in this) {
+        if (!this.hasOwnProperty(k)) continue;
+        s += k;
+        s += ':'
+        s += this[k].toString();
+        s += ', ';
+    }
+    s += '}';
+    return s;
+};
+
 function printTestFailure(name, src, message) {
     console.log("\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"+message+"\n");
 }
