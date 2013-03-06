@@ -48,10 +48,6 @@ private:
     std::string parameter_value_;
 };
 
-struct validation_error_t : public std::runtime_error {
-    validation_error_t(const std::string &msg) : std::runtime_error(msg) { }
-};
-
 struct file_parse_error_t : public std::runtime_error {
     file_parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
 };

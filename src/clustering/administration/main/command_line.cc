@@ -566,17 +566,18 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
-host_and_port_t parse_host_and_port(const std::string &option) {
-    size_t colon_loc = option.find_first_of(':');
+host_and_port_t parse_host_and_port(const std::string &option_name, const std::string &value) {
+    size_t colon_loc = value.find_first_of(':');
     if (colon_loc != std::string::npos) {
-        std::string host = option.substr(0, colon_loc);
-        int port = atoi(option.substr(colon_loc + 1).c_str());
+        std::string host = value.substr(0, colon_loc);
+        int port = atoi(value.substr(colon_loc + 1).c_str());
         if (host.size() != 0 && port != 0) {
             return host_and_port_t(host, port);
         }
     }
 
-    throw options::validation_error_t(strprintf("Invalid host-and-port-number: %s", option.c_str()));
+    throw options::value_error_t(option_name, strprintf("Option '%s' has invalid host and port number '%s'",
+                                                        option_name.c_str(), value.c_str()));
 }
 
 options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
@@ -775,15 +776,17 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_help_options(options_out));
 }
 
-io_backend_t get_io_backend_option(const std::string &option) {
-    if (option == "pool") {
+io_backend_t get_io_backend_option(const std::string &option_name, const std::string &value) {
+    if (value == "pool") {
         return aio_pool;
 #ifdef AIOSUPPORT
-    } else if (option == "native") {
+    } else if (value == "native") {
         return aio_native;
 #endif
     } else {
-        throw options::validation_error_t(strprintf("Invalid --io-backend value: '%s'", option.c_str()));
+        throw options::value_error_t(option_name, strprintf("Option '%s' has invalid value '%s'",
+                                                            option_name.c_str(),
+                                                            value.c_str()));
     }
 }
 
@@ -851,7 +854,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
 
         const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
@@ -914,14 +917,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
-            joins.push_back(parse_host_and_port(*it));
+            joins.push_back(parse_host_and_port("--join", *it));
         }
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
         std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
@@ -980,7 +983,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
-            joins.push_back(parse_host_and_port(*it));
+            joins.push_back(parse_host_and_port("--join", *it));
         }
 
 #ifndef NDEBUG
@@ -1022,7 +1025,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
-            joins.push_back(parse_host_and_port(*it));
+            joins.push_back(parse_host_and_port("--join", *it));
         }
 
         if (joins.empty()) {
@@ -1096,7 +1099,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
-            joins.push_back(parse_host_and_port(*it));
+            joins.push_back(parse_host_and_port("--join", *it));
         }
 
         if (joins.empty()) {
@@ -1215,14 +1218,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         }
         std::vector<host_and_port_t> joins;
         for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
-            joins.push_back(parse_host_and_port(*it));
+            joins.push_back(parse_host_and_port("--join", *it));
         }
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
         const std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
