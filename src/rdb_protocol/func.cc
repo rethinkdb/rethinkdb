@@ -157,6 +157,17 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
+bool func_t::filter_call(env_t *env, const datum_t *arg) {
+    const datum_t *d = call(arg)->as_datum();
+    if (d->get_type() == datum_t::R_OBJECT) {
+        func_t *f2 = new_filter_func(env, d, this);
+        d = f2->call(arg)->as_datum();
+    }
+    if (d->get_type() == datum_t::R_BOOL) return d->as_bool();
+    rfail("FILTER must be passed either an OBJECT or a predicate (got %s).",
+          d->get_type_name());
+}
+
 func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
                                 const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
@@ -187,7 +198,7 @@ func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
     Term2 *arg = &twrap->t;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-    N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+        N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
 #pragma GCC diagnostic pop
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));

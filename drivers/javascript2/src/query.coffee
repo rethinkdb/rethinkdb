@@ -41,3 +41,6 @@ rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, tr
 rethinkdb.count =           {'COUNT': true}
 rethinkdb.sum   = ar (attr) -> {'SUM': attr}
 rethinkdb.avg   = ar (attr) -> {'AVG': attr}
+
+rethinkdb.asc = (attr) -> new Asc {}, attr
+rethinkdb.desc = (attr) -> new Desc {}, attr

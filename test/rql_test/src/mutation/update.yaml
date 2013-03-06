@@ -21,7 +21,7 @@ tests:
             }
             return res;
         }())
-      rb: tbl.insert((1..100).map{ |i| { :id => i } })
+      rb: tbl.insert((0...100).map{ |i| { :id => i } })
       ot: ({'inserted':100})
 
     - cd: tbl.count()
@@ -46,7 +46,7 @@ tests:
 
     - py: tbl.between(10, 19).update(lambda row:{'a':row['id']})
       js: tbl.between(10, 19).update(function(row) { return {'a':row('id')}; })
-      rb: tbl.between(10, 10).update{ |row| { :a => row('id') } }
+      rb: tbl.between(10, 19).update{ |row| { :a => row[:id] } }
       ot: ({'replaced':9, 'unchanged':1})
 
     - py: tbl.filter(lambda row:(row['id'] >= 10) & (row['id'] < 20)).update(lambda row:{'a':row['id']})

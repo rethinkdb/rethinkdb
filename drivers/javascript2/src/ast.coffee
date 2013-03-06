@@ -479,13 +479,13 @@ class ForEach extends RDBOp
     mt: 'forEach'
 
 funcWrap = (val) ->
-    if val instanceof Function
-        return new Func {}, val
+    val = rethinkdb.expr(val)
 
     ivarScan = (node) ->
         unless node instanceof TermBase then return false
         if node instanceof ImplicitVar then return true
         if (node.args.map ivarScan).some((a)->a) then return true
+        if (v for own k,v of node.optargs).map(ivarScan).some((a)->a) then return true
         return false
 
     if ivarScan(val)
@@ -511,3 +511,11 @@ class Func extends RDBOp
 
     compose: (args) ->
         ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+
+class Asc extends RDBOp
+    tt: Term2.TermType.ASC
+    st: 'asc'
+
+class Desc extends RDBOp
+    tt: Term2.TermType.DESC
+    st: 'desc'

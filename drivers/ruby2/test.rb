@@ -214,11 +214,11 @@ class ClientTest < Test::Unit::TestCase
   def test_ordering
     docs = (0..9).map {|n| {"id" => ((100 + n)), "a" => (n), "b" => ((n % 3))}}
     assert_equal(docs.sort_by {|x| x["a"]}, r(docs).orderby(:s).run($c))
-    assert_equal(docs.sort_by {|x| x["a"]}.reverse, r(docs).orderby('-a').run($c))
+    assert_equal(docs.sort_by {|x| x["a"]}.reverse, r(docs).orderby(r.desc('a')).run($c))
     assert_equal(docs.select {|x| (x["b"] == 0)}.sort_by {|x| x["a"]},
                  r(docs).filter{|x| x[:b].eq 0}.orderby('+a').run($c))
     assert_equal(docs.select {|x| (x["b"] == 0)}.sort_by {|x| x["a"]}.reverse,
-                 r(docs).filter{|x| x[:b].eq 0}.orderby('-a').run($c))
+                 r(docs).filter{|x| x[:b].eq 0}.orderby(r.desc('a')).run($c))
   end
 
   # +,-,%,*,/,<,>,<=,>=,eq,ne,any,all
@@ -469,13 +469,13 @@ class ClientTest < Test::Unit::TestCase
   # ORDERBY, MAP
   def test_order_by
     assert_equal(data, tbl.order_by(:id).run($c).to_a)
-    assert_equal(data, tbl.order_by("id").run($c).to_a)
+    assert_equal(data, tbl.order_by(r.asc(:id)).run($c).to_a)
     assert_equal(data, tbl.order_by(:id).run($c).to_a)
-    assert_equal(data, tbl.order_by(:"+id").run($c).to_a)
-    assert_equal(data.reverse, tbl.order_by(:"-id").run($c).to_a)
+    assert_equal(data, tbl.order_by(r.asc("id")).run($c).to_a)
+    assert_equal(data.reverse, tbl.order_by(r.desc(:id)).run($c).to_a)
     query = tbl.map {|x|
       r(:id => (x[:id]), :num => (x[:id].mod(2)))
-   }.order_by(:num, '-id')
+   }.order_by(:num, r.desc('id'))
     want = data.map {|o| o["id"]}.sort_by {|n| (((n % 2) * data.length) - n)}
     assert_equal(want, query.run($c).to_a.map {|o| o["id"]})
   end

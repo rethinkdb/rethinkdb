@@ -181,7 +181,7 @@ tests:
       ot: true
 
     - py: r.expr('abcdefg') > 'abcdeg'
-      cd: r('abcdefg').lt('abcdeg')
+      cd: r('abcdefg').gt('abcdeg')
       ot: false
 
     - py: r.expr('A quick brown fox') > 'A quick brawn fox'
@@ -314,7 +314,7 @@ tests:
       rb: r([1,2]) < false
       ot: true
 
-    - py: r.expr(False) == []
+    - py: r.expr(False) < []
       js: r(false).lt([])
       rb: r(false) < []
       ot: false
@@ -326,12 +326,12 @@ tests:
 
     - py: r.expr(None) > []
       js: r(null).gt([])
-      rb: r(nil) < []
+      rb: r(nil) > []
       ot: true
 
     - py: r.expr(None) < 12
       js: r(null).lt(12)
-      rb: r(nil) > 12
+      rb: r(nil) < 12
       ot: true
      
     - py: r.expr(None) < -2

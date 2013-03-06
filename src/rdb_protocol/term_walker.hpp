@@ -34,6 +34,13 @@ public:
         val_pusher_t<int> depth_pusher(&depth, depth+1);
         add_bt(t, parent, frame);
 
+        if (t->type() == Term2::ASC || t->type() == Term2::DESC) {
+            rcheck_src(&t->GetExtension(ql2::extension::backtrace),
+                       parent && parent->type() == Term2::ORDERBY,
+                       strprintf("%s may only be used as an argument to ORDERBY.",
+                                 (t->type() == Term2::ASC ? "ASC" : "DESC")));
+        }
+
         bool writes_still_legal = writes_are_still_legal(parent, frame);
         rcheck_src(&t->GetExtension(ql2::extension::backtrace),
                    writes_still_legal || !term_is_write_or_meta(t),

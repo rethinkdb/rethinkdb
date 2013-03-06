@@ -101,7 +101,14 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     testName = testPair[2];
 
-                    var exp_fun = eval(testPair[1]);
+                    try {
+                        var exp_fun = eval(testPair[1]);
+                    } catch (err) {
+                        // Oops, this shouldn't have happened
+                        console.log(testName);
+                        console.log(testPair[1]);
+                        throw err;
+                    }
                     if (!exp_fun)
                         exp_fun = function() { return true; };
 
@@ -295,8 +302,8 @@ function err(err_name, err_msg, err_frames) {
 
 function arr(length, eq_fun) {
     var fun = function(thing) {
-        if (!thing.length || thing.length === length) return false;
-        return !eq_fun || eq_fun(thing);
+        if (!thing.length || thing.length !== length) return false;
+        return !eq_fun || thing.every(eq_fun);
     };
     fun.toString = function() {
         return "arr("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
@@ -306,7 +313,6 @@ function arr(length, eq_fun) {
 
 function uuid() {
     var fun = function(thing) {
-        console.log(thing);
         return thing.match && thing.match(/[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/);
     };
     fun.toString = function() {

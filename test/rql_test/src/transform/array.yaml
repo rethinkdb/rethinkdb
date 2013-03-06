@@ -112,8 +112,14 @@ tests:
     - cd: objArr.order_by('b')
       rb: objArr.order_by :b
       ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
-    - cd: objArr.order_by('-b')
+      
+    - cd: objArr.order_by(r.desc('b'))
       ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
+
+    # TODO: test other orderBy cases (e.g. nested r.desc/asc, multiple
+    # arguments to orderby and r.desc/asc, sorting by missing
+    # attributes, passing wrong types to orderBy and r.asc/desc)
+    # TODO: make sure we don't allow string interpolation syntax in orderBy (e.g. '-')
 
     ## Distinct
 

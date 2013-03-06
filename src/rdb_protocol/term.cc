@@ -158,7 +158,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
                 r_sanity_check(b);
             } else {
                 rfail_toplevel("Query result must be of type DATUM or STREAM "
-                               "(got %s)", val->get_type().name());
+                               "(got %s).", val->get_type().name());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);

@@ -22,7 +22,14 @@ module RethinkDB
       :order_by => :orderby,
       :group_by => :groupby,
       :concat_map => :concatmap,
-      :for_each => :foreach
+      :for_each => :foreach,
+      :js => :javascript
+    }
+    @@arg_count = {
+      :error => 1,
+      :map => 2,
+      :filter => 2,
+      :get => 2
     }
     def method_missing(m, *a, &b)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
@@ -52,6 +59,19 @@ module RethinkDB
       end
 
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+
+      if arg_count = @@arg_count[m]
+        if args.length != arg_count
+          num_args = args.length
+          if @body
+            num_args -= 1
+            arg_count -= 1
+          end
+          raise RqlDriverError,
+                "Expected #{arg_count} argument(s) but found #{num_args}."
+        end
+      end
+
       t = Term2.new
       t.type = termtype
       t.args = args.map{|x| RQL.new.expr(x).to_pb}
@@ -135,8 +155,19 @@ module RethinkDB
       their protobufs like: `query1.to_pb == query2.to_pb`."
     end
 
-    def do(*a, &b)
-      RQL.new.funcall(*((b ? [new_func(&b)] : []) + (@body ? [self] : []) + a))
+
+    def do(*args, &b)
+      a = (@body ? [self] : []) + args.dup
+      if a == [] && !b
+        raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
+      end
+      RQL.new.funcall(*((b ? [new_func(&b)] : [a.pop]) + a))
+    end
+
+    def row
+      unbound_if @body
+      raise NoMethodError, ("Sorry, r.row is not available in the ruby driver.  " +
+                            "Use blocks instead.")
     end
   end
 end

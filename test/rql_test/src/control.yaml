@@ -44,7 +44,7 @@ tests:
       ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
       
     - cd: "r.do(1)"
-      ot: err("RqlRuntimeError", 'Expected type FUNCTION but found DATUM.', [1])
+      ot: 1
 
     - js: r.do(1, function(x) {})
       cd: []
@@ -116,15 +116,19 @@ tests:
     # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
     - js: r.expr([1, 2, 3]).map()
       rb: r.expr([1, 2, 3]).map()
+      py: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
     - js: r.expr([1, 2, 3]).map(1, 2)
       rb: r.expr([1, 2, 3]).map(1, 2)
+      cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
     - js: r.expr([1, 2, 3]).filter()
       rb: r.expr([1, 2, 3]).filter()
+      py: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
     - js: r.expr([1, 2, 3]).filter(1, 2)
       rb: r.expr([1, 2, 3]).filter(1, 2)
+      py: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
 
     # r.js()
@@ -145,7 +149,7 @@ tests:
 
     # js error cases
     - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM (got FUNCTION).", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
@@ -177,14 +181,15 @@ tests:
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
       
     - cd: r.expr([1, 2, 3]).filter('foo')
-      ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [0])
+      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got STRING).", [0])
 
     - py: r.expr([1, 2, 4]).filter(False)
       js: r.expr([1, 2, 4]).filter(false)
-      ot: err("RqlRuntimeError", "Expected type OBJECT but found BOOL.", [0])
+      rb: r([1, 2, 4]).filter(false)
+      ot: ([])
       
     - cd: r.expr([1, 2, 4]).filter([])
-      ot: err("RqlRuntimeError", "Expected type OBJECT but found ARRAY.", [0])
+      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got ARRAY).", [0])
       
     # forEach
     - cd: tbl.count()
@@ -193,7 +198,7 @@ tests:
     # Insert three elements
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.insert({ id:row }) })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl.insert({ 'id':row }))
-      rb: r([1, 2, 3]).for_each{ |row| tbl.insert { :id => row } }
+      rb: r([1, 2, 3]).for_each{ |row| tbl.insert({ :id => row }) }
       ot: ({'inserted':3})
 
     - cd: tbl.count()
@@ -202,11 +207,13 @@ tests:
     # Update each row to add additional attribute
     - js: r([1, 2, 3]).forEach(function (row) { return tbl.update({ foo:row }) })
       py: r.expr([1,2,3]).for_each(lambda row:tbl.update({'foo':row}))
+      rb: r.expr([1,2,3]).for_each{ |row| tbl.update({ :foo => row }) }
       ot: ({'replaced':9})
       
     # Insert three more elements (and error on three)
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
+      rb: r.expr([1,2,3]).for_each{ |row| [tbl.insert({ :id => row}), tbl.insert({ :id => row*10})] }
       ot: ({'inserted':3,'errors':3,'first_error':'Duplicate primary key.'})
 
     - cd: tbl.count()
@@ -218,34 +225,38 @@ tests:
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.update({'foo':row}), tbl.update({'bar':row})])
+      rb: r.expr([1,2,3]).for_each{ |row| [tbl.update({:foo => row}), tbl.update({:bar => row})]}
       ot: ({'replaced':36})
       
     # forEach negative cases
-    - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: err("RqlCompileError", "Cannot use r.row. Use functions instead.", [0])
+    - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({ 'id':r.row }) )
+      rb: []
+      ot: ({'inserted':3})
     
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
+      rb: r([1, 2, 3]).for_each{ |x| x }
       ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
     
     - cd: r.expr([1, 2, 3]).for_each(r.row)
+      rb: []
       ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
+      rb: r([1, 2, 3]).for_each{ |row| tbl }
       ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
     
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
+      cd: []
       ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
     
     # TODO: try calling write queries in random places (e.g. in `do`))
     
-    # TODO: test r.row, nestedness, and chaining
-
     # Cleanup    
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})

@@ -9,7 +9,7 @@ path.insert(0, "../../drivers/python2")
 from os import environ
 import rethinkdb as r 
 
-JSPORT = int(sys.argv[1])
+# JSPORT = int(sys.argv[1])
 CPPPORT = int(sys.argv[2])
 
 # -- utilities --
@@ -110,17 +110,17 @@ class Arr:
         self.length = length
         self.thing = thing
 
-    def __eq__(self, other):
-        if not isinstance(other, List):
+    def __eq__(self, arr):
+        if not isinstance(arr, list):
             return False
 
-        if not self.length == len(other):
+        if not self.length == len(arr):
             return False
 
         if self.thing is None:
             return True
 
-        return other == thing
+        return all([v == self.thing for v in arr])
 
     def __repr__(self):
         return "arr(%d, %s)" % (self.length, repr(self.thing))
