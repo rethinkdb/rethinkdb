@@ -10,6 +10,10 @@ tests:
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
+    - cd: r.db('test').table_create('test3')
+      ot: ({'created':1})
+      def: tbl3 = r.db('test').table('test3')
+
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -42,8 +46,28 @@ tests:
     - cd: r.db('test').table('missing')
       ot: err("RqlRuntimeError", 'Table `missing` does not exist.', [0])
 
-    # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
+    # make sure we can insert and query json docs with arbitrary unicode attrs
+    - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      ot: {'inserted':1}
 
+    # make sure we can query json docs by arbitrary unicode attrs
+    - js:
+        cd: tbl3.get('Здравствуй')
+        ot: {'id':'Здравствуй','value':'Земля!'}
+      py:
+        cd: tbl3.get(u'Здравствуй')
+        ot: "{u'id':u'Здравствуй',u'value':u'Земля!'}"
+      
+    - js:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: [{'id':'Здравствуй','value':'Земля!'}]
+      py:
+        cd: tbl3.filter({'value':u'Земля!'})
+        ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+        
+
+    # db and table name validation
     - cd: r.db('#$%')
       ot: err("RqlRuntimeError", 'Database name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
     
@@ -142,10 +166,12 @@ tests:
     - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
       js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
       ot: [{'a':1,'b':1,'c':3}]
+
+    # TODO: test filtering for things by a missing attribute
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
-      ot: ({'dropped':2})
+      ot: ({'dropped':3})
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])
