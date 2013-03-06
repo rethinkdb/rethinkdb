@@ -52,9 +52,9 @@ module RethinkDB
     end
 
     def each (&block) # :nodoc:
-      raise RuntimeError, "Can only iterate over Query_Results once!" if @run
+      raise RqlRuntimeError, "Can only iterate over Query_Results once!" if @run
       @run = true
-      raise RuntimeError, "Connection has been reset!" if out_of_date
+      raise RqlRuntimeError, "Connection has been reset!" if out_of_date
       while true
         @results.each(&block)
         return self if !@more
@@ -132,12 +132,12 @@ module RethinkDB
     def wait token
       begin
         res = nil
-        raise RuntimeError, "Connection closed by server!" if not @listener
+        raise RqlRuntimeError, "Connection closed by server!" if not @listener
         @mutex.synchronize do
           (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
           res = @data.delete token if @data[token]
         end
-        raise RuntimeError, "Connection closed by server!" if !@listener or !res
+        raise RqlRuntimeError, "Connection closed by server!" if !@listener or !res
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
@@ -184,7 +184,7 @@ module RethinkDB
 
     def self.last
       return @@last if @@last
-      raise RuntimeError, "No last connection.  Use RethinkDB::Connection.new."
+      raise RqlRuntimeError, "No last connection.  Use RethinkDB::Connection.new."
     end
 
     def start_listener
@@ -192,7 +192,7 @@ module RethinkDB
         def read_exn(len)
           buf = read len
           if !buf or buf.length != len
-            raise RuntimeError, "Connection closed by server."
+            raise RqlRuntimeError, "Connection closed by server."
           end
           return buf
         end
@@ -204,7 +204,7 @@ module RethinkDB
           begin
             response_length = @socket.read_exn(4).unpack('L<')[0]
             response = @socket.read_exn(response_length)
-          rescue RuntimeError => e
+          rescue RqlRuntimeError => e
             @mutex.synchronize do
               @listener = nil
               @waiters.each {|kv| kv[1].signal}
@@ -216,7 +216,7 @@ module RethinkDB
           begin
             protob = Response2.new.parse_from_string(response)
           rescue
-            raise RuntimeError, "Bad Protobuf #{response}, server is buggy."
+            raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
           @mutex.synchronize do
             @data[protob.token] = protob
