@@ -10,4 +10,7 @@ tests:
       rb: r false
       ot: false
 
+    - cd: r.expr(False).type_of()
+      ot: "'BOOL'"
+      
     # Any more?

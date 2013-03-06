@@ -5,11 +5,28 @@ tests:
     - cd: r.db('test').table_create('test')
       ot: ({'created':1})
       def: tbl = r.db('test').table('test')
+      def: obj = r.expr({'id':0,'a':0})
 
-    # TODO: make sure merge (and other things) are polymorphic on objects and streams
+    - py: tbl.insert([{'id':i, 'a':i} for i in xrange(3)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 3; i++) {
+                res.push({id:i, 'a':i});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..2).map{ |i| { :id => i, :a => i } })
+      ot: ({'inserted':3})
+
+    # TODO: Polypolypolymorphism
+    - cd:
+        - tbl.merge({'c':1}).nth(0)
+        - obj.merge({'c':1})
+      ot: ({'id':0,'c':1,'a':0})
 
     # Cleanup
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':4})
+      ot: ({'dropped':1})
 

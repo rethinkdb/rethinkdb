@@ -23,5 +23,7 @@ tests:
         ot: "'こんにちは'"
       js: []
         
-
+    - cd: r.expr('foo').type_of()
+      ot: "'STRING'"
+      
     # etc.

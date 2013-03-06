@@ -29,3 +29,6 @@ tests:
 
     - cd: r.expr({'a':{'b':[{'c':2}, 'a', 4]}})
       ot: ({'a':{'b':[{'c':2}, 'a', 4]}})
+
+    - cd: r.expr({'a':1}).type_of()
+      ot: "'OBJECT'"

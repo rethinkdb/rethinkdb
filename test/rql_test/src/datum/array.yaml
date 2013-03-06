@@ -15,6 +15,9 @@ tests:
       rb: r.expr([1,2,3,4,5])
       ot: [1,2,3,4,5]
 
+    - cd: r.expr([]).type_of()
+      ot: "'ARRAY'"
+
     # Nested expression
     - cd: r.expr([r.expr(1)])
       ot: [1]

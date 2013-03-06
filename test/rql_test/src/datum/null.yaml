@@ -10,6 +10,11 @@ tests:
         cd: r nil
         ot: nil
 
+    - py: r.expr(None).type_of()
+      js: r.expr(null).type_of()
+      rb: r(nil).type_of()
+      ot: "'NULL'"
+
     # What other behavior do we need to test here?
 
     # expected error cases
