@@ -114,16 +114,34 @@ tests:
     # TODO: test between table where id isn't a primary key
 
     # Filter
-    # TODO: test static value syntax for filter (make sure r.row in it works)
-    # TODO: test seq.filter.filter
-    # TODO: test not returning a boolean
     - py: tbl.filter(lambda row:row['a'] > 2).count()
       js: tbl.filter(function(row) { return row('a').gt(2); }).count()
       rb: tbl.filter{ |row| row[:a] > 2 }.count
       ot: 25
+      
+    # test not returning a boolean
+    - py: "tbl.filter(lambda row: 1).count()"
+      js: tbl.filter(function(row) { return 1; }).count()
+      rb: tbl.filter{ |row| 1 }.count
+      ot: err("RqlRuntimeError", 'Expected type BOOL but found NUMBER.', [0])
 
-    # TODO: seq.filter(true) => error
-    # TODO: seq.filter(1)    => error
+    # test seq.filter.filter
+    - py: r.expr([1, 2, 3, 4, 5]).filter(r.row > 2).filter(r.row > 3)
+      js: r.expr([1, 2, 3, 4, 5]).filter(r.row.gt(2)).filter(r.row.gt(3))
+      ry: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
+      ot: [4, 5]
+    
+    # test static value syntax for filter (make sure r.row in it works)
+    - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})
+      ot: [{'a':1,'b':2,'c':3}]
+    
+    - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1})
+      ot: [{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]
+      
+    # test static value syntax for filter with r.row
+    - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
+      js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
+      ot: [{'a':1,'b':1,'c':3}]
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
