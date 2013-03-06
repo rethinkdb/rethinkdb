@@ -217,7 +217,7 @@ struct help_line_t {
 // format_help, all the blurbs get aligned and word-wrapped.
 struct help_section_t {
     help_section_t() { }
-    help_section_t(const std::string &_section_name)
+    explicit help_section_t(const std::string &_section_name)
         : section_name(_section_name) { }
     help_section_t(const std::string &_section_name, const std::vector<help_line_t> &_help_lines)
         : section_name(_section_name), help_lines(_help_lines) { }

@@ -719,6 +719,7 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
     help_out->push_back(get_machine_options(options_out));
     get_disk_options(help_out, options_out);
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_config_file_options(options_out));
 }
 
 void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
@@ -730,6 +731,7 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_config_file_options(options_out));
 }
 
 void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
@@ -745,9 +747,12 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
                                              "log_file"));
     help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
     help_out->push_back(help);
+
+    help_out->push_back(get_config_file_options(options_out));
 }
 
-options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_t> *options_out) {
+void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
+                                 std::vector<options::option_t> *options_out) {
     options::help_section_t help("Allowed options");
 
 #ifndef NDEBUG
@@ -765,10 +770,11 @@ options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
 
-    return help;
+    *help_out = { help };
 }
 
-options::help_section_t get_rethinkdb_import_options(std::vector<options::option_t> *options_out) {
+void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out,
+                                  std::vector<options::option_t> *options_out) {
     options::help_section_t help("Allowed options");
 
 #ifndef NDEBUG
@@ -804,7 +810,8 @@ options::help_section_t get_rethinkdb_import_options(std::vector<options::option
                                              options::MANDATORY));
     help.add("--input-file path", "the csv input file");
 
-    return help;
+    help_out->push_back(help);
+    help_out->push_back(get_config_file_options(options_out));
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -817,6 +824,7 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_config_file_options(options_out));
 }
 
 io_backend_t get_io_backend_option(const std::map<std::string, options::values_t> &opts) {
@@ -848,7 +856,7 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
 }
 
 std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,
-                                                             const std::vector<options::option_t> &options) {
+                                                             std::vector<options::option_t> options) {
     std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
     const boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
     if (config_file_name) {
@@ -859,14 +867,31 @@ std::map<std::string, options::values_t> parse_commands_deep(int argc, char **ar
     return opts;
 }
 
-int main_rethinkdb_create(int argc, char *argv[]) {
-    try {
-        std::vector<options::option_t> options;
-        {
-            std::vector<options::help_section_t> help;
-            get_rethinkdb_create_options(&help, &options);
-        }
+void output_sourced_error(const options::option_error_t &ex) {
+    fprintf(stderr, "Error in %s: %s\n", ex.source().c_str(), ex.what());
+}
 
+void output_named_error(const options::named_error_t &ex, const std::vector<options::help_section_t> &help) {
+    output_sourced_error(ex);
+
+    for (auto section = help.begin(); section != help.end(); ++section) {
+        for (auto line = section->help_lines.begin(); line != section->help_lines.end(); ++line) {
+            if (line->syntax_description.find(ex.option_name()) != std::string::npos) {
+                fprintf(stderr, "%s",
+                        options::format_help({ options::help_section_t("Usage", { *line }) }).c_str());
+                break;
+            }
+        }
+    }
+}
+
+
+int main_rethinkdb_create(int argc, char *argv[]) {
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_create_options(&help, &options);
+
+    try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
@@ -908,20 +933,22 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const std::exception& ex) {
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
+    } catch (const std::exception &ex) {
         fprintf(stderr, "%s\n", ex.what());
-        return EXIT_FAILURE;
     }
+    return EXIT_FAILURE;
 }
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
-    try {
-        std::vector<options::option_t> options;
-        {
-            std::vector<options::help_section_t> help;
-            get_rethinkdb_serve_options(&help, &options);
-        }
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_serve_options(&help, &options);
 
+    try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
@@ -974,19 +1001,22 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                        &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
-        return EXIT_FAILURE;
     }
+    return EXIT_FAILURE;
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
-    bool result = false;
+    std::vector<options::help_section_t> help;
+    std::vector<options::option_t> options;
+    get_rethinkdb_admin_options(&help, &options);
 
     try {
-        std::vector<options::option_t> options;
-        get_rethinkdb_admin_options(&options);
-
         std::vector<std::string> command_args;
         std::map<std::string, options::values_t> opts
             = options::merge(options::parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
@@ -1005,25 +1035,27 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         const bool exit_on_failure = exists_option(opts, "--exit-failure");
 
         const int num_workers = get_cpu_count();
+
+        bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, command_args, exit_on_failure, &result),
                            num_workers);
-
+        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
-        result = false;
     }
-
-    return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    return EXIT_FAILURE;
 }
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
-    try {
-        std::vector<options::option_t> options;
-        {
-            std::vector<options::help_section_t> help;
-            get_rethinkdb_proxy_options(&help, &options);
-        }
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_proxy_options(&help, &options);
 
+    try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
@@ -1062,10 +1094,14 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
-        return EXIT_FAILURE;
     }
+    return EXIT_FAILURE;
 }
 
 // TODO: Add split_db_table unit test.
@@ -1087,11 +1123,11 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 }
 
 int main_rethinkdb_import(int argc, char *argv[]) {
-    // TODO: On errors supply usage information?
-    try {
-        std::vector<options::option_t> options;
-        get_rethinkdb_import_options(&options);
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_import_options(&help, &options);
 
+    try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
@@ -1181,22 +1217,23 @@ int main_rethinkdb_import(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
     } catch (const std::exception& ex) {
-        // TODO: Sigh.
         fprintf(stderr, "%s\n", ex.what());
-        return EXIT_FAILURE;
     }
+    return EXIT_FAILURE;
 }
 
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
-    try {
-        std::vector<options::option_t> options;
-        {
-            std::vector<options::help_section_t> help;
-            get_rethinkdb_porcelain_options(&help, &options);
-        }
+    std::vector<options::option_t> options;
+    std::vector<options::help_section_t> help;
+    get_rethinkdb_porcelain_options(&help, &options);
 
+    try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 1, argv + 1, options);
 
         if (exists_option(opts, "--help")) {
@@ -1263,10 +1300,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
+    } catch (const options::named_error_t &ex) {
+        output_named_error(ex, help);
+    } catch (const options::option_error_t &ex) {
+        output_sourced_error(ex);
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
-        return EXIT_FAILURE;
     }
+
+    return EXIT_FAILURE;
 }
 
 void help_rethinkdb_porcelain() {
@@ -1332,7 +1374,7 @@ void help_rethinkdb_import() {
     std::vector<options::help_section_t> help_sections;
     {
         std::vector<options::option_t> options;
-        help_sections.push_back(get_rethinkdb_import_options(&options));
+        get_rethinkdb_import_options(&help_sections, &options);
     }
 
     help_pager_t help;
