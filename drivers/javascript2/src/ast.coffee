@@ -511,3 +511,11 @@ class Func extends RDBOp
 
     compose: (args) ->
         ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+
+class Asc extends RDBOp
+    tt: Term2.TermType.ASC
+    st: 'asc'
+
+class Desc extends RDBOp
+    tt: Term2.TermType.DESC
+    st: 'desc'
