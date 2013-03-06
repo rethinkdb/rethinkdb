@@ -121,12 +121,8 @@ def test src, expected, name
   end
 
   begin
-    if do_test query, expected, $cpp_conn, name + '-CPP', src
-      $success_count += 1
-    end
-    # if do_test query, expected, $js_conn, name + '-JS', src
-    #   $success_count += 1
-    # end
+    do_test query, expected, $cpp_conn, name + '-CPP', src
+    # do_test query, expected, $js_conn, name + '-JS', src
   rescue Exception => e
     do_res_test name, src, e, expected
   end
@@ -142,7 +138,7 @@ def do_test query, expected, con, name, src
   rescue Exception => exc
     res = err(exc.class.name.sub(/^RethinkDB::/, ""), exc.message.split("\n")[0], "TODO")
   end
-  do_res_test name, src, res, expected
+  return do_res_test name, src, res, expected
 end
 
 def do_res_test name, src, res, expected
@@ -156,6 +152,7 @@ def do_res_test name, src, res, expected
       fail_test name, src, res, expected
       return false
     else
+      $success_count += 1
       return true
     end
   rescue Exception => e
