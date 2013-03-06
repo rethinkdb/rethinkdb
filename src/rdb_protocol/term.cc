@@ -90,6 +90,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_ALL:                return new all_term_t(env, t);
     case Term2_TermType_FOREACH:            return new foreach_term_t(env, t);
     case Term2_TermType_FUNC:               return new func_term_t(env, t);
+    case Term2_TermType_ASC:                return new asc_term_t(env, t);
+    case Term2_TermType_DESC:               return new desc_term_t(env, t);
     default: unreachable();
     }
     unreachable();

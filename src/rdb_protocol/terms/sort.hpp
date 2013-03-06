@@ -10,10 +10,38 @@
 
 namespace ql {
 
+// NOTE: `asc` and `desc` don't fit into our type system (they're a hack for
+// orderby to avoid string parsing), so we instead literally examine the
+// protobuf to determine whether they're present.  This is a hack.  (This is
+// implemented internally in terms of string concatenation because that's what
+// the old string-parsing solution was, and this was a quick way to get the new
+// behavior that also avoided dumping already-tested code paths.  I'm probably
+// going to hell for it though.)
+
+class asc_term_t : public op_term_t {
+public:
+    asc_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val("+" + arg(0)->as_str());
+    }
+    RDB_NAME("asc");
+};
+
+class desc_term_t : public op_term_t {
+public:
+    desc_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val("-" + arg(0)->as_str());
+    }
+    RDB_NAME("desc");
+};
+
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+        : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
     class lt_cmp_t {
     public:
@@ -22,7 +50,8 @@ private:
             for (size_t i = 0; i < attrs->size(); ++i) {
                 std::string attrname = attrs->el(i)->as_str();
                 bool invert = (attrname[0] == '-');
-                if (attrname[0] == '-' || attrname[0] == '+') attrname.erase(0, 1);
+                r_sanity_check(attrname[0] == '-' || attrname[0] == '+');
+                attrname.erase(0, 1);
                 const datum_t *lattr = l->el(attrname, NOTHROW);
                 const datum_t *rattr = r->el(attrname, NOTHROW);
                 if (!lattr && !rattr) continue;
@@ -41,7 +70,12 @@ private:
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
-            arr->add(arg(i)->as_datum());
+            Term2::TermType type = src_term->args(i).type();
+            if (type != Term2::ASC && type != Term2::DESC) {
+                arr->add(new_val("+" + arg(i)->as_str())->as_datum());
+            } else {
+                arr->add(arg(i)->as_datum());
+            }
         }
         lt_cmp_t lt_cmp(arr);
         // We can't have datum_stream_t::sort because templates suck.
@@ -50,6 +84,9 @@ private:
         return new_val(s);
     }
     RDB_NAME("orderby");
+
+private:
+    const Term2 *src_term;
 };
 
 class distinct_term_t : public op_term_t {
