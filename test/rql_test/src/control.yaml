@@ -222,7 +222,7 @@ tests:
       
     # forEach negative cases
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: {'inserted':3}
+      ot: ({'inserted':3})
     
     - cd: r.expr([1, 2, 3]).for_each(1)
       ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [0])'
