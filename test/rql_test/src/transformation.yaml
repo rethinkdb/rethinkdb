@@ -69,6 +69,7 @@ tests:
       ot: ({'id':0, 'a':0})
     # TODO: test ascending and descending orderBy on streams
     # TODO: test ordering by multiple attrs (in case of ties) on streams
+    # TODO: according to Michel, tbl returns a stream, tbl.orderBy returns an array.
 
     # TODO: add tests for skip (positive, negative numbers, non-numbers)
     # TODO: add tests for limit (positive, negative numbers, non-numbers)
@@ -77,6 +78,8 @@ tests:
     # TODO: pluck
     # TODO: without
     # TODO: make sure all is properly polymorphic
+
+    # TODO: make sure we test casts
 
     # Union
     - cd: tbl.union(tbl2).count()

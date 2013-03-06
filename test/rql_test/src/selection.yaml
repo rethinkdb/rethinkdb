@@ -205,7 +205,9 @@ tests:
       rb: []
       ot: [{'a':1,'b':1,'c':3}]
 
-    # TODO: test filtering for things by a missing attribute
+    # test filtering for things by a missing attribute
+    - cd: r.expr([{'a':1}]).filter({'b':1})
+      ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
