@@ -10,6 +10,7 @@ namespace options {
 struct option_error_t : public std::runtime_error {
     option_error_t(std::string source, std::string msg)
         : std::runtime_error(msg), source_(source) { }
+    ~option_error_t() throw () { }
 
     std::string source() const { return source_; }
 
@@ -20,6 +21,7 @@ private:
 struct named_error_t : public option_error_t {
     named_error_t(std::string source, std::string option_name, std::string msg)
         : option_error_t(source, msg), option_name_(option_name) { }
+    ~named_error_t() throw () { }
 
     std::string option_name() const { return option_name_; }
 
@@ -30,18 +32,22 @@ private:
 struct option_count_error_t : public named_error_t {
     option_count_error_t(std::string source, std::string option_name, size_t min_appearances,
                          size_t max_appearances, size_t actual_appearances);
+    ~option_count_error_t() throw () { }
 };
 
 struct missing_parameter_error_t : public named_error_t {
     missing_parameter_error_t(std::string source, std::string option_name);
+    ~missing_parameter_error_t() throw () { }
 };
 
 struct value_error_t : public named_error_t {
     value_error_t(std::string source, std::string option_name, std::string msg);
+    ~value_error_t() throw () { }
 };
 
 struct unrecognized_option_error_t : public option_error_t {
     unrecognized_option_error_t(std::string source, std::string option_name);
+    ~unrecognized_option_error_t() throw () { }
 
     std::string unrecognized_option_name() const { return unrecognized_option_name_; }
 
@@ -51,6 +57,7 @@ private:
 
 struct positional_parameter_error_t : public option_error_t {
     positional_parameter_error_t(std::string source, std::string parameter_value);
+    ~positional_parameter_error_t() throw () { }
 
     std::string parameter_value() const { return parameter_value_; }
 
@@ -60,6 +67,7 @@ private:
 
 struct file_parse_error_t : public option_error_t {
     file_parse_error_t(std::string source, std::string msg) : option_error_t(source, msg) { }
+    ~file_parse_error_t() throw () { }
 };
 
 // A list of values provided for some option.  (Multiple values means the option was specified
