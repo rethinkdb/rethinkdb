@@ -14,14 +14,18 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
+#include "containers/disk_backed_queue.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 
+struct rdb_protocol_t;
+template <class T> class btree_store_t;
 namespace unittest {
 // A forward decleration of this is needed so that it can be friended and the
 // unit test can access the private API of btree_store_t.
 void run_sindex_btree_store_api_test();
 void run_sindex_post_construction();
+void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store);
 } //namespace unittest
 
 class btree_slice_t;
@@ -39,7 +43,8 @@ public:
                   int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
-                  typename protocol_t::context_t *);
+                  typename protocol_t::context_t *,
+                  io_backender_t *io_backender);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
@@ -108,32 +113,29 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-private:
+    //TODO make this function take the sindex block it helps to enforce sane
+    //locking
+    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+
+    void register_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq);
+
+    void deregister_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue,
+            mutex_t::acq_t *acq);
+
+    void sindex_queue_push(
+            const write_message_t& value,
+            mutex_t::acq_t *acq);
+
+//private: >.<
 
 void acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
-/* Why are there two versions of acquire_superblock_for_write? The prior first
- * is to be used if you want to make a change to the sindexes right after
- * acquiring the superblock. This happens if you're creating a new sindex for
- * example. That later is for when you want to make a change having already
- * descended the tree. They are only superficial different mostly for
- * convenience. If you were to extract the sindex_block_id from the
- * superblock_t in the first method and pass it to the second you would get the
- * same results, there mostly for convenience. The same thing doesn't exist for
- * acquire_sindex_block_for_read because I can't actually think of a case where
- * people should be travering the primary B-Tree and then traversing the
- * secondaries so I can't think of a use case for it. */
-void acquire_sindex_block_for_write(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        const superblock_t *super_block,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -146,8 +148,6 @@ void acquire_sindex_block_for_write(
     THROWS_ONLY(interrupted_exc_t);
 
 public: // <--- so this is some bullshit right here
-    friend void unittest::run_sindex_btree_store_api_test();
-    friend void unittest::run_sindex_post_construction();
 
     void add_sindex(
         write_token_pair_t *token_pair,
@@ -181,12 +181,10 @@ public: // <--- so this is some bullshit right here
     THROWS_ONLY(interrupted_exc_t);
 
     void mark_index_up_to_date(
-        write_token_pair_t *token_pair,
         uuid_u id,
         transaction_t *txn,
-        superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+        buf_lock_t *sindex_block)
+    THROWS_NOTHING;
 
     void drop_sindex(
         write_token_pair_t *token_pair,
@@ -261,6 +259,20 @@ public: // <--- so this is some bullshit right here
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
 
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+            THROWS_NOTHING;
+
     void acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
@@ -272,7 +284,7 @@ public: // <--- so this is some bullshit right here
         return &(secondary_index_slices.at(id));
     }
 
-protected:
+//protected: >.<
     // Functions to be implemented by derived (protocol-specific) store_t classes
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
@@ -314,7 +326,7 @@ protected:
                                      superblock_t *superblock,
                                      write_token_pair_t *token_pair) = 0;
 
-private:
+//private: >.<
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
@@ -367,9 +379,13 @@ private:
     perfmon_collection_t perfmon_collection;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
+    io_backender_t *io_backender_;
     perfmon_membership_t perfmon_collection_membership;
 
     boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;
+
+    std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    mutex_t sindex_queue_mutex;
 
     DISABLE_COPYING(btree_store_t);
 };

@@ -7,7 +7,7 @@
 
 typedef linux_thread_message_t thread_message_t;
 
-inline int get_thread_id();
+int get_thread_id();
 
 int get_num_threads();
 

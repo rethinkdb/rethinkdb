@@ -211,9 +211,10 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string &perfmon_name,
-                                   UNUSED int64_t cache_size, bool create,
-                                   UNUSED perfmon_collection_t *perfmon_collection, UNUSED context_t *ctx) :
+dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string &,
+                                   UNUSED int64_t , bool create,
+                                   UNUSED perfmon_collection_t *, UNUSED context_t *,
+                                   io_backender_t *) :
     store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')),
     serializer(_serializer) {
     if (create) {

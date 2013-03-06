@@ -145,18 +145,25 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 /* Secondary Indexes */
 
 struct rdb_modification_report_t {
+    rdb_modification_report_t() { }
+    rdb_modification_report_t(const store_key_t &_primary_key)
+        : primary_key(_primary_key) { }
+
+    store_key_t primary_key;
     boost::shared_ptr<scoped_cJSON_t> deleted;
     boost::shared_ptr<scoped_cJSON_t> added;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         const store_key_t &primary_key,
                          rdb_modification_report_t *modification,
                          transaction_t *txn);
 
-void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
-         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-         signal_t *interruptor)
-         THROWS_ONLY(interrupted_exc_t);
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

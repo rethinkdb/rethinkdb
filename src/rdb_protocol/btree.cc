@@ -459,10 +459,61 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     }
 }
 
+namespace {
+enum rdb_modification_has_value_t {
+    HAS_VALUE,
+    HAS_NO_VALUE
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rdb_modification_has_value_t, int8_t, HAS_VALUE, HAS_NO_VALUE);
+} //anonymous namespace
+
+void rdb_modification_report_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    msg << primary_key;
+    if (!deleted.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << deleted;
+    }
+
+    if (!added.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << added;
+    }
+}
+
+archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res;
+
+    res = deserialize(s, &primary_key);
+    if (res) { return res; }
+
+    rdb_modification_has_value_t has_value;
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &deleted);
+        if (res) { return res; }
+    }
+
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &added);
+        if (res) { return res; }
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const store_key_t &primary_key,
         rdb_modification_report_t *modification,
         transaction_t *txn) {
 
@@ -491,7 +542,7 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
                 boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                         local_env, scopes, backtrace, modification->deleted);
 
-                store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
+                store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
 
                 keyvalue_location_t<rdb_value_t> kv_location;
 
@@ -511,13 +562,15 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
             boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
                     local_env, scopes, backtrace, modification->added);
 
-            store_key_t sindex_key(cJSON_print_secondary(index->get(), primary_key, backtrace));
+            store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
+            promise_t<superblock_t *> dummy;
             find_keyvalue_location_for_write(txn, super_block,
                     sindex_key.btree_key(), &kv_location,
-                    &it->btree->root_eviction_priority, &it->btree->stats);
+                    &it->btree->root_eviction_priority, &it->btree->stats,
+                    &dummy);
 
             kv_location_set(&kv_location, sindex_key,
                      modification->added, it->btree, repli_timestamp_t::distant_past, txn);
@@ -527,15 +580,52 @@ void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vect
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
-    explicit post_construct_traversal_helper_t(
-            const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes)
-        : sindexes_(sindexes)
+    post_construct_traversal_helper_t(
+            btree_store_t<rdb_protocol_t> *store,
+            const std::set<uuid_u> &sindexes_to_post_construct,
+            signal_t *interruptor
+            )
+        : store_(store),
+          sindexes_to_post_construct_(sindexes_to_post_construct),
+          interruptor_(interruptor)
     { }
 
     // This is free to call mark_deleted.
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         int *, signal_t *) THROWS_ONLY(interrupted_exc_t) {
+        write_token_pair_t token_pair;
+        store_->new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> wtxn;
+        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+
+            store_->acquire_superblock_for_write(
+                rwi_write,
+                repli_timestamp_t::distant_past,
+                2,
+                &token_pair.main_write_token,
+                &wtxn,
+                &superblock,
+                interruptor_);
+
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store_->acquire_sindex_block_for_write(
+                &token_pair,
+                wtxn.get(),
+                &sindex_block,
+                superblock->get_sindex_block_id(),
+                interruptor_);
+
+            store_->acquire_sindex_superblocks_for_write(
+                    sindexes_to_post_construct_,
+                    sindex_block.get(),
+                    wtxn.get(),
+                    &sindexes);
+        }
+
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = iter_for_whole_leaf(leaf_node);
 
@@ -546,11 +636,12 @@ public:
             guarantee(key);
             node_iter.step(leaf_node);
 
-            rdb_modification_report_t mod_report;
+            store_key_t pk(key);
+            rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
             mod_report.added = get_data(rdb_value, txn);
 
-            rdb_update_sindexes(sindexes_, store_key_t(key), &mod_report, txn);
+            rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }
     }
 
@@ -566,14 +657,32 @@ public:
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
 
-    const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes_;
+    btree_store_t<rdb_protocol_t> *store_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
+    signal_t *interruptor_;
 };
 
-void post_construct_secondary_indexes(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock,
-                                      const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                                      signal_t *interruptor)
-                                      THROWS_ONLY(interrupted_exc_t) {
-    post_construct_traversal_helper_t helper(sindexes);
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+    post_construct_traversal_helper_t helper(store, 
+            sindexes_to_post_construct, interruptor);
 
-    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    store->new_read_token(&read_token);
+
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+
+    store->acquire_superblock_for_read(
+        rwi_read,
+        &read_token,
+        &txn,
+        &superblock,
+        interruptor,
+        true /* USE_SNAPSHOT */);
+    btree_parallel_traversal(txn.get(), superblock.get(), 
+            store->btree.get(), &helper, interruptor);
 }

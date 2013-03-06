@@ -1,4 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+#include "errors.hpp"
+
+#include <boost/bind.hpp>
+
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
@@ -10,7 +15,60 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
+#define TOTAL_KEYS_TO_INSERT 10000
+
 namespace unittest {
+
+void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
+    guarantee(start <= finish);
+    for (int i = start; i < finish; ++i) {
+        if (i % 100 == 0) { debugf("Insert %d\n", i); }
+
+        cond_t dummy_interuptor;
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
+        store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                           1, &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
+        block_id_t sindex_block_id = superblock->get_sindex_block_id();
+
+        std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
+        point_write_response_t response;
+
+        store_key_t pk(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t()));
+        rdb_modification_report_t mod_report(pk);
+        rdb_set(pk, boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+                false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
+                superblock.get(), &response, &mod_report);
+
+        {
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store->acquire_sindex_block_for_write(
+                    &token_pair, txn.get(), &sindex_block,
+                    sindex_block_id, &dummy_interuptor);
+
+            btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+            store->aquire_post_constructed_sindex_superblocks_for_write(
+                     sindex_block.get(), txn.get(), &sindexes);
+            rdb_update_sindexes(sindexes, &mod_report, txn.get());
+
+            mutex_t::acq_t acq;
+            store->lock_sindex_queue(sindex_block.get(), &acq);
+
+            write_message_t wm;
+            wm << mod_report;
+
+            store->sindex_queue_push(wm, &acq);
+        }
+    }
+}
+
+void insert_rows_and_pulse_when_done(int start, int finish,
+        btree_store_t<rdb_protocol_t> *store, cond_t *pulse_when_done) {
+    insert_rows(start, finish, store);
+    pulse_when_done->pulse();
+}
 
 void run_sindex_post_construction() {
     mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
@@ -34,26 +92,12 @@ void run_sindex_post_construction() {
             GIGABYTE,
             true,
             &get_global_perfmon_collection(),
-            NULL);
+            NULL,
+            io_backender.get());
 
     cond_t dummy_interuptor;
 
-    for (int i = 0; i < 1000; ++i) {
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        write_token_pair_t token_pair;
-        store.new_write_token_pair(&token_pair);
-        store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
-
-        std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
-        point_write_response_t response;
-        rdb_modification_report_t mod_report;
-        rdb_set(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t())),
-                boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
-                false, store.btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report);
-    }
+    insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, &store);
 
     uuid_u sindex_id;
     {
@@ -94,6 +138,7 @@ void run_sindex_post_construction() {
                 &dummy_interuptor);
     }
 
+    cond_t background_inserts_done;
     {
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
@@ -103,16 +148,26 @@ void run_sindex_post_construction() {
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                 1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
-        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
-        store.acquire_all_sindex_superblocks_for_write(super_block->get_sindex_block_id(),
-                &token_pair, txn.get(), &sindexes, &dummy_interuptor);
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        store.acquire_sindex_block_for_write(
+                &token_pair, txn.get(), &sindex_block,
+                super_block->get_sindex_block_id(),
+                &dummy_interuptor);
 
-        post_construct_secondary_indexes(store.btree.get(), txn.get(), super_block.get(),
-                sindexes, &dummy_interuptor);
+        coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
+                    &store, &background_inserts_done));
+
+        std::set<uuid_u> created_sindexes;
+        created_sindexes.insert(sindex_id);
+
+        rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, &store,
+                sindex_block.get(), &dummy_interuptor);
     }
 
+    background_inserts_done.wait();
+
     {
-        for (int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
             read_token_pair_t token_pair;
             store.new_read_token_pair(&token_pair);
 

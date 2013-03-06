@@ -52,7 +52,7 @@ void do_construct_existing_store(int i,
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
                                                                            store_args.cache_size, false, store_args.serializers_perfmon_collection,
-                                                                           store_args.ctx);
+                                                                           store_args.ctx, store_args.io_backender);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -69,7 +69,7 @@ void do_create_new_store(int i,
 
     typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
                                                                            store_args.cache_size, true, store_args.serializers_perfmon_collection,
-                                                                           store_args.ctx);
+                                                                           store_args.ctx, store_args.io_backender);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }

@@ -46,7 +46,10 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(multiplexer->proxies[i], temp_file.name() + strprintf("_%zd", i), GIGABYTE, true, &get_global_perfmon_collection(), NULL));
+        underlying_stores.push_back(
+                new memcached_protocol_t::store_t(
+                    multiplexer->proxies[i], temp_file.name() + strprintf("_%zd", i),
+                    GIGABYTE, true, &get_global_perfmon_collection(), NULL, io_backender.get()));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;

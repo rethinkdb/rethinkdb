@@ -134,7 +134,15 @@ struct terminal_t {
 
 RDB_DECLARE_SERIALIZABLE(terminal_t);
 
+void bring_sindexes_up_to_date(
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        buf_lock_t *sindex_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+
 } // namespace rdb_protocol_details
+
 
 class cluster_semilattice_metadata_t;
 
@@ -559,7 +567,8 @@ struct rdb_protocol_t {
                 int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
-                context_t *ctx);
+                context_t *ctx,
+                io_backender_t *io);
         ~store_t();
 
     private:

@@ -164,7 +164,8 @@ public:
                 int64_t cache_quota,
                 bool create,
                 perfmon_collection_t *collection,
-                context_t *);
+                context_t *,
+                io_backender_t *io);
         virtual ~store_t();
 
     private:
