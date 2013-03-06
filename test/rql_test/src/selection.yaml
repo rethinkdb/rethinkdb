@@ -167,21 +167,21 @@ tests:
     - def: nested=r.expr([[1, 2], [3, 4], [5, 6]])
       
     - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
-      js: nested.filter(function (x) { return x.filter(function (y) { return y.gte(4); }).count().gt(0) })
+      js: nested.filter(function (x) { return x.filter(function (y) { return y.ge(4); }).count().gt(0) })
       ot: ([[3, 4], [5, 6]])
       
     - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
-      js: nested.filter(r.row.filter(function(y) { return y.gte(4) }).count().gt(0))
+      js: nested.filter(r.row.filter(function(y) { return y.ge(4) }).count().gt(0))
       rb: []
       ot: ([[3, 4], [5, 6]])
     
     - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
-      js: nested.filter(function (x) { return x.filter(r.row.gte(4)).count().gt(0) })
+      js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
       rb: []
       ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
     
     - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
-      js: nested.filter(r.row.filter(r.row.gte(4)).count().gt(0))
+      js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
       rb: []
       ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
     
@@ -201,8 +201,7 @@ tests:
     # TODO: test filtering for things by a missing attribute
     
     # Clean up
-    - cd: r.db('test').table_list().for_each(lambda row:r.db('test').table_drop(row))
-      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
+    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       ot: ({'dropped':3})
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
