@@ -621,8 +621,7 @@ class ForEach(RDBOp, RDBMethod):
 
 # Called on arguments that should be functions
 def func_wrap(val):
-    if isinstance(val, types.FunctionType):
-        return Func(val)
+    val = expr(val)
 
     # Scan for IMPLICIT_VAR or JS
     def ivar_scan(node):
@@ -631,9 +630,10 @@ def func_wrap(val):
 
         if isinstance(node, ImplicitVar):
             return True
-        else:
-            if any([ivar_scan(arg) for arg in node.args]):
-                return True
+        if any([ivar_scan(arg) for arg in node.args]):
+            return True
+        if any([ivar_scan(arg) for k,arg in node.optargs.iteritems()]):
+            return True
         return False
 
     if ivar_scan(val):
