@@ -49,6 +49,7 @@ tests:
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      rb: tbl3.insert({:id => 'Здравствуй', :value => 'Земля!'})
       ot: ({'inserted':1})
 
     # make sure we can query json docs by arbitrary unicode attrs
@@ -58,6 +59,9 @@ tests:
       py:
         cd: tbl3.get(u'Здравствуй')
         ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      rb:
+        cd: tbl3.get('Здравствуй')
+        ot: ({:id=>'Здравствуй',:value=>'Земля!'})
       
     - js:
         cd: tbl3.filter({'value':'Земля!'})
@@ -65,14 +69,17 @@ tests:
       py:
         cd: tbl3.filter({'value':u'Земля!'})
         ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      rb:
+        cd: tbl3.filter({:value=>'Земля!'})
+        ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
         
 
     # db and table name validation
-    - cd: r.db('#$%')
-      ot: err("RqlRuntimeError", 'Database name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
+    - cd: r.db('%')
+      ot: err("RqlRuntimeError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
     
-    - cd: r.db('test').table('#$%')
-      ot: err("RqlRuntimeError", 'Table name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
+    - cd: r.db('test').table('%')
+      ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: r.table('test').count()
@@ -100,8 +107,9 @@ tests:
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
     # Create a table with a non-id primary key
-    - cd: r.db('test').table_create('testpkey', primary_key='foo')
+    - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
+      rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
       ot: ({'created':1})
       def: tblpkey = r.db('test').table('testpkey')
 
@@ -147,13 +155,35 @@ tests:
     - py: "tbl.filter(lambda row: 1).count()"
       js: tbl.filter(function(row) { return 1; }).count()
       rb: tbl.filter{ |row| 1 }.count
-      ot: err("RqlRuntimeError", 'Expected type BOOL but found NUMBER.', [0])
+      ot: err("RqlRuntimeError", 'FILTER must be passed either an OBJECT or a predicate (got NUMBER).', [0])
 
-    # test seq.filter.filter
+    # test seq.filter.filter (chaining and r.row(s))
     - py: r.expr([1, 2, 3, 4, 5]).filter(r.row > 2).filter(r.row > 3)
       js: r.expr([1, 2, 3, 4, 5]).filter(r.row.gt(2)).filter(r.row.gt(3))
-      ry: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
+      rb: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
       ot: [4, 5]
+    
+    # test nesting (and r.rows(s))
+    - def: nested=r.expr([[1, 2], [3, 4], [5, 6]])
+      
+    - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(function (y) { return y.ge(4); }).count().gt(0) })
+      ot: ([[3, 4], [5, 6]])
+      
+    - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(function(y) { return y.ge(4) }).count().gt(0))
+      rb: []
+      ot: ([[3, 4], [5, 6]])
+    
+    - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+    
+    - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
     
     # test static value syntax for filter (make sure r.row in it works)
     - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})
@@ -165,12 +195,14 @@ tests:
     # test static value syntax for filter with r.row
     - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
       js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
+      rb: []
       ot: [{'a':1,'b':1,'c':3}]
 
     # TODO: test filtering for things by a missing attribute
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
+      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
       ot: ({'dropped':3})
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams

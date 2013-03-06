@@ -59,3 +59,9 @@ def sum(attr):
 
 def avg(attr):
     return {'AVG': attr}
+
+def asc(attr):
+    return Asc(attr) 
+
+def desc(attr):
+    return Desc(attr)

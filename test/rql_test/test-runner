@@ -296,19 +296,19 @@ class RethinkDBTestServers:
                                  '--http-port=0',
                                  '--cluster-port=0'])
 
-        self.js_port = self.find_available_port()
-        self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
+        # self.js_port = self.find_available_port()
+        # self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
 
         sleep(0.1)
 
     def stop(self):
         self.cpp_server.terminate()
-        self.js_server.terminate()
+        # self.js_server.terminate()
         self.clear_data()
         sleep(0.1)
 
     def clear_data(self):
-        call(['rm', 'rethinkdb-data']) # JS server data
+        # call(['rm', 'rethinkdb-data']) # JS server data
         call(['rm', '-r', 'rethinkdb_data'])
 
     def restart(self):
@@ -327,7 +327,8 @@ def run_tests(lang, servers):
 
     print "Running "+lang+" tests\n"
     stdout.flush()
-    call([interpreter, 'build/test.'+lang, str(servers.js_port), str(servers.cpp_port)])
+    # call([interpreter, 'build/test.'+lang, str(servers.js_port), str(servers.cpp_port)])
+    call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.cpp_port)])
     print "Finished running "+lang+" tests\n"
     stdout.flush()
 
