@@ -154,14 +154,6 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
-store_key_t secondary_key(const store_key_t &primary, boost::shared_ptr<scoped_cJSON_t> data, const Mapping &mapping, const backtrace_t &b) {
-    query_language::runtime_environment_t *env = NULL; //TODO this is just a hack to get us going
-    query_language::scopes_t scopes;
-    boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-            env, scopes, b, data);
-
-    return store_key_t(cJSON_print_primary(index->get(), b) + key_to_unescaped_str(primary));
-}
 
 void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
                 query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
