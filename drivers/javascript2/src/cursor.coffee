@@ -44,7 +44,7 @@ class Cursor
         @_cont = =>
             while @_index < @_data.length
                 cb null, @_data[@_index++]
-            @_getMore()
+            @_getMore() # TODO: We should save cb and fire cb instead of the callback in outstandingCallbacks - Let's ask Bill
         @_prompt()
 
     toArray: (cb) ->
