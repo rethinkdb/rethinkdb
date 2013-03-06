@@ -41,7 +41,7 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
     merge: ar (other) -> new Merge {}, @, other
-    between: ar (left, right) -> new Between {left_bound:left, right_bound:right}, @
+    between: ar (left, right) -> new Between {leftBound:left, rightBound:right}, @
     reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
@@ -125,14 +125,30 @@ class DatumTerm extends RDBVal
                     obj[pair.getKey()] = DatumTerm.deconstruct pair.getVal()
                 obj
 
+translateOptargs = (optargs) ->
+    result = {}
+    for own key,val of optargs
+        key = switch key
+            when 'primaryKey' then 'primary_key'
+            when 'datacenter' then 'datacenter'
+            when 'useOutdated' then 'use_outdated'
+            when 'cacheSize' then 'cache_size'
+            when 'left' then 'left'
+            when 'right' then 'right'
+            when 'base' then 'base'
+            when 'leftBound' then 'left_bound'
+            when 'rightBound' then 'right_bound'
+            else undefined
+
+        if key is undefined or val is undefined then continue
+        result[key] = rethinkdb.expr val
+    return result
+
 class RDBOp extends RDBVal
     constructor: (optargs, args...) ->
         self = super()
         self.args = (rethinkdb.expr arg for arg in args)
-        self.optargs = {}
-        for own key,val of optargs
-            if val is undefined then continue
-            self.optargs[key] = rethinkdb.expr val
+        self.optargs = translateOptargs(optargs)
         return self
 
     build: ->
@@ -184,6 +200,14 @@ class MakeArray extends RDBOp
 
 class MakeObject extends RDBOp
     tt: Term2.TermType.MAKE_OBJ
+
+    constructor: (obj) ->
+        self = super({})
+        self.optargs = {}
+        for own key,val of obj
+            self.optargs[key] = rethinkdb.expr val
+        return self
+
     compose: (args, optargs) -> kved(optargs)
 
 class Var extends RDBOp

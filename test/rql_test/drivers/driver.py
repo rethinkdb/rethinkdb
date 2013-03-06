@@ -108,24 +108,31 @@ class Err:
 class Arr:
     def __init__(self, length, thing=None):
         self.length = length
+        self.thing = thing
 
     def __eq__(self, other):
-        if not isinstance(other, List):
+        if not isinstance(other, list):
             return False
 
         if not self.length == len(other):
             return False
 
-        if thing is None:
+        if self.thing is None:
             return True
 
-        return other == thing
+        return other == self.thing
+
+    def __repr__(self):
+        return "arr(%d, %s)" % (self.length, repr(self.thing))
 
 class Uuid:
     def __eq__(self, thing):
         if not isinstance(thing, types.StringTypes):
             return False
         return re.match("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", thing) != None
+
+    def __repr__(self):
+        return "uuid()"
 
 # -- Curried output test functions --
 
