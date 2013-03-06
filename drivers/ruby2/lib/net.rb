@@ -35,7 +35,8 @@ module RethinkDB
       "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}>"
     end
 
-    def initialize(results, msg, connection, token) # :nodoc:
+    def initialize(results, msg, connection, token, more = true) # :nodoc:
+      @more = more
       @results = results
       @msg = msg
       @run = false
@@ -50,6 +51,7 @@ module RethinkDB
       raise RuntimeError, "Connection has been reset!" if out_of_date
       while true
         @results.each(&block)
+        return self if !@more
         q = Query2.new
         q.type = Query2::QueryType::CONTINUE
         q.query = @msg
@@ -104,7 +106,9 @@ module RethinkDB
 
       res = run_internal q
       if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token)
+        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
+      elsif res.type == Response2::ResponseType::SUCCESS_SEQUENCE
+        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
       else
         Shim.response_to_native(res, msg)
       end
