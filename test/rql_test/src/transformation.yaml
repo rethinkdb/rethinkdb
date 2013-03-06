@@ -79,7 +79,8 @@ tests:
     # TODO: without
     # TODO: make sure all is properly polymorphic
 
-    # TODO: make sure we test casts
+    # TODO: make sure we test return types of various ops
+    # TODO: make sure we test cast_to op
 
     # Union
     - cd: tbl.union(tbl2).count()
