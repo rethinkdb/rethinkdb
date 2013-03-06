@@ -48,7 +48,7 @@ tests:
 
     - js: r.do(1, function(x) {})
       cd: []
-      ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+      ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
     
     - cd: r.do()
       py: [] # Case handled by native python error
@@ -81,6 +81,9 @@ tests:
       js: r.do(1,2, function(a) { return a; })
       rb: r.do(1, 2) { |a| a }
       ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
+
+    - cd: r.expr(5).do(r.row)
+      ot: 5
 
     ## Branch
 
@@ -253,15 +256,33 @@ tests:
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       cd: []
-      ot: err("RqlDriverError", 'Unknown datum value "undefined", did you forget a "return"?', [1])
+      ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
     
-    # TODO: try calling write queries in random places (e.g. in `do`))
-    
+    # Make sure write queries can't be nested into stream ops
+    - cd: r.expr(1).do(tbl.insert({'foo':r.row}))
+      ot: ({'inserted':1, 'generated_keys':arr(1,uuid())})
+      
+    - cd: r.expr([1, 2])[0].do(tbl.insert({'foo':r.row}))
+      js: r.expr([1, 2]).nth(0).do(tbl.insert({'foo':r.row}))
+      ot: ({'inserted':1, 'generated_keys':arr(1,uuid())})
+
+    - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations. Use FOREACH instead.', [0])
+      
+    - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations. Use FOREACH instead.', [0])
+      
+    - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
+      ot: ({'created':1})
+      
     # Cleanup    
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})
       
     - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})
+
+    - cd: r.db('test').table_drop('nested_table')
       ot: ({'dropped':1})
 
     
