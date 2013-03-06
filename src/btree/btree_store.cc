@@ -188,8 +188,9 @@ void btree_store_t<protocol_t>::reset_data(
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::lock_sindex_queue(mutex_t::acq_t *acq) {
+void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq) {
     assert_thread();
+    guarantee(sindex_block->is_acquired());
     acq->reset(&sindex_queue_mutex);
 }
 
@@ -634,9 +635,22 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
+    aquire_post_constructed_sindex_superblocks_for_write(
+            sindex_block.get(),
+            txn,
+            sindex_sbs_out);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_write(
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        sindex_access_vector_t *sindex_sbs_out)
+        THROWS_NOTHING {
+    assert_thread();
     std::set<uuid_u> sindexes_to_acquire;
     std::map<uuid_u, secondary_index_t> sindexes;
-    ::get_secondary_indexes(txn, sindex_block.get(), &sindexes);
+    ::get_secondary_indexes(txn, sindex_block, &sindexes);
 
     for (std::map<uuid_u, secondary_index_t>::iterator it  = sindexes.begin();
                                                        it != sindexes.end();
@@ -647,7 +661,7 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
     }
 
     acquire_sindex_superblocks_for_write(
-            sindexes_to_acquire, sindex_block.get(),
+            sindexes_to_acquire, sindex_block,
             txn, sindex_sbs_out);
 }
 

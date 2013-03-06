@@ -115,7 +115,7 @@ public:
 
     //TODO make this function take the sindex block it helps to enforce sane
     //locking
-    void lock_sindex_queue(mutex_t::acq_t *acq);
+    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -266,6 +266,12 @@ public: // <--- so this is some bullshit right here
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
+
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+            THROWS_NOTHING;
 
     void acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes

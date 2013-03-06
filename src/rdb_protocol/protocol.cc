@@ -103,7 +103,7 @@ void post_construct_and_drain_queue(
 void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        UNUSED buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t)
 {
@@ -122,7 +122,7 @@ void bring_sindexes_up_to_date(
 
     {
         mutex_t::acq_t acq;
-        store->lock_sindex_queue(&acq);
+        store->lock_sindex_queue(sindex_block, &acq);
         store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
@@ -182,7 +182,7 @@ void post_construct_and_drain_queue(
                 &sindexes);
 
         mutex_t::acq_t acq;
-        store->lock_sindex_queue(&acq);
+        store->lock_sindex_queue(queue_sindex_block.get(), &acq);
 
         while (mod_queue->size() >= previous_size &&
                mod_queue->size() > 0) {
@@ -930,15 +930,20 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
 private:
 void update_sindexes(rdb_modification_report_t *mod_report) {
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    store->acquire_sindex_block_for_write(
+        token_pair, txn, &sindex_block,
+        sindex_block_id, &interruptor);
+
     mutex_t::acq_t acq;
-    store->lock_sindex_queue(&acq);
+    store->lock_sindex_queue(sindex_block.get(), &acq);
     
     write_message_t wm;
     wm << *mod_report;
     store->sindex_queue_push(wm, &acq);
 
     sindex_access_vector_t sindexes;
-    store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
+    store->acquire_all_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
     rdb_update_sindexes(sindexes, mod_report, txn);
 }
     btree_slice_t *btree;

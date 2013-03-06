@@ -15,7 +15,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define TOTAL_KEYS_TO_INSERT 1000000
+#define TOTAL_KEYS_TO_INSERT 10000
 
 namespace unittest {
 
@@ -43,14 +43,18 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                 superblock.get(), &response, &mod_report);
 
         {
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store->acquire_sindex_block_for_write(
+                    &token_pair, txn.get(), &sindex_block,
+                    sindex_block_id, &dummy_interuptor);
+
             btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
             store->aquire_post_constructed_sindex_superblocks_for_write(
-                    sindex_block_id, &token_pair, txn.get(),
-                    &sindexes, &dummy_interuptor);
+                     sindex_block.get(), txn.get(), &sindexes);
             rdb_update_sindexes(sindexes, &mod_report, txn.get());
 
             mutex_t::acq_t acq;
-            store->lock_sindex_queue(&acq);
+            store->lock_sindex_queue(sindex_block.get(), &acq);
 
             write_message_t wm;
             wm << mod_report;
