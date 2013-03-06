@@ -1,0 +1,15 @@
+desc: Tests that manipulation data in tables
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test')
+
+    # TODO: make sure merge (and other things) are polymorphic on objects and streams
+
+    # Cleanup
+    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
+      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
+      ot: ({'dropped':4})
+

@@ -37,12 +37,10 @@ tests:
     # Map-Reduce
     - py:
         - tbl.map(lambda row:row['id']).reduce(lambda a,b:a+b)
-        # TODO: Implicit var support buggy on CPP server
-        #- tbl.map(r.row['id']).reduce(lambda a,b:a+b)
+        - tbl.map(r.row['id']).reduce(lambda a,b:a+b)
       js:
         - tbl.map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
-        # TODO: Implicit var support buggy on CPP server
-        #- tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+        - tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
       rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 4950
 
