@@ -1442,43 +1442,6 @@ module 'DataExplorerView', ->
                     error: true
                 }
 
-        # Callback used by the cursor when the user hit 'more results'
-        callback_query: (data) =>
-            # If we get a run time error
-            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                @.$('.loading_query_img').css 'display', 'none'
-                @.results_view.render_error(@query, data)
-                return false
-            
-            # if it's a valid result and we have not reach the maximum of results displayed
-            # A valid result can be null, so we don't use the coffescript's existential operator
-            if data isnt undefined and  @current_results.length < @limit
-                @current_results.push data
-                return true
-            else
-                # Else we are going to display what we have
-                @.$('.loading_query_img').css 'display', 'none'
-
-                # Save the last executed query and the last displayed results
-                @saved_data.query = @query
-                @saved_data.results = @current_results
-                
-                @saved_data.metadata =
-                    limit_value: @current_results.length
-                    skip_value: @skip_value
-                    execution_time: new Date() - @start_time
-                    query: @query
-                    has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-                @results_view.render_result
-                    results: @current_results # The first parameter null is the query because we don't want to display it.
-                    metadata: @saved_data.metadata
-
-                if data isnt undefined #there is nore data
-                    @skip_value += @current_results.length
-                    @current_results = []
-                    @current_results.push data
-                return false
-
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
             event.preventDefault()
@@ -1486,102 +1449,13 @@ module 'DataExplorerView', ->
             try
                 @current_results = []
                 @start_time = new Date()
-                @saved_data.cursor.next(@callback_query)
+                @saved_data.cursor.next @get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
-
-        ###
-        show_more_results: (event) =>
-            try
-                event.preventDefault()
-                @start_time = new Date()
-                @saved_data.cursor.next(@callback_query)
-                $(window).scrollTop(@.$('.results_container').offset().top)
-            catch err
-                @.$('.loading_query_img').css 'display', 'none'
-                @results_view.render_error(@query, err)
-        ###
-
-        # Callback for the query executed
-        callback_multiple_queries: (data) =>
-            # Check if the data sent by the server is an error
-            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                @.$('.loading_query_img').css 'display', 'none'
-                @.results_view.render_error(@query, data)
-                return false
-
-            # Look for the next query
-            @current_query_index++
-
-            # If we are dealing with the last query
-            if @current_query_index >= @queries.length
-                # If we get a run time error
-                if data instanceof rethinkdb.errors.RuntimeError
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @.results_view.render_error(@query, data)
-                    return false
-                
-                # if it's a valid result and we have not reach the maximum of results displayed
-                if data isnt undefined and  @current_results.length < @limit
-                    @current_results.push data
-                    return true
-                else
-                    # Else we are going to display what we have
-                    @.$('.loading_query_img').css 'display', 'none'
-
-                    # Save the last executed query and the last displayed results
-                    @saved_data.query = @query
-                    @saved_data.results = @current_results
-                    @saved_data.metadata =
-                        limit_value: @current_results.length
-                        skip_value: @skip_value
-                        execution_time: new Date() - @start_time
-                        query: @query
-                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-
-                    @results_view.render_result
-                        results: @current_results # The first parameter is null ( = query, so we don't display it)
-                        metadata: @saved_data.metadata
-
-                    if data isnt undefined #there is nore data
-                        @skip_value += @current_results.length
-                        @current_results = []
-                        @current_results.push data
-
-                    # Successful query, let's save it in the history
-                    @save_query @raw_query
-
-                    return false
-            else #  Else if it's not the last query, we just execute the next query
-                try
-                    #For safety only.
-                    if @cursor?.close?
-                        @cursor.close()
-
-                    @current_results = []
-                    @skip_value = 0
-
-                    @cursor = eval(@queries[@current_query_index])
-                    @saved_data.cursor = @cursor # Saving the cursor so the user can call more results later
-                    @cursor.next(@callback_multiple_queries)
-                catch err
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_error(@query, err)
-            return false
 
         # Function that execute the query
-        # Current behavior for user
-        # - User execute q1
-        # - User execute q2 (we stop listening to q1)
-        # - User retrieve results for q2
-        #
-        # In case of multiple queries
-        # - User execute q1_1, q1_2
-        # - User execute q2
-        # - We don't execute q1_3
-        # - User retrieve results for q2
         execute_query: =>
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
@@ -1641,8 +1515,9 @@ module 'DataExplorerView', ->
                     #TODO hack run in the driver
                     @skip_value = 0
                     @start_time = new Date()
+                    @current_results = []
                     #TODO That's not synchronous? Find why.
-                    rdb_query.run @driver_handler.connection, @rdb_global_callback
+                    rdb_query.run @driver_handler.connection, @rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else
                     @non_rethinkdb_query += @queries[@index-1]
@@ -1659,10 +1534,9 @@ module 'DataExplorerView', ->
                 if cursor?
                     @saved_data.cursor = @cursor
 
-
+                debugger
                 #TODO Check for empty array?
                 if cursor?.hasNext?
-                    @current_results = []
                     @cursor = cursor
                     if cursor.hasNext() is true
                         cursor.next @get_result_callback
@@ -1675,11 +1549,11 @@ module 'DataExplorerView', ->
                     @saved_data.query = @query
                     @saved_data.results = @current_results
                     @saved_data.metadata =
-                        limit_value: 0
+                        limit_value: @current_results.length
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
+                        has_more_data: false
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
@@ -1702,10 +1576,11 @@ module 'DataExplorerView', ->
                     return true
 
             # if data is undefined or @current_results.length is @limit
+            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
             @saved_data.query = @query
             @saved_data.results = @current_results
             @saved_data.metadata =
-                limit_value: 0
+                limit_value: @current_results.length
                 skip_value: @skip_value
                 execution_time: new Date() - @start_time
                 query: @query
@@ -1720,7 +1595,6 @@ module 'DataExplorerView', ->
 
 
         evaluate: (query) =>
-            console.log query
             "use strict"
             return eval(query)
 
