@@ -864,22 +864,16 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
                                       options);
 }
 
-MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
-                                  std::map<std::string, options::values_t> *names_by_values_out) {
-    try {
-        std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
-        boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
-        if (config_file_name) {
-            opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
-        }
-        opts = options::merge(opts, default_values_map(options));
-        options::verify_option_counts(options, opts);
-        *names_by_values_out = opts;
-        return true;
-    } catch (const std::exception &e) {
-        fprintf(stderr, "%s\n", e.what());
-        return false;
+std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,
+                                                             const std::vector<options::option_t> &options) {
+    std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
+    boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
+    if (config_file_name) {
+        opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
     }
+    opts = options::merge(opts, default_values_map(options));
+    options::verify_option_counts(options, opts);
+    return opts;
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
@@ -890,10 +884,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             get_rethinkdb_create_options(&help, &options);
         }
 
-        std::map<std::string, options::values_t> opts;
-        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
-            return EXIT_FAILURE;
-        }
+        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_create();
@@ -948,10 +939,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             get_rethinkdb_serve_options(&help, &options);
         }
 
-        std::map<std::string, options::values_t> opts;
-        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
-            return EXIT_FAILURE;
-        }
+        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_serve();
@@ -1053,10 +1041,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             get_rethinkdb_proxy_options(&help, &options);
         }
 
-        std::map<std::string, options::values_t> opts;
-        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
-            return EXIT_FAILURE;
-        }
+        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_proxy();
@@ -1124,10 +1109,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::vector<options::option_t> options;
         get_rethinkdb_import_options(&options);
 
-        std::map<std::string, options::values_t> opts;
-        if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
-            return EXIT_FAILURE;
-        }
+        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_import();
@@ -1232,10 +1214,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             get_rethinkdb_porcelain_options(&help, &options);
         }
 
-        std::map<std::string, options::values_t> opts;
-        if (!parse_commands_deep(argc - 1, argv + 1, options, &opts)) {
-            return EXIT_FAILURE;
-        }
+        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 1, argv + 1, options);
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_porcelain();
