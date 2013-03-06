@@ -101,7 +101,7 @@ tests:
       
     # Create a table with a non-id primary key
     - cd: r.db('test').table_create('testpkey', primary_key='foo')
-      js: r.db('test').tableCreate({tableName:'testpkey',primary_key:'foo'})
+      js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       ot: ({'created':1})
       def: tblpkey = r.db('test').table('testpkey')
 

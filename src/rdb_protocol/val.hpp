@@ -75,6 +75,8 @@ public:
     // to another.
     class type_t {
         friend class val_t;
+        friend void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
+                        Response2 *res, stream_cache2_t *stream_cache2);
     public:
         enum raw_type_t {
             DB               = 1, // db

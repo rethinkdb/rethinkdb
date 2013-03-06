@@ -136,7 +136,7 @@ module RethinkDB
     end
 
     def do(*a, &b)
-      RQL.new.funcall(new_func(&b), *((@body ? [self] : []) + a))
+      RQL.new.funcall(*((b ? [new_func(&b)] : []) + (@body ? [self] : []) + a))
     end
   end
 end

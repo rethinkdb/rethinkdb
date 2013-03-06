@@ -145,8 +145,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         return r;
 
     } else {
-        *errmsg = value->IsUndefined() ? "Cannot convert javascript `undefined` to JSON."
-                                       : "Unrecognized value type when converting to JSON.";
+        *errmsg = value->IsUndefined()
+            ? "Cannot convert javascript `undefined` to JSON."
+            : "Unrecognized value type when converting to JSON.";
         return NULL;
     }
 }
