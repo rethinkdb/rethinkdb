@@ -555,13 +555,13 @@ class Zip(RDBSeqOp, RDBMethod):
     tt = p.Term2.ZIP
     st = 'zip'
 
-class CoerceTo(RDBAnyOp):
+class CoerceTo(RDBAnyOp, RDBMethod):
     tt = p.Term2.COERCE_TO
-    mt = 'coerce_to'
+    st = 'coerce_to'
 
-class TypeOf(RDBAnyOp):
+class TypeOf(RDBAnyOp, RDBMethod):
     tt = p.Term2.TYPEOF
-    mt = 'type_of'
+    st = 'type_of'
 
 class Update(RDBOp, RDBMethod):
     tt = p.Term2.UPDATE
