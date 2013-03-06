@@ -135,8 +135,16 @@ module RethinkDB
       their protobufs like: `query1.to_pb == query2.to_pb`."
     end
 
-    def do(*a, &b)
-      RQL.new.funcall(*((b ? [new_func(&b)] : []) + (@body ? [self] : []) + a))
+    def do(*args, &b)
+      a = (@body ? [self] : []) + args.dup
+      raise ArgumentError, "do requires at least one argument" if a == [] && !b
+      RQL.new.funcall(*((b ? [new_func(&b)] : [a.pop]) + a))
+    end
+
+    def row
+      unbound_if @body
+      raise NoMethodError, ("Sorry, r.row is not available in the ruby driver.  " +
+                            "Use blocks instead.")
     end
   end
 end

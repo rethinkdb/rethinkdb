@@ -29,6 +29,7 @@ public:
     // Prefer these two version of call.
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
+    bool filter_call(env_t *env, const datum_t *arg);
 
     void dump_scope(std::map<int, Datum> *out) const;
     bool is_deterministic() const;
