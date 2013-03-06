@@ -69,6 +69,7 @@ tests:
       ot: ({'id':0, 'a':0})
     # TODO: test ascending and descending orderBy
     # TODO: make sure we don't allow string interpolation syntax in orderBy (e.g. '-')
+    # TODO: test ordering by multiple attrs (in case of ties)
 
     # TODO: add tests for skip (positive, negative numbers, non-numbers)
     # TODO: add tests for limit (positive, negative numbers, non-numbers)

@@ -160,7 +160,7 @@ private:
         datum_stream_t *ds = arg(0)->as_seq();
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *row = ds->next()) {
-            val_t *v = arg(1)->as_func()->call(row);
+            val_t *v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
             try {
                 const datum_t *d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

@@ -184,11 +184,10 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
 func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
                                   const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
-    int x = env->gensym();
-    Term2 *arg = pb::set_func(&twrap->t, x);
+    Term2 *arg = &twrap->t;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-    NDATUM(obj);
+    N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
 #pragma GCC diagnostic pop
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));

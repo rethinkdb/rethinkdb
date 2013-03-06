@@ -6,7 +6,7 @@ require 'test/unit'
 require 'pp'
 
 $port_base ||= ARGV[0].to_i # 0 if none given
-$c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
+$c = RethinkDB::Connection.new('localhost', $port_base + 28015)
 
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts

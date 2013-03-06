@@ -14,7 +14,7 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
-    rcheck(b, strprintf("Table name \"%s\" invalid (%s).",
+    rcheck(b, strprintf("Table name `%s` invalid (%s).",
                         name.c_str(), valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
         namespaces_metadata = env->namespaces_semilattice_metadata->get();
@@ -25,7 +25,7 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     //TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
-                              strprintf("Table \"%s\" does not exist.",
+                              strprintf("Table `%s` does not exist.",
                                         table_name.c_str()), this);
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
@@ -36,7 +36,7 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     //meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name.str(), this);
     rcheck(status == METADATA_SUCCESS,
-           strprintf("Table \"%s\" does not exist.", table_name.c_str()));
+           strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
     pkey =  ns_metadata_it->second.get().primary_key.get();
