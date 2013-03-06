@@ -1534,14 +1534,13 @@ module 'DataExplorerView', ->
                 if cursor?
                     @saved_data.cursor = @cursor
 
-                debugger
                 #TODO Check for empty array?
                 if cursor?.hasNext?
                     @cursor = cursor
                     if cursor.hasNext() is true
-                        cursor.next @get_result_callback
+                        @cursor.next @get_result_callback
                     else
-                        @get_result_callback()
+                        @get_result_callback() # Display results
                 else
                     # Save the last executed query and the last displayed results
                     @current_results = cursor
