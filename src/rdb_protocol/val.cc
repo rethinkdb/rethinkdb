@@ -302,9 +302,6 @@ func_t *val_t::as_func(function_shortcut_t shortcut) {
         }
         r_sanity_check(parent);
         switch(shortcut) {
-        case FILTER_SHORTCUT: {
-            func = env->add_ptr(func_t::new_filter_func(env, as_datum(), parent));
-        } break;
         case IDENTITY_SHORTCUT: {
             func = env->add_ptr(func_t::new_identity_func(env, as_datum(), parent));
         } break;
