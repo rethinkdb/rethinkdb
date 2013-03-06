@@ -37,13 +37,16 @@ tests:
       ot: ({'created':1})
 
     - cd: db.table_create('foo')
-      ot: err('RqlRuntimeError', 'Table "foo" already exists.', [0])
+      ot: err('RqlRuntimeError', 'Table `foo` already exists.', [0])
 
     - cd: db.table_drop('foo')
       ot: ({'dropped':1})
       
     - cd: db.table_drop('foo')
-      ot: err('RqlRuntimeError', 'Table "foo" does not exist.', [0])
+      ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
       
     # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
     # primary_datacenter, cache_size)
+    
+    # TODO: test bad arguments to table_create (especially in js
+    # driver -- e.g. not an object but multiple args)

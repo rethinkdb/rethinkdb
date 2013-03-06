@@ -36,19 +36,19 @@ tests:
 
     # Missing db case
     - cd: r.db('missing').table('bar')
-      ot: err("RqlRuntimeError", 'Database "missing" does not exist.', [0])
+      ot: err("RqlRuntimeError", 'Database `missing` does not exist.', [0])
 
     # Missing table case
     - cd: r.db('test').table('missing')
-      ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
+      ot: err("RqlRuntimeError", 'Table `missing` does not exist.', [0])
 
     # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
 
     - cd: r.db('#$%')
-      ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlRuntimeError", 'Database name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
     
     - cd: r.db('test').table('#$%')
-      ot: err("RqlRuntimeError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlRuntimeError", 'Table name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: r.table('test').count()
@@ -56,7 +56,7 @@ tests:
 
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
-      ot: err("RqlRuntimeError", 'Expected type Sequence but found SingleSelection.', [0])
+      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
       
     # Get a document that exists
     - cd: tbl.get(20)
@@ -76,20 +76,20 @@ tests:
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
     # Create a table with a non-id primary key
-    - cd: r.db('test').table_create('test_pkey', primary_key='foo')
-      js: r.db('test').tableCreate({tableName:'test_pkey',primary_key:'foo'}) # TODO: test bad arguments to js driver here (e.g. not an object but multiple args)
+    - cd: r.db('test').table_create('testpkey', primary_key='foo')
+      js: r.db('test').tableCreate({tableName:'testpkey',primary_key:'foo'})
       ot: ({'created':1})
-      def: tbl_pkey = r.db('test').table('test_pkey')
+      def: tblpkey = r.db('test').table('testpkey')
 
-    - cd: tbl_pkey.insert({'foo':10,'a':10})
+    - cd: tblpkey.insert({'foo':10,'a':10})
       ot: ({'inserted':1})
       
     # get for table where id isn't a primary key
-    - cd: tbl_pkey.get(10)
+    - cd: tblpkey.get(10)
       ot: ({'foo':10,'a':10})
     
     # Clean up pkey test table
-    - cd: r.db('test').table_drop('test_pkey')
+    - cd: r.db('test').table_drop('testpkey')
       ot: ({'dropped':1})
 
     # Between
@@ -104,7 +104,7 @@ tests:
     
     # Between shouldn't work on arrays
     - cd: r.expr([1, 2, 3]).between(-1, 2)
-      ot: err('RqlRuntimeError', 'Expected type StreamSelection but found ARRAY.', [0])
+      ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
 
     # TODO: test between on non-selections
     # TODO: test between without the first argument
@@ -131,3 +131,4 @@ tests:
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])
+

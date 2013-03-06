@@ -1,9 +1,9 @@
 from sys import path
 import sys
-import types
 import pdb
 import collections
 import types
+import re
 path.insert(0, "../../drivers/python2")
 
 from os import environ
@@ -91,6 +91,9 @@ class Err:
         if self.etyp and self.etyp != other.__class__.__name__:
             return False
 
+        # Strip "offending object" from the error message
+        other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
+
         if self.emsg and self.emsg != other.message:
             return False
 
@@ -101,6 +104,28 @@ class Err:
 
     def __repr__(self):
         return "%s(\"%s\")" % (self.etyp, repr(self.emsg) or '')
+
+class Arr:
+    def __init__(self, length, thing=None):
+        self.length = length
+
+    def __eq__(self, other):
+        if not isinstance(other, List):
+            return False
+
+        if not self.length == len(other):
+            return False
+
+        if thing is None:
+            return True
+
+        return other == thing
+
+class Uuid:
+    def __eq__(self, thing):
+        if not isinstance(thing, types.StringTypes):
+            return False
+        return re.match("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", thing) != None
 
 # -- Curried output test functions --
 
@@ -124,8 +149,9 @@ class PyTestDriver:
 
     # Set up connections to each database server
     def connect(self):
-        print 'Connecting to JS server on port ' + str(JSPORT)
-        self.js_conn = r.connect(host='localhost', port=JSPORT)
+        #print 'Connecting to JS server on port ' + str(JSPORT)
+        #self.js_conn = r.connect(host='localhost', port=JSPORT)
+
         print 'Connecting to CPP server on port ' + str(CPPPORT)
         print ''
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
@@ -182,6 +208,7 @@ class PyTestDriver:
                         (repr(err), repr(exp_val))
                 )
 
+        """
         try:
             jsres = query.run(self.js_conn)
 
@@ -200,6 +227,7 @@ class PyTestDriver:
                     "Error running test on JS server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
                         (repr(err), repr(exp_val))
                 )
+        """
 
 driver = PyTestDriver()
 driver.connect()
@@ -221,3 +249,9 @@ def bag(lst):
 # Emitted test code can call this function to indicate expected error output
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
+
+def arr(length, thing=None):
+    return Arr(length, thing)
+
+def uuid():
+    return Uuid()

@@ -169,7 +169,7 @@ class RDBSequence extends RDBType
                 result = new RDBObject {'errors': 1}
 
             unless result.typeOf() is RDBType.OBJECT
-                throw new RqlRuntimeError "Expected type WriteQuery but found #{TypeName::typeOf(result).toString()}."
+                throw new RqlRuntimeError "FOREACH expects one or more write queries."
 
             for own k,v of result
                 if base[k]?
@@ -187,12 +187,12 @@ class RDBSequence extends RDBType
         return base
 
     forEach: (mapping) -> statsMerge (@map mapping).concatMap (row) ->
-        # The for each mapping function may produce an array of
-        # results. We need to flatten this for `statsMerge`
-        unless row instanceof RDBArray
-            new RDBArray [row]
-        else
-            row
+            # The for each mapping function may produce an array of
+            # results. We need to flatten this for `statsMerge`
+            unless row instanceof RDBArray
+                new RDBArray [row]
+            else
+                row
 
     getPK: -> @asArray()[0].getPK()
 

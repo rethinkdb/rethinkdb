@@ -157,7 +157,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
-                rfail_toplevel("Query returned opaque value %s.", val->print().c_str());
+                rfail_toplevel("Query result must be of type DATUM or STREAM.");
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
