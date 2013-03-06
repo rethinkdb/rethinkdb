@@ -36,19 +36,19 @@ tests:
 
     # Missing db case
     - cd: r.db('missing').table('bar')
-      ot: err("RqlRuntimeError", 'Database "missing" does not exist.', [0])
+      ot: err("RqlRuntimeError", 'Database `missing` does not exist.', [0])
 
     # Missing table case
     - cd: r.db('test').table('missing')
-      ot: err("RqlRuntimeError", 'Table "missing" does not exist.', [0])
+      ot: err("RqlRuntimeError", 'Table `missing` does not exist.', [0])
 
     # TODO: make sure we can insert and query json docs by arbitrary unicode attrs
 
     - cd: r.db('#$%')
-      ot: err("RqlRuntimeError", 'Database name "#$%" invalid (Use A-Za-z0-9_ only).', [0]) # TODO: make sure we use backticks and these babies are upcased
+      ot: err("RqlRuntimeError", 'Database name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
     
     - cd: r.db('test').table('#$%')
-      ot: err("RqlRuntimeError", 'Table name "#$%" invalid (Use A-Za-z0-9_ only).', [0])
+      ot: err("RqlRuntimeError", 'Table name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: r.table('test').count()

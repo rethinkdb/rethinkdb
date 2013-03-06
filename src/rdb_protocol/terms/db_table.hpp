@@ -18,7 +18,7 @@ name_string_t get_name(val_t *val, const term_t *caller) {
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, assignment_successful,
-                  strprintf("Database name \"%s\" invalid (%s).",
+                  strprintf("Database name `%s` invalid (%s).",
                             raw_name.c_str(), valid_char_msg));
     return name;
 }
@@ -101,7 +101,7 @@ private:
     virtual val_t *eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
         return new_val(meta_get_uuid(db_searcher.get(), db_name,
-                                     strprintf("Database \"%s\" does not exist.",
+                                     strprintf("Database `%s` does not exist.",
                                                db_name.c_str()), this));
     }
     RDB_NAME("db");
