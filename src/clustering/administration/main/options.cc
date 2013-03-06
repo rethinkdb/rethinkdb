@@ -109,32 +109,35 @@ const option_t *find_option(const char *const option_name, const std::vector<opt
     return NULL;
 }
 
-std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options) {
-    std::map<std::string, std::vector<std::string> > names_by_values;
+std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options) {
+    std::map<std::string, values_t> names_by_values;
     for (auto it = options.begin(); it != options.end(); ++it) {
         if (it->min_appearances == 0) {
-            names_by_values.insert(std::make_pair(it->names[0], it->default_values));
+            names_by_values.insert(std::make_pair(it->names[0],
+                                                  values_t("the default value", it->default_values)));
         }
     }
     return names_by_values;
 }
 
-std::map<std::string, std::vector<std::string> > merge(
-    const std::map<std::string, std::vector<std::string> > &high_precedence_values,
-    const std::map<std::string, std::vector<std::string> > &low_precedence_values) {
-    std::map<std::string, std::vector<std::string> > ret = low_precedence_values;
+std::map<std::string, values_t> merge(const std::map<std::string, values_t> &high_precedence_values,
+                                      const std::map<std::string, values_t> &low_precedence_values) {
+    std::map<std::string, values_t> ret = low_precedence_values;
     for (auto it = high_precedence_values.begin(); it != high_precedence_values.end(); ++it) {
-        ret[it->first] = it->second;
+        auto res = ret.insert(*it);
+        if (!res.second) {
+            res.first->second = it->second;
+        }
     }
     return ret;
 }
 
-std::map<std::string, std::vector<std::string> > do_parse_command_line(
+std::map<std::string, values_t> do_parse_command_line(
     const int argc, const char *const *const argv, const std::vector<option_t> &options,
     std::vector<std::string> *const unrecognized_out) {
     guarantee(argc >= 0);
 
-    std::map<std::string, std::vector<std::string> > names_by_values;
+    std::map<std::string, values_t> names_by_values;
     std::vector<std::string> unrecognized;
 
     for (int i = 0; i < argc; ) {
@@ -161,7 +164,8 @@ std::map<std::string, std::vector<std::string> > do_parse_command_line(
         if (option->no_parameter) {
             // Push an empty parameter value -- in particular, this makes our
             // duplicate checking work.
-            names_by_values[official_name].push_back("");
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t("the command line", { })));
+            res.first->second.values.push_back("");
         } else {
             if (i == argc) {
                 throw missing_parameter_error_t(option_name);
@@ -174,7 +178,8 @@ std::map<std::string, std::vector<std::string> > do_parse_command_line(
                 throw missing_parameter_error_t(option_name);
             }
 
-            names_by_values[official_name].push_back(option_parameter);
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t("the command line", { })));
+            res.first->second.values.push_back(option_parameter);
         }
     }
 
@@ -185,11 +190,11 @@ std::map<std::string, std::vector<std::string> > do_parse_command_line(
     return names_by_values;
 }
 
-std::map<std::string, std::vector<std::string> > parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
+std::map<std::string, values_t> parse_command_line(const int argc, const char *const *const argv, const std::vector<option_t> &options) {
     return do_parse_command_line(argc, argv, options, NULL);
 }
 
-std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
+std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
     int argc, const char *const *argv, const std::vector<option_t> &options,
     std::vector<std::string> *unrecognized_out) {
     // We check that unrecognized_out is not NULL because do_parse_command_line
@@ -200,7 +205,7 @@ std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_
 }
 
 void verify_option_counts(const std::vector<option_t> &options,
-                          const std::map<std::string, std::vector<std::string> > &names_by_values) {
+                          const std::map<std::string, values_t> &names_by_values) {
     for (auto option = options.begin(); option != options.end(); ++option) {
         const std::string option_name = option->names[0];
         auto entry = names_by_values.find(option_name);
@@ -209,12 +214,12 @@ void verify_option_counts(const std::vector<option_t> &options,
                 throw option_count_error_t(option_name, option->min_appearances, option->max_appearances, 0);
             }
         } else {
-            if (entry->second.size() < option->min_appearances || entry->second.size() > option->max_appearances) {
+            if (entry->second.values.size() < option->min_appearances || entry->second.values.size() > option->max_appearances) {
                 throw option_count_error_t(option_name, option->min_appearances,
-                                           option->max_appearances, entry->second.size());
+                                           option->max_appearances, entry->second.values.size());
             }
 
-            if (option->no_parameter && entry->second.size() == 1 && entry->second[0] != "") {
+            if (option->no_parameter && entry->second.values.size() == 1 && entry->second.values[0] != "") {
                 throw value_error_t(option_name, strprintf("Option '%s' should not have a value.", option_name.c_str()));
             }
         }
@@ -250,12 +255,12 @@ bool is_not_space(char ch) {
     return !isspace(ch);
 }
 
-std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &file_contents,
-                                                                   const std::string &filepath,
-                                                                   const std::vector<option_t> &options) {
+std::map<std::string, values_t> parse_config_file(const std::string &file_contents,
+                                                  const std::string &filepath,
+                                                  const std::vector<option_t> &options) {
     const std::vector<std::string> lines = split_by_lines(file_contents);
 
-    std::map<std::string, std::vector<std::string> > ret;
+    std::map<std::string, values_t> ret;
 
     for (auto it = lines.begin(); it != lines.end(); ++it) {
         std::string stripped_line = *it;
@@ -302,7 +307,8 @@ std::map<std::string, std::vector<std::string> > parse_config_file(const std::st
                                                filepath.c_str(), it - lines.begin(), name.c_str()));
         }
 
-        ret[option_name].push_back(value);
+        auto res = ret.insert(std::make_pair(option_name, values_t("the configuration file " + filepath, { })));
+        res.first->second.values.push_back(value);
     }
 
     return ret;

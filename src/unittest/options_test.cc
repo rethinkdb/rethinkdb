@@ -24,6 +24,14 @@ std::vector<options::option_t> make_options() {
     };
 }
 
+std::map<std::string, std::vector<std::string> > without_source(const std::map<std::string, options::values_t> &opts) {
+    std::map<std::string, std::vector<std::string> > ret;
+    for (auto pair = opts.begin(); pair != opts.end(); ++pair) {
+        ret.insert(std::make_pair(pair->first, pair->second.values));
+    }
+    return ret;
+}
+
 TEST(OptionsTest, CommandLineParsing) {
     const std::vector<const char *> command_line = {
         "--no-parameter",
@@ -41,7 +49,7 @@ TEST(OptionsTest, CommandLineParsing) {
     const std::vector<options::option_t> options = make_options();
 
     const std::map<std::string, std::vector<std::string> > opts
-        = options::parse_command_line(command_line.size(), command_line.data(), options);
+        = without_source(options::parse_command_line(command_line.size(), command_line.data(), options));
 
     const std::map<std::string, std::vector<std::string> > expected_parse = {
         { "--no-parameter", { "" } },
@@ -74,7 +82,7 @@ TEST(OptionsTest, ConfigFileParsing) {
     const std::vector<options::option_t> options = make_options();
 
     const std::map<std::string, std::vector<std::string> > opts
-        = options::parse_config_file(config_file, "ConfigFileParsing file", options);
+        = without_source(options::parse_config_file(config_file, "ConfigFileParsing file", options));
 
     const std::map<std::string, std::vector<std::string> > expected_parse = {
         { "--no-parameter", { "" } },

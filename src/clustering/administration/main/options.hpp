@@ -52,6 +52,21 @@ struct file_parse_error_t : public std::runtime_error {
     file_parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
 };
 
+// A list of values provided for some option.  (Multiple values means the option was specified
+// multiple times.)  Also included is a string description the *source* of the option values (e.g. a
+// command line or the name of a config file) to help make friendly error messages.  Typically this
+// is a value in a `std::map<std::string, values_t>`, where the key is the option name.
+struct values_t {
+    explicit values_t(const std::string &_source, const std::vector<std::string> &_values)
+        : source(_source), values(_values) { }
+
+    // A string describing the source of the values.  This should be usable in a help message as the
+    // object of a prepositional phrase -- e.g. "the command line", which could be used in phrases
+    // "from the command line" or "in the command line", or "the configuration file foo.cfg".
+    std::string source;
+    std::vector<std::string> values;
+};
+
 // Represents an option's names.  Be sure to include dashes!  Usage:
 //
 //     names_t("--max-foobars")  // An option name.
@@ -109,13 +124,13 @@ public:
     explicit option_t(names_t names, appearance_t appearance, std::string default_value);
 
 private:
-    friend std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
-    friend std::map<std::string, std::vector<std::string> > do_parse_command_line(
+    friend std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options);
+    friend std::map<std::string, values_t> do_parse_command_line(
         const int argc, const char *const *const argv, const std::vector<option_t> &options,
         std::vector<std::string> *const unrecognized_out);
     friend const option_t *find_option(const char *const option_name, const std::vector<option_t> &options);
     friend void verify_option_counts(const std::vector<option_t> &options,
-                                     const std::map<std::string, std::vector<std::string> > &names_by_values);
+                                     const std::map<std::string, values_t> &names_by_values);
     // Names for the option, e.g. "-j", "--join"
     std::vector<std::string> names;
 
@@ -144,14 +159,14 @@ private:
 // appearances of OPTIONAL_NO_PARAMETER options.  Uses the *official name* of the option (the first
 // parameter passed to names_t) for map keys.  Does not do any verification that we have the right
 // number of option values.  (That only happens in `verify_option_counts`.)
-std::map<std::string, std::vector<std::string> > parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options);
+std::map<std::string, values_t> parse_command_line(int argc, const char *const *argv, const std::vector<option_t> &options);
 
 // Like `parse_command_line`, except that it tolerates unrecognized options, instead of throwing.
 // Out-of-place positional parameters and unrecognized options are output to `*unrecognized_out`, in
 // the same order that they appeared in the options list.  This can lead to some weird situations,
 // if you passed "--recognized-foo 3 --unrecognized --recognized-bar 4 5" on the command line.  You
 // would get ["--unrecognized", "5"] in `*unrecognized_out`.
-std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_unrecognized(
+std::map<std::string, values_t> parse_command_line_and_collect_unrecognized(
     int argc, const char *const *argv, const std::vector<option_t> &options,
     std::vector<std::string> *unrecognized_out);
 
@@ -159,23 +174,23 @@ std::map<std::string, std::vector<std::string> > parse_command_line_and_collect_
 // left-hand argument.  Example usage:
 //
 //     opts = merge(command_line_values, config_file_values);
-std::map<std::string, std::vector<std::string> > merge(
-    const std::map<std::string, std::vector<std::string> > &high_precedence_values,
-    const std::map<std::string, std::vector<std::string> > &low_precedence_values);
+std::map<std::string, values_t> merge(
+    const std::map<std::string, values_t> &high_precedence_values,
+    const std::map<std::string, values_t> &low_precedence_values);
 
 // Verifies that given options build the right amount of times.  This is separate from option
 // parsing because we need to accumulate options from both the command line and config file.
 void verify_option_counts(const std::vector<option_t> &options,
-                          const std::map<std::string, std::vector<std::string> > &names_by_values);
+                          const std::map<std::string, values_t> &names_by_values);
 
 // Constructs a map of default option values.
-std::map<std::string, std::vector<std::string> > default_values_map(const std::vector<option_t> &options);
+std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options);
 
 // Parses the file contents, using filepath solely to help build error messages, retrieving some
 // options.
-std::map<std::string, std::vector<std::string> > parse_config_file(const std::string &contents,
-                                                                   const std::string &filepath,
-                                                                   const std::vector<option_t> &options);
+std::map<std::string, values_t> parse_config_file(const std::string &contents,
+                                                  const std::string &filepath,
+                                                  const std::vector<option_t> &options);
 
 // A help_line_t is a syntax description and a blurb.  When used in a help_section_t, the blurbs get
 // aligned and word-wrapped.

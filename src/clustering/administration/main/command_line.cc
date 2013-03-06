@@ -107,22 +107,22 @@ int write_pid_file(const std::string &pid_filepath) {
 
 // Extracts an option that appears either zero or once.  Multiple appearances are not allowed (or
 // expected).
-boost::optional<std::string> get_optional_option(const std::map<std::string, std::vector<std::string> > &opts,
+boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
                                                  const std::string &name) {
     auto it = opts.find(name);
-    if (it == opts.end() || it->second.empty()) {
+    if (it == opts.end() || it->second.values.empty()) {
         return boost::optional<std::string>();
     }
 
-    if (it->second.size() == 1) {
-        return it->second[0];
+    if (it->second.values.size() == 1) {
+        return it->second.values[0];
     }
 
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
 }
 
 // Maybe writes a pid file, using the --pid-file option, if it's present.
-int write_pid_file(const std::map<std::string, std::vector<std::string> > &opts) {
+int write_pid_file(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
     if (!pid_filepath || pid_filepath->empty()) {
         return EXIT_SUCCESS;
@@ -133,7 +133,7 @@ int write_pid_file(const std::map<std::string, std::vector<std::string> > &opts)
 
 // Extracts an option that must appear exactly once.  (This is often used for optional arguments
 // that have a default value.)
-std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts,
+std::string get_single_option(const std::map<std::string, options::values_t> &opts,
                               const std::string &name) {
     boost::optional<std::string> value = get_optional_option(opts, name);
 
@@ -206,7 +206,7 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
     return render_as_path(result);
 }
 
-std::string get_web_path(const std::map<std::string, std::vector<std::string> > &opts, char **argv) {
+std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
     boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
     return get_web_path(web_static_directory, argv);
 }
@@ -263,17 +263,17 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
 
 // Returns the options vector for a given option name.  The option must *exist*!  Typically this is
 // for OPTIONAL_REPEAT options with a default value being the empty vector.
-const std::vector<std::string> &all_options(const std::map<std::string, std::vector<std::string> > &opts,
+const std::vector<std::string> &all_options(const std::map<std::string, options::values_t> &opts,
                                             const std::string &name) {
     auto it = opts.find(name);
     if (it == opts.end()) {
         throw std::logic_error(strprintf("option '%s' not found", name.c_str()));
     }
-    return it->second;
+    return it->second.values;
 }
 
 // Gets a single integer option, often an optional integer option with a default value.
-int get_single_int(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
+int get_single_int(const std::map<std::string, options::values_t> &opts, const std::string &name) {
     const std::string value = get_single_option(opts, name);
     int64_t x;
     if (strtoi64_strict(value, 10, &x)) {
@@ -287,16 +287,16 @@ int get_single_int(const std::map<std::string, std::vector<std::string> > &opts,
 
 // Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
 // option exists.
-bool exists_option(const std::map<std::string, std::vector<std::string> > &opts, const std::string &name) {
+bool exists_option(const std::map<std::string, options::values_t> &opts, const std::string &name) {
     auto it = opts.find(name);
-    return it != opts.end() && it->second.size() > 0;
+    return it != opts.end() && !it->second.values.empty();
 }
 
 int offseted_port(const int port, const int port_offset) {
     return port == 0 ? 0 : port + port_offset;
 }
 
-service_address_ports_t get_service_address_ports(const std::map<std::string, std::vector<std::string> > &opts) {
+service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
                                    offseted_port(get_single_int(opts, "--cluster-port"), port_offset),
@@ -791,12 +791,12 @@ io_backend_t get_io_backend_option(const std::string &option_name, const std::st
 }
 
 MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
-                             std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+                             std::map<std::string, options::values_t> *names_by_values_out) {
     try {
-        const std::map<std::string, std::vector<std::string> > command_line
+        const std::map<std::string, options::values_t> command_line
             = options::parse_command_line(argc, argv, options);
-        std::map<std::string, std::vector<std::string> > opts
-            = options::merge(command_line, default_values_map(options));
+        std::map<std::string, options::values_t> opts
+            = options::merge(command_line, options::default_values_map(options));
 
         options::verify_option_counts(options, opts);
         *names_by_values_out = opts;
@@ -807,8 +807,8 @@ MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::o
     }
 }
 
-std::map<std::string, std::vector<std::string> > parse_config_file_flat(const std::string &config_filepath,
-                                                                        const std::vector<options::option_t> &options) {
+std::map<std::string, options::values_t> parse_config_file_flat(const std::string &config_filepath,
+                                                                const std::vector<options::option_t> &options) {
     std::string file;
     if (!blocking_read_file(config_filepath.c_str(), &file)) {
         throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
@@ -819,9 +819,9 @@ std::map<std::string, std::vector<std::string> > parse_config_file_flat(const st
 }
 
 MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
-                                  std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+                                  std::map<std::string, options::values_t> *names_by_values_out) {
     try {
-        std::map<std::string, std::vector<std::string> > opts = options::parse_command_line(argc, argv, options);
+        std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
         boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
         if (config_file_name) {
             opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
@@ -844,7 +844,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             get_rethinkdb_create_options(&help, &options);
         }
 
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, options::values_t> opts;
         if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
@@ -902,7 +902,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             get_rethinkdb_serve_options(&help, &options);
         }
 
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, options::values_t> opts;
         if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
@@ -915,8 +915,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
 
+        const std::vector<std::string> join_strings = all_options(opts, "--join");
         std::vector<host_and_port_t> joins;
-        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
             joins.push_back(parse_host_and_port("--join", *it));
         }
 
@@ -974,15 +975,16 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         get_rethinkdb_admin_options(&options);
 
         std::vector<std::string> command_args;
-        std::map<std::string, std::vector<std::string> > opts
+        std::map<std::string, options::values_t> opts
             = options::merge(options::parse_command_line_and_collect_unrecognized(argc - 2, argv + 2, options,
                                                                                   &command_args),
                              options::default_values_map(options));
 
         options::verify_option_counts(options, opts);
 
+        const std::vector<std::string> join_strings = all_options(opts, "--join");
         std::vector<host_and_port_t> joins;
-        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
             joins.push_back(parse_host_and_port("--join", *it));
         }
 
@@ -1013,7 +1015,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             get_rethinkdb_proxy_options(&help, &options);
         }
 
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, options::values_t> opts;
         if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
@@ -1023,8 +1025,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
+        const std::vector<std::string> join_strings = all_options(opts, "--join");
         std::vector<host_and_port_t> joins;
-        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
             joins.push_back(parse_host_and_port("--join", *it));
         }
 
@@ -1087,7 +1090,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         std::vector<options::option_t> options;
         get_rethinkdb_import_options(&options);
 
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, options::values_t> opts;
         if (!parse_commands_deep(argc - 2, argv + 2, options, &opts)) {
             return EXIT_FAILURE;
         }
@@ -1097,8 +1100,9 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
+        std::vector<std::string> join_strings = all_options(opts, "--join");
         std::vector<host_and_port_t> joins;
-        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
             joins.push_back(parse_host_and_port("--join", *it));
         }
 
@@ -1198,7 +1202,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             get_rethinkdb_porcelain_options(&help, &options);
         }
 
-        std::map<std::string, std::vector<std::string> > opts;
+        std::map<std::string, options::values_t> opts;
         if (!parse_commands_deep(argc - 1, argv + 1, options, &opts)) {
             return EXIT_FAILURE;
         }
@@ -1216,8 +1220,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
             return EXIT_FAILURE;
         }
+
+        const std::vector<std::string> join_strings = all_options(opts, "--join");
         std::vector<host_and_port_t> joins;
-        for (auto it = opts["--join"].begin(); it != opts["--join"].end(); ++it) {
+        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
             joins.push_back(parse_host_and_port("--join", *it));
         }
 
