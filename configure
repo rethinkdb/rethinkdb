@@ -619,6 +619,12 @@ build_try_lib_paths () {
 # WISHLIST: Properly detect the presence of the headers and check that the
 #           installed version is compatible. Try using pkg-config.
 check_lib () {
+    local path
+    if lookup "$force_paths" $1 path; then
+        require $1
+        var_append LIBRARY_PATHS $path
+        return
+    fi
     local check
     if contains "$static_libs" $1; then
         require "$1 (static)"
@@ -656,7 +662,7 @@ check_lib_compile () {
         code='int main(){}'
     # fi
     echo "$code" > "$bfile.cc"
-    if $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 ${LIBRARY_PATHS:-} -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
 	var_append LIBRARY_PATHS -l$1
     fi
 }
