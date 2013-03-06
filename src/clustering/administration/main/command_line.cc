@@ -108,17 +108,31 @@ int write_pid_file(const std::string &pid_filepath) {
 // Extracts an option that appears either zero or once.  Multiple appearances are not allowed (or
 // expected).
 boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
-                                                 const std::string &name) {
+                                                 const std::string &name,
+                                                 std::string *source_out) {
     auto it = opts.find(name);
-    if (it == opts.end() || it->second.values.empty()) {
+    if (it == opts.end()) {
+        *source_out = "nowhere";
+        return boost::optional<std::string>();
+    }
+
+    if (it->second.values.empty()) {
+        *source_out = it->second.source;
         return boost::optional<std::string>();
     }
 
     if (it->second.values.size() == 1) {
+        *source_out = it->second.source;
         return it->second.values[0];
     }
 
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
+}
+
+boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
+                                                 const std::string &name) {
+    std::string source;
+    return get_optional_option(opts, name, &source);
 }
 
 // Maybe writes a pid file, using the --pid-file option, if it's present.
@@ -134,14 +148,23 @@ int write_pid_file(const std::map<std::string, options::values_t> &opts) {
 // Extracts an option that must appear exactly once.  (This is often used for optional arguments
 // that have a default value.)
 std::string get_single_option(const std::map<std::string, options::values_t> &opts,
-                              const std::string &name) {
-    boost::optional<std::string> value = get_optional_option(opts, name);
+                              const std::string &name,
+                              std::string *source_out) {
+    std::string source;
+    boost::optional<std::string> value = get_optional_option(opts, name, &source);
 
     if (!value) {
         throw std::logic_error(strprintf("Missing option '%s'.  (It does not have a default value.)", name.c_str()));
     }
 
+    *source_out = source;
     return *value;
+}
+
+std::string get_single_option(const std::map<std::string, options::values_t> &opts,
+                              const std::string &name) {
+    std::string source;
+    return get_single_option(opts, name, &source);
 }
 
 
@@ -264,12 +287,20 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
 // Returns the options vector for a given option name.  The option must *exist*!  Typically this is
 // for OPTIONAL_REPEAT options with a default value being the empty vector.
 const std::vector<std::string> &all_options(const std::map<std::string, options::values_t> &opts,
-                                            const std::string &name) {
+                                            const std::string &name,
+                                            std::string *source_out) {
     auto it = opts.find(name);
     if (it == opts.end()) {
         throw std::logic_error(strprintf("option '%s' not found", name.c_str()));
     }
+    *source_out = it->second.source;
     return it->second.values;
+}
+
+const std::vector<std::string> &all_options(const std::map<std::string, options::values_t> &opts,
+                                            const std::string &name) {
+    std::string source;
+    return all_options(opts, name, &source);
 }
 
 // Gets a single integer option, often an optional integer option with a default value.
@@ -566,7 +597,8 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
-host_and_port_t parse_host_and_port(const std::string &option_name, const std::string &value) {
+host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
+                                    const std::string &value) {
     size_t colon_loc = value.find_first_of(':');
     if (colon_loc != std::string::npos) {
         std::string host = value.substr(0, colon_loc);
@@ -576,15 +608,17 @@ host_and_port_t parse_host_and_port(const std::string &option_name, const std::s
         }
     }
 
-    throw options::value_error_t(option_name, strprintf("Option '%s' has invalid host and port number '%s'",
-                                                        option_name.c_str(), value.c_str()));
+    throw options::value_error_t(source, option_name,
+                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                           option_name.c_str(), value.c_str()));
 }
 
 std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts) {
-    const std::vector<std::string> join_strings = all_options(opts, "--join");
+    std::string source;
+    const std::vector<std::string> join_strings = all_options(opts, "--join", &source);
     std::vector<host_and_port_t> joins;
     for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-        joins.push_back(parse_host_and_port("--join", *it));
+        joins.push_back(parse_host_and_port(source, "--join", *it));
     }
     return joins;
 }
@@ -785,7 +819,10 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_help_options(options_out));
 }
 
-io_backend_t get_io_backend_option(const std::string &option_name, const std::string &value) {
+io_backend_t get_io_backend_option(const std::map<std::string, options::values_t> &opts) {
+    std::string source;
+    const std::string value = get_single_option(opts, "--io-backend", &source);
+
     if (value == "pool") {
         return aio_pool;
 #ifdef AIOSUPPORT
@@ -793,9 +830,9 @@ io_backend_t get_io_backend_option(const std::string &option_name, const std::st
         return aio_native;
 #endif
     } else {
-        throw options::value_error_t(option_name, strprintf("Option '%s' has invalid value '%s'",
-                                                            option_name.c_str(),
-                                                            value.c_str()));
+        throw options::value_error_t(source, "--io-backend",
+                                     strprintf("Option '--io-backend' has invalid value '%s'",
+                                               value.c_str()));
     }
 }
 
@@ -863,7 +900,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option(opts);
 
         const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
@@ -930,7 +967,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option(opts);
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
@@ -1220,7 +1257,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         const std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option("--io-backend", get_single_option(opts, "--io-backend"));
+        io_backend_t io_backend = get_io_backend_option(opts);
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);

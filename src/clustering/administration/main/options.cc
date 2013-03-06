@@ -9,9 +9,10 @@
 
 namespace options {
 
-option_count_error_t::option_count_error_t(std::string option_name, size_t min_appearances,
-                                           size_t max_appearances, size_t actual_appearances)
-    : named_error_t(option_name,
+option_count_error_t::option_count_error_t(std::string source, std::string option_name,
+                                           size_t min_appearances, size_t max_appearances,
+                                           size_t actual_appearances)
+    : named_error_t(source, option_name,
                     actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", option_name.c_str())
                     : min_appearances == 1 ? strprintf("Option '%s' must be specified.", option_name.c_str())
                     : strprintf("Option '%s' specified too few times.", option_name.c_str())) {
@@ -19,20 +20,22 @@ option_count_error_t::option_count_error_t(std::string option_name, size_t min_a
     rassert(actual_appearances < min_appearances || actual_appearances > max_appearances);
 }
 
-missing_parameter_error_t::missing_parameter_error_t(std::string option_name)
-    : named_error_t(option_name, strprintf("Option '%s' is missing its parameter.", option_name.c_str())) { }
+missing_parameter_error_t::missing_parameter_error_t(std::string source, std::string option_name)
+    : named_error_t(source, option_name,
+                    strprintf("Option '%s' is missing its parameter.", option_name.c_str())) { }
 
-value_error_t::value_error_t(std::string option_name, std::string msg)
-    : named_error_t(option_name, msg) { }
+value_error_t::value_error_t(std::string source, std::string option_name, std::string msg)
+    : named_error_t(source, option_name, msg) { }
 
-unrecognized_option_error_t::unrecognized_option_error_t(std::string option_name)
-    : std::runtime_error(strprintf("Unrecognized option '%s'.", option_name.c_str())),
+unrecognized_option_error_t::unrecognized_option_error_t(std::string source, std::string option_name)
+    : option_error_t(source, strprintf("Unrecognized option '%s'.", option_name.c_str())),
       unrecognized_option_name_(option_name) { }
 
-positional_parameter_error_t::positional_parameter_error_t(std::string parameter_value)
-    : std::runtime_error(strprintf("Unexpected positional parameter '%s' (did you forget the "
-                                   "option name, or forget to quote a parameter list?).",
-                                   parameter_value.c_str())),
+positional_parameter_error_t::positional_parameter_error_t(std::string source, std::string parameter_value)
+    : option_error_t(source,
+                     strprintf("Unexpected positional parameter '%s' (did you forget the "
+                               "option name, or forget to quote a parameter list?).",
+                               parameter_value.c_str())),
       parameter_value_(parameter_value) { }
 
 
@@ -137,6 +140,8 @@ std::map<std::string, values_t> do_parse_command_line(
     std::vector<std::string> *const unrecognized_out) {
     guarantee(argc >= 0);
 
+    const std::string source = "the command line";
+
     std::map<std::string, values_t> names_by_values;
     std::vector<std::string> unrecognized;
 
@@ -153,9 +158,9 @@ std::map<std::string, values_t> do_parse_command_line(
                 unrecognized.push_back(option_name);
                 continue;
             } else if (looks_like_option_name(option_name)) {
-                throw unrecognized_option_error_t(option_name);
+                throw unrecognized_option_error_t(source, option_name);
             } else {
-                throw positional_parameter_error_t(option_name);
+                throw positional_parameter_error_t(source, option_name);
             }
         }
 
@@ -164,21 +169,21 @@ std::map<std::string, values_t> do_parse_command_line(
         if (option->no_parameter) {
             // Push an empty parameter value -- in particular, this makes our
             // duplicate checking work.
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t("the command line", { })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, { })));
             res.first->second.values.push_back("");
         } else {
             if (i == argc) {
-                throw missing_parameter_error_t(option_name);
+                throw missing_parameter_error_t(source, option_name);
             }
 
             const char *const option_parameter = argv[i];
             ++i;
 
             if (looks_like_option_name(option_parameter)) {
-                throw missing_parameter_error_t(option_name);
+                throw missing_parameter_error_t(source, option_name);
             }
 
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t("the command line", { })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, { })));
             res.first->second.values.push_back(option_parameter);
         }
     }
@@ -211,16 +216,19 @@ void verify_option_counts(const std::vector<option_t> &options,
         auto entry = names_by_values.find(option_name);
         if (entry == names_by_values.end()) {
             if (option->min_appearances > 0) {
-                throw option_count_error_t(option_name, option->min_appearances, option->max_appearances, 0);
+                throw option_count_error_t(entry->second.source, option_name,
+                                           option->min_appearances, option->max_appearances, 0);
             }
         } else {
             if (entry->second.values.size() < option->min_appearances || entry->second.values.size() > option->max_appearances) {
-                throw option_count_error_t(option_name, option->min_appearances,
-                                           option->max_appearances, entry->second.values.size());
+                throw option_count_error_t(entry->second.source, option_name,
+                                           option->min_appearances, option->max_appearances,
+                                           entry->second.values.size());
             }
 
             if (option->no_parameter && entry->second.values.size() == 1 && entry->second.values[0] != "") {
-                throw value_error_t(option_name, strprintf("Option '%s' should not have a value.", option_name.c_str()));
+                throw value_error_t(entry->second.source, option_name,
+                                    strprintf("Option '%s' should not have a value.", option_name.c_str()));
             }
         }
     }
@@ -258,6 +266,8 @@ bool is_not_space(char ch) {
 std::map<std::string, values_t> parse_config_file(const std::string &file_contents,
                                                   const std::string &filepath,
                                                   const std::vector<option_t> &options) {
+    const std::string source = "the configuration file " + filepath;
+
     const std::vector<std::string> lines = split_by_lines(file_contents);
 
     std::map<std::string, values_t> ret;
@@ -281,14 +291,16 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
 
         const auto config_name_end = std::find_if(config_name_beg, stripped_line.end(), is_space_or_equal_sign);
         if (config_name_beg == config_name_end) {
-            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu",
+            throw file_parse_error_t(source,
+                                     strprintf("Config file %s: parse error at line %zu",
                                                filepath.c_str(),
                                                it - lines.begin()));
         }
 
         const auto expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
         if (expected_equal_sign == stripped_line.end() || *expected_equal_sign != '=') {
-            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu",
+            throw file_parse_error_t(source,
+                                     strprintf("Config file %s: parse error at line %zu",
                                                filepath.c_str(),
                                                it - lines.begin()));
         }
@@ -303,11 +315,12 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
         const option_t *option = find_option(option_name.c_str(), options);
 
         if (option == NULL) {
-            throw file_parse_error_t(strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
+            throw file_parse_error_t(source,
+                                     strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
                                                filepath.c_str(), it - lines.begin(), name.c_str()));
         }
 
-        auto res = ret.insert(std::make_pair(option_name, values_t("the configuration file " + filepath, { })));
+        auto res = ret.insert(std::make_pair(option_name, values_t(source, { })));
         res.first->second.values.push_back(value);
     }
 

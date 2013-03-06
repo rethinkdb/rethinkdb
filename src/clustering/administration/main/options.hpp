@@ -7,9 +7,19 @@
 
 namespace options {
 
-struct named_error_t : public std::runtime_error {
-    named_error_t(std::string option_name, std::string msg)
-        : std::runtime_error(msg), option_name_(option_name) { }
+struct option_error_t : public std::runtime_error {
+    option_error_t(std::string source, std::string msg)
+        : std::runtime_error(msg), source_(source) { }
+
+    std::string source() const { return source_; }
+
+private:
+    std::string source_;
+};
+
+struct named_error_t : public option_error_t {
+    named_error_t(std::string source, std::string option_name, std::string msg)
+        : option_error_t(source, msg), option_name_(option_name) { }
 
     std::string option_name() const { return option_name_; }
 
@@ -18,20 +28,20 @@ private:
 };
 
 struct option_count_error_t : public named_error_t {
-    option_count_error_t(std::string option_name, size_t min_appearances,
+    option_count_error_t(std::string source, std::string option_name, size_t min_appearances,
                          size_t max_appearances, size_t actual_appearances);
 };
 
 struct missing_parameter_error_t : public named_error_t {
-    missing_parameter_error_t(std::string option_name);
+    missing_parameter_error_t(std::string source, std::string option_name);
 };
 
 struct value_error_t : public named_error_t {
-    value_error_t(std::string option_name, std::string msg);
+    value_error_t(std::string source, std::string option_name, std::string msg);
 };
 
-struct unrecognized_option_error_t : public std::runtime_error {
-    unrecognized_option_error_t(std::string option_name);
+struct unrecognized_option_error_t : public option_error_t {
+    unrecognized_option_error_t(std::string source, std::string option_name);
 
     std::string unrecognized_option_name() const { return unrecognized_option_name_; }
 
@@ -39,8 +49,8 @@ private:
     std::string unrecognized_option_name_;
 };
 
-struct positional_parameter_error_t : public std::runtime_error {
-    positional_parameter_error_t(std::string parameter_value);
+struct positional_parameter_error_t : public option_error_t {
+    positional_parameter_error_t(std::string source, std::string parameter_value);
 
     std::string parameter_value() const { return parameter_value_; }
 
@@ -48,8 +58,8 @@ private:
     std::string parameter_value_;
 };
 
-struct file_parse_error_t : public std::runtime_error {
-    file_parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
+struct file_parse_error_t : public option_error_t {
+    file_parse_error_t(std::string source, std::string msg) : option_error_t(source, msg) { }
 };
 
 // A list of values provided for some option.  (Multiple values means the option was specified
