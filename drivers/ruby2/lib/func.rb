@@ -25,6 +25,20 @@ module RethinkDB
       :for_each => :foreach
     }
     def method_missing(m, *a, &b)
+      bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
+      if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
+        a.each {|arg|
+          if arg.class == RQL && arg.bitop
+            err = "Calling #{m} on result of infix bitwise operator:\n" +
+              "#{arg.inspect}.\n" +
+              "This is almost always a precedence error.\n" +
+              "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
+              "If you really want this behavior, use `.or` or `.and` instead."
+            raise ArgumentError, err
+          end
+        }
+      end
+
       m = @@rewrites[m] || m
       termtype = Term2::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
@@ -47,7 +61,7 @@ module RethinkDB
         ap.val = RQL.new.expr(v).to_pb
         ap
       }
-      return RQL.new t
+      return RQL.new(t, bitop)
     end
 
     def group_by(*a, &b)
@@ -122,7 +136,7 @@ module RethinkDB
     end
 
     def do(*a, &b)
-      RQL.new.funcall(new_func(&b), *((@body ? [self] : []) + a))
+      RQL.new.funcall(*((b ? [new_func(&b)] : []) + (@body ? [self] : []) + a))
     end
   end
 end

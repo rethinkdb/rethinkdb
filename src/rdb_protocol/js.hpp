@@ -8,6 +8,8 @@
 #include <vector>
 #include <utility>
 
+#include <boost/variant/variant.hpp>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
@@ -33,7 +35,8 @@ class scoped_id_t {
     friend class runner_t;
 
   public:
-    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID) : parent_(parent), id_(id) {}
+    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID)
+        : parent_(parent), id_(id) {}
     ~scoped_id_t();
 
     bool empty() const { return id_ == INVALID_ID; }
@@ -55,6 +58,9 @@ class scoped_id_t {
     DISABLE_COPYING(scoped_id_t);
 };
 
+// JS calls result either in a DATUM return value, a function id (which we can
+// use to call the function later), or an error string
+typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, id_t, std::string> js_result_t;
 
 // A handle to a running "javascript evaluator" job.
 class runner_t : private extproc::job_handle_t {
@@ -94,35 +100,30 @@ class runner_t : private extproc::job_handle_t {
 
     static const req_config_t *default_req_config();
 
-    // Evalute JS source string
-    boost::shared_ptr<scoped_cJSON_t> eval(
+    MUST_USE id_t compile(
+        const std::vector<std::string> &args,
+        const std::string &source,
+        std::string *errmsg,
+        const req_config_t *config = NULL) {
+        
+        // This is now a Noop
+        (void)args;
+        (void)source;
+        (void)errmsg;
+        (void)config;
+        return INVALID_ID;
+    }
+
+    // Evalute JS source string to either a value or a function ID to call later
+    js_result_t eval(
         // Source to eval
         const std::string &source,
-        std::string *errmsg,
-        const req_config_t *config = NULL);
-
-    // Returns INVALID_ID on error.
-    // Returned id may only be used in `call`.
-    MUST_USE id_t compile(
-        // Argument names
-        const std::vector<std::string> &args,
-        // Source for the body of the function, _not_ including opening
-        // "function(...) {" and closing "}".
-        const std::string &source,
-        std::string *errmsg,
         const req_config_t *config = NULL);
 
     // Calls a previously compiled function.
-    boost::shared_ptr<scoped_cJSON_t> call(
+    js_result_t call(
         id_t func_id,
-        // The receiver object ("this") in the function body. *Can* be an empty
-        // pointer (but not an empty scoped_cJSON_t), to indicate a default
-        // empty object receiver.
-        //
-        // Note: if present, *must* be a JSON object, not eg. an integer.
-        boost::shared_ptr<scoped_cJSON_t> object,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
-        std::string *errmsg,
         const req_config_t *config = NULL);
 
     // TODO (rntz): a way to send streams over to javascript.

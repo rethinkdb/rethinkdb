@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifdef AIOSUPPORT
 
 #include "arch/io/disk/aio/submit_sync.hpp"
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
 linux_aio_submit_sync_t::linux_aio_submit_sync_t(

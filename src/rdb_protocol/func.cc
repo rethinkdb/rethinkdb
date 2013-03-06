@@ -6,8 +6,13 @@
 
 namespace ql {
 
+func_t::func_t(env_t *env, js::id_t id, term_t *parent)
+    : pb_rcheckable_t(parent), body(0), source(0),
+      js_parent(parent), js_env(env), js_id(id) { }
+
 func_t::func_t(env_t *env, const Term2 *_source)
-    : pb_rcheckable_t(_source), body(0), source(_source) {
+    : pb_rcheckable_t(_source), body(0), source(_source),
+      js_parent(0), js_env(0), js_id(js::INVALID_ID) {
     const Term2 *t = _source;
     r_sanity_check(t->type() == Term2_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
@@ -64,16 +69,31 @@ func_t::func_t(env_t *env, const Term2 *_source)
 
 val_t *func_t::call(const std::vector<const datum_t *> &args) {
     try {
-        rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
-               strprintf("Expected %zu argument(s) but found %zu.",
-                         argptrs.size(), args.size()));
-        for (size_t i = 0; i < argptrs.size(); ++i) {
-            r_sanity_check(args[i]);
-            //debugf("Setting %p to %p\n", &argptrs[i], args[i]);
-            argptrs[i] = args[i];
+        if (js_parent != 0) {
+            r_sanity_check(!body && !source && js_env);
+            // Convert datum args to cJSON args for the JS runner
+            std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
+            for (const datum_t *arg : args) {
+                json_args.push_back(arg->as_json());
+            }
+
+            boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
+            js::js_result_t result = js->call(js_id, json_args);
+
+            return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
+        } else {
+            r_sanity_check(body && source && !js_env);
+            rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
+                   strprintf("Expected %zu argument(s) but found %zu.",
+                             argptrs.size(), args.size()));
+            for (size_t i = 0; i < argptrs.size(); ++i) {
+                r_sanity_check(args[i]);
+                //debugf("Setting %p to %p\n", &argptrs[i], args[i]);
+                argptrs[i] = args[i];
+            }
+            return body->eval(false);
+            //                ^^^^^ don't use cached value
         }
-        return body->eval(false);
-        //                ^^^^^ don't use cached value
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
         unreachable();
@@ -94,6 +114,7 @@ val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
 }
 
 void func_t::dump_scope(std::map<int, Datum> *out) const {
+    r_sanity_check(body && source && !js_env && !js_parent);
     for (std::map<int, const datum_t **>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
         if (!*it->second) continue;
@@ -101,7 +122,7 @@ void func_t::dump_scope(std::map<int, Datum> *out) const {
     }
 }
 bool func_t::is_deterministic() const {
-    return body->is_deterministic();
+    return body ? body->is_deterministic() : false;
 }
 
 wire_func_t::wire_func_t() : pb_rcheckable_t(&source) { }
@@ -136,8 +157,8 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
-                                  const pb_rcheckable_t *bt_src) {
+func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
+                                const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
     int x = env->gensym();
     Term2 *t = pb::set_func(&twrap->t, x);
@@ -155,6 +176,19 @@ func_t *func_t::new_shortcut_func(env_t *env, const datum_t *obj,
            val->write_to_protobuf(pb::set_datum(arg)));
 #pragma GCC diagnostic pop
     }
+    bt_src->propagate(&twrap->t);
+    return env->add_ptr(new func_t(env, &twrap->t));
+}
+
+
+func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
+                                  const pb_rcheckable_t *bt_src) {
+    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
+    Term2 *arg = &twrap->t;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+    N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+#pragma GCC diagnostic pop
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
 }

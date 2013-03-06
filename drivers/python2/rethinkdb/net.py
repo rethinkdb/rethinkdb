@@ -57,11 +57,12 @@ class Cursor(list):
 
 class Connection():
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, db='test'):
         self.socket = None
         self.host = host
         self.port = port
         self.next_token = 1
+        self.db = DB(db)
         self.reconnect()
 
     def __enter__(self):
@@ -69,6 +70,9 @@ class Connection():
 
     def __exit__(self, type, value, traceback):
         self.close()
+
+    def use(self, db):
+        self.db = DB(db)
 
     def reconnect(self):
         self.close()
@@ -85,7 +89,7 @@ class Connection():
             self.socket.close()
             self.socket = None
 
-    def _start(self, term):
+    def _start(self, term, **global_opt_args):
         token = self.next_token
         self.next_token += 1
 
@@ -93,6 +97,16 @@ class Connection():
         query = p.Query2()
         query.type = p.Query2.START
         query.token = token
+
+        # Set global opt args
+        if not 'db' in global_opt_args:
+            if self.db:
+                global_opt_args['db'] = self.db
+
+        for k,v in global_opt_args.iteritems():
+            pair = query.global_optargs.add()
+            pair.key = k
+            expr(v).build(pair.val)
 
         # Compile query to protobuf
         term.build(query.query)
@@ -138,13 +152,19 @@ class Connection():
         # Error responses
         if response.type is p.Response2.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlRuntimeError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlRuntimeError(message, term, frames)
         elif response.type is p.Response2.COMPILE_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlCompileError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlCompileError(message, term, frames)
         elif response.type is p.Response2.CLIENT_ERROR:
             message = Datum.deconstruct(response.response[0])
-            raise RqlClientError(message, term, response.backtrace)
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlClientError(message, term, frames)
 
         # Sequence responses
         if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
@@ -155,7 +175,8 @@ class Connection():
         if response.type is p.Response2.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
         
-def connect(host='localhost', port=28016):
+def connect(host='localhost', port=28015):
     return Connection(host, port)
 
-from ast import Datum
+from ast import Datum, DB
+from query import expr

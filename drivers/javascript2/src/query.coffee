@@ -3,10 +3,10 @@ goog.provide("rethinkdb.query")
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.ast")
 
-rethinkdb.expr = (val) ->
+rethinkdb.expr = ar (val) ->
     if val instanceof TermBase
         val
-    else if typeof val is 'function'
+    else if val instanceof Function
         new Func {}, val
     else if goog.isArray val
         new MakeArray {}, val...
@@ -15,24 +15,29 @@ rethinkdb.expr = (val) ->
     else
         new DatumTerm val
 
-rethinkdb.js = (jssrc) -> new JavaScript {}, jssrc
+rethinkdb.js = ar (jssrc) -> new JavaScript {}, jssrc
 
-rethinkdb.error = (errstr) -> new UserError {}, errstr
+rethinkdb.error = ar (errstr) -> new UserError {}, errstr
 
 rethinkdb.row = new ImplicitVar {}
 
-rethinkdb.db = (dbName) -> new Db {}, dbName
+rethinkdb.table = ar (tblName) -> new Table {}, tblName
 
-rethinkdb.dbCreate = (dbName) -> new DbCreate {}, dbName
+rethinkdb.db = ar (dbName) -> new Db {}, dbName
 
-rethinkdb.dbDrop = (dbName) -> new DbDrop {}, dbName
+rethinkdb.dbCreate = ar (dbName) -> new DbCreate {}, dbName
+
+rethinkdb.dbDrop = ar (dbName) -> new DbDrop {}, dbName
 
 rethinkdb.dbList = -> new DbList {}
 
-rethinkdb.do = (args...) -> new FunCall {}, args[-1..][0], args[...-1]...
+rethinkdb.do = (args...) ->
+    unless args.length >= 1
+        throw new RqlDriverError "Expected 1 or more argument(s) but found #{args.length}."
+    new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
 
-rethinkdb.branch = (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
+rethinkdb.branch = ar (test, trueBranch, falseBranch) -> new Branch {}, test, trueBranch, falseBranch
 
 rethinkdb.count =           {'COUNT': true}
-rethinkdb.sum   = (attr) -> {'SUM': attr}
-rethinkdb.avg   = (attr) -> {'AVG': attr}
+rethinkdb.sum   = ar (attr) -> {'SUM': attr}
+rethinkdb.avg   = ar (attr) -> {'AVG': attr}

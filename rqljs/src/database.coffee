@@ -14,10 +14,14 @@ class RDBDatabase
 
     serialize: -> "{\"tables\":{#{("\"#{tableName}\":#{table.serialize()}" for own tableName,table of @tables)}}}"
 
-    createTable: (name) ->
+    createTable: (name, options) ->
+        primary_key = (options['primary_key'] or new RDBPrimitive 'id').asJSON()
+        datacenter = (options['datacenter'] or new RDBPrimitive null).asJSON() # Ignored
+        cache_size = (options['cache_size'] or new RDBPrimitive null).asJSON() # Ignored
+
         name = name.asJSON()
         if @tables[name]? then throw new RqlRuntimeError "Table \"#{name}\" already exists."
-        @tables[name] = new RDBTable 'id'
+        @tables[name] = new RDBTable primary_key
         new RDBObject {'created': 1}
 
     dropTable: (name) ->
@@ -28,6 +32,9 @@ class RDBDatabase
 
     getTable: (name) ->
         name = name.asJSON()
+
+        validateName("Table", name)
+
         if @tables[name]?
             return @tables[name]
         else

@@ -1,6 +1,7 @@
 #include "clustering/generic/multi_throttling_client.hpp"
 
 #include "clustering/generic/registrant.hpp"
+#include "containers/archive/boost_types.hpp"
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket_acq_t::ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
@@ -30,7 +31,6 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket
     }
 }
 
-
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_throttling_client_t(
         mailbox_manager_t *mm,
@@ -50,14 +50,28 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
         mailbox_manager,
         boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1),
         mailbox_callback_mode_inline);
-    registrant.init(new registrant_t<client_business_card_t>(
-        mailbox_manager,
-        server->subview(&multi_throttling_client_t::extract_registrar_business_card),
-        client_business_card_t(
-            inner_client_business_card,
-            intro_mailbox.get_address(),
-            give_tickets_mailbox.get_address(),
-            reclaim_tickets_mailbox.get_address())));
+
+    {
+        const client_business_card_t client_business_card(inner_client_business_card,
+                                                      intro_mailbox.get_address(),
+                                                      give_tickets_mailbox.get_address(),
+                                                      reclaim_tickets_mailbox.get_address());
+
+        // We have to type out this type in order to (a) scare you and (b) compile
+        // under clang on OS X.  (Clang will crash if you try to pass the
+        // server->subview(...) expression directly to the registrant_t
+        // constructor.)  I haven't tried using "auto" for this variable, but see
+        // reason (a).  It probably helps a lot to have this type plainly visible. sitting
+        // here.
+
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t> > > > > registrar_card_view
+            = server->subview(&multi_throttling_client_t::extract_registrar_business_card);
+
+        registrant.init(new registrant_t<client_business_card_t>(mailbox_manager,
+                                                                 registrar_card_view,
+                                                                 client_business_card));
+    }
+
     wait_any_t waiter(intro_promise.get_ready_signal(), registrant->get_failed_signal(), interruptor);
     waiter.wait();
     if (interruptor->is_pulsed()) {
@@ -150,4 +164,3 @@ template class multi_throttling_client_t<
     master_business_card_t<rdb_protocol_t>::request_t,
     master_business_card_t<rdb_protocol_t>::inner_client_business_card_t
     >;
-

@@ -24,14 +24,14 @@ public:
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);
 
-    // A wrapper around `p_replace` that does error handling correctly.
+    // A wrapper around `do_replace` that does error handling correctly.
     // TODO: Use a variadic template so we can get rid of
     // `_so_the_template_matches` above?
     template<class T>
     const datum_t *replace(const datum_t *d, T t, bool b) {
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
-            return p_replace(d, t, b);
+            return do_replace(d, t, b);
         } catch (const any_ql_exc_t &e) {
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
@@ -48,10 +48,10 @@ public:
         }
     }
 private:
-    const datum_t *p_replace(const datum_t *orig, const map_wire_func_t &mwf,
+    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
                              bool _so_the_template_matches = false);
-    const datum_t *p_replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *p_replace(const datum_t *orig, const datum_t *d, bool upsert);
+    const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -60,7 +60,11 @@ private:
 };
 
 
-enum shortcut_ok_bool_t { SHORTCUT_NOT_OK = 0, SHORTCUT_OK = 1};
+enum function_shortcut_t {
+    NO_SHORTCUT = 0,
+    FILTER_SHORTCUT = 1,
+    IDENTITY_SHORTCUT = 2
+};
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
@@ -71,6 +75,8 @@ public:
     // to another.
     class type_t {
         friend class val_t;
+        friend void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
+                        Response2 *res, stream_cache2_t *stream_cache2);
     public:
         enum raw_type_t {
             DB               = 1, // db
@@ -106,7 +112,7 @@ public:
     datum_stream_t *as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    func_t *as_func(shortcut_ok_bool_t shortcut_ok = SHORTCUT_NOT_OK);
+    func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     const datum_t *as_datum(); // prefer the 4 below
     bool as_bool();
@@ -132,6 +138,8 @@ public:
     }
 
 private:
+    void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
+
     const term_t *parent;
     env_t *env;
 

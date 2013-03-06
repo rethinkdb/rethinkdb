@@ -8,7 +8,8 @@ goog.require("goog.proto2.WireFormatSerializer")
 
 class Connection
     DEFAULT_HOST: 'localhost'
-    DEFAULT_PORT: 28016
+    DEFAULT_PORT: 28015
+    DEFAULT_DB: 'test'
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -18,6 +19,7 @@ class Connection
 
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
+        @db = new Db {}, host.db || @DEFAULT_DB
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -112,6 +114,9 @@ class Connection
         @cancel()
         new @constructor({host:@host, port:@port}, callback)
 
+    use: (db) ->
+        @db = new Db {}, db
+
     _start: (term, cb) ->
         unless @open then throw RqlDriverError "Connection closed"
 
@@ -124,6 +129,13 @@ class Connection
         query.setType Query2.QueryType.START
         query.setQuery term.build()
         query.setToken token
+
+        # Set global options
+        if @db?
+            pair = new Query2.AssocPair()
+            pair.setKey('db')
+            pair.setVal(@db.build())
+            query.addGlobalOptargs(pair)
 
         # Save callback
         @outstandingCallbacks[token] = {cb:cb, root:term}

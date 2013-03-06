@@ -3,8 +3,10 @@
 $LOAD_PATH.unshift('./lib')
 require 'rethinkdb.rb'
 require 'test/unit'
+require 'pp'
+
 $port_base ||= ARGV[0].to_i # 0 if none given
-$c = RethinkDB::Connection.new('localhost', $port_base + 28015 + 1)
+$c = RethinkDB::Connection.new('localhost', $port_base + 28015)
 
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
@@ -22,15 +24,16 @@ class ClientTest < Test::Unit::TestCase
     end
   end
 
-  def test_coerce
-    assert_equal("1", r(1).coerce("string").run($c))
+  def test_coerce_to
+    assert_equal("1", r(1).coerce_to("string").run($c))
     assert_equal([["a", 1.0], ["b", 2.0]],
-                 r({:a => 1, :b => 2}).coerce("array").run($c))
-    assert_raise(RuntimeError) {r(1).coerce("datum").run($c)}
-    assert_equal(2, r.db('test').table('tbl').coerce("array")[-3..-2].run($c).size)
+                 r({:a => 1, :b => 2}).coerce_to("array").run($c))
+    assert_raise(RuntimeError) {r(1).coerce_to("datum").run($c)}
+    assert_equal(2, r.db('test').table('tbl').coerce_to("array")[-3..-2].run($c).size)
     assert_raise(RuntimeError) {r.db('test').table('tbl')[-3..-2].run($c)}
-    assert_equal({"a"=>1.0, "b"=>2.0}, r([["a", 1], ["b", 2]]).coerce("object").run($c))
-    assert_raise(RuntimeError) {r([["a", 1], ["a", 2]]).coerce("object").run($c)}
+    assert_equal({"a"=>1.0, "b"=>2.0},
+                 r([["a", 1], ["b", 2]]).coerce_to("object").run($c))
+    assert_raise(RuntimeError) {r([["a", 1], ["a", 2]]).coerce_to("object").run($c)}
   end
 
   def test_typeof
@@ -320,7 +323,8 @@ class ClientTest < Test::Unit::TestCase
   # BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
   def test_array
     assert_equal([true, false, nil], r([true, false, nil]).run($c))
-    assert_equal([true, false, nil], r([true, false, nil]).coerce("array").run($c).to_a)
+    assert_equal([true, false, nil],
+                 r([true, false, nil]).coerce_to("array").run($c).to_a)
   end
 
   # OBJECT, GETBYKEY
@@ -337,7 +341,7 @@ class ClientTest < Test::Unit::TestCase
     assert_raise(RuntimeError) {r(1).map {}.run($c).to_a}
     assert_equal([data[1]], tbl.filter("num" => 1).run($c).to_a)
     query = tbl.order_by(:id).map do |outer_row|
-      tbl.filter {|row| (row[:id] < outer_row[:id])}.coerce("array")
+      tbl.filter {|row| (row[:id] < outer_row[:id])}.coerce_to("array")
     end
     assert_equal(data[(0..1)], id_sort(query.run($c).to_a[2]))
   end
@@ -507,7 +511,7 @@ class ClientTest < Test::Unit::TestCase
   # GROUPEDMAPREDUCE
   def test_groupedmapreduce
     assert_equal(data, tbl.order_by(:id).run($c).to_a)
-    assert_equal(data, tbl.coerce("array").order_by(:id).run($c).to_a)
+    assert_equal(data, tbl.coerce_to("array").order_by(:id).run($c).to_a)
     assert_equal([0, 1],
                  r([{:id => 1},{:id => 0}]).order_by(:id).run($c).to_a.map{|x| x["id"]})
     assert_raise(RuntimeError) {r(1).order_by(:id).run($c).to_a}
@@ -520,7 +524,7 @@ class ClientTest < Test::Unit::TestCase
                                  lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
     gmr2 = tbl.grouped_map_reduce(lambda {|r| (r[:id] % 4)}, lambda {|r| r[:id]},
                                   0, lambda {|a, b| (a + b)})
-    gmr3 = tbl.coerce("array").grouped_map_reduce(lambda {|row| (row[:id] % 4)},
+    gmr3 = tbl.coerce_to("array").grouped_map_reduce(lambda {|row| (row[:id] % 4)},
                                                   lambda {|row| row[:id]},
                                                   0, lambda {|a, b| (a + b)})
     gmr4 = r(data).grouped_map_reduce(lambda {|row| (row[:id] % 4)},
@@ -630,11 +634,11 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(12, (r(3) * 4).run($c))
     assert_equal((3.0 / 4), (r(3) / 4).run($c))
     assert_equal((3 % 2), (r(3) % 2).run($c))
-    assert_raise(TypeError) {(4 + r(3))}
-    assert_raise(TypeError) {(4 - r(3))}
-    assert_raise(TypeError) {(4 * r(3))}
-    assert_raise(TypeError) {(4 / r(3))}
-    assert_raise(TypeError) {(4 % r(3))}
+    assert_equal(7, (4 + r(3)).run($c))
+    assert_equal(1, (4 - r(3)).run($c))
+    assert_equal(12, (4 * r(3)).run($c))
+    assert_equal(1, (4 / r(4)).run($c))
+    assert_equal(1, (4 % r(3)).run($c))
 
     assert_equal(84, (((r(3) + 4) * -r(6)) * (r(-5) + 3)).run($c))
 
@@ -686,7 +690,7 @@ class ClientTest < Test::Unit::TestCase
       [tbl.get(x).update {{:num => 0}}, tbl.get((x * 2)).update {{:num => 0}}]
     end.run($c))
     assert_equal({"unchanged" => 5, "replaced" => 5},
-                 tbl.coerce("array").for_each do |row|
+                 tbl.coerce_to("array").for_each do |row|
       tbl.filter {|r| r[:id].eq(row[:id])}.update do |row|
         r.branch(row[:num].eq(0), {:num => (row[:id])}, nil)
       end
@@ -739,7 +743,7 @@ class ClientTest < Test::Unit::TestCase
     #                        tbl.filter{
     #                          r[:id].neq(row[:id])
     #                       }
-    #                     }.map{r[:id]}.distinct.coerce("array")]],
+    #                     }.map{r[:id]}.distinct.coerce_to("array")]],
     #                    tbl.concat_map{|row|
     #                      r[:$x].to_stream.map{|id| row[:id]*1000+id}}).run($c))
   ensure
@@ -1080,7 +1084,7 @@ end
 class DetTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
   def rdb; r.db('test').table('tbl'); end
-  @@c = RethinkDB::Connection.new('localhost', $port_base + 28016)
+  @@c = RethinkDB::Connection.new('localhost', $port_base + 28015)
   def c; @@c; end
   def server_data; rdb.order_by(:id).run($c).to_a; end
 

@@ -158,7 +158,7 @@ message Datum {
 // Optional arguments are specified within curly braces as argname `:` value
 // type (e.x `{use_outdated:BOOL}`)
 // The RQL type hierarchy is as follows:
-//   Top 
+//   Top
 //     DATUM
 //       NULL
 //       BOOL
@@ -193,7 +193,7 @@ message Term2 {
         // libraries, and because it's more efficient on the wire.)
         VAR          = 10; // !NUMBER -> DATUM
         // Takes some javascript code and executes it.
-        JAVASCRIPT   = 11; // STRING -> DATUM
+        JAVASCRIPT   = 11; // STRING -> DATUM | STRING -> Function(*)
         // Takes a string and throws an error with that message.
         ERROR        = 12; // STRING -> Error
         // Takes nothing and returns a reference to the implicit variable.
@@ -205,7 +205,8 @@ message Term2 {
         // Returns a reference to a table.
         TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
-        GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection
+        GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
+                    // Table, STRING -> NULL            | Table, NUMBER -> NULL
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -250,7 +251,7 @@ message Term2 {
         BETWEEN   = 36; // StreamSelection, {left_bound:DATUM, right_bound:DATUM} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence
+        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
@@ -281,14 +282,17 @@ message Term2 {
         // Coerces a datum to a named type (e.g. "bool").
         // If you previously used `stream_to_array`, you should use this instead
         // with the type "array".
-        COERCE = 51; // Top, STRING -> Top
+        COERCE_TO = 51; // Top, STRING -> Top
         // Returns the named type of a datum (e.g. TYPEOF(true) = "BOOL")
         TYPEOF = 52; // Top -> STRING
 
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
         DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
@@ -315,7 +319,7 @@ message Term2 {
 
         // * Control Operators
         // Calls a function on data
-        FUNCALL  = 64; // Function, DATUM... -> DATUM
+        FUNCALL  = 64; // Function(*), DATUM... -> DATUM
         // Executes its first argument, and returns its second argument if it
         // got [true] or its third argument if it got [false] (like an `if`
         // statement).
@@ -370,6 +374,9 @@ message Term2 {
         //                     }];
         //           }];
         FUNC = 69; // ARRAY, Top -> ARRAY -> Top
+
+        ASC = 73;
+        DESC = 74;
     };
     required TermType type = 1;
 

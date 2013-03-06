@@ -17,7 +17,7 @@
 // merged to now?
 
 writeback_t::writeback_t(
-        cache_t *_cache,
+        mc_cache_t *_cache,
         bool _wait_for_flush,
         unsigned int _flush_timer_ms,
         unsigned int _flush_threshold,
@@ -35,7 +35,6 @@ writeback_t::writeback_t(
     writeback_in_progress(false),
     active_flushes(0),
     dirty_block_semaphore(_max_dirty_blocks),
-    force_patch_storage_flush(false),
     cache(_cache),
     start_next_sync_immediately(false),
     to_pulse_when_last_active_flush_finishes(NULL) {
@@ -59,8 +58,6 @@ writeback_t::local_buf_t::local_buf_t() {
 }
 
 void writeback_t::local_buf_t::reset() {
-    last_patch_materialized_ = 0;
-    needs_flush_ = false;
     dirty = false;
     recency_dirty = false;
 }
@@ -68,7 +65,6 @@ void writeback_t::local_buf_t::reset() {
 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
-    rassert(cache->writebacks_allowed);
 
     // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
     // by previous flushes are also on disk. If these are still running, we must initiate a new flush
@@ -101,7 +97,7 @@ bool writeback_t::sync_patiently(sync_callback_t *callback) {
     return false;
 }
 
-void writeback_t::begin_transaction(transaction_t *txn) {
+void writeback_t::begin_transaction(mc_transaction_t *txn) {
 
     if (txn->get_access() == rwi_write) {
 
@@ -129,7 +125,7 @@ void writeback_t::begin_transaction(transaction_t *txn) {
     }
 }
 
-void writeback_t::on_transaction_commit(transaction_t *txn) {
+void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
 
         dirty_block_semaphore.unlock(txn->expected_change_count);
@@ -155,7 +151,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -178,7 +174,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
 }
 
 void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     if (!recency_dirty && _recency_dirty) {
         // Mark block as recency_dirty if it hasn't been already.
         recency_dirty = true;
@@ -200,7 +196,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 
 // Add block_id to deleted_blocks list.
 void writeback_t::local_buf_t::mark_block_id_deleted() {
-    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    mc_inner_buf_t *gbuf = static_cast<mc_inner_buf_t *>(this);
     gbuf->cache->writeback.deleted_blocks.push_back(gbuf->block_id);
 
     // As the block has been deleted, we must not accept any versions of it offered
@@ -218,33 +214,6 @@ void writeback_t::on_timer() {
     flush_timer = NULL;
 
     cache->assert_thread();
-
-    cache->stats->pm_patches_size_ratio.record(cache->get_max_patches_size_ratio());
-
-    /*
-     * Update the max_patches_size_ratio. If we detect that the previous writeback
-     * is still active and the max_dirty_blocks_limit is exhausted at a level of
-     * at least RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT, we
-     * consider the system to be i/o bound. In this case, we proactively decrease
-     * the max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MIN, to increase
-     * the usage of patches and reduce the amount of i/o.
-     * Otherwise, we consider the system to be bound by something other than i/o
-     * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
-     * to save the overhead associated with managing and writing patches.
-     */
-    if (active_flushes < max_concurrent_flushes || num_dirty_blocks() < max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
-        /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
-        Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_minimum();
-        }
-    } else {
-        /* The currently running writeback apparently takes too long.
-        try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_maximum();
-        }
-    }
 
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
@@ -280,12 +249,11 @@ public:
         }
         void on_thread_switch() {
             assert_thread();
+
             // update buf's (or one of it's snapshot's) data token appropriately
             buf->inner_buf->update_data_token(buf->get_data_read(), token);
             token.reset();
-            // Update block sequence id.
-            buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
-                buf->get_block_id(), buf->get_data_read());
+
             // We're done here.
             finished_.pulse();
         }
@@ -329,11 +297,9 @@ public:
 };
 
 struct writeback_t::flush_state_t {
-    bool block_sequence_ids_have_been_updated;
     std::vector<buf_writer_t *> buf_writers;
     // Writes to submit to the serializer
     std::vector<serializer_write_t> serializer_writes;
-    flush_state_t() : block_sequence_ids_have_been_updated(false) {}
 };
 
 void writeback_t::start_concurrent_flush() {
@@ -354,21 +320,8 @@ void writeback_t::do_concurrent_flush() {
     cache->stats->pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
 
-    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead reclaim some space in the on-disk patch storage now.
-    ticks_t start_time2;
-    cache->stats->pm_flushes_diff_flush.begin(&start_time2);
-    // TODO: What are these magic constants doing here?
-    unsigned int blocks_to_flush = uint64_t(dirty_bufs.size()) * 100LL / cache->get_block_size().value() + 1;
-    if (force_patch_storage_flush) {
-        blocks_to_flush = std::max(cache->patch_disk_storage->get_number_of_log_blocks() / 20 + 1, blocks_to_flush);
-        force_patch_storage_flush = false;
-    }
-    cache->patch_disk_storage->clear_n_oldest_blocks(blocks_to_flush);
-    cache->stats->pm_flushes_diff_flush.end(&start_time2);
-
     /* Start a read transaction so we can request bufs. */
-    transaction_t *transaction;
+    mc_transaction_t *transaction;
     {
         // This was originally for some hack where we change the value
         // of shutting_down, but I don't care to remove it.
@@ -399,7 +352,6 @@ void writeback_t::do_concurrent_flush() {
         start_next_sync_immediately = false;
 
         // Go through the different flushing steps...
-        flush_prepare_patches();
         cache->stats->pm_flushes_writing.begin(&start_time);
         flush_acquire_bufs(transaction, &state);
     }
@@ -481,103 +433,7 @@ void writeback_t::do_concurrent_flush() {
     }
 }
 
-void writeback_t::flush_prepare_patches() {
-    rassert(writeback_in_progress);
-
-    /* Write patches for blocks we don't want to flush now */
-    // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
-    // (because some of the patch storage blocks will become dirty)
-    // The iteration below doesn't have a problem with that, but be careful if you
-    // want to change it.
-    ticks_t start_time2;
-    cache->stats->pm_flushes_diff_store.begin(&start_time2);
-    bool patch_storage_failure = false;
-    unsigned int patches_stored = 0;
-    for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
-        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
-
-        // If the patch storage failed before (which usually happens if it ran out of space),
-        // we don't even try to write patches for this buffer. Instead we set needs_flush,
-        // causing the block itself to be written to disk instead of its patches.
-        if (patch_storage_failure && lbuf->get_dirty() && !lbuf->needs_flush()) {
-            lbuf->set_needs_flush(true);
-            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
-        }
-
-        if (!lbuf->needs_flush() && lbuf->get_dirty() && inner_buf->next_patch_counter > 1) {
-            const block_sequence_id_t block_sequence_id = inner_buf->block_sequence_id;
-            if (cache->patch_memory_storage.has_patches_for_block(inner_buf->block_id)) {
-#ifndef NDEBUG
-                patch_counter_t previous_patch_counter = 0;
-#endif
-                std::pair<patch_memory_storage_t::const_patch_iterator, patch_memory_storage_t::const_patch_iterator>
-                    range = cache->patch_memory_storage.patches_for_block(inner_buf->block_id);
-
-                while (range.second != range.first) {
-                    // Why do we write patches in reverse oder?
-                    // Because that way we first get the most recent patches,
-                    // and can then just break out of the loop as soon as we hit
-                    // the first patch that is older than last_patch_materialized.
-                    --range.second;
-
-                    rassert(block_sequence_id > NULL_BLOCK_SEQUENCE_ID);
-                    rassert(previous_patch_counter == 0 || (*range.second)->get_patch_counter() == previous_patch_counter - 1);
-                    // Write only those patches that we have not written in a previous
-                    // writeback. Use lbuf->last_patch_materialized to make
-                    // that decision. This way we never have duplicate patches on disk.
-                    if (lbuf->last_patch_materialized() < (*range.second)->get_patch_counter()) {
-                        if (!cache->patch_disk_storage->store_patch(*range.second, block_sequence_id)) {
-                            patch_storage_failure = true;
-                            // We were not able to store all the patches to disk,
-                            // so we fall back to re-writing the block itself.
-                            lbuf->set_needs_flush(true);
-                            // Dropping the patches invalidates our iterators in range,
-                            // but we can simply break out of the loop at this point.
-                            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
-                            break;
-                        } else {
-                            patches_stored++;
-                        }
-                    } else {
-                        // We hit a patch that we had written to disk before.
-                        // Because we are iterating over patches from most recent to older,
-                        // we can just break out of the loop at this point.
-                        break;
-                    }
-#ifndef NDEBUG
-                    previous_patch_counter = (*range.second)->get_patch_counter();
-#endif
-                }
-
-                if (!patch_storage_failure) {
-                    lbuf->set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(inner_buf->block_id));
-                }
-                // (if there was a patch_storage_failure, lbuf->needs_flush got set
-                // and we are going to reset last_patch_materialized a few lines later...)
-            }
-        }
-
-        if (lbuf->needs_flush()) {
-            // Because the block will be rewritten and therefore receive a new
-            // block_sequence_id, we can reset the patch counter.
-            // (Remember: The applicability of a patch is determined by the
-            // block_sequence_id that it applies to, while the patch_counter
-            // provides an ordering over all patches that apply to a certain
-            // version of a block.)
-            inner_buf->next_patch_counter = 1;
-            lbuf->set_last_patch_materialized(0);
-        }
-    }
-    cache->stats->pm_flushes_diff_store.end(&start_time2);
-    if (patch_storage_failure)
-        force_patch_storage_flush = true; // Make sure we resolve the storage space shortage before the next flush...
-
-    cache->stats->pm_flushes_diff_patches_stored.record(patches_stored);
-    if (patch_storage_failure)
-        cache->stats->pm_flushes_diff_storage_failures.record(patches_stored);
-}
-
-void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *state) {
+void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state) {
     /* Request read locks on all of the blocks we need to flush. */
     // Log the size of this flush
     cache->stats->pm_flushes_blocks.record(dirty_bufs.size());
@@ -594,29 +450,29 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *
     unsigned int really_dirty = 0;
 
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
+        mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
-        bool buf_needs_flush = lbuf->needs_flush();
-        //bool buf_dirty = lbuf->dirty;
-        bool recency_dirty = lbuf->get_recency_dirty();
+        const bool dirty = lbuf->get_dirty();
+#ifndef NDEBUG
+        const bool recency_dirty = lbuf->get_recency_dirty();
+#endif
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
         lbuf->set_recency_dirty(false);
-        lbuf->set_needs_flush(false);
 
-        if (buf_needs_flush) {
+        if (dirty) {
             ++really_dirty;
 
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            buf_lock_t *buf;
+            mc_buf_lock_t *buf;
             {
                 // Acquire always succeeds, but sometimes it blocks.
                 // But it won't block because we hold the flush lock.
                 ASSERT_NO_CORO_WAITING;
-                buf = new buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
+                buf = new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
             }
 
             // Fill the serializer structure
@@ -628,7 +484,8 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *
                                                 buf->get_data_read(),
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
-        } else if (recency_dirty) {
+        } else {
+            rassert(recency_dirty);
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
             state->serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }

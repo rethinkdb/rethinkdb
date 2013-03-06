@@ -1,9 +1,10 @@
 import ql2_pb2 as p
+import bpdb
 
 class RqlError(Exception):
     def __init__(self, message, term, frames):
         self.message = message
-        self.frames = [frame.pos if frame.type is p.Response2.Frame.POS else frame.opt for frame in frames]
+        self.frames = [frame.pos if frame.type is p.Frame.POS else frame.opt for frame in frames]
         self.query_printer = QueryPrinter(term, self.frames)
 
     def __str__(self):

@@ -52,9 +52,9 @@ private:
         val_t *v0 = arg(0), *v1 = arg(1);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, datum_stream_t *> tds = v0->as_selection();
-            return new_val(tds.first, tds.second->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(tds.first, tds.second->filter(v1->as_func(FILTER_SHORTCUT)));
         } else {
-            return new_val(v0->as_seq()->filter(v1->as_func(SHORTCUT_OK)));
+            return new_val(v0->as_seq()->filter(v1->as_func(FILTER_SHORTCUT)));
         }
     }
     RDB_NAME("filter");
@@ -116,7 +116,7 @@ private:
 
         guarantee(filter_func.has());
         //debugf("%s\n", filter_func->DebugString().c_str());
-        return new_val(seq->filter(env->new_func(filter_func.get())));
+        return new_val(tbl, seq->filter(env->new_func(filter_func.get())));
     }
     RDB_NAME("between");
 
@@ -125,7 +125,8 @@ private:
 
 class union_term_t : public op_term_t {
 public:
-    union_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(0, -1)) { }
+    union_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual val_t *eval_impl() {
         std::vector<datum_stream_t *> streams;

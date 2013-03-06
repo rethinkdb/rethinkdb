@@ -353,7 +353,7 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
             if (is_read_mode(mode)) {
                 leaf_buf = const_cast<void *>(buf->get_data_read());
             } else {
-                leaf_buf = buf->get_data_major_write();
+                leaf_buf = buf->get_data_write();
             }
 
             char *data = blob::leaf_node_data(leaf_buf);
@@ -524,7 +524,7 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
     if (sub_old_size > 0) {
         if (levels > 1) {
             buf_lock_t lock(txn, block_ids[index], rwi_write);
-            void *b = lock.get_data_major_write();
+            void *b = lock.get_data_write();
 
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
@@ -536,7 +536,7 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
         helper->preprocess(txn, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
-            void *b = lock.get_data_major_write();
+            void *b = lock.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
         }
@@ -674,7 +674,7 @@ struct allocate_helper_t : public blob::traverse_helper_t {
         buf_lock_t temp_lock(txn);
         lock_out->swap(temp_lock);
         *block_id = lock_out->get_block_id();
-        void *b = lock_out->get_data_major_write();
+        void *b = lock_out->get_data_write();
         if (levels == 1) {
             *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
         } else {
@@ -778,7 +778,7 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
                 int64_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
                 int64_t physical_end_offset = (practical_end_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
 
-                char *data = blob::leaf_node_data(lobuf.get_data_major_write());
+                char *data = blob::leaf_node_data(lobuf.get_data_write());
                 int64_t low_copycount = std::min(physical_end_offset, int64_t(blob::leaf_size(block_size))) - physical_offset;
                 memmove(data + physical_offset + physical_shift, data + physical_offset, low_copycount);
 
@@ -800,7 +800,7 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
 // Always returns levels + 1.
 int blob_t::add_level(transaction_t *txn, int levels) {
     buf_lock_t lock(txn);
-    void *b = lock.get_data_major_write();
+    void *b = lock.get_data_write();
     if (levels == 0) {
         *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
 

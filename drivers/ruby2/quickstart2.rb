@@ -3,5 +3,5 @@ $LOAD_PATH.unshift('./lib')
 load 'rethinkdb.rb'
 extend RethinkDB::Shortcuts
 $port_offset = 32600
-$c = r.connect('localhost', $port_offset + 28016, 'test').repl
+$c = r.connect('localhost', $port_offset + 28015, 'test').repl
 $rdb = r.db('test').table('test')

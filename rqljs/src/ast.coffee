@@ -69,8 +69,28 @@ class RDBVar extends RDBOp
         context.lookupVar args[0].asJSON()
 
 class RDBJavaScript extends RDBOp
-    type: tp "STRING -> DATUM"
-    op: (args) -> new RDBPrimitive eval args[0].asJSON()
+    type: tp "STRING -> DATUM | STRING -> Function(*)"
+    op: (args) ->
+        src = args[0].asJSON()
+        try
+            res = eval src
+        catch err
+            throw new RqlRuntimeError err.toString()
+
+        if res instanceof Function
+            return (arg_num) ->
+                (actuals...) ->
+                    if res.length isnt actuals.length
+                        throw new RqlRuntimeError(
+                            "Expected #{res.length} argument(s) but found #{actuals.length}.")
+
+                    try
+                        return new RDBPrimitive res.apply({}, actuals.map((v)->v.asJSON()))
+                    catch err
+                        throw new RqlRuntimeError err.toString()
+
+        else
+            return new RDBPrimitive res
 
 class RDBUserError extends RDBOp
     type: tp "STRING -> Error"
@@ -85,11 +105,16 @@ class RDBDBRef extends RDBOp
     op: (args, optargs, context) -> context.universe.getDatabase args[0]
 
 class RDBTableRef extends RDBOp
-    type: tp "Database, STRING, {use_outdated:BOOL} -> Table"
-    op: (args, optargs) -> args[0].getTable args[1]
+    type: tp "Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table"
+    op: (args, optargs, context) ->
+        if args[0] instanceof RDBDatabase
+            args[0].getTable args[1]
+        else
+            context.getDefaultDb().getTable args[0]
 
 class RDBGetByKey extends RDBOp
-    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection"
+    type: tp "Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
+              Table, STRING -> NULL            | Table, NUMBER -> NULL"
     op: (args) -> args[0].get args[1]
 
 class RDBNot extends RDBOp
@@ -203,9 +228,16 @@ class RDBMap extends RDBOp
         args[0].map context.bindIvar args[1](1)
 
 class RDBFilter extends RDBOp
-    type: tp "Sequence, Function(1) -> Sequence"
+    type: tp "Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence"
     op: (args, optargs, context) ->
-        args[0].filter context.bindIvar args[1](1)
+        if args[1] instanceof Function
+            args[0].filter context.bindIvar args[1](1)
+        else
+            args[0].filter context.bindIvar (row) ->
+                for own k,v of args[1]
+                    unless row[k]? and row[k].eq(v).asJSON()
+                        return new RDBPrimitive false
+                return new RDBPrimitive true
 
 class RDBConcatMap extends RDBOp
     type: tp "Sequence, Function(1) -> Sequence"
@@ -256,17 +288,24 @@ class RDBZip extends RDBOp
     type: tp "Sequence -> Sequence"
     op: (args) -> args[0].zip()
 
-class RDBCoerce extends RDBOp
+class RDBCoerceTo extends RDBOp
     type: tp "Top, STRING -> Top"
-    op: new RqlRuntimeError "Not implemented"
+    op: (args) -> args[0].coerceTo args[1]
 
 class RDBTypeOf extends RDBOp
     type: tp "Top -> STRING"
-    op: new RqlRuntimeError "Not implemented"
+    op: (args) -> args[1].typeString()
 
 class RDBUpdate extends RDBOp
-    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT"
-    op: (args) -> args[0].update args[1](1)
+    type: tp "StreamSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, Function(1), {non_atomic_ok:BOOL} -> OBJECT |
+              StreamSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT |
+              SingleSelection, OBJECT,      {non_atomic_ok:BOOL} -> OBJECT"
+    op: (args) ->
+        if args[1] instanceof Function
+            args[0].update args[1](1)
+        else
+            args[0].update args[1]
 
 class RDBDelete extends RDBOp
     type: tp "StreamSelection -> OBJECT | SingleSelection -> OBJECT"
@@ -296,7 +335,7 @@ class RDBDbList extends RDBOp
 
 class RDBTableCreate extends RDBWriteOp
     type: tp "Database, STRING, {datacenter:STRING; primary_key:STRING; cache_size:NUMBER} -> OBJECT"
-    op: (args) -> args[0].createTable args[1]
+    op: (args, optargs) -> args[0].createTable args[1], optargs
 
 class RDBTableDrop extends RDBWriteOp
     type: tp "Database, STRING -> OBJECT"
@@ -307,7 +346,7 @@ class RDBTableList extends RDBOp
     op: (args) -> args[0].listTables()
 
 class RDBFuncall extends RDBOp
-    type: tp "Function, DATUM... -> DATUM"
+    type: tp "Function(*), DATUM... -> DATUM"
     op: (args) -> args[0](0)(args[1..]...)
 
 class RDBBranch extends RDBOp
@@ -350,7 +389,8 @@ class RDBAll
 
 class RDBForEach extends RDBOp
     type: tp "Sequence, Function(1) -> OBJECT"
-    op: (args) -> args[0].forEach args[1](1)
+    op: (args, optargs, context) ->
+        args[0].forEach context.bindIvar args[1](1)
 
 class RDBFunc
     constructor: (args) ->

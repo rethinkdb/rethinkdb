@@ -10,6 +10,12 @@ class RDBContext
 
         @scopeStack = null
         @implicitVarStack = []
+        @defaultDb = null
+
+    setDefaultDb: (db) ->
+        @defaultDb = db
+
+    getDefaultDb: -> @defaultDb
 
     pushScope: (binds) ->
         binds.parent = @scopeStack
@@ -36,9 +42,11 @@ class RDBContext
             return row_res
 
     pushImplicitVar: (implicitVar) -> @implicitVarStack.push implicitVar
-    popImplicitVar: (implicitVar) -> @implicitVarStack.pop implicitVar
+    popImplicitVar: -> @implicitVarStack.pop()
 
     getImplicitVar: ->
-        if @implicitVarStack.length > 1 then throw new RqlRuntimeError "ambiguious implicit var"
-        else if @implicitVarStack.length < 1 then throw new RqlRuntimeError "no implicit var"
+        if @implicitVarStack.length > 1
+            throw new RqlCompileError "Cannot use r.row in nested queries. Use functions instead."
+        else if @implicitVarStack.length < 1
+            throw new RqlCompileError "No implicit variable is bound."
         else @implicitVarStack[0]

@@ -33,8 +33,14 @@ class RDBType
         else if typeof @asJSON() is 'string'
             RDBType.STRING
 
-    asJSON: -> new ServerError "Abstract method"
-    copy:   -> new ServerError "Abstract method"
+    # A noop for now. What type conversions would matter?
+    coerceTo: (other_type) -> @
+        
+
+    typeString: -> TypeName::typeOf(@).toString()
+
+    asJSON: -> throw new ServerError "Abstract method"
+    copy:   -> throw new ServerError "Abstract method"
 
     isNull: -> (@ instanceof RDBPrimitive and @asJSON() is null)
 
@@ -69,7 +75,11 @@ class RDBSelection
     makeSelection: (obj, table) ->
         proto =
             update: (mapping) ->
-                updated = mapping @
+                if mapping instanceof Function
+                    updated = mapping @
+                else
+                    updated = mapping
+
                 neu = @.merge updated
                 unless neu[table.primaryKey].eq(@[table.primaryKey]).asJSON()
                     throw new RqlRuntimeError ""
@@ -77,14 +87,21 @@ class RDBSelection
                 if @eq(neu).asJSON()
                     return new RDBObject {'unchanged': 1}
 
-                table.insert new RDBArray [neu], true
+                table.insert(new RDBArray([neu]), true)
                 return new RDBObject {'replaced': 1}
 
             replace: (mapping) ->
                 replacement = mapping @
+
+                if replacement.isNull() and @isNull()
+                    return new RDBObject {'unchanged':1}
+
                 if replacement.isNull()
                     @del()
                     return new RDBObject {'deleted': 1}
+
+                unless replacement[table.primaryKey]?
+                    throw new RqlRuntimeError "No key \"#{table.primaryKey}\" in object #{replacement.toString()}."
 
                 if @isNull()
                     table.insert new RDBArray [replacement]
@@ -94,7 +111,7 @@ class RDBSelection
                     return new RDBObject {'unchanged': 1}
 
                 if replacement[table.primaryKey].eq(@[table.primaryKey]).asJSON()
-                    table.insert new RDBArray [replacement], true
+                    table.insert(new RDBArray([replacement]), true)
                     return new RDBObject {'replaced': 1}
                     
                 throw new RqlRuntimeError ""
@@ -164,7 +181,7 @@ class RDBObject extends RDBType
         unless ks1.length is ks2.length then return new RDBPrimitive false
         (return new RDBPrimitive false for k1,i in ks1 when k1 isnt ks2[i])
         for k in ks1
-            if (@[k].ne other[k]).asJSON() then return false
+            if (@[k].ne other[k]).asJSON() then return new RDBPrimitive false
         return new RDBPrimitive true
 
     lt: (other) ->
@@ -228,3 +245,12 @@ class RDBObject extends RDBType
         for k in attrs
             delete self[k.asJSON()]
         return self
+
+    toString: ->
+        strrep = "{"
+
+        for own k,v of @
+            strrep += "\n\t\"#{k}\":\t#{v.asJSON()},"
+
+        strrep += "}"
+        strrep.replace(',}', '\n}')

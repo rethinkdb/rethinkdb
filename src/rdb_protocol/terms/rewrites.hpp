@@ -218,8 +218,8 @@ public:
                  NVAR(lst),
                  // [{:left => n}])},
                  N1(MAKE_ARRAY, OPT1(MAKE_OBJ, "left", NVAR(n)))),
-              // r.coerce(
-              N2(COERCE,
+              // r.coerce_to(
+              N2(COERCE_TO,
                  // `r`.concatmap { |m|
                  N2(CONCATMAP, *arg = *r, arg = pb::set_func(arg, m);
                     // r.branch(

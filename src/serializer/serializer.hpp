@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_SERIALIZER_HPP_
 #define SERIALIZER_SERIALIZER_HPP_
 
@@ -95,10 +95,8 @@ public:
     virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
     virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
-    virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) const = 0;
-
     /* The size, in bytes, of each serializer block */
-    virtual block_size_t get_block_size() = 0;
+    virtual block_size_t get_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;

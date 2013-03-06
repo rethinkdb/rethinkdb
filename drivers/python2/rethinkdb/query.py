@@ -28,10 +28,14 @@ def js(js_str):
 def error(msg):
     return UserError(msg)
 
-def do(*args):
-    return FunCall(Func(args[-1]), *args[:-1])
+def do(arg0, *args):
+    args = [arg0]+[x for x in args]
+    return FunCall(func_wrap(args[-1]), *args[:-1])
     
 row = ImplicitVar()
+
+def table(tbl_name, use_outdated=False):
+    return Table(tbl_name, use_outdated=use_outdated)
 
 def db(db_name):
     return DB(db_name)

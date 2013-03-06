@@ -14,7 +14,8 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
-    rcheck(b, strprintf("table name %s invalid (%s)", name.c_str(), valid_char_msg));
+    rcheck(b, strprintf("Table name `%s` invalid (%s).",
+                        name.c_str(), valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
         namespaces_metadata = env->namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
@@ -24,7 +25,8 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     //TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
-                              "FIND_TABLE " + table_name.str(), this);
+                              strprintf("Table `%s` does not exist.",
+                                        table_name.c_str()), this);
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
                     env->ns_repo, id, env->interruptor));
@@ -32,7 +34,9 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name.str(), this);
+    //meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name.str(), this);
+    rcheck(status == METADATA_SUCCESS,
+           strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
     pkey =  ns_metadata_it->second.get().primary_key.get();
@@ -42,8 +46,8 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *table_t::p_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                                  UNUSED bool _so_the_template_matches) {
+const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
+                                   UNUSED bool _so_the_template_matches) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -67,16 +71,16 @@ const datum_t *table_t::p_replace(const datum_t *orig, const map_wire_func_t &mw
 }
 
 
-const datum_t *table_t::p_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
+const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
     if (f->is_deterministic()) {
-        return p_replace(orig, map_wire_func_t(env, f));
+        return do_replace(orig, map_wire_func_t(env, f));
     } else {
         r_sanity_check(nondet_ok);
-        return p_replace(orig, f->call(orig)->as_datum(), true);
+        return do_replace(orig, f->call(orig)->as_datum(), true);
     }
 }
 
-const datum_t *table_t::p_replace(const datum_t *orig, const datum_t *d, bool upsert) {
+const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool upsert) {
     Term2 t;
     int x = env->gensym();
     Term2 *arg = pb::set_func(&t, x);
@@ -93,7 +97,7 @@ const datum_t *table_t::p_replace(const datum_t *orig, const datum_t *d, bool up
             }
 
     propagate(&t);
-    return p_replace(orig, map_wire_func_t(t, 0));
+    return do_replace(orig, map_wire_func_t(t, 0));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
@@ -247,16 +251,14 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
 val_t::type_t val_t::get_type() const { return type; }
 
 const datum_t *val_t::as_datum() {
-    if (type.raw_type != type_t::DATUM
-        && type.raw_type != type_t::SINGLE_SELECTION) {
-        rfail("Type error: cannot convert %s to DATUM.", type.name());
+    if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
+        rcheck_literal_type(type_t::DATUM);
     }
     return datum;
 }
 
 table_t *val_t::as_table() {
-    rcheck(type.raw_type == type_t::TABLE,
-           strprintf("Type error: cannot convert %s to TABLE.", type.name()));
+    rcheck_literal_type(type_t::TABLE);
     return table;
 }
 
@@ -268,7 +270,7 @@ datum_stream_t *val_t::as_seq() {
     } else if (type.raw_type == type_t::DATUM) {
         if (!sequence) sequence = datum->as_datum_stream(env, parent);
     } else {
-        rfail("Type error: cannot convert %s to SEQUENCE.", type.name());
+        rcheck_literal_type(type_t::SEQUENCE);
     }
     return sequence;
 }
@@ -278,34 +280,43 @@ std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
     if (type.raw_type == type_t::DATUM)
         name = as_datum()->get_type_name();
 
-    rcheck(type.raw_type == type_t::TABLE || type.raw_type == type_t::SELECTION,
-           strprintf("Expected type StreamSelection but found %s.", name));
+    if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
+        rcheck_literal_type(type_t::SELECTION);
+    }
     return std::make_pair(table, as_seq());
 }
 
 std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
-    rcheck(type.raw_type == type_t::SINGLE_SELECTION,
-           strprintf("Type error: cannot convert %s to SINGLE_SELECTION.",
-                     type.name()));
+    rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum);
 }
 
-func_t *val_t::as_func(shortcut_ok_bool_t shortcut_ok) {
-    if (get_type().is_convertible(type_t::DATUM) && shortcut_ok == SHORTCUT_OK) {
-        if (!func) {
-            r_sanity_check(parent);
-            func = env->add_ptr(func_t::new_shortcut_func(env, as_datum(), parent));
-        }
-        return func;
+func_t *val_t::as_func(function_shortcut_t shortcut) {
+    if (shortcut == NO_SHORTCUT) {
+        rcheck_literal_type(type_t::FUNC);
+        r_sanity_check(func);
     }
-    rcheck(type.raw_type == type_t::FUNC,
-           strprintf("Type error: cannot convert %s to FUNC.", type.name()));
+    if (!func) {
+        if (!type.is_convertible(type_t::DATUM)) {
+            rcheck_literal_type(type_t::FUNC);
+        }
+        r_sanity_check(parent);
+        switch(shortcut) {
+        case FILTER_SHORTCUT: {
+            func = env->add_ptr(func_t::new_filter_func(env, as_datum(), parent));
+        } break;
+        case IDENTITY_SHORTCUT: {
+            func = env->add_ptr(func_t::new_identity_func(env, as_datum(), parent));
+        } break;
+        case NO_SHORTCUT: // fallthru
+        default: unreachable();
+        }
+    }
     return func;
 }
 
 uuid_u val_t::as_db() {
-    rcheck(type.raw_type == type_t::DB,
-           strprintf("Type error: cannot convert %s to DB.", type.name()));
+    rcheck_literal_type(type_t::DB);
     return db;
 }
 
@@ -348,6 +359,12 @@ const std::string &val_t::as_str() {
         rfail("%s", e.what());
         unreachable();
     }
+}
+
+void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
+    rcheck(type.raw_type == expected_raw_type,
+           strprintf("Expected type %s but found %s:\n%s",
+                     type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
 } //namespace ql

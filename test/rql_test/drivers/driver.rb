@@ -1,5 +1,5 @@
-$: << '../../drivers/ruby2/lib'
-$: << '../../build/drivers/ruby/rdb_protocol'
+$LOAD_PATH.unshift '../../drivers/ruby2/lib'
+$LOAD_PATH.unshift '../../build/drivers/ruby/rdb_protocol'
 require 'pp'
 require 'rethinkdb'
 extend RethinkDB::Shortcuts
@@ -78,7 +78,7 @@ end
 def eval_env; binding; end
 $defines = eval_env
 
-$js_conn = RethinkDB::Connection.new('localhost', JSPORT)
+# $js_conn = RethinkDB::Connection.new('localhost', JSPORT)
 
 $cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
 
@@ -86,7 +86,7 @@ $test_count = 0
 $success_count = 0
 
 def test src, expected, name
-  $test_count += 2
+  $test_count += 1
   begin
     query = eval src, $defines
   rescue Exception => e
@@ -98,9 +98,9 @@ def test src, expected, name
     if do_test query, expected, $cpp_conn, name + '-CPP', src
       $success_count += 1
     end
-    if do_test query, expected, $js_conn, name + '-JS', src
-      $success_count += 1
-    end
+    # if do_test query, expected, $js_conn, name + '-JS', src
+    #   $success_count += 1
+    # end
   rescue Exception => e
     puts "#{name}: Error: '#{e}' testing query #{src}"
   end
@@ -124,8 +124,11 @@ def do_test query, expected, con, name, src
       expected = NoError
     end
     if ! eq_test(res, expected)
-      puts "#{name}: Equality comparison failed for #{src}"
-      puts "Value: #{show res}, Expected: #{show expected}"
+      puts "TEST FAILURE: #{name}"
+      puts "TEST BODY: #{src}" 
+      puts "\tVALUE: #{show res}"
+      puts "\tEXPECTED: #{show expected}"
+      puts; puts;
       return false
     else
       return true

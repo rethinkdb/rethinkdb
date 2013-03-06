@@ -8,18 +8,22 @@
 
 #include "containers/ptr_bag.hpp"
 #include "containers/scoped.hpp"
+#include "protob/protob.hpp"
+#include "rdb_protocol/js.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "protob/protob.hpp"
 
 namespace ql {
 
 class func_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
+    func_t(env_t *env, js::id_t id, term_t *parent);
     func_t(env_t *env, const Term2 *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static func_t *new_shortcut_func(env_t *env, const datum_t *obj,
+    static func_t *new_filter_func(env_t *env, const datum_t *obj,
+                                   const pb_rcheckable_t *root);
+    static func_t *new_identity_func(env_t *env, const datum_t *obj,
                                      const pb_rcheckable_t *root);
     val_t *call(const std::vector<const datum_t *> &args);
     // Prefer these two version of call.
@@ -41,8 +45,38 @@ private:
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int, const datum_t **> scope;
+
+    term_t *js_parent;
+    env_t *js_env;
+    js::id_t js_id;
 };
 
+class js_result_visitor_t : public boost::static_visitor<val_t *> {
+public:
+    typedef val_t *result_type;
+
+    js_result_visitor_t(env_t *_env, term_t *_parent) : env(_env), parent(_parent) { }
+
+    // This JS evaluation resulted in an error
+    result_type operator()(const std::string err_val) const {
+        rfail_target(parent, "%s", err_val.c_str());
+        unreachable();
+    }
+
+    // This JS call resulted in a JSON value
+    result_type operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+        return parent->new_val(new datum_t(json_val, env));
+    }
+
+    // This JS evaluation resulted in an id for a js function
+    result_type operator()(const id_t id_val) const {
+        return parent->new_val(new func_t(env, id_val, parent));
+    }
+
+private:
+    env_t *env;
+    term_t *parent;
+};
 
 RDB_MAKE_PROTOB_SERIALIZABLE(Term2);
 RDB_MAKE_PROTOB_SERIALIZABLE(Datum);

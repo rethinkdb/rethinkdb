@@ -49,18 +49,6 @@ private:
 };
 
 // Use these macros to return errors to users.
-#ifndef NDEBUG
-#define rcheck_target(target, pred, msg) do {                                         \
-        (pred)                                                                        \
-        ? (target)->runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg))   \
-        : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
-    } while (0)
-#define rcheck_src(src, pred, msg) do {                                                \
-        (pred)                                                                         \
-        ? ql::runtime_check(stringify(pred), __FILE__, __LINE__, true, (msg), (src))   \
-        : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src)); \
-    } while (0)
-#else
 #define rcheck_target(target, pred, msg) do {                                         \
         (pred)                                                                        \
         ? (void)0                                                                     \
@@ -71,7 +59,7 @@ private:
         ? (void)0                                                                      \
         : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src)); \
     } while (0)
-#endif // NDEBUG
+
 #define rcheck(pred, msg) rcheck_target(this, pred, msg)
 #define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
 
@@ -164,7 +152,7 @@ const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
 class any_ql_exc_t : public std::exception {
 public:
-    virtual ~any_ql_exc_t() { }
+    virtual ~any_ql_exc_t() throw () { }
 };
 
 // A RQL exception.  In the future it will be tagged.

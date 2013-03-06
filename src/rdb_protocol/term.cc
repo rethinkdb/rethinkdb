@@ -72,7 +72,7 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
     case Term2_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
     case Term2_TermType_ZIP:                return new zip_term_t(env, t);
-    case Term2_TermType_COERCE:             return new coerce_term_t(env, t);
+    case Term2_TermType_COERCE_TO:          return new coerce_term_t(env, t);
     case Term2_TermType_TYPEOF:             return new typeof_term_t(env, t);
     case Term2_TermType_UPDATE:             return new update_term_t(env, t);
     case Term2_TermType_DELETE:             return new delete_term_t(env, t);
@@ -90,6 +90,8 @@ term_t *compile_term(env_t *env, const Term2 *t) {
     case Term2_TermType_ALL:                return new all_term_t(env, t);
     case Term2_TermType_FOREACH:            return new foreach_term_t(env, t);
     case Term2_TermType_FUNC:               return new func_term_t(env, t);
+    case Term2_TermType_ASC:                return new asc_term_t(env, t);
+    case Term2_TermType_DESC:               return new desc_term_t(env, t);
     default: unreachable();
     }
     unreachable();
@@ -155,7 +157,8 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
-                rfail_toplevel("Query returned opaque value %s.", val->print().c_str());
+                rfail_toplevel("Query result must be of type DATUM or STREAM "
+                               "(got %s)", val->get_type().name());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);

@@ -1,11 +1,14 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'socket'
 require 'thread'
-require 'json'
 
 module RethinkDB
+  module Faux_Abort
+    class Abort
+    end
+  end
+
   class RQL
-    @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil)
       unbound_if !@body
@@ -29,10 +32,11 @@ module RethinkDB
     def inspect # :nodoc:
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{@msg.inspect}>"
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}>"
     end
 
-    def initialize(results, msg, connection, token) # :nodoc:
+    def initialize(results, msg, connection, token, more = true) # :nodoc:
+      @more = more
       @results = results
       @msg = msg
       @run = false
@@ -47,15 +51,16 @@ module RethinkDB
       raise RuntimeError, "Connection has been reset!" if out_of_date
       while true
         @results.each(&block)
+        return self if !@more
         q = Query2.new
         q.type = Query2::QueryType::CONTINUE
         q.query = @msg
         q.token = @token
         res = @conn.run_internal q
         if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-          @results = Shim.response_to_native res
+          @results = Shim.response_to_native(res, @msg)
         else
-          @results = Shim.response_to_native res
+          @results = Shim.response_to_native(res, @msg)
           @results.each(&block)
           return self
         end
@@ -67,11 +72,11 @@ module RethinkDB
     def repl; RQL.set_default_conn self; end
 
     def initialize(host='localhost', port=28015, default_db=nil)
-      # begin
-      #   @abort_module = ::IRB
-      # rescue NameError => e
-      #   @abort_module = Faux_Abort
-      # end
+      begin
+        @abort_module = ::IRB
+      rescue NameError => e
+        @abort_module = Faux_Abort
+      end
       @@last = self
       @host = host
       @port = port
@@ -101,9 +106,11 @@ module RethinkDB
 
       res = run_internal q
       if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res), msg, self, q.token)
+        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
+      elsif res.type == Response2::ResponseType::SUCCESS_SEQUENCE
+        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
       else
-        Shim.response_to_native res
+        Shim.response_to_native(res, msg)
       end
     end
 
@@ -117,14 +124,20 @@ module RethinkDB
     end
 
     def wait token
-      res = nil
-      raise RuntimeError, "Connection closed by server!" if not @listener
-      @mutex.synchronize do
-        (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
-        res = @data.delete token if @data[token]
+      begin
+        res = nil
+        raise RuntimeError, "Connection closed by server!" if not @listener
+        @mutex.synchronize do
+          (@waiters[token] = ConditionVariable.new).wait(@mutex) if not @data[token]
+          res = @data.delete token if @data[token]
+        end
+        raise RuntimeError, "Connection closed by server!" if !@listener or !res
+        return res
+      rescue @abort_module::Abort => e
+        print "\nAborting query and reconnecting...\n"
+        reconnect
+        raise e
       end
-      raise RuntimeError, "Connection closed by server!" if !@listener or !res
-      return res
     end
 
     # Change the default database of a connection.

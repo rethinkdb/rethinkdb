@@ -1,6 +1,6 @@
 import rethinkdb as r
 
-c = r.connect(host='localhost', port=28016)
+c = r.connect(host='localhost', port=28015)
 
 def tests():
     print r.expr(1).run(c)

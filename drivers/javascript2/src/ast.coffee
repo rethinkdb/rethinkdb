@@ -32,42 +32,42 @@ class RDBVal extends TermBase
     div: (others...) -> new Div {}, @, others...
     mod: (other) -> new Mod {}, @, other
 
-    append: (val) -> new Append {}, @, val
+    append: ar (val) -> new Append {}, @, val
     slice: (left=0, right=-1) -> new Slice {}, @, left, right
-    skip: (index) -> new Skip {}, @, index
-    limit: (index) -> new Limit {}, @, index
-    getAttr: (field) -> new GetAttr {}, @, field
+    skip: ar (index) -> new Skip {}, @, index
+    limit: ar (index) -> new Limit {}, @, index
+    getAttr: ar (field) -> new GetAttr {}, @, field
     contains: (fields...) -> new Contains {}, @, fields...
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
-    merge: (other) -> new Merge {}, @, other
-    between: (left, right) -> new Between {left_bound:left, right_bound:right}, @
-    reduce: (func, base) -> new Reduce {base:base}, @, new Func({}, func)
-    map: (func) -> new Map {}, @, new Func({}, func)
-    filter: (predicate) -> new Filter {}, @, new Func({}, predicate)
-    concatMap: (func) -> new ConcatMap {}, @, new Func({}, func)
+    merge: ar (other) -> new Merge {}, @, other
+    between: ar (left, right) -> new Between {leftBound:left, rightBound:right}, @
+    reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
+    map: ar (func) -> new Map {}, @, funcWrap(func)
+    filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
+    concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
     distinct: -> new Distinct {}, @
     count: -> new Count {}, @
     union: (others...) -> new Union {}, @, others...
-    nth: (index) -> new Nth {}, @, index
-    groupedMapReduce: (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
+    nth: ar (index) -> new Nth {}, @, index
+    groupedMapReduce: ar (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
     groupBy: (attrs..., collector) -> new GroupBy {}, @, attrs, collector
-    innerJoin: (other, predicate) -> new InnerJoin {}, @, other, predicate
-    outerJoin: (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
+    outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
+    eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
     zip: -> new Zip {}, @
-    coerce: (type) -> new Coerce {}, @, type
+    coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: (func) -> new Update {}, @, new Func({}, func)
+    update: ar (func) -> new Update {}, @, funcWrap(func)
     delete: -> new Delete {}, @
-    replace: (func) -> new Replace {}, @, new Func({}, func)
-    do: (func) -> new FunCall {}, new Func({}, func), @
+    replace: ar (func) -> new Replace {}, @, funcWrap(func)
+    do: ar (func) -> new FunCall {}, funcWrap(func), @
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
 
-    forEach: (func) -> new ForEach {}, @, func
+    forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
 class DatumTerm extends RDBVal
     args: []
@@ -101,7 +101,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new RqlDriverError "Unknown datum value: #{@data}"
+                    throw new RqlDriverError "Unknown datum value \"#{@data}\", did you forget a \"return\"?"
         term = new Term2
         term.setType Term2.TermType.DATUM
         term.setDatum datum
@@ -125,14 +125,30 @@ class DatumTerm extends RDBVal
                     obj[pair.getKey()] = DatumTerm.deconstruct pair.getVal()
                 obj
 
+translateOptargs = (optargs) ->
+    result = {}
+    for own key,val of optargs
+        key = switch key
+            when 'primaryKey' then 'primary_key'
+            when 'datacenter' then 'datacenter'
+            when 'useOutdated' then 'use_outdated'
+            when 'cacheSize' then 'cache_size'
+            when 'left' then 'left'
+            when 'right' then 'right'
+            when 'base' then 'base'
+            when 'leftBound' then 'left_bound'
+            when 'rightBound' then 'right_bound'
+            else undefined
+
+        if key is undefined or val is undefined then continue
+        result[key] = rethinkdb.expr val
+    return result
+
 class RDBOp extends RDBVal
     constructor: (optargs, args...) ->
         self = super()
         self.args = (rethinkdb.expr arg for arg in args)
-        self.optargs = {}
-        for own key,val of optargs
-            if val is undefined then continue
-            self.optargs[key] = rethinkdb.expr val
+        self.optargs = translateOptargs(optargs)
         return self
 
     build: ->
@@ -151,7 +167,7 @@ class RDBOp extends RDBVal
         if @st
             return ['r.', @st, '(', intspallargs(args, optargs), ')']
         else
-            if @args[0] instanceof DatumTerm
+            if shouldWrap(@args[0])
                 args[0] = ['r(', args[0], ')']
             return [args[0], '.', @mt, '(', intspallargs(args[1..], optargs), ')']
 
@@ -175,13 +191,23 @@ intspallargs = (args, optargs) ->
         argrepr.push(kved(optargs))
     return argrepr
 
+shouldWrap = (arg) ->
+    arg instanceof DatumTerm or arg instanceof MakeArray or arg instanceof MakeObject
+
 class MakeArray extends RDBOp
     tt: Term2.TermType.MAKE_ARRAY
     compose: (args) -> ['[', intsp(args), ']']
-        
 
 class MakeObject extends RDBOp
     tt: Term2.TermType.MAKE_OBJ
+
+    constructor: (obj) ->
+        self = super({})
+        self.optargs = {}
+        for own key,val of obj
+            self.optargs[key] = rethinkdb.expr val
+        return self
+
     compose: (args, optargs) -> kved(optargs)
 
 class Var extends RDBOp
@@ -204,18 +230,23 @@ class Db extends RDBOp
     tt: Term2.TermType.DB
     st: 'db'
 
-    tableCreate: (tblName, opts) -> new TableCreate opts, @, tblName
-    tableDrop: (tblName) -> new TableDrop {}, @, tblName
-    tableList: -> new TableList {}, @
+    tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
+    tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
+    tableList: ar(-> new TableList {}, @)
 
     table: (tblName, opts) -> new Table opts, @, tblName
 
 class Table extends RDBOp
     tt: Term2.TermType.TABLE
-    mt: 'table'
 
-    get: (key, opts) -> new Get opts, @, key
-    insert: (doc, opts) -> new Insert opts, @, doc
+    get: aropt (key, opts) -> new Get opts, @, key
+    insert: aropt (doc, opts) -> new Insert opts, @, doc
+
+    compose: (args, optargs) ->
+        if @args[0] instanceof Db
+            [args[0], '.table(', args[1], ')']
+        else
+            ['r.table(', args[0], ')']
 
 class Get extends RDBOp
     tt: Term2.TermType.GET
@@ -374,8 +405,8 @@ class Zip extends RDBOp
     mt: 'zip'
 
 class Coerce extends RDBOp
-    tt: Term2.TermType.COERCE
-    mt: 'coerce'
+    tt: Term2.TermType.COERCE_TO
+    mt: 'coerceTo'
 
 class TypeOf extends RDBOp
     tt: Term2.TermType.TYPEOF
@@ -427,7 +458,7 @@ class FunCall extends RDBOp
         if args.length > 2
             ['r.do(', intsp(args[1..]), ', ', args[0], ')']
         else
-            if @args[1] instanceof DatumTerm
+            if shouldWrap(@args[1])
                 args[1] = ['r(', args[1], ')']
             [args[1], '.do(', args[0], ')']
 
@@ -447,29 +478,36 @@ class ForEach extends RDBOp
     tt: Term2.TermType.FOREACH
     mt: 'forEach'
 
+funcWrap = (val) ->
+    if val instanceof Function
+        return new Func {}, val
+
+    ivarScan = (node) ->
+        unless node instanceof TermBase then return false
+        if node instanceof ImplicitVar then return true
+        if (node.args.map ivarScan).some((a)->a) then return true
+        return false
+
+    if ivarScan(val)
+        return new Func {}, (x) -> val
+
+    return val
+
+
 class Func extends RDBOp
     tt: Term2.TermType.FUNC
 
     constructor: (optargs, func) ->
-        if func instanceof Function
-            @_lambdExpr = true
-
-            args = []
-            argNums = []
-            i = 0
-            while i < func.length
-                argNums.push i
-                args.push new Var {}, i
-                i++
-            body = func(args...)
-            argsArr = new MakeArray({}, argNums...)
-            return super(optargs, argsArr, body)
-        else
-            @_lambdExpr = false
-            return super(optargs, new MakeArray({}), rethinkdb.expr(func))
+        args = []
+        argNums = []
+        i = 0
+        while i < func.length
+            argNums.push i
+            args.push new Var {}, i
+            i++
+        body = func(args...)
+        argsArr = new MakeArray({}, argNums...)
+        return super(optargs, argsArr, body)
 
     compose: (args) ->
-        if @_lambdExpr
-            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
-        else
-            args[1]
+        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']

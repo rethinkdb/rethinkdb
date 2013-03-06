@@ -161,7 +161,16 @@ class RDBSequence extends RDBType
 
     statsMerge = (results) ->
         base = new RDBObject {}
+        first_error = null
         for result in results.asArray()
+            if result instanceof RqlRuntimeError
+                unless first_error?
+                    first_error = new RDBPrimitive result.message
+                result = new RDBObject {'errors': 1}
+
+            unless result.typeOf() is RDBType.OBJECT
+                throw new RqlRuntimeError "FOREACH expects one or more write queries."
+
             for own k,v of result
                 if base[k]?
                     switch v.typeOf()
@@ -173,14 +182,33 @@ class RDBSequence extends RDBType
                             base[k] = base[k].union(v)
                 else
                     base[k] = v
+        if first_error?
+            base['first_error'] = first_error
         return base
 
-    forEach: (mapping) -> statsMerge @map mapping
+    forEach: (mapping) -> statsMerge (@map mapping).concatMap (row) ->
+            # The for each mapping function may produce an array of
+            # results. We need to flatten this for `statsMerge`
+            unless row instanceof RDBArray
+                new RDBArray [row]
+            else
+                row
 
     getPK: -> @asArray()[0].getPK()
 
-    update: (mapping) -> statsMerge @map (row) -> row.update mapping
-    replace: (mapping) -> statsMerge @map (row) -> row.replace mapping
+    update: (mapping) -> statsMerge @map (row) ->
+        try
+            return row.update mapping
+        catch err
+            return err
+
+    replace: (mapping) ->
+        statsMerge(@map (row) ->
+            try
+                return row.replace mapping
+            catch err
+                return err
+        )
     del: -> statsMerge @map (v) -> v.del()
 
 class RDBArray extends RDBSequence

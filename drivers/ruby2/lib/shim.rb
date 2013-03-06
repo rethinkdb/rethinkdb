@@ -13,7 +13,7 @@ module RethinkDB
       end
     end
 
-    def self.response_to_native r
+    def self.response_to_native(r, orig_term)
       rt = Response2::ResponseType
       if r.backtrace
         bt = r.backtrace.frames.map {|x|
@@ -22,15 +22,23 @@ module RethinkDB
       else
         bt = []
       end
-      case r.type
-      when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
-      when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
-      when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
-      when rt::RUNTIME_ERROR then
-        raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
-      when rt::COMPILE_ERROR then # TODO: remove?
-        raise RuntimeError, "#{r.response[0].r_str}\nBacktrace: #{bt.inspect}"
-      else raise RuntimeError, "Unexpected response: #{r.inspect}"
+
+      begin
+        case r.type
+        when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
+        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
+        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
+        when rt::RUNTIME_ERROR then
+          raise RuntimeError, "#{r.response[0].r_str}"
+        when rt::COMPILE_ERROR then # TODO: remove?
+          raise RuntimeError, "#{r.response[0].r_str}"
+        else raise RuntimeError, "Unexpected response: #{r.inspect}"
+        end
+      rescue RuntimeError => e
+        term = orig_term.dup
+        term.bt_tag(bt)
+        $t = term
+        raise RuntimeError, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
       end
     end
 
@@ -82,5 +90,8 @@ module RethinkDB
       return RQL.new(t)
     end
 
+    def coerce(other)
+      [RQL.new.expr(other), self]
+    end
   end
 end

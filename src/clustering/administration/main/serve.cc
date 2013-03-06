@@ -306,10 +306,12 @@ bool do_serve(
 
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
-                query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
-                logINF("Listening for client driver connections on port %d\n", rdb_pb_server.get_port());
-                query2_server_t rdb_pb2_server(address_ports.local_addresses, address_ports.reql_port+1, &rdb_ctx);
-                logINF("Listening for client driver2 connections on port %d\n", rdb_pb2_server.get_port());
+                // query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
+                // logINF("Listening for client driver connections on port %d\n", rdb_pb_server.get_port());
+                query2_server_t rdb_pb2_server(address_ports.local_addresses,
+                                               address_ports.reql_port, &rdb_ctx);
+                logINF("Listening for client driver connections on port %d\n",
+                       rdb_pb2_server.get_port());
 
                 scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
                     new metadata_persistence::semilattice_watching_persister_t(
@@ -333,7 +335,7 @@ bool do_serve(
                                 &memcached_namespace_repo,
                                 &rdb_namespace_repo,
                                 &admin_tracker,
-                                rdb_pb_server.get_http_app(),
+                                rdb_pb2_server.get_http_app(),
                                 machine_id,
                                 web_assets));
                         logINF("Listening for administrative HTTP connections on port %d\n", admin_server_ptr->get_port());

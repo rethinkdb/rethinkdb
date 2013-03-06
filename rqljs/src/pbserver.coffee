@@ -31,18 +31,37 @@ class RDBPbServer
         @serializer.deserialize Query2.getDescriptor(), pbArray
 
     execute: (data) ->
+
+        # The context in which we will execute this query
+        context = new RDBContext @universe
+
         query = @deserializePB @validateBuffer data
+
+        # Extract global optargs
+        globalOptargs = query.globalOptargsArray()
+        for pair in globalOptargs
+            k = pair.getKey()
+            v = pair.getVal()
+
+            val_ast = @buildTerm v
+            val = val_ast.eval(context)
+
+            switch k
+                when 'db'
+                    context.setDefaultDb(val)
+                else
+                    # Ignore this option
 
         response = new Response2
         response.setToken query.getToken()
 
         ast = @buildQuery query
 
-        # The context in which we will execute this query
-        context = new RDBContext @universe
-
+        
         try
             result = ast.eval(context)
+            unless result instanceof RDBType
+                throw new RqlRuntimeError "Query result must be of type DATUM or Stream."
 
             if result instanceof RDBSequence
                 response.setType Response2.ResponseType.SUCCESS_SEQUENCE
@@ -67,9 +86,9 @@ class RDBPbServer
             response.addResponse @deconstructDatum new RDBPrimitive err.message
 
             # Construct the backtrace
-            backtrace = new Backtrace
+            backtrace = new Backtrace()
             for f in err.backtrace
-                frame = new Frame
+                frame = new Frame()
 
                 if typeof f is 'number'
                     frame.setType Frame.FrameType.POS
@@ -156,7 +175,7 @@ class RDBPbServer
             when Term2.TermType.OUTER_JOIN   then RDBOuterJoin
             when Term2.TermType.EQ_JOIN      then RDBEqJoin
             when Term2.TermType.ZIP          then RDBZip
-            when Term2.TermType.COERCE       then RDBCoerce
+            when Term2.TermType.COERCE_TO    then RDBCoerceTo
             when Term2.TermType.TYPEOF       then RDBTypeOf
             when Term2.TermType.UPDATE       then RDBUpdate
             when Term2.TermType.DELETE       then RDBDelete

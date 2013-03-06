@@ -122,7 +122,7 @@ public:
         if (succeeded) {
             do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         } else {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb));
+            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb, a2->get_errno(), static_cast<int64_t>(a2->get_offset()), static_cast<int64_t>(a2->get_count())));
         }
         delete a2;
     }
