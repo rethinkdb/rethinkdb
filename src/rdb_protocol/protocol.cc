@@ -113,18 +113,14 @@ void bring_sindexes_up_to_date(
      * begins a parallel traversal which releases the superblock. This
      * serves to make sure that every changes which we don't learn about in
      * the parallel traversal we do learn about from the mod queue. */
-    scoped_ptr_t<io_backender_t> io;
-    make_io_backender(aio_default, &io); //TODO this io_backender should be passed in
     uuid_u post_construct_id = generate_uuid();
-    perfmon_collection_t dummy_collection;
 
     boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
-                io.get(), "post_construction_" + uuid_to_str(post_construct_id),
-                &dummy_collection));
+                store->io_backender_, "post_construction_" + uuid_to_str(post_construct_id),
+                &store->perfmon_collection));
 
     {
-        fprintf(stderr, "Register queue\n");
         mutex_t::acq_t acq;
         store->lock_sindex_queue(&acq);
         store->register_sindex_queue(mod_queue.get(), &acq);
@@ -153,6 +149,7 @@ void post_construct_and_drain_queue(
     /* Drain the queue. */
 
     int previous_size = mod_queue->size();
+    debugf("Draining %ld entries from the queue.\n", mod_queue->size());
     while (true) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
@@ -207,7 +204,6 @@ void post_construct_and_drain_queue(
                     it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
             }
-            fprintf(stderr, "Deregister queue\n");
             store->deregister_sindex_queue(mod_queue.get(), &acq);
             break;
         }

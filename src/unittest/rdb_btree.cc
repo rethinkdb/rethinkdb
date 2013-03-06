@@ -15,14 +15,15 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define TOTAL_KEYS_TO_INSERT 100 
+#define TOTAL_KEYS_TO_INSERT 1000000
 
 namespace unittest {
 
 void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
-        fprintf(stderr, "Do write %d\n", i);
+        if (i % 100 == 0) { debugf("Insert %d\n", i); }
+
         cond_t dummy_interuptor;
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
@@ -61,7 +62,6 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 
 void insert_rows_and_pulse_when_done(int start, int finish,
         btree_store_t<rdb_protocol_t> *store, cond_t *pulse_when_done) {
-    fprintf(stderr, "Starting to insert rows.");
     insert_rows(start, finish, store);
     pulse_when_done->pulse();
 }
@@ -93,7 +93,7 @@ void run_sindex_post_construction() {
 
     cond_t dummy_interuptor;
 
-    insert_rows(0, TOTAL_KEYS_TO_INSERT / 2, &store);
+    insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, &store);
 
     uuid_u sindex_id;
     {
@@ -150,7 +150,7 @@ void run_sindex_post_construction() {
                 super_block->get_sindex_block_id(),
                 &dummy_interuptor);
 
-        coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, TOTAL_KEYS_TO_INSERT / 2, TOTAL_KEYS_TO_INSERT,
+        coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                     &store, &background_inserts_done));
 
         std::set<uuid_u> created_sindexes;
@@ -164,7 +164,6 @@ void run_sindex_post_construction() {
 
     {
         for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-            debugf("Check %d\n", i);
             read_token_pair_t token_pair;
             store.new_read_token_pair(&token_pair);
 
