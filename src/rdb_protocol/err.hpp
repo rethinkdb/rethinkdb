@@ -64,7 +64,10 @@ private:
 #define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
 
 #define rfail_target(target, args...) rcheck_target(target, false, strprintf(args))
-#define rfail(args...) rcheck(false, strprintf(args))
+#define rfail(args...) do {                                             \
+        rcheck(false, strprintf(args));                                 \
+        unreachable();                                                  \
+    } while (0)
 #define rfail_toplevel(args...) rcheck_toplevel(false, strprintf(args))
 
 

@@ -30,9 +30,15 @@ module RethinkDB
     end
 
     def inspect # :nodoc:
+      preview_res = @results[0...10]
+      if (@results.size > 10 || @more)
+        preview_res << (dots = "..."; class << dots; def inspect; "..."; end; end; dots)
+      end
+      preview = preview_res.pretty_inspect[0...-1]
       state = @run ? "(exhausted)" : "(enumerable)"
       extra = out_of_date ? " (Connection #{@conn.inspect} reset!)" : ""
-      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}>"
+      "#<RethinkDB::Cursor:#{self.object_id} #{state}#{extra}: #{RPP.pp(@msg)}" +
+        (@run ? "" : "\n#{preview}") + ">"
     end
 
     def initialize(results, msg, connection, token, more = true) # :nodoc:

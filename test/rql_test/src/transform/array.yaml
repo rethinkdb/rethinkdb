@@ -113,9 +113,8 @@ tests:
       rb: objArr.order_by :b
       ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
       
-    # XXX: change to r.desc() instead and make sure `-b` doesn't work
-    #- cd: objArr.order_by('-b')
-    #  ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
+    - cd: objArr.order_by('-b')
+      ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
 
     ## Distinct
 

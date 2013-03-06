@@ -46,18 +46,22 @@ private:
 
 class filter_term_t : public op_term_t {
 public:
-    filter_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+    filter_term_t(env_t *env, const Term2 *term)
+        : op_term_t(env, term, argspec_t(2)), src_term(term) { }
 private:
     virtual val_t *eval_impl() {
         val_t *v0 = arg(0), *v1 = arg(1);
+        func_t *f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, datum_stream_t *> tds = v0->as_selection();
-            return new_val(tds.first, tds.second->filter(v1->as_func(FILTER_SHORTCUT)));
+            std::pair<table_t *, datum_stream_t *> ts = v0->as_selection();
+            return new_val(ts.first, ts.second->filter(f));
         } else {
-            return new_val(v0->as_seq()->filter(v1->as_func(FILTER_SHORTCUT)));
+            return new_val(v0->as_seq()->filter(f));
         }
     }
     RDB_NAME("filter");
+
+    const Term2 *src_term;
 };
 
 static const char *const reduce_optargs[] = {"base"};
