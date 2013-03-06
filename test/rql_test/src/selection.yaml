@@ -149,11 +149,33 @@ tests:
       rb: tbl.filter{ |row| 1 }.count
       ot: err("RqlRuntimeError", 'FILTER must be passed either an OBJECT or a predicate (got NUMBER).', [0])
 
-    # test seq.filter.filter
+    # test seq.filter.filter (chaining and r.row(s))
     - py: r.expr([1, 2, 3, 4, 5]).filter(r.row > 2).filter(r.row > 3)
       js: r.expr([1, 2, 3, 4, 5]).filter(r.row.gt(2)).filter(r.row.gt(3))
       ry: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
       ot: [4, 5]
+    
+    # test nesting (and r.rows(s))
+    - def: nested=r.expr([[1, 2], [3, 4], [5, 6]])
+      
+    - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(function (y) { return y.gte(4); }).count().gt(0) })
+      ot: ([[3, 4], [5, 6]])
+      
+    - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(function(y) { return y.gte(4) }).count().gt(0))
+      rb: []
+      ot: ([[3, 4], [5, 6]])
+    
+    - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(r.row.gte(4)).count().gt(0) })
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+    
+    - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(r.row.gte(4)).count().gt(0))
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
     
     # test static value syntax for filter (make sure r.row in it works)
     - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})

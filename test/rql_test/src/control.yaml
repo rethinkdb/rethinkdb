@@ -244,8 +244,6 @@ tests:
     
     # TODO: try calling write queries in random places (e.g. in `do`))
     
-    # TODO: test r.row, nestedness, and chaining
-
     # Cleanup    
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})
