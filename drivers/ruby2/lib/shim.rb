@@ -9,7 +9,7 @@ module RethinkDB
       when dt::R_NULL then nil
       when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native d2}
       when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val)]}]
-      else raise RuntimeError, "Unimplemented."
+      else raise RqlRuntimeError, "Unimplemented."
       end
     end
 
@@ -29,16 +29,16 @@ module RethinkDB
         when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
         when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
         when rt::RUNTIME_ERROR then
-          raise RuntimeError, "#{r.response[0].r_str}"
+          raise RqlRuntimeError, "#{r.response[0].r_str}"
         when rt::COMPILE_ERROR then # TODO: remove?
-          raise RuntimeError, "#{r.response[0].r_str}"
-        else raise RuntimeError, "Unexpected response: #{r.inspect}"
+          raise RqlCompileError, "#{r.response[0].r_str}"
+        else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
-      rescue RuntimeError => e
+      rescue RqlError => e
         term = orig_term.dup
         term.bt_tag(bt)
         $t = term
-        raise RuntimeError, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
+        raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
       end
     end
 
@@ -48,12 +48,13 @@ module RethinkDB
       case x.class.hash
       when Fixnum.hash     then d.type = dt::R_NUM;  d.r_num = x
       when Float.hash      then d.type = dt::R_NUM;  d.r_num = x
+      when Bignum.hash     then d.type = dt::R_NUM;  d.r_num = x
       when String.hash     then d.type = dt::R_STR;  d.r_str = x
       when Symbol.hash     then d.type = dt::R_STR;  d.r_str = x.to_s
       when TrueClass.hash  then d.type = dt::R_BOOL; d.r_bool = x
       when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
       when NilClass.hash   then d.type = dt::R_NULL
-      else raise RuntimeError, "UNREACHABLE"
+      else raise RqlRuntimeError, "UNREACHABLE"
       end
       t = Term2.new
       t.type = Term2::TermType::DATUM
@@ -68,7 +69,7 @@ module RethinkDB
     def expr(x)
       unbound_if @body
       return x if x.class == RQL
-      datum_types = [Fixnum, Float, String, Symbol, TrueClass, FalseClass, NilClass]
+      datum_types = [Fixnum, Float, Bignum, String, Symbol, TrueClass, FalseClass, NilClass]
       if datum_types.map{|y| y.hash}.include? x.class.hash
         return RQL.new(Shim.native_to_datum_term(x))
       end
@@ -84,7 +85,7 @@ module RethinkDB
           ap.key = k.to_s; ap.val = expr(v).to_pb; ap}
       when Proc.hash
         t = RQL.new.new_func(&x).to_pb
-      else raise RuntimeError, "r.expr can't handle #{x.inspect} of type #{x.class}"
+      else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
 
       return RQL.new(t)

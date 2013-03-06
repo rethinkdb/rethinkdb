@@ -9,7 +9,7 @@ path.insert(0, "../../drivers/python2")
 from os import environ
 import rethinkdb as r 
 
-JSPORT = int(sys.argv[1])
+# JSPORT = int(sys.argv[1])
 CPPPORT = int(sys.argv[2])
 
 # -- utilities --

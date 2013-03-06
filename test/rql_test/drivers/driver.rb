@@ -8,15 +8,28 @@ JSPORT = ARGV[0]
 CPPPORT = ARGV[1]
 
 def show x
+  if x.class == Err
+    name = x.type.sub(/^RethinkDB::/, "")
+    return "<#{name} #{show x.message}>"
+  end
   return (PP.pp x, "").chomp
 end
 
 NoError = "nope"
+AnyUUID = "<any uuid>"
 Err = Struct.new(:type, :message, :backtrace)
 Bag = Struct.new(:items)
 
 def bag list
   Bag.new(list)
+end
+
+def arr len, x
+  Array.new len, x
+end
+
+def uuid
+  AnyUUID
 end
 
 def err(type, message, backtrace)
@@ -34,13 +47,26 @@ def cmp_test(one, two)
     return 0
   end
 
+  if two.object_id == AnyUUID.object_id
+    return -1 if not one.kind_of? String
+    return 0 if one.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
+    return 1
+  end
+
   case "#{two.class}"
   when "Err"
+    if one.kind_of? RethinkDB::RqlError
+      one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message)
+    end
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
-    [one.type, one.message] <=> [two.type, two.message]
+    one_msg = one.message.sub(/:\n.*|:$/, ".")
+    [one.type, one_msg] <=> [two.type, two.message]
 
   when "Array"
+    if one.respond_to? :to_a
+      one = one.to_a
+    end
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
     cmp = one.length <=> two.length
@@ -90,7 +116,7 @@ def test src, expected, name
   begin
     query = eval src, $defines
   rescue Exception => e
-    puts "#{name}: Error: '#{e}' in construction of #{src}"
+    do_res_test name, src, e, expected
     return
   end
 
@@ -102,7 +128,7 @@ def test src, expected, name
     #   $success_count += 1
     # end
   rescue Exception => e
-    puts "#{name}: Error: '#{e}' testing query #{src}"
+    do_res_test name, src, e, expected
   end
 end
 
@@ -114,9 +140,12 @@ def do_test query, expected, con, name, src
   begin
     res = query.run(con)
   rescue Exception => exc
-    res = err("Rql" + exc.class.name, exc.message.split("\n")[0], "TODO")
+    res = err(exc.class.name.sub(/^RethinkDB::/, ""), exc.message.split("\n")[0], "TODO")
   end
-  
+  do_res_test name, src, res, expected
+end
+
+def do_res_test name, src, res, expected
   begin
     if expected != ''
       expected = eval expected.to_s, $defines
@@ -124,11 +153,7 @@ def do_test query, expected, con, name, src
       expected = NoError
     end
     if ! eq_test(res, expected)
-      puts "TEST FAILURE: #{name}"
-      puts "TEST BODY: #{src}" 
-      puts "\tVALUE: #{show res}"
-      puts "\tEXPECTED: #{show expected}"
-      puts; puts;
+      fail_test name, src, res, expected
       return false
     else
       return true
@@ -137,6 +162,14 @@ def do_test query, expected, con, name, src
     puts "#{name}: Error: #{e} when comparing #{show res} and #{show expected}"
     return false
   end
+end
+
+def fail_test name, src, res, expected
+      puts "TEST FAILURE: #{name}"
+      puts "TEST BODY: #{src}" 
+      puts "\tVALUE: #{show res}"
+      puts "\tEXPECTED: #{show expected}"
+      puts; puts;
 end
 
 def define expr

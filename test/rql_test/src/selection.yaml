@@ -100,8 +100,9 @@ tests:
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
     # Create a table with a non-id primary key
-    - cd: r.db('test').table_create('testpkey', primary_key='foo')
+    - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
+      rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
       ot: ({'created':1})
       def: tblpkey = r.db('test').table('testpkey')
 
@@ -152,7 +153,7 @@ tests:
     # test seq.filter.filter
     - py: r.expr([1, 2, 3, 4, 5]).filter(r.row > 2).filter(r.row > 3)
       js: r.expr([1, 2, 3, 4, 5]).filter(r.row.gt(2)).filter(r.row.gt(3))
-      ry: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
+      rb: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
       ot: [4, 5]
     
     # test static value syntax for filter (make sure r.row in it works)
@@ -165,6 +166,7 @@ tests:
     # test static value syntax for filter with r.row
     - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
       js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
+      rb: []
       ot: [{'a':1,'b':1,'c':3}]
 
     # TODO: test filtering for things by a missing attribute
@@ -172,6 +174,7 @@ tests:
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       ot: ({'dropped':3})
+      rb: []
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])
