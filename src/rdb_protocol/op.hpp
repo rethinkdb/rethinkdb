@@ -18,7 +18,7 @@ struct argspec_t {
         if (min == max) {
             return strprintf("%d argument(s)", min);
         } else if (max == -1) {
-            return strprintf("at least %d arguments", min);
+            return strprintf("%d or more argument(s)", min);
         } else {
             return strprintf("between %d and %d arguments", min, max);
         }
