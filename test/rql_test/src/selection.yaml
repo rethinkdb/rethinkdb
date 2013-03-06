@@ -49,6 +49,7 @@ tests:
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
       py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      rb: tbl3.insert({:id => 'Здравствуй', :value => 'Земля!'})
       ot: ({'inserted':1})
 
     # make sure we can query json docs by arbitrary unicode attrs
@@ -58,6 +59,9 @@ tests:
       py:
         cd: tbl3.get(u'Здравствуй')
         ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      rb:
+        cd: tbl3.get('Здравствуй')
+        ot: ({:id=>'Здравствуй',:value=>'Земля!'})
       
     - js:
         cd: tbl3.filter({'value':'Земля!'})
@@ -65,14 +69,17 @@ tests:
       py:
         cd: tbl3.filter({'value':u'Земля!'})
         ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      rb:
+        cd: tbl3.filter({:value=>'Земля!'})
+        ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
         
 
     # db and table name validation
-    - cd: r.db('#$%')
-      ot: err("RqlRuntimeError", 'Database name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
+    - cd: r.db('%')
+      ot: err("RqlRuntimeError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
     
-    - cd: r.db('test').table('#$%')
-      ot: err("RqlRuntimeError", 'Table name `#$%` invalid (Use A-Za-z0-9_ only).', [0])
+    - cd: r.db('test').table('%')
+      ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
     - cd: r.table('test').count()
@@ -194,9 +201,8 @@ tests:
     # TODO: test filtering for things by a missing attribute
     
     # Clean up
-    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
+    - cd: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
       ot: ({'dropped':3})
-      rb: []
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
     # TODO: seq.map(r.row[:foo])

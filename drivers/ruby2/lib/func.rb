@@ -67,7 +67,8 @@ module RethinkDB
             num_args -= 1
             arg_count -= 1
           end
-          raise RqlDriverError, "Expected #{arg_count} argument(s) but found #{num_args}."
+          raise RqlDriverError,
+                "Expected #{arg_count} argument(s) but found #{num_args}."
         end
       end
 
@@ -157,7 +158,9 @@ module RethinkDB
 
     def do(*args, &b)
       a = (@body ? [self] : []) + args.dup
-      raise RqlDriverError, "Expected 1 or more argument(s) but found 0." if a == [] && !b
+      if a == [] && !b
+        raise RqlDriverError, "Expected 1 or more argument(s) but found 0."
+      end
       RQL.new.funcall(*((b ? [new_func(&b)] : [a.pop]) + a))
     end
 
