@@ -1481,8 +1481,10 @@ module 'DataExplorerView', ->
 
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
+            event.preventDefault()
+            @skip_value += @current_results.length
             try
-                event.preventDefault()
+                @current_results = []
                 @start_time = new Date()
                 @saved_data.cursor.next(@callback_query)
                 $(window).scrollTop(@.$('.results_container').offset().top)
@@ -1589,9 +1591,7 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
-            #console.log @raw_query
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
-            #console.log @query
             
             # Display the loading gif
             @.$('.loading_query_img').css 'display', 'block'
@@ -1628,37 +1628,46 @@ module 'DataExplorerView', ->
         execute_portion: =>
             @saved_data.cursor = null
             while @queries[@index]?
-                console.log @queries[@index]
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
 
                 rdb_query = @evaluate(full_query)
                 @index++
 
+                if @index is @queries.length
+                    @.$('.loading_query_img').css 'display', 'none'
+
                 if rdb_query instanceof TermBase
                     #TODO hack run in the driver
+                    @skip_value = 0
+                    @start_time = new Date()
+                    #TODO That's not synchronous? Find why.
                     rdb_query.run @driver_handler.connection, @rdb_global_callback
-                    break
+                    return true
                 else
-                    @non_rethinkdb_queries += @queries[@index]
-                    if @index is @queries.length-1
+                    @non_rethinkdb_query += @queries[@index-1]
+                    if @index is @queries.length
                         #TODO implement nice error
                         throw "Last query was not a rethinkdb query"
         
         rdb_global_callback: (error, cursor) =>
             if error?
-                throw error
+                @results_view.render_error(@query, error)
+                return false
 
-            if @index is @query.length-1
+            if @index is @queries.length # @index was incremented in execute_portion
                 if cursor?
                     @saved_data.cursor = @cursor
 
 
                 #TODO Check for empty array?
-                if cursor?.hasNext() is true
+                if cursor?.hasNext?
                     @current_results = []
                     @cursor = cursor
-                    cursor.next @get_result_callback
+                    if cursor.hasNext() is true
+                        cursor.next @get_result_callback
+                    else
+                        @get_result_callback()
                 else
                     # Save the last executed query and the last displayed results
                     @current_results = cursor
@@ -1681,7 +1690,11 @@ module 'DataExplorerView', ->
             else
                 @execute_portion()
 
-        get_result_callback: (data) =>
+        get_result_callback: (error, data) =>
+            if error?
+                @results_view.render_error(@query, error)
+                return false
+
             if data isnt undefined
                 @current_results.push data
                 if @current_results.length < @limit and @cursor.hasNext() is true
@@ -1707,6 +1720,7 @@ module 'DataExplorerView', ->
 
 
         evaluate: (query) =>
+            console.log query
             "use strict"
             return eval(query)
 

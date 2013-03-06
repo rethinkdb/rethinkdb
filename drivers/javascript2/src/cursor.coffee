@@ -27,10 +27,10 @@ class Cursor
 
     _getMore: ->
         unless @_contFlag
-            @_conn._continue(@_token)
+            @_conn._continueQuery(@_token)
             @_contFlag = true
 
-    hasNext: -> @_endFlag && @_index >= @_data.length
+    hasNext: -> !@_endFlag || @_index < @_data.length
 
     next: (cb) ->
         @_cont = =>
