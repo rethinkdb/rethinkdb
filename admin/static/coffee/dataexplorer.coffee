@@ -1572,7 +1572,6 @@ module 'DataExplorerView', ->
                 @non_rethinkdb_query = ''
                 @index = 0
                 @queries = @separate_queries @query
-                console.log @queries
                 @execute_portion()
 
                 ###
@@ -1599,6 +1598,7 @@ module 'DataExplorerView', ->
         execute_portion: =>
             @saved_data.cursor = null
             while @queries[@index]?
+                console.log @queries[@index]
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
 
@@ -1606,7 +1606,8 @@ module 'DataExplorerView', ->
                 @index++
 
                 if rdb_query instanceof TermBase
-                    @connection.run query, @rdb_global_callback
+                    #TODO hack run in the driver
+                    rdb_query.run @driver_handler.connection, @rdb_global_callback
                     break
                 else
                     @non_rethinkdb_queries += @queries[@index]
@@ -1677,7 +1678,7 @@ module 'DataExplorerView', ->
 
         evaluate: (query) =>
             "use strict"
-            return eval(query+'console.log(app)')
+            return eval(query)
 
         # In a string \n becomes \\\\n, outside a string we just remove \n
         replace_new_lines_in_query: (query) ->
