@@ -44,7 +44,7 @@ tests:
       ot: err("RqlRuntimeError", 'Expected 2 argument(s) but found 3.', [1])
       
     - cd: "r.do(1)"
-      ot: err("RqlRuntimeError", 'Expected type FUNCTION but found DATUM.', [1])
+      ot: 1
 
     - js: r.do(1, function(x) {})
       cd: []
@@ -145,7 +145,7 @@ tests:
 
     # js error cases
     - cd: r.js('(function() { return 1; })')
-      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM.", [0])
+      ot: err("RqlRuntimeError", "Query result must be of type DATUM or STREAM (got FUNCTION).", [0])
 
     - cd: r.js('function() { return 1; }')
       ot: 'err("RqlRuntimeError", "SyntaxError: Unexpected token (", [0])'
@@ -222,10 +222,10 @@ tests:
       
     # forEach negative cases
     - cd: r.expr([1, 2, 3]).for_each( tbl.insert({ 'id':r.row }) )
-      ot: err("RqlCompileError", "Cannot use r.row. Use functions instead.", [0])
+      ot: {'inserted':3}
     
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })

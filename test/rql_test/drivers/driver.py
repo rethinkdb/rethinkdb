@@ -111,7 +111,7 @@ class Arr:
         self.thing = thing
 
     def __eq__(self, other):
-        if not isinstance(other, List):
+        if not isinstance(other, list):
             return False
 
         if not self.length == len(other):
@@ -120,7 +120,7 @@ class Arr:
         if self.thing is None:
             return True
 
-        return other == thing
+        return other == self.thing
 
     def __repr__(self):
         return "arr(%d, %s)" % (self.length, repr(self.thing))
