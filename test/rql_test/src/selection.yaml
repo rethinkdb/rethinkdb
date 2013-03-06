@@ -214,6 +214,3 @@ tests:
       rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
       ot: ({'dropped':4})
 
-    # TODO: make sure merge (and other things) are polymorphic on objects and streams
-    # TODO: seq.map(r.row[:foo])
-

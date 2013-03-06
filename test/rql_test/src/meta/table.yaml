@@ -44,6 +44,9 @@ tests:
       
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
+
+    # TODO: what's the error message for
+    # r.db('test').table_create('testpkey', 'foo') in js and ruby?
       
     # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
     # primary_datacenter, cache_size)
