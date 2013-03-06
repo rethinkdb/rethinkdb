@@ -580,6 +580,15 @@ host_and_port_t parse_host_and_port(const std::string &option_name, const std::s
                                                         option_name.c_str(), value.c_str()));
 }
 
+std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts) {
+    const std::vector<std::string> join_strings = all_options(opts, "--join");
+    std::vector<host_and_port_t> joins;
+    for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
+        joins.push_back(parse_host_and_port("--join", *it));
+    }
+    return joins;
+}
+
 options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Web options");
     options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
@@ -915,11 +924,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
 
-        const std::vector<std::string> join_strings = all_options(opts, "--join");
-        std::vector<host_and_port_t> joins;
-        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-            joins.push_back(parse_host_and_port("--join", *it));
-        }
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -982,11 +987,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<std::string> join_strings = all_options(opts, "--join");
-        std::vector<host_and_port_t> joins;
-        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-            joins.push_back(parse_host_and_port("--join", *it));
-        }
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
@@ -1025,11 +1026,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        const std::vector<std::string> join_strings = all_options(opts, "--join");
-        std::vector<host_and_port_t> joins;
-        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-            joins.push_back(parse_host_and_port("--join", *it));
-        }
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
@@ -1100,11 +1097,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        std::vector<std::string> join_strings = all_options(opts, "--join");
-        std::vector<host_and_port_t> joins;
-        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-            joins.push_back(parse_host_and_port("--join", *it));
-        }
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. An import process needs to connect to something!\n"
@@ -1221,11 +1214,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const std::vector<std::string> join_strings = all_options(opts, "--join");
-        std::vector<host_and_port_t> joins;
-        for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-            joins.push_back(parse_host_and_port("--join", *it));
-        }
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
