@@ -836,23 +836,6 @@ io_backend_t get_io_backend_option(const std::map<std::string, options::values_t
     }
 }
 
-MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
-                             std::map<std::string, options::values_t> *names_by_values_out) {
-    try {
-        const std::map<std::string, options::values_t> command_line
-            = options::parse_command_line(argc, argv, options);
-        std::map<std::string, options::values_t> opts
-            = options::merge(command_line, options::default_values_map(options));
-
-        options::verify_option_counts(options, opts);
-        *names_by_values_out = opts;
-        return true;
-    } catch (const std::runtime_error &e) {
-        fprintf(stderr, "%s\n", e.what());
-        return false;
-    }
-}
-
 std::map<std::string, options::values_t> parse_config_file_flat(const std::string &config_filepath,
                                                                 const std::vector<options::option_t> &options) {
     std::string file;
@@ -867,7 +850,7 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
 std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,
                                                              const std::vector<options::option_t> &options) {
     std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
-    boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
+    const boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
     if (config_file_name) {
         opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
     }
