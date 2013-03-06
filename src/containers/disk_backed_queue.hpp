@@ -20,48 +20,37 @@ class perfmon_collection_t;
 //TODO there are extra copies all over the place mostly stemming from having a
 //vector<char> from the serialization code and strings from the blob code.
 
-struct queue_superblock_t {
-    block_id_t head, tail;
-    int64_t queue_size;
-};
-
 struct queue_block_t {
     block_id_t next;
     int data_size, live_data_offset;
     char data[0];
 };
 
-
 class internal_disk_backed_queue_t {
 public:
-    /* Initializes a new disk backed queue. */
-    internal_disk_backed_queue_t(cache_t *cache);
-    internal_disk_backed_queue_t(cache_t *cache, transaction_t *txn);
-
-    /* Gain access to an existing disk_backed_queue_t. */
-    internal_disk_backed_queue_t(cache_t *cache, block_id_t superblock_id);
+    internal_disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
 
+    // TODO: order_token_t::ignore.  This should take an order token and store it.
     void push(const write_message_t& value);
 
+    // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(std::vector<char> *buf_out);
 
     bool empty();
 
     int64_t size();
 
-    block_id_t get_superblock_id();
-
 private:
-    queue_superblock_t *get_superblock(transaction_t *txn, scoped_ptr_t<buf_lock_t> *superblock_out);
+    void add_block_to_head(transaction_t *txn);
 
-    void add_block_to_head(transaction_t *txn, queue_superblock_t *superblock);
-
-    void remove_block_from_tail(transaction_t *txn, queue_superblock_t *superblock);
+    void remove_block_from_tail(transaction_t *txn);
 
     mutex_t mutex;
-    block_id_t superblock_id;
-    cache_t *cache;
+    int64_t queue_size;
+    block_id_t head_block_id, tail_block_id;
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
 
     // Serves more as sanity-checking for the cache than this type's ordering.
     order_source_t cache_order_source;
@@ -69,36 +58,11 @@ private:
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };
 
-/* This creates a disk_backed_queue that constructs it's own cache and
- * serializer. */
-class cache_serializer_t {
-public:
-    cache_serializer_t(io_backender_t *io_backender,
-            const std::string &filename, perfmon_collection_t *stats_parent);
-    ~cache_serializer_t();
-
-    scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<cache_t> cache;
-
-private:
-    DISABLE_COPYING(cache_serializer_t);
-};
-
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *stats_parent)
-        : cache_serializer_(new cache_serializer_t(io_backender, filename, stats_parent)),
-            internal_(cache_serializer_->cache.get())
-    { }
-
-    disk_backed_queue_t(cache_t *cache, transaction_t *txn)
-        : internal_(cache, txn)
-    { }
-
-    disk_backed_queue_t(cache_t *cache, block_id_t superblock_id)
-        : internal_(cache, superblock_id)
-    { }
+    disk_backed_queue_t(io_backender_t *io_backender, const std::string& filename, perfmon_collection_t *stats_parent)
+        : internal_(io_backender, filename, stats_parent) { }
 
     void push(const T &t) {
         write_message_t wm;
@@ -124,12 +88,7 @@ public:
         return internal_.size();
     }
 
-    block_id_t get_superblock() {
-        return internal_.get_superblock_id();
-    }
-
 private:
-    scoped_ptr_t<cache_serializer_t> cache_serializer_;
     internal_disk_backed_queue_t internal_;
     DISABLE_COPYING(disk_backed_queue_t);
 };

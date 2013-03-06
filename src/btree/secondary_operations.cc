@@ -2,7 +2,6 @@
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/blob.hpp"
-#include "containers/disk_backed_queue.hpp"
 
 void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out) {
     const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());
@@ -96,13 +95,3 @@ void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) 
     set_secondary_indexes_internal(txn, sindex_block, std::map<uuid_u, secondary_index_t>());
 }
 
-
-block_id_t ensure_queue(transaction_t *txn, buf_lock_t *_sindex_block) {
-    btree_sindex_block_t *sindex_block = static_cast<btree_sindex_block_t *>(_sindex_block->get_data_major_write());
-    if (sindex_block->queue_superblock == NULL_BLOCK_ID) {
-        internal_disk_backed_queue_t initializer(txn->get_cache(), txn);
-        sindex_block->queue_superblock = initializer.get_superblock_id();
-    }
-
-    return sindex_block->queue_superblock;
-}

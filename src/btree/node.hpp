@@ -63,7 +63,6 @@ struct btree_statblock_t {
 };
 
 struct btree_sindex_block_t {
-    block_id_t queue_superblock;
     //TODO This could maybe be a bit bigger? not sure how much of a block we actually get these days.
     static const int SINDEX_BLOB_MAXREFLEN = 4000;
 

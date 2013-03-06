@@ -14,7 +14,7 @@ struct secondary_index_t {
         : superblock(NULL_BLOCK_ID), post_construction_complete(false)
     { }
 
-    /* The block_id of the superblock. */
+    /* A virtual superblock. */
     block_id_t superblock;
 
     /* An opaque_definition_t is a serializable description of the secondary
@@ -62,7 +62,5 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
 //XXX note this just drops the enties. It doesn't cleanup the btree that it
 //points to. drop_secondary_indexes. Does both and should be used publicly.
 void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block);
-
-block_id_t ensure_queue(transaction_t *txn, buf_lock_t *sindex_block);
 
 #endif
