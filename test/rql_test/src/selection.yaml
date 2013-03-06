@@ -202,6 +202,7 @@ tests:
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
+      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
       ot: ({'dropped':3})
 
     # TODO: make sure merge (and other things) are polymorphic on objects and streams
