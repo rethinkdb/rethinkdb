@@ -660,4 +660,12 @@ class Func(RDBOp):
     def compose(self, args, optargs):
             return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
 
+class Asc(RDBOp, RDBTopFun):
+    tt = p.Term2.ASC
+    st = 'asc'
+
+class Desc(RDBOp, RDBTopFun):
+    tt = p.Term2.DESC
+    st = 'desc'
+
 from query import expr
