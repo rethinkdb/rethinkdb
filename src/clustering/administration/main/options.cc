@@ -9,6 +9,33 @@
 
 namespace options {
 
+option_count_error_t::option_count_error_t(std::string option_name, size_t min_appearances,
+                                           size_t max_appearances, size_t actual_appearances)
+    : named_error_t(option_name,
+                    actual_appearances > max_appearances ? strprintf("Option '%s' specified too many times.", option_name.c_str())
+                    : min_appearances == 1 ? strprintf("Option '%s' must be specified.", option_name.c_str())
+                    : strprintf("Option '%s' specified too few times.", option_name.c_str())) {
+    rassert(min_appearances <= max_appearances);
+    rassert(actual_appearances < min_appearances || actual_appearances > max_appearances);
+}
+
+missing_parameter_error_t::missing_parameter_error_t(std::string option_name)
+    : named_error_t(option_name, strprintf("Option '%s' is missing its parameter.", option_name.c_str())) { }
+
+value_error_t::value_error_t(std::string option_name, std::string msg)
+    : named_error_t(option_name, msg) { }
+
+unrecognized_option_error_t::unrecognized_option_error_t(std::string option_name)
+    : std::runtime_error(strprintf("Unrecognized option '%s'.", option_name.c_str())),
+      unrecognized_option_name_(option_name) { }
+
+positional_parameter_error_t::positional_parameter_error_t(std::string parameter_value)
+    : std::runtime_error(strprintf("Unexpected positional parameter '%s' (did you forget the "
+                                   "option name, or forget to quote a parameter list?).",
+                                   parameter_value.c_str())),
+      parameter_value_(parameter_value) { }
+
+
 option_t::option_t(const names_t _names, const appearance_t appearance)
     : names(_names.names),
       default_values() {
@@ -123,11 +150,9 @@ std::map<std::string, std::vector<std::string> > do_parse_command_line(
                 unrecognized.push_back(option_name);
                 continue;
             } else if (looks_like_option_name(option_name)) {
-                throw parse_error_t(strprintf("unrecognized option '%s'", option_name));
+                throw unrecognized_option_error_t(option_name);
             } else {
-                throw parse_error_t(strprintf("unexpected unnamed value '%s' (did you forget "
-                                              "the option name, or forget to quote a parameter list?)",
-                                              option_name));
+                throw positional_parameter_error_t(option_name);
             }
         }
 
@@ -139,14 +164,14 @@ std::map<std::string, std::vector<std::string> > do_parse_command_line(
             names_by_values[official_name].push_back("");
         } else {
             if (i == argc) {
-                throw parse_error_t(strprintf("option '%s' is missing its parameter", option_name));
+                throw missing_parameter_error_t(option_name);
             }
 
             const char *const option_parameter = argv[i];
             ++i;
 
             if (looks_like_option_name(option_parameter)) {
-                throw parse_error_t(strprintf("option '%s' is missing its parameter (because '%s' looks like another option name)", option_name, option_parameter));
+                throw missing_parameter_error_t(option_name);
             }
 
             names_by_values[official_name].push_back(option_parameter);
@@ -181,19 +206,16 @@ void verify_option_counts(const std::vector<option_t> &options,
         auto entry = names_by_values.find(option_name);
         if (entry == names_by_values.end()) {
             if (option->min_appearances > 0) {
-                throw parse_error_t(strprintf("option '%s' has not been specified", option_name.c_str()));
+                throw option_count_error_t(option_name, option->min_appearances, option->max_appearances, 0);
             }
         } else {
             if (entry->second.size() < option->min_appearances || entry->second.size() > option->max_appearances) {
-                throw parse_error_t(strprintf("option '%s' has been specified the wrong number of times (%zu times, when it must be between %zu and %zu times)",
-                                              option_name.c_str(),
-                                              entry->second.size(),
-                                              option->min_appearances,
-                                              option->max_appearances));
+                throw option_count_error_t(option_name, option->min_appearances,
+                                           option->max_appearances, entry->second.size());
             }
 
             if (option->no_parameter && entry->second.size() == 1 && entry->second[0] != "") {
-                throw parse_error_t(strprintf("option '%s' should not have a value", option_name.c_str()));
+                throw value_error_t(option_name, strprintf("Option '%s' should not have a value.", option_name.c_str()));
             }
         }
     }

@@ -7,8 +7,45 @@
 
 namespace options {
 
-struct parse_error_t : public std::runtime_error {
-    parse_error_t(const std::string &msg) : std::runtime_error(msg) { }
+struct named_error_t : public std::runtime_error {
+    named_error_t(std::string option_name, std::string msg)
+        : std::runtime_error(msg), option_name_(option_name) { }
+
+    std::string option_name() const { return option_name_; }
+
+private:
+    std::string option_name_;
+};
+
+struct option_count_error_t : public named_error_t {
+    option_count_error_t(std::string option_name, size_t min_appearances,
+                         size_t max_appearances, size_t actual_appearances);
+};
+
+struct missing_parameter_error_t : public named_error_t {
+    missing_parameter_error_t(std::string option_name);
+};
+
+struct value_error_t : public named_error_t {
+    value_error_t(std::string option_name, std::string msg);
+};
+
+struct unrecognized_option_error_t : public std::runtime_error {
+    unrecognized_option_error_t(std::string option_name);
+
+    std::string unrecognized_option_name() const { return unrecognized_option_name_; }
+
+private:
+    std::string unrecognized_option_name_;
+};
+
+struct positional_parameter_error_t : public std::runtime_error {
+    positional_parameter_error_t(std::string parameter_value);
+
+    std::string parameter_value() const { return parameter_value_; }
+
+private:
+    std::string parameter_value_;
 };
 
 struct validation_error_t : public std::runtime_error {
