@@ -7,6 +7,9 @@ tests:
         rb: obj = r.expr({ :a => 1, :b => 2, :c => 'str' })
 
     ##  Get attr
+    
+    # TODO: getAttr should be called attr and should be available
+    # everywhere. It should also be variadic
 
     - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
