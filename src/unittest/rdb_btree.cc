@@ -15,7 +15,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#define TOTAL_KEYS_TO_INSERT 10000
+#define TOTAL_KEYS_TO_INSERT 1000
 
 namespace unittest {
 

@@ -505,68 +505,80 @@ archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
-void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+/* A target for pmap. Used below by rdb_update_sindexes. */
+void rdb_update_single_sindex(
+        const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         rdb_modification_report_t *modification,
-        transaction_t *txn) {
+        transaction_t *txn,
+        auto_drainer_t::lock_t) {
+    Mapping mapping;
+    vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
+    int success = deserialize(&read_stream, &mapping);
+    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-    for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
-                                                it != sindexes.end();
-                                                ++it) {
-        Mapping mapping;
-        vector_read_stream_t read_stream(&it->sindex.opaque_definition);
-        int success = deserialize(&read_stream, &mapping);
-        guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    //TODO we just use a NULL environment here. People should not be able
+    //to do anything that requires an environment like gets from other
+    //tables etc. but we don't have a nice way to disallow those things so
+    //for now we pass null and it will segfault if an illegal sindex
+    //mapping is passed.
+    query_language::runtime_environment_t *local_env = NULL;
+    query_language::scopes_t scopes;
+    query_language::backtrace_t backtrace;
 
-        //TODO we just use a NULL environment here. People should not be able
-        //to do anything that requires an environment like gets from other
-        //tables etc. but we don't have a nice way to disallow those things so
-        //for now we pass null and it will segfault if an illegal sindex
-        //mapping is passed.
-        query_language::runtime_environment_t *local_env = NULL;
-        query_language::scopes_t scopes;
-        query_language::backtrace_t backtrace;
+    superblock_t *super_block = sindex->super_block.get();
 
-        superblock_t *super_block = it->super_block.get();
-
-        if (modification->deleted) {
-            promise_t<superblock_t *> return_superblock_local;
-            {
-                boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-                        local_env, scopes, backtrace, modification->deleted);
-
-                store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
-
-                keyvalue_location_t<rdb_value_t> kv_location;
-
-                find_keyvalue_location_for_write(txn, super_block,
-                        sindex_key.btree_key(), &kv_location,
-                        &it->btree->root_eviction_priority, &it->btree->stats,
-                        &return_superblock_local);
-
-                kv_location_delete(&kv_location, sindex_key,
-                            it->btree, repli_timestamp_t::distant_past, txn);
-                //The keyvalue location gets destroyed here.
-            }
-            super_block = return_superblock_local.wait();
-        }
-
-        if (modification->added) {
+    if (modification->deleted) {
+        promise_t<superblock_t *> return_superblock_local;
+        {
             boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-                    local_env, scopes, backtrace, modification->added);
+                    local_env, scopes, backtrace, modification->deleted);
 
             store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
-            promise_t<superblock_t *> dummy;
             find_keyvalue_location_for_write(txn, super_block,
                     sindex_key.btree_key(), &kv_location,
-                    &it->btree->root_eviction_priority, &it->btree->stats,
-                    &dummy);
+                    &sindex->btree->root_eviction_priority, &sindex->btree->stats,
+                    &return_superblock_local);
 
-            kv_location_set(&kv_location, sindex_key,
-                     modification->added, it->btree, repli_timestamp_t::distant_past, txn);
+            kv_location_delete(&kv_location, sindex_key,
+                        sindex->btree, repli_timestamp_t::distant_past, txn);
+            //The keyvalue location gets destroyed here.
         }
+        super_block = return_superblock_local.wait();
+    }
+
+    if (modification->added) {
+        boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
+                local_env, scopes, backtrace, modification->added);
+
+        store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
+
+        keyvalue_location_t<rdb_value_t> kv_location;
+
+        promise_t<superblock_t *> dummy;
+        find_keyvalue_location_for_write(txn, super_block,
+                sindex_key.btree_key(), &kv_location,
+                &sindex->btree->root_eviction_priority, &sindex->btree->stats,
+                &dummy);
+
+        kv_location_set(&kv_location, sindex_key,
+                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
+    }
+}
+
+void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
+        rdb_modification_report_t *modification,
+        transaction_t *txn) {
+    auto_drainer_t drainer;
+
+    for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+                                                it != sindexes.end();
+                                                ++it) {
+        coro_t::spawn_sometime(boost::bind(
+                    &rdb_update_single_sindex, &*it,
+                    modification, txn, auto_drainer_t::lock_t(&drainer)));
     }
 }
 
