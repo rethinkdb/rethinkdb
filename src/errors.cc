@@ -75,7 +75,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
-#if _GNU_SOURCE
+#ifdef _GNU_SOURCE
     return strerror_r(errsv, buf, buflen);
 #else
     // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number

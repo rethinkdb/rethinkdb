@@ -46,26 +46,27 @@ done
 start_dir="$(pwd)"
 
 if [ -n "$(/bin/bash -c 'echo $VERSION_FILE')" ]; then # If VERSION_FILE is set, use it
-    unset repo_dir
-    repo_available=0
     version_file="$VERSION_FILE"
-elif repo_dir="$(git rev-parse --show-cdup 2> /dev/null)" && \
+elif [ -f "$(dirname "$0")/../VERSION.OVERRIDE" ]; then
+    version_file="$(dirname "$0")/../VERSION.OVERRIDE"
+else
+    version_file="${start_dir}/VERSION"
+fi
+
+if repo_dir="$(git rev-parse --show-cdup 2> /dev/null)" && \
    repo_dir="${repo_dir:-.}" && \
    [ -d "$repo_dir/.git" ]; then
 
     repo_available=1
-    version_file="${repo_dir}/VERSION.OVERRIDE"
 else
-    unset repo_dir
     repo_available=0
-    version_file="${start_dir}/VERSION"
 fi
 
 #### Compute version
 
 version=''
 
-[ -f "${version_file}" ] && read version < ${version_file}
+[ -f "${version_file}" ] && version=$(cat "$version_file")
 if [ -z "$version" -a "$repo_available" = 1 ]; then
   version="$(git describe --tags --match "v[0-9]*" --abbrev=6 HEAD 2> /dev/null || true)"
   case "$version" in

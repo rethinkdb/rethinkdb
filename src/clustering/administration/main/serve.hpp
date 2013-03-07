@@ -7,8 +7,9 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "extproc/spawner.hpp"
 #include "arch/address.hpp"
+
+namespace extproc { class spawner_info_t; }
 
 #define MAX_PORT 65536
 
@@ -67,7 +68,7 @@ struct service_address_ports_t {
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
-bool serve(extproc::spawner_t::info_t *spawner_info,
+bool serve(extproc::spawner_info_t *spawner_info,
            io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::persistent_file_t *persistent_file,
@@ -79,7 +80,7 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
            signal_t *stop_cond,
            const boost::optional<std::string>& config_file);
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
+bool serve_proxy(extproc::spawner_info_t *spawner_info,
                  const peer_address_set_t &joins,
                  service_address_ports_t ports,
                  machine_id_t machine_id,

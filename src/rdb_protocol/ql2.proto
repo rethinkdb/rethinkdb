@@ -244,7 +244,7 @@ message Term2 {
         // map that over a sequence.  (Both unpick and without, polymorphic.)
         WITHOUT  = 34; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
         // Merge objects (right-preferential)
-        MERGE    = 35; // OBJECT... -> OBJECT
+        MERGE    = 35; // OBJECT... -> OBJECT | Sequence -> Sequence
 
         // Sequence Ops
         // Get all elements of a sequence between two values.

@@ -23,5 +23,11 @@ tests:
         ot: "'こんにちは'"
       js: []
         
-
-    # etc.
+    - cd: r.expr('foo').type_of()
+      ot: "'STRING'"
+      
+    # test coercions
+    - cd: r.expr('foo').coerce_to('string')
+      ot: ('"foo"')
+      
+      

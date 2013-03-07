@@ -37,6 +37,10 @@ tests:
         }())
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
       ot: ({'inserted':100})
+    
+    # Table type
+    - cd: tbl.type_of()
+      ot: "'TABLE'"
 
     # Missing db case
     - cd: r.db('missing').table('bar')
@@ -120,10 +124,6 @@ tests:
     - cd: tblpkey.get(10)
       ot: ({'foo':10,'a':10})
     
-    # Clean up pkey test table
-    - cd: r.db('test').table_drop('testpkey')
-      ot: ({'dropped':1})
-
     # Between
     - cd: tbl.between(20,29).count()
       ot: 10
@@ -138,12 +138,23 @@ tests:
     - cd: r.expr([1, 2, 3]).between(-1, 2)
       ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
 
-    # TODO: test between on non-selections
-    # TODO: test between without the first argument
-    # TODO: test between without the second argument
-    # TODO: test between that has a wider range than the one in the db
-    # TODO: does between still support attribute specification?
-    # TODO: test between table where id isn't a primary key
+    # test between on open intervals
+    - cd: tbl.between(null, 2).count()
+      ot: 3
+      
+    - cd: tbl.between(2, null).count()
+      ot: 98
+      
+    - js: tbl.between(2).count()
+      cd: []
+      ot: err('RqlDriverError', 'Expected 2 argument(s) but found 1.', '[]')
+      
+    # test between table where id isn't a primary key
+    - cd: tblpkey.between(9, 11).count()
+      ot: 1
+
+    - cd: tblpkey.between(11, 12).count()
+      ot: 0
 
     # Filter
     - py: tbl.filter(lambda row:row['a'] > 2).count()
@@ -178,12 +189,12 @@ tests:
     - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
       js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
       rb: []
-      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
     
     - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
       js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
       rb: []
-      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
     
     # test static value syntax for filter (make sure r.row in it works)
     - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})
@@ -198,13 +209,17 @@ tests:
       rb: []
       ot: [{'a':1,'b':1,'c':3}]
 
-    # TODO: test filtering for things by a missing attribute
+    # test filtering for things by a missing attribute
+    - cd: r.expr([{'a':1}]).filter({'b':1})
+      ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
+    
+    # what the heck, let's see what happens
+    - py: r.expr(5) + tbl
+      js: r.expr(5).add(tbl)
+      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
     
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
-      ot: ({'dropped':3})
-
-    # TODO: make sure merge (and other things) are polymorphic on objects and streams
-    # TODO: seq.map(r.row[:foo])
+      ot: ({'dropped':4})
 

@@ -6,6 +6,8 @@ YAML_FILES=$(shell find $(SRC) -name '*.yaml')
 DRIVER_FILES=$(wildcard $(DRIVERS)/*)
 TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
 
+.SILENT:
+
 run: $(TEST_FILES)
 	./test-runner run
 

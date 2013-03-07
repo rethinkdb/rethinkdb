@@ -181,7 +181,7 @@ private:
             try {
                 ds = val->as_seq();
             } catch (const exc_t &e) {
-                rfail("Cannot COERCE %s to %s (failed to produce intermediate stream).",
+                rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();
             }
@@ -200,8 +200,8 @@ private:
                         std::string key = pair->el(0)->as_str();
                         const datum_t *keyval = pair->el(1);
                         bool b = obj->add(key, keyval);
-                        rcheck(!b, strprintf("Duplicate key %s in coerced object. "
-                                             " (got %s and %s as values)",
+                        rcheck(!b, strprintf("Duplicate key %s in coerced object.  "
+                                             "(got %s and %s as values)",
                                              key.c_str(),
                                              obj->el(key)->print().c_str(),
                                              keyval->print().c_str()));
@@ -211,7 +211,7 @@ private:
             }
         }
 
-        rfail("Cannot COERCE %s to %s.",
+        rfail("Cannot coerce %s to %s.",
               get_name(start_type).c_str(), get_name(end_type).c_str());
         unreachable();
     }

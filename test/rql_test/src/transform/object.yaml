@@ -7,7 +7,7 @@ tests:
         rb: obj = r.expr({ :a => 1, :b => 2, :c => 'str' })
 
     ##  Get attr
-
+    
     - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
       ot: 1

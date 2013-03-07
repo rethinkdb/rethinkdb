@@ -111,6 +111,11 @@ public:
     // returns whether or not to continue iterating.)  Used for e.g. garbage
     // collection.
     void iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const;
+
+    virtual void runtime_check(const char *test, const char *file, int line,
+                               bool pred, std::string msg) const {
+        ql::runtime_check(test, file, line, pred, msg);
+    }
 private:
     void init_json(cJSON *json, env_t *env);
 
@@ -122,11 +127,6 @@ private:
     std::string r_str;
     std::vector<const datum_t *> r_array;
     std::map<const std::string, const datum_t *> r_object;
-
-    virtual void runtime_check(const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg);
-    }
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);

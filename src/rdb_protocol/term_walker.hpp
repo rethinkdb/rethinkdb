@@ -44,7 +44,8 @@ public:
         bool writes_still_legal = writes_are_still_legal(parent, frame);
         rcheck_src(&t->GetExtension(ql2::extension::backtrace),
                    writes_still_legal || !term_is_write_or_meta(t),
-                   strprintf("Cannot nest writes or meta ops in stream operations"));
+                   strprintf("Cannot nest writes or meta ops in stream operations.  "
+                             "Use FOREACH instead."));
         val_pusher_t<bool> writes_legal_pusher(&writes_legal, writes_still_legal);
 
         term_recurse(t, &term_walker_t::walk);

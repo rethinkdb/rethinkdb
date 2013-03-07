@@ -257,7 +257,7 @@ def bag(lst):
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
 
-def arr(length, thing=None):
+def arrlen(length, thing=None):
     return Arr(length, thing)
 
 def uuid():

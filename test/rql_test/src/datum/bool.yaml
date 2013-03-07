@@ -10,4 +10,13 @@ tests:
       rb: r false
       ot: false
 
-    # Any more?
+    - cd: r.expr(False).type_of()
+      ot: "'BOOL'"
+      
+    # test coercions
+    - cd: r.expr(True).coerce_to('string')
+      ot: "'true'"
+      
+    - cd: r.expr(True).coerce_to('bool')
+      ot: True
+

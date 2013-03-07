@@ -24,7 +24,7 @@ def bag list
   Bag.new(list)
 end
 
-def arr len, x
+def arrlen len, x
   Array.new len, x
 end
 

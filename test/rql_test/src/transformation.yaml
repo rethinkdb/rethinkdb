@@ -37,12 +37,10 @@ tests:
     # Map-Reduce
     - py:
         - tbl.map(lambda row:row['id']).reduce(lambda a,b:a+b)
-        # TODO: Implicit var support buggy on CPP server
-        #- tbl.map(r.row['id']).reduce(lambda a,b:a+b)
+        - tbl.map(r.row['id']).reduce(lambda a,b:a+b)
       js:
         - tbl.map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
-        # TODO: Implicit var support buggy on CPP server
-        #- tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+        - tbl.map(r.row('id')).reduce(function(a,b) { return a.add(b); })
       rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 4950
 
@@ -67,6 +65,10 @@ tests:
       js: tbl.orderBy('id').nth(0)
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
+
+    - cd: tbl.order_by('id').type_of()
+      ot: "'STREAM'"
+      
     # TODO: test ascending and descending orderBy on streams
     # TODO: test ordering by multiple attrs (in case of ties) on streams
 
@@ -76,7 +78,13 @@ tests:
     # TODO: add tests for nth (positive, negative numbers, non-numbers)
     # TODO: pluck
     # TODO: without
-    # TODO: make sure all is properly polymorphic
+
+    # Coerce a table to an array
+    - cd: tbl.limit(5).type_of()
+      ot: '"SELECTION"'
+      
+    - cd: tbl.limit(5).coerce_to('array').type_of()
+      ot: '"ARRAY"'
 
     # Union
     - cd: tbl.union(tbl2).count()

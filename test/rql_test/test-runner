@@ -290,11 +290,13 @@ class RethinkDBTestServers:
         return True
 
     def start(self): 
+        log_out = open('build/server-log.txt','a')
         self.cpp_port = self.find_available_port()
         self.cpp_server = Popen(['../../build/release_clang/rethinkdb',
                                  '--driver-port', str(self.cpp_port),
                                  '--http-port=0',
-                                 '--cluster-port=0'])
+                                 '--cluster-port=0'],
+                                stdout=log_out, stderr=log_out)
 
         # self.js_port = self.find_available_port()
         # self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])

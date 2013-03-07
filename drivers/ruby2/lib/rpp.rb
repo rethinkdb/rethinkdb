@@ -67,37 +67,39 @@ module RethinkDB
     end
 
     def self.can_prefix (name, args)
-      return false if name == "db"
+      return false if name == "db" || name == "funcall"
       return false if name == "table" && args.size == 1
       return true
     end
     def self.pp_int(q, term, pre_dot=false)
-      q.text("\x43", 0) if term.is_error
+      q.text("\x7", 0) if term.is_error
       @@context = term.context if term.is_error
 
       if term.type == Term2::TermType::DATUM
         res = pp_int_datum(q, term.datum, pre_dot)
-        q.text("\x43", 0) if term.is_error
+        q.text("\x7", 0) if term.is_error
         return res
       end
 
       if term.type == Term2::TermType::VAR
         q.text("var_")
         res = pp_int_datum(q, term.args[0].datum, false)
-        q.text("\x43", 0) if term.is_error
+        q.text("\x7", 0) if term.is_error
         return res
       elsif term.type == Term2::TermType::FUNC
+        q.text("r(") if pre_dot
         q.text("lambda")
         res = pp_int_func(q, term)
-        q.text("\x43", 0) if term.is_error
+        q.text(")") if pre_dot
+        q.text("\x7", 0) if term.is_error
         return res
       elsif term.type == Term2::TermType::MAKE_OBJ
         res = pp_int_optargs(q, term.optargs, pre_dot)
-        q.text("\x43", 0) if term.is_error
+        q.text("\x7", 0) if term.is_error
         return res
       elsif term.type == Term2::TermType::MAKE_ARRAY
         res = pp_int_args(q, term.args, pre_dot)
-        q.text("\x43", 0) if term.is_error
+        q.text("\x7", 0) if term.is_error
         return res
       end
 
@@ -154,7 +156,7 @@ module RethinkDB
       end
 
       pp_int_func(q, func) if func
-      q.text("\x43", 0) if term.is_error
+      q.text("\x7", 0) if term.is_error
     end
 
     def self.pp term
@@ -166,10 +168,10 @@ module RethinkDB
 
         in_bt = false
         q.output.split("\n").map {|line|
-          line = line.gsub(/^ */) {|x| x+"\x43"} if in_bt
-          arr = line.split("\x43")
+          line = line.gsub(/^ */) {|x| x+"\x7"} if in_bt
+          arr = line.split("\x7")
           if arr[1]
-            in_bt = !(arr[2] || (line[-1] == 0x43))
+            in_bt = !(arr[2] || (line[-1] == 0x7))
             [arr.join(""), " "*arr[0].size + "^"*arr[1].size]
           else
             line

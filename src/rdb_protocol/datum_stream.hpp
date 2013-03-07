@@ -189,6 +189,7 @@ public:
         return data[data_index++];
     }
 private:
+    virtual const datum_t *as_arr() { return 0; }
     T lt_cmp;
     datum_stream_t *src;
 

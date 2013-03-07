@@ -195,7 +195,7 @@ const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) cons
         it = as_object().find(key);
     if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
-        rfail("No key \"%s\" in object %s.", key.c_str(), print().c_str());
+        rfail("No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
     }
     return 0;
 }
@@ -242,7 +242,7 @@ datum_stream_t *datum_t::as_datum_stream(
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
-    case R_OBJECT: rfail("Cannot convert %s to sequence", datum_type_name(get_type()));
+    case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
     case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, bt_src));
     default: unreachable();
     }

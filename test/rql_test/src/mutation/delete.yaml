@@ -48,4 +48,6 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
 
-    # TODO: test deletion on a non-deletable object (array, table post map)
+    # test deletion on a non-deletable object
+    - cd: r.expr([1, 2]).delete()
+      ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
