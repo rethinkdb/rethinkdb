@@ -71,13 +71,39 @@ tests:
       
     # TODO: test ascending and descending orderBy on streams
     # TODO: test ordering by multiple attrs (in case of ties) on streams
+    # TODO: test ordering by non pkey attrs
+    # TODO: test ordering by missing attrs
 
     # TODO: add tests for skip (positive, negative numbers, non-numbers)
     # TODO: add tests for limit (positive, negative numbers, non-numbers)
     # TODO: add tests for slice (positive, negative numbers, non-numbers)
     # TODO: add tests for nth (positive, negative numbers, non-numbers)
-    # TODO: pluck
-    # TODO: without
+    
+    # Pluck
+    - cd: tbl.pluck().nth(0)
+      ot: ({})
+      
+    - cd: tbl.pluck('id').order_by('id').nth(0)
+      ot: ({'id':0})
+      
+    - cd: tbl.pluck('id', 'a').order_by('id').nth(0)
+      ot: ({'id':0,'a':0})
+      
+    - cd: tbl.pluck('id', 'missing').order_by('id').nth(0)
+      ot: ({'id':0})
+      
+    # without
+    - cd: tbl.without().order_by('id').nth(0)
+      ot: ({'id':0,'a':0})
+      
+    - cd: tbl.without('a').order_by('id').nth(0)
+      ot: ({'id':0})
+      
+    - cd: tbl.without('id', 'a').nth(0)
+      ot: ({})
+      
+    - cd: tbl.without('a', 'missing').order_by('id').nth(0)
+      ot: ({'id':0})
 
     # Coerce a table to an array
     - cd: tbl.limit(5).type_of()
