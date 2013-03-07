@@ -50,5 +50,3 @@ tests:
       rb: r('a') + 1
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [1])
 
-    # TODO: make sure type errors are good, e.g. `r.expr(5) + tbl`
-    

@@ -1,6 +1,7 @@
 module RethinkDB
   module Shim
     def self.datum_to_native d
+      raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
       case d.type
       when dt::R_NUM then d.r_num
