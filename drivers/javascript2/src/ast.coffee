@@ -41,7 +41,7 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
     merge: ar (other) -> new Merge {}, @, other
-    between: ar (left, right) -> new Between {leftBound:left, rightBound:right}, @
+    between: ar (left, right) -> new Between {leftBound: (if left? then left else undefined), rightBound: (if right? then right else undefined)}, @
     reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
@@ -133,6 +133,7 @@ translateOptargs = (optargs) ->
             when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
             when 'cacheSize' then 'cache_size'
+            when 'upsert' then 'upsert'
             when 'left' then 'left'
             when 'right' then 'right'
             when 'base' then 'base'
