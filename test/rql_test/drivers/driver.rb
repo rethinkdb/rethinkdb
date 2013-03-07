@@ -10,14 +10,14 @@ CPPPORT = ARGV[1]
 def show x
   if x.class == Err
     name = x.type.sub(/^RethinkDB::/, "")
-    return "<#{name} #{show x.message}>"
+    return "<#{name} #{'~ ' if x.regex}#{show x.message}>"
   end
   return (PP.pp x, "").chomp
 end
 
 NoError = "nope"
 AnyUUID = "<any uuid>"
-Err = Struct.new(:type, :message, :backtrace)
+Err = Struct.new(:type, :message, :backtrace, :regex)
 Bag = Struct.new(:items)
 
 def bag list
@@ -33,7 +33,11 @@ def uuid
 end
 
 def err(type, message, backtrace)
-  Err.new(type, message, backtrace)
+  Err.new(type, message, backtrace, false)
+end
+
+def err_regex(type, message, backtrace)
+  Err.new(type, message, backtrace, true)
 end
 
 def eq_test(one, two)
@@ -56,12 +60,20 @@ def cmp_test(one, two)
   case "#{two.class}"
   when "Err"
     if one.kind_of? RethinkDB::RqlError
-      one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message)
+      one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message, false)
     end
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
-    one_msg = one.message.sub(/:\n.*|:$/, ".")
-    [one.type, one_msg] <=> [two.type, two.message]
+    if not two.regex
+      one_msg = one.message.sub(/:\n.*|:$/, ".")
+      [one.type, one_msg] <=> [two.type, two.message]
+    else
+      if (Regexp.compile two.type) =~ one.type and
+          (Regexp.compile two.message) =~ one.message
+        return 0
+      end
+      return -1
+    end
 
   when "Array"
     if one.respond_to? :to_a

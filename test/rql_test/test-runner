@@ -10,6 +10,7 @@ import types
 import random
 import socket
 import re
+import os
 
 # A test script src language
 # This class attempts to abstract some of the details that
@@ -144,6 +145,10 @@ class TestGroup:
 
     def write_test(self, out, test, lang, index):
 
+        test_name = '-'.join(self.path) + '-' + str(index)
+        if not re.match(test_filter, test_name):
+            return
+
         # Does this test define a variable?
         if 'def' in test:
             self.write_def(out, test['def'], lang, index)
@@ -211,7 +216,13 @@ class TestGroup:
         if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
             return Langs.repr_expected_for(lang, obj[lang]['ot'])
         elif 'ot' in obj:
-            return Langs.repr_expected_for(lang, obj['ot'])
+            expected = obj['ot']
+            if isinstance(expected, dict):
+                if expected.has_key(lang):
+                    expected = expected[lang]
+                else:
+                    expected = expected['cd']
+            return Langs.repr_expected_for(lang, expected)
 
         return None
 
@@ -359,6 +370,8 @@ def run_js():
 
 def build_test_scripts():
     TestBuilder('src')
+
+test_filter = os.getenv("RQL_TEST") or ".*"
 
 # Call 0-arg function given by shell (e.g. "./test-runner run")
 if __name__ == '__main__':
