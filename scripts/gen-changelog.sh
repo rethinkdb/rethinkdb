@@ -10,9 +10,7 @@
 # 	PACKAGE_VERSION
 # .
 
-PRODBASE=. ;
 PRODUCT_NAME="$VERSIONED_QUALIFIED_PACKAGE_NAME" ;
-# PRODUCTVERSION="`"$PRODBASE"/scripts/gen-version.sh`""-0"
 PRODUCT_VERSION="$PACKAGE_VERSION""-0"
 if [ "$UBUNTU_RELEASE" != "" ] ;
 then
@@ -32,11 +30,11 @@ TIMESTAMP_OFFSET="-0800" ;
 TIMESTAMP_FULL="$TIMESTAMP_TIME"" ""$TIMESTAMP_OFFSET" ;
 AGENT_NAME="RethinkDB Packaging"
 AGENT_MAIL="packaging@rethinkdb.com"
-CHANGELOG_FILE="$PRODBASE"/"debian/changelog" ;
-echo "$PRODUCT_NAME"" (""$PRODUCT_VERSION"") ""$OS_RELEASE""; urgency=low" > "$CHANGELOG_FILE" ;
-echo "" >> "$CHANGELOG_FILE" ;
-echo "  * Release." >> "$CHANGELOG_FILE" ;
-echo "" >> "$CHANGELOG_FILE" ;
-echo " -- ""$AGENT_NAME"" <""$AGENT_MAIL"">  ""$TIMESTAMP_FULL" >> "$CHANGELOG_FILE" ;
+
+echo "$PRODUCT_NAME"" (""$PRODUCT_VERSION"") ""$OS_RELEASE""; urgency=low"
+echo ""
+echo "  * Release."
+echo ""
+echo " -- ""$AGENT_NAME"" <""$AGENT_MAIL"">  ""$TIMESTAMP_FULL"
 # Note that there are two spaces between the e-mail address and the time-stamp. This was no accident.
 

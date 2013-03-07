@@ -71,6 +71,7 @@ public:
         }
         return erased;
     }
+    size_t size() const { return vec.size(); }
     typedef std::vector<peer_address_t>::const_iterator iterator;
     iterator begin() const { return vec.begin(); }
     iterator end() const { return vec.end(); }

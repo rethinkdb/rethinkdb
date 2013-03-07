@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENVIRONMENT_HPP_
 #define RDB_PROTOCOL_ENVIRONMENT_HPP_
 
@@ -27,18 +27,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_u _this_machine)
-        : pool(_pool_group->get()),
-          ns_repo(_ns_repo),
-          namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-          databases_semilattice_metadata(_databases_semilattice_metadata),
-          semilattice_metadata(_semilattice_metadata),
-          directory_read_manager(_directory_read_manager),
-          js_runner(_js_runner),
-          interruptor(_interruptor),
-          this_machine(_this_machine) {
-        guarantee(js_runner);
-    }
+        uuid_u _this_machine);
 
     //TODO(mlucy): when is this used?
     runtime_environment_t(
@@ -52,18 +41,7 @@ public:
             _semilattice_metadata,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_u _this_machine)
-        : pool(_pool_group->get()),
-          ns_repo(_ns_repo),
-          namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-          databases_semilattice_metadata(_databases_semilattice_metadata),
-          semilattice_metadata(_semilattice_metadata),
-          directory_read_manager(NULL),
-          js_runner(_js_runner),
-          interruptor(_interruptor),
-          this_machine(_this_machine) {
-        guarantee(js_runner);
-    }
+        uuid_u _this_machine);
 
     extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
