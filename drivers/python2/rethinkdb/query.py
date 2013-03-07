@@ -31,7 +31,7 @@ def error(msg):
 def do(arg0, *args):
     args = [arg0]+[x for x in args]
     return FunCall(func_wrap(args[-1]), *args[:-1])
-    
+
 row = ImplicitVar()
 
 def table(tbl_name, use_outdated=False):
@@ -61,7 +61,7 @@ def avg(attr):
     return {'AVG': attr}
 
 def asc(attr):
-    return Asc(attr) 
+    return Asc(attr)
 
 def desc(attr):
     return Desc(attr)
