@@ -132,6 +132,7 @@ translateOptargs = (optargs) ->
             when 'primaryKey' then 'primary_key'
             when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
+            when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
             when 'upsert' then 'upsert'
             when 'left' then 'left'
