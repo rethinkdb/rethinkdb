@@ -76,8 +76,14 @@ class Connection
 
     _processResponse: (response) ->
         token = response.getToken()
-        {cb:cb, root:root} = @outstandingCallbacks[token]
-        if cb
+        {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
+        if cursor
+            if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+                cursor._addData mkSeq response
+            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+                cursor._endData mkSeq response
+                @_delQuery(token)
+        else if cb
             # Behavior varies considerably based on response type
             if response.getType() is Response2.ResponseType.COMPILE_ERROR
                 cb mkErr(RqlCompileError, response, root)
