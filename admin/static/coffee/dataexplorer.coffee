@@ -248,6 +248,9 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+
+            @id_execution = 0
+
             @render()
 
         handle_mousemove: (event) =>
@@ -1514,28 +1517,11 @@ module 'DataExplorerView', ->
             # Execute the query
             try
                 # Separate queries
-                @non_rethinkdb_query = ''
-                @index = 0
+                @non_rethinkdb_query = '' # Store the non statements that don't return a rethinkdb query (like "var a = 1;")
+                @index = 0 # index of the query currently being executed
                 @queries = @separate_queries @query
                 @raw_queries = @separate_queries @raw_query
                 @execute_portion()
-
-                ###
-                @queries = @separate_queries @query
-                @start_time = new Date()
-
-                @current_results = []
-                @skip_value = 0
-                @current_query_index = 0
-
-                if @cursor?.close? # So if a old query was running, we won't listen to it.
-                    @cursor.close()
-
-                @cursor = eval(@queries[@current_query_index])
-                # Save the last cursor to fetch more results later
-                @saved_data.cursor = @cursor
-                @cursor.next(@callback_multiple_queries)
-                ###
 
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -1566,7 +1552,9 @@ module 'DataExplorerView', ->
                     @start_time = new Date()
                     @current_results = []
 
-                    rdb_query.private_run @driver_handler.connection, @rdb_global_callback # @rdb_global_callback can be fire more than once
+                    @id_execution++ # Update the id_execution and use it to tag the callbacks
+                    rdb_global_callback = @generate_rdb_global_callback @id_execution
+                    rdb_query.private_run @driver_handler.connection, rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do
@@ -1579,27 +1567,66 @@ module 'DataExplorerView', ->
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error)
         
-        rdb_global_callback: (error, cursor) =>
-            if error?
-                @.$('.loading_query_img').css 'display', 'none'
-                @results_view.render_error(@raw_queries[@index-1], error)
-                return false
-            
-            if @index is @queries.length # @index was incremented in execute_portion
-                if cursor?
-                    @saved_data.cursor = @cursor
+        generate_rdb_global_callback: (id_execution) =>
+            rdb_global_callback = (error, cursor) =>
+                if @id_execution is id_execution # We execute the query only if it is the last one
+                    get_result_callback = @generate_get_result_callback id_execution
 
-                #TODO Check for empty array?
-                if cursor?.hasNext?
-                    @cursor = cursor
-                    if cursor.hasNext() is true
-                        @cursor.next @get_result_callback
+                    if error?
+                        @.$('.loading_query_img').css 'display', 'none'
+                        @results_view.render_error(@raw_queries[@index-1], error)
+                        return false
+                    
+                    if @index is @queries.length # @index was incremented in execute_portion
+                        if cursor?
+                            @saved_data.cursor = @cursor
+
+                        #TODO Check for empty array?
+                        if cursor?.hasNext?
+                            @cursor = cursor
+                            if cursor.hasNext() is true
+                                @cursor.next get_result_callback
+                            else
+                                get_result_callback() # Display results
+                        else
+                            # Save the last executed query and the last displayed results
+                            @current_results = cursor
+
+                            @saved_data.query = @query
+                            @saved_data.results = @current_results
+                            @saved_data.metadata =
+                                limit_value: @current_results.length
+                                skip_value: @skip_value
+                                execution_time: new Date() - @start_time
+                                query: @query
+                                has_more_data: false
+
+                            @results_view.render_result
+                                results: @current_results # The first parameter is null ( = query, so we don't display it)
+                                metadata: @saved_data.metadata
+
+                            # Successful query, let's save it in the history
+                            @save_query @raw_query
                     else
-                        @get_result_callback() # Display results
-                else
-                    # Save the last executed query and the last displayed results
-                    @current_results = cursor
+                        @execute_portion()
 
+            return rdb_global_callback
+
+        generate_get_result_callback: (id_execution) =>
+            get_result_callback = (error, data) =>
+                if @id_execution is id_execution
+                    if error?
+                        @results_view.render_error(@query, error)
+                        return false
+
+                    if data isnt undefined
+                        @current_results.push data
+                        if @current_results.length < @limit and @cursor.hasNext() is true
+                            @cursor.next get_result_callback
+                            return true
+
+                    # if data is undefined or @current_results.length is @limit
+                    @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
                     @saved_data.query = @query
                     @saved_data.results = @current_results
                     @saved_data.metadata =
@@ -1607,7 +1634,7 @@ module 'DataExplorerView', ->
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: false
+                        has_more_data: @cursor.hasNext()
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
@@ -1615,38 +1642,8 @@ module 'DataExplorerView', ->
 
                     # Successful query, let's save it in the history
                     @save_query @raw_query
-            else
-                @execute_portion()
 
-        get_result_callback: (error, data) =>
-            if error?
-                @results_view.render_error(@query, error)
-                return false
-
-            if data isnt undefined
-                @current_results.push data
-                if @current_results.length < @limit and @cursor.hasNext() is true
-                    @cursor.next @get_result_callback
-                    return true
-
-            # if data is undefined or @current_results.length is @limit
-            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-            @saved_data.query = @query
-            @saved_data.results = @current_results
-            @saved_data.metadata =
-                limit_value: @current_results.length
-                skip_value: @skip_value
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: @cursor.hasNext()
-
-            @results_view.render_result
-                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                metadata: @saved_data.metadata
-
-            # Successful query, let's save it in the history
-            @save_query @raw_query
-
+            return get_result_callback
 
         evaluate: (query) =>
             "use strict"
