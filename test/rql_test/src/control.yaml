@@ -223,7 +223,7 @@ tests:
       ot: 6
 
     - cd: r.expr([1, 2, 3]).for_each( tbl2.insert({}) )
-      ot: ({'inserted':3, 'generated_keys':arr(3,uuid())})
+      ot: ({'inserted':3, 'generated_keys':arrlen(3,uuid())})
     
     # We have six elements, update them 6*2*3=36 times
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.update({ foo:row }), tbl.update({ bar:row })] })
@@ -260,11 +260,11 @@ tests:
     
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))
-      ot: ({'inserted':1, 'generated_keys':arr(1,uuid())})
+      ot: ({'inserted':1, 'generated_keys':arrlen(1,uuid())})
       
     - cd: r.expr([1, 2])[0].do(tbl.insert({'foo':r.row}))
       js: r.expr([1, 2]).nth(0).do(tbl.insert({'foo':r.row}))
-      ot: ({'inserted':1, 'generated_keys':arr(1,uuid())})
+      ot: ({'inserted':1, 'generated_keys':arrlen(1,uuid())})
 
     - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
       ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])

@@ -229,7 +229,7 @@ void rdb_replace(btree_slice_t *slice,
                 } else {
                     rfail_target(
                         new_val,
-                        "Primary key (%s) cannot be changed (%s -> %s)",
+                        "Primary key `%s` cannot be changed (%s -> %s)",
                         primary_key.c_str(),
                         old_val->print().c_str(), new_val->print().c_str());
                 }

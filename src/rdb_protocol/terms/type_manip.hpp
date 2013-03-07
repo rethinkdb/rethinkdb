@@ -181,7 +181,7 @@ private:
             try {
                 ds = val->as_seq();
             } catch (const exc_t &e) {
-                rfail("Cannot COERCE %s to %s (failed to produce intermediate stream).",
+                rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();
             }
@@ -211,7 +211,7 @@ private:
             }
         }
 
-        rfail("Cannot COERCE %s to %s.",
+        rfail("Cannot coerce %s to %s.",
               get_name(start_type).c_str(), get_name(end_type).c_str());
         unreachable();
     }

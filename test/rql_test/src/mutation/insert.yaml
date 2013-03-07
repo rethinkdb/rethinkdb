@@ -55,10 +55,11 @@ tests:
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
       ot: ({'created':1})
+      
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({})
-      ot: ({'inserted':1,'generated_keys':arr(1,uuid())})
+      ot: ({'inserted':1,'generated_keys':arrlen(1,uuid())})
 
     - cd: tblpkey
       ot: ([{'foo':uuid()}])
@@ -72,12 +73,6 @@ tests:
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
       ot: ({'inserted':5})
 
-    # TODO: in all data modification operations (insert, update,
-    # replace, and delete) we should return a json document with all
-    # possible fields, (e.g. "{ inserted: 0, deleted: 1 }"), even the
-    # ones that are zeros, otherwise things can get really confusing
-    # for the user.
-    
     # clean up
     - cd: r.db('test').table_drop('test')
       ot: "({'dropped':1})"

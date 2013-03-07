@@ -405,7 +405,7 @@ class Zip extends RDBOp
     tt: Term2.TermType.ZIP
     mt: 'zip'
 
-class Coerce extends RDBOp
+class CoerceTo extends RDBOp
     tt: Term2.TermType.COERCE_TO
     mt: 'coerceTo'
 

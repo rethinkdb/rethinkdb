@@ -26,4 +26,8 @@ tests:
     - cd: r.expr('foo').type_of()
       ot: "'STRING'"
       
-    # etc.
+    # test coercions
+    - cd: r.expr('foo').coerce_to('string')
+      ot: ('"foo"')
+      
+      

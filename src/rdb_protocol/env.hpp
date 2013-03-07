@@ -12,6 +12,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/ptr_bag.hpp"
+#include "extproc/pool.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/js.hpp"

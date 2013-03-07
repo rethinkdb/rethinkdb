@@ -213,6 +213,11 @@ tests:
     - cd: r.expr([{'a':1}]).filter({'b':1})
       ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
     
+    # what the heck, let's see what happens
+    - py: r.expr(5) + tbl
+      js: r.expr(5).add(tbl)
+      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
+    
     # Clean up
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }

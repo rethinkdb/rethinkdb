@@ -1,21 +1,36 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
-#include <stdint.h>             // for UINT32_MAX
+#include <stdint.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
+#include "extproc/job.hpp"
+#include "extproc/pool.hpp"
 #include "rdb_protocol/jsimpl.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "utils.hpp"
 
 namespace js {
+
+// The actual job that runs all this stuff.
+class runner_job_t : public extproc::auto_job_t<runner_job_t> {
+public:
+    runner_job_t() {}
+    virtual void run_job(extproc::job_control_t *control, UNUSED void *extra) {
+        // The reason we have env_t is to use it here.
+        env_t(control).run();
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+
 
 const id_t MIN_ID = 1;
 // TODO: This is not the max id.  MAX_ID - 1 is the max id.
 const id_t MAX_ID = UINT32_MAX;
 
-// ---------- utility functions ----------
 static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
     if (!try_catch.HasCaught()) return;
 
@@ -25,7 +40,6 @@ static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_cat
     errmsg->append(message, strlen(message));
 }
 
-// ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
 }
@@ -39,12 +53,11 @@ void scoped_id_t::reset(id_t id) {
 }
 
 
-// ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
     : timeout_ms(0)
 {}
 
-env_t::env_t(extproc::job_t::control_t *control)
+env_t::env_t(extproc::job_control_t *control)
     : control_(control),
       should_quit_(false),
       next_id_(MIN_ID)
@@ -94,8 +107,8 @@ void env_t::forget(id_t id) {
 }
 
 
-// ---------- runner_t ----------
-runner_t::runner_t() : running_task_(false) { }
+runner_t::runner_t()
+    : job_handle_(new extproc::job_handle_t), running_task_(false) { }
 
 const runner_t::req_config_t *runner_t::default_req_config() {
     static req_config_t config;
@@ -112,14 +125,13 @@ runner_t::~runner_t() {
     if (connected()) finish();
 }
 
+bool runner_t::connected() { return job_handle_->connected(); }
+
+
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
-    int res = extproc::job_handle_t::begin(pool, job_t());
+    int res = job_handle_->begin(pool, runner_job_t());
     guarantee(0 == res);
-}
-
-void runner_t::interrupt() {
-    extproc::job_handle_t::interrupt();
 }
 
 struct quit_task_t : auto_task_t<quit_task_t> {
@@ -130,13 +142,7 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 void runner_t::finish() {
     guarantee(connected());
     run_task_t(this, default_req_config(), quit_task_t());
-    extproc::job_handle_t::release();
-}
-
-// ----- runner_t::job_t -----
-void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
-    // The reason we have env_t is to use it here.
-    env_t(control).run();
+    job_handle_->release();
 }
 
 // ----- runner_t::run_task_t -----
@@ -162,16 +168,14 @@ runner_t::run_task_t::~run_task_t() {
 }
 
 int64_t runner_t::run_task_t::read(void *p, int64_t n) {
-    return runner_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
-    return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 
-// ---------- tasks ----------
-// ----- release_id() -----
 struct release_task_t : auto_task_t<release_task_t> {
     release_task_t() {}
     explicit release_task_t(id_t id) : id_(id) {}
@@ -254,7 +258,7 @@ struct eval_task_t : auto_task_t<eval_task_t> {
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };
@@ -280,7 +284,6 @@ js_result_t runner_t::eval(
     return result;
 }
 
-// ----- call() -----
 struct call_task_t : auto_task_t<call_task_t> {
     call_task_t() {}
     call_task_t(id_t id, const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
@@ -345,7 +348,7 @@ struct call_task_t : auto_task_t<call_task_t> {
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };

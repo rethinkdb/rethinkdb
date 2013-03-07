@@ -18,7 +18,7 @@ class RqlClientError(RqlError):
 
 class RqlCompileError(RqlError):
     pass
-    
+
 class RqlRuntimeError(RqlError):
     pass
 

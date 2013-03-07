@@ -13,7 +13,7 @@
 
 typedef void (*test_t)(js::runner_t *runner);
 
-static void run_jsproc_test(extproc::spawner_t::info_t *spawner_info, test_t func) {
+static void run_jsproc_test(extproc::spawner_info_t *spawner_info, test_t func) {
     extproc::pool_group_t pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
     js::runner_t runner;
     runner.begin(pool_group.get());
@@ -24,7 +24,7 @@ static void run_jsproc_test(extproc::spawner_t::info_t *spawner_info, test_t fun
 }
 
 static void main_jsproc_test(test_t func) {
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     unittest::run_in_thread_pool(boost::bind(run_jsproc_test, &spawner_info, func));
 }

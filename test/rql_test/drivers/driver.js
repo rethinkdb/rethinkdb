@@ -300,13 +300,13 @@ function err(err_name, err_msg, err_frames) {
     return fun;
 }
 
-function arr(length, eq_fun) {
+function arrlen(length, eq_fun) {
     var fun = function(thing) {
         if (!thing.length || thing.length !== length) return false;
         return !eq_fun || thing.every(eq_fun);
     };
     fun.toString = function() {
-        return "arr("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
+        return "arrlen("+length+(eq_fun ? ", "+eq_fun.toString() : '')+")";
     };
     return fun;
 }

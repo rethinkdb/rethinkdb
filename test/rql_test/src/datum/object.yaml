@@ -32,3 +32,14 @@ tests:
 
     - cd: r.expr({'a':1}).type_of()
       ot: "'OBJECT'"
+      
+    # test coercions
+    - cd: r.expr({'a':1}).coerce_to('string')
+      ot: ('{\n\t"a":\t1\n}')
+      
+    - cd: r.expr({'a':1}).coerce_to('object')
+      ot: ({'a':1})
+      
+    - cd: r.expr({'a':1}).coerce_to('array')
+      ot: [['a',1]]
+      
