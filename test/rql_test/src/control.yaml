@@ -267,10 +267,10 @@ tests:
       ot: ({'inserted':1, 'generated_keys':arr(1,uuid())})
 
     - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations. Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
       
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))
-      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations. Use FOREACH instead.', [0])
+      ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
       
     - cd: r.expr(1).do(r.db('test').table_create('nested_table'))
       ot: ({'created':1})

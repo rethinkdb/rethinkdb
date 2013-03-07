@@ -14,12 +14,15 @@ class Cursor
         
     _addData: (data) ->
         @_data = @_data.concat data
+        @_contFlag = false
         @_prompt()
         @
 
     _endData: (data) ->
         @_endFlag = true
         @_addData data
+        @_contFlag = true
+        @
 
     _prompt: ->
         if @_cont?
@@ -27,16 +30,17 @@ class Cursor
 
     _getMore: ->
         unless @_contFlag
-            @_conn._continue(@_token)
+            @_conn._continueQuery(@_token)
             @_contFlag = true
 
-    hasNext: -> @_endFlag && @_index >= @_data.length
+    hasNext: -> !@_endFlag || @_index < @_data.length
 
     next: (cb) ->
         @_cont = =>
             if @_index < @_data.length
                 cb null, @_data[@_index++]
             else
+                @_conn.outstandingCallbacks[@_token]['cursor'] = @
                 @_getMore()
         @_prompt()
 
@@ -44,7 +48,8 @@ class Cursor
         @_cont = =>
             while @_index < @_data.length
                 cb null, @_data[@_index++]
-            @_getMore()
+            @_conn.outstandingCallbacks[@_token]['cursor'] = @
+            @_getMore() # TODO: We should save cb and fire cb instead of the callback in outstandingCallbacks - Let's ask Bill
         @_prompt()
 
     toArray: (cb) ->
@@ -52,6 +57,7 @@ class Cursor
             if @_endFlag
                 cb null, @_data
             else
+                @_conn.outstandingCallbacks[@_token]['cursor'] = @
                 @_getMore()
         @_prompt()
 

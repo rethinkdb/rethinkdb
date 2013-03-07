@@ -133,6 +133,7 @@ translateOptargs = (optargs) ->
             when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
             when 'cacheSize' then 'cache_size'
+            when 'upsert' then 'upsert'
             when 'left' then 'left'
             when 'right' then 'right'
             when 'base' then 'base'
