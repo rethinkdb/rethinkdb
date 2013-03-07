@@ -31,7 +31,7 @@
     <li class="no_history {{displayed_class}}">No history available</li>
     {{else}}
     <li class="query_history {{displayed_class}}" id="query_history_{{id}}">
-    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<button class="btn load_query" data-id={{id}}>Load</button></div></span>
+    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<span class="right_container"><button class="btn load_query" data-id={{id}}>Load</button>{{#if broken}}<img src="/images/warning-icon.png" class="broken_query" title="Broken query" />{{/if}}</span></span></div>
     </li>
     {{/if}}
 </script>
