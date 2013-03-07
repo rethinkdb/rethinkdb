@@ -11,7 +11,7 @@ tests:
     
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
-        rb: err("RqlCompileError", "Expected 0 argument(s) but found 1.", [])
+        rb: err("ArgumentError", "Expected 0 argument(s) but found 1.", [])
         py: err_regex("TypeError", ".* takes no arguments .1 given.", [])
       cd:
       - r.db_list(1)
@@ -46,8 +46,6 @@ tests:
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(1 given\)", [])
       cd:
       - db.table_drop()
-      - tbl.update()
-      - tbl.replace()
       - tbl.map()
       - tbl.concat_map()
       - tbl.skip()
@@ -77,8 +75,6 @@ tests:
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(3 given\)", [])
       cd:
       - db.table_drop(1,2)
-      - tbl.update(1,2)
-      - tbl.replace(1,2)
       - tbl.map(1,2)
       - tbl.concat_map(1,2)
       - tbl.skip(1,2)
@@ -95,6 +91,8 @@ tests:
         rb: err("RqlCompileError", "Expected at least 1 argument(s) but found 1.", [])
         py: err_regex('TypeError', ".*takes at least 2 arguments \(1 given\)", [])
       cd:
+      - tbl.update()
+      - tbl.replace()
       - tbl.insert()
       - db.table_create()
       - db.table()
