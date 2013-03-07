@@ -2,7 +2,7 @@
 require 'socket'
 require 'thread'
 
-#$f = File.open("dump", "w")
+$f = File.open("fuzz_seed.rb", "w")
 
 module RethinkDB
   module Faux_Abort
@@ -13,7 +13,7 @@ module RethinkDB
   class RQL
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil)
-#      $f.puts "("+RPP::pp(@body)+"),"
+      $f.puts "("+RPP::pp(@body)+"),"
       unbound_if !@body
       c, opts = @@default_conn, c if opts.nil? && c.class != RethinkDB::Connection
       opts = {} if opts.nil?
