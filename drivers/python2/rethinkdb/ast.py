@@ -180,7 +180,13 @@ class RDBValue(RDBOp):
     def order_by(self, *obs):
         return OrderBy(self, *obs)
 
-    def between(self, left_bound=(), right_bound=()):
+    def between(self, left_bound=None, right_bound=None):
+        # This is odd and inconsistent with the rest of the API. Blame a
+        # poorly thought out spec.
+        if left_bound is None:
+            left_bound = ()
+        if right_bound is None:
+            right_bound = ()
         return Between(self, left_bound=left_bound, right_bound=right_bound)
 
     def distinct(self):
