@@ -15,7 +15,7 @@ module RethinkDB
     def run(c=@@default_conn, opts=nil)
       # $f.puts "("+RPP::pp(@body)+"),"
       unbound_if !@body
-      c, opts = @@default_conn, c if opts.nil? && c.class != RethinkDB::Connection
+      c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
       if !c
