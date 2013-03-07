@@ -18,9 +18,21 @@ tests:
     - cd: r.expr([]).type_of()
       ot: "'ARRAY'"
 
+    # test coercions
+    - cd:
+        - r.expr([1, 2]).coerce_to('string')
+        - r.expr([1, 2]).coerce_to('STRING')
+      ot: "'[1, 2]'"
+
+    - cd: r.expr([1, 2]).coerce_to('number')
+      ot: err('RqlRuntimeError', 'Cannot coerce ARRAY to NUMBER.', [0])
+
+    - cd: r.expr([['a', 1], ['b', 2]]).coerce_to('object')
+      ot: ({'a':1,'b':2})
+
     # Nested expression
     - cd: r.expr([r.expr(1)])
       ot: [1]
 
-    # TODO: errors, etc.
+
 
