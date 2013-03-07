@@ -475,8 +475,8 @@ class Table(RDBValue):
     tt = p.Term2.TABLE
     st = 'table'
 
-    def insert(self, records):
-        return Insert(self, records)
+    def insert(self, records, upsert=()):
+        return Insert(self, records, upsert=upsert)
 
     def get(self, key):
         return Get(self, key)
