@@ -770,7 +770,7 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
 
-    *help_out = { help };
+    help_out->push_back(help);
 }
 
 void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out,
@@ -877,8 +877,12 @@ void output_named_error(const options::named_error_t &ex, const std::vector<opti
     for (auto section = help.begin(); section != help.end(); ++section) {
         for (auto line = section->help_lines.begin(); line != section->help_lines.end(); ++line) {
             if (line->syntax_description.find(ex.option_name()) != std::string::npos) {
+                std::vector<options::help_line_t> one_help_line;
+                one_help_line.push_back(*line);
+                std::vector<options::help_section_t> one_help_section;
+                one_help_section.push_back(options::help_section_t("Usage", one_help_line));
                 fprintf(stderr, "%s",
-                        options::format_help({ options::help_section_t("Usage", { *line }) }).c_str());
+                        options::format_help(one_help_section).c_str());
                 break;
             }
         }
