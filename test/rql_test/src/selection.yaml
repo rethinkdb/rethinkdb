@@ -189,12 +189,12 @@ tests:
     - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
       js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
       rb: []
-      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
     
     - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
       js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
       rb: []
-      ot: err("RqlCompileError", 'Cannot use r.row in nested queries. Use functions instead.', [0])
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
     
     # test static value syntax for filter (make sure r.row in it works)
     - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})
