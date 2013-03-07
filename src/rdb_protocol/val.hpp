@@ -132,7 +132,7 @@ public:
             return as_datum()->print();
         } else {
             // TODO: Do something smarter here?
-            return strprintf("OPAQUE VAL %s", get_type().name());
+            return strprintf("OPAQUE VALUE %s", get_type().name());
         }
     }
 
