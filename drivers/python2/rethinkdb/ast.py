@@ -112,11 +112,11 @@ class RDBValue(RDBOp):
     def do(self, func):
         return FunCall(func_wrap(func), self)
 
-    def update(self, func):
-        return Update(self, func_wrap(func))
+    def update(self, func, non_atomic=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic)
 
-    def replace(self, func):
-        return Replace(self, func_wrap(func))
+    def replace(self, func, non_atomic=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic)
 
     def delete(self):
         return Delete(self)
@@ -218,14 +218,8 @@ class RDBValue(RDBOp):
     def group_by(self, *attrs_reduction):
         return GroupBy(self, list(attrs_reduction[:-1]), attrs_reduction[-1])
 
-    def update(self, mapping):
-        return Update(self, mapping)
-
     def delete(self):
         return Delete(self)
-
-    def replace(self, mapping):
-        return Replace(self, mapping)
 
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
