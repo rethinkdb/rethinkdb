@@ -34,10 +34,10 @@ tests:
     - cd: tbl.insert({'id':2,'b':20})
       ot: ({'first_error':'Duplicate primary key.','errors':1})
 
-    # test upsert option (single object, when it already exists)
+    # test upsert option (object exists)
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
-      ot: ({'inserted':1})
+      ot: ({'replaced':1})
       
     - cd: tbl.get(2)
       ot: ({'id':2,'b':20})
@@ -47,18 +47,30 @@ tests:
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
       ot: ({'inserted':1})
       
-    - cd: tbl.get(2)
+    - cd: tbl.get(20)
       ot: ({'id':20,'b':20})
     
-    # TODO: test auto pkey generation
-    # TODO: test auto pkey generation when pkey other than id is passed to table_create
-    # TODO: test what happens if one tries to insert into a non-insertable object
+    # test auto pkey generation
+    - py: r.db('test').table_create('testpkey', primary_key='foo')
+      js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
+      rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
+      ot: ({'created':1})
+      def: tblpkey = r.db('test').table('testpkey')
+
+    - cd: tblpkey.insert({})
+      ot: ({'created':1,'generated_keys':arr(1,uuid())})
+
+    - cd: tblpkey
+      ot: ({'foo':uuid()})
     
+    - cd: r.db('test').table_drop('testpkey')
+      ot: "({'dropped':1})"
+      
     # Insert within for each
     - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
       js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
-      ot: ({'inserted':4})
+      ot: ({'inserted':5})
 
     # TODO: in all data modification operations (insert, update,
     # replace, and delete) we should return a json document with all
