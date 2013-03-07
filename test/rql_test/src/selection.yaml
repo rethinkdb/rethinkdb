@@ -99,7 +99,7 @@ tests:
       
     # Get a document that doesn't exist
     - cd: tbl.get(2000)
-      ot: (null)
+      ot: null
       
     # Make sure get only takes one arg (since we used to be able to pass id)
     - cd: tbl.get()

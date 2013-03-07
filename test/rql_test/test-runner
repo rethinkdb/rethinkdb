@@ -45,7 +45,7 @@ class SrcLang:
 
     # Translate an expected value 
     def translate_expected(self, src):
-        return self.dicttranslate(self.nulltranslate(src))
+        return self.dicttranslate(src)
 
 
 class PyLang(SrcLang):
