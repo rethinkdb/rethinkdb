@@ -82,8 +82,6 @@ void remove_pid_file() {
 }
 
 int write_pid_file(const std::string &pid_filepath) {
-    guarantee(pid_filepath.size() > 0);
-
     // Be very careful about modifying this. It is important that the code that removes the
     // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
     // failure here.
@@ -136,9 +134,8 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, opt
 }
 
 // Maybe writes a pid file, using the --pid-file option, if it's present.
-int write_pid_file(const std::map<std::string, options::values_t> &opts) {
-    boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
-    if (!pid_filepath || pid_filepath->empty()) {
+int write_pid_file(const boost::optional<std::string> &pid_filepath) {
+    if (!pid_filepath) {
         return EXIT_SUCCESS;
     }
 
@@ -980,7 +977,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
+        if (write_pid_file(get_optional_option(opts, "--pid-file")) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -1087,7 +1084,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         const int num_workers = get_cpu_count();
 
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
+        if (write_pid_file(get_optional_option(opts, "--pid-file")) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -1233,69 +1230,85 @@ int main_rethinkdb_import(int argc, char *argv[]) {
 
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
-    std::vector<options::option_t> options;
-    std::vector<options::help_section_t> help;
-    get_rethinkdb_porcelain_options(&help, &options);
-
     try {
-        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 1, argv + 1, options);
-
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_porcelain();
-            return EXIT_SUCCESS;
-        }
-        const base_path_t base_path(get_single_option(opts, "--directory"));
-        const std::string logfilepath = get_logfilepath(base_path);
-
-        std::string machine_name_str = get_single_option(opts, "--machine-name");
+        scoped_ptr_t<base_path_t> base_path;
         name_string_t machine_name;
-        if (!machine_name.assign_value(machine_name_str)) {
-            fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+        std::vector<host_and_port_t> joins;
+        service_address_ports_t address_ports;
+        std::string web_path;
+        io_backend_t io_backend;
+        int num_workers;
+        boost::optional<std::string> config_file;
+        boost::optional<std::string> pid_filepath;
+
+        std::vector<options::option_t> options;
+        std::vector<options::help_section_t> help;
+        get_rethinkdb_porcelain_options(&help, &options);
+
+        try {
+            const std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 1, argv + 1, options);
+
+            if (exists_option(opts, "--help")) {
+                help_rethinkdb_porcelain();
+                return EXIT_SUCCESS;
+            }
+            base_path.init(new base_path_t(get_single_option(opts, "--directory")));  // FML
+
+            const std::string machine_name_str = get_single_option(opts, "--machine-name");
+            if (!machine_name.assign_value(machine_name_str)) {
+                fprintf(stderr, "ERROR: machine-name invalid.  (%s)\n", name_string_t::valid_char_msg);
+                return EXIT_FAILURE;
+            }
+
+            joins = parse_join_options(opts);
+            address_ports = get_service_address_ports(opts);
+            web_path = get_web_path(opts, argv);
+            io_backend = get_io_backend_option(opts);
+
+            num_workers = get_single_int(opts, "--cores");
+            if (num_workers <= 0 || num_workers > MAX_THREADS) {
+                fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+                return EXIT_FAILURE;
+            }
+
+            config_file = get_optional_option(opts, "--config-file");
+            pid_filepath = get_optional_option(opts, "--pid-file");
+        } catch (const options::named_error_t &ex) {
+            output_named_error(ex, help);
+            return EXIT_FAILURE;
+        } catch (const options::option_error_t &ex) {
+            output_sourced_error(ex);
             return EXIT_FAILURE;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
-
-        const service_address_ports_t address_ports = get_service_address_ports(opts);
-
-        const std::string web_path = get_web_path(opts, argv);
-
-        io_backend_t io_backend = get_io_backend_option(opts);
 
         extproc::spawner_info_t spawner_info;
         extproc::spawner_t::create(&spawner_info);
 
-        const int num_workers = get_single_int(opts, "--cores");
-        if (num_workers <= 0 || num_workers > MAX_THREADS) {
-            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-            return EXIT_FAILURE;
-        }
-
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
+        if (write_pid_file(pid_filepath) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
         bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
-        if (!check_existence(base_path)) {
+        if (!check_existence(*base_path)) {
             new_directory = true;
-            int mkdir_res = mkdir(base_path.path().c_str(), 0755);
+            int mkdir_res = mkdir(base_path->path().c_str(), 0755);
             if (mkdir_res != 0) {
                 fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
                 return EXIT_FAILURE;
             }
         }
 
-        recreate_temporary_directory(base_path);
+        recreate_temporary_directory(*base_path);
 
-        install_fallback_log_writer(logfilepath);
+        install_fallback_log_writer(get_logfilepath(*base_path));
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
-                                get_optional_option(opts, "--config-file"));
+        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path, config_file);
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                       base_path,
+                                       *base_path,
                                        machine_name,
                                        io_backend,
                                        new_directory,
@@ -1304,10 +1317,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const options::named_error_t &ex) {
-        output_named_error(ex, help);
-    } catch (const options::option_error_t &ex) {
-        output_sourced_error(ex);
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
