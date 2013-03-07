@@ -66,6 +66,22 @@ tests:
             { :id => row[:id], :a => row[:id] } }
       ot: ({'replaced':8, 'unchanged':1})
 
+    # trying to change pkey of a document
+    - cd: tbl.get(1).replace({'id':2,'a':1})
+      ot: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"a":\t1,\n\t"id":\t2\n})','errors':1})
+      
+    # not passing a pkey in the first place
+    - cd: tbl.get(1).replace({'a':1})
+      ot: ({'first_error':'No attribute `id` in object:\n{\n\t"a":\t1\n}','errors':1})
+    
+    # check r.row, static value and otherwise
+    - py: tbl.get(1).replace({'id':r.row['id'],'a':'b'})
+      js: tbl.get(1).replace({'id':r.row('id'),'a':'b'})
+      ot: ({'replaced':1})
+      
+    - cd: tbl.get(1).replace(r.row.merge({'a':'b'}))
+      ot: ({'unchanged':1})
+      
     # Replace whole table
 
     - py: tbl.replace(lambda row:None)
@@ -79,9 +95,6 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
 
-    # TODO: static value syntax
-    # TODO: replace a non-replacable object
     # TODO: test atomicity constraints
-    # TODO: test trying to change pkey of a document
-    # TODO: test not passing a pkey in the first place. What should happen?
-    # TODO: table.replace({ id: 1, foo: 'bar' }) -- if id is present, it must match, if it's missing it's ok, r.row should work.
+
+

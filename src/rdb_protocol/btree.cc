@@ -220,7 +220,7 @@ void rdb_replace(btree_slice_t *slice,
                     }
                 } else {
                     std::string msg = strprintf(
-                        "Primary key (%s) cannot be changed (%s -> %s)",
+                        "Primary key `%s` cannot be changed (%s -> %s)",
                         primary_key.c_str(),
                         old_val->print().c_str(), new_val->print().c_str());
                     const ql::datum_t *msg_d = ql_env->add_ptr(new ql::datum_t(msg));
