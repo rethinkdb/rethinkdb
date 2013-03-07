@@ -1,6 +1,6 @@
 desc: Tests insertion into tables
 tests:
-    
+
     # Set up our test tables
     - cd: r.db('test').table_create('test')
       ot: ({'created':1})
@@ -9,7 +9,7 @@ tests:
 
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
-      
+
     - def: tbl2 = r.db('test').table('test2')
 
     # Single doc insert
@@ -38,18 +38,18 @@ tests:
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
       ot: ({'replaced':1})
-      
+
     - cd: tbl.get(2)
       ot: ({'id':2,'b':20})
-      
+
     # test upsert option (object doesn't exit)
     - py: tbl.insert({'id':20,'b':20}, upsert=True)
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
       ot: ({'inserted':1})
-      
+
     - cd: tbl.get(20)
       ot: ({'id':20,'b':20})
-    
+
     # test auto pkey generation
     - py: r.db('test').table_create('testpkey', primary_key='foo')
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
@@ -58,14 +58,14 @@ tests:
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({})
-      ot: ({'created':1,'generated_keys':arr(1,uuid())})
+      ot: ({'inserted':1,'generated_keys':arr(1,uuid())})
 
     - cd: tblpkey
-      ot: ({'foo':uuid()})
-    
+      ot: ([{'foo':uuid()}])
+
     - cd: r.db('test').table_drop('testpkey')
       ot: "({'dropped':1})"
-      
+
     # Insert within for each
     - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
       js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
