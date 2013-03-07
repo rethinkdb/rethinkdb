@@ -72,12 +72,6 @@ tests:
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
       ot: ({'inserted':5})
 
-    # TODO: in all data modification operations (insert, update,
-    # replace, and delete) we should return a json document with all
-    # possible fields, (e.g. "{ inserted: 0, deleted: 1 }"), even the
-    # ones that are zeros, otherwise things can get really confusing
-    # for the user.
-    
     # clean up
     - cd: r.db('test').table_drop('test')
       ot: "({'dropped':1})"
