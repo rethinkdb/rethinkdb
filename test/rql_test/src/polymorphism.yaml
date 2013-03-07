@@ -36,7 +36,7 @@ tests:
       ot: ({'a':0})
 
     - cd:
-        - tbl.contains('a').nth(0)
+#        - tbl.contains('a').nth(0)
         - obj.contains('a')
       ot: true
 

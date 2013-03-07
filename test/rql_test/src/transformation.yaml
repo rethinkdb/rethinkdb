@@ -67,7 +67,7 @@ tests:
       ot: ({'id':0, 'a':0})
 
     - cd: tbl.order_by('id').type_of()
-      ot: "'SEQUENCE'"
+      ot: "'STREAM'"
       
     # TODO: test ascending and descending orderBy on streams
     # TODO: test ordering by multiple attrs (in case of ties) on streams

@@ -33,21 +33,6 @@ private:
     RDB_NAME("contains");
 };
 
-class merge_term_t : public op_term_t {
-public:
-    merge_term_t(env_t *env, const Term2 *term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
-private:
-    virtual val_t *eval_impl() {
-        const datum_t *d = arg(0)->as_datum();
-        for (size_t i = 1; i < num_args(); ++i) {
-            d = env->add_ptr(d->merge(arg(i)->as_datum()));
-        }
-        return new_val(d);
-    }
-    RDB_NAME("merge");
-};
-
 } // namespace ql
 
 #endif // RDB_PROTOCOL_TERMS_OBJ_HPP_
