@@ -74,14 +74,35 @@ tests:
     # TODO: test ordering by non pkey attrs
     # TODO: test ordering by missing attrs
 
-    # TODO: add tests for skip (positive, negative numbers, non-numbers)
-    # TODO: add tests for limit (positive, negative numbers, non-numbers)
-    # TODO: add tests for slice (positive, negative numbers, non-numbers)
-    # TODO: add tests for nth (positive, negative numbers, non-numbers)
+    # test skip
+    - cd: tbl.skip(1).count()
+      ot: 99
+    - cd: tbl.skip(-1).count()
+      ot: err('RqlRuntimeError', 'Cannot use a negative left index on a stream.', [0])
+    - cd: tbl.skip('foo').count()
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+    
+    # test limit
+    - cd: tbl.limit(1).count()
+      ot: 1
+    - cd: tbl.limit(-1).count()
+      ot: err('RqlRuntimeError', 'LIMIT takes a non-negative argument (got -1)', [0])
+    - cd: tbl.limit('foo').count()
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+      
+    # TODO: test slice (negative nums and nulls too)
+      
+    # test nth
+    - cd: tbl.order_by('id').nth(1)
+      ot: ({'id':1,'a':1})
+    - cd: tbl.order_by('id').nth(-1)
+      ot: ({'id':99,'a':3})
+    - cd: tbl.order_by('id').nth('foo').count()
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
     
     # Pluck
     - cd: tbl.pluck().nth(0)
-      ot: ({})
+      ot: ({}) # XXX: empty object seems to match anything
       
     - cd: tbl.pluck('id').order_by('id').nth(0)
       ot: ({'id':0})
