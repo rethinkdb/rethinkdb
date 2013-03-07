@@ -200,8 +200,8 @@ private:
                         std::string key = pair->el(0)->as_str();
                         const datum_t *keyval = pair->el(1);
                         bool b = obj->add(key, keyval);
-                        rcheck(!b, strprintf("Duplicate key %s in coerced object. "
-                                             " (got %s and %s as values)",
+                        rcheck(!b, strprintf("Duplicate key %s in coerced object.  "
+                                             "(got %s and %s as values)",
                                              key.c_str(),
                                              obj->el(key)->print().c_str(),
                                              keyval->print().c_str()));
