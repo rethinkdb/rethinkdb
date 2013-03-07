@@ -19,6 +19,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "containers/archive/boost_types.hpp"
+#include "extproc/job.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -92,7 +93,7 @@ class task_t :
   public:
     virtual void run(env_t *env) = 0;
 
-    void run_job(control_t *control, void *extra) {
+    void run_job(extproc::job_control_t *control, void *extra) {
         env_t *env = static_cast<env_t *>(extra);
         guarantee(control == env->control());
         context_t cx(env);

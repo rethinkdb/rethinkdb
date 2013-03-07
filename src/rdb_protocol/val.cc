@@ -276,9 +276,6 @@ datum_stream_t *val_t::as_seq() {
 }
 
 std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
-    const char *name = type.name();
-    if (type.raw_type == type_t::DATUM)
-        name = as_datum()->get_type_name();
 
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);

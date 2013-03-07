@@ -14,28 +14,6 @@
 
 namespace js {
 
-// Tasks: jobs we run on the JS worker, within an env_t
-class task_t :
-    private extproc::job_t
-{
-    friend class runner_t;
-
-  public:
-    virtual void run(env_t *env) = 0;
-
-    void run_job(extproc::job_control_t *control, void *extra) {
-        env_t *env = static_cast<env_t *>(extra);
-        guarantee(control == env->control());
-        context_t cx(env);
-        run(env);
-    }
-};
-
-template <class instance_t>
-struct auto_task_t : extproc::auto_job_t<instance_t, task_t> {};
-
-
-
 // The actual job that runs all this stuff.
 class runner_job_t : public extproc::auto_job_t<runner_job_t> {
 public:
