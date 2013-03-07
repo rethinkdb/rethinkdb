@@ -44,9 +44,7 @@ public:
         other.ptr_ = tmp;
     }
 
-    T &operator*() const {
-        return *get();
-    }
+
 
     T *get() const {
         rassert(ptr_);
