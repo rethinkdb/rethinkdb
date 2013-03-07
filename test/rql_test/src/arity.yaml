@@ -1,6 +1,8 @@
 desc: Test the arity of every function
 tests:
 
+    # TODO: add test for slice (should require two arguments)
+
     # Set up some data
     - def: db = r.db('test')
     - def: obj = r.expr({'a':1})
