@@ -8,6 +8,9 @@ require 'pp'
 $port_base ||= ARGV[0].to_i # 0 if none given
 $c = RethinkDB::Connection.new('localhost', $port_base + 28015)
 
+$run_exc = RethinkDB::RqlRuntimeError
+$comp_exc = RethinkDB::RqlCompileError
+
 class ClientTest < Test::Unit::TestCase
   include RethinkDB::Shortcuts
 
@@ -28,12 +31,12 @@ class ClientTest < Test::Unit::TestCase
     assert_equal("1", r(1).coerce_to("string").run($c))
     assert_equal([["a", 1.0], ["b", 2.0]],
                  r({:a => 1, :b => 2}).coerce_to("array").run($c))
-    assert_raise(RuntimeError) {r(1).coerce_to("datum").run($c)}
+    assert_raise($run_exc) {r(1).coerce_to("datum").run($c)}
     assert_equal(2, r.db('test').table('tbl').coerce_to("array")[-3..-2].run($c).size)
-    assert_raise(RuntimeError) {r.db('test').table('tbl')[-3..-2].run($c)}
+    assert_raise($run_exc) {r.db('test').table('tbl')[-3..-2].run($c)}
     assert_equal({"a"=>1.0, "b"=>2.0},
                  r([["a", 1], ["b", 2]]).coerce_to("object").run($c))
-    assert_raise(RuntimeError) {r([["a", 1], ["a", 2]]).coerce_to("object").run($c)}
+    assert_raise($run_exc) {r([["a", 1], ["a", 2]]).coerce_to("object").run($c)}
   end
 
   def test_typeof
@@ -52,9 +55,9 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_numops
-    assert_raise(RuntimeError) {r.div(1, 0).run($c)}
-    assert_raise(RuntimeError) {r.div(0, 0).run($c)}
-    assert_raise(RuntimeError) {r.mul(1.0e+200, 1.0e+300).run($c)}
+    assert_raise($run_exc) {r.div(1, 0).run($c)}
+    assert_raise($run_exc) {r.div(0, 0).run($c)}
+    assert_raise($run_exc) {r.mul(1.0e+200, 1.0e+300).run($c)}
     assert_equal(1.0e+200, r.mul(1.0e+100, 1.0e+100).run($c))
   end
 
@@ -118,14 +121,14 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(true, r.all(true, true).run($c))
     assert_equal(true, r.all(true, true, true).run($c))
 
-    assert_raise(RuntimeError) {r.all(true, 3).run($c)}
-    assert_raise(RuntimeError) {r.any(4, true).run($c)}
+    assert_raise($run_exc) {r.all(true, 3).run($c)}
+    assert_raise($run_exc) {r.any(4, true).run($c)}
   end
 
   def test_not
     assert_equal(false, r.not(true).run($c))
     assert_equal(true, r.not(false).run($c))
-    assert_raise(RuntimeError) {r.not(3).run($c)}
+    assert_raise($run_exc) {r.not(3).run($c)}
   end
 
   # TODO: more here
@@ -135,7 +138,7 @@ class ClientTest < Test::Unit::TestCase
 
   def test_do
     assert_equal(3, r(3).do {|x| x}.run($c))
-    assert_raise(RuntimeError){r(3).do {|x,y| x}.run($c)}
+    assert_raise($run_exc){r(3).do {|x,y| x}.run($c)}
     assert_equal(3, r.do(3,4) {|x,y| x}.run($c))
     assert_equal(4, r.do(3,4) {|x,y| y}.run($c))
     assert_equal(7, r.do(3,4) {|x,y| x+y}.run($c))
@@ -145,18 +148,18 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(3, r.branch(true, 3, 4).run($c))
     assert_equal(5, r.branch(false, 4, 5).run($c))
     assert_equal("foo", r.branch(r.eq(3, 3), "foo", "bar").run($c))
-    assert_raise(RuntimeError) {r.branch(5, 1, 2).run($c)}
+    assert_raise($run_exc) {r.branch(5, 1, 2).run($c)}
   end
 
   def test_array_python # from python tests
     assert_equal([2], r([]).append(2).run($c).to_a)
     assert_equal([1, 2], r([1]).append(2).run($c).to_a)
-    assert_raise(RuntimeError) {r(2).append(0).run($c).to_a}
+    assert_raise($run_exc) {r(2).append(0).run($c).to_a}
 
     assert_equal([1, 2], r.union([1], [2]).run($c).to_a)
     assert_equal([1, 2], r.union([1, 2], []).run($c).to_a)
-    assert_raise(RuntimeError) {r.union(1, [1]).run($c)}
-    assert_raise(RuntimeError) {r.union([1], 1).run($c)}
+    assert_raise($run_exc) {r.union(1, [1]).run($c)}
+    assert_raise($run_exc) {r.union([1], 1).run($c)}
 
     arr = (0...10).collect {|x| x}
     assert_equal(arr[(0...3)], r(arr)[(0...3)].run($c).to_a)
@@ -170,10 +173,10 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(arr[(5..-3)], r(arr)[(5..-3)].run($c).to_a)
     assert_equal(arr[(-5..-3)], r(arr)[(-5..-3)].run($c).to_a)
 
-    assert_raise(RuntimeError) {r(1)[(0...1)].run($c).to_a}
-    assert_raise(RuntimeError) {r(arr)[(0.5...1)].run($c).to_a}
-    assert_raise(RuntimeError) {r(1)[(0...1.01)].run($c).to_a}
-    assert_raise(RuntimeError) {r(1)[(5...3)].run($c).to_a}
+    assert_raise($run_exc) {r(1)[(0...1)].run($c).to_a}
+    assert_raise($run_exc) {r(arr)[(0.5...1)].run($c).to_a}
+    assert_raise($run_exc) {r(1)[(0...1.01)].run($c).to_a}
+    assert_raise($run_exc) {r(1)[(5...3)].run($c).to_a}
 
     assert_equal(arr[(5..-1)], r(arr)[(5..-1)].run($c).to_a)
     assert_equal(arr[(0...7)], r(arr)[(0...7)].run($c).to_a)
@@ -183,13 +186,13 @@ class ClientTest < Test::Unit::TestCase
 
     assert_equal(3, r(arr)[3].run($c))
     assert_equal(9, r(arr)[-1].run($c))
-    assert_raise(RuntimeError) {r(0)[0].run($c)}
+    assert_raise($run_exc) {r(0)[0].run($c)}
     assert_raise(ArgumentError) {r(arr)[0.1].run($c)}
-    assert_raise(RuntimeError) {r([0])[1].run($c)}
+    assert_raise($run_exc) {r([0])[1].run($c)}
 
     assert_equal(0, r([]).count.run($c))
     assert_equal(arr.length, r(arr).count.run($c))
-    assert_raise(RuntimeError) {r(0).count.run($c)}
+    assert_raise($run_exc) {r(0).count.run($c)}
   end
 
   # from python tests
@@ -198,7 +201,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal([], r.limit([1, 2], 0).run($c))
     assert_equal([1], r.limit([1, 2], 1).run($c))
     assert_equal([1, 2], r.limit([1, 2], 5).run($c))
-    assert_raise(RuntimeError) {r.limit([], -1).run($c)}
+    assert_raise($run_exc) {r.limit([], -1).run($c)}
 
     assert_equal([], r.skip([], 0).run($c))
     assert_equal([], r.skip([1, 2], 5).run($c))
@@ -317,7 +320,7 @@ class ClientTest < Test::Unit::TestCase
     query = r.branch((r.add(1, 2) >= 3), r([1,2,3]), r.error("unreachable"))
     query_err = r.branch((r.add(1, 2) > 3), r([1,2,3]), r.error("reachable"))
     assert_equal([1, 2, 3], query.run($c))
-    assert_raise(RuntimeError) {assert_equal(query_err.run($c))}
+    assert_raise($run_exc) {assert_equal(query_err.run($c))}
   end
 
   # BOOL, JSON_NULL, ARRAY, ARRAYTOSTREAM
@@ -338,7 +341,7 @@ class ClientTest < Test::Unit::TestCase
   # MAP, FILTER, GETATTR, IMPLICIT_GETATTR, STREAMTOARRAY
   def test_map
     assert_equal([1, 2], r([{:id => 1}, {:id => 2}]).map {|row| row[:id]}.run($c).to_a)
-    assert_raise(RuntimeError) {r(1).map {}.run($c).to_a}
+    assert_raise($run_exc) {r(1).map {}.run($c).to_a}
     assert_equal([data[1]], tbl.filter("num" => 1).run($c).to_a)
     query = tbl.order_by(:id).map do |outer_row|
       tbl.filter {|row| (row[:id] < outer_row[:id])}.coerce_to("array")
@@ -350,7 +353,7 @@ class ClientTest < Test::Unit::TestCase
   def test_reduce
     # TODO: Error checking for reduce
     assert_equal(6, r([1, 2, 3]).reduce(0) {|a, b| (a + b)}.run($c))
-    assert_raise(RuntimeError) {r(1).reduce(0) {0}.run($c)}
+    assert_raise($run_exc) {r(1).reduce(0) {0}.run($c)}
 
     # assert_equal(  tbl.map{|row| row['id']}.reduce(0){|a,b| a+b}.run($c),
     #              data.map{|row| row['id']}.reduce(0){|a,b| a+b})
@@ -371,7 +374,7 @@ class ClientTest < Test::Unit::TestCase
   # FILTER
   def test_filter
     assert_equal([1, 2], r([1, 2, 3]).filter {|x| (x < 3)}.run($c).to_a)
-    assert_raise(RuntimeError) {r(1).filter {true}.run($c).to_a}
+    assert_raise($run_exc) {r(1).filter {true}.run($c).to_a}
     query_5 = tbl.filter {|r| r[:name].eq("5")}
     assert_equal([data[5]], query_5.run($c).to_a)
     query_2345 = tbl.filter {|row| r.and((row[:id] >= 2), (row[:id] <= 5))}
@@ -432,7 +435,7 @@ class ClientTest < Test::Unit::TestCase
   end
 
   def test_random_insert_regressions
-    assert_raise(RuntimeError){tbl.insert(true).run($c)}
+    assert_raise($run_exc){tbl.insert(true).run($c)}
     assert_not_nil(tbl.insert([true, true]).run($c)['errors'])
   end
 
@@ -484,8 +487,8 @@ class ClientTest < Test::Unit::TestCase
   def test_concatmap
     assert_equal([1, 2, 1, 2, 1, 2], r([1, 2, 3]).concat_map {r([1, 2])}.run($c).to_a)
     assert_equal([1, 2], r([[1], [2]]).concat_map {|x| x}.run($c).to_a)
-    assert_raise(RuntimeError) {r([[1], 2]).concat_map {|x| x}.run($c).to_a}
-    assert_raise(RuntimeError) {r(1).concat_map {|x| x}.run($c).to_a}
+    assert_raise($run_exc) {r([[1], 2]).concat_map {|x| x}.run($c).to_a}
+    assert_raise($run_exc) {r(1).concat_map {|x| x}.run($c).to_a}
     assert_equal([1, 2], r([[1], [2]]).concat_map {|x| x}.run($c).to_a)
     query = tbl.concat_map {|row| tbl.map {|row2| (row2[:id] * row[:id])}}.distinct
     nums = data.map {|o| o["id"]}
@@ -495,16 +498,16 @@ class ClientTest < Test::Unit::TestCase
 
   # RANGE
   def test_range
-#    assert_raise(RuntimeError) {tbl.between(1, r([3])).run($c).to_a}
-#    assert_raise(RuntimeError) {tbl.between(2, 1).run($c).to_a}
+#    assert_raise($run_exc) {tbl.between(1, r([3])).run($c).to_a}
+#    assert_raise($run_exc) {tbl.between(2, 1).run($c).to_a}
     assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run($c).to_a))
     assert_equal(data[(3..3)], id_sort(tbl.between(3, 3).run($c).to_a))
     assert_equal(data[(2..-1)], id_sort(tbl.between(2, nil).run($c).to_a))
     assert_equal(data[(1..3)], id_sort(tbl.between(1, 3).run($c).to_a))
     assert_equal(data[(0..4)], id_sort(tbl.between(nil, 4).run($c).to_a))
 
-    assert_raise(RuntimeError) {r([1]).between(1, 3).run($c).to_a}
-    assert_raise(RuntimeError) {r([1, 2]).between(1, 3).run($c).to_a}
+    assert_raise($run_exc) {r([1]).between(1, 3).run($c).to_a}
+    assert_raise($run_exc) {r([1, 2]).between(1, 3).run($c).to_a}
   end
 
 
@@ -514,8 +517,8 @@ class ClientTest < Test::Unit::TestCase
     assert_equal(data, tbl.coerce_to("array").order_by(:id).run($c).to_a)
     assert_equal([0, 1],
                  r([{:id => 1},{:id => 0}]).order_by(:id).run($c).to_a.map{|x| x["id"]})
-    assert_raise(RuntimeError) {r(1).order_by(:id).run($c).to_a}
-    assert_raise(RuntimeError) {r([1]).nth(0).order_by(:id).run($c).to_a}
+    assert_raise($run_exc) {r(1).order_by(:id).run($c).to_a}
+    assert_raise($run_exc) {r([1]).nth(0).order_by(:id).run($c).to_a}
     assert_equal([1], r([1]).order_by(:id).run($c).to_a)
     assert_equal([{'num' => 1}], r([{:num => 1}]).order_by(:id).run($c).to_a)
     assert_equal([], r([]).order_by(:id).run($c).to_a)
@@ -538,8 +541,8 @@ class ClientTest < Test::Unit::TestCase
                                         0, lambda {|a, b| (a + b)})
     gmr6 = r(1).grouped_map_reduce(lambda {|row| (row[:id] % 4)},
                                    lambda {|row| row[:id]}, 0, lambda {|a, b| (a + b)})
-    assert_raise(RuntimeError) {gmr5.run($c).to_a}
-    assert_raise(RuntimeError) {gmr6.run($c).to_a}
+    assert_raise($run_exc) {gmr5.run($c).to_a}
+    assert_raise($run_exc) {gmr6.run($c).to_a}
     gmr.run($c).to_a.each do |obj|
       want = data.map {|x| x["id"]}.select {|x| ((x % 4) == obj["group"])}.reduce(0, :+)
       assert_equal(want, obj["reduction"])
@@ -594,7 +597,7 @@ class ClientTest < Test::Unit::TestCase
     assert_equal({"inserted" => (docs.length)}, tbl.insert(docs).run($c))
     docs.each {|doc| assert_equal(doc, tbl.get(doc["id"]).run($c))}
     assert_equal([docs[0]], tbl.filter("a" => 3).run($c).to_a)
-    assert_raise(RuntimeError) {tbl.filter("a" => ((tbl.count + ""))).run($c).to_a}
+    assert_raise($run_exc) {tbl.filter("a" => ((tbl.count + ""))).run($c).to_a}
     assert_equal(nil, tbl.get(0).run($c))
     assert_equal({"inserted" => 1},
                  tbl.insert({:id => 100, :text => "\u{30b0}\u{30eb}\u{30e1}"}).run($c))
@@ -672,7 +675,7 @@ class ClientTest < Test::Unit::TestCase
     end
     obj = {:a => 3, :b => 4}
     [:a, :b].each {|attr| assert_equal(obj[attr], r(obj)[attr].run($c))}
-    assert_raise(RuntimeError) {r(obj)[:c].run($c)}
+    assert_raise($run_exc) {r(obj)[:c].run($c)}
   end
 
   def test_contains
@@ -875,13 +878,13 @@ class ClientTest < Test::Unit::TestCase
     orig_dbs = r.db_list.run($c)
 
     assert_equal({'created' => 1}, r.db_create(db_name).run($c))
-    assert_raise(RuntimeError) {r.db_create(db_name).run($c)}
+    assert_raise($run_exc) {r.db_create(db_name).run($c)}
 
     new_dbs = r.db_list.run($c)
 
     assert_equal((orig_dbs.length + 1), new_dbs.length)
     assert_equal({'created' => 1}, r.db(db_name).table_create(table_name).run($c))
-    assert_raise(RuntimeError) {r.db(db_name).table_create(table_name).run($c)}
+    assert_raise($run_exc) {r.db(db_name).table_create(table_name).run($c)}
     assert_equal([table_name], r.db(db_name).table_list.run($c))
     assert_equal({"inserted" => 1},
                  r.db(db_name).table(table_name).insert({:id => 0}).run($c))
@@ -889,20 +892,20 @@ class ClientTest < Test::Unit::TestCase
     assert_equal({'created' => 1},
                  r.db(db_name).table_create((table_name + table_name)).run($c))
     assert_equal(2, r.db(db_name).table_list.run($c).length)
-    assert_raise(RuntimeError) {r.db("").table("").run($c).to_a}
-    assert_raise(RuntimeError) {r.db("test").table(table_name).run($c).to_a}
-    assert_raise(RuntimeError) {r.db(db_name).table("").run($c).to_a}
+    assert_raise($run_exc) {r.db("").table("").run($c).to_a}
+    assert_raise($run_exc) {r.db("test").table(table_name).run($c).to_a}
+    assert_raise($run_exc) {r.db(db_name).table("").run($c).to_a}
     assert_equal({'dropped' => 1},
                  r.db(db_name).table_drop((table_name + table_name)).run($c))
-    assert_raise(RuntimeError) do
+    assert_raise($run_exc) do
       r.db(db_name).table((table_name + table_name)).run($c).to_a
     end
 
     assert_equal({'dropped' => 1}, r.db_drop(db_name).run($c))
     assert_equal(orig_dbs.sort, r.db_list.run($c).sort)
-    assert_raise(RuntimeError) {r.db(db_name).table(table_name).run($c).to_a}
+    assert_raise($run_exc) {r.db(db_name).table(table_name).run($c).to_a}
     assert_equal({'created' => 1}, r.db_create(db_name).run($c))
-    assert_raise(RuntimeError) {r.db(db_name).table(table_name).run($c).to_a}
+    assert_raise($run_exc) {r.db(db_name).table(table_name).run($c).to_a}
     assert_equal({'created' => 1}, r.db(db_name).table_create(table_name).run($c))
     assert_equal([], r.db(db_name).table(table_name).run($c).to_a)
 
@@ -1013,19 +1016,19 @@ class ClientTest < Test::Unit::TestCase
   def test_outdated_raise
     outdated = r.db("test").table("tbl", :use_outdated => (true))
 
-    assert_raise(RuntimeError) { outdated.insert({ :id => 0 }, :upsert).run($c) }
+    assert_raise($run_exc) { outdated.insert({ :id => 0 }, :upsert).run($c) }
 
-    assert_raise(RuntimeError) do
+    assert_raise($run_exc) do
       outdated.filter { |row| (row[:id] < 5) }.update { {} }.run($c)
     end
 
-    assert_raise(RuntimeError) { outdated.update { {} }.run($c) }
+    assert_raise($run_exc) { outdated.update { {} }.run($c) }
 
-    assert_raise(RuntimeError) do
+    assert_raise($run_exc) do
       outdated.filter { |row| (row[:id] < 5) }.delete.run($c)
     end
 
-    assert_raise(RuntimeError) do
+    assert_raise($run_exc) do
       outdated.filter { |row| (row[:id] < 5) }.between(2, 3).replace { nil }.run($c)
     end
   end
@@ -1035,12 +1038,12 @@ class ClientTest < Test::Unit::TestCase
     #   r.db("a").table_create("b").run($c)(:bad_opt => (true))
     # end
 
-    assert_raise(RuntimeError) do
+    assert_raise($comp_exc) do
       r.db("a").table_create("b", :bad_opt => (true)).run($c)
     end
 
-    assert_raise(RuntimeError) { r.db("a").table("b", :bad_opt => (true)).run($c) }
-    assert_raise(RuntimeError) { r.db("a").run($c) }
+    assert_raise($comp_exc) { r.db("a").table("b", :bad_opt => (true)).run($c) }
+    assert_raise($run_exc) { r.db("a").run($c) }
   end
 
   def test_close_and_reconnect
@@ -1100,14 +1103,14 @@ class DetTest < Test::Unit::TestCase
 
   def test_det
     #TODO: JS tests here
-    assert_raise(RuntimeError) {
+    assert_raise($run_exc) {
       rdb.update{|row| {:count => rdb.get(0).map{|x| 0}}}.run($c)
     }
     assert_equal({'replaced'=>10}, rdb.update{|row| {:count => 0}}.run($c))
 
-    assert_raise(RuntimeError){rdb.replace{|row| rdb.get(row[:id])}.run($c)}
+    assert_raise($run_exc){rdb.replace{|row| rdb.get(row[:id])}.run($c)}
 
-    assert_raise(RuntimeError) {
+    assert_raise($run_exc) {
       rdb.update{{:count => rdb.map{|x| x[:count]}.reduce(0){|a,b| a+b}}}.run($c)
     }
     static = r.expr(server_data)
@@ -1120,12 +1123,12 @@ class DetTest < Test::Unit::TestCase
 
   def test_nonatomic
     # UPDATE MODIFY
-    assert_raise(RuntimeError){rdb.update{|row| {:x => rdb.get(0).do{1}}}.run($c)}
+    assert_raise($run_exc){rdb.update{|row| {:x => rdb.get(0).do{1}}}.run($c)}
     assert_equal({"replaced" => 10},
                  rdb.update(:non_atomic){|row| {:x => rdb.get(0).do{1}}}.run($c))
     assert_equal(rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c), 10)
 
-    assert_raise(RuntimeError){rdb.get(0).update{|row|{:x => rdb.get(0).do{1}}}.run($c)}
+    assert_raise($run_exc){rdb.get(0).update{|row|{:x => rdb.get(0).do{1}}}.run($c)}
     assert_equal({"replaced" => 1},
                  rdb.get(0).update(:non_atomic){|row| {:x => rdb.get(0).do{2}}}.run($c))
     assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
@@ -1135,7 +1138,7 @@ class DetTest < Test::Unit::TestCase
     assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
     #UPDATE SKIPPED
-    assert_raise(RuntimeError){
+    assert_raise($run_exc){
       rdb.update{|row| r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})}.run($c)
     }
     res = rdb.update(:non_atomic) { |row|
@@ -1144,7 +1147,7 @@ class DetTest < Test::Unit::TestCase
     assert_equal({"unchanged" => 10}, res)
     assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
-    assert_raise(RuntimeError){
+    assert_raise($run_exc){
       rdb.get(0).update{r.branch(rdb.get(0).do{true}, nil, {:x => 0.1})}.run($c)
     }
     res = rdb.get(0).update(:non_atomic){
@@ -1154,7 +1157,7 @@ class DetTest < Test::Unit::TestCase
     assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
     # MUTATE MODIFY
-    assert_raise(RuntimeError) {
+    assert_raise($run_exc) {
       rdb.get(0).replace{|row| r.branch(rdb.get(0).do{true}, row, nil)}.run($c)
     }
     res = rdb.get(0).replace(:non_atomic) {|row|
@@ -1163,7 +1166,7 @@ class DetTest < Test::Unit::TestCase
     assert_equal({"unchanged"=>1}, res)
     assert_equal(11, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
-    assert_raise(RuntimeError){rdb.replace{|row| rdb.get(0).do{row}}.run($c)}
+    assert_raise($run_exc){rdb.replace{|row| rdb.get(0).do{row}}.run($c)}
     res = rdb.replace(:non_atomic) { |row|
       r.branch(rdb.get(0).do{row}[:id].eq(1), row.merge({:x => 2}), row)
     }.run($c)
@@ -1171,7 +1174,7 @@ class DetTest < Test::Unit::TestCase
     assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
     #MUTATE ERROR
-    assert_raise(RuntimeError) {
+    assert_raise($run_exc) {
       rdb.get(0).replace{|row| r.branch(rdb.get(0).do{r.error("")}, row, nil)}.run($c)
     }
     assert_not_nil(rdb.get(0).replace(:non_atomic) {|row|
@@ -1179,7 +1182,7 @@ class DetTest < Test::Unit::TestCase
                    }.run($c)['first_error'])
     assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
-    assert_raise(RuntimeError) {
+    assert_raise($run_exc) {
       rdb.replace{|row| r.branch(rdb.get(0).do{r.error("")}, row, nil)}.run($c)
     }
     res = rdb.replace(:non_atomic) {|row|
@@ -1189,14 +1192,14 @@ class DetTest < Test::Unit::TestCase
     assert_equal(12, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
     #MUTATE DELETE
-    assert_raise(RuntimeError){rdb.get(0).replace{|row|
+    assert_raise($run_exc){rdb.get(0).replace{|row|
         r.branch(rdb.get(0).do{true},nil,row)}.run($c)}
     res = rdb.get(0).replace(:non_atomic){|row|
       r.branch(rdb.get(0).do{true},nil,row)}.run($c)
     assert_equal({"deleted"=>1.0}, res)
     assert_equal(10, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
-    assert_raise(RuntimeError){
+    assert_raise($run_exc){
       rdb.replace{|row| r.branch(rdb.get(0).do{row}[:id] < 3, nil, row)}.run($c)
     }
     res = rdb.replace(:non_atomic) {|row|
@@ -1206,12 +1209,12 @@ class DetTest < Test::Unit::TestCase
     assert_equal(7, rdb.map{|row| row[:x]}.reduce(0){|a,b| a+b}.run($c))
 
     #MUTATE INSERT
-    assert_raise(RuntimeError){rdb.get(0).replace{
+    assert_raise($run_exc){rdb.get(0).replace{
         {:id => 0, :count => rdb.get(3)[:count], :x => rdb.get(3)[:x]}}.run($c)}
     res = rdb.get(0).replace(:non_atomic){
       {:id => 0, :count => rdb.get(3)[:count], :x => rdb.get(3)[:x]}}.run($c)
     assert_equal({"inserted"=>1}, res)
-    assert_raise(RuntimeError){rdb.get(1).replace{rdb.get(3).merge({:id => 1})}.run($c)}
+    assert_raise($run_exc){rdb.get(1).replace{rdb.get(3).merge({:id => 1})}.run($c)}
     res = rdb.get(1).replace(:non_atomic){rdb.get(3).merge({:id => 1})}.run($c)
     assert_equal({"inserted"=>1}, res)
     res = rdb.get(2).replace(:non_atomic){rdb.get(1).merge({:id => 2})}.run($c)
