@@ -35,13 +35,6 @@ tests:
         - obj.pluck('a')
       ot: ({'a':0})
 
-    - cd:
-#        - tbl.contains('a').nth(0)
-        - obj.contains('a')
-      ot: true
-
-      # TODO: getAttr should be polymorphic
-
     # Cleanup
     - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
       rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
