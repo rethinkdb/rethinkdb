@@ -3,6 +3,9 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
+# Tell closure not to load deps.js
+CLOSURE_NO_DEPS=true
+
 modal_registry = []
 clear_modals = ->
     modal.hide_modal() for modal in modal_registry

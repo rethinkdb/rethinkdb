@@ -12,6 +12,7 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
+        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
@@ -101,6 +102,7 @@ module 'DataExplorerView', ->
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
+        # TODO update the set of ignored comments for 1.4
         ignored_commands:
             'connect': true
             'close': true
@@ -109,6 +111,7 @@ module 'DataExplorerView', ->
             'runp': true
             'next': true
             'collect': true
+            'run': true
 
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
@@ -240,6 +243,7 @@ module 'DataExplorerView', ->
                 container: @
                 on_success: @success_on_connect
                 on_fail: @error_on_connect
+                callback: @rdb_global_callback
 
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
@@ -597,6 +601,7 @@ module 'DataExplorerView', ->
         # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
+            loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
             method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
@@ -701,7 +706,7 @@ module 'DataExplorerView', ->
                                 start += result_white[0].length
                                 continue
 
-                            # Check for anonymouse function
+                            # Check for anonymous function
                             result_regex = @regex.anonymous.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
@@ -716,7 +721,17 @@ module 'DataExplorerView', ->
                                 body_start = i+result_regex[0].length
                                 stack_stop_char = ['{']
                                 continue
-                            
+
+                            # Check for a for loop 
+                            result_regex = @regex.loop.exec query.slice i
+                            if result_regex isnt null
+                                element.type = 'loop'
+                                element.context = context
+                                to_skip = result_regex[0].length
+                                body_start = i+result_regex[0].length
+                                stack_stop_char = ['{']
+                                continue
+                                                       
                             # Check for return
                             result_regex = @regex.return.exec query.slice i
                             if result_regex isnt null
@@ -845,7 +860,11 @@ module 'DataExplorerView', ->
                                 continue
                         #else # if element.start isnt i
                         # We caught the white spaces, so there is nothing to do here
-
+                        else
+                            if char is ';'
+                                # We just encountered a semi colon. We have an unknown element
+                                # So We just got a random javascript statement, let's just ignore it
+                                start = i+1
                     else # element.type isnt null
                         # Catch separator like for groupedMapReduce
                         result_regex = @regex.comma.exec(query.slice(i))
@@ -884,6 +903,23 @@ module 'DataExplorerView', ->
                                         start = i+1
                                 #else the written query is broken here. The user forgot to close something?
                                 #TODO Default behavior? Wait for Brackets/Ace to see how we handle errors
+                        else if element.type is 'loop'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice body_start, i
+                                            context: element.context
+                                            position: position+body_start
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            context: context
+                                        start = i+1
                         # Catch for function
                         else if element.type is 'function'
                             if char of @stop_char.opening
@@ -1007,6 +1043,11 @@ module 'DataExplorerView', ->
                         context: element.context
                         position: position+start+element.name.length
                 else if element.type is 'anonymous_function'
+                    element.body = @extract_data_from_query
+                        query: query.slice body_start
+                        context: element.context
+                        position: position+body_start
+                else if element.type is 'loop'
                     element.body = @extract_data_from_query
                         query: query.slice body_start
                         context: element.context
@@ -1476,6 +1517,7 @@ module 'DataExplorerView', ->
                 @non_rethinkdb_query = ''
                 @index = 0
                 @queries = @separate_queries @query
+                @raw_queries = @separate_queries @raw_query
                 @execute_portion()
 
                 ###
@@ -1502,34 +1544,47 @@ module 'DataExplorerView', ->
         execute_portion: =>
             @saved_data.cursor = null
             while @queries[@index]?
+                @driver_handler.reset_count()
+
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
 
-                rdb_query = @evaluate(full_query)
+                try
+                    rdb_query = @evaluate(full_query)
+                catch err
+                    @.$('.loading_query_img').css 'display', 'none'
+                    @results_view.render_error(@raw_queries[@index], err)
+                    return false
+
                 @index++
 
                 if @index is @queries.length
                     @.$('.loading_query_img').css 'display', 'none'
 
                 if rdb_query instanceof TermBase
-                    #TODO hack run in the driver
                     @skip_value = 0
                     @start_time = new Date()
                     @current_results = []
-                    #TODO That's not synchronous? Find why.
-                    rdb_query.run @driver_handler.connection, @rdb_global_callback # @rdb_global_callback can be fire more than once
+
+                    rdb_query.private_run @driver_handler.connection, @rdb_global_callback # @rdb_global_callback can be fire more than once
+                    return true
+                else if rdb_query instanceof DataExplorerView.DriverHandler
+                    # Nothing to do
                     return true
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        #TODO implement nice error
-                        throw "Last query was not a rethinkdb query"
+                        @.$('.loading_query_img').css 'display', 'none'
+                        error = @query_error_template
+                            last_non_query: true
+                        @results_view.render_error(@raw_queries[@index-1], error)
         
         rdb_global_callback: (error, cursor) =>
             if error?
-                @results_view.render_error(@query, error)
+                @.$('.loading_query_img').css 'display', 'none'
+                @results_view.render_error(@raw_queries[@index-1], error)
                 return false
-
+            
             if @index is @queries.length # @index was incremented in execute_portion
                 if cursor?
                     @saved_data.cursor = @cursor
@@ -1906,8 +1961,7 @@ module 'DataExplorerView', ->
         render_error: (query, err) =>
             @.$el.html @error_template
                 query: query
-                error: err.toString()
-                forgot_run: (err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next') # Check if next is undefined, in which case the user probably forgot to append .run()
+                error: err.toString().replace(/^(\s*)/, '')
             return @
 
         json_to_tree: (result) =>
@@ -2514,9 +2568,15 @@ module 'DataExplorerView', ->
     class @DriverHandler
         # I don't want that thing in window
         constructor: (args) ->
+            that = @
+
             @container = args.container
             @on_success = args.on_success
             @on_fail = args.on_fail
+            @callback = (error, cursor) ->
+                that.done++
+                if that.done is that.count
+                    args.callback error, cursor #rdb_global_callback()
 
             if window.location.port is ''
                 if window.location.protocol is 'https:'
@@ -2530,7 +2590,20 @@ module 'DataExplorerView', ->
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
+            @hack_driver()
+
             @connect()
+        
+        reset_count: =>
+            @count = 0
+            @done = 0
+        # Hack the driver, remove .run() and private_run()
+        hack_driver: =>
+            that = @
+            TermBase.prototype.private_run = TermBase.prototype.run
+            TermBase.prototype.run = ->
+                throw that.container.query_error_template
+                    found_run: true
 
         connect: =>
             that = @

@@ -136,10 +136,17 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h1 class="title">Error</h1>
-    <p class="error">The query could not be executed.</p>
+    <p class="error">A query could not be executed.</p>
+    <pre class="error error_details">{{query}}</pre>
     <p class="error">Error: </p>
-    <pre class="error error_details">{{error}}{{#if forgot_run}}{{!Spacing matters here, we are in a <pre>}}
-Did you forget to append .run() at the end of your query?{{/if}}</pre>
+    <pre class="error error_details">{{error}}</pre>
+</script>
+
+<script id="dataexplorer-query_error-template" type="text/x-handlebars-template">
+{{! Spacing maters, this content goes in a pre tag}}
+{{#if found_run}}You can not use .run() in the data explorer. The data explorer will call .run() with its own callback.{{/if}}}
+{{#if last_non_query}}Last query was not a rethinkdb query.{{/if}}
+{{#if asynchronous_queries}}Two queries were executed at the same time. Did you forget a semi colon?{{/if}}
 </script>
 
 
