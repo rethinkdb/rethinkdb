@@ -12,6 +12,9 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
 struct btree_key_t {
@@ -268,5 +271,7 @@ bool operator>=(const key_range_t::right_bound_t &a, const key_range_t::right_bo
 bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
+
+#pragma GCC diagnostic pop
 
 #endif // BTREE_KEYS_HPP_

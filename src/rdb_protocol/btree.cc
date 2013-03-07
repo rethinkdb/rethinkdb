@@ -190,6 +190,12 @@ void rdb_replace(btree_slice_t *slice,
 
         const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
         ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
+        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+            rcheck_target(
+                new_val, new_val->el(primary_key, ql::NOTHROW),
+                strprintf("New value must have primary key `%s`:\n%s",
+                          primary_key.c_str(), new_val->print().c_str()));
+        }
 
         // We use `conflict` below to store whether or not there was a key
         // conflict when constructing the stats object.  It defaults to `true`
@@ -202,6 +208,7 @@ void rdb_replace(btree_slice_t *slice,
                 conflict = resp->add("skipped", num_1);
             } else {
                 conflict = resp->add("inserted", num_1);
+                r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
@@ -215,17 +222,16 @@ void rdb_replace(btree_slice_t *slice,
                         conflict = resp->add("unchanged", num_1);
                     } else {
                         conflict = resp->add("replaced", num_1);
+                        r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
                         kv_location_set(&kv_location, key, new_val->as_json(),
                                         slice, timestamp, txn);
                     }
                 } else {
-                    std::string msg = strprintf(
+                    rfail_target(
+                        new_val,
                         "Primary key `%s` cannot be changed (%s -> %s)",
                         primary_key.c_str(),
                         old_val->print().c_str(), new_val->print().c_str());
-                    const ql::datum_t *msg_d = ql_env->add_ptr(new ql::datum_t(msg));
-                    conflict = resp->add("errors", num_1)
-                            || resp->add("first_error", msg_d);
                 }
             }
         }

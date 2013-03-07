@@ -2,6 +2,8 @@
 require 'socket'
 require 'thread'
 
+# $f = File.open("fuzz_seed.rb", "w")
+
 module RethinkDB
   module Faux_Abort
     class Abort
@@ -11,8 +13,9 @@ module RethinkDB
   class RQL
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil)
+      # $f.puts "("+RPP::pp(@body)+"),"
       unbound_if !@body
-      c, opts = @@default_conn, c if opts.nil? && c.class != RethinkDB::Connection
+      c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
       if !c
@@ -120,12 +123,15 @@ module RethinkDB
       end
     end
 
+    def send packet
+      @socket.send(packet, 0)
+    end
+
     def dispatch msg
       PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
       #File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
-      packet = [payload.length].pack('L<') + payload
-      @socket.send(packet, 0)
+      send([payload.length].pack('L<') + payload)
       return msg.token
     end
 
@@ -152,7 +158,8 @@ module RethinkDB
     end
 
     def inspect
-      properties = "(#{@host}:#{@port}) (Default Database: '#{@default_db}')"
+      db = @default_opts[:db] || RQL.new.db('test')
+      properties = "(#{@host}:#{@port}) (Default DB: #{db.inspect})"
       state = @listener ? "(listening)" : "(closed)"
       "#<RethinkDB::Connection:#{self.object_id} #{properties} #{state}>"
     end
