@@ -67,7 +67,7 @@ tests:
       ot: ({'id':0, 'a':0})
 
     - cd: tbl.order_by('id').type_of()
-      ot: "'STREAM'"
+      ot: "'STREAM'" # XXX: STREAM or SEQUENCE?
       
     # TODO: test ascending and descending orderBy on streams
     # TODO: test ordering by multiple attrs (in case of ties) on streams
@@ -79,7 +79,12 @@ tests:
     # TODO: pluck
     # TODO: without
 
-    # TODO: make sure we test cast_to op
+    # Coerce a table to an array
+    - cd: tbl.limit(5).type_of()
+      ot: '"SELECTION"'
+      
+    - cd: tbl.limit(5).coerce_to('array').type_of()
+      ot: '"ARRAY"'
 
     # Union
     - cd: tbl.union(tbl2).count()
