@@ -82,6 +82,17 @@ tests:
     - cd: tbl.get(1).replace(r.row.merge({'a':'b'}))
       ot: ({'unchanged':1})
       
+    # test atomicity constraints
+    - cd: tbl.get(1).replace(r.row.merge({'c':r.js('5')}))
+      ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      
+    - cd: tbl.get(1).replace(r.row.merge({'c':tbl.nth(0)}))
+      ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
+      
+    - js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), 'non_atomic'=True)
+      js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'non_atomic':true})
+      ot: ({'replaced':1})
+      
     # Replace whole table
 
     - py: tbl.replace(lambda row:None)
@@ -95,6 +106,5 @@ tests:
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
 
-    # TODO: test atomicity constraints
 
 
