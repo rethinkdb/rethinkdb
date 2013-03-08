@@ -90,7 +90,7 @@ tests:
       ot: 6
 
     - py: arr.reduce(lambda a, b:a + b, base=0)
-      js: arr.reduce(function(a,b) { return a.add(b); }, {base:0})
+      js: arr.reduce(function(a,b) { return a.add(b); }, 0)
       rb: arr.reduce(0){ |a, b| a + b }
       ot: 6
 

@@ -69,14 +69,14 @@ tests:
               return row('a');
           }, function(row) {
               return row('id');
-          }, 0, function(a,b) {
+          }, function(a,b) {
               return a.add(b);
-          })
+          }, 0)
         - |
-          tbl.groupedMapReduce(r.row('a'), r.row('id'), 0,
-          function(a,b) {
-              return a.add(b);
-          })
+          tbl.groupedMapReduce(r.row('a'), r.row('id'),
+              function(a,b) {
+                  return a.add(b);
+              }, 0)
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},

@@ -33,7 +33,7 @@ class RDBVal extends TermBase
     mod: (other) -> new Mod {}, @, other
 
     append: ar (val) -> new Append {}, @, val
-    slice: (left=0, right=-1) -> new Slice {}, @, left, right
+    slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
@@ -51,7 +51,7 @@ class RDBVal extends TermBase
     count: ar () -> new Count {}, @
     union: (others...) -> new Union {}, @, others...
     nth: ar (index) -> new Nth {}, @, index
-    groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, group, map, reduce
+    groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
@@ -133,19 +133,15 @@ class DatumTerm extends RDBVal
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
+        # We translate known two word opt-args to camel case for your convience
         key = switch key
             when 'primaryKey' then 'primary_key'
-            when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'upsert' then 'upsert'
-            when 'left' then 'left'
-            when 'right' then 'right'
-            when 'base' then 'base'
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
-            else undefined
+            else key
 
         if key is undefined or val is undefined then continue
         result[key] = rethinkdb.expr val
