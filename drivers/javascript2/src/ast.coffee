@@ -33,7 +33,7 @@ class RDBVal extends TermBase
     mod: (other) -> new Mod {}, @, other
 
     append: ar (val) -> new Append {}, @, val
-    slice: (left=0, right=-1) -> new Slice {}, @, left, right
+    slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
@@ -42,25 +42,24 @@ class RDBVal extends TermBase
     without: (fields...) -> new Without {}, @, fields...
     merge: ar (other) -> new Merge {}, @, other
     between: ar (left, right) -> new Between {leftBound: (if left? then left else undefined), rightBound: (if right? then right else undefined)}, @
-    reduce: (func, base) -> new Reduce {base:base}, @, funcWrap(func)
+    reduce: aropt (func, base) -> new Reduce {base:base}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: (fields...) -> new OrderBy {}, @, fields...
-    distinct: -> new Distinct {}, @
-    count: -> new Count {}, @
+    distinct: ar () -> new Distinct {}, @
+    count: ar () -> new Count {}, @
     union: (others...) -> new Union {}, @, others...
     nth: ar (index) -> new Nth {}, @, index
-    groupedMapReduce: ar (group, map, reduce) -> new GroupedMapReduce {}, @, group, map, reduce
-    groupBy: (attrs..., collector) -> new GroupBy {}, @, attrs, collector
+    groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
-    zip: -> new Zip {}, @
+    zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
-    delete: -> new Delete {}, @
+    delete: ar () -> new Delete {}, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
 
@@ -68,6 +67,12 @@ class RDBVal extends TermBase
     and: (others...) -> new All {}, @, others...
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
+
+    groupBy: (attrs..., collector = null) ->
+        arg_count = attrs.length + (collector && 1 || 0)
+        if collector == null
+            throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
+        new GroupBy {}, @, attrs, collector
 
 class DatumTerm extends RDBVal
     args: []
@@ -128,18 +133,15 @@ class DatumTerm extends RDBVal
 translateOptargs = (optargs) ->
     result = {}
     for own key,val of optargs
+        # We translate known two word opt-args to camel case for your convience
         key = switch key
             when 'primaryKey' then 'primary_key'
-            when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
+            when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'upsert' then 'upsert'
-            when 'left' then 'left'
-            when 'right' then 'right'
-            when 'base' then 'base'
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
-            else undefined
+            else key
 
         if key is undefined or val is undefined then continue
         result[key] = rethinkdb.expr val
@@ -235,12 +237,12 @@ class Db extends RDBOp
     tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
     tableList: ar(-> new TableList {}, @)
 
-    table: (tblName, opts) -> new Table opts, @, tblName
+    table: aropt (tblName, opts) -> new Table opts, @, tblName
 
 class Table extends RDBOp
     tt: Term2.TermType.TABLE
 
-    get: aropt (key, opts) -> new Get opts, @, key
+    get: ar (key) -> new Get {}, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
 
     compose: (args, optargs) ->

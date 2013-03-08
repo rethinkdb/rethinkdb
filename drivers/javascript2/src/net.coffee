@@ -77,7 +77,7 @@ class Connection
     _processResponse: (response) ->
         token = response.getToken()
         {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
-        if cursor
+        if cursor?
             if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
                 cursor._addData mkSeq response
             else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
@@ -99,11 +99,12 @@ class Connection
                 @_delQuery(token)
             else if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
                 cursor = new Cursor @, token
+                @outstandingCallbacks[token].cursor = cursor
                 cb null, cursor._addData(mkSeq response)
             else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
                 cursor = new Cursor @, token
-                cb null, cursor._endData(mkSeq response)
                 @_delQuery(token)
+                cb null, cursor._endData(mkSeq response)
             else
                 cb new RqlDriverError "Unknown response type"
         else
@@ -147,7 +148,7 @@ class Connection
         @outstandingCallbacks[token] = {cb:cb, root:term}
 
         @_sendQuery(query)
-        
+
     _continueQuery: (token) ->
         query = new Query2
         query.setType Query2.QueryType.CONTINUE

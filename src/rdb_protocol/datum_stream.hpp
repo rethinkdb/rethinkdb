@@ -170,31 +170,54 @@ class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, datum_stream_t *_src,
                         const pb_rcheckable_t *bt_src)
-        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp), src(_src), data_index(-1) {
+        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
+          src(_src), data_index(-1), is_arr_(false) {
         guarantee(src);
     }
     virtual const datum_t *next_impl() {
-        if (data_index == -1) {
-            data_index = 0;
-            size_t sort_els = 0;
-            while (const datum_t *d = src->next()) {
-                rcheck(++sort_els <= sort_el_limit,
-                       strprintf("Can only sort at most %zu elements.", sort_el_limit));
-                data.push_back(d);
-            }
-            std::sort(data.begin(), data.end(), lt_cmp);
-        }
+        maybe_load_data();
+        r_sanity_check(data_index >= 0);
         if (data_index >= static_cast<int>(data.size())) return 0;
-        //                ^^^^^^^^^^^^^^^^ this is safe because of rcheck above
+        //                ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
         return data[data_index++];
     }
 private:
-    virtual const datum_t *as_arr() { return 0; }
+    virtual const datum_t *as_arr() {
+        return is_arr() ? eager_datum_stream_t::as_arr() : 0;
+    }
+    bool is_arr() {
+        maybe_load_data();
+        return is_arr_;
+    }
+    void maybe_load_data() {
+        if (data_index != -1) return;
+        data_index = 0;
+        if (const datum_t *arr = src->as_arr()) {
+            is_arr_ = true;
+            rcheck(arr->size() <= sort_el_limit,
+                   strprintf("Can only sort at most %zu elements.",
+                             sort_el_limit));
+            for (size_t i = 0; i < arr->size(); ++i) {
+                data.push_back(arr->el(i));
+            }
+        } else {
+            is_arr_ = false;
+            size_t sort_els = 0;
+            while (const datum_t *d = src->next()) {
+                rcheck(++sort_els <= sort_el_limit,
+                       strprintf("Can only sort at most %zu elements.",
+                                 sort_el_limit));
+                data.push_back(d);
+            }
+        }
+        std::sort(data.begin(), data.end(), lt_cmp);
+    }
     T lt_cmp;
     datum_stream_t *src;
 
     int data_index;
     std::vector<const datum_t *> data;
+    bool is_arr_;
 };
 
 class union_datum_stream_t : public eager_datum_stream_t {

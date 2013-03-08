@@ -5,19 +5,6 @@ var CPPPORT = process.argv[3]
 
 // -- utilities --
 
-Object.prototype.toString = function() {
-    var s = '{'
-    for (k in this) {
-        if (!this.hasOwnProperty(k)) continue;
-        s += k;
-        s += ':'
-        s += this[k].toString();
-        s += ', ';
-    }
-    s += '}';
-    return s;
-};
-
 function printTestFailure(name, src, message) {
     console.log("\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"+message+"\n");
 }
@@ -27,10 +14,10 @@ function eq_test(one, two) {
         return one(two);
     } else if (two instanceof Function) {
         return two(one);
-    } else if (one instanceof Array) {
+    } else if (goog.isArray(one)) {
 
-        if (!(two instanceof Array)) return false;
-        
+        if (!goog.isArray(two)) return false;
+
         if (one.length != two.length) return false;
 
         // Recurse on each element of array
@@ -66,6 +53,8 @@ function eq_test(one, two) {
 function eq(exp) {
     var fun = function(val) {
         if (!eq_test(val, exp)) {
+            console.log(exp, val);
+
             return false;
         } else {
             return true;
@@ -85,7 +74,7 @@ var defines = {}
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
-    
+
     // Now connect to js server
     //r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
 
@@ -149,7 +138,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         } else {
                             printTestFailure(testName, src, "Error running test:\n\t"+err.toString());
                         }
-                        
+
                         // Continue to next test
                         runTest();
                         return;
@@ -163,7 +152,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                         } else {
                             afterArray(null, cpp_res);
                         }
-                        
+
                         function afterArray(arr_err, cpp_res) {
 
                             // Now run test on js server

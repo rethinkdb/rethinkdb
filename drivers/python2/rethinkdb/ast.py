@@ -99,6 +99,41 @@ class RDBValue(RDBOp):
     def __ror__(self, other):
         return Any(other, self)
 
+    # Non-operator versions of the above
+
+    def eq(*args):
+        return Eq(*args)
+
+    def ne(*args):
+        return Ne(*args)
+
+    def lt(*args):
+        return Lt(*args)
+
+    def le(*args):
+        return Le(*args)
+
+    def gt(*args):
+        return Gt(*args)
+
+    def ge(*args):
+        return Ge(*args)
+
+    def add(*args):
+        return Add(*args)
+
+    def sub(*args):
+        return Sub(*args)
+
+    def mul(*args):
+        return Mul(*args)
+
+    def div(*args):
+        return Div(*args)
+
+    def mod(self, other):
+        return Mod(self, other)
+
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)
@@ -212,11 +247,13 @@ class RDBValue(RDBOp):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, data_collector):
-        return GroupedMapReduce(self, grouping, mapping, data_collector)
+    def grouped_map_reduce(self, grouping, mapping, data_collector, base=()):
+        return GroupedMapReduce(self, func_wrap(grouping), func_wrap(mapping),
+            func_wrap(data_collector), base=base)
 
-    def group_by(self, *attrs_reduction):
-        return GroupBy(self, list(attrs_reduction[:-1]), attrs_reduction[-1])
+    def group_by(self, arg1, arg2, *rest):
+        args = [arg1, arg2] + list(rest)
+        return GroupBy(self, list(args[:-1]), args[-1])
 
     def delete(self):
         return Delete(self)

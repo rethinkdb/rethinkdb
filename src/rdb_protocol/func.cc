@@ -51,7 +51,9 @@ func_t::func_t(env_t *env, const Term2 *_source)
         argptrs.push_back(0);
         //debugf("pushing %d -> %p\n", args[i], &argptrs[i]);
         env->push_var(args[i], &argptrs[i]);
-        if (args.size() == 1) env->push_implicit(&argptrs[i]);
+        if (args.size() == 1 && env_t::var_allows_implicit(args[i])) {
+            env->push_implicit(&argptrs[i]);
+        }
     }
     if (args.size()) guarantee(env->top_var(args[0], this) == &argptrs[0]);
 
@@ -61,7 +63,9 @@ func_t::func_t(env_t *env, const Term2 *_source)
     for (size_t i = 0; i < args.size(); ++i) {
         //debugf("popping %d\n", args[i]);
         env->pop_var(args[i]);
-        if (args.size() == 1) env->pop_implicit();
+        if (args.size() == 1 && env_t::var_allows_implicit(args[i])) {
+            env->pop_implicit();
+        }
     }
 
     env->dump_scope(&scope);

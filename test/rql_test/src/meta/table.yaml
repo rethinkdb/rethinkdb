@@ -1,6 +1,6 @@
 desc: Tests meta queries for creating and deleting tables
 tests:
-    
+
     - def: db = r.db('test')
 
     - cd: db.table_list()
@@ -41,15 +41,21 @@ tests:
 
     - cd: db.table_drop('foo')
       ot: ({'dropped':1})
-      
+
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
 
-    # TODO: what's the error message for
-    # r.db('test').table_create('testpkey', 'foo') in js and ruby?
-      
-    # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
-    # primary_datacenter, cache_size)
-    
-    # TODO: test bad arguments to table_create (especially in js
-    # driver -- e.g. not an object but multiple args)
+    - js: db.table_create('nonsense', 'foo')
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+
+    - js: db.table_create('nonsense', {'foo':'bar'})
+      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
+
+    - js: db.table_create('nonsense1', {'datacenter':'bar'})
+      py: db.table_create('nonsense1', datacenter='bar')
+      ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+
+    - js: db.table_create('nonsense2', {'cacheSize':'bar'})
+      py: db.table_create('nonsense2', cache_size='bar')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+

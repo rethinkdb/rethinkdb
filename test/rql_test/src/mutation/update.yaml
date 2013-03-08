@@ -62,11 +62,13 @@ tests:
 
     # trying to change pkey of a document
     - cd: tbl.get(1).update({'id':2,'d':1})
+      rb: [] # the ruby test driver cannot parse the expected error message
       ot: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"d":\t1,\n\t"id":\t2\n})','errors':1})
     
     # check r.row, static value and otherwise
     - py: tbl.get(1).update({'id':r.row['id'],'d':'b'})
       js: tbl.get(1).update({'id':r.row('id'),'d':'b'})
+      rb: tbl.get(1).update{ |row| { :id => row[:id], :d => 'b' } }
       ot: ({'replaced':1})
       
     # I don't we don't need the merge, just testing r.row just in case
@@ -82,8 +84,17 @@ tests:
       
     - py: tbl.get(1).update({'d':r.js('5')}, non_atomic=True)
       js: tbl.get(1).update({'d':r.js('5')}, {'nonAtomic':true})
+      rb: tbl.get(1).update({ :d => r.js('5') }, :non_atomic)
       ot: ({'replaced':1})
 
+    - js: tbl.get(1).update({}, 'foo')
+      cd: []
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      
+    - js: tbl.get(1).update({}, {'foo':'bar'})
+      cd: []
+      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
+      
     # Update whole table
     - py: tbl.update(lambda row:{'a':row['id']})
       js: tbl.update(function(row) { return {'a':row('id')}; })

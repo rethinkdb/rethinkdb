@@ -151,8 +151,11 @@ private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
         if (val_t *v = optarg("datacenter", 0)) {
-            dc_id = meta_get_uuid(dc_searcher.get(), get_name(v, this),
-                                  "FIND_DATACENTER " + v->as_str(), this);
+            name_string_t name = get_name(v, this);
+            dc_id = meta_get_uuid(
+                dc_searcher.get(), name,
+                strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
+                this);
         }
 
         std::string primary_key = "id";

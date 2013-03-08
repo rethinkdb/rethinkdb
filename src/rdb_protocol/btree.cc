@@ -189,12 +189,17 @@ void rdb_replace(btree_slice_t *slice,
         guarantee(old_val);
 
         const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
-        ended_empty = (new_val->get_type() == ql::datum_t::R_NULL);
-        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+        if (new_val->get_type() == ql::datum_t::R_NULL) {
+            ended_empty = true;
+        } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+            ended_empty = false;
             rcheck_target(
                 new_val, new_val->el(primary_key, ql::NOTHROW),
-                strprintf("New value must have primary key `%s`:\n%s",
+                strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
+        } else {
+            rfail_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
+                         new_val->get_type_name(), new_val->print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key

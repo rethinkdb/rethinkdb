@@ -66,14 +66,25 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
-    - cd: tbl.order_by('id').type_of()
-      ot: "'STREAM'"
-      
-    # TODO: test ascending and descending orderBy on streams
-    # TODO: test ordering by multiple attrs (in case of ties) on streams
-    # TODO: test ordering by non pkey attrs
-    # TODO: test ordering by missing attrs
+    - cd: tbl.order_by('a', 'id').nth(0)
+      ot: ({'id':0,'a':0})
 
+    - cd: tbl.order_by(r.desc('a'), r.asc('id')).nth(0)
+      ot: ({'id':3,'a':3})
+
+    - cd: tbl.order_by(r.asc('a'), r.desc('id')).nth(0)
+      ot: ({'id':96,'a':0})
+
+    - cd: tbl.order_by('id').type_of()
+      ot: "'SELECTION'"
+
+    - cd: tbl.order_by('missing').order_by('id').nth(0)
+      ot: ({'id':0, 'a':0})
+      
+    - cd: tbl.order_by('id', 'missing').nth(0)
+      ot: ({'id':0, 'a':0})
+      
+      
     # test skip
     - cd: tbl.skip(1).count()
       ot: 99
@@ -125,7 +136,7 @@ tests:
       ot: ({'id':0,'a':0})
       
     - cd: tbl.pluck('id', 'missing').order_by('id').nth(0)
-      ot: ({'id':0})
+      ot: err('RqlRuntimeError', 'No attribute `missing` in object.', [0])
       
     # without
     - cd: tbl.without().order_by('id').nth(0)

@@ -28,6 +28,6 @@ tests:
       
     # test coercions
     - cd: r.expr('foo').coerce_to('string')
-      ot: ('"foo"')
+      ot: ('foo')
       
       

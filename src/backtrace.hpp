@@ -27,7 +27,7 @@ std::string format_backtrace(bool use_addr2line = true);
 class lazy_backtrace_t {
 public:
     lazy_backtrace_t();
-    std::string addrs(); // A well-formateed backtrace with source lines (slow)
+    std::string addrs(); // A well-formatted backtrace with source lines (slow)
     std::string lines(); // A raw backtrace with assembly addresses (fast)
 private:
     static const int max_frames = 100;
