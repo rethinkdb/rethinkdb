@@ -312,7 +312,7 @@ class RethinkDBTestServers:
         # self.js_port = self.find_available_port()
         # self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
 
-        sleep(0.1)
+        sleep(0.2)
 
     def stop(self):
         self.cpp_server.terminate()
