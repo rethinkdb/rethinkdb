@@ -74,10 +74,8 @@ tests:
       
     # not passing a pkey in the first place
     - cd: tbl.get(1).replace({'a':1})
-      rb: [] # TODO: the error message doesn't parse
-      ot:
-        cd: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t"a":\t1\n}','errors':1})
-        # rb: ({:first_error => "Inserted object must have primary key `id`:\n{\n\t\"a\":\t1\n}", :errors => 1})
+      rb: [] # the ruby test driver cannot parse the expected error message
+      ot: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t"a":\t1\n}','errors':1})
     
     # check r.row, static value and otherwise
     - py: tbl.get(1).replace({'id':r.row['id'],'a':'b'})

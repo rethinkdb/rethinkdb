@@ -6,9 +6,9 @@ tests:
     ## basic <
 
     # Python overloads the comparison operators (in both directions)
-    - py: [r.expr(1) < 2, 1 < r.expr(2)]
+    - py: [r.expr(1) < 2, 1 < r.expr(2), r.expr(1).lt(2)]
       js: r(1).lt(2)
-      rb: r(1) < 2
+      rb: [r(1) < 2, r(1).lt(2)]
       ot: true
     - py: r.expr(3) < 2
       js: r(3).lt(2)
@@ -30,9 +30,9 @@ tests:
 
     ## basic >
 
-    - py: [r.expr(1) > 2, 1 > r.expr(2)]
+    - py: [r.expr(1) > 2, 1 > r.expr(2), r.expr(1).gt(2)]
       js: r(1).gt(2)
-      rb: r(1) > 2
+      rb: [r(1) > 2, r(1).gt(2)]
       ot: false
     - py: r.expr(3) > 2
       js: r(3).gt(2)
@@ -52,7 +52,7 @@ tests:
 
     ## basic ==
 
-    - py: [r.expr(1) == 2, 1 == r.expr(2)]
+    - py: [r.expr(1) == 2, 1 == r.expr(2), r.expr(1).eq(2)]
       js: r(1).eq(2)
       rb: r(1).eq 2
       ot: false
@@ -74,7 +74,7 @@ tests:
 
     ## basic !=
 
-    - py: [r.expr(1) != 2, 1 != r.expr(2)]
+    - py: [r.expr(1) != 2, 1 != r.expr(2), r.expr(1).ne(2)]
       js: r(1).ne(2)
       rb: r(1).ne 2
       ot: true
@@ -96,9 +96,9 @@ tests:
 
     ## basic <=
 
-    - py: [r.expr(1) <= 2, 1 <= r.expr(2)]
+    - py: [r.expr(1) <= 2, 1 <= r.expr(2), r.expr(1).le(2)]
       js: r(1).le(2)
-      rb: r(1) <= 2
+      rb: [r(1) <= 2, r(1).le(2)]
       ot: true
     - py: r.expr(3) <= 2
       js: r(3).le(2)
@@ -118,9 +118,9 @@ tests:
 
     ## basic >=
 
-    - py: [r.expr(1) >= 2, 1 >= r.expr(2)]
+    - py: [r.expr(1) >= 2, 1 >= r.expr(2), r.expr(1).ge(2)]
       js: r(1).ge(2)
-      rb: r(1) >= 2
+      rb: [r(1) >= 2, r(1).ge(2)]
       ot: false
     - py: r.expr(3) >= 2
       js: r(3).ge(2)

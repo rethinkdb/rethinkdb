@@ -99,6 +99,41 @@ class RDBValue(RDBOp):
     def __ror__(self, other):
         return Any(other, self)
 
+    # Non-operator versions of the above
+
+    def eq(*args):
+        return Eq(*args)
+
+    def ne(*args):
+        return Ne(*args)
+
+    def lt(*args):
+        return Lt(*args)
+
+    def le(*args):
+        return Le(*args)
+
+    def gt(*args):
+        return Gt(*args)
+
+    def ge(*args):
+        return Ge(*args)
+
+    def add(*args):
+        return Add(*args)
+
+    def sub(*args):
+        return Sub(*args)
+
+    def mul(*args):
+        return Mul(*args)
+
+    def div(*args):
+        return Div(*args)
+
+    def mod(self, other):
+        return Mod(self, other)
+
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)

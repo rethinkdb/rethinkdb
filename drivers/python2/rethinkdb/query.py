@@ -52,6 +52,8 @@ def db_list():
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)
 
+# groupBy reductions
+
 count = {'COUNT': True}
 
 def sum(attr):
@@ -60,8 +62,51 @@ def sum(attr):
 def avg(attr):
     return {'AVG': attr}
 
+# orderBy orders
+
 def asc(attr):
     return Asc(attr)
 
 def desc(attr):
     return Desc(attr)
+
+# math and logic
+
+def eq(*args):
+    return Eq(*args)
+
+def ne(*args):
+    return Ne(*args)
+
+def lt(*args):
+    return Lt(*args)
+
+def le(*args):
+    return Le(*args)
+
+def gt(*args):
+    return Gt(*args)
+
+def ge(*args):
+    return Ge(*args)
+
+def add(*args):
+    return Add(*args)
+
+def sub(*args):
+    return Sub(*args)
+
+def mul(*args):
+    return Mul(*args)
+
+def div(*args):
+    return Div(*args)
+
+def mod(a, b):
+    return Mod(a, b)
+
+def all(*args):
+    return All(*args)
+
+def any(*args):
+    return Any(*args)

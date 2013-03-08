@@ -15,9 +15,9 @@ tests:
     ## Slice
 
     # Python uses the slice syntax
-    - py: arr[1:2]
+    - py: ["arr[1:2]", "arr.slice(1, 2)"]
       js: arr.slice(1,2)
-      rb: [ "arr[(1..2)]", "arr[(1...3)]" ]
+      rb: [ "arr[(1..2)]", "arr[(1...3)]", arr.slice(1,2)]
       ot: [2,3]
 
     # One ended slices
@@ -146,8 +146,7 @@ tests:
 
     ## Nth
 
-    - py: arr[1]
-      rb: arr[1]
+    - cd: ["arr[1]", "arr.nth(1)"]
       js: arr.nth(1)
       ot: 2
     - py: arr[0]

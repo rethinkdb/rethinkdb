@@ -62,7 +62,7 @@ tests:
 
     # trying to change pkey of a document
     - cd: tbl.get(1).update({'id':2,'d':1})
-      rb: [] # TODO: error message doesn't parse
+      rb: [] # the ruby test driver cannot parse the expected error message
       ot: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"d":\t1,\n\t"id":\t2\n})','errors':1})
     
     # check r.row, static value and otherwise

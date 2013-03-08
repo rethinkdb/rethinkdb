@@ -2,9 +2,9 @@ desc: Tests for the basic usage of the multiplication operation
 tests:
 
     # Python supports the overloaded operator '*' in both directions
-    - py: [(r.expr(1) * 2), (1 * r.expr(2))]
+    - py: [(r.expr(1) * 2), (1 * r.expr(2)), (r.expr(1).mul(2))]
       js: r(1).mul(2)
-      rb: (r 1) * 2
+      rb: [(r 1) * 2, r(1).mul(2)]
       ot: 2
 
     - py: r.expr(-1) * -1
