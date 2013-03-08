@@ -35,6 +35,9 @@ class Cursor:
                 yield row
             del self.chunks[0]
 
+    def close(self):
+        self.conn._end(self.query, self.term)
+
 class Connection():
 
     def __init__(self, host, port, db='test'):
