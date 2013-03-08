@@ -388,7 +388,7 @@ public:
                 for (json_list_t::iterator it =  data.begin();
                                            it != data.end();
                                            ++it) {
-                    stream->push_back(std::make_pair(key, *it));
+                    stream->push_back(std::make_pair(store_key_t(key), *it));
                     cumulative_size += estimate_rget_response_size(*it);
                 }
 

@@ -49,6 +49,11 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(t)
 };
 
+template <class T>
+deletable_t<T> make_deletable(const T &value) {
+    return deletable_t<T>(value);
+}
+
 //semilattice concept for deletable_t
 template <class T>
 bool operator==(const deletable_t<T> &, const deletable_t<T> &);
