@@ -98,7 +98,7 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected at least 1 argument(s) but found 0.", [])
-        rb: err("RqlCompileError", "Expected at least 1 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 2 argument(s) but found 1.", [])
         py: err_regex('TypeError', ".*takes at least 2 arguments \(1 given\)", [])
       cd:
       - tbl.update()
@@ -135,7 +135,7 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected at least 2 argument(s) but found 0.", [])
-        rb: err("RqlCompileError", "Expected at least 3 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
         py: err_regex('TypeError', ".*takes at least 3 arguments \(1 given\)", [])
       cd:
       - tbl.group_by()
@@ -153,7 +153,7 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected at least 3 argument(s) but found 2.", [])
-        rb: err("RqlCompileError", "Expected at least 4 argument(s) but found 3.", [])
+        rb: err("RqlCompileError", "Expected 4 argument(s) but found 2.", [])
         py: err_regex('TypeError', ".*takes at least 4 arguments \(3 given\)", [])
       cd: tbl.grouped_map_reduce(1,2)
 
