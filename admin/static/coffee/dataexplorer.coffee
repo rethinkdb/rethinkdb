@@ -102,7 +102,7 @@ module 'DataExplorerView', ->
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
-        # TODO update the set of ignored comments for 1.4
+        # TODO update the set of ignored commands for 1.4
         ignored_commands:
             'connect': true
             'close': true
@@ -164,8 +164,7 @@ module 'DataExplorerView', ->
         save_query: (query) =>
             # Remove empty lines
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
-            if query[query.length-1] is '\n' or query[query.length-1] is '\r'
-                query = query.slice 0, query.length-1
+            query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
             if window.localStorage?
                 if @history.length is 0 or @history[@history.length-1] isnt query and @regex.white.test(query) is false
                     @history.push query
@@ -548,7 +547,10 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
             @query_last_part = query_after_cursor
 
-            @current_element = '' # Initialize @current_element. We need it for tabs (when the user loop over ALL suggestions)
+            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
+            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
+            @current_element = ''
+
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
@@ -591,7 +593,8 @@ module 'DataExplorerView', ->
             else
                 @hide_suggestion_and_description()
 
-            if event?.which is 9
+            if event?.which is 9 # Catch tab
+                # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
                 if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
@@ -669,7 +672,7 @@ module 'DataExplorerView', ->
                     continue
 
                 if is_parsing_string is true
-                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # End of the string, we can work again?
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
                         is_parsing_string = false # Else we just keep parsing the string
                         if element.type is 'string'
                             element.name = query.slice start, i+1
@@ -1476,7 +1479,7 @@ module 'DataExplorerView', ->
 
             catch err
                 @.$('.loading_query_img').hide()
-                @results_view.render_error(@query, err)
+                @results_view.render_error(@raw_query, err)
 
         # A portion is one query of the whole input.
         execute_portion: =>
@@ -1608,7 +1611,12 @@ module 'DataExplorerView', ->
             "use strict"
             return eval(query)
 
-        # In a string \n becomes \\\\n, outside a string we just remove \n
+        # In a string \n becomes \\\\n, outside a string we just remove \n, so
+        #   r
+        #   .expr('hello
+        #   world')
+        # becomes
+        #   r.expr('hello\nworld')
         replace_new_lines_in_query: (query) ->
             is_parsing_string = false
             start = 0
@@ -2125,7 +2133,7 @@ module 'DataExplorerView', ->
         render_result: (args) =>
             if args?.results?
                 @results = args.results
-                @results_array = null # We'll transform it only if we need to
+                @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
@@ -2410,7 +2418,7 @@ module 'DataExplorerView', ->
             that = @
             if @state is 'visible'
                 @state = 'hidden'
-                @desactivate_overflow()
+                @deactivate_overflow()
                 @$('.nano').animate
                     height: 0
                     , 200
@@ -2449,7 +2457,7 @@ module 'DataExplorerView', ->
                 @$('.nano_border').show() # In case the user trigger hide/show really fast
                 @$('.nano').nanoScroller({preventPageScrolling: true})
             else
-                @desactivate_overflow()
+                @deactivate_overflow()
                 duration = Math.max 150, size
                 duration = Math.min duration, 250
                 @$('.nano').stop(true, true).animate
@@ -2467,8 +2475,8 @@ module 'DataExplorerView', ->
                                 , 300
 
         # The 3 secrets of French cuisine is butter, butter and butter
-        # We desactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
-        desactivate_overflow: =>
+        # We deactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
+        deactivate_overflow: =>
             if $(window).height() >= $(document).height()
                 $('body').css 'overflow', 'hidden'
 

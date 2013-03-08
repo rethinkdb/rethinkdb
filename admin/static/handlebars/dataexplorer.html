@@ -146,11 +146,10 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-query_error-template" type="text/x-handlebars-template">
 {{! Spacing maters, this content goes in a pre tag}}
-{{#if found_run}}You can not use .run() in the data explorer. The data explorer will call .run() with its own callback.{{/if}}}
-{{#if last_non_query}}Last query was not a rethinkdb query.{{/if}}
-{{#if asynchronous_queries}}Two queries were executed at the same time. Did you forget a semi colon?{{/if}}
+{{#if found_run}}You should remove .run() from your queries when using the Data Explorer (as of RethinkDB 1.4). The query will be built and sent by the Data Explorer itself.{{/if}}}
+{{#if last_non_query}}Last query was not a RethinkDB query.{{/if}}
 {{#if no_query}}No query found{{/if}}
-{{#if syntax_error}}Syntax error, missing opening bracket for {{char}} (line {{line}}, position {{position}}).{{/if}}
+{{#if syntax_error}}Syntax error, missing opening bracket for {{bracket}} (line {{line}}, position {{position}}).{{/if}}
 </script>
 
 
