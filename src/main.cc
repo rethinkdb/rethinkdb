@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
             }
 
         } else {
-            puts("ERROR: Unrecognized subcommand ''. Try 'rethinkdb help'.");
+            printf("ERROR: Unrecognized subcommand '%s'. Try 'rethinkdb help'.\n", subcommand.c_str());
             return 1;
         }
     }
