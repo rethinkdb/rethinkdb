@@ -8,7 +8,7 @@ path.append("../../../drivers/python2")
 import rethinkdb as r
 
 # Run the server in default configuration
-cpp_server = Popen(['../../../build/debug_clang/rethinkdb', '--port-offset=2348'])
+cpp_server = Popen(['../../../build/release/rethinkdb', '--port-offset=2348'])
 sleep(0.1)
 print ''
 
