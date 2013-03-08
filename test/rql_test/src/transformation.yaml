@@ -78,11 +78,11 @@ tests:
     - cd: tbl.order_by('id').type_of()
       ot: "'STREAM'"
 
-    - cd: tbl.order_by('missing')
-      ot: err('RqlRuntimeError', 'No attribute `missing` in object.', [0])
+    - cd: tbl.order_by('missing').order_by('id').nth(0)
+      ot: ({'id':0, 'a':0})
       
-    - cd: tbl.order_by('id', 'missing')
-      ot: err('RqlRuntimeError', 'No attribute `missing` in object.', [0])
+    - cd: tbl.order_by('id', 'missing').nth(0)
+      ot: ({'id':0, 'a':0})
       
       
     # test skip
