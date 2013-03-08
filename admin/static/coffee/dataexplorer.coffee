@@ -161,18 +161,24 @@ module 'DataExplorerView', ->
 
         # Save the query in the history
         # The size of the history is infinite per session. But we will just save @size_history queries in localStorage
-        save_query: (query) =>
+        save_query: (args) =>
+            query = args.query
+            broken_query = args.broken_query
             # Remove empty lines
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
             if window.localStorage?
-                if @history.length is 0 or @history[@history.length-1] isnt query and @regex.white.test(query) is false
-                    @history.push query
+                if @history.length is 0 or @history[@history.length-1].query isnt query and @regex.white.test(query) is false
+                    @history.push
+                        query: query
+                        broken_query: broken_query
                     if @history.length>@size_history
                         window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
                     else
                         window.localStorage.rethinkdb_history = JSON.stringify @history
-                    @history_view.add_query query
+                    @history_view.add_query
+                        query: query
+                        broken_query: broken_query
 
         clear_history: =>
             @history.length = 0
@@ -1479,7 +1485,10 @@ module 'DataExplorerView', ->
 
             catch err
                 @.$('.loading_query_img').hide()
-                @results_view.render_error(@raw_query, err)
+                @results_view.render_error(@query, err)
+                @save_query
+                    query: @raw_query
+                    broken_query: true
 
         # A portion is one query of the whole input.
         execute_portion: =>
@@ -1495,6 +1504,9 @@ module 'DataExplorerView', ->
                 catch err
                     @.$('.loading_query_img').hide()
                     @results_view.render_error(@raw_queries[@index], err)
+                    @save_query
+                        query: @raw_query
+                        broken_query: true
                     return false
 
                 @index++
@@ -1518,6 +1530,10 @@ module 'DataExplorerView', ->
                         error = @query_error_template
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error)
+                        @save_query
+                            query: @raw_query
+                            broken_query: true
+
         
         # Create a callback for when a query returns
         # We tag the callback to make sure that we display the results only of the last query executed by the user
@@ -1529,13 +1545,16 @@ module 'DataExplorerView', ->
                     if error?
                         @.$('.loading_query_img').hide()
                         @results_view.render_error(@raw_queries[@index-1], error)
+                        @save_query
+                            query: @raw_query
+                            broken_query: true
+
                         return false
                     
                     if @index is @queries.length # @index was incremented in execute_portion
                         if cursor?
                             @saved_data.cursor = @cursor
 
-                        #TODO Check for empty array?
                         if cursor?.hasNext?
                             @cursor = cursor
                             if cursor.hasNext() is true
@@ -1601,7 +1620,45 @@ module 'DataExplorerView', ->
                         metadata: @saved_data.metadata
 
                     # Successful query, let's save it in the history
-                    @save_query @raw_query
+                    @save_query
+                        query: @raw_query
+                        broken_query: false
+                else
+                    @execute_portion()
+
+        get_result_callback: (error, data) =>
+            if error?
+                @results_view.render_error(@query, error)
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+                return false
+
+            if data isnt undefined
+                @current_results.push data
+                if @current_results.length < @limit and @cursor.hasNext() is true
+                    @cursor.next @get_result_callback
+                    return true
+
+            # if data is undefined or @current_results.length is @limit
+            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
+            @saved_data.query = @query
+            @saved_data.results = @current_results
+            @saved_data.metadata =
+                limit_value: @current_results.length
+                skip_value: @skip_value
+                execution_time: new Date() - @start_time
+                query: @query
+                has_more_data: @cursor.hasNext()
+
+            @results_view.render_result
+                results: @current_results # The first parameter is null ( = query, so we don't display it)
+                metadata: @saved_data.metadata
+
+            # Successful query, let's save it in the history
+            @save_query
+                query: @raw_query
+                broken_query: false
 
             return get_result_callback
 
@@ -2363,7 +2420,8 @@ module 'DataExplorerView', ->
             else
                 for query, i in @history
                     @$('.history_list').append @dataexplorer_query_li_template
-                        query: query
+                        query: query.query
+                        broken_query: query.broken_query
                         id: i
                         num: i+1
             @delegateEvents()
@@ -2372,14 +2430,17 @@ module 'DataExplorerView', ->
         load_query: (event) =>
             id = @$(event.target).data().id
             # Set + save codemirror
-            @container.codemirror.setValue @history[parseInt(id)]
-            @container.saved_data.current_query = @history[parseInt(id)]
+            @container.codemirror.setValue @history[parseInt(id)].query
+            @container.saved_data.current_query = @history[parseInt(id)].query
 
-        add_query: (query) =>
+        add_query: (args) =>
+            query = args.query
+            broken_query = args.broken_query
             that = @
             is_at_bottom = @$('.history_list').height() is @$('.nano > .content').scrollTop()+@$('.nano').height()
             @$('.history_list').append @dataexplorer_query_li_template
                 query: query
+                broken_query: broken_query
                 id: @history.length-1
                 num: @history.length
             if @state is 'visible'
