@@ -13,9 +13,19 @@ val_t *env_t::get_optarg(const std::string &key){
 }
 
 
-int env_t::gensym() {
-    r_sanity_check(next_gensym_val > -100000);
-    return next_gensym_val--;
+static const int min_normal_gensym = -1000000;
+int env_t::gensym(bool allow_implicit) {
+    r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
+    int gensym = next_gensym_val--;
+    if (!allow_implicit) {
+        gensym += min_normal_gensym;
+        r_sanity_check(gensym < min_normal_gensym);
+    }
+    return gensym;
+}
+
+bool env_t::var_allows_implicit(int varnum) {
+    return varnum >= min_normal_gensym;
 }
 
 void env_t::push_implicit(const datum_t **val) {

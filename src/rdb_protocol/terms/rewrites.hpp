@@ -295,8 +295,9 @@ private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
         rcheck_target(bt_src, in->args_size() == 2, "update requires 2 arguments");
-        int old_row = env->gensym();
-        int new_row = env->gensym();
+        // The `false` values below mean that we don't bind the implicit variable.
+        int old_row = env->gensym(false);
+        int new_row = env->gensym(false);
 
         Term2 *arg = out;
 #pragma GCC diagnostic push
