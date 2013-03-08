@@ -26,7 +26,9 @@ tests:
       rb: [ "arr[(0..1)]", "arr[(0...2)]" ]
       ot: [1,2]
     - py: arr[1:]
-      js: arr.slice(1)
+      js:
+        cd: arr.slice(1)
+        ot: err("RqlDriverError", "Expected 2 argument(s) but found 1.")
       rb: []
       ot: [2,3]
 

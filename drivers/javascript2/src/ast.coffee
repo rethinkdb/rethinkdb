@@ -71,7 +71,7 @@ class RDBVal extends TermBase
     groupBy: (attrs..., collector = null) ->
         arg_count = attrs.length + (collector && 1 || 0)
         if collector == null
-            throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}." 
+            throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
         new GroupBy {}, @, attrs, collector
 
 class DatumTerm extends RDBVal

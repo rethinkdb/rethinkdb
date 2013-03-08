@@ -13,15 +13,19 @@ class Cursor
         @_cont = null
         @_cbQueue = []
 
+    _addChunk: (chunk) ->
+        if chunk.length > 0
+            @_chunks.push chunk
+
     _addData: (chunk) ->
-        @_chunks.push chunk
+        @_addChunk chunk
 
         @_contFlag = false
         @_promptNext()
         @
 
     _endData: (chunk) ->
-        @_chunks.push chunk
+        @_addChunk chunk
         @_endFlag = true
 
         @_contFlag = true
@@ -83,7 +87,8 @@ class Cursor
                 cb(err, row)
                 if @hasNext()
                     n()
-        n()
+        if @hasNext()
+            n()
 
     toArray: (cb) ->
         arr = []
