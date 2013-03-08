@@ -79,9 +79,20 @@ private:
         }
         lt_cmp_t lt_cmp(arr);
         // We can't have datum_stream_t::sort because templates suck.
+
+        table_t *tbl = 0;
+        datum_stream_t *seq = 0;
+        val_t *v0 = arg(0);
+        if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
+            std::pair<table_t *, datum_stream_t *> ts = v0->as_selection();
+            tbl = ts.first;
+            seq = ts.second;
+        } else {
+            seq = v0->as_seq();
+        }
         datum_stream_t *s = new sort_datum_stream_t<lt_cmp_t>(
-            env, lt_cmp, arg(0)->as_seq(), this);
-        return new_val(s);
+            env, lt_cmp, seq, this);
+        return tbl ? new_val(tbl, s) : new_val(s);
     }
     RDB_NAME("orderby");
 

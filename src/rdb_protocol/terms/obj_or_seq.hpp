@@ -50,7 +50,7 @@ private:
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_OBJECT));
         for (size_t i = 1; i < num_args(); ++i) {
             const std::string &key = arg(i)->as_str();
-            const datum_t *el = obj->el(key, NOTHROW);
+            const datum_t *el = obj->el(key);
             if (el) {
                 bool conflict = out->add(key, el);
                 r_sanity_check(!conflict);
