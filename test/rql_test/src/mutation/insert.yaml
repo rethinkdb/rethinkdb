@@ -37,6 +37,7 @@ tests:
     # test upsert option (object exists)
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
+      rb: tbl.insert({:id => 2, :b => 20}, :upsert)
       ot: ({'replaced':1})
 
     - cd: tbl.get(2)
@@ -45,6 +46,7 @@ tests:
     # test upsert option (object doesn't exit)
     - py: tbl.insert({'id':20,'b':20}, upsert=True)
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
+      rb: tbl.insert({:id => 20, :b => 20}, :upsert)
       ot: ({'inserted':1})
 
     - cd: tbl.get(20)

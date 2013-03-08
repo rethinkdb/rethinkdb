@@ -50,6 +50,10 @@ tests:
       cd: []
       ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
     
+    - js: r.do(1, function(x) { return undefined; })
+      cd: []
+      ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
+    
     - cd: r.do()
       py: [] # Case handled by native python error
       ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
@@ -83,6 +87,7 @@ tests:
       ot: err("RqlRuntimeError", 'Expected 1 argument(s) but found 2.', [1])
 
     - cd: r.expr(5).do(r.row)
+      rb: r(5).do{ |row| row }
       ot: 5
 
     ## Branch
@@ -107,10 +112,12 @@ tests:
     # r.error() negative cases
     - cd: r.error()
       py: [] # Here we rely on a native python error
+      rb: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
       
     - cd: r.error('foo', 'bar')
       py: [] # Here we rely on a native python error
+      rb: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
       
     - cd: r.error(5) # we might want to allow this eventually
@@ -118,20 +125,16 @@ tests:
 
     # For kicks, let's test arity checking in map and filter (Python driver doesn't require this)
     - js: r.expr([1, 2, 3]).map()
-      rb: r.expr([1, 2, 3]).map()
-      py: []
+      cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
     - js: r.expr([1, 2, 3]).map(1, 2)
-      rb: r.expr([1, 2, 3]).map(1, 2)
       cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
     - js: r.expr([1, 2, 3]).filter()
-      rb: r.expr([1, 2, 3]).filter()
-      py: []
+      cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
     - js: r.expr([1, 2, 3]).filter(1, 2)
-      rb: r.expr([1, 2, 3]).filter(1, 2)
-      py: []
+      cd: []
       ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
 
     # r.js()
@@ -260,13 +263,16 @@ tests:
     
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))
+      rb: r(1).do{ |row| tbl.insert({ :foo => row }) }
       ot: ({'inserted':1, 'generated_keys':arrlen(1,uuid())})
       
-    - cd: r.expr([1, 2])[0].do(tbl.insert({'foo':r.row}))
+    - py: r.expr([1, 2])[0].do(tbl.insert({'foo':r.row}))
       js: r.expr([1, 2]).nth(0).do(tbl.insert({'foo':r.row}))
+      rb: r([1, 2])[0].do{ |row| tbl.insert({ :foo => row }) }
       ot: ({'inserted':1, 'generated_keys':arrlen(1,uuid())})
 
     - cd: r.expr([1, 2]).map(tbl.insert({'foo':r.row}))
+      rb: r([1, 2]).map{ |row| tbl.insert({ :foo => row }) }
       ot: err('RqlCompileError', 'Cannot nest writes or meta ops in stream operations.  Use FOREACH instead.', [0])
       
     - cd: r.expr([1, 2]).map(r.db('test').table_create('nested_table'))

@@ -14,6 +14,35 @@
 # }.flatten.join("\n")
 load 'quickstart2.rb'
 
+# r.replace(
+#   r.table('test'),
+#   r.func([-1000002],
+#          r.branch(r.eq(r.var(-1000002), nil),
+#                   nil,
+#                   r.funcall(r.func([-1000003],
+#                                    r.branch(r.eq(r.var(-1000003), nil),
+#                                             r.var(-1000002),
+#                                             r.var(-1000002).merge(r.var(-1000003)))),
+#                             r.funcall(r.func([1], {}),
+#                                       r.var(-1000002)))))).run
+
+r.replace(
+  r.table('test'),
+  r.func([-1000002],
+         r.branch(r.eq(r.var(-1000002), nil),
+                  nil,
+                  r.funcall(r.func([-1000003],
+                                   r.branch(r.eq(r.var(-1000003), nil),
+                                            r.var(-1000002),
+                                            r.var(-1000002).merge(r.var(-1000003)))),
+                            r.funcall(r.func([1], {}),
+                                      r.var(-1000002)))))).run
+
+# tbl = r.table('test')
+# tbl.delete.run
+# tbl.insert({}).
+# tbl.update {|row| nil}.run
+
 # r.add(1000000, r.add(2000000, r.add(4000000, 5000000, 6000000), 7000000, 8000000, r.add(r.add(3000000, 9000000, 1000000, 2000000, r.add(3000000, 4000000, 5000000, 6000000)), "a"))).run
 
 # r.add(1000000, r.add(2000000, r.add(4000000, 5000000, 6000000), r.add(3000000, "a"))).run

@@ -104,10 +104,12 @@ tests:
     # Make sure get only takes one arg (since we used to be able to pass id)
     - cd: tbl.get()
       py: [] # Handled by native Python error
+      rb: []
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 0.', [1])
      
     - cd: tbl.get(10, 20)
       py: [] # Handled by native Python error
+      rb: []
       ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
       
     # Create a table with a non-id primary key
@@ -179,6 +181,7 @@ tests:
       
     - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
       js: nested.filter(function (x) { return x.filter(function (y) { return y.ge(4); }).count().gt(0) })
+      rb: nested.filter{ |x| x.filter{ |y| y >= 4}.count > 0 }
       ot: ([[3, 4], [5, 6]])
       
     - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
@@ -216,6 +219,7 @@ tests:
     # what the heck, let's see what happens
     - py: r.expr(5) + tbl
       js: r.expr(5).add(tbl)
+      rb: r 5 + tbl
       ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
     
     # Clean up

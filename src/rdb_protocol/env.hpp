@@ -42,7 +42,8 @@ private:
 
 public:
     // returns a globaly unique variable
-    int gensym();
+    int gensym(bool allow_implicit = false);
+    static bool var_allows_implicit(int varnum);
 private:
     int next_gensym_val; // always negative
 

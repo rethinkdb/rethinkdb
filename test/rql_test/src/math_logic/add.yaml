@@ -1,11 +1,10 @@
 desc: Tests for basic usage of the add operation
 tests:
     
-    # TODO: make sure ALL drivers support non-overloaded method names (e.g. add, sub, r.add, r.sub, etc.)
     # Python supports the overloaded operator '+' in both directions
-    - py: [(r.expr(1) + 1), (1 + r.expr(1))]
+    - py: [(r.expr(1) + 1), (1 + r.expr(1)), (r.expr(1).add(1))]
       js: r(1).add(1)
-      rb: r(1) + 1
+      rb: [r(1) + 1, r(1).add(1)]
       ot: 2
 
     - py: r.expr(-1) + 1

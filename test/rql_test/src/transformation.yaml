@@ -59,7 +59,7 @@ tests:
       js: ccm.reduce(function(a,b) { return a.add(b).mod(4); })
       rb: ccm.reduce{ |a, b| (a + b) % 4 }
       ot: 0
-
+      
     # Order by
     - py: tbl.order_by('id')[0]
       js: tbl.orderBy('id').nth(0)

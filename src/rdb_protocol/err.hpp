@@ -63,7 +63,10 @@ private:
 #define rcheck(pred, msg) rcheck_target(this, pred, msg)
 #define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
 
-#define rfail_target(target, args...) rcheck_target(target, false, strprintf(args))
+#define rfail_target(target, args...) do {              \
+        rcheck_target(target, false, strprintf(args));  \
+        unreachable();                                  \
+    } while (0)
 #define rfail(args...) do {                                             \
         rcheck(false, strprintf(args));                                 \
         unreachable();                                                  \
@@ -84,6 +87,7 @@ private:
 class backtrace_t {
 public:
     backtrace_t(const Backtrace *bt) {
+        if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
             push_back(bt->frames(i));
         }

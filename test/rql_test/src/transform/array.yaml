@@ -15,9 +15,9 @@ tests:
     ## Slice
 
     # Python uses the slice syntax
-    - py: arr[1:2]
+    - py: ["arr[1:2]", "arr.slice(1, 2)"]
       js: arr.slice(1,2)
-      rb: [ "arr[(1..2)]", "arr[(1...3)]" ]
+      rb: [ "arr[(1..2)]", "arr[(1...3)]", arr.slice(1,2)]
       ot: [2,3]
 
     # One ended slices
@@ -89,6 +89,11 @@ tests:
       rb: arr.reduce{ |a, b| a + b }
       ot: 6
 
+    - py: "arr.reduce(0, lambda a, b: a + b)"
+      js: arr.reduce(0, function(a,b) { return a.add(b); })
+      rb: arr.reduce(0){ |a, b| a + b }
+      ot: 6
+
     ## Filter
 
     - py: "objArr.filter(lambda row: row['b'] == 'b')"
@@ -117,7 +122,10 @@ tests:
       ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
 
     - cd: r.expr([{'-a':1},{'-a':2}]).order_by('-a')
-      ot: [{'-a':1},{'-a':2}]
+      rb: r.expr([{ '-a' => 1}, {'-a' => 2}]).order_by('-a')
+      ot:
+        cd: [{'-a':1},{'-a':2}]
+        rb: "[{'-a'=>1},{'-a'=>2}]"
 
     ## Distinct
 
@@ -138,8 +146,7 @@ tests:
 
     ## Nth
 
-    - py: arr[1]
-      rb: arr[1]
+    - cd: ["arr[1]", "arr.nth(1)"]
       js: arr.nth(1)
       ot: 2
     - py: arr[0]

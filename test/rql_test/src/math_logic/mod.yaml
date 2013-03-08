@@ -2,9 +2,9 @@ desc: Tests for the basic usage of the mod operation
 tests:
     
     # Python supports the overloaded operator '%' in both directions
-    - py: [(r.expr(10) % 3), (10 % r.expr(3))]
+    - py: [(r.expr(10) % 3), (10 % r.expr(3)), (r.expr(10).mod(3))]
       js: r(10).mod(3)
-      rb: (r 10) % 3
+      rb: [(r 10) % 3, r(10).mod 3, 10 % (r 3)]
       ot: 1
 
     - py: r.expr(-10) % -3

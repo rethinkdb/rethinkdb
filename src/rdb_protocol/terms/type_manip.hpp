@@ -142,8 +142,9 @@ private:
         int end_type = get_type(end_type_name, this);
 
         // Identity
-        if (!subtype(end_type)
-            && opaque_start_type.is_convertible(supertype(end_type))) {
+        if ((!subtype(end_type)
+             && opaque_start_type.is_convertible(supertype(end_type)))
+            || start_type == end_type) {
             return val;
         }
 
@@ -176,11 +177,14 @@ private:
             // TODO: Object to sequence?
         }
 
-        if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)) {
+        if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)
+            && !(start_supertype == val_t::type_t::DATUM
+                 && start_type != R_ARRAY_TYPE)) {
             datum_stream_t *ds;
             try {
                 ds = val->as_seq();
-            } catch (const exc_t &e) {
+            } catch (const any_ql_exc_t &e) {
+
                 rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();
