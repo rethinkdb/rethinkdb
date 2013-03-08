@@ -53,7 +53,6 @@ tests:
       ot: ({'inserted':100})
 
     # Inner-Join
-    # TODO: test an actual inner-join condition (where inner-join differs from outer-join)
     - def:
         py: ij = tbl.inner_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: ij = tbl.innerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
@@ -66,7 +65,6 @@ tests:
       ot: 0
 
     # Outer-Join
-    # TODO: test an actual outer-join condition (where outer-join differs from inner-join)
     - def:
         py: oj = tbl.outer_join(tbl2, lambda x,y:x['a'] == y['b']).zip()
         js: oj = tbl.outerJoin(tbl2, function(x, y) { return x('a').eq(y('b')); }).zip()
@@ -87,6 +85,20 @@ tests:
     - def: ej = tbl.eq_join('a', tbl3).zip()
       cd: ej.count()
       ot: 100
+    
+    # test an inner-join condition where inner-join differs from outer-join
+    - def: left = r.expr([{'a':1},{'a':2},{'a':3}])
+    - def: right = r.expr([{'b':2},{'b':3}])
+      
+    - py: left.inner_join(right, lambda l, r:l['a'] == r['b']).zip()
+      js: left.innerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
+      ot: [{'a':2,'b':2},{'a':3,'b':3}]
+    
+    # test an outer-join condition where outer-join differs from inner-join
+    - py: left.outer_join(right, lambda l, r:l['a'] == r['b']).zip()
+      js: left.outerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
+      ot: [{'a':1},{'a':2,'b':2},{'a':3,'b':3}]
+    
     
     # Clean up
     - cd: r.db('test').table_drop('test')
