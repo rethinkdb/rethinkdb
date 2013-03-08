@@ -89,6 +89,10 @@ tests:
       rb: arr.reduce{ |a, b| a + b }
       ot: 6
 
+    - py: "arr.reduce(0, lambda a, b: a + b)"
+      js: arr.reduce(0, function(a,b) { return a.add(b); })
+      ot: 6
+
     ## Filter
 
     - py: "objArr.filter(lambda row: row['b'] == 'b')"

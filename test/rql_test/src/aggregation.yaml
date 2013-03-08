@@ -35,25 +35,62 @@ tests:
       ot: ({'inserted':100})
 
     # GMR
-    # TODO: check that r.row works
-    # TODO: check what happens if one of the functions returns undefined
-    # TODO: optional base?
-    - py: tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
-      rb: tbl.grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
-      js: |
-        tbl.groupedMapReduce(function(row) {
-            return row('a');
-        }, function(row) {
-            return row('id');
-        }, function(a,b) {
-            return a.add(b);
-        }) 
+    - rb: tbl.grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+      py:
+        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+      js:
+        - |
+          tbl.groupedMapReduce(function(row) {
+              return row('a');
+          }, function(row) {
+              return row('id');
+          }, function(a,b) {
+              return a.add(b);
+          }) 
+        - |
+          tbl.groupedMapReduce(r.row('a'), r.row('id'),
+          function(a,b) {
+              return a.add(b);
+          }) 
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},
             {'group':2, 'reduction':1250},
             {'group':3, 'reduction':1275}])
 
+    # gmr optional base
+    - py:
+        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], 0, lambda a,b:a + b)
+        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], 0, lambda a,b:a + b)
+      js:
+        - |
+          tbl.groupedMapReduce(function(row) {
+              return row('a');
+          }, function(row) {
+              return row('id');
+          }, 0, function(a,b) {
+              return a.add(b);
+          }) 
+        - |
+          tbl.groupedMapReduce(r.row('a'), r.row('id'), 0,
+          function(a,b) {
+              return a.add(b);
+          }) 
+      ot: |
+          ([{'group':0, 'reduction':1200},
+            {'group':1, 'reduction':1225},
+            {'group':2, 'reduction':1250},
+            {'group':3, 'reduction':1275}])
+    
+    # undefined...
+    - js: |
+          tbl.groupedMapReduce(function(row) {
+          }, function(row) {
+          }, function(a,b) {
+          }) 
+      ot: err('RqlDriverError', 'Unknown datum value `undefined`, did you forget a `return`?', [0])
+    
     # GroupBy
 
     # COUNT
