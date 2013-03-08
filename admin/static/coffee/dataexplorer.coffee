@@ -1231,62 +1231,6 @@ module 'DataExplorerView', ->
                 str = str.replace char[0], char[1]
             return new RegExp('^('+str+')', 'i')
 
-
-        # Return the first unmatched closing parenthesis/square bracket/curly bracket
-        # TODO use and show errors once we'll have decided how to handle errors. Brackets/ace may do it themselves.
-        # TODO Check if a key is used more than once in an object
-        ###
-        get_errors_from_query: (query) =>
-            is_string = false
-            char_used = ''
-
-            stack = [] # Stack of opening parenthesis/square brackets/curly brackets
-            for char, i in query
-                if is_string is false
-                    if char is '"' or char is '\''
-                        is_string = true
-                        char_used = char
-                        position_string = i
-                    else if char is '('
-                        stack.push char
-                    else if char is ')'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                    else if char is '['
-                        stack.push char
-                    else if char is ']'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                     else if char is '{'
-                        stack.push char
-                    else if char is '}'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                else
-                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
-                        is_string = false
-            if is_string is true
-                return {
-                    error: true
-                    char: char_used
-                    position: i
-                }
-            else
-                return null
-        ###
-
         # Show suggestion and determine where to put the box
         show_suggestion: =>
             @move_suggestion()
@@ -1519,8 +1463,9 @@ module 'DataExplorerView', ->
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
+
+                @raw_queries = @separate_queries @raw_query # We first split raw_queries
                 @queries = @separate_queries @query
-                @raw_queries = @separate_queries @raw_query
 
                 if @queries.length is 0
                     error = @query_error_template
@@ -1709,8 +1654,18 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             stack = []
             start = 0
+            
+            position =
+                char: 0
+                line: 1
 
             for char, i in query
+                if char is '\n'
+                    position.line++
+                    position.char = 0
+                else
+                    position.char++
+
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
                     to_skip--
                     continue
@@ -1733,13 +1688,17 @@ module 'DataExplorerView', ->
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
                         continue
+                    
 
                     if char of @stop_char.opening
                         stack.push char
                     else if char of @stop_char.closing
                         if stack[stack.length-1] isnt @stop_char.closing[char]
-                            #TODO Give back line and char?
-                            throw "Syntax error, missing opening bracket for #{char}"
+                            throw @query_error_template
+                                syntax_error: true
+                                bracket: char
+                                line: position.line
+                                position: position.char
                         else
                             stack.pop()
                     else if char is ';' and stack.length is 0
@@ -1752,70 +1711,6 @@ module 'DataExplorerView', ->
                     queries.push last_query
 
             return queries
-
-        ###
-        # Separate the queries so we can execute them in a synchronous order. We use .run()\s*; to separate queries (and we make sure that the separator is not in a string)
-        separate_queries: (query) =>
-            start = 0
-            count_dot = 0
-
-            is_string = false
-            char_used = ''
-            queries = []
-
-            # Again because of strings, we cannot know use a pretty regex
-            is_parsing_function = false # Track if we are parsing a function (between a dot and a opening parenthesis)
-            is_parsing_args = false # Track if we are parsing the arguments of a function so we can match for .run( ) but not for .ru n()
-            last_function = '' # The last function used with its arguments 
-            for i in [0..query.length-1]
-                if is_string is false
-                    if is_inline_comment is true
-                        if query[i] is '\n' or query[i] is '\r'
-                            is_inline_comment = false
-                    else if is_comment
-                        if query[i] is '*' or query[i] is '/'
-                            is_comment = false
-                    else
-                        if (query[i] is '"' or query[i] is '\'')
-                            is_string = true
-                            char_used = query[i]
-                        else if query[i] is ';'
-                            if last_function is 'run()' # If the last function is run(), we have one query
-                                queries.push query.slice start, i
-                                start = i+1
-                        else if query[i] is '/'
-                            if query[i+1] is '/'
-                                is_inline_comment = true
-                            else if query[i+1] is '*'
-                                is_comment = true
-
-                        # Keep track of the last function used
-                        if query[i] is '.' # New function detected, let's reset last_function and switch on is_parsing_function
-                            last_function = ''
-                            is_parsing_function = true
-                        else if is_parsing_function is true
-                            if is_parsing_args is false or /\s/.test(query[i]) is false # If we are parsing arguments, we are not interested in white space
-                                last_function += query[i]
-
-                            if query[i] is '(' # We are going to parse arguments now
-                                is_parsing_args = true
-                            else if query[i] is ')' # End of the function
-                                is_parsing_function = false
-                                is_parsing_args = false
-
-
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
-                        else
-                            is_string = false
-
-            last_query = query.slice start, query.length
-            if /^\s*$/.test(last_query) is false
-                queries.push query.slice start, query.length
-            return queries
-        ###
 
         # Clear the input
         clear_query: =>
