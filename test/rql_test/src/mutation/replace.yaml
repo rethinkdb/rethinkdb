@@ -93,6 +93,14 @@ tests:
       js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'nonAtomic':true})
       ot: ({'replaced':1})
       
+    - js: tbl.get(1).replace({}, 'foo')
+      py: []
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      
+    - js: tbl.get(1).replace({}, {'foo':'bar'})
+      py: []
+      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      
     # Replace whole table
 
     - py: tbl.replace(lambda row:None)
