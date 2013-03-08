@@ -89,6 +89,7 @@ tests:
           }, function(row) {
           }, function(a,b) {
           }) 
+      cd: []
       ot: err('RqlDriverError', 'Unknown datum value `undefined`, did you forget a `return`?', [0])
     
     # GroupBy
