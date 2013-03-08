@@ -59,7 +59,7 @@ def cmp_test(one, two)
 
   case "#{two.class}"
   when "Err"
-    if one.kind_of? RethinkDB::RqlError
+    if one.kind_of? Exception
       one = Err.new("#{one.class}".sub(/^RethinkDB::/,""), one.message, false)
     end
     cmp = one.class.name <=> two.class.name

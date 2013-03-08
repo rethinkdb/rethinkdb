@@ -29,7 +29,7 @@ rethinkdb.dbCreate = ar (dbName) -> new DbCreate {}, dbName
 
 rethinkdb.dbDrop = ar (dbName) -> new DbDrop {}, dbName
 
-rethinkdb.dbList = -> new DbList {}
+rethinkdb.dbList = ar () -> new DbList {}
 
 rethinkdb.do = (args...) ->
     unless args.length >= 1

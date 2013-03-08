@@ -51,7 +51,13 @@ tests:
       
     - js: db.table_create('nonsense', {'foo':'bar'})
       py: []
-      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
       
-    # TODO: test options to table_create (primary_datacenter, cache_size)
-    
+    - js: db.table_create('nonsense1', {'datacenter':'bar'})
+      py: db.table_create('nonsense1', datacenter='bar')
+      ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+
+    - js: db.table_create('nonsense2', {'cacheSize':'bar'})
+      py: db.table_create('nonsense2', cache_size='bar')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+

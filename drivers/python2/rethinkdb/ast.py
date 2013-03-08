@@ -212,11 +212,14 @@ class RDBValue(RDBOp):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, data_collector):
-        return GroupedMapReduce(self, grouping, mapping, data_collector)
+    def grouped_map_reduce(self, grouping, mapping, data_collector, base=None):
+        if base == None:
+            base = ()
+        return GroupedMapReduce(self, grouping, mapping, data_collector, base=base)
 
-    def group_by(self, *attrs_reduction):
-        return GroupBy(self, list(attrs_reduction[:-1]), attrs_reduction[-1])
+    def group_by(self, arg1, arg2, *rest):
+        args = [arg1, arg2] + list(rest)
+        return GroupBy(self, list(args[:-1]), args[-1])
 
     def delete(self):
         return Delete(self)

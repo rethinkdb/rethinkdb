@@ -24,5 +24,5 @@ aropt = (fun) -> (args...) ->
     numPosArgs = args.length - (if perhapsOptDict? then 1 else 0)
 
     if expectedPosArgs isnt numPosArgs
-         throw new RqlDriverError "Expected #{expectedPosArgs} argument(s) but found #{numPosArgs}."
+         throw new RqlDriverError "Expected at least #{expectedPosArgs} argument(s) but found #{numPosArgs}."
     fun.apply(@, args)
