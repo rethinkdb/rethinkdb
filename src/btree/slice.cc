@@ -1,21 +1,24 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "errors.hpp"
+
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
-#include "errors.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache) {
+void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
+
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
-    create(cache, SUPERBLOCK_ID, &txn);
+    create(cache, SUPERBLOCK_ID, &txn, metainfo_key, metainfo_value);
 }
 
-void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction_t *txn) {
+void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
+        const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
     buf_lock_t superblock(txn, superblock_id, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
@@ -27,6 +30,8 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
 
     // sb->metainfo_blob has been properly zeroed.
 
+    set_superblock_metainfo(txn, &superblock, metainfo_key, metainfo_value);
+
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
@@ -34,6 +39,7 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     buf_lock_t sindex_block(txn);
     initialize_secondary_indexes(txn, &sindex_block);
     sb->sindex_block = sindex_block.get_block_id();
+
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent, const std::string &identifier, block_id_t _superblock_id)

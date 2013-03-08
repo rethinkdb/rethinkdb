@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/btree_store.hpp"
 
 #include "btree/operations.hpp"
@@ -34,32 +34,17 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     cache.init(new cache_t(serializer, &cache_dynamic_config, &perfmon_collection));
 
     if (create) {
-        btree_slice_t::create(cache.get());
-    }
-
-    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
-
-    if (create) {
-        // Initialize metainfo to an empty `binary_blob_t` because its domain is
-        // required to be `protocol_t::region_t::universe()` at all times
-        /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
-
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
-        order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::store_t::store_t");
-        order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
-        get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
-        buf_lock_t* sb_buf = superblock->get();
-        clear_superblock_metainfo(txn.get(), sb_buf);
-
         vector_stream_t key;
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();   // `operator<<` needs a non-const reference  // TODO <- what
         msg << kr;
-        DEBUG_VAR int res = send_write_message(&key, &msg);
-        rassert(!res);
-        set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
+        int res = send_write_message(&key, &msg);
+        guarantee(!res);
+
+        btree_slice_t::create(cache.get(), key.vector(), std::vector<char>());
     }
+
+    btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
 }
 
 template <class protocol_t>
@@ -335,7 +320,12 @@ void btree_store_t<protocol_t>::add_sindex(
 
         sindex.opaque_definition = definition;
 
-        btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
+        /* Notice we're passing in empty strings for metainfo. The metainfo in
+         * the sindexes isn't used for anything but this could perhaps be
+         * something that would give a better error if someone did try to use
+         * it... on the other hand this code isn't exactly idiot proof even
+         * with that. */
+        btree_slice_t::create(txn->get_cache(), sindex.superblock, txn, std::vector<char>(), std::vector<char>());
         secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, uuid_to_str(id)));
 
         // TODO when we have post construction this will be set to false and
@@ -400,7 +390,8 @@ void btree_store_t<protocol_t>::set_sindexes(
                  * us to reacquire later when we make a btree_store. */
             }
 
-            btree_slice_t::create(txn->get_cache(), sindex.superblock, txn);
+            btree_slice_t::create(txn->get_cache(), sindex.superblock, txn,
+                    std::vector<char>(), std::vector<char>());
             uuid_u id = it->first;
             secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, uuid_to_str(it->first)));
 

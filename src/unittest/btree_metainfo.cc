@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
@@ -60,13 +60,14 @@ void run_metainfo_test() {
     mirrored_cache_config_t cache_dynamic_config;
     cache_t cache(&serializer, &cache_dynamic_config, &get_global_perfmon_collection());
 
-    btree_slice_t::create(&cache);
+    btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
+    std::map<std::string, std::string> mirror;
+    mirror[""] = "";
 
     btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
 
     order_source_t order_source;
 
-    std::map<std::string, std::string> mirror;
 
     for (int i = 0; i < 1000; i++) {
 

@@ -34,7 +34,8 @@ void run_sindex_low_level_operations_test() {
     mirrored_cache_config_t cache_dynamic_config;
     cache_t cache(&serializer, &cache_dynamic_config, &get_global_perfmon_collection());
 
-    btree_slice_t::create(&cache);
+    //Passing in blank metainfo. We don't need metainfo for this unittest.
+    btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
 
     btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
 
