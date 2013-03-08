@@ -1,6 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection']
+__all__ = ['connect', 'Connection', 'Cursor']
 
 import socket
 import struct
@@ -10,50 +10,30 @@ import ql2_pb2 as p
 from errors import *
 
 class Cursor:
-    def __init__(self, conn, query, chunk, complete):
-        self.results = chunk
+    def __init__(self, conn, query, term, chunk, complete):
+        self.chunks = [chunk]
         self.conn = conn
         self.query = query
+        self.term = term
         self.end_flag = complete
 
     def _read_more(self):
         if self.end_flag:
             return False
-        other = self.conn._continue(self.query)
-        self.results.extend(other.results)
+        other = self.conn._continue(self.query, self.term)
+        self.chunks.extend(other.chunks)
         self.end_flag = other.end_flag
         return True
 
-    def _read_until(self, index):
-        while index >= len(self.results) and self._read_more():
-            pass
-
     def __iter__(self):
-        index = 0
-        while True:
-            if self.end_flag and index >= len(self.results):
-                break
-            self._read_until(index)
-            yield self.results[index]
-            index += 1
+        while len(self.chunks) > 0 or not self.end_flag:
 
-    def __len__(self):
-        while self._read_more():
-            pass
-        return len(self.results)
+            if len(self.chunks) == 0:
+                self._read_more()
 
-    def __getitem__(self, index):
-        if isinstance(index, slice):
-            self._read_until(index.stop)
-        else:
-            self._read_until(index)
-        return self.results[index]
-
-    def __repr__(self):
-        vals = ', '.join([repr(i) for i in self.results[:8]])
-        if len(self.results) > 8 or not self.end_flag:
-            return "["+vals+"... ]"
-        return "["+vals+"]"
+            for row in self.chunks[0]:
+                yield row
+            del self.chunks[0]
 
 class Connection():
 
@@ -112,18 +92,18 @@ class Connection():
         term.build(query.query)
         return self._send_query(query, term)
 
-    def _continue(self, query):
+    def _continue(self, orig_query, orig_term):
         query = p.Query2()
         query.type = p.Query2.CONTINUE
         query.token = orig_query.token
-        return self._send_query(query, term)
+        return self._send_query(query, orig_term)
 
-    def _end(self, query):
+    def _end(self, orig_query, orig_term):
         query = p.Query2()
         query.type = p.Query2.END
         query.token = orig_query.token
-        return self._send_query(query, term)
-        
+        return self._send_query(query, orig_term)
+
     def _send_query(self, query, term):
 
         # Error if this connection has closed
@@ -169,12 +149,12 @@ class Connection():
         # Sequence responses
         if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return Cursor(self, query, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
+            return Cursor(self, query, term, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
 
         # Atom response
         if response.type is p.Response2.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
-        
+
 def connect(host='localhost', port=28015):
     return Connection(host, port)
 
