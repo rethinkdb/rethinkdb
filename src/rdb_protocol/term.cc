@@ -205,8 +205,8 @@ __thread int DBG_depth = 0;
         for (int DBG_i = 0; DBG_i < DBG_depth; ++DBG_i) DBG_s += " ";   \
         debugf("%s" s, DBG_s.c_str(), ##args);                          \
     } while (0)
-#define INC_DEPTH do { ++DBG_depth } while (0)
-#define DEC_DEPTH do { --DBG_depth } while (0)
+#define INC_DEPTH do { ++DBG_depth; } while (0)
+#define DEC_DEPTH do { --DBG_depth; } while (0)
 #else // INSTRUMENT
 #define DBG(s, args...)
 #define INC_DEPTH

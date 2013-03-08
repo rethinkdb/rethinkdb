@@ -39,6 +39,7 @@ const datum_t **env_t::top_implicit(const rcheckable_t *caller) {
     return implicit_var.top();
 }
 void env_t::pop_implicit() {
+    r_sanity_check(implicit_var.size() > 0);
     implicit_var.pop();
 }
 

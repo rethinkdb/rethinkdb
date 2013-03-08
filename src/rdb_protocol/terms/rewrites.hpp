@@ -7,9 +7,6 @@
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
-#define CHECK_REWRITE_ARGS(bt_src, in, expected) \
-    rcheck_target(bt_src, in->args_size() == expected, strprintf("Expected " #expected " argument(s) but found %d.", in->args_size()))
-
 namespace ql {
 
 // This file implements terms that are rewritten into other terms.  See
@@ -17,10 +14,14 @@ namespace ql {
 
 class rewrite_term_t : public term_t {
 public:
-    rewrite_term_t(env_t *env, const Term2 *term,
+    rewrite_term_t(env_t *env, const Term2 *term, argspec_t argspec,
                    void (*rewrite)(env_t *, const Term2 *, Term2 *,
                                    const pb_rcheckable_t *))
         : term_t(env, term), in(term) {
+        int args_size = in->args_size();
+        rcheck(argspec.contains(args_size),
+               strprintf("Expected %s but found %d.",
+                         argspec.print().c_str(), args_size));
         rewrite(env, in, &out, this);
         propagate(&out); // duplicates `in` backtrace (see `pb_rcheckable_t`)
         for (int i = 0; i < in->optargs_size(); ++i) {
@@ -30,6 +31,7 @@ public:
         real.init(compile_term(env, &out));
     }
 private:
+
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
     virtual val_t *eval_impl() { return real->eval(use_cached_val); }
     const Term2 *in;
@@ -44,10 +46,9 @@ private:
 class groupby_term_t : public rewrite_term_t {
 public:
     groupby_term_t(env_t *env, const Term2 *term)
-        : rewrite_term_t(env, term, rewrite) { }
+        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 3);
         std::string dc;
         const Term2 *dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
@@ -165,10 +166,9 @@ private:
 class inner_join_term_t : public rewrite_term_t {
 public:
     inner_join_term_t(env_t *env, const Term2 *term)
-        : rewrite_term_t(env, term, rewrite) { }
+        : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 3);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         const Term2 *l = &in->args(0);
         const Term2 *r = &in->args(1);
         const Term2 *f = &in->args(2);
@@ -198,10 +198,9 @@ public:
 class outer_join_term_t : public rewrite_term_t {
 public:
     outer_join_term_t(env_t *env, const Term2 *term) :
-        rewrite_term_t(env, term, rewrite) { }
+        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 3);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
         int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
@@ -243,11 +242,10 @@ public:
 class eq_join_term_t : public rewrite_term_t {
 public:
     eq_join_term_t(env_t *env, const Term2 *term) :
-        rewrite_term_t(env, term, rewrite) { }
+        rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 3);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         const Term2 *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
@@ -275,11 +273,11 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+    delete_term_t(env_t *env, const Term2 *term)
+        : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 1);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         int x = env->gensym();
 
         Term2 *arg = out;
@@ -293,11 +291,11 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+    update_term_t(env_t *env, const Term2 *term)
+        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 2);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
         int old_row = env->gensym(false);
         int new_row = env->gensym(false);
@@ -322,11 +320,11 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(env_t *env, const Term2 *term) : rewrite_term_t(env, term, rewrite) { }
+    skip_term_t(env_t *env, const Term2 *term)
+        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out,
-                        const pb_rcheckable_t *bt_src) {
-        CHECK_REWRITE_ARGS(bt_src, in, 2);
+                        UNUSED const pb_rcheckable_t *bt_src) {
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"

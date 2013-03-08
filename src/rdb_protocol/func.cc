@@ -63,7 +63,9 @@ func_t::func_t(env_t *env, const Term2 *_source)
     for (size_t i = 0; i < args.size(); ++i) {
         //debugf("popping %d\n", args[i]);
         env->pop_var(args[i]);
-        if (args.size() == 1) env->pop_implicit();
+        if (args.size() == 1 && env_t::var_allows_implicit(args[i])) {
+            env->pop_implicit();
+        }
     }
 
     env->dump_scope(&scope);
