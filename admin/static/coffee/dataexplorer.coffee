@@ -1502,7 +1502,7 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Function that execute the query
+        # Function that execute the queries in a synchronous way.
         execute_query: =>
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
@@ -1514,12 +1514,10 @@ module 'DataExplorerView', ->
             @raw_query = @codemirror.getValue()
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
-            # Display the loading gif
-
             # Execute the query
             try
                 # Separate queries
-                @non_rethinkdb_query = '' # Store the non statements that don't return a rethinkdb query (like "var a = 1;")
+                @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
                 @queries = @separate_queries @query
                 @raw_queries = @separate_queries @raw_query
@@ -1536,6 +1534,7 @@ module 'DataExplorerView', ->
                 @.$('.loading_query_img').hide()
                 @results_view.render_error(@query, err)
 
+        # A portion is one query of the whole input.
         execute_portion: =>
             @saved_data.cursor = null
             while @queries[@index]?
@@ -1573,6 +1572,8 @@ module 'DataExplorerView', ->
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error)
         
+        # Create a callback for when a query returns
+        # We tag the callback to make sure that we display the results only of the last query executed by the user
         generate_rdb_global_callback: (id_execution) =>
             rdb_global_callback = (error, cursor) =>
                 if @id_execution is id_execution # We execute the query only if it is the last one
@@ -1620,6 +1621,8 @@ module 'DataExplorerView', ->
 
             return rdb_global_callback
 
+        # Create a callback used in cursor.next()
+        # We tag the callback to make sure that we display the results only of the last query executed by the user
         generate_get_result_callback: (id_execution) =>
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
@@ -1655,6 +1658,8 @@ module 'DataExplorerView', ->
 
             return get_result_callback
 
+        # Evaluate the query
+        # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
         evaluate: (query) =>
             "use strict"
             return eval(query)
@@ -1733,8 +1738,8 @@ module 'DataExplorerView', ->
                         stack.push char
                     else if char of @stop_char.closing
                         if stack[stack.length-1] isnt @stop_char.closing[char]
-                            #TODO Give back line and char
-                            throw "Syntax error, missing opening brackets for #{char}"
+                            #TODO Give back line and char?
+                            throw "Syntax error, missing opening bracket for #{char}"
                         else
                             stack.pop()
                     else if char is ';' and stack.length is 0
