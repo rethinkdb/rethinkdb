@@ -243,7 +243,6 @@ module 'DataExplorerView', ->
                 container: @
                 on_success: @success_on_connect
                 on_fail: @error_on_connect
-                callback: @rdb_global_callback
 
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
@@ -2481,10 +2480,6 @@ module 'DataExplorerView', ->
             @container = args.container
             @on_success = args.on_success
             @on_fail = args.on_fail
-            @callback = (error, cursor) ->
-                that.done++
-                if that.done is that.count
-                    args.callback error, cursor #rdb_global_callback()
 
             if window.location.port is ''
                 if window.location.protocol is 'https:'
