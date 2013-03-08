@@ -66,12 +66,9 @@ module RethinkDB
         q.query = @msg
         q.token = @token
         res = @conn.run_internal q
-        if res.type == Response2::ResponseType::SUCCESS_PARTIAL
-          @results = Shim.response_to_native(res, @msg)
-        else
-          @results = Shim.response_to_native(res, @msg)
-          @results.each(&block)
-          return self
+        @results = Shim.response_to_native(res, @msg)
+        if res.type == Response2::ResponseType::SUCCESS_SEQUENCE
+          @more = false
         end
       end
     end
