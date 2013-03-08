@@ -1493,7 +1493,10 @@ module 'DataExplorerView', ->
             try
                 @current_results = []
                 @start_time = new Date()
-                @saved_data.cursor.next @get_result_callback
+
+                @id_execution++
+                get_result_callback = @generate_get_result_callback @id_execution
+                @saved_data.cursor.next get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -1512,7 +1515,6 @@ module 'DataExplorerView', ->
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Display the loading gif
-            @.$('.loading_query_img').css 'display', 'block'
 
             # Execute the query
             try
@@ -1521,10 +1523,17 @@ module 'DataExplorerView', ->
                 @index = 0 # index of the query currently being executed
                 @queries = @separate_queries @query
                 @raw_queries = @separate_queries @raw_query
-                @execute_portion()
+
+                if @queries.length is 0
+                    error = @query_error_template
+                        no_query: true
+                    @results_view.render_error(null, error)
+                else
+                    @.$('.loading_query_img').show()
+                    @execute_portion()
 
             catch err
-                @.$('.loading_query_img').css 'display', 'none'
+                @.$('.loading_query_img').hide()
                 @results_view.render_error(@query, err)
 
         execute_portion: =>
@@ -1538,14 +1547,11 @@ module 'DataExplorerView', ->
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
-                    @.$('.loading_query_img').css 'display', 'none'
+                    @.$('.loading_query_img').hide()
                     @results_view.render_error(@raw_queries[@index], err)
                     return false
 
                 @index++
-
-                if @index is @queries.length
-                    @.$('.loading_query_img').css 'display', 'none'
 
                 if rdb_query instanceof TermBase
                     @skip_value = 0
@@ -1562,7 +1568,7 @@ module 'DataExplorerView', ->
                 else
                     @non_rethinkdb_query += @queries[@index-1]
                     if @index is @queries.length
-                        @.$('.loading_query_img').css 'display', 'none'
+                        @.$('.loading_query_img').hide()
                         error = @query_error_template
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error)
@@ -1573,7 +1579,7 @@ module 'DataExplorerView', ->
                     get_result_callback = @generate_get_result_callback id_execution
 
                     if error?
-                        @.$('.loading_query_img').css 'display', 'none'
+                        @.$('.loading_query_img').hide()
                         @results_view.render_error(@raw_queries[@index-1], error)
                         return false
                     
@@ -1589,6 +1595,8 @@ module 'DataExplorerView', ->
                             else
                                 get_result_callback() # Display results
                         else
+                            @.$('.loading_query_img').hide()
+
                             # Save the last executed query and the last displayed results
                             @current_results = cursor
 
@@ -1624,6 +1632,8 @@ module 'DataExplorerView', ->
                         if @current_results.length < @limit and @cursor.hasNext() is true
                             @cursor.next get_result_callback
                             return true
+
+                    @.$('.loading_query_img').hide()
 
                     # if data is undefined or @current_results.length is @limit
                     @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
