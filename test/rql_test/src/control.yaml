@@ -50,6 +50,10 @@ tests:
       cd: []
       ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
     
+    - js: r.do(1, function(x) { return undefined; })
+      cd: []
+      ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
+    
     - cd: r.do()
       py: [] # Case handled by native python error
       ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
