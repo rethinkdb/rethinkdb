@@ -18,7 +18,7 @@ tests:
     # Python overloads '|' for 'or'
     - py: [r.expr(True) | True, True | r.expr(True), "r.any(True,True)"]
       cd: r(true).or(true)
-      rb: [r(true).or(true), r(true) | True]
+      rb: [r(true).or(true), r(true) | true]
       ot: true
     - py: [r.expr(True) | False, True | r.expr(False)]
       cd: r(true).or(false) 

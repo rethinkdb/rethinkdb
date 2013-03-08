@@ -8,7 +8,7 @@ tests:
     # Python overloads the comparison operators (in both directions)
     - py: [r.expr(1) < 2, 1 < r.expr(2), r.expr(1).lt(2)]
       js: r(1).lt(2)
-      rb: [r(1) < 2, r(1).lt(2)]
+      rb: [r(1) < 2, r(1).lt(2), 1 < r(2)]
       ot: true
     - py: r.expr(3) < 2
       js: r(3).lt(2)
