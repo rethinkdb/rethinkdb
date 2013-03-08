@@ -84,6 +84,14 @@ tests:
       js: tbl.get(1).update({'d':r.js('5')}, {'nonAtomic':true})
       ot: ({'replaced':1})
 
+    - js: tbl.get(1).update({}, 'foo')
+      py: []
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+      
+    - js: tbl.get(1).update({}, {'foo':'bar'})
+      py: []
+      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      
     # Update whole table
     - py: tbl.update(lambda row:{'a':row['id']})
       js: tbl.update(function(row) { return {'a':row('id')}; })

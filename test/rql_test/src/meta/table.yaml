@@ -45,11 +45,13 @@ tests:
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
 
-    # TODO: what's the error message for
-    # r.db('test').table_create('testpkey', 'foo') in js and ruby?
+    - js: db.table_create('nonsense', 'foo')
+      py: []
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
       
-    # TODO: test options to table_create (e.g. primary_key -- that's tested in selection,
-    # primary_datacenter, cache_size)
+    - js: db.table_create('nonsense', {'foo':'bar'})
+      py: []
+      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      
+    # TODO: test options to table_create (primary_datacenter, cache_size)
     
-    # TODO: test bad arguments to table_create (especially in js
-    # driver -- e.g. not an object but multiple args)
