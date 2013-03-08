@@ -1649,6 +1649,7 @@ module 'DataExplorerView', ->
 
             return result_query
 
+        # Split input in queries. We use semi colon, pay attention to string, brackets and comments
         separate_queries: (query) =>
             queries = []
             is_parsing_string = false
