@@ -10,6 +10,12 @@ tests:
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
+    - py: r.db('test').table_create('test3', primary_key='foo')
+      rb: r.db('test').table_create('test3', {:primary_key=>'foo'})
+      js: r.db('test').tableCreate('test3', {'primaryKey':'foo'})
+      ot: ({'created':1})
+      def: tbl3 = r.db('test').table('test3')
+
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -32,6 +38,18 @@ tests:
             return res;
         }())
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'inserted':100})
+
+    - py: tbl3.insert([{'foo':i, 'b':i%4} for i in xrange(100)])
+      js: |
+        tbl3.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({foo:i, 'b':i%4});
+            }
+            return res;
+        }())
+      rb: tbl3.insert((0..99).map{ |i| { :foo => i, :b => i % 4 } })
       ot: ({'inserted':100})
 
     # Inner-Join
@@ -61,13 +79,19 @@ tests:
       ot: 0
 
     # Eq-Join
-    # TODO: test for table where id isn't a primary key
     - def: ej = tbl.eq_join('a', tbl2).zip()
       cd: ej.count()
       ot: 100
 
+    # eqjoin where id isn't a primary key
+    - def: ej = tbl.eq_join('a', tbl3).zip()
+      cd: ej.count()
+      ot: 100
+    
     # Clean up
     - cd: r.db('test').table_drop('test')
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test3')
       ot: ({'dropped':1})
