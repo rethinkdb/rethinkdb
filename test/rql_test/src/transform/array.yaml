@@ -89,8 +89,8 @@ tests:
       rb: arr.reduce{ |a, b| a + b }
       ot: 6
 
-    - py: "arr.reduce(0, lambda a, b: a + b)"
-      js: arr.reduce(0, function(a,b) { return a.add(b); })
+    - py: arr.reduce(lambda a, b:a + b, base=0)
+      js: arr.reduce(function(a,b) { return a.add(b); }, {base:0})
       rb: arr.reduce(0){ |a, b| a + b }
       ot: 6
 
