@@ -247,10 +247,9 @@ class RDBValue(RDBOp):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, data_collector, base=None):
-        if base == None:
-            base = ()
-        return GroupedMapReduce(self, grouping, mapping, data_collector, base=base)
+    def grouped_map_reduce(self, grouping, mapping, data_collector, base=()):
+        return GroupedMapReduce(self, func_wrap(grouping), func_wrap(mapping),
+            func_wrap(data_collector), base=base)
 
     def group_by(self, arg1, arg2, *rest):
         args = [arg1, arg2] + list(rest)

@@ -154,7 +154,7 @@ private:
             name_string_t name = get_name(v, this);
             dc_id = meta_get_uuid(
                 dc_searcher.get(), name,
-                strprintf("Datacenter `%s` does not exist", name.str().c_str()),
+                strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
                 this);
         }
 
