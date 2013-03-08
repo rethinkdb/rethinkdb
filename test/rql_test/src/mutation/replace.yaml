@@ -99,7 +99,7 @@ tests:
       
     - js: tbl.get(1).replace({}, {'foo':'bar'})
       py: []
-      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
       
     # Replace whole table
 

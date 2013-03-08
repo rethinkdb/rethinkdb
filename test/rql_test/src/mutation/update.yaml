@@ -90,7 +90,7 @@ tests:
       
     - js: tbl.get(1).update({}, {'foo':'bar'})
       py: []
-      ot: err('RqlDriverError', 'Invalid option `foo`.')
+      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
       
     # Update whole table
     - py: tbl.update(lambda row:{'a':row['id']})

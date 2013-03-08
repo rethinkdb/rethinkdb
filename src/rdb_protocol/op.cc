@@ -16,7 +16,7 @@ op_term_t::op_term_t(env_t *env, const Term2 *term,
         const Term2_AssocPair *ap = &term->optargs(i);
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
-                   strprintf("Unrecognized optional argument: %s", ap->key().c_str()));
+                   strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
                strprintf("Duplicate %s: %s",
