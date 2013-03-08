@@ -91,6 +91,7 @@ tests:
 
     - py: "arr.reduce(0, lambda a, b: a + b)"
       js: arr.reduce(0, function(a,b) { return a.add(b); })
+      rb: arr.reduce(0){ |a, b| a + b }
       ot: 6
 
     ## Filter
@@ -121,7 +122,10 @@ tests:
       ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
 
     - cd: r.expr([{'-a':1},{'-a':2}]).order_by('-a')
-      ot: [{'-a':1},{'-a':2}]
+      rb: r.expr([{ '-a' => 1}, {'-a' => 2}]).order_by('-a')
+      ot:
+        cd: [{'-a':1},{'-a':2}]
+        rb: "[{'-a'=>1},{'-a'=>2}]"
 
     ## Distinct
 

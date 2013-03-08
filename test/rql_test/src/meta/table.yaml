@@ -46,11 +46,9 @@ tests:
       ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
 
     - js: db.table_create('nonsense', 'foo')
-      py: []
       ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
       
     - js: db.table_create('nonsense', {'foo':'bar'})
-      py: []
       ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
       
     - js: db.table_create('nonsense1', {'datacenter':'bar'})
