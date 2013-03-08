@@ -5,7 +5,8 @@ tests:
     - cd: r.db('test').table_create('test')
       ot: ({'created':1})
       def: tbl = r.db('test').table('test')
-      def: obj = r.expr({'id':0,'a':0})
+      
+    - def: obj = r.expr({'id':0,'a':0})
 
     - py: tbl.insert([{'id':i, 'a':i} for i in xrange(3)])
       js: |
