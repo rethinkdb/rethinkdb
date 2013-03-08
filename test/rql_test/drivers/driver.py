@@ -7,7 +7,7 @@ import re
 path.insert(0, "../../drivers/python2")
 
 from os import environ
-import rethinkdb as r 
+import rethinkdb as r
 
 # JSPORT = int(sys.argv[1])
 CPPPORT = int(sys.argv[2])
@@ -29,12 +29,14 @@ class Lst:
         if not hasattr(other, '__iter__'):
             return False
 
-        if len(self.lst) != len(other):
-            return False
-        
-        for i in xrange(len(self.lst)):
-            if not (self.lst[i] == other[i]):
+        i = 0
+        for row in other:
+            if i >= len(self.lst) or (self.lst[i] != row):
                 return False
+            i += 1
+
+        if i != len(self.lst):
+            return False
 
         return True
 
@@ -53,7 +55,7 @@ class Bag(Lst):
 
         if len(self.lst) != len(other):
             return False
-        
+
         for i in xrange(len(self.lst)):
             if not (self.lst[i] == other[i]):
                 return False
@@ -63,8 +65,8 @@ class Bag(Lst):
 class Dct:
     def __init__(self, dct):
         self.dct = dct
-    
-    def __eq__(self, other): 
+
+    def __eq__(self, other):
         if not isinstance(other, types.DictType):
             return False
 
