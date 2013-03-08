@@ -137,8 +137,7 @@ RDB_DECLARE_SERIALIZABLE(terminal_t);
 void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        signal_t *interruptor)
+        buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
 } // namespace rdb_protocol_details

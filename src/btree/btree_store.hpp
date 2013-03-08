@@ -14,6 +14,7 @@
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
@@ -387,6 +388,9 @@ public: // <--- so this is some bullshit right here
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     mutex_t sindex_queue_mutex;
 
+    auto_drainer_t drainer;
+
+private:
     DISABLE_COPYING(btree_store_t);
 };
 

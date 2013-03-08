@@ -143,6 +143,24 @@ void run_sindex_btree_store_api_test() {
         }
 
         {
+            write_token_pair_t token_pair;
+            store.new_write_token_pair(&token_pair);
+
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> super_block;
+
+            store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                               1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store.acquire_sindex_block_for_write(
+                    &token_pair, txn.get(), &sindex_block,
+                    super_block->get_sindex_block_id(), &dummy_interuptor);
+
+            store.mark_index_up_to_date(id, txn.get(), sindex_block.get());
+        }
+
+        {
             //Insert a piece of data in to the btree.
             write_token_pair_t token_pair;
             store.new_write_token_pair(&token_pair);

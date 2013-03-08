@@ -96,15 +96,14 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        signal_t *interruptor) 
+        auto_drainer_t::lock_t lock) 
     THROWS_ONLY(interrupted_exc_t);
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        signal_t *interruptor)
+        buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t)
 {
     /* We register our modification queue here. An important point about
@@ -131,7 +130,7 @@ void bring_sindexes_up_to_date(
                 sindexes_to_bring_up_to_date, 
                 store,
                 mod_queue,
-                interruptor));
+                auto_drainer_t::lock_t(&store->drainer)));
 }
 
 /* This function is really part of the logic of bring_sindexes_up_to_date
@@ -141,10 +140,10 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        signal_t *interruptor)
+        auto_drainer_t::lock_t lock)
     THROWS_ONLY(interrupted_exc_t)
 {
-    post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, interruptor);
+    post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
 
     /* Drain the queue. */
 
@@ -164,7 +163,7 @@ void post_construct_and_drain_queue(
             &token_pair.main_write_token,
             &queue_txn,
             &queue_superblock,
-            interruptor);
+            lock.get_drain_signal());
 
         scoped_ptr_t<buf_lock_t> queue_sindex_block;
         store->acquire_sindex_block_for_write(
@@ -172,7 +171,7 @@ void post_construct_and_drain_queue(
             queue_txn.get(),
             &queue_sindex_block,
             queue_superblock->get_sindex_block_id(),
-            interruptor);
+            lock.get_drain_signal());
 
         sindex_access_vector_t sindexes;
         store->acquire_sindex_superblocks_for_write(
@@ -882,7 +881,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         std::set<uuid_u> sindexes;
         sindexes.insert(c.id);
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes, store,
-                sindex_block.get(), &interruptor);
+                sindex_block.get());
     }
 
     void operator()(const sindex_drop_t &d) {
@@ -1150,7 +1149,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
                 &sindexes);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                sindex_block.get(), interruptor);
+                sindex_block.get());
     }
 
 private:

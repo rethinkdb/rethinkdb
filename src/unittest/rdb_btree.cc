@@ -161,7 +161,7 @@ void run_sindex_post_construction() {
         created_sindexes.insert(sindex_id);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, &store,
-                sindex_block.get(), &dummy_interuptor);
+                sindex_block.get());
     }
 
     background_inserts_done.wait();
