@@ -95,6 +95,7 @@ public:
         raw_type_t raw_type;
     };
     type_t get_type() const;
+    const char *get_type_name() const;
 
     val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
     val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);

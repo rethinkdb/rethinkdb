@@ -28,7 +28,7 @@ private:
     RDB_NAME("javascript");
 
     // No JS term is considered deterministic
-    bool is_deterministic_impl() const {
+    virtual bool is_deterministic_impl() const {
         return false;
     }
 };

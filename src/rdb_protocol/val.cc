@@ -249,6 +249,7 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
 }
 
 val_t::type_t val_t::get_type() const { return type; }
+const char * val_t::get_type_name() const { return get_type().name(); }
 
 const datum_t *val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
