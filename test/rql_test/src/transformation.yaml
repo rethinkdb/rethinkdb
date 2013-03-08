@@ -85,8 +85,6 @@ tests:
       ot: err('RqlRuntimeError', 'No attribute `missing` in object.', [0])
       
       
-    # TODO: test ascending and descending orderBy on streams
-
     # test skip
     - cd: tbl.skip(1).count()
       ot: 99
