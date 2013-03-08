@@ -1,5 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include <backtrace.hpp>
+#include "backtrace.hpp"
 
 #include <cxxabi.h>
 #include <stdio.h>
@@ -17,9 +17,6 @@
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
-
-
-
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*

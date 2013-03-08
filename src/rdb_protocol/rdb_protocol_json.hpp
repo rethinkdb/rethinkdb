@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/bt.hpp"
 #include "http/json.hpp"
 
 /* This file is for storing a few extensions to json that are useful for
