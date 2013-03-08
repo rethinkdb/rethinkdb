@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 

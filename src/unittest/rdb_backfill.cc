@@ -5,9 +5,9 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
-#include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -17,21 +17,21 @@ namespace unittest {
 
 void run_with_broadcaster(
         boost::function< void(io_backender_t *,
-                              mock::simple_mailbox_cluster_t *,
+                              simple_mailbox_cluster_t *,
                               branch_history_manager_t<rdb_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              mock::test_store_t<rdb_protocol_t> *,
+                              test_store_t<rdb_protocol_t> *,
                               scoped_ptr_t<listener_t<rdb_protocol_t> > *,
                               rdb_protocol_t::context_t *ctx,
                               order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
-    mock::simple_mailbox_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
-    mock::in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
 
     // io backender
     scoped_ptr_t<io_backender_t> io_backender;
@@ -44,20 +44,20 @@ void run_with_broadcaster(
     extproc::spawner_t::create(&spawner_info);
     extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
 
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, mock::get_unittest_addresses(), port, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &slm, 0, NULL);
 
-    int port2 = mock::randport();
+    int port2 = randport();
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, mock::get_unittest_addresses(), port2, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port2, &read_manager, 0, NULL);
 
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
     /* Set up a broadcaster and initial listener */
-    mock::test_store_t<rdb_protocol_t> initial_store(io_backender.get(), &order_source, &ctx);
+    test_store_t<rdb_protocol_t> initial_store(io_backender.get(), &order_source, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
@@ -94,16 +94,16 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(io_backender_t *,
-                              mock::simple_mailbox_cluster_t *,
+                              simple_mailbox_cluster_t *,
                               branch_history_manager_t<rdb_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              mock::test_store_t<rdb_protocol_t> *,
+                              test_store_t<rdb_protocol_t> *,
                               scoped_ptr_t<listener_t<rdb_protocol_t> > *,
                               rdb_protocol_t::context_t *,
                               order_source_t *)> fun)
 {
-    mock::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
 
@@ -112,7 +112,7 @@ void run_in_thread_pool_with_broadcaster(
 void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key), boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(value.c_str()))), true));
 
-    mock::fake_fifo_enforcement_t enforce;
+    fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
     public:
@@ -129,11 +129,11 @@ void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std:
 }
 
 void run_partial_backfill_test(io_backender_t *io_backender,
-                               mock::simple_mailbox_cluster_t *cluster,
+                               simple_mailbox_cluster_t *cluster,
                                branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
                                scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                               mock::test_store_t<rdb_protocol_t> *,
+                               test_store_t<rdb_protocol_t> *,
                                scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                                rdb_protocol_t::context_t *ctx,
                                order_source_t *order_source) {
@@ -146,17 +146,17 @@ void run_partial_backfill_test(io_backender_t *io_backender,
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    mock::test_inserter_t inserter(
+    test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
-        &mock::mc_key_gen,
+        &mc_key_gen,
         order_source,
         "rdb_backfill run_partial_backfill_test inserter",
         &inserter_state);
     nap(10000);
 
     /* Set up a second mirror */
-    mock::test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         io_backender,
@@ -184,7 +184,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)));
-        mock::fake_fifo_enforcement_t enforce;
+        fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
         rdb_protocol_t::read_response_t response;

@@ -5,7 +5,7 @@
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
@@ -13,7 +13,7 @@
 namespace unittest {
 
 void run_sindex_low_level_operations_test() {
-    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -89,11 +89,11 @@ void run_sindex_low_level_operations_test() {
 }
 
 TEST(BTreeSindex, LowLevelOps) {
-    mock::run_in_thread_pool(&run_sindex_low_level_operations_test);
+    run_in_thread_pool(&run_sindex_low_level_operations_test);
 }
 
 void run_sindex_btree_store_api_test() {
-    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -250,7 +250,7 @@ void run_sindex_btree_store_api_test() {
 }
 
 TEST(BTreeSindex, BtreeStoreAPI) {
-    mock::run_in_thread_pool(&run_sindex_btree_store_api_test);
+    run_in_thread_pool(&run_sindex_btree_store_api_test);
 }
 
 } // namespace unittest

@@ -1,15 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_BRANCH_HISTORY_MANAGER_TCC_
-#define MOCK_BRANCH_HISTORY_MANAGER_TCC_
-
-#include "mock/branch_history_manager.hpp"
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "unittest/branch_history_manager.hpp"
 
 #include <map>
 #include <set>
 
 #include "arch/timing.hpp"
 
-namespace mock {
+namespace unittest {
 
 template <class protocol_t>
 branch_birth_certificate_t<protocol_t> in_memory_branch_history_manager_t<protocol_t>::get_branch(branch_id_t branch) THROWS_NOTHING {
@@ -67,6 +64,14 @@ void in_memory_branch_history_manager_t<protocol_t>::import_branch_history(const
     }
 }
 
-}   /* namespace mock */
+}  // namespace unittest
 
-#endif /* MOCK_BRANCH_HISTORY_MANAGER_TCC_ */
+
+#include "mock/dummy_protocol.hpp"
+template class unittest::in_memory_branch_history_manager_t<mock::dummy_protocol_t>;
+
+#include "memcached/protocol.hpp"
+template class unittest::in_memory_branch_history_manager_t<memcached_protocol_t>;
+
+#include "rdb_protocol/protocol.hpp"
+template class unittest::in_memory_branch_history_manager_t<rdb_protocol_t>;

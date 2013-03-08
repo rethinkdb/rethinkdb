@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/test_cluster_group.hpp"
 
 #include <map>
@@ -19,20 +19,21 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "concurrency/watchable.hpp"
-#include "mock/branch_history_manager.hpp"
-#include "mock/clustering_utils.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 
-namespace mock {
+#include "rpc/directory/read_manager.tcc"
+#include "rpc/directory/write_manager.tcc"
+
+namespace unittest {
 
 
-void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
-    *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
+void generate_sample_region(int i, int n, mock::dummy_protocol_t::region_t *out) {
+    *out = mock::dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
 }
 
 template<class protocol_t>
@@ -114,7 +115,7 @@ public:
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
-    mock::in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
+    in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
 };
 
 
@@ -183,7 +184,7 @@ test_reactor_t<protocol_t>::test_reactor_t(io_backender_t *io_backender, reactor
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
-    rassert(svs->get_region() == a_thru_z_region());
+    rassert(svs->get_region() == mock::a_thru_z_region());
 }
 
 template <class protocol_t>
@@ -228,7 +229,7 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) {
                     true, NULL, &ctx, io_backender.get()));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
-        stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
+        stores.back().metainfo.set(mock::a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
         test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port + i));
         if (i > 0) {
@@ -377,4 +378,7 @@ void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const s
 
 template class test_cluster_group_t<mock::dummy_protocol_t>;
 
-}   /* Namespace mock */
+}  // namespace unittest
+
+template class directory_read_manager_t<unittest::test_cluster_directory_t<mock::dummy_protocol_t> >;
+template class directory_write_manager_t<unittest::test_cluster_directory_t<mock::dummy_protocol_t> >;

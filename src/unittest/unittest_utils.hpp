@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef MOCK_UNITTEST_UTILS_HPP_
-#define MOCK_UNITTEST_UTILS_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef UNITTEST_UNITTEST_UTILS_HPP_
+#define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include <set>
 
@@ -11,7 +11,7 @@
 #include "rpc/serialize_macros.hpp"
 #include "arch/address.hpp"
 
-namespace mock {
+namespace unittest {
 
 class temp_file_t {
 public:
@@ -33,23 +33,6 @@ int randport();
 
 void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
 
-}  // namespace mock
-
-namespace unittest {
-
-class sl_int_t {
-public:
-    sl_int_t() { }
-    explicit sl_int_t(uint64_t initial) : i(initial) { }
-    uint64_t i;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(i);
-};
-
-inline void semilattice_join(sl_int_t *a, sl_int_t b) {
-    a->i |= b.i;
-}
-
 }  // namespace unittest
 
-#endif /* MOCK_UNITTEST_UTILS_HPP_ */
+#endif /* UNITTEST_UNITTEST_UTILS_HPP_ */

@@ -9,7 +9,7 @@
 #include "arch/io/disk.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -71,7 +71,7 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 }
 
 void run_sindex_post_construction() {
-    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -203,7 +203,7 @@ void run_sindex_post_construction() {
 }
 
 TEST(RDBBtree, SindexPostConstruct) {
-    mock::run_in_thread_pool(&run_sindex_post_construction);
+    run_in_thread_pool(&run_sindex_post_construction);
 }
 
 } //namespace unittest

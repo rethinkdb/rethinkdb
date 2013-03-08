@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
@@ -27,9 +27,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
     shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
-    boost::ptr_vector<mock::temp_file_t> temp_files;
+    boost::ptr_vector<temp_file_t> temp_files;
     for (size_t i = 0; i < shards.size(); ++i) {
-        temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
+        temp_files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
     scoped_ptr_t<io_backender_t> io_backender;
@@ -54,15 +54,15 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     extproc::spawner_t::create(&spawner_info);
     extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
 
-    int port = mock::randport();
+    int port = randport();
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, mock::get_unittest_addresses(), port, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &slm, 0, NULL);
 
-    int port2 = mock::randport();
+    int port2 = randport();
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, mock::get_unittest_addresses(), port2, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port2, &read_manager, 0, NULL);
 
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
@@ -85,7 +85,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun) {
-    mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
 }   /* anonymous namespace */

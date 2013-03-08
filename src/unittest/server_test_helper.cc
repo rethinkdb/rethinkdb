@@ -9,7 +9,7 @@
 #include "arch/timing.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "mock/unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
@@ -26,11 +26,11 @@ server_test_helper_t::server_test_helper_t()
 server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
-    mock::run_in_thread_pool(boost::bind(&server_test_helper_t::setup_server_and_run_tests, this));
+    unittest::run_in_thread_pool(boost::bind(&server_test_helper_t::setup_server_and_run_tests, this));
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
-    mock::temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
