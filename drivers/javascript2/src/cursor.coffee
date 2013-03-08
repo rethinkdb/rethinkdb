@@ -92,6 +92,8 @@ class Cursor
 
     toArray: (cb) ->
         arr = []
+        if not @hasNext()
+            cb null, arr
         @each (err, row) =>
             if err?
                 cb err
