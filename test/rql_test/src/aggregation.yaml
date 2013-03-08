@@ -129,7 +129,9 @@ tests:
       rb: tbl.map{ |row| row[:a] }.distinct.count
       ot: 4
 
-    # TODO: proper test for seq.count()
+    # proper test for seq.count()
+    - cd: tbl.count()
+      ot: 100
 
     # Clean up
     - cd: r.db('test').table_drop('test')
