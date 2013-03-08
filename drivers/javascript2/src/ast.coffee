@@ -59,9 +59,9 @@ class RDBVal extends TermBase
     zip: -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: -> new TypeOf {}, @
-    update: ar (func) -> new Update {}, @, funcWrap(func)
+    update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: -> new Delete {}, @
-    replace: ar (func) -> new Replace {}, @, funcWrap(func)
+    replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
 
     or: (others...) -> new Any {}, @, others...
@@ -132,6 +132,7 @@ translateOptargs = (optargs) ->
             when 'primaryKey' then 'primary_key'
             when 'datacenter' then 'datacenter'
             when 'useOutdated' then 'use_outdated'
+            when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
             when 'upsert' then 'upsert'
             when 'left' then 'left'

@@ -16,13 +16,9 @@ tests:
       ot: "'NULL'"
 
     # test coercions
-    # XXX: don't convert 'null' to lang-specific version for strings
-    # (or at least let me turn it off)
     - cd: r.expr(null).coerce_to('string')
       ot: "'null'"
       
-    # XXX: don't convert 'null' to lang-specific version for strings
-    # (or at least let me turn it off)
     - cd: r.expr(null).coerce_to('null')
       ot: (null)
       

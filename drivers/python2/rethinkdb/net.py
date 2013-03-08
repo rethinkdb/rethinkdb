@@ -9,7 +9,7 @@ import ql2_pb2 as p
 
 from errors import *
 
-class Cursor(list):
+class Cursor:
     def __init__(self, conn, query, chunk, complete):
         self.results = chunk
         self.conn = conn

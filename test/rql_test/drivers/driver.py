@@ -79,10 +79,11 @@ class Dct:
         return repr(self.dct)
 
 class Err:
-    def __init__(self, err_type=None, err_msg=None, err_frames=None):
+    def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
         self.etyp = err_type
         self.emsg = err_msg
         self.frames = None #err_frames # Do not test frames for now, not until they're ready for prime time on the C++ server
+        self.regex = regex
 
     def __eq__(self, other):
         if not isinstance(other, Exception):
@@ -91,19 +92,25 @@ class Err:
         if self.etyp and self.etyp != other.__class__.__name__:
             return False
 
-        # Strip "offending object" from the error message
-        other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
+        if self.regex:
+            return re.match(self.emsg, other.message)
 
-        if self.emsg and self.emsg != other.message:
-            return False
+        else:
 
-        if self.frames and self.frames != other.frames:
-            return False
+            # Strip "offending object" from the error message
+            other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
 
-        return True
+            if self.emsg and self.emsg != other.message:
+                return False
+            
+            if self.frames and self.frames != other.frames:
+                return False
+
+            return True
 
     def __repr__(self):
-        return "%s(\"%s\")" % (self.etyp, repr(self.emsg) or '')
+        return "%s(%s\"%s\")" % (self.etyp, self.regex and '~' or '', repr(self.emsg) or '')
+
 
 class Arr:
     def __init__(self, length, thing=None):
@@ -256,6 +263,9 @@ def bag(lst):
 # Emitted test code can call this function to indicate expected error output
 def err(err_type, err_msg=None, frames=None):
     return Err(err_type, err_msg, frames)
+
+def err_regex(err_type, err_msg=None, frames=None):
+    return Err(err_type, err_msg, frames, True)
 
 def arrlen(length, thing=None):
     return Arr(length, thing)

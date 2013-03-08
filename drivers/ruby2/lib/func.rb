@@ -25,12 +25,6 @@ module RethinkDB
       :for_each => :foreach,
       :js => :javascript
     }
-    @@arg_count = {
-      :error => 1,
-      :map => 2,
-      :filter => 2,
-      :get => 2
-    }
     def method_missing(m, *a, &b)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
       if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
@@ -59,18 +53,6 @@ module RethinkDB
       end
 
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
-
-      if arg_count = @@arg_count[m]
-        if args.length != arg_count
-          num_args = args.length
-          if @body
-            num_args -= 1
-            arg_count -= 1
-          end
-          raise RqlDriverError,
-                "Expected #{arg_count} argument(s) but found #{num_args}."
-        end
-      end
 
       t = Term2.new
       t.type = termtype

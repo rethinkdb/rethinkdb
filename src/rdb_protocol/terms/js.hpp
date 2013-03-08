@@ -26,6 +26,11 @@ private:
         return boost::apply_visitor(js_result_visitor_t(env, this), result);
     }
     RDB_NAME("javascript");
+
+    // No JS term is considered deterministic
+    bool is_deterministic_impl() const {
+        return false;
+    }
 };
 
 }

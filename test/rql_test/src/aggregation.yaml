@@ -37,6 +37,7 @@ tests:
     # GMR
     # TODO: check that r.row works
     # TODO: check what happens if one of the functions returns undefined
+    # TODO: optional base?
     - py: tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
       rb: tbl.grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
       js: |
