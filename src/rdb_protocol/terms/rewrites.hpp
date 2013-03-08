@@ -7,6 +7,9 @@
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
+#define CHECK_REWRITE_ARGS(bt_src, in, expected) \
+    rcheck_target(bt_src, in->args_size() == expected, strprintf("Expected " #expected " argument(s) but found %d.", in->args_size()))
+
 namespace ql {
 
 // This file implements terms that are rewritten into other terms.  See
@@ -44,7 +47,7 @@ public:
         : rewrite_term_t(env, term, rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 3, "Groupby requires 3 arguments.");
+        CHECK_REWRITE_ARGS(bt_src, in, 3);
         std::string dc;
         const Term2 *dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
@@ -165,7 +168,7 @@ public:
         : rewrite_term_t(env, term, rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 3, "Inner Join requires 3 arguments.");
+        CHECK_REWRITE_ARGS(bt_src, in, 3);
         const Term2 *l = &in->args(0);
         const Term2 *r = &in->args(1);
         const Term2 *f = &in->args(2);
@@ -198,7 +201,7 @@ public:
         rewrite_term_t(env, term, rewrite) { }
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 3, "Outer Join requires 3 arguments.");
+        CHECK_REWRITE_ARGS(bt_src, in, 3);
         const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
         int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
@@ -244,7 +247,7 @@ public:
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 3, "eq_join requires 3 arguments.");
+        CHECK_REWRITE_ARGS(bt_src, in, 3);
         const Term2 *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
@@ -276,7 +279,7 @@ public:
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 1, "delete requires 1 argument");
+        CHECK_REWRITE_ARGS(bt_src, in, 1);
         int x = env->gensym();
 
         Term2 *arg = out;
@@ -294,7 +297,7 @@ public:
 private:
     static void rewrite(env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 2, "update requires 2 arguments");
+        CHECK_REWRITE_ARGS(bt_src, in, 2);
         int old_row = env->gensym();
         int new_row = env->gensym();
 
@@ -322,7 +325,7 @@ public:
 private:
     static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out,
                         const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, in->args_size() == 2, "skip requires 2 arguments");
+        CHECK_REWRITE_ARGS(bt_src, in, 2);
         Term2 *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
