@@ -84,15 +84,15 @@ private:
 class batched_rget_stream_t : public json_stream_t {
 public:
     /* Primary key rget. */
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
-                          signal_t *_interruptor, key_range_t _range, 
-                          int _batch_size, const backtrace_t &_table_scan_backtrace,
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                          signal_t *_interruptor, key_range_t _range,
+                          const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
 
     /* Sindex rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, 
                           signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
-                          int _batch_size, const backtrace_t &_table_scan_backtrace,
+                          const backtrace_t &_table_scan_backtrace,
                           bool _use_outdated);
 
     boost::shared_ptr<scoped_cJSON_t> next();
@@ -116,7 +116,8 @@ private:
     int batch_size;
 
     json_list_t data;
-    int index;
+    // See the TODO(jdoliner) above.
+    // int index;
     bool finished, started;
     bool use_outdated;
 

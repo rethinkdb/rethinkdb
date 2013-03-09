@@ -2783,7 +2783,7 @@ boost::shared_ptr<json_stream_t> eval_sindex_get_by_key_as_stream(Term::GetByKey
 
     return boost::shared_ptr<json_stream_t>(new batched_rget_stream_t(ns_access, env->interruptor, 
                                                     rdb_protocol_t::sindex_key_range(key), sindex_id, 
-                                                    100, backtrace, get_by_key->table_ref().use_outdated()));
+                                                    backtrace, get_by_key->table_ref().use_outdated()));
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
@@ -2960,7 +2960,8 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
 view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
-    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace, t->table_ref().use_outdated()));
+    // TODO(jdoliner): We used to pass 100 as a batch_size parameter to the batched_rget_stream_t constructor.
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), backtrace, t->table_ref().use_outdated()));
     return view_t(ns_access, pk, stream);
 }
 

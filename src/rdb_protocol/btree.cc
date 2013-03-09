@@ -594,10 +594,9 @@ public:
           interruptor_(interruptor)
     { }
 
-    // This is free to call mark_deleted.
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
-                        int *, signal_t *) THROWS_ONLY(interrupted_exc_t) {
+                        signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
@@ -631,7 +630,7 @@ public:
         }
 
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-        leaf::live_iter_t node_iter = iter_for_whole_leaf(leaf_node);
+        leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
         const btree_key_t *key;
         while ((key = node_iter.get_key(leaf_node))) {

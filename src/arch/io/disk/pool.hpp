@@ -21,14 +21,14 @@ public:
     struct action_t : private blocker_pool_t::job_t, public home_thread_mixin_debug_only_t {
         action_t() { }
 
-        void make_write(fd_t f, const void *b, size_t c, off_t o) {
+        void make_write(fd_t f, const void *b, size_t c, int64_t o) {
             is_read = false;
             fd = f;
-            buf = const_cast<void*>(b);
+            buf = const_cast<void *>(b);
             count = c;
             offset = o;
         }
-        void make_read(fd_t f, void *b, size_t c, off_t o) {
+        void make_read(fd_t f, void *b, size_t c, int64_t o) {
             is_read = true;
             fd = f;
             buf = b;
@@ -41,7 +41,7 @@ public:
         fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
-        off_t get_offset() const { return offset; }
+        int64_t get_offset() const { return offset; }
 
         void set_successful_due_to_conflict() { io_result = count; }
         bool get_succeeded() const { return io_result == static_cast<int64_t>(count); }
@@ -60,7 +60,7 @@ public:
         fd_t fd;
         void *buf;
         size_t count;
-        off_t offset;
+        int64_t offset;
 
         int64_t io_result;
 

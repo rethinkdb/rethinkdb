@@ -48,9 +48,10 @@ block_id_t real_superblock_t::get_sindex_block_id() const {
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
     rassert(sb_buf_.is_acquired());
-    // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
-    // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block)), &new_sindex_block, sizeof(new_sindex_block));
+
+    rassert(sb_buf_.is_acquired());
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    sb_data->sindex_block = new_sindex_block;
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {

@@ -49,8 +49,9 @@ public:
     virtual void on_io_complete() = 0;
 
     //TODO Remove this default implementation and actually handle io errors.
-    virtual void on_io_failure() {
-        crash("I/O operation failed. Exiting.\n");
+    virtual void on_io_failure(int errsv, int64_t offset, int64_t count) {
+        crash("I/O operation failed.  (%s) (offset = %" PRIi64 ", count = %" PRIi64 ")",
+              errno_string(errsv).c_str(), offset, count);
     }
 };
 

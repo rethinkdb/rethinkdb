@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/operations.hpp"
 
-#include "btree/buf_patches.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"

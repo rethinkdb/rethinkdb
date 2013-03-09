@@ -155,9 +155,10 @@ public:
     }
 };
 
-extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *_static_config,
-                                   const log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
-    : stats(_stats), extent_size(_static_config->extent_size()), static_config(_static_config),
+extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *static_config,
+                                   const log_serializer_dynamic_config_t *_dynamic_config,
+                                   log_serializer_stats_t *_stats)
+    : stats(_stats), extent_size(static_config->extent_size()),
       dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
