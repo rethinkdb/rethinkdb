@@ -53,7 +53,8 @@ struct fib_job_t : extproc::auto_job_t<fib_job_t> {
         int res = fib(n_);
         write_message_t msg;
         msg << res;
-        guarantee(0 == send_write_message(control, &msg));
+        const int write_res = send_write_message(control, &msg);
+        guarantee(0 == write_res);
     }
 };
 
@@ -66,26 +67,34 @@ struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
     collatz_job_t() {}
     explicit collatz_job_t(int n) : n_(n) {}
 
-    int n_;
-    RDB_MAKE_ME_SERIALIZABLE_1(n_);
-
     void run_job(control_t *control, UNUSED void *extra) {
         for (;;) {
             // Send current value.
             write_message_t msg;
             msg << n_;
-            guarantee(0 == send_write_message(control, &msg));
+            const int write_res = send_write_message(control, &msg);
+            guarantee(0 == write_res);
 
             // We're done once we hit 1.
-            if (n_ == 1) break;
+            if (n_ == 1) {
+                break;
+            }
 
             // Wait for signal to proceed.
             char c;
-            guarantee(1 == force_read(control, &c, 1));
+            const int64_t read_res = force_read(control, &c, 1);
+            guarantee(1 == read_res);
 
             n_ = collatz(n_);
         }
     }
+
+    RDB_MAKE_ME_SERIALIZABLE_1(n_);
+
+private:
+    int n_;
+
+    DISABLE_COPYING(collatz_job_t);
 };
 
 struct job_loop_t : extproc::auto_job_t<job_loop_t> {
@@ -96,15 +105,20 @@ struct job_loop_t : extproc::auto_job_t<job_loop_t> {
 
     void run_job(control_t *control, UNUSED void *extra) {
         // Loops accepting jobs until we tell it to quit.
-        bool quit;
         for (;;) {
-            guarantee(ARCHIVE_SUCCESS == deserialize(control, &quit));
-            if (quit) break;
-            guarantee(0 == extproc::job_t::accept_job(control, NULL));
+            bool quit;
+            const archive_result_t res = deserialize(control, &quit);
+            guarantee(res == ARCHIVE_SUCCESS);
+            if (quit) {
+                break;
+            }
+            const int accept_res = extproc::job_t::accept_job(control, NULL);
+            guarantee(0 == accept_res);
         }
 
         // Sends signal that it has quit.
-        guarantee(4 == control->write("done", 4));
+        const int64_t write_res = control->write("done", 4);
+        guarantee(4 == write_res);
     }
 };
 
@@ -114,9 +128,10 @@ void run_simplejob_test(extproc::pool_t *pool) {
     extproc::job_handle_t handle;
     handle.begin(pool, fib_job_t(10));
 
-    int result;
-    ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handle, &result));
-    ASSERT_EQ(fib(10), result);
+    int job_result;
+    const archive_result_t res = deserialize(&handle, &job_result);
+    ASSERT_EQ(ARCHIVE_SUCCESS, res);
+    ASSERT_EQ(fib(10), job_result);
 
     handle.release();
 }
@@ -126,19 +141,22 @@ TEST(ExtProc, SimpleJob) { main_extproc_test(run_simplejob_test); }
 void run_talkativejob_test(extproc::pool_t *pool) {
     int n = 78;                 // takes 35 iterations to reach 1
     extproc::job_handle_t handle;
-    ASSERT_EQ(0, handle.begin(pool, collatz_job_t(n)));
+    const int begin_res = handle.begin(pool, collatz_job_t(n));
+    ASSERT_EQ(0, begin_res);
 
-    int res;
     for (;; n = collatz(n)) {
+        int job_result;
         // Get & check streamed result.
-        ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handle, &res));
-        ASSERT_EQ(n, res);
+        const archive_result_t res = deserialize(&handle, &job_result);
+        ASSERT_EQ(ARCHIVE_SUCCESS, res);
+        ASSERT_EQ(n, job_result);
 
-        if (res == 1) break;
+        if (job_result == 1) break;
 
         // Send signal to continue.
-        char c = '\0';
-        ASSERT_EQ(1, handle.write(&c, 1));
+        const char c = '\0';
+        const int64_t write_res = handle.write(&c, 1);
+        ASSERT_EQ(1, write_res);
     }
 
     handle.release();
@@ -148,37 +166,42 @@ TEST(ExtProc, TalkativeJob) { main_extproc_test(run_talkativejob_test); }
 
 void run_serialjob_test(extproc::pool_t *pool) {
     extproc::job_handle_t handle;
-    ASSERT_EQ(0, handle.begin(pool, job_loop_t()));
+    int begin_res = handle.begin(pool, job_loop_t());
+    ASSERT_EQ(0, begin_res);
 
     // Run fib three times.
-    int inputs[] = {10, 11, 12};
+    const int inputs[] = {10, 11, 12};
 
     for (size_t i = 0; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
-        int n = inputs[i];
+        const int n = inputs[i];
         SCOPED_TRACE(strprintf("fib(%d)", n));
 
         {
             write_message_t msg;
             msg << false;
             fib_job_t(n).append_to(&msg);
-            ASSERT_EQ(0, send_write_message(&handle, &msg));
+            const int res = send_write_message(&handle, &msg);
+            ASSERT_EQ(0, res);
         }
 
-        int result;
-        ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handle, &result));
-        ASSERT_EQ(fib(n), result);
+        int job_result;
+        const archive_result_t res = deserialize(&handle, &job_result);
+        ASSERT_EQ(ARCHIVE_SUCCESS, res);
+        ASSERT_EQ(fib(n), job_result);
     }
 
     {
         // Tell it to stop running jobs.
         write_message_t msg;
         msg << true;
-        ASSERT_EQ(0, send_write_message(&handle, &msg));
+        const int res = send_write_message(&handle, &msg);
+        ASSERT_EQ(0, res);
     }
 
     char msg[4];
-    ASSERT_EQ(static_cast<int64_t>(sizeof(msg)), force_read(&handle, msg, sizeof(msg)));
-    ASSERT_EQ(0, memcmp(msg, "done", 4));
+    int64_t read_res = force_read(&handle, msg, sizeof(msg));
+    ASSERT_EQ(static_cast<int64_t>(sizeof(msg)), read_res);
+    ASSERT_EQ(0, memcmp(msg, "done", sizeof(msg)));
 
     handle.release();
 }
@@ -192,16 +215,19 @@ void run_interruptjob_test(extproc::pool_t *pool) {
     // Interrupt DEFAULT_MIN_WORKERS + 1 jobs, to check that the pool respawns
     // interrupted workers as necessary.
     for (int i = 0; i < extproc::pool_group_t::DEFAULT_MIN_WORKERS + 1; ++i) {
-        ASSERT_EQ(0, handle.begin(pool, collatz_job_t(n)));
+        const int begin_res = handle.begin(pool, collatz_job_t(n));
+        ASSERT_EQ(0, begin_res);
 
         // Run a few iterations.
         for (int j = 0; j < 10; ++j) {
-            int result;
-            ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handle, &result));
-            ASSERT_NE(1, result);
+            int job_result;
+            const archive_result_t res = deserialize(&handle, &job_result);
+            ASSERT_EQ(ARCHIVE_SUCCESS, res);
+            ASSERT_NE(1, job_result);
 
-            char c = '\0';
-            ASSERT_EQ(1, handle.write(&c, 1));
+            const char c = '\0';
+            const int64_t write_res = handle.write(&c, 1);
+            ASSERT_EQ(1, write_res);
         }
 
         // Interrupt the job.
@@ -226,15 +252,17 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
     // another.
     const fib_job_t job(10);
     for (int i = 0; i < njobs; ++i) {
-        ASSERT_EQ(0, handles[i].begin(pool, job));
+        const int begin_res = handles[i].begin(pool, job);
+        ASSERT_EQ(0, begin_res);
     }
 
     // Finish the jobs.
     int expect = fib(10);
     for (int i = 0; i < njobs; ++i) {
-        int result;
-        ASSERT_EQ(ARCHIVE_SUCCESS, deserialize(&handles[i], &result));
-        ASSERT_EQ(expect, result);
+        int job_result;
+        const archive_result_t res = deserialize(&handles[i], &job_result);
+        ASSERT_EQ(ARCHIVE_SUCCESS, res);
+        ASSERT_EQ(expect, job_result);
         handles[i].release();
     }
 }

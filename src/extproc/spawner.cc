@@ -33,7 +33,7 @@ static void sigchld_handler(int signo) {
     guarantee(spawner_pid > 0);
 
     int status;
-    pid_t pid = waitpid(-1, &status, WNOHANG);
+    const pid_t pid = ::waitpid(-1, &status, WNOHANG);
     guarantee_err(-1 != pid, "could not waitpid()");
 
     // We might spawn processes other than the spawner, whose deaths we ignore.
@@ -51,19 +51,19 @@ spawner_t::spawner_t(info_t *info)
     spawner_pid = pid_;
 
     // Check that the spawner hasn't already exited.
-    guarantee(0 == waitpid(pid_, NULL, WNOHANG),
-              "spawner process already died!");
+    const pid_t pid = ::waitpid(pid_, NULL, WNOHANG);
+    guarantee(0 == pid, "spawner process already died!");
 
     // Establish SIGCHLD handler for spawner.
     struct sigaction sa = make_sa_handler(0, sigchld_handler);
-    int res = sigaction(SIGCHLD, &sa, NULL);
+    const int res = sigaction(SIGCHLD, &sa, NULL);
     guarantee_err(res == 0, "could not set SIGCHLD handler");
 }
 
 spawner_t::~spawner_t() {
     // De-establish SIGCHLD handler.
     struct sigaction sa = make_sa_handler(0, SIG_DFL);
-    int res = sigaction(SIGCHLD, &sa, NULL);
+    const int res = sigaction(SIGCHLD, &sa, NULL);
     guarantee_err(res == 0, "could not unset SIGCHLD handler");
 
     guarantee(spawner_pid > 0);
@@ -72,21 +72,23 @@ spawner_t::~spawner_t() {
 
 void spawner_t::create(info_t *info) {
     int fds[2];
-    guarantee_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
-                  "could not create socketpair for spawner");
+    const int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    guarantee_err(0 == res, "could not create socketpair for spawner");
 
-    pid_t pid = fork();
+    const pid_t pid = fork();
     guarantee_err(-1 != pid, "could not fork spawner process");
 
     if (0 == pid) {
         // We're the child; run the spawner.
-        guarantee_err(0 == close(fds[0]), "could not close fd");
+        const int closeres = ::close(fds[0]);
+        guarantee_err(0 == closeres || errno == EINTR, "could not close fd");
         exec_spawner(fds[1]);
         unreachable();
     }
 
     // We're the parent. Return.
-    guarantee_err(0 == close(fds[1]), "could not close fd");
+    const int closeres = ::close(fds[1]);
+    guarantee_err(0 == closeres || errno == EINTR, "could not close fd");
     info->pid = pid;
     info->socket.reset(fds[0]);
 }
@@ -96,21 +98,26 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
 
     // Create a socket pair.
     fd_t fds[2];
-    int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-    if (res) return -1;
+    const int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    if (res != 0) {
+        return -1;
+    }
 
     // We need to send the fd & receive the pid atomically with respect to other
     // calls to spawn_process().
     mutex_t::acq_t lock(&mutex_);
 
     // Send one half to the spawner process.
-    guarantee(0 == socket_.send_fd(fds[1]));
-    guarantee_err(0 == close(fds[1]), "could not close fd");
+    const int send_fd_res = socket_.send_fd(fds[1]);
+    guarantee(0 == send_fd_res);
+    const int closeres = ::close(fds[1]);
+    guarantee_err(0 == closeres || errno == EINTR, "could not close fd");
     socket->reset(fds[0]);
 
     // Receive the pid from the spawner process.
     pid_t pid;
-    guarantee(sizeof(pid) == force_read(&socket_, &pid, sizeof(pid)));
+    const int64_t read_res = force_read(&socket_, &pid, sizeof(pid));
+    guarantee(sizeof(pid) == read_res);
     guarantee(pid > 0);
 
     return pid;
@@ -129,14 +136,15 @@ void exec_spawner(fd_t socket) {
     // command-line SIGINT should trigger a clean shutdown, not a crash.
     //
     // TODO(rntz): This is an ugly, hackish way to handle the problem.
-    guarantee_err(0 == setpgid(0, 0), "spawner: could not set PGID");
+    const int setpgid_res = setpgid(0, 0);
+    guarantee_err(0 == setpgid_res, "spawner: could not set PGID");
 
     // We ignore SIGCHLD so that we don't accumulate zombie children.
     {
         // NB. According to `man 2 sigaction` on linux, POSIX.1-2001 says that
         // this will prevent zombies, but may not be "fully portable".
         struct sigaction sa = make_sa_handler(0, SIG_IGN);
-        int res = sigaction(SIGCHLD, &sa, NULL);
+        const int res = sigaction(SIGCHLD, &sa, NULL);
         guarantee_err(res == 0, "spawner: Could not ignore SIGCHLD");
     }
 
@@ -160,13 +168,15 @@ void exec_spawner(fd_t socket) {
 
         if (0 == pid) {
             // We're the child/worker.
-            guarantee_err(0 == close(socket), "worker: could not close fd");
+            const int closeres = ::close(socket);
+            guarantee_err(0 == closeres || errno == EINTR, "worker: could not close fd");
             exec_worker(local_spawner_pid, fd);
             unreachable();
         }
 
         // We're the parent.
-        guarantee_err(0 == close(fd), "spawner: couldn't close fd");
+        const int closeres = ::close(fd);
+        guarantee_err(0 == closeres || errno == EINTR, "spawner: couldn't close fd");
 
         // Send back its pid. Wish we could use unix_socket_stream_t for this,
         // but its destructor calls shutdown(), and we can't have that happening
@@ -174,11 +184,15 @@ void exec_spawner(fd_t socket) {
         const char *buf = reinterpret_cast<const char *>(&pid);
         size_t sz = sizeof(pid);
         while (sz) {
-            ssize_t w = write(socket, buf, sz);
-            if (w == -1 && errno == EINTR) continue;
-            guarantee_err(w > 0, "spawner: could not write() to engine socket");
-            guarantee((size_t)w <= sz);
-            sz -= w, buf += w;
+            ssize_t res;
+            do {
+                res = ::write(socket, buf, sz);
+            } while (res == -1 && errno == EINTR);
+
+            guarantee_err(res > 0, "spawner: could not write() to engine socket");
+            guarantee(static_cast<size_t>(res) <= sz);
+            sz -= res;
+            buf += res;
         }
     }
 }
@@ -205,16 +219,16 @@ void exec_worker(pid_t local_spawner_pid, fd_t sockfd) {
         spawner_pid_for_sigalrm = local_spawner_pid;
 
         struct sigaction sa = make_sa_handler(0, check_ppid_for_death);
-        int res = sigaction(SIGALRM, &sa, NULL);
-        guarantee_err(res == 0, "worker: could not set action for ALRM signal");
+        const int sigaction_res = sigaction(SIGALRM, &sa, NULL);
+        guarantee_err(sigaction_res == 0, "worker: could not set action for ALRM signal");
 
         struct itimerval timerval;
         timerval.it_interval.tv_sec = 0;
         timerval.it_interval.tv_usec = 500 * THOUSAND;
         timerval.it_value = timerval.it_interval;
         struct itimerval old_timerval;
-        res = setitimer(ITIMER_REAL, &timerval, &old_timerval);
-        guarantee_err(res == 0, "worker: setitimer failed");
+        const int itimer_res = setitimer(ITIMER_REAL, &timerval, &old_timerval);
+        guarantee_err(itimer_res == 0, "worker: setitimer failed");
         guarantee(old_timerval.it_value.tv_sec == 0 && old_timerval.it_value.tv_usec == 0,
                   "worker: setitimer saw that we already had an itimer!");
     }

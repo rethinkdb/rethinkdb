@@ -8,8 +8,8 @@ namespace extproc {
 int job_t::accept_job(control_t *control, void *extra) {
     // Try to receive the job.
     job_t::func_t jobfunc;
-    int64_t res = force_read(control, &jobfunc, sizeof(jobfunc));
-    if (res < (int64_t) sizeof(jobfunc)) {
+    const int64_t res = force_read(control, &jobfunc, sizeof(jobfunc));
+    if (res < static_cast<int64_t>(sizeof(jobfunc))) {
         // Don't log anything if the parent isn't alive, it likely means there was an unclean shutdown,
         //  and the file descriptor is invalid.  We don't want to pollute the output.
         if (res != 0) {

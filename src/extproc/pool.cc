@@ -117,7 +117,8 @@ void pool_t::detach_worker(worker_t *worker) {
     busy_workers_.remove(worker);
     worker_semaphore_.unlock();
 
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+    const int res = ::kill(worker->pid_, SIGKILL);
+    guarantee_err(0 == res, "could not kill worker");
 
     // Alas, we can't call repair_invariants now, since we're not allowed to
     // block.
@@ -168,8 +169,8 @@ void pool_t::spawn_workers(int num) {
         worker_t *worker = new worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
-        guarantee(0 == job_acceptor_t().send_over(worker),
-                  "Could not initialize worker process.");
+        const int res = job_acceptor_t().send_over(worker);
+        guarantee(0 == res, "Could not initialize worker process.");
 
         // We've successfully spawned one worker.
         guarantee(num_spawning_workers_ > 0); // sanity
@@ -183,7 +184,8 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);
-    guarantee_err(0 == kill(worker->pid_, SIGKILL), "could not kill worker");
+    const int res = ::kill(worker->pid_, SIGKILL);
+    guarantee_err(0 == res, "could not kill worker");
     delete worker;
 }
 
@@ -199,12 +201,11 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
 
 pool_t::worker_t::~worker_t() {}
 
-void pool_t::worker_t::on_event(int events) {
+void pool_t::worker_t::do_on_event(int /*events*/) {
     // NB. We are not in coroutine context when this method is called.
     if (attached_) {
         on_error();
     }
-    unix_socket_stream_t::on_event(events);
 }
 
 void pool_t::worker_t::on_error() {

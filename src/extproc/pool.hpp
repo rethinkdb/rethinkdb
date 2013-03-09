@@ -80,10 +80,10 @@ class pool_t :
 
         // Inherited from unix_socket_stream_t. Called when epoll finds an error
         // condition on our socket. Calls on_error().
-        virtual void on_event(int events);
+        virtual void do_on_event(int events);
 
-        pool_t *pool_;
-        pid_t pid_;
+        pool_t *const pool_;
+        const pid_t pid_;
         bool attached_;
 
       private:
