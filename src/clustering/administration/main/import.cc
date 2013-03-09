@@ -56,7 +56,7 @@ bool find_server_peer_in_directory(const std::map<peer_id_t, cluster_directory_m
     return false;
 }
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+bool run_json_import(extproc::spawner_info_t *spawner_info,
                      peer_address_set_t joins,
                      const std::set<ip_address_t> &local_addresses,
                      int ports_port,

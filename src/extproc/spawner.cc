@@ -44,7 +44,7 @@ static void sigchld_handler(int signo) {
     }
 }
 
-spawner_t::spawner_t(info_t *info)
+spawner_t::spawner_t(spawner_info_t *info)
     : pid_(info->pid), socket_(&info->socket)
 {
     guarantee(-1 == spawner_pid);
@@ -70,7 +70,7 @@ spawner_t::~spawner_t() {
     spawner_pid = -1;
 }
 
-void spawner_t::create(info_t *info) {
+void spawner_t::create(spawner_info_t *info) {
     int fds[2];
     const int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     guarantee_err(0 == res, "could not create socketpair for spawner");
@@ -93,7 +93,7 @@ void spawner_t::create(info_t *info) {
     info->socket.reset(fds[0]);
 }
 
-pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
+pid_t spawner_t::spawn_process(scoped_fd_t *socket, scoped_fd_t *other_end_of_socket) {
     assert_thread();
 
     // Create a socket pair.
@@ -110,8 +110,12 @@ pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
     // Send one half to the spawner process.
     const int send_fd_res = socket_.send_fd(fds[1]);
     guarantee(0 == send_fd_res);
-    const int closeres = ::close(fds[1]);
-    guarantee_err(0 == closeres || errno == EINTR, "could not close fd");
+
+    // We can't close fds[1] so quickly after sending it on the unix domain
+    // socket because of an OS X bug -- it'll make the socket be "not connected"
+    // on the other end.  So we hang on to it for now and close it later.
+    other_end_of_socket->reset(fds[1]);
+
     socket->reset(fds[0]);
 
     // Receive the pid from the spawner process.
@@ -235,7 +239,7 @@ void exec_worker(pid_t local_spawner_pid, fd_t sockfd) {
 
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
-    job_t::control_t control(getpid(), local_spawner_pid, &fd);
+    job_control_t control(getpid(), local_spawner_pid, &fd);
     exit(job_t::accept_job(&control, NULL));
 }
 

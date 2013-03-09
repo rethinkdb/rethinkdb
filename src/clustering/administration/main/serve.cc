@@ -62,7 +62,7 @@ bool service_address_ports_t::is_bind_all() const {
 }
 
 bool do_serve(
-    extproc::spawner_t::info_t *spawner_info,
+    extproc::spawner_info_t *spawner_info,
     io_backender_t *io_backender,
     bool i_am_a_server,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
@@ -376,7 +376,7 @@ bool do_serve(
     }
 }
 
-bool serve(extproc::spawner_t::info_t *spawner_info,
+bool serve(extproc::spawner_info_t *spawner_info,
            io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::persistent_file_t *persistent_file,
@@ -401,7 +401,7 @@ bool serve(extproc::spawner_t::info_t *spawner_info,
                     config_file);
 }
 
-bool serve_proxy(extproc::spawner_t::info_t *spawner_info,
+bool serve_proxy(extproc::spawner_info_t *spawner_info,
                  const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
                  machine_id_t machine_id,

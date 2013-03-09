@@ -4,11 +4,10 @@
 
 namespace extproc {
 
-// ---------- job_t ----------
-int job_t::accept_job(control_t *control, void *extra) {
+int job_t::accept_job(job_control_t *control, void *extra) {
     // Try to receive the job.
     job_t::func_t jobfunc;
-    const int64_t res = force_read(control, &jobfunc, sizeof(jobfunc));
+    const int64_t res = force_read(&control->unix_socket, &jobfunc, sizeof(jobfunc));
     if (res < static_cast<int64_t>(sizeof(jobfunc))) {
         // Don't log anything if the parent isn't alive, it likely means there was an unclean shutdown,
         //  and the file descriptor is invalid.  We don't want to pollute the output.
@@ -43,19 +42,17 @@ int job_t::send_over(write_stream_t *stream) const {
 }
 
 
-// ---------- job_t::control_t ----------
-job_t::control_t::control_t(pid_t _pid, pid_t _spawner_pid, scoped_fd_t *fd) :
-    unix_socket_stream_t(fd, new blocking_fd_watcher_t()),
-    pid(_pid),
-    spawner_pid(_spawner_pid)
-{ }
+job_control_t::job_control_t(pid_t _pid, pid_t _spawner_pid, scoped_fd_t *fd)
+    : unix_socket(fd, new blocking_fd_watcher_t()),
+      pid(_pid),
+      spawner_pid(_spawner_pid) { }
 
-pid_t job_t::control_t::get_spawner_pid() const {
+pid_t job_control_t::get_spawner_pid() const {
     return spawner_pid;
 }
 
 // TODO(rntz): some way to send log messages to the engine.
-void job_t::control_t::vlog(const char *fmt, va_list ap) {
+void job_control_t::vlog(const char *fmt, va_list ap) {
     flockfile(stderr);
     fprintf(stderr, "[%d] worker: ", pid);
     vfprintf(stderr, fmt, ap);
@@ -63,7 +60,7 @@ void job_t::control_t::vlog(const char *fmt, va_list ap) {
     funlockfile(stderr);
 }
 
-void job_t::control_t::log(const char *fmt, ...) {
+void job_control_t::log(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vlog(fmt, ap);

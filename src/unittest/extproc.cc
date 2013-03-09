@@ -14,13 +14,13 @@
 // ----- Infrastructure
 typedef void (*test_t)(extproc::pool_t *pool);
 
-static void run_extproc_test(extproc::spawner_t::info_t *spawner_info, test_t func) {
+static void run_extproc_test(extproc::spawner_info_t *spawner_info, test_t func) {
     extproc::pool_group_t pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
     func(pool_group.get());
 }
 
 static void main_extproc_test(test_t func) {
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     unittest::run_in_thread_pool(boost::bind(run_extproc_test, &spawner_info, func));
 }
@@ -41,7 +41,7 @@ int collatz(int n) {
 }
 
 // ----- Jobs
-struct fib_job_t : extproc::auto_job_t<fib_job_t> {
+struct fib_job_t : public extproc::auto_job_t<fib_job_t> {
     // Calculates the nth fibonacci number.
     fib_job_t() {}
     explicit fib_job_t(int n) : n_(n) {}
@@ -49,16 +49,16 @@ struct fib_job_t : extproc::auto_job_t<fib_job_t> {
     int n_;
     RDB_MAKE_ME_SERIALIZABLE_1(n_);
 
-    virtual void run_job(control_t *control, UNUSED void *extra) {
+    virtual void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         int res = fib(n_);
         write_message_t msg;
         msg << res;
-        const int write_res = send_write_message(control, &msg);
+        const int write_res = send_write_message(&control->unix_socket, &msg);
         guarantee(0 == write_res);
     }
 };
 
-struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
+struct collatz_job_t : public extproc::auto_job_t<collatz_job_t> {
     // Streams the collatz numbers starting at the given number, until it hits
     // 1. Waits for a command to proceed in between each result.
     //
@@ -67,12 +67,12 @@ struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
     collatz_job_t() {}
     explicit collatz_job_t(int n) : n_(n) {}
 
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         for (;;) {
             // Send current value.
             write_message_t msg;
             msg << n_;
-            const int write_res = send_write_message(control, &msg);
+            const int write_res = send_write_message(&control->unix_socket, &msg);
             guarantee(0 == write_res);
 
             // We're done once we hit 1.
@@ -82,7 +82,7 @@ struct collatz_job_t : extproc::auto_job_t<collatz_job_t> {
 
             // Wait for signal to proceed.
             char c;
-            const int64_t read_res = force_read(control, &c, 1);
+            const int64_t read_res = force_read(&control->unix_socket, &c, 1);
             guarantee(1 == read_res);
 
             n_ = collatz(n_);
@@ -97,17 +97,17 @@ private:
     DISABLE_COPYING(collatz_job_t);
 };
 
-struct job_loop_t : extproc::auto_job_t<job_loop_t> {
+struct job_loop_t : public extproc::auto_job_t<job_loop_t> {
     // Receives a job and runs it.
     job_loop_t() {}
 
     RDB_MAKE_ME_SERIALIZABLE_0();
 
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(extproc::job_control_t *control, UNUSED void *extra) {
         // Loops accepting jobs until we tell it to quit.
         for (;;) {
             bool quit;
-            const archive_result_t res = deserialize(control, &quit);
+            const archive_result_t res = deserialize(&control->unix_socket, &quit);
             guarantee(res == ARCHIVE_SUCCESS);
             if (quit) {
                 break;
@@ -117,7 +117,7 @@ struct job_loop_t : extproc::auto_job_t<job_loop_t> {
         }
 
         // Sends signal that it has quit.
-        const int64_t write_res = control->write("done", 4);
+        const int64_t write_res = control->unix_socket.write("done", 4);
         guarantee(4 == write_res);
     }
 };
@@ -237,7 +237,7 @@ void run_interruptjob_test(extproc::pool_t *pool) {
 
 TEST(ExtProc, InterruptJob) { main_extproc_test(run_interruptjob_test); }
 
-void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
+void run_multijob_test(extproc::spawner_info_t *spawner_info) {
     extproc::pool_group_t::config_t config;
     // Ensure that we have the headroom to spawn an extra worker.
     const int njobs = config.max_workers = config.min_workers + 1;
@@ -268,7 +268,7 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
 }
 
 TEST(ExtProc, MultiJob) {
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     unittest::run_in_thread_pool(boost::bind(run_multijob_test, &spawner_info));
 }

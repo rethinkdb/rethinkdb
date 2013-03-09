@@ -9,7 +9,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "extproc/pool.hpp"
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
