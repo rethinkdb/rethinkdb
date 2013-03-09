@@ -28,7 +28,8 @@ JS_OUTPUT_MODE := script
 JS_DRIVER_LIB=$(JS_BUILD_DIR)/rethinkdb.js
 
 $(PROTOC_JS_HOME_DIR)/protoc-gen-js:
-	$(EXTERN_MAKE) -C $(TOP)/external/protobuf-plugin-closure
+	$P MAKE -C $(TOP)/external/protobuf-plugin-closure
+	$(EXTERN_MAKE) -C $(TOP)/external/protobuf-plugin-closure SPREFIX="$(abspath $(PROTOC_BASE))"
 
 $(JS_BUILD_DIR):
 	$P MKDIR $(DRIVER_COFFEE_BUILD_DIR)
