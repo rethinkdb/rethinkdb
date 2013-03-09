@@ -304,7 +304,7 @@ class Datum(RDBValue):
         self.data = val
 
     def build(self, term):
-        term.type = p.Term2.DATUM
+        term.type = p.Term.DATUM
 
         if self.data is None:
             term.datum.type = p.Datum.R_NULL
@@ -344,7 +344,7 @@ class Datum(RDBValue):
             raise RuntimeError("type not handled")
 
 class MakeArray(RDBValue):
-    tt = p.Term2.MAKE_ARRAY
+    tt = p.Term.MAKE_ARRAY
 
     def compose(self, args, optargs):
         return T('[', T(*args, intsp=', '),']')
@@ -353,57 +353,57 @@ class MakeArray(RDBValue):
         return FunCall(func_wrap(func), self)
 
 class MakeObj(RDBValue):
-    tt = p.Term2.MAKE_OBJ
+    tt = p.Term.MAKE_OBJ
 
     def compose(self, args, optargs):
         return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
 
 class Var(RDBValue):
-    tt = p.Term2.VAR
+    tt = p.Term.VAR
 
     def compose(self, args, optargs):
         return 'var_'+args[0]
 
 class JavaScript(RDBValue, RDBTopFun):
-    tt = p.Term2.JAVASCRIPT
+    tt = p.Term.JAVASCRIPT
     st = "js"
 
 class UserError(RDBValue, RDBTopFun):
-    tt = p.Term2.ERROR
+    tt = p.Term.ERROR
     st = "error"
 
 class ImplicitVar(RDBValue):
-    tt = p.Term2.IMPLICIT_VAR
+    tt = p.Term.IMPLICIT_VAR
 
     def compose(self, args, optargs):
         return 'r.row'
 
 class Eq(RDBValue, RDBBiOper):
-    tt = p.Term2.EQ
+    tt = p.Term.EQ
     st = "=="
 
 class Ne(RDBValue, RDBBiOper):
-    tt = p.Term2.NE
+    tt = p.Term.NE
     st = "!="
 
 class Lt(RDBValue, RDBBiOper):
-    tt = p.Term2.LT
+    tt = p.Term.LT
     st = "<"
 
 class Le(RDBValue, RDBBiOper):
-    tt = p.Term2.LE
+    tt = p.Term.LE
     st = "<="
 
 class Gt(RDBValue, RDBBiOper):
-    tt = p.Term2.GT
+    tt = p.Term.GT
     st = ">"
 
 class Ge(RDBValue, RDBBiOper):
-    tt = p.Term2.GE
+    tt = p.Term.GE
     st = ">="
 
 class Not(RDBValue):
-    tt = p.Term2.NOT
+    tt = p.Term.NOT
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], Datum):
@@ -411,71 +411,71 @@ class Not(RDBValue):
         return T('(~', args[0], ')')
 
 class Add(RDBValue, RDBBiOper):
-    tt = p.Term2.ADD
+    tt = p.Term.ADD
     st = "+"
 
 class Sub(RDBValue, RDBBiOper):
-    tt = p.Term2.SUB
+    tt = p.Term.SUB
     st = "-"
 
 class Mul(RDBValue, RDBBiOper):
-    tt = p.Term2.MUL
+    tt = p.Term.MUL
     st = "*"
 
 class Div(RDBValue, RDBBiOper):
-    tt = p.Term2.DIV
+    tt = p.Term.DIV
     st = "/"
 
 class Mod(RDBValue, RDBBiOper):
-    tt = p.Term2.MOD
+    tt = p.Term.MOD
     st = "%"
 
 class Append(RDBValue, RDBMethod):
-    tt = p.Term2.APPEND
+    tt = p.Term.APPEND
     st = "append"
 
 class Slice(RDBValue):
-    tt = p.Term2.SLICE
+    tt = p.Term.SLICE
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ':', args[2], ']')
 
 class Skip(RDBValue, RDBMethod):
-    tt = p.Term2.SKIP
+    tt = p.Term.SKIP
     st = 'skip'
 
 class Limit(RDBValue, RDBMethod):
-    tt = p.Term2.LIMIT
+    tt = p.Term.LIMIT
     st = 'limit'
 
 class GetAttr(RDBValue):
-    tt = p.Term2.GETATTR
+    tt = p.Term.GETATTR
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
 class Contains(RDBValue, RDBMethod):
-    tt = p.Term2.CONTAINS
+    tt = p.Term.CONTAINS
     st = 'contains'
 
 class Pluck(RDBValue, RDBMethod):
-    tt = p.Term2.PLUCK
+    tt = p.Term.PLUCK
     st = 'pluck'
 
 class Without(RDBValue, RDBMethod):
-    tt = p.Term2.WITHOUT
+    tt = p.Term.WITHOUT
     st = 'without'
 
 class Merge(RDBValue, RDBMethod):
-    tt = p.Term2.MERGE
+    tt = p.Term.MERGE
     st = 'merge'
 
 class Between(RDBValue, RDBMethod):
-    tt = p.Term2.BETWEEN
+    tt = p.Term.BETWEEN
     st = 'between'
 
 class DB(RDBValue, RDBTopFun):
-    tt = p.Term2.DB
+    tt = p.Term.DB
     st = 'db'
 
     def table_list(self):
@@ -491,7 +491,7 @@ class DB(RDBValue, RDBTopFun):
         return Table(self, table_name, use_outdated=use_outdated)
 
 class FunCall(RDBValue):
-    tt = p.Term2.FUNCALL
+    tt = p.Term.FUNCALL
 
     def compose(self, args, optargs):
         if len(args) > 2:
@@ -503,7 +503,7 @@ class FunCall(RDBValue):
         return T(args[1], '.do(', args[0], ')')
 
 class Table(RDBValue):
-    tt = p.Term2.TABLE
+    tt = p.Term.TABLE
     st = 'table'
 
     def insert(self, records, upsert=()):
@@ -519,133 +519,133 @@ class Table(RDBValue):
             return T('r.table(', args[0], ')')
 
 class Get(RDBValue, RDBMethod):
-    tt = p.Term2.GET
+    tt = p.Term.GET
     st = 'get'
 
 class Reduce(RDBValue, RDBMethod):
-    tt = p.Term2.REDUCE
+    tt = p.Term.REDUCE
     st = 'reduce'
 
 class Map(RDBValue, RDBMethod):
-    tt = p.Term2.MAP
+    tt = p.Term.MAP
     st = 'map'
 
 class Filter(RDBValue, RDBMethod):
-    tt = p.Term2.FILTER
+    tt = p.Term.FILTER
     st = 'filter'
 
 class ConcatMap(RDBValue, RDBMethod):
-    tt = p.Term2.CONCATMAP
+    tt = p.Term.CONCATMAP
     st = 'concat_map'
 
 class OrderBy(RDBValue, RDBMethod):
-    tt = p.Term2.ORDERBY
+    tt = p.Term.ORDERBY
     st = 'order_by'
 
 class Distinct(RDBValue, RDBMethod):
-    tt = p.Term2.DISTINCT
+    tt = p.Term.DISTINCT
     st = 'distinct'
 
 class Count(RDBValue, RDBMethod):
-    tt = p.Term2.COUNT
+    tt = p.Term.COUNT
     st = 'count'
 
 class Union(RDBValue, RDBMethod):
-    tt = p.Term2.UNION
+    tt = p.Term.UNION
     st = 'union'
 
 class Nth(RDBValue):
-    tt = p.Term2.NTH
+    tt = p.Term.NTH
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
 class GroupedMapReduce(RDBValue, RDBMethod):
-    tt = p.Term2.GROUPED_MAP_REDUCE
+    tt = p.Term.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
 
 class GroupBy(RDBValue, RDBMethod):
-    tt = p.Term2.GROUPBY
+    tt = p.Term.GROUPBY
     st = 'group_by'
 
 class InnerJoin(RDBValue, RDBMethod):
-    tt = p.Term2.INNER_JOIN
+    tt = p.Term.INNER_JOIN
     st = 'inner_join'
 
 class OuterJoin(RDBValue, RDBMethod):
-    tt = p.Term2.OUTER_JOIN
+    tt = p.Term.OUTER_JOIN
     st = 'outer_join'
 
 class EqJoin(RDBValue, RDBMethod):
-    tt = p.Term2.EQ_JOIN
+    tt = p.Term.EQ_JOIN
     st = 'eq_join'
 
 class Zip(RDBValue, RDBMethod):
-    tt = p.Term2.ZIP
+    tt = p.Term.ZIP
     st = 'zip'
 
 class CoerceTo(RDBValue, RDBMethod):
-    tt = p.Term2.COERCE_TO
+    tt = p.Term.COERCE_TO
     st = 'coerce_to'
 
 class TypeOf(RDBValue, RDBMethod):
-    tt = p.Term2.TYPEOF
+    tt = p.Term.TYPEOF
     st = 'type_of'
 
 class Update(RDBValue, RDBMethod):
-    tt = p.Term2.UPDATE
+    tt = p.Term.UPDATE
     st = 'update'
 
 class Delete(RDBValue, RDBMethod):
-    tt = p.Term2.DELETE
+    tt = p.Term.DELETE
     st = 'delete'
 
 class Replace(RDBValue, RDBMethod):
-    tt = p.Term2.REPLACE
+    tt = p.Term.REPLACE
     st = 'replace'
 
 class Insert(RDBValue, RDBMethod):
-    tt = p.Term2.INSERT
+    tt = p.Term.INSERT
     st = 'insert'
 
 class DbCreate(RDBValue, RDBTopFun):
-    tt = p.Term2.DB_CREATE
+    tt = p.Term.DB_CREATE
     st = "db_create"
 
 class DbDrop(RDBValue, RDBTopFun):
-    tt = p.Term2.DB_DROP
+    tt = p.Term.DB_DROP
     st = "db_drop"
 
 class DbList(RDBValue, RDBTopFun):
-    tt = p.Term2.DB_LIST
+    tt = p.Term.DB_LIST
     st = "db_list"
 
 class TableCreate(RDBValue, RDBMethod):
-    tt = p.Term2.TABLE_CREATE
+    tt = p.Term.TABLE_CREATE
     st = "table_create"
 
 class TableDrop(RDBValue, RDBMethod):
-    tt = p.Term2.TABLE_DROP
+    tt = p.Term.TABLE_DROP
     st = "table_drop"
 
 class TableList(RDBValue, RDBMethod):
-    tt = p.Term2.TABLE_LIST
+    tt = p.Term.TABLE_LIST
     st = "table_list"
 
 class Branch(RDBValue, RDBTopFun):
-    tt = p.Term2.BRANCH
+    tt = p.Term.BRANCH
     st = "branch"
 
 class Any(RDBValue, RDBBiOper):
-    tt = p.Term2.ANY
+    tt = p.Term.ANY
     st = "|"
 
 class All(RDBValue, RDBBiOper):
-    tt = p.Term2.ALL
+    tt = p.Term.ALL
     st = "&"
 
 class ForEach(RDBValue, RDBMethod):
-    tt =p.Term2.FOREACH
+    tt =p.Term.FOREACH
     st = 'for_each'
 
 # Called on arguments that should be functions
@@ -671,7 +671,7 @@ def func_wrap(val):
     return val
 
 class Func(RDBValue):
-    tt = p.Term2.FUNC
+    tt = p.Term.FUNC
     nextVarId = 1
 
     def __init__(self, lmbd):
@@ -690,11 +690,11 @@ class Func(RDBValue):
             return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
 
 class Asc(RDBValue, RDBTopFun):
-    tt = p.Term2.ASC
+    tt = p.Term.ASC
     st = 'asc'
 
 class Desc(RDBValue, RDBTopFun):
-    tt = p.Term2.DESC
+    tt = p.Term.DESC
     st = 'desc'
 
 from query import expr

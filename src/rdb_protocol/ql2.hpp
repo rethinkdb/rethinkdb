@@ -12,7 +12,7 @@
 namespace ql {
 // Runs a query!  This is all outside code should ever need to call.  See
 // term.cc for definition.
-void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
+void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response2 *res, stream_cache2_t *stream_cache2);
 } // namespace ql
 

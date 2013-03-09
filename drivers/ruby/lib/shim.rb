@@ -57,8 +57,8 @@ module RethinkDB
       when NilClass.hash   then d.type = dt::R_NULL
       else raise RqlRuntimeError, "UNREACHABLE"
       end
-      t = Term2.new
-      t.type = Term2::TermType::DATUM
+      t = Term.new
+      t.type = Term::TermType::DATUM
       t.datum = d
       return t
     end
@@ -75,14 +75,14 @@ module RethinkDB
         return RQL.new(Shim.native_to_datum_term(x))
       end
 
-      t = Term2.new
+      t = Term.new
       case x.class.hash
       when Array.hash
-        t.type = Term2::TermType::MAKE_ARRAY
+        t.type = Term::TermType::MAKE_ARRAY
         t.args = x.map{|y| expr(y).to_pb}
       when Hash.hash
-        t.type = Term2::TermType::MAKE_OBJ
-        t.optargs = x.map{|k,v| ap = Term2::AssocPair.new;
+        t.type = Term::TermType::MAKE_OBJ
+        t.optargs = x.map{|k,v| ap = Term::AssocPair.new;
           ap.key = k.to_s; ap.val = expr(v).to_pb; ap}
       when Proc.hash
         t = RQL.new.new_func(&x).to_pb

@@ -37,7 +37,7 @@ public:
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    pb_rcheckable_t(const Term2 *t)
+    pb_rcheckable_t(const Term *t)
         : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
     pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
     virtual void runtime_check(const char *test, const char *file, int line,
@@ -45,12 +45,12 @@ public:
         ql::runtime_check(test, file, line, pred, msg, bt_src);
     }
 
-    void rebase(const Term2 *t) {
+    void rebase(const Term *t) {
         bt_src = &t->GetExtension(ql2::extension::backtrace);
     }
 
     // Propagate the associated backtrace through the rewrite term.
-    void propagate(Term2 *t) const;
+    void propagate(Term *t) const;
 private:
     const Backtrace *bt_src;
 };

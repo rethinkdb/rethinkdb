@@ -147,14 +147,14 @@ void check_table_ref(const TableRef &tr, const backtrace_t &backtrace) THROWS_ON
     check_name_string(tr.table_name(), backtrace.with("table_name"));
 }
 
-term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
+term_info_t get_term_type(Term3 *t, type_checking_environment_t *env, const backtrace_t &backtrace) {
     if (t->HasExtension(extension::inferred_type)) {
         guarantee_debug_throw_release(t->HasExtension(extension::deterministic), backtrace);
         int type = t->GetExtension(extension::inferred_type);
         bool det = t->GetExtension(extension::deterministic);
         return term_info_t(static_cast<term_type_t>(type), det);
     }
-    check_protobuf(Term::TermType_IsValid(t->type()));
+    check_protobuf(Term3::TermType_IsValid(t->type()));
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     t->GetReflection()->ListFields(*t, &fields);
@@ -164,7 +164,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
 
     boost::optional<term_info_t> ret;
     switch (t->type()) {
-    case Term::IMPLICIT_VAR: {
+    case Term3::IMPLICIT_VAR: {
         if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
             throw bad_query_exc_t("No implicit variable in scope", backtrace);
         } else if (!env->implicit_type.depth_is_legal()) {
@@ -172,14 +172,14 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         }
         ret.reset(env->implicit_type.get_value());
     } break;
-    case Term::VAR: {
+    case Term3::VAR: {
         check_protobuf(t->has_var());
         if (!env->scope.is_in_scope(t->var())) {
             throw bad_query_exc_t(strprintf("symbol '%s' is not in scope", t->var().c_str()), backtrace);
         }
         ret.reset(env->scope.get(t->var()));
     } break;
-    case Term::LET: {
+    case Term3::LET: {
         bool args_are_det = true;
         check_protobuf(t->has_let());
         new_scope_t scope_maker(&env->scope); //create a new scope
@@ -200,11 +200,11 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         res.deterministic &= args_are_det;
         ret.reset(res);
     } break;
-    case Term::CALL: {
+    case Term3::CALL: {
         check_protobuf(t->has_call());
         ret.reset(get_function_type(t->mutable_call(), env, backtrace));
     } break;
-    case Term::IF: {
+    case Term3::IF: {
         check_protobuf(t->has_if_());
         bool test_is_det = true;
         check_term_type(t->mutable_if_()->mutable_test(), TERM_TYPE_JSON, env, &test_is_det, backtrace.with("test"));
@@ -226,31 +226,31 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         combined_type.deterministic &= test_is_det;
         ret.reset(combined_type);
     } break;
-    case Term::ERROR: {
+    case Term3::ERROR: {
         check_protobuf(t->has_error());
         ret.reset(term_info_t(TERM_TYPE_ARBITRARY, true));
     } break;
-    case Term::NUMBER: {
+    case Term3::NUMBER: {
         check_protobuf(t->has_number());
         ret.reset(term_info_t(TERM_TYPE_JSON, true));
     } break;
-    case Term::STRING: {
+    case Term3::STRING: {
         check_protobuf(t->has_valuestring());
         ret.reset(term_info_t(TERM_TYPE_JSON, true));
     } break;
-    case Term::JSON: {
+    case Term3::JSON: {
         check_protobuf(t->has_jsonstring());
         ret.reset(term_info_t(TERM_TYPE_JSON, true));
     } break;
-    case Term::BOOL: {
+    case Term3::BOOL: {
         check_protobuf(t->has_valuebool());
         ret.reset(term_info_t(TERM_TYPE_JSON, true));
     } break;
-    case Term::JSON_NULL: {
+    case Term3::JSON_NULL: {
         check_protobuf(field_count == 1); // null term has only a type field
         ret.reset(term_info_t(TERM_TYPE_JSON, true));
     } break;
-    case Term::ARRAY: {
+    case Term3::ARRAY: {
         if (t->array_size() == 0) { // empty arrays are valid
             check_protobuf(field_count == 1);
         }
@@ -260,7 +260,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         }
         ret.reset(term_info_t(TERM_TYPE_JSON, deterministic));
     } break;
-    case Term::OBJECT: {
+    case Term3::OBJECT: {
         if (t->object_size() == 0) { // empty objects are valid
             check_protobuf(field_count == 1);
         }
@@ -271,13 +271,13 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         }
         ret.reset(term_info_t(TERM_TYPE_JSON, deterministic));
     } break;
-    case Term::GETBYKEY: {
+    case Term3::GETBYKEY: {
         check_protobuf(t->has_get_by_key());
         check_table_ref(t->get_by_key().table_ref(), backtrace.with("table_ref"));
         check_term_type(t->mutable_get_by_key()->mutable_key(), TERM_TYPE_JSON, env, NULL, backtrace.with("key"));
         ret.reset(term_info_t(TERM_TYPE_JSON, false));
     } break;
-    case Term::TABLE: {
+    case Term3::TABLE: {
         check_protobuf(t->has_table());
         // TODO: I don't like or don't "get" how backtraces are supposed to
         // work. Why do backtraces refer to the subfield of the type but not
@@ -290,11 +290,11 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
         check_table_ref(t->table().table_ref(), backtrace.with("table_ref"));
         ret.reset(term_info_t(TERM_TYPE_VIEW, false));
     } break;
-    case Term::JAVASCRIPT: {
+    case Term3::JAVASCRIPT: {
         check_protobuf(t->has_javascript());
         ret.reset(term_info_t(TERM_TYPE_JSON, false)); // js is never deterministic
     } break;
-    default: unreachable("unhandled Term case");
+    default: unreachable("unhandled Term3 case");
     }
     guarantee_debug_throw_release(ret, backtrace);
     t->SetExtension(extension::inferred_type, static_cast<int32_t>(ret->type));
@@ -303,7 +303,7 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     return *ret;
 }
 
-void check_term_type(Term *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+void check_term_type(Term3 *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
     term_info_t actual = get_term_type(t, env, backtrace);
     if (expected != TERM_TYPE_ARBITRARY &&
         !term_type_is_convertible(actual.type, expected)) {
@@ -317,7 +317,7 @@ void check_term_type(Term *t, term_type_t expected, type_checking_environment_t 
     }
 }
 
-void check_arg_count(Term::Call *c, int n_args, const backtrace_t &backtrace) {
+void check_arg_count(Term3::Call *c, int n_args, const backtrace_t &backtrace) {
     if (c->args_size() != n_args) {
         const char* fn_name = Builtin::BuiltinType_Name(c->builtin().type()).c_str();
         throw bad_query_exc_t(strprintf(
@@ -331,7 +331,7 @@ void check_arg_count(Term::Call *c, int n_args, const backtrace_t &backtrace) {
     }
 }
 
-void check_arg_count_at_least(Term::Call *c, int n_args, const backtrace_t &backtrace) {
+void check_arg_count_at_least(Term3::Call *c, int n_args, const backtrace_t &backtrace) {
     if (c->args_size() < n_args) {
         const char* fn_name = Builtin::BuiltinType_Name(c->builtin().type()).c_str();
         throw bad_query_exc_t(strprintf(
@@ -345,7 +345,7 @@ void check_arg_count_at_least(Term::Call *c, int n_args, const backtrace_t &back
     }
 }
 
-void check_function_args(Term::Call *c, const term_type_t &arg_type, int n_args,
+void check_function_args(Term3::Call *c, const term_type_t &arg_type, int n_args,
                          type_checking_environment_t *env, bool *is_det_out,
                          const backtrace_t &backtrace) {
     check_arg_count(c, n_args, backtrace);
@@ -354,7 +354,7 @@ void check_function_args(Term::Call *c, const term_type_t &arg_type, int n_args,
     }
 }
 
-void check_function_args_at_least(Term::Call *c, const term_type_t &arg_type, int n_args,
+void check_function_args_at_least(Term3::Call *c, const term_type_t &arg_type, int n_args,
                                   type_checking_environment_t *env, bool *is_det_out,
                                   const backtrace_t &backtrace) {
     // requires the number of arguments to be at least n_args
@@ -364,7 +364,7 @@ void check_function_args_at_least(Term::Call *c, const term_type_t &arg_type, in
     }
 }
 
-void check_polymorphic_function_args(Term::Call *c, const term_type_t &arg_type, int n_args,
+void check_polymorphic_function_args(Term3::Call *c, const term_type_t &arg_type, int n_args,
                          type_checking_environment_t *env, bool *is_det_out,
                          const backtrace_t &backtrace) {
     // for functions that work with selections/streams/jsons, where the first argument can be any type
@@ -374,7 +374,7 @@ void check_polymorphic_function_args(Term::Call *c, const term_type_t &arg_type,
     }
 }
 
-void check_function_args(Term::Call *c, const term_type_t &arg1_type, const term_type_t &arg2_type,
+void check_function_args(Term3::Call *c, const term_type_t &arg1_type, const term_type_t &arg2_type,
                          type_checking_environment_t *env, bool *is_det_out,
                          const backtrace_t &backtrace) {
     check_arg_count(c, 2, backtrace);
@@ -382,7 +382,7 @@ void check_function_args(Term::Call *c, const term_type_t &arg1_type, const term
     check_term_type(c->mutable_args(1), arg2_type, env, is_det_out, backtrace.with("arg:1"));
 }
 
-term_info_t get_function_type(Term::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace) {
+term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace) {
     Builtin *b = c->mutable_builtin();
 
     check_protobuf(Builtin::BuiltinType_IsValid(b->type()));
@@ -687,7 +687,7 @@ void check_predicate_type(Predicate *p, type_checking_environment_t *env, bool *
     check_term_type(p->mutable_body(), TERM_TYPE_JSON, env, is_det_out, backtrace);
 }
 
-void check_read_query_type(ReadQuery *rq, type_checking_environment_t *env, bool *, const backtrace_t &backtrace) {
+void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, bool *, const backtrace_t &backtrace) {
     /* Read queries could return anything--a view, a stream, a JSON, or an
     error. Views will be automatically converted to streams at evaluation time.
     */
@@ -695,8 +695,8 @@ void check_read_query_type(ReadQuery *rq, type_checking_environment_t *env, bool
     rq->SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
-void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
-    check_protobuf(WriteQuery::WriteQueryType_IsValid(w->type()));
+void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(WriteQuery3::WriteQueryType_IsValid(w->type()));
 
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w->GetReflection()->ListFields(*w, &fields);
@@ -704,23 +704,23 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
 
     bool deterministic = true;
     switch (w->type()) {
-    case WriteQuery::UPDATE: {
+    case WriteQuery3::UPDATE: {
         check_protobuf(w->has_update());
         check_term_type(w->mutable_update()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
     } break;
-    case WriteQuery::DELETE: {
+    case WriteQuery3::DELETE: {
         check_protobuf(w->has_delete_());
         check_term_type(w->mutable_delete_()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
     } break;
-    case WriteQuery::MUTATE: {
+    case WriteQuery3::MUTATE: {
         check_protobuf(w->has_mutate());
         check_term_type(w->mutable_mutate()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
     } break;
-    case WriteQuery::INSERT: {
+    case WriteQuery3::INSERT: {
         check_protobuf(w->has_insert());
         check_table_ref(w->insert().table_ref(), backtrace.with("table_ref"));
         if (w->insert().terms_size() == 1) {
@@ -732,7 +732,7 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
             check_term_type(w->mutable_insert()->mutable_terms(i), TERM_TYPE_JSON, env, is_det_out, backtrace.with(strprintf("term:%d", i)));
         }
     } break;
-    case WriteQuery::FOREACH: {
+    case WriteQuery3::FOREACH: {
         check_protobuf(w->has_for_each());
         check_term_type(w->mutable_for_each()->mutable_stream(), TERM_TYPE_ARBITRARY, env, is_det_out, backtrace.with("stream"));
 
@@ -741,19 +741,19 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
             check_write_query_type(w->mutable_for_each()->mutable_queries(i), env, is_det_out, backtrace.with(strprintf("query:%d", i)));
         }
     } break;
-    case WriteQuery::POINTUPDATE: {
+    case WriteQuery3::POINTUPDATE: {
         check_protobuf(w->has_point_update());
         check_table_ref(w->point_update().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_update()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
         implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
         check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
-    case WriteQuery::POINTDELETE: {
+    case WriteQuery3::POINTDELETE: {
         check_protobuf(w->has_point_delete());
         check_table_ref(w->point_delete().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_delete()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
     } break;
-    case WriteQuery::POINTMUTATE: {
+    case WriteQuery3::POINTMUTATE: {
         check_protobuf(w->has_point_mutate());
         check_table_ref(w->point_mutate().table_ref(), backtrace.with("table_ref"));
         check_term_type(w->mutable_point_mutate()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
@@ -761,31 +761,31 @@ void check_write_query_type(WriteQuery *w, type_checking_environment_t *env, boo
         check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
     } break;
     default:
-        unreachable("unhandled WriteQuery");
+        unreachable("unhandled WriteQuery3");
     }
 }
 
-void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
-    check_protobuf(MetaQuery::MetaQueryType_IsValid(t->type()));
+void check_meta_query_type(MetaQuery3 *t, const backtrace_t &backtrace) {
+    check_protobuf(MetaQuery3::MetaQueryType_IsValid(t->type()));
     switch (t->type()) {
-    case MetaQuery::CREATE_DB:
+    case MetaQuery3::CREATE_DB:
         check_protobuf(t->has_db_name());
         check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    case MetaQuery::DROP_DB:
+    case MetaQuery3::DROP_DB:
         check_protobuf(t->has_db_name());
         check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    case MetaQuery::LIST_DBS:
+    case MetaQuery3::LIST_DBS:
         check_protobuf(!t->has_db_name());
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    case MetaQuery::CREATE_TABLE: {
+    case MetaQuery3::CREATE_TABLE: {
         check_protobuf(!t->has_db_name());
         check_protobuf(t->has_create_table());
         if (!t->create_table().datacenter().empty()) {
@@ -794,55 +794,55 @@ void check_meta_query_type(MetaQuery *t, const backtrace_t &backtrace) {
         check_table_ref(t->create_table().table_ref(), backtrace.with("table_ref"));
         check_protobuf(!t->has_drop_table());
     } break;
-    case MetaQuery::DROP_TABLE:
+    case MetaQuery3::DROP_TABLE:
         check_protobuf(!t->has_db_name());
         check_protobuf(!t->has_create_table());
         check_protobuf(t->has_drop_table());
         check_table_ref(t->drop_table(), backtrace);
         break;
-    case MetaQuery::LIST_TABLES:
+    case MetaQuery3::LIST_TABLES:
         check_protobuf(t->has_db_name());
         check_name_string(t->db_name(), backtrace);
         check_protobuf(!t->has_create_table());
         check_protobuf(!t->has_drop_table());
         break;
-    default: unreachable("Unhandled MetaQuery.");
+    default: unreachable("Unhandled MetaQuery3.");
     }
 }
 
-void check_query_type(Query *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
-    check_protobuf(Query::QueryType_IsValid(q->type()));
+void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
+    check_protobuf(Query3::QueryType_IsValid(q->type()));
     switch (q->type()) {
-    case Query::READ:
+    case Query3::READ:
         check_protobuf(q->has_read_query());
         check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         check_read_query_type(q->mutable_read_query(), env, is_det_out, backtrace);
         break;
-    case Query::WRITE:
+    case Query3::WRITE:
         check_protobuf(q->has_write_query());
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_meta_query());
         check_write_query_type(q->mutable_write_query(), env, is_det_out, backtrace);
         break;
-    case Query::CONTINUE:
+    case Query3::CONTINUE:
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         break;
-    case Query::STOP:
+    case Query3::STOP:
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         break;
-    case Query::META:
+    case Query3::META:
         check_protobuf(q->has_meta_query());
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_write_query());
         check_meta_query_type(q->mutable_meta_query(), backtrace);
         break;
     default:
-        unreachable("unhandled Query");
+        unreachable("unhandled Query3");
     }
 }
 
@@ -905,7 +905,7 @@ void assign_dc_name(const std::string &dc_name_str, const backtrace_t& bt, name_
 }
 
 
-void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
     int original_thread = get_thread_id();
     int metadata_home_thread = env->semilattice_metadata->home_thread();
@@ -925,7 +925,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         dc_searcher(&metadata.datacenters.datacenters);
 
     switch (m->type()) {
-    case MetaQuery::CREATE_DB: {
+    case MetaQuery3::CREATE_DB: {
         name_string_t db_name;
         assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
 
@@ -946,7 +946,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
     } break;
-    case MetaQuery::DROP_DB: {
+    case MetaQuery3::DROP_DB: {
         name_string_t db_name;
         assign_db_name(m->db_name(), bt.with("db_anme"), &db_name);
 
@@ -977,7 +977,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case MetaQuery::LIST_DBS: {
+    case MetaQuery3::LIST_DBS: {
         for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
                  it = db_searcher.find_next(db_searcher.begin());
              it != db_searcher.end(); it = db_searcher.find_next(++it)) {
@@ -990,7 +990,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         }
         res->set_status_code(Response::SUCCESS_STREAM);
     } break;
-    case MetaQuery::CREATE_TABLE: {
+    case MetaQuery3::CREATE_TABLE: {
         std::string dc_name_str = m->create_table().datacenter();
         name_string_t dc_name;
         assign_dc_name(dc_name_str, bt.with("table_ref").with("dc_name"), &dc_name);
@@ -1041,11 +1041,11 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         try {
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id, env->interruptor, env->semilattice_metadata);
         } catch (interrupted_exc_t e) {
-            throw runtime_exc_t("Query interrupted, probably by user.", bt);
+            throw runtime_exc_t("Query3 interrupted, probably by user.", bt);
         }
         res->set_status_code(Response::SUCCESS_EMPTY);
     } break;
-    case MetaQuery::DROP_TABLE: {
+    case MetaQuery3::DROP_TABLE: {
         std::string db_name_str = m->drop_table().db_name();
         name_string_t db_name;
         assign_db_name(db_name_str, bt.with("db_name"), &db_name);
@@ -1074,7 +1074,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         env->semilattice_metadata->join(metadata);
         res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
     } break;
-    case MetaQuery::LIST_TABLES: {
+    case MetaQuery3::LIST_TABLES: {
         name_string_t db_name;
         assign_db_name(m->db_name(), bt.with("db_name"), &db_name);
         uuid_u db_id = meta_get_uuid(db_searcher, db_name, "FIND_DATABASE " + db_name.str(), bt.with("db_name"));
@@ -1126,21 +1126,21 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     return ns_metadata_it->second.get().primary_key.get();
 }
 
-void execute_query(Query *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_query(Query3 *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     guarantee_debug_throw_release(q->token() == res->token(), backtrace);
     switch (q->type()) {
-    case Query::READ: {
+    case Query3::READ: {
         execute_read_query(q->mutable_read_query(), env, res, scopes, backtrace, stream_cache);
     } break; //status set in [execute_read_query]
-    case Query::WRITE: {
+    case Query3::WRITE: {
         execute_write_query(q->mutable_write_query(), env, res, scopes, backtrace);
     } break; //status set in [execute_write_query]
-    case Query::CONTINUE: {
+    case Query3::CONTINUE: {
         if (!stream_cache->serve(q->token(), res, env->interruptor)) {
             throw runtime_exc_t(strprintf("Could not serve key %" PRIi64 " from stream cache.", q->token()), backtrace);
         }
     } break; //status set in [serve]
-    case Query::STOP: {
+    case Query3::STOP: {
         if (!stream_cache->contains(q->token())) {
             throw broken_client_exc_t(strprintf("No key %" PRIi64 " in stream cache.", q->token()));
         } else {
@@ -1148,7 +1148,7 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
             stream_cache->erase(q->token());
         }
     } break;
-    case Query::META: {
+    case Query3::META: {
         execute_meta(q->mutable_meta_query(), env, res, backtrace);
     } break; //status set in [execute_meta]
     default:
@@ -1156,7 +1156,7 @@ void execute_query(Query *q, runtime_environment_t *env, Response *res, const sc
     }
 }
 
-void execute_read_query(ReadQuery *r, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_read_query(ReadQuery3 *r, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     int type = r->GetExtension(extension::inferred_read_type);
 
     switch (type) {
@@ -1404,10 +1404,10 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
     return point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     res->set_status_code(Response::SUCCESS_JSON);
     switch (w->type()) {
-    case WriteQuery::UPDATE: {
+    case WriteQuery3::UPDATE: {
         view_t view = eval_term_as_view(w->mutable_update()->mutable_view(), env, scopes, backtrace.with("view"));
         std::string reported_error = "";
 
@@ -1438,7 +1438,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response("{" + res_list + "}");
     } break;
-    case WriteQuery::MUTATE: {
+    case WriteQuery3::MUTATE: {
         view_t view = eval_term_as_view(w->mutable_mutate()->mutable_view(), env, scopes, backtrace.with("view"));
 
         int modified = 0, deleted = 0, errors = 0;
@@ -1478,7 +1478,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response("{" + res_list + "}");
     } break;
-    case WriteQuery::DELETE: {
+    case WriteQuery3::DELETE: {
         view_t view = eval_term_as_view(w->mutable_delete_()->mutable_view(), env, scopes, backtrace.with("view"));
 
         int deleted = 0;
@@ -1488,7 +1488,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
     } break;
-    case WriteQuery::INSERT: {
+    case WriteQuery3::INSERT: {
         std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
         bool overwrite = w->mutable_insert()->overwrite();
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
@@ -1499,7 +1499,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         int inserted = 0;
         std::vector<std::string> generated_keys;
         if (w->insert().terms_size() == 1) {
-            Term *t = w->mutable_insert()->mutable_terms(0);
+            Term3 *t = w->mutable_insert()->mutable_terms(0);
             int32_t t_type = t->GetExtension(extension::inferred_type);
             boost::shared_ptr<json_stream_t> stream;
             if (t_type == TERM_TYPE_JSON) {
@@ -1544,7 +1544,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response(res_json->Print());
     } break;
-    case WriteQuery::FOREACH: {
+    case WriteQuery3::FOREACH: {
         boost::shared_ptr<json_stream_t> stream =
             eval_term_as_stream(w->mutable_for_each()->mutable_stream(), env, scopes, backtrace.with("stream"));
 
@@ -1567,7 +1567,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
                 } catch (const runtime_exc_t &e) {
                     rhs.reset(cJSON_CreateObject());
                     rhs.AddItemToObject("errors", safe_cJSON_CreateNumber(1.0, backtrace));
-                    std::string err = strprintf("Term %d of the foreach threw an error: %s\n", i,
+                    std::string err = strprintf("Term3 %d of the foreach threw an error: %s\n", i,
                                                 (e.message + "\nBacktrace:\n" + e.backtrace.print()).c_str());
                     rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
                 }
@@ -1591,7 +1591,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         }
         res->add_response(lhs.Print());
     } break;
-    case WriteQuery::POINTUPDATE: {
+    case WriteQuery3::POINTUPDATE: {
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
         std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
@@ -1609,7 +1609,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
         res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
                                     mres == point_modify_ns::MODIFIED, mres == point_modify_ns::SKIPPED, 0));
     } break;
-    case WriteQuery::POINTDELETE: {
+    case WriteQuery3::POINTDELETE: {
         int deleted = -1;
         std::string pk = get_primary_key(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
         std::string attr = w->mutable_point_delete()->attrname();
@@ -1624,7 +1624,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 
         res->add_response(strprintf("{\"deleted\": %d}", deleted));
     } break;
-    case WriteQuery::POINTMUTATE: {
+    case WriteQuery3::POINTMUTATE: {
         namespace_repo_t<rdb_protocol_t>::access_t ns_access =
             eval_table_ref(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
         std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
@@ -1649,7 +1649,7 @@ void execute_write_query(WriteQuery *w, runtime_environment_t *env, Response *re
 }
 
 //This doesn't create a scope for the evals
-void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes_in_out, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void eval_let_binds(Term3::Let *let, runtime_environment_t *env, scopes_t *scopes_in_out, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let->binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let->binds(i).var().c_str()));
@@ -1671,7 +1671,7 @@ void eval_let_binds(Term::Let *let, runtime_environment_t *env, scopes_t *scopes
     }
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, int type, const std::string &msg) {
+boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, int type, const std::string &msg) {
     boost::shared_ptr<scoped_cJSON_t> res = eval_term_as_json(t, env, scopes, backtrace);
     if (res->type() != type) {
         throw runtime_exc_t(msg, backtrace);
@@ -1679,7 +1679,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check(Term *t, runtime_e
     return res;
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, int type1, int type2, const std::string &msg) {
+boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, int type1, int type2, const std::string &msg) {
     boost::shared_ptr<scoped_cJSON_t> res = eval_term_as_json(t, env, scopes, backtrace);
     if (res->type() != type1 && res->type() != type2) {
         throw runtime_exc_t(msg, backtrace);
@@ -1688,17 +1688,17 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json_and_check_either(Term *t, ru
 }
 
 
-boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
-    case Term::IMPLICIT_VAR:
+    case Term3::IMPLICIT_VAR:
         guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
         return scopes.implicit_attribute_value.get_value();
-    case Term::VAR: {
+    case Term3::VAR: {
         boost::shared_ptr<scoped_cJSON_t> ptr = scopes.scope.get(t->var());
         guarantee_debug_throw_release(ptr.get() && ptr->get(), backtrace);
         return ptr;
     } break;
-    case Term::LET:
+    case Term3::LET:
         {
             // Push the scope
             scopes_t scopes_copy = scopes;
@@ -1710,10 +1710,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             return eval_term_as_json(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
-    case Term::CALL:
+    case Term3::CALL:
         return eval_call_as_json(t->mutable_call(), env, scopes, backtrace);
         break;
-    case Term::IF:
+    case Term3::IF:
         {
             boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
@@ -1726,20 +1726,20 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             return res;
         }
         break;
-    case Term::ERROR:
+    case Term3::ERROR:
         throw runtime_exc_t(t->error(), backtrace);
         break;
-    case Term::NUMBER:
+    case Term3::NUMBER:
         {
             return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(t->number(), backtrace)));
         }
         break;
-    case Term::STRING:
+    case Term3::STRING:
         {
             return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t->valuestring().c_str())));
         }
         break;
-    case Term::JSON: {
+    case Term3::JSON: {
         const char *str = t->jsonstring().c_str();
         boost::shared_ptr<scoped_cJSON_t> json(new scoped_cJSON_t(cJSON_Parse(str)));
         if (!json->get()) {
@@ -1747,17 +1747,17 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
         }
         return json;
     } break;
-    case Term::BOOL:
+    case Term3::BOOL:
         {
             return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t->valuebool())));
         }
         break;
-    case Term::JSON_NULL:
+    case Term3::JSON_NULL:
         {
             return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
         }
         break;
-    case Term::ARRAY:
+    case Term3::ARRAY:
         {
             boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
             for (int i = 0; i < t->array_size(); ++i) {
@@ -1766,7 +1766,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             return res;
         }
         break;
-    case Term::OBJECT:
+    case Term3::OBJECT:
         {
             boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
             for (int i = 0; i < t->object_size(); ++i) {
@@ -1776,7 +1776,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             return res;
         }
         break;
-    case Term::GETBYKEY:
+    case Term3::GETBYKEY:
         {
             std::string pk = get_primary_key(t->mutable_get_by_key()->mutable_table_ref(), env, backtrace);
 
@@ -1798,10 +1798,10 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
             }
             break;
         }
-    case Term::TABLE:
-        crash("Term::TABLE must be evaluated with eval_stream or eval_view");
+    case Term3::TABLE:
+        crash("Term3::TABLE must be evaluated with eval_stream or eval_view");
 
-    case Term::JAVASCRIPT: {
+    case Term3::JAVASCRIPT: {
         // TODO(rntz): optimize map/reduce/filter queries whose
         // mappings/reductions/predicates are just javascript terms by
         // streaming arguments to them and streaming results back. Should
@@ -1864,9 +1864,9 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term *t, runtime_environment
     unreachable();
 }
 
-boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+boost::shared_ptr<json_stream_t> eval_term_as_stream(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
-    case Term::LET:
+    case Term3::LET:
         {
             // Push the scope
             scopes_t scopes_copy = scopes;
@@ -1878,10 +1878,10 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
             return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
-    case Term::CALL:
+    case Term3::CALL:
         return eval_call_as_stream(t->mutable_call(), env, scopes, backtrace);
         break;
-    case Term::IF:
+    case Term3::IF:
         {
             boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
@@ -1892,23 +1892,23 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
             }
         }
         break;
-    case Term::TABLE:
+    case Term3::TABLE:
         {
             return eval_table_as_view(t->mutable_table(), env, backtrace).stream;
         }
         break;
-    case Term::IMPLICIT_VAR:
-    case Term::VAR:
-    case Term::ERROR:
-    case Term::NUMBER:
-    case Term::STRING:
-    case Term::JSON:
-    case Term::BOOL:
-    case Term::JSON_NULL:
-    case Term::OBJECT:
-    case Term::GETBYKEY:
-    case Term::JAVASCRIPT:
-    case Term::ARRAY: {
+    case Term3::IMPLICIT_VAR:
+    case Term3::VAR:
+    case Term3::ERROR:
+    case Term3::NUMBER:
+    case Term3::STRING:
+    case Term3::JSON:
+    case Term3::BOOL:
+    case Term3::JSON_NULL:
+    case Term3::OBJECT:
+    case Term3::GETBYKEY:
+    case Term3::JAVASCRIPT:
+    case Term3::ARRAY: {
         boost::shared_ptr<scoped_cJSON_t> arr = eval_term_as_json(t, env, scopes, backtrace);
         require_type(arr->get(), cJSON_Array, backtrace);
         json_array_iterator_t it(arr->get());
@@ -1921,7 +1921,7 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term *t, runtime_environmen
     unreachable();
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2501,7 +2501,7 @@ private:
 };
 
 /* Renaming map here because otherwise it conflicts with std::map. */
-boost::shared_ptr<scoped_cJSON_t> map_rdb(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
+boost::shared_ptr<scoped_cJSON_t> map_rdb(std::string arg, Term3 *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
 
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
@@ -2517,7 +2517,7 @@ boost::shared_ptr<scoped_cJSON_t> eval_mapping(Mapping m, runtime_environment_t 
     return map_rdb(m.arg(), m.mutable_body(), env, scopes, backtrace, val);
 }
 
-boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term3 *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
     scopes_t scopes_copy = scopes;
     variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, arg, val);
     variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, arg, term_info_t(TERM_TYPE_JSON, true));
@@ -2527,7 +2527,7 @@ boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term *term, runtime_
     return eval_term_as_stream(term, env, scopes_copy, backtrace);
 }
 
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2736,7 +2736,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
         env->ns_repo, id, env->interruptor);
 }
 
-view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+view_t eval_call_as_view(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -2841,26 +2841,26 @@ view_t eval_call_as_view(Term::Call *c, runtime_environment_t *env, const scopes
 
 }
 
-view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+view_t eval_term_as_view(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
-    case Term::IMPLICIT_VAR:
-    case Term::VAR:
-    case Term::LET:
-    case Term::ERROR:
-    case Term::NUMBER:
-    case Term::STRING:
-    case Term::JSON:
-    case Term::BOOL:
-    case Term::JSON_NULL:
-    case Term::ARRAY:
-    case Term::OBJECT:
-    case Term::JAVASCRIPT:
-        crash("eval_term_as_view called on incompatible Term");
+    case Term3::IMPLICIT_VAR:
+    case Term3::VAR:
+    case Term3::LET:
+    case Term3::ERROR:
+    case Term3::NUMBER:
+    case Term3::STRING:
+    case Term3::JSON:
+    case Term3::BOOL:
+    case Term3::JSON_NULL:
+    case Term3::ARRAY:
+    case Term3::OBJECT:
+    case Term3::JAVASCRIPT:
+        crash("eval_term_as_view called on incompatible Term3");
         break;
-    case Term::CALL:
+    case Term3::CALL:
         return eval_call_as_view(t->mutable_call(), env, scopes, backtrace);
         break;
-    case Term::IF:
+    case Term3::IF:
         {
             boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
 
@@ -2871,10 +2871,10 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
             }
         }
         break;
-    case Term::GETBYKEY:
+    case Term3::GETBYKEY:
         crash("unimplemented");
         break;
-    case Term::TABLE:
+    case Term3::TABLE:
         return eval_table_as_view(t->mutable_table(), env, backtrace.with("table_ref"));
         break;
     default:
@@ -2883,7 +2883,7 @@ view_t eval_term_as_view(Term *t, runtime_environment_t *env, const scopes_t &sc
     unreachable();
 }
 
-view_t eval_table_as_view(Term::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+view_t eval_table_as_view(Term3::Table *t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(t->mutable_table_ref(), env, backtrace);
     std::string pk = get_primary_key(t->mutable_table_ref(), env, backtrace);
     // TODO(jdoliner): We used to pass 100 as a batch_size parameter to the batched_rget_stream_t constructor.

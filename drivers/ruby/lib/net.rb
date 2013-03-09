@@ -61,8 +61,8 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = Query2.new
-        q.type = Query2::QueryType::CONTINUE
+        q = Query.new
+        q.type = Query::QueryType::CONTINUE
         q.query = @msg
         q.token = @token
         res = @conn.run_internal q
@@ -98,13 +98,13 @@ module RethinkDB
       wait q.token
     end
     def run(msg, opts)
-      q = Query2.new
-      q.type = Query2::QueryType::START
+      q = Query.new
+      q.type = Query::QueryType::START
       q.query = msg
       q.token = @@token_cnt += 1
 
       @default_opts.merge(opts).each {|k,v|
-        ap = Query2::AssocPair.new
+        ap = Query::AssocPair.new
         ap.key = k.to_s
         ap.val = v.to_pb
         q.global_optargs << ap

@@ -28,7 +28,7 @@ class stream_cache_t {
 public:
     // TODO: Uses of contains can all just try insert or erase and look at return codes.
     bool contains(int64_t key);
-    void insert(ReadQuery *r, int64_t key,
+    void insert(ReadQuery3 *r, int64_t key,
                 boost::shared_ptr<query_language::json_stream_t> val);
     void erase(int64_t key);
     bool serve(int64_t key, Response *res, signal_t *interruptor);
@@ -40,7 +40,7 @@ private:
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity,
                 boost::shared_ptr<query_language::json_stream_t> _stream,
-                ReadQuery *r);
+                ReadQuery3 *r);
         time_t last_activity;
         boost::shared_ptr<query_language::json_stream_t> stream;
         int max_chunk_size; //Size of 0 = unlimited
@@ -55,7 +55,7 @@ class stream_cache2_t {
 public:
     stream_cache2_t() { }
     MUST_USE bool contains(int64_t key);
-    void insert(Query2 *q, int64_t key,
+    void insert(Query *q, int64_t key,
                 scoped_ptr_t<env_t> *val_env, datum_stream_t *val_stream);
     void erase(int64_t key);
     MUST_USE bool serve(int64_t key, Response2 *res, signal_t *interruptor);
@@ -67,7 +67,7 @@ private:
         static const int DEFAULT_MAX_CHUNK_SIZE = 1000 DEBUG_ONLY(/ 200);
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
-                datum_stream_t *_stream, Query2 *q);
+                datum_stream_t *_stream, Query *q);
         time_t last_activity;
         scoped_ptr_t<env_t> env; // steals ownership from env_ptr !!!
         datum_stream_t *stream;

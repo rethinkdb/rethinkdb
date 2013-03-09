@@ -7,32 +7,32 @@ namespace ql {
 
 class predicate_term_t : public op_term_t {
 public:
-    predicate_term_t(env_t *env, const Term2 *term)
+    predicate_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
         int predtype = term->type();
         switch(predtype) {
-        case Term2_TermType_EQ: {
+        case Term_TermType_EQ: {
             namestr = "EQ";
             pred = &datum_t::operator==; // NOLINT
         } break;
-        case Term2_TermType_NE: {
+        case Term_TermType_NE: {
             namestr = "NE";
             pred = &datum_t::operator==; // NOLINT
             invert = true; // we invert the == operator so (!= 1 2 3) makes sense
         } break;
-        case Term2_TermType_LT: {
+        case Term_TermType_LT: {
             namestr = "LT";
             pred = &datum_t::operator<; // NOLINT
         } break;
-        case Term2_TermType_LE: {
+        case Term_TermType_LE: {
             namestr = "LE";
             pred = &datum_t::operator<=; // NOLINT
         } break;
-        case Term2_TermType_GT: {
+        case Term_TermType_GT: {
             namestr = "GT";
             pred = &datum_t::operator>; // NOLINT
         } break;
-        case Term2_TermType_GE: {
+        case Term_TermType_GE: {
             namestr = "GE";
             pred = &datum_t::operator>=; // NOLINT
         } break;
@@ -61,7 +61,7 @@ private:
 
 class not_term_t : public op_term_t {
 public:
-    not_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    not_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() { return new_val_bool(!arg(0)->as_bool()); }
     RDB_NAME("not");

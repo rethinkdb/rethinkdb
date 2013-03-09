@@ -681,9 +681,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
 
-
-
-
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these
 // cases:
@@ -693,6 +690,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
 
-void pb_print(DEBUG_VAR Term2 *t) {
+void pb_print(DEBUG_VAR Term *t) {
     debugf("%s\n", t->DebugString().c_str());
 }

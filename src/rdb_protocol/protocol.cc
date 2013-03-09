@@ -81,9 +81,9 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
-RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery_ForEach);
+RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery3_ForEach);
 
-RDB_IMPL_PROTOB_SERIALIZABLE(Term2);
+RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 
 
@@ -327,7 +327,7 @@ public:
                     const groups_t *groups = boost::get<groups_t>(&(_rr->result));
 
                     for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                        Term base = gmr->reduction().base(),
+                        Term3 base = gmr->reduction().base(),
                              body = gmr->reduction().body();
 
                         scopes_t scopes_copy = rg.terminal->scopes;
@@ -343,7 +343,7 @@ public:
                 rg_response.result = atom_t();
                 atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
 
-                Term base = r->base();
+                Term3 base = r->base();
                 *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
 
                 for (size_t i = 0; i < count; ++i) {
@@ -356,7 +356,7 @@ public:
                     query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
                     scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
                     scopes_copy.scope.put_in_scope(r->var2(), *atom);
-                    Term body = r->body();
+                    Term3 body = r->body();
                     *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
                 }
             } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
@@ -401,7 +401,7 @@ public:
                     const length_t *length = boost::get<length_t>(&(_rr->result));
                     res_length->length += length->length;
                 }
-            } else if (boost::get<WriteQuery_ForEach>(&rg.terminal->variant)) {
+            } else if (boost::get<WriteQuery3_ForEach>(&rg.terminal->variant)) {
                 rg_response.result = atom_t();
                 inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
                 res_inserted->inserted = 0;

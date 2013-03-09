@@ -8,7 +8,7 @@ namespace ql {
 
 class getattr_term_t : public op_term_t {
 public:
-    getattr_term_t(env_t *env, const Term2 *term)
+    getattr_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
@@ -19,7 +19,7 @@ private:
 
 class contains_term_t : public op_term_t {
 public:
-    contains_term_t(env_t *env, const Term2 *term)
+    contains_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {

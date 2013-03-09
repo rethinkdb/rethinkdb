@@ -10,54 +10,54 @@ namespace ql {
 namespace pb {
 
 // Set `d` to be a datum term, return a pointer to its datum member.
-Datum *set_datum(Term2 *d);
+Datum *set_datum(Term *d);
 // Set `f` to be a function of `varnum`, return a pointer to its body.
-Term2 *set_func(Term2 *f, int varnum);
+Term *set_func(Term *f, int varnum);
 // As above but with two variables.
-Term2 *set_func(Term2 *f, int varnum1, int varnum2);
+Term *set_func(Term *f, int varnum1, int varnum2);
 // Set `v` to be the variable `varnum`.
-void set_var(Term2 *v, int varnum);
+void set_var(Term *v, int varnum);
 
 // Set `t` to be a particular datum.
-void set_null(Term2 *t);
-void set_int(Term2 *t, int num);
-void set_str(Term2 *t, const std::string &s);
+void set_null(Term *t);
+void set_int(Term *t, int num);
+void set_str(Term *t, const std::string &s);
 
 // Set `out` to be `type` with the appropriate arguments.
-void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int num_args);
+void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_args);
 
 // These macros implement anaphoric stack machine logic.  They are used
 // extensively in rewrites.hpp and probably one or two other places.  They need
 // to have the -Wshadow diagnostic disabled for their extent; see rewrites.hpp
 // for how to do this.
 //
-// These macros expect `arg` to point to the Term2 they should modify.  They set
+// These macros expect `arg` to point to the Term they should modify.  They set
 // its type to PB, and then for each of their arguments, rebind `arg` to point
-// to the appropriate portion of the new Term2 and execute that argument.
+// to the appropriate portion of the new Term and execute that argument.
 #define N0(PB) do {                             \
-        arg->set_type(Term2_TermType_##PB);     \
+        arg->set_type(Term_TermType_##PB);     \
     } while (0);
 #define N1(PB, ARG1) do {                       \
-        arg->set_type(Term2_TermType_##PB);     \
-        Term2 *PB_arg1 = arg->add_args();       \
-        Term2 *arg = PB_arg1;                   \
+        arg->set_type(Term_TermType_##PB);     \
+        Term *PB_arg1 = arg->add_args();       \
+        Term *arg = PB_arg1;                   \
         ARG1;                                   \
     } while (0);
 #define N2(PB, ARG1, ARG2) do {                 \
-        arg->set_type(Term2_TermType_##PB);     \
-        Term2 *PB_arg1 = arg->add_args();       \
-        Term2 *PB_arg2 = arg->add_args();       \
-        Term2 *arg = PB_arg1;                   \
+        arg->set_type(Term_TermType_##PB);     \
+        Term *PB_arg1 = arg->add_args();       \
+        Term *PB_arg2 = arg->add_args();       \
+        Term *arg = PB_arg1;                   \
         ARG1;                                   \
         arg = PB_arg2;                          \
         ARG2;                                   \
     } while (0);
 #define N3(PB, ARG1, ARG2, ARG3) do {           \
-        arg->set_type(Term2_TermType_##PB);     \
-        Term2 *PB_arg1 = arg->add_args();       \
-        Term2 *PB_arg2 = arg->add_args();       \
-        Term2 *PB_arg3 = arg->add_args();       \
-        Term2 *arg = PB_arg1;                   \
+        arg->set_type(Term_TermType_##PB);     \
+        Term *PB_arg1 = arg->add_args();       \
+        Term *PB_arg2 = arg->add_args();       \
+        Term *PB_arg3 = arg->add_args();       \
+        Term *arg = PB_arg1;                   \
         ARG1;                                   \
         arg = PB_arg2;                          \
         ARG2;                                   \
@@ -65,12 +65,12 @@ void set(Term2 *out, Term2_TermType type, std::vector<Term2 *> *args_out, int nu
         ARG3;                                   \
     } while (0);
 #define N4(PB, ARG1, ARG2, ARG3, ARG4) do {     \
-        arg->set_type(Term2_TermType_##PB);     \
-        Term2 *PB_arg1 = arg->add_args();       \
-        Term2 *PB_arg2 = arg->add_args();       \
-        Term2 *PB_arg3 = arg->add_args();       \
-        Term2 *PB_arg4 = arg->add_args();       \
-        Term2 *arg = PB_arg1;                   \
+        arg->set_type(Term_TermType_##PB);     \
+        Term *PB_arg1 = arg->add_args();       \
+        Term *PB_arg2 = arg->add_args();       \
+        Term *PB_arg3 = arg->add_args();       \
+        Term *PB_arg4 = arg->add_args();       \
+        Term *arg = PB_arg1;                   \
         ARG1;                                   \
         arg = PB_arg2;                          \
         ARG2;                                   \
@@ -99,17 +99,17 @@ void run(T t, U arg) { run(datum_t(t), arg); }
 // Like `N*` but for optional arguments.  See rewrites.hpp for examples if you
 // need to use them.
 #define OPT1(PB, STR1, ARG1) do {                       \
-        arg->set_type(Term2_TermType_##PB);             \
-        Term2_AssocPair *PB_ap1 = arg->add_optargs();   \
+        arg->set_type(Term_TermType_##PB);             \
+        Term_AssocPair *PB_ap1 = arg->add_optargs();   \
         PB_ap1->set_key(STR1);                          \
         arg = PB_ap1->mutable_val();                    \
         ARG1;                                           \
     } while (0);
 #define OPT2(PB, STR1, ARG1, STR2, ARG2) do {           \
-        arg->set_type(Term2_TermType_##PB);             \
-        Term2_AssocPair *PB_ap1 = arg->add_optargs();   \
+        arg->set_type(Term_TermType_##PB);             \
+        Term_AssocPair *PB_ap1 = arg->add_optargs();   \
         PB_ap1->set_key(STR1);                          \
-        Term2_AssocPair *PB_ap2 = arg->add_optargs();   \
+        Term_AssocPair *PB_ap2 = arg->add_optargs();   \
         PB_ap2->set_key(STR2);                          \
         arg = PB_ap1->mutable_val();                    \
         ARG1;                                           \

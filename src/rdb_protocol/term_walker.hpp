@@ -12,14 +12,14 @@ class term_walker_t {
 public:
     // This constructor fills in the backtraces of a term (`walk`) and checks
     // that it's well-formed with regard to write placement.
-    term_walker_t(Term2 *root) : depth(0), writes_legal(true), bt(0) {
+    term_walker_t(Term *root) : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
 
     // This constructor propagates a backtrace down a tree until it hits a node
     // that already has a backtrace (this is used for e.g. rewrite terms so that
     // they return reasonable backtraces in the macroexpanded nodes).
-    term_walker_t(Term2 *root, const Backtrace *_bt)
+    term_walker_t(Term *root, const Backtrace *_bt)
         : depth(0), writes_legal(true), bt(_bt) {
         propwalk(root, 0, head_frame);
     }
@@ -28,17 +28,17 @@ public:
         r_sanity_check(writes_legal == true);
     }
 
-    void walk(Term2 *t, Term2 *parent, backtrace_t::frame_t frame) {
+    void walk(Term *t, Term *parent, backtrace_t::frame_t frame) {
         r_sanity_check(!bt);
 
         val_pusher_t<int> depth_pusher(&depth, depth+1);
         add_bt(t, parent, frame);
 
-        if (t->type() == Term2::ASC || t->type() == Term2::DESC) {
+        if (t->type() == Term::ASC || t->type() == Term::DESC) {
             rcheck_src(&t->GetExtension(ql2::extension::backtrace),
-                       parent && parent->type() == Term2::ORDERBY,
+                       parent && parent->type() == Term::ORDERBY,
                        strprintf("%s may only be used as an argument to ORDERBY.",
-                                 (t->type() == Term2::ASC ? "ASC" : "DESC")));
+                                 (t->type() == Term::ASC ? "ASC" : "DESC")));
         }
 
         bool writes_still_legal = writes_are_still_legal(parent, frame);
@@ -51,7 +51,7 @@ public:
         term_recurse(t, &term_walker_t::walk);
     }
 
-    void propwalk(Term2 *t, UNUSED Term2 *parent, UNUSED backtrace_t::frame_t frame) {
+    void propwalk(Term *t, UNUSED Term *parent, UNUSED backtrace_t::frame_t frame) {
         r_sanity_check(bt);
 
         if (!t->HasExtension(ql2::extension::backtrace)) {
@@ -61,19 +61,19 @@ public:
     }
 private:
     // Recurses to child terms.
-    void term_recurse(Term2 *t, void (term_walker_t::*callback)(Term2 *, Term2 *,
+    void term_recurse(Term *t, void (term_walker_t::*callback)(Term *, Term *,
                                                                 backtrace_t::frame_t)) {
         for (int i = 0; i < t->args_size(); ++i) {
             (this->*callback)(t->mutable_args(i), t, backtrace_t::frame_t(i));
         }
         for (int i = 0; i < t->optargs_size(); ++i) {
-            Term2_AssocPair *ap = t->mutable_optargs(i);
+            Term_AssocPair *ap = t->mutable_optargs(i);
             (this->*callback)(ap->mutable_val(), t, backtrace_t::frame_t(ap->key()));
         }
     }
 
     // Adds a backtrace to a term.
-    void add_bt(Term2 *t, Term2 *parent, backtrace_t::frame_t frame) {
+    void add_bt(Term *t, Term *parent, backtrace_t::frame_t frame) {
         r_sanity_check(t->ExtensionSize(ql2::extension::backtrace) == 0);
         if (parent) {
             *t->MutableExtension(ql2::extension::backtrace)
@@ -85,18 +85,18 @@ private:
     }
 
     // Returns true if `t` is a write or a meta op.
-    static bool term_is_write_or_meta(Term2 *t) {
-        return t->type() == Term2::UPDATE
-            || t->type() == Term2::DELETE
-            || t->type() == Term2::INSERT
-            || t->type() == Term2::REPLACE
+    static bool term_is_write_or_meta(Term *t) {
+        return t->type() == Term::UPDATE
+            || t->type() == Term::DELETE
+            || t->type() == Term::INSERT
+            || t->type() == Term::REPLACE
 
-            || t->type() == Term2::DB_CREATE
-            || t->type() == Term2::DB_DROP
-            || t->type() == Term2::DB_LIST
-            || t->type() == Term2::TABLE_CREATE
-            || t->type() == Term2::TABLE_DROP
-            || t->type() == Term2::TABLE_LIST;
+            || t->type() == Term::DB_CREATE
+            || t->type() == Term::DB_DROP
+            || t->type() == Term::DB_LIST
+            || t->type() == Term::TABLE_CREATE
+            || t->type() == Term::TABLE_DROP
+            || t->type() == Term::TABLE_LIST;
     }
 
     // Returns true if writes are still legal at this node.  Basically:
@@ -105,7 +105,7 @@ private:
     // * If the parent term forbids writes in its function arguments AND we
     //   aren't inside the 0th argument, writes are forbidden.
     // * Writes are legal in all other cases.
-    bool writes_are_still_legal(Term2 *parent, backtrace_t::frame_t frame) {
+    bool writes_are_still_legal(Term *parent, backtrace_t::frame_t frame) {
         if (!writes_legal) return false; // writes never become legal again
         if (!parent) return true; // writes legal at root of tree
         if (term_forbids_writes(parent) && frame.is_stream_funcall_frame()) {
@@ -113,21 +113,21 @@ private:
         }
         return true;
     }
-    static bool term_forbids_writes(Term2 *term) {
-        return term->type() == Term2::REDUCE
-            || term->type() == Term2::MAP
-            || term->type() == Term2::FILTER
-            || term->type() == Term2::CONCATMAP
-            || term->type() == Term2::GROUPED_MAP_REDUCE
-            || term->type() == Term2::GROUPBY
-            || term->type() == Term2::INNER_JOIN
-            || term->type() == Term2::OUTER_JOIN
-            || term->type() == Term2::EQ_JOIN
+    static bool term_forbids_writes(Term *term) {
+        return term->type() == Term::REDUCE
+            || term->type() == Term::MAP
+            || term->type() == Term::FILTER
+            || term->type() == Term::CONCATMAP
+            || term->type() == Term::GROUPED_MAP_REDUCE
+            || term->type() == Term::GROUPBY
+            || term->type() == Term::INNER_JOIN
+            || term->type() == Term::OUTER_JOIN
+            || term->type() == Term::EQ_JOIN
 
-            || term->type() == Term2::UPDATE
-            || term->type() == Term2::DELETE
-            || term->type() == Term2::REPLACE
-            || term->type() == Term2::INSERT;
+            || term->type() == Term::UPDATE
+            || term->type() == Term::DELETE
+            || term->type() == Term::REPLACE
+            || term->type() == Term::INSERT;
     }
 
     // We use this class to change a value while recursing, then restore it to

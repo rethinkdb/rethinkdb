@@ -14,8 +14,8 @@ namespace ql {
 
 class rewrite_term_t : public term_t {
 public:
-    rewrite_term_t(env_t *env, const Term2 *term, argspec_t argspec,
-                   void (*rewrite)(env_t *, const Term2 *, Term2 *,
+    rewrite_term_t(env_t *env, const Term *term, argspec_t argspec,
+                   void (*rewrite)(env_t *, const Term *, Term *,
                                    const pb_rcheckable_t *))
         : term_t(env, term), in(term) {
         int args_size = in->args_size();
@@ -34,8 +34,8 @@ private:
 
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
     virtual val_t *eval_impl() { return real->eval(use_cached_val); }
-    const Term2 *in;
-    Term2 out;
+    const Term *in;
+    Term out;
 
     scoped_ptr_t<term_t> real;
 };
@@ -45,14 +45,14 @@ private:
 #pragma GCC diagnostic ignored "-Wshadow"
 class groupby_term_t : public rewrite_term_t {
 public:
-    groupby_term_t(env_t *env, const Term2 *term)
+    groupby_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         const pb_rcheckable_t *bt_src) {
         std::string dc;
-        const Term2 *dc_arg;
+        const Term *dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
-        Term2 *arg = out;
+        Term *arg = out;
         arg = final_wrap(env, arg, dc, dc_arg);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -64,18 +64,18 @@ public:
 #pragma GCC diagnostic pop
     }
 private:
-    static void parse_dc(const Term2 *t, std::string *dc_out,
-                         const Term2 **dc_arg_out, const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, t->type() == Term2_TermType_MAKE_OBJ,
+    static void parse_dc(const Term *t, std::string *dc_out,
+                         const Term **dc_arg_out, const pb_rcheckable_t *bt_src) {
+        rcheck_target(bt_src, t->type() == Term_TermType_MAKE_OBJ,
                       "Invalid data collector.");
         rcheck_target(bt_src, t->optargs_size() == 1, "Invalid data collector.");
-        const Term2_AssocPair *ap = &t->optargs(0);
+        const Term_AssocPair *ap = &t->optargs(0);
         *dc_out = ap->key();
         rcheck_target(bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
         *dc_arg_out = &ap->val();
     }
-    static void group_fn(env_t *env, Term2 *arg, const Term2 *group_attrs) {
+    static void group_fn(env_t *env, Term *arg, const Term *group_attrs) {
         int obj = env->gensym();
         int attr = env->gensym();
         arg = pb::set_func(arg, obj);
@@ -89,8 +89,8 @@ private:
 #pragma GCC diagnostic pop
         // debugf("%s\n", arg->DebugString().c_str());
     }
-    static void map_fn(env_t *env, Term2 *arg,
-                       const std::string &dc, const Term2 *dc_arg) {
+    static void map_fn(env_t *env, Term *arg,
+                       const std::string &dc, const Term *dc_arg) {
         int obj = env->gensym(), attr = env->gensym();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
@@ -118,8 +118,8 @@ private:
         } else if (dc == "AVG") {
         } else { unreachable(); }
     }
-    static void reduce_fn(env_t *env, Term2 *arg,
-                          const std::string &dc, UNUSED const Term2 *dc_arg) {
+    static void reduce_fn(env_t *env, Term *arg,
+                          const std::string &dc, UNUSED const Term *dc_arg) {
         int a = env->gensym(), b = env->gensym();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
@@ -138,12 +138,12 @@ private:
 #pragma GCC diagnostic pop
         } else { unreachable(); }
     }
-    static Term2 *final_wrap(env_t *env, Term2 *arg,
-                            const std::string &dc, UNUSED const Term2 *dc_arg) {
+    static Term *final_wrap(env_t *env, Term *arg,
+                            const std::string &dc, UNUSED const Term *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") return arg;
 
         int val = env->gensym(), obj = env->gensym();
-        Term2 *argout = 0;
+        Term *argout = 0;
         if (dc == "AVG") {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -165,17 +165,17 @@ private:
 
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(env_t *env, const Term2 *term)
+    inner_join_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term2 *l = &in->args(0);
-        const Term2 *r = &in->args(1);
-        const Term2 *f = &in->args(2);
+        const Term *l = &in->args(0);
+        const Term *r = &in->args(1);
+        const Term *f = &in->args(2);
         int n = env->gensym();
         int m = env->gensym();
 
-        Term2 *arg = out;
+        Term *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         // `l`.concatmap { |n|
@@ -197,14 +197,14 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(env_t *env, const Term2 *term) :
+    outer_join_term_t(env_t *env, const Term *term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term2 *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
+        const Term *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
         int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
-        Term2 *arg = out;
+        Term *arg = out;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -241,15 +241,15 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(env_t *env, const Term2 *term) :
+    eq_join_term_t(env_t *env, const Term *term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term2 *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
+        const Term *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
-        Term2 *arg = out;
+        Term *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         // `l`.concat_map { |row|
@@ -273,14 +273,14 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(env_t *env, const Term2 *term)
+    delete_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
         int x = env->gensym();
 
-        Term2 *arg = out;
+        Term *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
@@ -291,16 +291,16 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(env_t *env, const Term2 *term)
+    update_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static void rewrite(env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
         int old_row = env->gensym(false);
         int new_row = env->gensym(false);
 
-        Term2 *arg = out;
+        Term *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
@@ -320,12 +320,12 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(env_t *env, const Term2 *term)
+    skip_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static void rewrite(UNUSED env_t *env, const Term2 *in, Term2 *out,
+    static void rewrite(UNUSED env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        Term2 *arg = out;
+        Term *arg = out;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1L));

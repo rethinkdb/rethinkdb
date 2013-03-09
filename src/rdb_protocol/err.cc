@@ -90,7 +90,7 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
     }
 }
 
-void pb_rcheckable_t::propagate(Term2 *t) const {
+void pb_rcheckable_t::propagate(Term *t) const {
     term_walker_t(t, bt_src);
 }
 

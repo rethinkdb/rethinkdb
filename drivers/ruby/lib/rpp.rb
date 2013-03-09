@@ -75,29 +75,29 @@ module RethinkDB
       q.text("\x7", 0) if term.is_error
       @@context = term.context if term.is_error
 
-      if term.type == Term2::TermType::DATUM
+      if term.type == Term::TermType::DATUM
         res = pp_int_datum(q, term.datum, pre_dot)
         q.text("\x7", 0) if term.is_error
         return res
       end
 
-      if term.type == Term2::TermType::VAR
+      if term.type == Term::TermType::VAR
         q.text("var_")
         res = pp_int_datum(q, term.args[0].datum, false)
         q.text("\x7", 0) if term.is_error
         return res
-      elsif term.type == Term2::TermType::FUNC
+      elsif term.type == Term::TermType::FUNC
         q.text("r(") if pre_dot
         q.text("lambda")
         res = pp_int_func(q, term)
         q.text(")") if pre_dot
         q.text("\x7", 0) if term.is_error
         return res
-      elsif term.type == Term2::TermType::MAKE_OBJ
+      elsif term.type == Term::TermType::MAKE_OBJ
         res = pp_int_optargs(q, term.optargs, pre_dot)
         q.text("\x7", 0) if term.is_error
         return res
-      elsif term.type == Term2::TermType::MAKE_ARRAY
+      elsif term.type == Term::TermType::MAKE_ARRAY
         res = pp_int_args(q, term.args, pre_dot)
         q.text("\x7", 0) if term.is_error
         return res
@@ -120,7 +120,7 @@ module RethinkDB
         argstart, argstop = "(", ")"
       end
 
-      func = args[-1] && args[-1].type == Term2::TermType::FUNC && args.pop
+      func = args[-1] && args[-1].type == Term::TermType::FUNC && args.pop
 
       if args != [] || optargs != []
         q.group(0, argstart, argstop) {

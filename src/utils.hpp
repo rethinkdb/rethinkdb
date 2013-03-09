@@ -25,8 +25,8 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-class Term2;
-void pb_print(Term2 *t);
+class Term;
+void pb_print(Term *t);
 
 void run_generic_global_startup_behavior();
 

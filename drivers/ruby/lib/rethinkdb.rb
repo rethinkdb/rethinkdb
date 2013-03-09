@@ -10,7 +10,7 @@ load 'shim.rb'
 load 'func.rb'
 load 'rpp.rb'
 
-class Term2
+class Term
   attr_accessor :context
   attr_accessor :is_error
 

@@ -14,10 +14,10 @@ namespace ql {
 // from it just need to implement evaluation on objects (`obj_eval`).
 class obj_or_seq_op_term_t : public op_term_t {
 public:
-    obj_or_seq_op_term_t(env_t *env, const Term2 *term, argspec_t argspec)
+    obj_or_seq_op_term_t(env_t *env, const Term *term, argspec_t argspec)
         : op_term_t(env, term, argspec) {
         int varnum = env->gensym();
-        Term2 *body = pb::set_func(&map_func, varnum);
+        Term *body = pb::set_func(&map_func, varnum);
         *body = *term;
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
     }
@@ -35,12 +35,12 @@ private:
         unreachable();
     }
 
-    Term2 map_func;
+    Term map_func;
 };
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
-    pluck_term_t(env_t *env, const Term2 *term) :
+    pluck_term_t(env_t *env, const Term *term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {
@@ -63,7 +63,7 @@ private:
 
 class without_term_t : public obj_or_seq_op_term_t {
 public:
-    without_term_t(env_t *env, const Term2 *term) :
+    without_term_t(env_t *env, const Term *term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {
@@ -82,7 +82,7 @@ private:
 
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
-    merge_term_t(env_t *env, const Term2 *term) :
+    merge_term_t(env_t *env, const Term *term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {

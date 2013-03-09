@@ -14,7 +14,7 @@ namespace ql {
 
 class all_term_t : public op_term_t {
 public:
-    all_term_t(env_t *env, const Term2 *term)
+    all_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
@@ -36,7 +36,7 @@ private:
 
 class any_term_t : public op_term_t {
 public:
-    any_term_t(env_t *env, const Term2 *term)
+    any_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
@@ -55,7 +55,7 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual val_t *eval_impl() {
         bool b;
@@ -71,7 +71,7 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(env_t *env, const Term2 *term)
+    funcall_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {

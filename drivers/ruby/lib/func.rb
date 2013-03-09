@@ -41,7 +41,7 @@ module RethinkDB
       end
 
       m = @@rewrites[m] || m
-      termtype = Term2::TermType.values[m.to_s.upcase.to_sym]
+      termtype = Term::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
       if (opt_name = @@special_optargs[m])
@@ -54,11 +54,11 @@ module RethinkDB
 
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
 
-      t = Term2.new
+      t = Term.new
       t.type = termtype
       t.args = args.map{|x| RQL.new.expr(x).to_pb}
       t.optargs = (optargs || {}).map {|k,v|
-        ap = Term2::AssocPair.new
+        ap = Term::AssocPair.new
         ap.key = k.to_s
         ap.val = RQL.new.expr(v).to_pb
         ap

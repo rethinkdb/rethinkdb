@@ -13,7 +13,7 @@ namespace ql {
 
 class javascript_term_t : public op_term_t {
 public:
-    javascript_term_t(env_t *env, const Term2 *term)
+    javascript_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
 

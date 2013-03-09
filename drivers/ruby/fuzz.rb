@@ -23,9 +23,9 @@ $chunks = $seed_chunks
 
 $i = 0
 
-class Term2
+class Term
   def shallow_dup
-    t = Term2.new
+    t = Term.new
     t.type = type
     t.datum = datum
     args.each {|x| t.args << x}
@@ -124,7 +124,7 @@ class ProtobFuzzer < Fuzzer
   end
 
   def exec_random_op
-    return @val if @val.type == Term2::TermType::DATUM
+    return @val if @val.type == Term::TermType::DATUM
     add_chunk super
   end
 

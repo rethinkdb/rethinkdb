@@ -3,12 +3,12 @@ package query_language.extension;
 
 import "rdb_protocol/query_language.proto";
 
-extend Term {
+extend Term3 {
     optional int32 inferred_type = 1000;
     optional int32 js_id = 1001;
     optional bool deterministic = 1002;
 };
 
-extend ReadQuery {
+extend ReadQuery3 {
     optional int32 inferred_read_type = 1000;
 }

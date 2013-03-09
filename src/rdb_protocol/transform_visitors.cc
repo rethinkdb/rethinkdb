@@ -17,12 +17,12 @@ void transform_visitor_t::operator()(const Builtin_Filter &filter) const {
 }
 
 void transform_visitor_t::operator()(const Mapping &mapping) const {
-    Term t = mapping.body();
+    Term3 t = mapping.body();
     out->push_back(query_language::map_rdb(mapping.arg(), &t, env, scopes, backtrace, json));
 }
 
 void transform_visitor_t::operator()(const Builtin_ConcatMap &concatmap) const {
-    Term t = concatmap.mapping().body();
+    Term3 t = concatmap.mapping().body();
     boost::shared_ptr<json_stream_t> stream = query_language::concatmap(concatmap.mapping().arg(), &t, env, scopes, backtrace, json);
     while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
         out->push_back(data);
@@ -101,7 +101,7 @@ void terminal_initializer_visitor_t::operator()(const Builtin_GroupedMapReduce &
 }
 
 void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
-    Term base = r.base();
+    Term3 base = r.base();
     *out = eval_term_as_json(&base, env, scopes, backtrace.with("base"));
 }
 
@@ -112,7 +112,7 @@ void terminal_initializer_visitor_t::operator()(
     *out = l;
 }
 
-void terminal_initializer_visitor_t::operator()(const WriteQuery_ForEach &) const {
+void terminal_initializer_visitor_t::operator()(const WriteQuery3_ForEach &) const {
     rget_read_response_t::inserted_t i;
     i.inserted = 0;
     *out = i;
@@ -136,20 +136,20 @@ void terminal_visitor_t::operator()(const Builtin_GroupedMapReduce &gmr) const {
     //Grab the grouping
     boost::shared_ptr<scoped_cJSON_t> grouping;
     {
-        Term body = gmr.group_mapping().body();
+        Term3 body = gmr.group_mapping().body();
         grouping = query_language::map_rdb(gmr.group_mapping().arg(), &body, env, scopes, backtrace.with("group_mapping"), json);
     }
 
     //Apply the mapping
     boost::shared_ptr<scoped_cJSON_t> mapped_value;
     {
-        Term body = gmr.value_mapping().body();
+        Term3 body = gmr.value_mapping().body();
         mapped_value = query_language::map_rdb(gmr.value_mapping().arg(), &body, env, scopes, backtrace.with("value_mapping"), json);
     }
 
     //Finally reduce it in
     {
-        Term base = gmr.reduction().base(),
+        Term3 base = gmr.reduction().base(),
              body = gmr.reduction().body();
 
         scopes_t scopes_copy = scopes;
@@ -170,7 +170,7 @@ void terminal_visitor_t::operator()(const Reduction &r) const {
     new_val_scope_t inner_scope(&scopes_copy.scope);
     scopes_copy.scope.put_in_scope(r.var1(), *res_atom);
     scopes_copy.scope.put_in_scope(r.var2(), json);
-    Term body = r.body();
+    Term3 body = r.body();
     *res_atom = eval_term_as_json(&body, env, scopes_copy, backtrace.with("body"));
 }
 
@@ -180,13 +180,13 @@ void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const 
     ++res_length->length;
 }
 
-void terminal_visitor_t::operator()(const WriteQuery_ForEach &w) const {
+void terminal_visitor_t::operator()(const WriteQuery3_ForEach &w) const {
     scopes_t scopes_copy = scopes;
     new_val_scope_t inner_scope(&scopes_copy.scope);
     scopes_copy.scope.put_in_scope(w.var(), json);
 
     for (int i = 0; i < w.queries_size(); ++i) {
-        WriteQuery q = w.queries(i);
+        WriteQuery3 q = w.queries(i);
         Response r; //TODO we need to actually return this somewhere I suppose.
         execute_write_query(&q, env, &r, scopes_copy, backtrace.with(strprintf("query:%d", i)));
     }

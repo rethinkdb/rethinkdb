@@ -85,7 +85,7 @@ public:
         bags[bags.size()-1]->add(p);
         return p;
     }
-    func_t *new_func(const Term2 *term) {
+    func_t *new_func(const Term *term) {
         return add_ptr(new func_t(this, term));
     }
     template<class T>
@@ -99,7 +99,7 @@ public:
     val_t *new_val(uuid_u db, term_t *parent) {
         return add_ptr(new val_t(db, parent, this));
     }
-    term_t *new_term(const Term2 *source) {
+    term_t *new_term(const Term *source) {
         return add_ptr(compile_term(this, source));
     }
 

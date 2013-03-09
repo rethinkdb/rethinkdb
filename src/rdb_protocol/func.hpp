@@ -18,7 +18,7 @@ namespace ql {
 class func_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     func_t(env_t *env, js::id_t id, term_t *parent);
-    func_t(env_t *env, const Term2 *_source);
+    func_t(env_t *env, const Term *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     static func_t *new_filter_func(env_t *env, const datum_t *obj,
@@ -41,7 +41,7 @@ private:
 
     // This is what's serialized over the wire.
     friend class wire_func_t;
-    const Term2 *source;
+    const Term *source;
     bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
@@ -79,7 +79,7 @@ private:
     term_t *parent;
 };
 
-RDB_MAKE_PROTOB_SERIALIZABLE(Term2);
+RDB_MAKE_PROTOB_SERIALIZABLE(Term);
 RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 // Used to serialize a function (or gmr) over the wire.
 class wire_func_t : public pb_rcheckable_t {
@@ -87,13 +87,13 @@ public:
     wire_func_t();
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
-    wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope);
+    wire_func_t(const Term &_source, std::map<int, Datum> *_scope);
     func_t *compile(env_t *env);
 protected:
     // We cache a separate function for every environment.
     std::map<env_t *, func_t *> cached_funcs;
 
-    Term2 source;
+    Term source;
     std::map<int, Datum> scope;
 };
 
@@ -105,7 +105,7 @@ class serializable_wire_func_t : public wire_func_t {
 public:
     serializable_wire_func_t() : wire_func_t() { }
     serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    serializable_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+    serializable_wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
         : wire_func_t(_source, _scope) { }
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
@@ -116,7 +116,7 @@ public:
     derived_wire_func_t() : serializable_wire_func_t() { }
     derived_wire_func_t(env_t *env, func_t *func)
         : serializable_wire_func_t(env, func) { }
-    derived_wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+    derived_wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
         : serializable_wire_func_t(_source, _scope) { }
 };
 } // namespace derived
@@ -148,7 +148,7 @@ public:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(env_t *env, const Term2 *term);
+    func_term_t(env_t *env, const Term *term);
 private:
     virtual bool is_deterministic_impl() const;
     virtual val_t *eval_impl();

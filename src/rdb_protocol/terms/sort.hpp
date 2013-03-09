@@ -20,7 +20,7 @@ namespace ql {
 
 class asc_term_t : public op_term_t {
 public:
-    asc_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    asc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val("+" + arg(0)->as_str());
@@ -30,7 +30,7 @@ private:
 
 class desc_term_t : public op_term_t {
 public:
-    desc_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    desc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val("-" + arg(0)->as_str());
@@ -40,7 +40,7 @@ private:
 
 class orderby_term_t : public op_term_t {
 public:
-    orderby_term_t(env_t *env, const Term2 *term)
+    orderby_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
     class lt_cmp_t {
@@ -70,8 +70,8 @@ private:
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
-            Term2::TermType type = src_term->args(i).type();
-            if (type != Term2::ASC && type != Term2::DESC) {
+            Term::TermType type = src_term->args(i).type();
+            if (type != Term::ASC && type != Term::DESC) {
                 arr->add(new_val("+" + arg(i)->as_str())->as_datum());
             } else {
                 arr->add(arg(i)->as_datum());
@@ -97,12 +97,12 @@ private:
     RDB_NAME("orderby");
 
 private:
-    const Term2 *src_term;
+    const Term *src_term;
 };
 
 class distinct_term_t : public op_term_t {
 public:
-    distinct_term_t(env_t *env, const Term2 *term)
+    distinct_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(const datum_t *l, const datum_t *r) { return *l < *r; }

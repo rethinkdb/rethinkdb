@@ -23,7 +23,7 @@ class val_t;
 class table_t;
 class term_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    explicit term_t(env_t *_env, const Term2 *_src);
+    explicit term_t(env_t *_env, const Term *_src);
     virtual ~term_t();
 
     virtual const char *name() const = 0;
@@ -64,7 +64,7 @@ private:
     val_t *cached_val;
 };
 
-term_t *compile_term(env_t *env, const Term2 *t);
+term_t *compile_term(env_t *env, const Term *t);
 
 } // namespace ql
 

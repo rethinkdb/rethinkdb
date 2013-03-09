@@ -15,7 +15,7 @@ namespace ql {
 
 class count_term_t : public op_term_t {
 public:
-    count_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    count_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->count());
@@ -25,7 +25,7 @@ private:
 
 class map_term_t : public op_term_t {
 public:
-    map_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+    map_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
@@ -35,7 +35,7 @@ private:
 
 class concatmap_term_t : public op_term_t {
 public:
-    concatmap_term_t(env_t *env, const Term2 *term)
+    concatmap_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
@@ -46,7 +46,7 @@ private:
 
 class filter_term_t : public op_term_t {
 public:
-    filter_term_t(env_t *env, const Term2 *term)
+    filter_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)), src_term(term) { }
 private:
     virtual val_t *eval_impl() {
@@ -61,13 +61,13 @@ private:
     }
     RDB_NAME("filter");
 
-    const Term2 *src_term;
+    const Term *src_term;
 };
 
 static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
-    reduce_term_t(env_t *env, const Term2 *term) :
+    reduce_term_t(env_t *env, const Term *term) :
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual val_t *eval_impl() {
@@ -80,16 +80,16 @@ private:
 static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:
-    between_term_t(env_t *env, const Term2 *term)
+    between_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
 private:
 
-    static void set_cmp(Term2 *out, int varnum, const std::string &pk,
-                        Term2::TermType cmp_fn, const datum_t *cmp_to) {
-        std::vector<Term2 *> cmp_args;
+    static void set_cmp(Term *out, int varnum, const std::string &pk,
+                        Term::TermType cmp_fn, const datum_t *cmp_to) {
+        std::vector<Term *> cmp_args;
         pb::set(out, cmp_fn, &cmp_args, 2); {
-            std::vector<Term2 *> ga_args;
-            pb::set(cmp_args[0], Term2_TermType_GETATTR, &ga_args, 2); {
+            std::vector<Term *> ga_args;
+            pb::set(cmp_args[0], Term_TermType_GETATTR, &ga_args, 2); {
                 pb::set_var(ga_args[0], varnum);
                 scoped_ptr_t<datum_t> pkd(new datum_t(pk));
                 pkd->write_to_protobuf(pb::set_datum(ga_args[1]));
@@ -109,13 +109,13 @@ private:
         datum_stream_t *seq = sel.second;
 
         if (!filter_func.has()) {
-            filter_func.init(new Term2());
+            filter_func.init(new Term());
             int varnum = env->gensym();
-            Term2 *body = pb::set_func(filter_func.get(), varnum);
-            std::vector<Term2 *> args;
-            pb::set(body, Term2_TermType_ALL, &args, !!lb + !!rb);
-            if (lb) set_cmp(args[0], varnum, pk, Term2_TermType_GE, lb->as_datum());
-            if (rb) set_cmp(args[!!lb], varnum, pk, Term2_TermType_LE, rb->as_datum());
+            Term *body = pb::set_func(filter_func.get(), varnum);
+            std::vector<Term *> args;
+            pb::set(body, Term_TermType_ALL, &args, !!lb + !!rb);
+            if (lb) set_cmp(args[0], varnum, pk, Term_TermType_GE, lb->as_datum());
+            if (rb) set_cmp(args[!!lb], varnum, pk, Term_TermType_LE, rb->as_datum());
         }
 
         guarantee(filter_func.has());
@@ -124,12 +124,12 @@ private:
     }
     RDB_NAME("between");
 
-    scoped_ptr_t<Term2> filter_func;
+    scoped_ptr_t<Term> filter_func;
 };
 
 class union_term_t : public op_term_t {
 public:
-    union_term_t(env_t *env, const Term2 *term)
+    union_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual val_t *eval_impl() {
@@ -142,7 +142,7 @@ private:
 
 class zip_term_t : public op_term_t {
 public:
-    zip_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(1)) { }
+    zip_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->zip());

@@ -32,7 +32,7 @@ static void put_backtrace(const query_language::backtrace_t &bt, Response *res_o
     }
 }
 
-Response on_unparsable_query(Query *q, std::string msg) {
+Response on_unparsable_query(Query3 *q, std::string msg) {
     Response res;
     res.set_status_code(Response::BROKEN_CLIENT);
     res.set_token( (q && q->has_token()) ? q->token() : -1);
@@ -40,7 +40,7 @@ Response on_unparsable_query(Query *q, std::string msg) {
     return res;
 }
 
-Response query_server_t::handle(Query *q, context_t *query_context) {
+Response query_server_t::handle(Query3 *q, context_t *query_context) {
     stream_cache_t *stream_cache = &query_context->stream_cache;
     signal_t *interruptor = query_context->interruptor;
     guarantee(interruptor);
@@ -82,7 +82,7 @@ Response query_server_t::handle(Query *q, context_t *query_context) {
         put_backtrace(e.backtrace, &res);
     } catch (const interrupted_exc_t &e) {
         res.set_status_code(Response::RUNTIME_ERROR);
-        res.set_error_message("Query interrupted.  Did you shut down the server?");
+        res.set_error_message("Query3 interrupted.  Did you shut down the server?");
     }
 
     return res;
@@ -104,14 +104,14 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
-Response2 on_unparsable_query2(Query2 *q, std::string msg) {
+Response2 on_unparsable_query2(Query *q, std::string msg) {
     Response2 res;
     res.set_token( (q && q->has_token()) ? q->token() : -1);
     ql::fill_error(&res, Response2::CLIENT_ERROR, msg);
     return res;
 }
 
-Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
+Response2 query2_server_t::handle(Query *q, context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
     guarantee(interruptor);
@@ -133,7 +133,7 @@ Response2 query2_server_t::handle(Query2 *q, context_t *query2_context) {
         ql::run(q, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(&res, Response2::RUNTIME_ERROR,
-                       "Query2 interrupted.  Did you shut down the server?");
+                       "Query interrupted.  Did you shut down the server?");
     } catch (const std::exception &e) {
         ql::fill_error(&res, Response2::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));

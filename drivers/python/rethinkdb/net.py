@@ -77,8 +77,8 @@ class Connection():
         self.next_token += 1
 
         # Construct query
-        query = p.Query2()
-        query.type = p.Query2.START
+        query = p.Query()
+        query.type = p.Query.START
         query.token = token
 
         # Set global opt args
@@ -96,14 +96,14 @@ class Connection():
         return self._send_query(query, term)
 
     def _continue(self, orig_query, orig_term):
-        query = p.Query2()
-        query.type = p.Query2.CONTINUE
+        query = p.Query()
+        query.type = p.Query.CONTINUE
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
     def _end(self, orig_query, orig_term):
-        query = p.Query2()
-        query.type = p.Query2.END
+        query = p.Query()
+        query.type = p.Query.END
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 

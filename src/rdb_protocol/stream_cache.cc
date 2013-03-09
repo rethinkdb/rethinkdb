@@ -7,7 +7,7 @@ bool stream_cache_t::contains(int64_t key) {
     return streams.find(key) != streams.end();
 }
 
-void stream_cache_t::insert(ReadQuery *r, int64_t key,
+void stream_cache_t::insert(ReadQuery3 *r, int64_t key,
                             boost::shared_ptr<query_language::json_stream_t> val) {
     maybe_evict();
     std::pair<std::map<int64_t, entry_t>::iterator, bool> res = streams.insert(std::pair<int64_t, entry_t>(key, entry_t(time(0), val, r)));
@@ -67,7 +67,7 @@ bool valid_age(int64_t age) { return 0 <= age; }
 stream_cache_t::entry_t::entry_t(
     time_t _last_activity,
     boost::shared_ptr<query_language::json_stream_t> _stream,
-    ReadQuery *r)
+    ReadQuery3 *r)
     : last_activity(_last_activity), stream(_stream),
       max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) {
     if (r) {

@@ -8,14 +8,14 @@ namespace ql {
 
 class arith_term_t : public op_term_t {
 public:
-    arith_term_t(env_t *env, const Term2 *term)
+    arith_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch(arithtype) {
-        case Term2_TermType_ADD: namestr = "ADD"; op = &arith_term_t::add; break;
-        case Term2_TermType_SUB: namestr = "SUB"; op = &arith_term_t::sub; break;
-        case Term2_TermType_MUL: namestr = "MUL"; op = &arith_term_t::mul; break;
-        case Term2_TermType_DIV: namestr = "DIV"; op = &arith_term_t::div; break;
+        case Term_TermType_ADD: namestr = "ADD"; op = &arith_term_t::add; break;
+        case Term_TermType_SUB: namestr = "SUB"; op = &arith_term_t::sub; break;
+        case Term_TermType_MUL: namestr = "MUL"; op = &arith_term_t::mul; break;
+        case Term_TermType_DIV: namestr = "DIV"; op = &arith_term_t::div; break;
         default:unreachable();
         }
         guarantee(namestr && op);
@@ -71,7 +71,7 @@ private:
 
 class mod_term_t : public op_term_t {
 public:
-    mod_term_t(env_t *env, const Term2 *term) : op_term_t(env, term, argspec_t(2)) { }
+    mod_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         int64_t i0 = arg(0)->as_int();

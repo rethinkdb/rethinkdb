@@ -1,7 +1,7 @@
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
-op_term_t::op_term_t(env_t *env, const Term2 *term,
+op_term_t::op_term_t(env_t *env, const Term *term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(env, term) {
     for (int i = 0; i < term->args_size(); ++i) {
@@ -13,14 +13,14 @@ op_term_t::op_term_t(env_t *env, const Term2 *term,
                      argspec.print().c_str(), args.size()));
 
     for (int i = 0; i < term->optargs_size(); ++i) {
-        const Term2_AssocPair *ap = &term->optargs(i);
+        const Term_AssocPair *ap = &term->optargs(i);
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
                    strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
                strprintf("Duplicate %s: %s",
-                         (term->type() == Term2_TermType_MAKE_OBJ ?
+                         (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
                          ap->key().c_str()));
         term_t *t = compile_term(env, &ap->val());

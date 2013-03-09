@@ -81,9 +81,9 @@ const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_o
 }
 
 const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool upsert) {
-    Term2 t;
+    Term t;
     int x = env->gensym();
-    Term2 *arg = pb::set_func(&t, x);
+    Term *arg = pb::set_func(&t, x);
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));
     } else {

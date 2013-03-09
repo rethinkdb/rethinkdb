@@ -10,18 +10,18 @@ func_t::func_t(env_t *env, js::id_t id, term_t *parent)
     : pb_rcheckable_t(parent), body(0), source(0),
       js_parent(parent), js_env(env), js_id(id) { }
 
-func_t::func_t(env_t *env, const Term2 *_source)
+func_t::func_t(env_t *env, const Term *_source)
     : pb_rcheckable_t(_source), body(0), source(_source),
       js_parent(0), js_env(0), js_id(js::INVALID_ID) {
-    const Term2 *t = _source;
-    r_sanity_check(t->type() == Term2_TermType_FUNC);
+    const Term *t = _source;
+    r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
     rcheck(t->args_size() == 2, strprintf("Func takes exactly two arguments (got %d)",
                                           t->args_size()));
 
     std::vector<int> args;
-    const Term2 *vars = &t->args(0);
-    if (vars->type() == Term2_TermType_DATUM) {
+    const Term *vars = &t->args(0);
+    if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
@@ -31,10 +31,10 @@ func_t::func_t(env_t *env, const Term2 *_source)
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
-    } else if (vars->type() == Term2_TermType_MAKE_ARRAY) {
+    } else if (vars->type() == Term_TermType_MAKE_ARRAY) {
         for (int i = 0; i < vars->args_size(); ++i) {
-            const Term2 *arg = &vars->args(i);
-            rcheck(arg->type() == Term2_TermType_DATUM,
+            const Term *arg = &vars->args(i);
+            rcheck(arg->type() == Term_TermType_DATUM,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
@@ -57,7 +57,7 @@ func_t::func_t(env_t *env, const Term2 *_source)
 
     if (args.size()) guarantee(env->top_var(args[0], this) == &argptrs[0]);
 
-    const Term2 *body_source = &t->args(1);
+    const Term *body_source = &t->args(1);
     body = env->new_term(body_source);
 
     for (size_t i = 0; i < args.size(); ++i) {
@@ -135,7 +135,7 @@ wire_func_t::wire_func_t(env_t *env, func_t *func)
     rebase(&source); // TODO: this is hacky (defined in `pb_rcheckable_t`)
     func->dump_scope(&scope);
 }
-wire_func_t::wire_func_t(const Term2 &_source, std::map<int, Datum> *_scope)
+wire_func_t::wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
     : pb_rcheckable_t(&_source), source(_source) {
     rebase(&source); // TODO: this is hacky (defined in `pb_rcheckable_t`)
     if (_scope) scope = *_scope;
@@ -150,7 +150,7 @@ func_t *wire_func_t::compile(env_t *env) {
     return cached_funcs[env];
 }
 
-func_term_t::func_term_t(env_t *env, const Term2 *term)
+func_term_t::func_term_t(env_t *env, const Term *term)
     : term_t(env, term), func(env->new_func(term)) { }
 val_t *func_term_t::eval_impl() {
     return new_val(func);
@@ -172,16 +172,16 @@ bool func_t::filter_call(env_t *env, const datum_t *arg) {
 
 func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
                                 const pb_rcheckable_t *bt_src) {
-    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
+    env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     int x = env->gensym();
-    Term2 *t = pb::set_func(&twrap->t, x);
-    pb::set(t, Term2_TermType_ALL, 0, 0);
+    Term *t = pb::set_func(&twrap->t, x);
+    pb::set(t, Term_TermType_ALL, 0, 0);
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
         std::string key = it->first;
         const datum_t *val = it->second;
 
-        Term2 *arg = t->add_args();
+        Term *arg = t->add_args();
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(EQ,
@@ -196,8 +196,8 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
 
 func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
                                   const pb_rcheckable_t *bt_src) {
-    env_wrapper_t<Term2> *twrap = env->add_ptr(new env_wrapper_t<Term2>());
-    Term2 *arg = &twrap->t;
+    env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
+    Term *arg = &twrap->t;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
         N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
