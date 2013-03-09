@@ -2592,15 +2592,17 @@ module 'DataExplorerView', ->
                         @connection.close()
                     catch err
                         # Nothing bad here, let's just not pollute the console
-
-            r.connect @server, (err, connection) ->
-                if err?
-                    that.on_fail()
-                else
-                    that.connection = connection
-                    that.on_success(connection)
-            @container.results_view.cursor_timed_out()
-            @timeout = setTimeout @connect, 5*60*1000
+            try
+                r.connect @server, (err, connection) ->
+                    if err?
+                        that.on_fail()
+                    else
+                        that.connection = connection
+                        that.on_success(connection)
+                @container.results_view.cursor_timed_out()
+                @timeout = setTimeout @connect, 5*60*1000
+            catch err
+                @on_fail()
     
         postpone_reconnection: =>
             clearTimeout @timeout
