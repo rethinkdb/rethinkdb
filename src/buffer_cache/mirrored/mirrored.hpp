@@ -159,12 +159,8 @@ public:
 
     // Get the data buffer for reading
     const void *get_data_read() const;
-    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
-    void *get_data_major_write();
-    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(void *dest, const void *src, size_t n);
-    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(void* dest, const void* src, size_t n);
+    // Gets data for writing, also means the block will have to be flushed.
+    void *get_data_write();
 
     block_id_t get_block_id() const;
 

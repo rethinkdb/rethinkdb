@@ -64,7 +64,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
         transaction_t txn(cache_.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token_t::ignore);
         // Hold the size block during writes, to lock out other writers.
         buf_lock_t z(&txn, 0, rwi_write);
-        int64_t *p = static_cast<int64_t *>(z.get_data_major_write());
+        int64_t *p = static_cast<int64_t *>(z.get_data_write());
         *p = 0;
         for (block_id_t i = 1; i < MAX_BLOCK_ID && cache_->contains_block(i); ++i) {
             buf_lock_t b(&txn, i, rwi_write);
@@ -81,7 +81,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
-    int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_major_write());
+    int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_write());
     guarantee(*size_ptr == size_);
     int64_t offset = size_ + sizeof(int64_t);
     const int64_t end_offset = offset + n;
@@ -106,7 +106,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
 
         const int64_t block_offset = offset % block_size;
         const int64_t end_block_offset = end_offset / block_size == block_id ? end_offset % block_size : block_size;
-        char *const buf = static_cast<char *>(b->get_data_major_write());
+        char *const buf = static_cast<char *>(b->get_data_write());
         const int64_t num_written = end_block_offset - block_offset;
         guarantee(num_written > 0);
         memcpy(buf + block_offset, chp, num_written);

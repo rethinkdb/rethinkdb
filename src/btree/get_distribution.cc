@@ -13,7 +13,7 @@ public:
         : depth_limit(_depth_limit), key_count(0), keys(_keys)
     { }
 
-    void read_stat_block(buf_lock_t *stat_block) { 
+    void read_stat_block(buf_lock_t *stat_block) {
         if (stat_block) {
             key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
         } else {
@@ -25,8 +25,8 @@ public:
     void process_a_leaf(transaction_t *, buf_lock_t *leaf_node_buf,
                         const btree_key_t *,
                         const btree_key_t *,
-                        int *,
-                        UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                        signal_t * /*interruptor*/,
+                        int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
         const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         leaf::live_iter_t it = leaf::iter_for_whole_leaf(node);
@@ -79,7 +79,7 @@ public:
     int64_t key_count;
 
     //TODO this is inefficient since each one is maximum size
-    std::vector<store_key_t> *keys; 
+    std::vector<store_key_t> *keys;
 };
 
 void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, int depth_limit, int64_t *key_count_out, std::vector<store_key_t> *keys_out) {

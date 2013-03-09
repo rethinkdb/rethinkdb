@@ -40,24 +40,10 @@ const void *scc_buf_lock_t<inner_cache_t>::get_data_read() const {
 }
 
 template<class inner_cache_t>
-void *scc_buf_lock_t<inner_cache_t>::get_data_major_write() {
+void *scc_buf_lock_t<inner_cache_t>::get_data_write() {
     rassert(internal_buf_lock.has());
     has_been_changed = true;
-    return internal_buf_lock->get_data_major_write();
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::set_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->set_data(dest, src, n);
-}
-
-template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::move_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->move_data(dest, src, n);
+    return internal_buf_lock->get_data_write();
 }
 
 template<class inner_cache_t>
