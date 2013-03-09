@@ -1,4 +1,4 @@
-$LOAD_PATH.unshift '../../drivers/ruby2/lib'
+$LOAD_PATH.unshift '../../drivers/ruby/lib'
 $LOAD_PATH.unshift '../../build/drivers/ruby/rdb_protocol'
 require 'pp'
 require 'rethinkdb'
