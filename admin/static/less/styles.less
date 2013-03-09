@@ -1028,16 +1028,61 @@ TODO: retire this
     Data explorer 
     ----------------------------
 */
+/* Prevent the user from selecting something when he's resizing a div */
+.resizing{
+    .user-select(none)
+}
 #dataexplorer{
     margin: 0px;
+    .options_container{
+        float: right;
+        margin-top: 5px;
+        .option_icon{
+            width: 16px;
+            height: 16px;
+            opacity: 0.3;
+        }
+        /* Selected icons from http://somerandomdude.com/work/iconic/ */
+        .fullscreen{
+            background: url(/images/fullscreen_16x16.png) center no-repeat;
+        }
+        .fullscreen_exit{
+            background: url(/images/fullscreen_exit_16x16.png) center no-repeat;
+        }
+        .show_history{
+            background: url(/images/book_alt_16x16.png) center no-repeat;
+            float: left;
+            margin: 0px 8px 0px -1px;
+        }
+        .clear_queries_link{
+            display: none;
+            .clear_history{
+                background: url(/images/trash_stroke_16x16.png) center no-repeat;
+                float: left;
+                margin: 0px 8px 0px -1px;
+            }
+        }
+        .close_queries_link{
+            &.active{
+                background-color: #f2f2f2; // layer fill content
+                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
+            }
+        }
+
+
+    }
 
     h1.title{
         font-family: @serif;
         color: #4d535c;
         font-size: 19px;
-        margin-bottom: 25px;
+        &.small_margin_bottom{
+            margin-bottom: 15px;
+        }
     }
-    .query_control{
+    .input_query_full_container{
+        clear: both;
         position: relative;
         width: 100%;
         .suggestion_description_arrow{
@@ -1064,7 +1109,7 @@ TODO: retire this
             border-right: 10px solid transparent; 
             border-bottom:10px solid #fff; 
         }
-    .suggestion_full_container{
+        .suggestion_full_container{
             position: absolute;
             width: 452px;
             top: 20px;
@@ -1122,6 +1167,9 @@ TODO: retire this
                         color: #444;
                     }
                 }
+                strong{
+                    color: #666;
+                }
             }
         }
         .input_query_container{
@@ -1146,56 +1194,119 @@ TODO: retire this
                     cursor: auto;
                 }
             }
+
         }
         .loading_query{
             text-align: center;
             height: 16px;
             width: 16px;
             padding: 0px;
-            margin: 0px auto 10px auto;
+            margin: -30px auto 10px auto;
             .loading_query_img{ display: none; }
         }
     }
-    .data_container{
-        .results_header{
-            overflow: hidden;
-            p{ font-family: @sans; }
-        }
-        .namespaces_available_container{
-            float: left;
-            width: 330px;
-            padding: 20px 10px 10px 10px;
-            h4 { margin: 7px 0px 5px 0px; }
-        }
-        .history_queries{
-            float: left;
-            width: 330px;
-            padding: 20px 10px 10px 10px;
-        }
-        .queries_list{
-            margin: 0px;
+    .arrow_history{
+        display: none;
+        width: 0; 
+        height: 0; 
+        margin-left: 774px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #aaa;
+    }
+    .nano{
+        visibility: hidden;
+        height: 0px;
+        padding: 0px 15px 0px 0px;
+    }
+    .nano_border{
+        display: none;
+        width: 100%;
+        border-top: 2px solid #aaa;
+    }
+    .nano_border_bottom{
+        cursor:s-resize;
+        padding: 0px 0px 2px 0px;
+    }
+    .history_container{
+        font-family: @monospace;
+        font-size: 15px; // Exact match with codemirror
+        width: 100%;
+        .history_list{
+            margin: 0px 15px 0px 0px;
+            display: block;
+            clear: both;
             list-style: none;
-            font-family: monospace;
-            li{
-                padding: 0px 0px 0px 7px;
+            padding: 0px;
+            .query_history{
                 margin: 0px;
-                border-left: 1px solid #ccc;
+                padding: 0px;
+                overflow: auto;
+                border-bottom: 1px solid #e4e4e4;
+                &.displayed{
+                    display: block;
+                }
+                &.hidden{
+                    display: none;
+                }
+                &:last-child{ //Need it to make the slideDown/Up smooth
+                    margin: 0px;
+                    border-bottom: 0px;
+                }
+                color: #999;
+                &:hover{
+                    color: #444;
+                }
+                .query_history_content{
+                    overflow: auto;
+                    word-break: break-word;
+                    white-space: pre;
+                    margin: -40px 0px 0px 30px;
+                    padding: 11px 4px;
+                    .btn{
+                        padding: 2px 10px;
+                        float: right;
+                        margin: -8px 12px 0px 0px;
+                        top: 5px;
+                        .box-shadow(~"0px 0px 0px 0px #fff");
+                    }
+                }
+                .query_id{
+                    padding: 11px 0px;
+                    width: 28px;
+                    text-align: center;
+                }
+                .btn{
+                    visibility: hidden;
+                }
+                &:hover{
+                    .btn{
+                        visibility: visible;
+                    }
+                }
             }
-            .query_element{
-                width: 300px;
-                overflow: hidden;
-            }
-            .namespace_element{
-                padding: 0px 0px 0px 7px;
+            .no_history{
+                word-break: break-word;
+                white-space: pre;
                 margin: 0px;
-                border-left: 1px solid #ccc;
-
-                width: 300px;
-                overflow: hidden;
+                padding: 7px 4px;
+                margin: 0px 0px 0px 26px;
+                color: #aaa;               
+                &.displayed{
+                    display: block;
+                }
+                &.hidden{
+                    display: none;
+                }
             }
         }
     }
+
     .result_view{
+        margin: 35px 0px 0px 0px;
+        .tab-content{
+            clear: both;
+        }
         .error{ font-family: @sans; }
         .error_details{
             font-family: @monospace;
@@ -1213,19 +1324,20 @@ TODO: retire this
             background: #eee;
         }
         .results_header{
-            .options_container{
-                float: right;
+            .show_query_warning{
+                padding: 0px;
+                margin: 0px;
             }
-            .query_executed{
+            .metadata{
                 font-family: @sans;
-                word-wrap: break-word;
+                width: 600px;
+                float: left;
+                margin: -30px 0px 10px 0px;
             }
-            .metadata{ font-family: @sans; }
         }
         .more_results{
             width: 100%;
             text-align: right;
-            display: none;
             .more_results_paragraph{
                 margin-right: 100px;
                 text-align: right;
@@ -1235,24 +1347,19 @@ TODO: retire this
     }
     .change_view_container{
         margin: 0px;
-        padding: 0px 10px 0px 0px;
+        padding: 0px;
         width: 100%;
-    }
-    .helper_view { overflow: auto; }
-    .nav-tabs > li {
         float: right;
-        &.active a {
-            border-bottom-color: #FBFBFB;
-            background-color: #FBFBFB;
+        li{
+            float: right;
+            &.active a {
+                border-bottom-color: #FBFBFB;
+                background-color: #FBFBFB;
+            }
+            &:first-child {
+                margin-right: 10px;
+            }
         }
-    }
-
-    .tab-pane{
-        display: none;
-        font: @monospace;
-    }
-    .active{
-        display: block;
     }
 
     .wrapper_scrollbar{
@@ -1267,18 +1374,15 @@ TODO: retire this
         z-index: 1000;
     }
     .results{
-        width: 888px;
         margin: 15px 0px 0px 0px;
         padding: 0px;
         overflow: auto;
-        .tree_view{
-            .border-radius(4px);
-            border: 1px solid #e3e3e3;
-            background: #f8f8f8;
-            .box-shadow(~"inset 0 3px 3px -3px #ddd");
+        width: 100%;
+        .json_tree_container{
+            width: 888px;
         }
-        .json_tree{
-            padding: 20px;
+        .json_tree{ // Used in json_tree_container AND json_table_container
+            padding: 0px 20px;
             float: left; // Clear the horizontal arrow
             font: 13px/18px monospace,mono,consolas;
             .jt_null{
@@ -1297,6 +1401,7 @@ TODO: retire this
             .jt_url{ color: #08c; }
             .jt_email{ color: #08c; }
             .jt_string{
+                white-space: pre;
                 padding: 2px 0px;
                 color: green;
             }
@@ -1320,9 +1425,9 @@ TODO: retire this
                 margin: 3px 2px 0px -15px;
                 float: left;
                 display: block;
-                background: url('/images/arrow_down.gif') no-repeat;
+                background: url('/images/arrow_down.png') no-repeat;
             }
-            .jt_arrow_hidden{ background: url('/images/arrow_right.gif') no-repeat; }
+            .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
             .jt_points{ display: none; }
             .jt_points_collapsed{ display: inline; }
             .jt_collapsed{ display: none; }
@@ -1331,7 +1436,6 @@ TODO: retire this
                 margin-left: 0px;
             }   
         }
-
         .json_table_container{
             width: 888px;
             .json_table{
@@ -1343,7 +1447,7 @@ TODO: retire this
                 border-spacing: 0px;
                 border-collapse: collapse;
                 .td_attr{
-                    color: #000;
+                    color: #444;
                     background: #f1f1f1;
                     .box-shadow(~"inset 0 4px 4px -4px #fff");
                 }
@@ -1363,26 +1467,39 @@ TODO: retire this
                 }
                 .jta_url{ color: #08c; }
                 .jta_email{ color: #08c; }
-                .jta_string{ color: green; }
+                .jta_string{
+                    color: green;
+                    white-space: pre;
+                }
                 .jta_object{
                     vertical-align: top;
                     display: inline-block;
                 }
                 td{
                     max-width: 310px;
-                    padding: 0px 5px 0px 0px;
+                    padding: 0px;
                     vertical-align: top;
                     border: 1px solid #dfdfdf;
                     overflow: hidden;
-                    cursor: e-resize;
-                    background: #fff;
+                }
+                tr{
+                    padding: 20px;
+                    &:nth-child(even) {
+                        background: #fff;
+                    }
+                    &:nth-child(odd) {
+                        background: #f9f9f9;
+                    }
                 }
                 .jta_attr{
-                    padding: 7px 10px 5px 15px;
+                    margin: 0px 5px 0px 0px;
+                    padding: 7px 0px 5px 15px;
                     cursor: auto;
+                    overflow: hidden;
                 }
                 .jta_value{
                     cursor: auto;
+                    margin: 0px 5px 0px 0px;
                     padding: 7px 0px 5px 15px;
                     max-width: 290px; // smaller margin on the right in case of overflow
                     overflow: hidden;
@@ -1395,21 +1512,42 @@ TODO: retire this
                     display: block;
                 }
                 .jta_arrow_v{
-                    background: url('/images/arrow_down.gif') no-repeat;
+                    background: url('/images/arrow_down.png') no-repeat;
                     float: left;
                 }
                 .jta_arrow_h{
-                    background: url('/images/arrow_right.gif') no-repeat;
+                    background: url('/images/arrow_right.png') no-repeat;
+                    float: left;
+                }
+                .jta_arrow_hh{
+                    width: 20px;
+                    height: 10px;
+                    background: url('/images/arrow_right.png') repeat-x;
                     float: right;
                 }
-            }
-            .resizing{
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -khtml-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
+                .col-record-attr{
+                    visibility: hidden;
+                    border-left: 0px;
+                    border-top: 0px;
+                }
+                .col-record-td{
+                    padding: 0px;
+                    background: #f0f0f0;
+                }
+                .col-record{
+                    color: #aaa;
+                    padding: 7px 10px 5px 10px;
+                }
+                .click_detector{
+                    width: 100%;
+                    cursor: e-resize;
+                    div{ // All for the sake of Opera
+                        cursor: text;
+                        .jt_arrow, .jta_arrow{
+                            cursor: default;
+                        }   
+                    }
+                }
             }
         }
         .raw_view_container{
