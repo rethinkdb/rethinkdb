@@ -20,6 +20,7 @@
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/import.hpp"
 #include "clustering/administration/main/json_import.hpp"
+#include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -51,36 +52,44 @@ MUST_USE bool numwrite(const char *path, int number) {
     return true;
 }
 
-static const char *pid_file = NULL;
+static std::string pid_file = NULL;
 
 void remove_pid_file() {
-    if (pid_file) {
-        remove(pid_file);
-        pid_file = NULL;
+    if (!pid_file.empty()) {
+        remove(pid_file.c_str());
+        pid_file.clear();
     }
+}
+
+int write_pid_file(const std::string &pid_filepath) {
+    guarantee(pid_filepath.size() > 0);
+
+    // Be very careful about modifying this. It is important that the code that removes the
+    // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
+    // failure here.
+    if (!pid_file.empty()) {
+        fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
+        return EXIT_FAILURE;
+    }
+    if (!access(pid_filepath.c_str(), F_OK)) {
+        fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
+        return EXIT_FAILURE;
+    }
+    if (!numwrite(pid_filepath.c_str(), getpid())) {
+        fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
+        return EXIT_FAILURE;
+    }
+    pid_file = pid_filepath;
+    atexit(remove_pid_file);
+
+    return EXIT_SUCCESS;
 }
 
 // write_pid_file registers remove_pid_file with atexit.
 // Always call it after spawner_t::create to ensure correct behaviour.
 int write_pid_file(const po::variables_map& vm) {
     if (vm.count("pid-file") && vm["pid-file"].as<std::string>().length()) {
-        // Be very careful about modifying this. It is important that the code that removes the
-        // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
-        // failure here.
-        if (pid_file) {
-            fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
-            return EXIT_FAILURE;
-        }
-        if (!access(vm["pid-file"].as<std::string>().c_str(), F_OK)) {
-            fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
-            return EXIT_FAILURE;
-        }
-        if (!numwrite(vm["pid-file"].as<std::string>().c_str(), getpid())) {
-            fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
-            return EXIT_FAILURE;
-        }
-        pid_file = vm["pid-file"].as<std::string>().c_str();
-        atexit(remove_pid_file);
+        return write_pid_file(vm["pid-file"].as<std::string>());
     }
     return EXIT_SUCCESS;
 }
@@ -124,25 +133,34 @@ bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);
 }
 
-std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
     // We check first for a run-time option, then check the home of the binary,
-    //  and then we check in the install location if such a location was provided at compile time.
+    // and then we check in the install location if such a location was provided
+    // at compile time.
     path_t result;
-    if (vm.count("web-static-directory")) {
-        result = parse_as_path(vm["web-static-directory"].as<std::string>());
+    if (web_static_directory) {
+        result = parse_as_path(*web_static_directory);
     } else {
         result = parse_as_path(argv[0]);
         result.nodes.pop_back();
         result.nodes.push_back(WEB_ASSETS_DIR_NAME);
-        #ifdef WEBRESDIR
+#ifdef WEBRESDIR
         std::string chkdir(WEBRESDIR);
         if ((access(render_as_path(result).c_str(), F_OK)) && (!access(chkdir.c_str(), F_OK))) {
             result = parse_as_path(chkdir);
         }
-        #endif
+#endif  // WEBRESDIR
     }
 
     return render_as_path(result);
+}
+
+std::string get_web_path(const po::variables_map& vm, char *argv[]) {
+    boost::optional<std::string> web_static_directory
+        = vm.count("web-static-directory") == 1
+        ? vm["web-static-directory"].as<std::string>()
+        : boost::optional<std::string>();
+    return get_web_path(web_static_directory, argv);
 }
 
 class address_lookup_exc_t : public std::exception {
@@ -154,11 +172,8 @@ private:
     std::string info;
 };
 
-std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
-    std::vector<std::string> vector_filter;
-    if (vm.count("bind") > 0) {
-        vector_filter = vm["bind"].as<std::vector<std::string> >();
-    }
+std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options) {
+    const std::vector<std::string> vector_filter = bind_options;
     std::set<ip_address_t> set_filter;
     bool all = false;
 
@@ -198,35 +213,55 @@ std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
     return result;
 }
 
+std::set<ip_address_t> get_local_addresses(const po::variables_map& vm) {
+    std::vector<std::string> vector_filter;
+    if (vm.count("bind") > 0) {
+        vector_filter = vm["bind"].as<std::vector<std::string> >();
+    }
+
+    return get_local_addresses(vector_filter);
+}
+
+struct port_command_line_options_t {
+    std::set<ip_address_t> local_addresses;
+    int cluster_port;
+    int http_port;
+    bool http_admin_is_disabled;
+    int cluster_client_port;
+    int reql_port;
+    int port_offset;
+};
+
+int offseted_port(const int port, const int port_offset) {
+    return port == 0 ? 0 : port + port_offset;
+}
+
+service_address_ports_t get_service_address_ports(port_command_line_options_t options) {
+    return service_address_ports_t(options.local_addresses,
+                                   offseted_port(options.cluster_port, options.port_offset),
+                                   options.cluster_client_port,
+                                   options.http_admin_is_disabled,
+                                   offseted_port(options.http_port, options.port_offset),
+                                   offseted_port(options.reql_port, options.port_offset),
+                                   options.port_offset);
+}
+
+
 service_address_ports_t get_service_address_ports(const po::variables_map& vm) {
-    // serve
-    int cluster_port = vm["cluster-port"].as<int>();
-    int http_port = vm["http-port"].as<int>();
-    bool http_admin_is_disabled = vm.count("no-http-admin") > 0;
+    port_command_line_options_t options;
+    options.local_addresses = get_local_addresses(vm);
+    options.cluster_port = vm["cluster-port"].as<int>();
+    options.http_port = vm["http-port"].as<int>();
+    options.http_admin_is_disabled = vm.count("no-http-admin") > 0;
 #ifndef NDEBUG
-    int cluster_client_port = vm["client-port"].as<int>();
+    options.cluster_client_port = vm["client-port"].as<int>();
 #else
-    int cluster_client_port = port_defaults::client_port;
+    options.cluster_client_port = port_defaults::client_port;
 #endif
-    // int reql_port = vm["reql-port"].as<int>();
-    int reql_port = vm["driver-port"].as<int>();
-    int port_offset = vm["port-offset"].as<int>();
+    options.reql_port = vm["driver-port"].as<int>();
+    options.port_offset = vm["port-offset"].as<int>();
 
-    if (cluster_port != 0) {
-        cluster_port += port_offset;
-    }
-
-    if (http_port != 0) {
-        http_port += port_offset;
-    }
-
-    if (reql_port != 0) {
-        reql_port += port_offset;
-    }
-
-    return service_address_ports_t(
-        get_local_addresses(vm), cluster_port, cluster_client_port,
-        http_admin_is_disabled, http_port, reql_port, port_offset);
+    return get_service_address_ports(options);
 }
 
 void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, const io_backend_t io_backend, bool *const result_out) {
@@ -455,6 +490,17 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
     }
 }
 
+options::help_section_t get_machine_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Machine name options");
+    options_out->push_back(options::option_t(options::names_t("--machine-name", "-n"),
+                                             options::OPTIONAL,
+                                             get_random_machine_name()));
+    help.add("-n [ --machine-name ] arg",
+             "the name for this machine (as will appear in the metadata).  If not"
+             " specified, it will be randomly chosen from a short list of names.");
+    return help;
+}
+
 po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
@@ -470,11 +516,28 @@ po::options_description get_machine_options_visible() {
     return desc;
 }
 
+options::help_section_t get_file_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("File path options");
+    options_out->push_back(options::option_t(options::names_t("--directory", "-d"),
+                                             options::OPTIONAL,
+                                             "rethinkdb_data"));
+    help.add("-d [ --directory ] path", "specify directory to store data and metadata");
+    return help;
+}
+
 po::options_description get_file_options() {
     po::options_description desc("File path options");
     desc.add_options()
         ("directory,d", po::value<std::string>()->default_value("rethinkdb_data"), "specify directory to store data and metadata");
     return desc;
+}
+
+options::help_section_t get_config_file_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Configuration file options");
+    options_out->push_back(options::option_t(options::names_t("--config-file"),
+                                             options::OPTIONAL));
+    help.add("--config-file", "take options from a configuration file");
+    return help;
 }
 
 po::options_description get_config_file_options() {
@@ -487,6 +550,19 @@ po::options_description get_config_file_options() {
 po::options_description config_file_attach_wrapper(po::options_description desc) {
     desc.add(get_config_file_options());
     return desc;
+}
+
+host_and_port_t parse_host_and_port(const std::string &option) {
+    size_t colon_loc = option.find_first_of(':');
+    if (colon_loc != std::string::npos) {
+        std::string host = option.substr(0, colon_loc);
+        int port = atoi(option.substr(colon_loc + 1).c_str());
+        if (host.size() != 0 && port != 0) {
+            return host_and_port_t(host, port);
+        }
+    }
+
+    throw options::validation_error_t(strprintf("Invalid host-and-port-number: %s", option.c_str()));
 }
 
 /* This allows `host_and_port_t` to be used as a command-line argument with
@@ -513,6 +589,21 @@ void validate(boost::any& value_out, const std::vector<std::string>& words,
 #endif
 }
 
+options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Web options");
+    options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
+                                             options::OPTIONAL));
+    // No help for --web-static-directory.
+    options_out->push_back(options::option_t(options::names_t("--http-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::http_port)));
+    help.add("--http-port port", "port for web administration console");
+    options_out->push_back(options::option_t(options::names_t("--no-http-admin"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-http-admin", "disable web administration console");
+    return help;
+}
+
 po::options_description get_web_options() {
     po::options_description desc("Web options");
     desc.add_options()
@@ -528,6 +619,41 @@ po::options_description get_web_options_visible() {
         ("http-port", po::value<int>()->default_value(port_defaults::http_port), "port for http admin console")
         ("no-http-admin", "disable http admin console");
     return desc;
+}
+
+options::help_section_t get_network_options(const bool join_required, std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Network options");
+    options_out->push_back(options::option_t(options::names_t("--bind"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
+
+    options_out->push_back(options::option_t(options::names_t("--cluster-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::peer_port)));
+    help.add("--cluster-port port", "port for receiving connections from other nodes");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif  // NDEBUG
+
+    options_out->push_back(options::option_t(options::names_t("--driver-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::reql_port)));
+    help.add("--driver-port port", "port for rethinkdb protocol client drivers");
+
+    options_out->push_back(options::option_t(options::names_t("--port-offset", "-o"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::port_offset)));
+    help.add("-o [ --port-offset ] offset", "all ports used locally will have this value added");
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    return help;
 }
 
 po::options_description get_network_options(bool join_required) {
@@ -549,11 +675,35 @@ po::options_description get_network_options(bool join_required) {
     return desc;
 }
 
+void get_disk_options(std::vector<options::help_section_t> *help_out,
+                      std::vector<options::option_t> *options_out) {
+    options_out->push_back(options::option_t(options::names_t("--io-backend"),
+                                             options::OPTIONAL,
+                                             "pool"));
+
+#ifdef AIOSUPPORT
+    options::help_section_t help("Disk I/O options");
+    help.add("--io-backend backend", "event backend to use: native or pool");
+    help_out->push_back(help);
+#else
+    (void)help_out;
+#endif
+}
+
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
         ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.");
     return desc;
+}
+
+options::help_section_t get_cpu_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("CPU options");
+    options_out->push_back(options::option_t(options::names_t("--cores", "-c"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", get_cpu_count())));
+    help.add("-c [ --cores ] n", "the number of cores to use");
+    return help;
 }
 
 po::options_description get_cpu_options() {
@@ -563,6 +713,14 @@ po::options_description get_cpu_options() {
     return desc;
 }
 
+options::help_section_t get_service_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Service options");
+    options_out->push_back(options::option_t(options::names_t("--pid-file"),
+                                             options::OPTIONAL));
+    help.add("--pid-file path", "a file in which to write the process id when the process is running");
+    return help;
+}
+
 po::options_description get_service_options() {
     po::options_description desc("Service options");
     desc.add_options()
@@ -570,11 +728,27 @@ po::options_description get_service_options() {
     return desc;
 }
 
+options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Help options");
+    options_out->push_back(options::option_t(options::names_t("--help", "-h"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("-h [ --help ]", "print this help");
+    return help;
+}
+
 po::options_description get_help_options() {
     po::options_description desc("Help options");
     desc.add_options()
         ("help,h", "show command-line options instead of running rethinkdb");
     return desc;
+}
+
+void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out,
+                                  std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_machine_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_help_options(options_out));
 }
 
 po::options_description get_rethinkdb_create_options() {
@@ -595,6 +769,17 @@ po::options_description get_rethinkdb_create_options_visible() {
     desc.add(get_disk_options());
 #endif // AIOSUPPORT
     return desc;
+}
+
+void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
+                                 std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_web_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_cpu_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
 }
 
 po::options_description get_rethinkdb_serve_options() {
@@ -623,6 +808,21 @@ po::options_description get_rethinkdb_serve_options_visible() {
     return desc;
 }
 
+void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
+                                 std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_network_options(true, options_out));
+    help_out->push_back(get_web_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
+
+    options::help_section_t help("Log options");
+    options_out->push_back(options::option_t(options::names_t("--log-file"),
+                                             options::OPTIONAL,
+                                             "log_file"));
+    help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
+    help_out->push_back(help);
+}
+
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add(get_network_options(true));
@@ -645,6 +845,27 @@ po::options_description get_rethinkdb_proxy_options_visible() {
     return desc;
 }
 
+options::help_section_t get_rethinkdb_admin_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Allowed options");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif  // NDEBUG
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
+
+    return help;
+}
+
 po::options_description get_rethinkdb_admin_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -652,6 +873,47 @@ po::options_description get_rethinkdb_admin_options() {
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a rethinkdb node to connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     return desc;
+}
+
+options::help_section_t get_rethinkdb_import_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Allowed options");
+
+#ifndef NDEBUG
+    options_out->push_back(options::option_t(options::names_t("--client-port"),
+                                             options::OPTIONAL,
+                                             strprintf("%d", port_defaults::client_port)));
+    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
+#endif  // NDEBUG
+
+    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--table"),
+                                             options::MANDATORY));
+    help.add("--table db_name.table_name", "the database and table into which to import");
+
+    // TODO(OPTIONS) Fix parsing of datacenter -- in cases where we expected an
+    // empty string, now we just get an empty vector.
+    options_out->push_back(options::option_t(options::names_t("--datacenter"),
+                                             options::OPTIONAL));
+    help.add("--datacenter name", "the datacenter into which to create a table");
+
+    options_out->push_back(options::option_t(options::names_t("--primary-key"),
+                                             options::OPTIONAL,
+                                             "id"));
+    help.add("--primary-key key", "the primary key to create a new table with, or expected primary key");
+
+    options_out->push_back(options::option_t(options::names_t("--separators", "-s"),
+                                             options::OPTIONAL,
+                                             "\t,"));
+    help.add("-s [ --separators ]", "list of characters to be used as whitespace -- uses tabs and commas by default");
+
+    options_out->push_back(options::option_t(options::names_t("--input-file"),
+                                             options::MANDATORY));
+    help.add("--input-file path", "the csv input file");
+
+    return help;
 }
 
 po::options_description get_rethinkdb_import_options() {
@@ -671,6 +933,18 @@ po::options_description get_rethinkdb_import_options() {
     desc.add(get_help_options());
 
     return desc;
+}
+
+void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
+                                     std::vector<options::option_t> *options_out) {
+    help_out->push_back(get_file_options(options_out));
+    help_out->push_back(get_machine_options(options_out));
+    help_out->push_back(get_network_options(false, options_out));
+    help_out->push_back(get_web_options(options_out));
+    get_disk_options(help_out, options_out);
+    help_out->push_back(get_cpu_options(options_out));
+    help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_help_options(options_out));
 }
 
 po::options_description get_rethinkdb_porcelain_options() {
@@ -701,22 +975,27 @@ po::options_description get_rethinkdb_porcelain_options_visible() {
     return desc;
 }
 
+io_backend_t get_io_backend_option(const std::string &option) {
+    if (option == "pool") {
+        return aio_pool;
+#ifdef AIOSUPPORT
+    } else if (option == "native") {
+        return aio_native;
+#endif
+    } else {
+        throw options::validation_error_t(strprintf("Invalid --io-backend value: '%s'", option.c_str()));
+    }
+}
+
 // Returns true upon success.
 MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
-    if (io_backend == "pool") {
-        *out = aio_pool;
-    } else if (io_backend == "native") {
-#ifdef AIOSUPPORT
-        *out = aio_native;
-#else
-        return false;
-#endif
-    } else {
+    try {
+        *out = get_io_backend_option(io_backend);
+        return true;
+    } catch (const options::validation_error_t&) {
         return false;
     }
-
-    return true;
 }
 
 void output_option_description(const std::string &option_name, const po::options_description &options) {
@@ -725,6 +1004,18 @@ void output_option_description(const std::string &option_name, const po::options
             option.format_name().c_str(),
             option.format_parameter().c_str(),
             option.description().c_str());
+}
+
+MUST_USE bool parse_commands(int argc, char **argv, const std::vector<options::option_t> &options,
+                             std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    try {
+        options::parse_command_line(argc, argv, options, names_by_values_out);
+        return true;
+    } catch (const std::runtime_error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        // TODO(OPTIONS): Output option description
+        return false;
+    }
 }
 
 MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
@@ -748,6 +1039,17 @@ MUST_USE bool parse_commands(int argc, char *argv[], po::variables_map *vm, cons
         return false;
     }
     return true;
+}
+
+MUST_USE bool parse_config_file_flat(const std::string &config_filepath,
+                                     const std::vector<options::option_t> &options,
+                                     std::map<std::string, std::vector<std::string> > *names_by_values_ref) {
+    (void)config_filepath;
+    (void)options;
+    (void)names_by_values_ref;
+    // TODO(OPTIONS): Implement this.  We need to smartly merge in config value
+    // options with existing names_by_values_ref options?
+    return false;
 }
 
 MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::variables_map *vm, const po::options_description& options) {
@@ -783,6 +1085,26 @@ MUST_USE bool parse_config_file_flat(const std::string & conf_file_name, po::var
     return true;
 }
 
+MUST_USE bool parse_commands_deep(int argc, char **argv, const std::vector<options::option_t> &options,
+                                  std::map<std::string, std::vector<std::string> > *names_by_values_out) {
+    try {
+        std::map<std::string, std::vector<std::string> > names_by_values;
+        parse_command_line(argc, argv, options, &names_by_values);
+        auto config_file_it = names_by_values.find("config-file");
+        if (config_file_it != names_by_values.end()) {
+            if (!parse_config_file_flat(config_file_it->second[0], options, &names_by_values)) {
+                return false;
+            }
+        }
+        names_by_values_out->swap(names_by_values);
+        return true;
+    } catch (const std::runtime_error &e) {
+        fprintf(stderr, "%s\n", e.what());
+        // TODO(OPTION): output option description
+        return false;
+    }
+}
+
 MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
     po::options_description opt2 = config_file_attach_wrapper(options);
     try {
@@ -812,28 +1134,42 @@ MUST_USE bool parse_commands_deep(int argc, char *argv[], po::variables_map *vm,
     return true;
 }
 
+std::string get_single_option(const std::map<std::string, std::vector<std::string> > &opts, std::string name) {
+    auto it = opts.find(name);
+    if (it == opts.end()) {
+        throw std::logic_error("Missing option '%s'.  (It does not have a default value.)");
+    }
+    if (it->second.size() != 1) {
+        throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
+    }
+    return it->second.at(0);
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     try {
-        po::variables_map vm;
-        if (!parse_commands_deep(argc, argv, &vm, get_rethinkdb_create_options())) {
+        std::vector<options::option_t> options;
+        {
+            std::vector<options::help_section_t> help;
+            get_rethinkdb_create_options(&help, &options);
+        }
+
+        std::map<std::string, std::vector<std::string> > opts;
+        // TODO(OPTIONS): Just make parse_commands_deep throw an exception?
+        if (!parse_commands_deep(argc, argv, options, &opts)) {
             return EXIT_FAILURE;
         }
 
-        if (vm.count("help") > 0) {
+        if (opts.find("--help") != opts.end()) {
             help_rethinkdb_create();
             return EXIT_SUCCESS;
         }
 
-        io_backend_t io_backend;
-        if (!pull_io_backend_option(vm, &io_backend)) {
-            fprintf(stderr, "ERROR: selected io-backend is invalid or unsupported.\n");
-            return EXIT_FAILURE;
-        }
+        io_backend_t io_backend = get_io_backend_option(get_single_option(opts, "--io-backend"));
 
-        const base_path_t base_path(vm["directory"].as<std::string>());
+        const base_path_t base_path(get_single_option(opts, "--directory"));
         std::string logfilepath = get_logfilepath(base_path);
 
-        std::string machine_name_str = vm["machine-name"].as<std::string>();
+        std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
         if (!machine_name.assign_value(machine_name_str)) {
             fprintf(stderr, "ERROR: machine-name '%s' is invalid.  (%s)", machine_name_str.c_str(), name_string_t::valid_char_msg);
