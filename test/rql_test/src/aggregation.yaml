@@ -47,12 +47,12 @@ tests:
               return row('id');
           }, function(a,b) {
               return a.add(b);
-          }) 
+          })
         - |
           tbl.groupedMapReduce(r.row('a'), r.row('id'),
           function(a,b) {
               return a.add(b);
-          }) 
+          })
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},
@@ -61,37 +61,37 @@ tests:
 
     # gmr optional base
     - py:
-        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], 0, lambda a,b:a + b)
-        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], 0, lambda a,b:a + b)
+        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b, base=0)
+        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b, base=0)
       js:
         - |
           tbl.groupedMapReduce(function(row) {
               return row('a');
           }, function(row) {
               return row('id');
-          }, 0, function(a,b) {
+          }, function(a,b) {
               return a.add(b);
-          }) 
+          }, 0)
         - |
-          tbl.groupedMapReduce(r.row('a'), r.row('id'), 0,
-          function(a,b) {
-              return a.add(b);
-          }) 
+          tbl.groupedMapReduce(r.row('a'), r.row('id'),
+              function(a,b) {
+                  return a.add(b);
+              }, 0)
       ot: |
           ([{'group':0, 'reduction':1200},
             {'group':1, 'reduction':1225},
             {'group':2, 'reduction':1250},
             {'group':3, 'reduction':1275}])
-    
+
     # undefined...
     - js: |
           tbl.groupedMapReduce(function(row) {
           }, function(row) {
           }, function(a,b) {
-          }) 
+          })
       cd: []
       ot: err('RqlDriverError', 'Unknown datum value `undefined`, did you forget a `return`?', [0])
-    
+
     # GroupBy
 
     # COUNT

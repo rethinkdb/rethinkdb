@@ -10,7 +10,7 @@ RUBY_PBDIR := $(BUILD_DIR)/ruby
 RUBY_PBFILE := query_language.pb.rb
 PROTOCFLAGS := --proto_path=$(SOURCE_DIR)
 
-include $(DRIVERS_DIR)/javascript/build.mk
+include $(DRIVERS_DIR)/javascript/src/build.mk
 # TODO
 # include $(DRIVERS_DIR)/python/build.mk
 # include $(DRIVERS_DIR)/ruby/build.mk

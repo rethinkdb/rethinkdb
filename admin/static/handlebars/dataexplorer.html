@@ -31,7 +31,7 @@
     <li class="no_history {{displayed_class}}">No history available</li>
     {{else}}
     <li class="query_history {{displayed_class}}" id="query_history_{{id}}">
-    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<button class="btn load_query" data-id={{id}}>Load</button></div></span>
+    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<span class="right_container"><button class="btn load_query" data-id={{id}}>Load</button>{{#if broken_query}}<img src="/images/warning-icon.png" class="broken_query" title="This query produced an error" />{{/if}}</span></span></div>
     </li>
     {{/if}}
 </script>
@@ -121,7 +121,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         <div class="suggestion_description_arrow_overlay arrow"></div>
         <textarea class="input_query" id="input_query"></textarea>
         <div class="button_container">
-            <button class="btn button_query execute_query">Execute</button>
+            <button class="btn button_query execute_query">Run</button>
             <button class="btn button_query clear_query">Clear</button>
         </div>
     </div>
@@ -136,10 +136,20 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h1 class="title">Error</h1>
-    <p class="error">The query could not be executed.</p>
+    {{#if query}}
+        <p class="error">A query could not be executed.</p>
+        <pre class="error error_details">{{query}}</pre>
+    {{/if}}
     <p class="error">Error: </p>
-    <pre class="error error_details">{{error}}{{#if forgot_run}}{{!Spacing matters here, we are in a <pre>}}
-Did you forget to append .run() at the end of your query?{{/if}}</pre>
+    <pre class="error error_details">{{error}}</pre>
+</script>
+
+<script id="dataexplorer-query_error-template" type="text/x-handlebars-template">
+{{! Spacing maters, this content goes in a pre tag}}
+{{#if found_run}}You should remove .run() from your queries when using the Data Explorer (as of RethinkDB 1.4). The query will be built and sent by the Data Explorer itself.{{/if}}}
+{{#if last_non_query}}Last query was not a RethinkDB query.{{/if}}
+{{#if no_query}}No query found{{/if}}
+{{#if syntax_error}}Syntax error, missing opening bracket for {{bracket}} (line {{line}}, position {{position}}).{{/if}}
 </script>
 
 

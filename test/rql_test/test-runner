@@ -303,7 +303,7 @@ class RethinkDBTestServers:
     def start(self): 
         log_out = open('build/server-log.txt','a')
         self.cpp_port = self.find_available_port()
-        self.cpp_server = Popen(['../../build/release_clang/rethinkdb',
+        self.cpp_server = Popen(['../../build/release/rethinkdb',
                                  '--driver-port', str(self.cpp_port),
                                  '--http-port=0',
                                  '--cluster-port=0'],
