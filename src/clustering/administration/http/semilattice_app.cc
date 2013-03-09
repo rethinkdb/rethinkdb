@@ -1,7 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
-
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+
+#include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "http/http.hpp"

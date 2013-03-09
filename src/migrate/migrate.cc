@@ -1,13 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "migrate/migrate.hpp"
 
 #include <getopt.h>
 #include <string.h>
 
+#include <string>
+
 #include "errors.hpp"
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <string>
 
 #include "help.hpp"
 

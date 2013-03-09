@@ -1,14 +1,14 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rpc/semilattice/semilattice_manager.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-
 #include <algorithm>
 #include <map>
 #include <set>
 #include <utility>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
