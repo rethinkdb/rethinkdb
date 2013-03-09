@@ -178,10 +178,7 @@ mock_transaction_t::~mock_transaction_t() {
 
 /* Cache */
 
-// TODO: Why do we take a static_config if we don't use it?
-// (I.i.r.c. we have a similar situation in the mirrored cache.)
-
-void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
+void mock_cache_t::create(serializer_t *serializer) {
     on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
@@ -197,7 +194,7 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config, UNUSED perfmon_collection_t *parent)
+mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED const mirrored_cache_config_t &dynamic_config, UNUSED perfmon_collection_t *parent)
     : serializer(_serializer), transaction_counter(new auto_drainer_t),
       block_size(_serializer->get_block_size()),
       bufs(new segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID>) {

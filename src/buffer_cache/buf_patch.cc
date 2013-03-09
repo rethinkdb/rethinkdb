@@ -23,8 +23,6 @@ void buf_patch_t::serialize(char* destination) const {
     destination += sizeof(length);
     memcpy(destination, &block_id, sizeof(block_id));
     destination += sizeof(block_id);
-    memcpy(destination, &applies_to_block_sequence_id, sizeof(applies_to_block_sequence_id));
-    destination += sizeof(applies_to_block_sequence_id);
     memcpy(destination, &operation_code, sizeof(operation_code));
     destination += sizeof(operation_code);
     serialize_data(destination);
@@ -32,7 +30,6 @@ void buf_patch_t::serialize(char* destination) const {
 
 buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_operation_code_t _operation_code) :
     block_id(_block_id),
-    applies_to_block_sequence_id(NULL_BLOCK_SEQUENCE_ID),
     operation_code(_operation_code) { }
 
 

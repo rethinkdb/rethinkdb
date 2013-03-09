@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 #define BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 
@@ -131,11 +131,9 @@ public:
     typedef scc_transaction_t<inner_cache_t> transaction_type;
     typedef typename inner_cache_t::cache_account_type cache_account_type;
 
-    static void create(
-        serializer_t *serializer,
-        mirrored_cache_static_config_t *static_config);
+    static void create(serializer_t *serializer);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config,
+                const mirrored_cache_config_t &dynamic_config,
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();

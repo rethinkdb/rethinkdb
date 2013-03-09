@@ -240,15 +240,14 @@ void persistent_file_t::construct_serializer_and_cache(const bool create, serial
     }
 
     if (create) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(serializer.get(), &cache_static_config);
+        cache_t::create(serializer.get());
     }
 
     cache_dynamic_config.wait_for_flush = true;         // flush to disk immediately on change
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
+    cache.init(new cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
 }
 
 void persistent_file_t::construct_branch_history_managers(bool create) {

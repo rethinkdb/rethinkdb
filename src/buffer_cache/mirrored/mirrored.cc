@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "buffer_cache/mirrored/mirrored.hpp"
 
@@ -168,9 +168,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
-    // Read the block sequence id
-    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data.get());
-
     if (should_lock) {
         lock.unlock();
     }
@@ -188,8 +185,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       refcount(0),
       do_delete(false),
       cow_refcount(0),
-      snap_refcount(0),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+      snap_refcount(0) {
 
     rassert(version_id != faux_version_id);
 
@@ -223,8 +219,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
       refcount(0),
       do_delete(false),
       cow_refcount(0),
-      snap_refcount(0),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+      snap_refcount(0) {
 
     rassert(version_id != faux_version_id);
 
@@ -235,9 +230,6 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
     refcount--;
-
-    // Read the block sequence id
-    block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
@@ -286,12 +278,11 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
     do_delete = false;
     cow_refcount = 0;
     snap_refcount = 0;
-    block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
     data_token.reset();
 }
 
 // This form of the buf constructor is used when a completely new block is being created.
-// Used by mc_inner_buf_t::allocate() and by the patch log.
+// Used by mc_inner_buf_t::allocate().
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
@@ -590,31 +581,6 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     acquired = true;
 }
 
-/* Constructor for mc_buf_lock_t used by patch_disk_storage_t, takes some shortcuts and has some special behavior */
-mc_buf_lock_t * mc_buf_lock_t::acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id)
-{
-    mc_buf_lock_t *lock = new mc_buf_lock_t();
-    lock->mode = rwi_read;
-    lock->inner_buf = cache->page_map.find(block_id);
-    cache->assert_thread();
-
-    if (!lock->inner_buf) {
-        /* The buf isn't in the cache and must be loaded from disk */
-        lock->inner_buf = new mc_inner_buf_t(cache, block_id, cache->reads_io_account.get());
-    }
-
-    // We still have to acquire the lock once to wait for the buf to get ready
-    lock->initialize(mc_inner_buf_t::faux_version_id, DEFAULT_DISK_ACCOUNT, 0);
-
-    // Release the lock we've got
-    lock->inner_buf->lock.unlock();
-    lock->non_locking_access = true;
-    lock->mode = rwi_write;
-
-    cache->assert_thread();
-    return lock;
-}
-
 mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) THROWS_NOTHING :
     acquired(false),
     snapshotted(transaction->snapshotted),
@@ -832,14 +798,9 @@ void mc_buf_lock_t::ensure_flush() {
 
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    if (!inner_buf->writeback_buf().needs_flush()) {
-        // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf().set_needs_flush(true);
-        // TODO(patch): Maybe we don't need set_needs_flush or needs_flush anymore.
-        // Make sure that the buf is marked as dirty
-        inner_buf->writeback_buf().set_dirty();
-        inner_buf->data_token.reset();
-    }
+
+    inner_buf->writeback_buf().set_dirty();
+    inner_buf->data_token.reset();
 }
 
 void mc_buf_lock_t::mark_deleted() {
@@ -892,15 +853,8 @@ void mc_buf_lock_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush()) {
-        // Save the allocation / construction of a patch object
-        get_data_major_write();
-        memcpy(dest, src, n);
-    } else {
-        size_t offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
-        // block_sequence ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, offset, reinterpret_cast<const char *>(src), n));
-    }
+    get_data_major_write();
+    memcpy(dest, src, n);
 }
 
 void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
@@ -914,16 +868,8 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush()) {
-        // Save the allocation / construction of a patch object
-        get_data_major_write();
-        memmove(dest, src, n);
-    } else {
-        size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
-        size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
-        // tblock_sequence ID will be set later...
-        apply_patch(new memmove_patch_t(inner_buf->block_id, dest_offset, src_offset, n));
-    }
+    get_data_major_write();
+    memmove(dest, src, n);
 }
 
 
@@ -1210,10 +1156,8 @@ mc_cache_account_t::~mc_cache_account_t() {
  * Cache implementation.
  */
 
-void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
+void mc_cache_t::create(serializer_t *serializer) {
     /* Initialize config block and differential log */
-
-    patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
 
     /* Write an empty superblock */
 
@@ -1231,9 +1175,9 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *_dynamic_config,
+                       const mirrored_cache_config_t &_dynamic_config,
                        perfmon_collection_t *perfmon_parent) :
-    dynamic_config(*_dynamic_config),
+    dynamic_config(_dynamic_config),
     serializer(_serializer),
     stats(new mc_cache_stats_t(perfmon_parent)),
     page_repl(
@@ -1254,7 +1198,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     num_live_writeback_transactions(0),
     num_live_non_writeback_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
-    max_patches_size_ratio((dynamic_config.wait_for_flush || dynamic_config.flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
 
@@ -1337,7 +1280,7 @@ mc_cache_t::~mc_cache_t() {
     }
 }
 
-block_size_t mc_cache_t::get_block_size() {
+block_size_t mc_cache_t::get_block_size() const {
     return serializer->get_block_size();
 }
 
@@ -1475,24 +1418,3 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
         coro_t::spawn_now_dangerously(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
-
-void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
-    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
-}
-
-void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
-    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
-    // We should be paranoid that if max_patches_size_ratio ==
-    // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
-    // 0.1f * 2 will be less than 2 (and then round down to 1).
-    max_patches_size_ratio = static_cast<unsigned int>(0.9 * max_patches_size_ratio + 0.1 * MAX_PATCHES_SIZE_RATIO_MAX);
-    if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
-        max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
-    }
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
-}
-

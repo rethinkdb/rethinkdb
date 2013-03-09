@@ -24,13 +24,12 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     file_opener.unlink_serializer_file();
 
     /* Create the cache. */
-    mirrored_cache_static_config_t cache_static_config;
-    cache_t::create(serializer.get(), &cache_static_config);
+    cache_t::create(serializer.get());
 
     mirrored_cache_config_t cache_dynamic_config;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
+    cache.init(new cache_t(serializer.get(), cache_dynamic_config, stats_parent));
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }

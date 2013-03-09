@@ -69,17 +69,11 @@ public:
         bool get_dirty() const { return dirty; }
         void set_recency_dirty(bool _recency_dirty = true);
         bool get_recency_dirty() const { return recency_dirty; }
-        void set_needs_flush(bool does_need_flush) { needs_flush_ = does_need_flush; }
-        bool needs_flush() const { return needs_flush_; }
         void mark_block_id_deleted();
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
     private:
-        /* true if we have to flush the block instead of just flushing patches. */
-        /* Specifically, this is the case if we modified the block while bypassing the patching system */
-        bool needs_flush_;
-
         bool dirty;
         bool recency_dirty;
 

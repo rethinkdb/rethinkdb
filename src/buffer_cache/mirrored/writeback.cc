@@ -58,7 +58,6 @@ writeback_t::local_buf_t::local_buf_t() {
 }
 
 void writeback_t::local_buf_t::reset() {
-    needs_flush_ = false;
     dirty = false;
     recency_dirty = false;
 }
@@ -217,33 +216,6 @@ void writeback_t::on_timer() {
 
     cache->assert_thread();
 
-    cache->stats->pm_patches_size_ratio.record(cache->get_max_patches_size_ratio());
-
-    /*
-     * Update the max_patches_size_ratio. If we detect that the previous writeback
-     * is still active and the max_dirty_blocks_limit is exhausted at a level of
-     * at least RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT, we
-     * consider the system to be i/o bound. In this case, we proactively decrease
-     * the max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MIN, to increase
-     * the usage of patches and reduce the amount of i/o.
-     * Otherwise, we consider the system to be bound by something other than i/o
-     * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
-     * to save the overhead associated with managing and writing patches.
-     */
-    if (active_flushes < max_concurrent_flushes || num_dirty_blocks() < max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
-        /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
-        Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_minimum();
-        }
-    } else {
-        /* The currently running writeback apparently takes too long.
-        try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!wait_for_flush) {
-            cache->adjust_max_patches_size_ratio_toward_maximum();
-        }
-    }
-
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
     if (!cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {
@@ -278,12 +250,11 @@ public:
         }
         void on_thread_switch() {
             assert_thread();
+
             // update buf's (or one of it's snapshot's) data token appropriately
             buf->inner_buf->update_data_token(buf->get_data_read(), token);
             token.reset();
-            // Update block sequence id.
-            buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
-                buf->get_block_id(), buf->get_data_read());
+
             // We're done here.
             finished_.pulse();
         }
@@ -327,11 +298,9 @@ public:
 };
 
 struct writeback_t::flush_state_t {
-    bool block_sequence_ids_have_been_updated;
     std::vector<buf_writer_t *> buf_writers;
     // Writes to submit to the serializer
     std::vector<serializer_write_t> serializer_writes;
-    flush_state_t() : block_sequence_ids_have_been_updated(false) {}
 };
 
 void writeback_t::start_concurrent_flush() {
@@ -351,14 +320,6 @@ void writeback_t::do_concurrent_flush() {
     ticks_t start_time;
     cache->stats->pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
-
-    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead reclaim some space in the on-disk patch storage now.
-    ticks_t start_time2;
-    // TOOD(patch): Drop pm_flushes_diff_flush?
-    cache->stats->pm_flushes_diff_flush.begin(&start_time2);
-
-    cache->stats->pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
     mc_transaction_t *transaction;
@@ -492,15 +453,14 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
     while (local_buf_t *lbuf = dirty_bufs.head()) {
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
-        bool buf_needs_flush = lbuf->needs_flush();
-        bool recency_dirty = lbuf->get_recency_dirty();
+        const bool dirty = lbuf->get_dirty();
+        const bool recency_dirty = lbuf->get_recency_dirty();
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
         lbuf->set_recency_dirty(false);
-        lbuf->set_needs_flush(false);
 
-        if (buf_needs_flush) {
+        if (dirty) {
             ++really_dirty;
 
             rassert(!inner_buf->do_delete);
@@ -523,7 +483,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
                                                 buf->get_data_read(),
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
-        } else if (recency_dirty) {
+        } else {
+            rassert(recency_dirty);
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
             state->serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }

@@ -10,8 +10,8 @@ namespace mock {
 
 serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *serializer)
     : serializer_(serializer), known_size_(-1), position_(0) {
-    mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, &config, &get_global_perfmon_collection()));
+    const mirrored_cache_config_t config;
+    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
     if (cache_->contains_block(0)) {
         transaction_t txn(cache_.get(), rwi_read, 0, repli_timestamp_t::invalid, order_token_t::ignore);
         buf_lock_t bufzero(&txn, 0, rwi_read);
@@ -57,10 +57,9 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
 }
 
 serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *serializer) : serializer_(serializer), size_(0) {
-    mirrored_cache_static_config_t static_config;
-    cache_t::create(serializer, &static_config);
-    mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, &config, &get_global_perfmon_collection()));
+    cache_t::create(serializer);
+    const mirrored_cache_config_t config;
+    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
     {
         transaction_t txn(cache_.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token_t::ignore);
         // Hold the size block during writes, to lock out other writers.
