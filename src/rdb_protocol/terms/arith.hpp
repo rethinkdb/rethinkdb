@@ -79,7 +79,7 @@ private:
         rcheck(i1, "Cannot take a number modulo 0.");
         // Sam says this is a floating-point exception
         rcheck(!(i0 == INT64_MIN && i1 == -1),
-               strprintf("Cannot take %ld mod %ld", i0, i1));
+               strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(i0 % i1);
     }
     RDB_NAME("mod");

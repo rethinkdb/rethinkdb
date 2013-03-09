@@ -21,7 +21,15 @@ class env_t;
 class val_t;
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
+// They should be passed to functions that have multiple behaviors (like `el` or
+// `add` below).
+
+// NOTHROW: Return NULL
+// THROW: Throw an error
 enum throw_bool_t { NOTHROW = 0, THROW = 1};
+
+// NOCLOBBER: Don't overwrite existing values.
+// CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
@@ -51,11 +59,11 @@ public:
 
     // These construct a datum from an equivalent representation.
     explicit datum_t(const Datum *d); // Undefined, need to pass `env` below.
-    explicit datum_t(const Datum *d, env_t *env);
+    datum_t(const Datum *d, env_t *env);
     explicit datum_t(cJSON *json);
-    explicit datum_t(cJSON *json, env_t *env);
+    datum_t(cJSON *json, env_t *env);
     explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
-    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
+    datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
     void write_to_protobuf(Datum *out) const;
 
@@ -74,6 +82,7 @@ public:
     const std::vector<const datum_t *> &as_array() const;
     void add(const datum_t *val); // add to an array
     size_t size() const;
+    // Access an element of an array.
     const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
 
     // Use of `el` is preferred to `as_object` when possible.
@@ -83,6 +92,7 @@ public:
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
     MUST_USE bool del(const std::string &key);
+    // Access an element of an object.
     const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
     typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,

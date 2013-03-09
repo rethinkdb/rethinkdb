@@ -236,6 +236,9 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 
 // TODO: make STR and OBJECT convertible to sequence?
 datum_stream_t *datum_t::as_datum_stream(
+    // BT_SRC should be a pointer to whatever part of the term tree we want the
+    // resulting stream to be associated with (i.e. what part of the tree we
+    // should highlight in the backtrace if that stream exhibits an error).
     env_t *env, const pb_rcheckable_t *bt_src) const {
     switch (get_type()) {
     case R_NULL: //fallthru

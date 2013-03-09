@@ -36,7 +36,7 @@ public:
     datum_stream_t *zip();
 
     // Returns NULL if stream is lazy.
-    virtual const datum_t *as_arr() = 0;
+    virtual const datum_t *as_array() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     const datum_t *next();
@@ -60,7 +60,7 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
 
-    virtual const datum_t *as_arr();
+    virtual const datum_t *as_array();
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
@@ -114,7 +114,7 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
     virtual const datum_t *next_impl();
-    virtual const datum_t *as_arr() { return 0; } // cannot be converted implicitly
+    virtual const datum_t *as_array() { return 0; } // cannot be converted implicitly
 private:
     lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
@@ -182,8 +182,8 @@ public:
         return data[data_index++];
     }
 private:
-    virtual const datum_t *as_arr() {
-        return is_arr() ? eager_datum_stream_t::as_arr() : 0;
+    virtual const datum_t *as_array() {
+        return is_arr() ? eager_datum_stream_t::as_array() : 0;
     }
     bool is_arr() {
         maybe_load_data();
@@ -192,7 +192,7 @@ private:
     void maybe_load_data() {
         if (data_index != -1) return;
         data_index = 0;
-        if (const datum_t *arr = src->as_arr()) {
+        if (const datum_t *arr = src->as_array()) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    strprintf("Can only sort at most %zu elements.",

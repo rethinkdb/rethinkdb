@@ -3,62 +3,59 @@
 namespace ql {
 namespace pb {
 
-#define T(A) Term2_TermType_##A
-#define D(A) Datum_DatumType_##A
-
 Datum *set_datum(Term2 *d) {
-    d->set_type(T(DATUM));
+    d->set_type(Term2::DATUM);
     return d->mutable_datum();
 }
 
 Term2 *set_func(Term2 *f, int varnum) {
-    f->set_type(T(FUNC));
+    f->set_type(Term2::FUNC);
 
     Datum *vars = set_datum(f->add_args());
-    vars->set_type(D(R_ARRAY));
+    vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
-    var1->set_type(D(R_NUM));
+    var1->set_type(Datum::R_NUM);
     var1->set_r_num(varnum);
 
     return f->add_args();
 }
 
 Term2 *set_func(Term2 *f, int varnum1, int varnum2) {
-    f->set_type(T(FUNC));
+    f->set_type(Term2::FUNC);
 
     Datum *vars = set_datum(f->add_args());
-    vars->set_type(D(R_ARRAY));
+    vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
-    var1->set_type(D(R_NUM));
+    var1->set_type(Datum::R_NUM);
     var1->set_r_num(varnum1);
     Datum *var2 = vars->add_r_array();
-    var2->set_type(D(R_NUM));
+    var2->set_type(Datum::R_NUM);
     var2->set_r_num(varnum2);
 
     return f->add_args();
 }
 
 void set_var(Term2 *v, int varnum) {
-    v->set_type(T(VAR));
+    v->set_type(Term2::VAR);
     Datum *vn = set_datum(v->add_args());
-    vn->set_type(D(R_NUM));
+    vn->set_type(Datum::R_NUM);
     vn->set_r_num(varnum);
 }
 
 void set_null(Term2 *t) {
     Datum *d = set_datum(t);
-    d->set_type(D(R_NULL));
+    d->set_type(Datum::R_NULL);
 }
 
 void set_int(Term2 *t, int num) {
     Datum *d = set_datum(t);
-    d->set_type(D(R_NUM));
+    d->set_type(Datum::R_NUM);
     d->set_r_num(num);
 }
 
 void set_str(Term2 *t, const std::string &s) {
     Datum *d = set_datum(t);
-    d->set_type(D(R_STR));
+    d->set_type(Datum::R_STR);
     d->set_r_str(s);
 }
 

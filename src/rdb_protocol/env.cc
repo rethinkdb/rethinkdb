@@ -158,15 +158,15 @@ void env_checkpoint_t::gc(const datum_t *root) {
 }
 
 // We GC more frequently (~ every 16 data) in debug mode to help with testing.
-int env_gc_checkpoint_t::default_gen1_cutoff = (8 * 1024 * 1024)
+const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024)
     DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16));
-int env_gc_checkpoint_t::default_gen2_size_multiplier = 8;
+const int env_gc_checkpoint_t::DEFAULT_GEN2_SIZE_MULTIPLIER = 8;
 
 env_gc_checkpoint_t::env_gc_checkpoint_t(env_t *_env, size_t _gen1, size_t _gen2)
     : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
     r_sanity_check(env);
-    if (!gen1) gen1 = default_gen1_cutoff;
-    if (!gen2) gen2 = default_gen2_size_multiplier * gen1;
+    if (!gen1) gen1 = DEFAULT_GEN1_CUTOFF;
+    if (!gen2) gen2 = DEFAULT_GEN2_SIZE_MULTIPLIER * gen1;
     env->checkpoint(); // gen2
     env->checkpoint(); // gen1
 }

@@ -24,7 +24,7 @@
 namespace ql {
 
 term_t *compile_term(env_t *env, const Term2 *t) {
-    switch(t->type()) {
+    switch (t->type()) {
     case Term2_TermType_DATUM:              return new datum_term_t(env, t);
     case Term2_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
     case Term2_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
@@ -102,7 +102,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
-    switch(q->type()) {
+    switch (q->type()) {
     case Query2_QueryType_START: {
         term_t *root_term = 0;
         try {
@@ -140,7 +140,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
 
         try {
             rcheck_toplevel(!stream_cache2->contains(token),
-                strprintf("ERROR: duplicate token %ld", token));
+                strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -168,7 +168,8 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     case Query2_QueryType_CONTINUE: {
         try {
             bool b = stream_cache2->serve(token, res, env->interruptor);
-            rcheck_toplevel(b, strprintf("Token %ld not in stream cache.", token));
+            rcheck_toplevel(b, strprintf("Token %" PRIi64 " not in stream cache.",
+                                         token));
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
             return;
@@ -177,7 +178,7 @@ void run(Query2 *q, scoped_ptr_t<env_t> *env_ptr,
     case Query2_QueryType_STOP: {
         try {
             rcheck_toplevel(stream_cache2->contains(token),
-                strprintf("Token %ld not in stream cache.", token));
+                strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
             fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);

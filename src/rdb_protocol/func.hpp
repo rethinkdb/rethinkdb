@@ -95,8 +95,6 @@ protected:
 
     Term2 source;
     std::map<int, Datum> scope;
-public:
-    //RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
 // This is a hack because MAP, FILTER, REDUCE, and CONCATMAP are all the same.

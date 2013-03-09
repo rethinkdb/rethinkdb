@@ -21,13 +21,20 @@ void runtime_check(const char *test, const char *file, int line,
                    bool pred, std::string msg);
 void runtime_sanity_check(bool test);
 
-// Inherit from this in classes that wish to use `rcheck`
+// Inherit from this in classes that wish to use `rcheck`.  If a class is
+// rcheckable, it means that you can call `rcheck` from within it or use it as a
+// target for `rcheck_target`.
 class rcheckable_t {
 public:
     virtual ~rcheckable_t() { }
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const = 0;
 };
+// This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
+// a part of the protobuf source tree, and can be used to produce a useful
+// backtrace.  (By contrast, a normal rcheckable might produce an error with no
+// backtrace, e.g. if we some constratint that doesn't involve the user's code
+// is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
     pb_rcheckable_t(const Term2 *t)
@@ -190,6 +197,10 @@ private:
     std::string exc_msg;
 };
 
+// A datum exception is like a normal RQL exception, except it doesn't
+// correspond to part of the source tree.  It's usually thrown from inside
+// datum.{hpp,cc} and must be caught by the enclosing term/stream/whatever and
+// turned into a normal `exc_t`.
 class datum_exc_t : public any_ql_exc_t {
 public:
     datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }

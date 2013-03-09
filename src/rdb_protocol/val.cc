@@ -198,7 +198,7 @@ val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
       func(0) {
     guarantee(sequence);
     // Some streams are really arrays in disguise.
-    if ((datum = sequence->as_arr())) {
+    if ((datum = sequence->as_array())) {
         sequence = 0;
         type = type_t::DATUM;
     }

@@ -36,7 +36,7 @@ class env_t : private home_thread_mixin_t {
 public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, term_t *val);
-    val_t *get_optarg(const std::string &key); // returns 0 if no entry
+    val_t *get_optarg(const std::string &key); // returns NULL if no entry
 private:
     std::map<std::string, term_t *> optargs;
 
@@ -224,8 +224,8 @@ private:
 // This is a checkpoint (as above) that also does shitty generational garbage
 // collection for `reduce` and `gmr` queries.
 class env_gc_checkpoint_t {
-    static int default_gen1_cutoff;
-    static int default_gen2_size_multiplier;
+    static const int DEFAULT_GEN1_CUTOFF;
+    static const int DEFAULT_GEN2_SIZE_MULTIPLIER;
 public:
     env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
     ~env_gc_checkpoint_t();

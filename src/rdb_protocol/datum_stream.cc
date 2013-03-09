@@ -81,7 +81,7 @@ datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
     return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
 }
 
-const datum_t *eager_datum_stream_t::as_arr() {
+const datum_t *eager_datum_stream_t::as_array() {
     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
     while (const datum_t *d = next()) arr->add(d);
     return arr;
@@ -101,19 +101,25 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     *this = *src;
 }
 
-// TODO: macroexpand before Sam sees this.
-#define SIMPLE_LAZY_TRANSFORMATION(name)                                                \
-datum_stream_t *lazy_datum_stream_t::name(func_t *f) {                                  \
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));             \
-    out->trans = rdb_protocol_details::transform_variant_t(name##_wire_func_t(env, f)); \
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);     \
-    return out;                                                                         \
+datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
+    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+    out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
+    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    return out;
 }
-
-SIMPLE_LAZY_TRANSFORMATION(map);
-SIMPLE_LAZY_TRANSFORMATION(concatmap);
-SIMPLE_LAZY_TRANSFORMATION(filter);
-#undef SIMPLE_LAZY_TRANSFORMATION
+datum_stream_t *lazy_datum_stream_t::concatmap(func_t *f) {
+    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+    out->trans
+        = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
+    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    return out;
+}
+datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
+    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+    out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
+    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    return out;
+}
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
