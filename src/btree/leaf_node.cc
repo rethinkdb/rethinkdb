@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "btree/buf_patches.hpp"
 #include "btree/node.hpp"
 
 namespace leaf {
@@ -1382,9 +1381,8 @@ MUST_USE bool prepare_space_for_new_entry(value_sizer_t<void> *sizer, leaf_node_
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
-    rassert(!km_proof.is_fake());
 
     /* Make space for the entry itself */
 
@@ -1409,9 +1407,7 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, DEBUG_VAR key_modification_proof_t km_proof) {
-    rassert(!km_proof.is_fake());
-
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     /* Confirm that the key is already in the node */
     DEBUG_VAR int index;
     rassert(find_key(node, key, &index), "remove() called on key that's not in node");
@@ -1439,8 +1435,6 @@ void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 
 // Erases the entry for the given key, leaving behind no trace.
 void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
-    // TODO: Maybe we don't want key_modification_proof_t for this function.
-    //XXX according to sam it's safe to remove this assert. To be fair we only trip this from a call siterassert(!km_proof.is_fake());
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1580,20 +1574,3 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 
 
 }  // namespace leaf
-
-void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
-    // rassert(!km_proof.is_fake());
-    node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_recency(), sizer->size(value), value, key, tstamp));
-}
-
-void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
-    // rassert(!km_proof.is_fake());
-    node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_recency(), tstamp, key));
-}
-
-void leaf_patched_erase_presence(buf_lock_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
-    // TODO: Maybe we don't need key modification proof here.
-    // rassert(!km_proof.is_fake());
-    node->apply_patch(new leaf_erase_presence_patch_t(node->get_block_id(), key));
-}
-

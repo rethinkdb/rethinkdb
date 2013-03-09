@@ -123,8 +123,8 @@ class rdb_value_deleter_t : public value_deleter_t {
 };
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                                 const key_range_t &keys,
-                                 transaction_t *txn, superblock_t *superblock);
+                     const key_range_t &keys,
+                     transaction_t *txn, superblock_t *superblock);
 
 /* RGETS */
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);

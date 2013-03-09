@@ -752,22 +752,6 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
-    assert_thread();
-    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-    rassert(!inner_buf->do_delete);
-    rassert(mode == rwi_write);
-    // TODO (sam): Obviously something's f'd up about this.
-    rassert(inner_buf->data.equals(data));
-    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
-    rassert(_patch->get_block_id() == inner_buf->block_id);
-
-    scoped_ptr_t<buf_patch_t> patch(_patch);
-
-    patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    ensure_flush();
-}
-
 void *mc_buf_lock_t::get_data_major_write() {
     ASSERT_NO_CORO_WAITING;
 
@@ -780,20 +764,10 @@ void *mc_buf_lock_t::get_data_major_write() {
 
     inner_buf->assert_thread();
 
-    ensure_flush();
-
-    return data;
-}
-
-void mc_buf_lock_t::ensure_flush() {
-    ASSERT_NO_CORO_WAITING;
-    assert_thread();
-
-    // TODO (sam): f'd up
-    rassert(inner_buf->data.equals(data));
-
     inner_buf->writeback_buf().set_dirty();
     inner_buf->data_token.reset();
+
+    return data;
 }
 
 void mc_buf_lock_t::mark_deleted() {
@@ -818,19 +792,7 @@ void mc_buf_lock_t::mark_deleted() {
     data = NULL;
 
     inner_buf->do_delete = true;
-    ensure_flush(); // Disable patch log system for the buffer
-}
-
-bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
-    const uint8_t *range8 = reinterpret_cast<const uint8_t *>(range_start);
-    return range8 <= p8 && p8 < range8 + size_in_bytes;
-}
-
-bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
-    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
-        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+    inner_buf->data_token.reset();
 }
 
 // Personally I'd be happier if these functions took offsets.  That's

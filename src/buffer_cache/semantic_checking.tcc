@@ -61,13 +61,6 @@ void scc_buf_lock_t<inner_cache_t>::move_data(void *dest, const void *src, const
 }
 
 template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
-    rassert(internal_buf_lock.has());
-    has_been_changed = true;
-    internal_buf_lock->apply_patch(patch);
-}
-
-template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
     rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();

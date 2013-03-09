@@ -45,11 +45,11 @@ public:
         scoped_malloc_t<char> value(sizer_->max_possible_size());
 
         for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
-            if (leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get())) {
-                deleter_->delete_value(txn, value.get());
-                (*population_change_out)--;
-            }
-            leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(), key_modification_proof_t::fake_proof());
+            bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
+            guarantee(found);
+            deleter_->delete_value(txn, value.get());
+            leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
+                                 key_modification_proof_t::real_proof());
         }
     }
 

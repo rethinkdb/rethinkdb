@@ -21,26 +21,24 @@ void real_superblock_t::release() {
 
 block_id_t real_superblock_t::get_root_block_id() const {
     rassert(sb_buf_.is_acquired());
-    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
 }
 
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     rassert(sb_buf_.is_acquired());
-    // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
-    // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block)), &new_root_block, sizeof(new_root_block));
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_major_write());
+    sb_data->root_block = new_root_block;
 }
 
 block_id_t real_superblock_t::get_stat_block_id() const {
     rassert(sb_buf_.is_acquired());
-    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
 }
 
 void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     rassert(sb_buf_.is_acquired());
-    // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
-    // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block)), &new_stat_block, sizeof(new_stat_block));
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_major_write());
+    sb_data->stat_block = new_stat_block;
 }
 
 block_id_t real_superblock_t::get_sindex_block_id() const {
@@ -320,7 +318,7 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
         //Create a block
         buf_lock_t temp_lock(txn);
         //Make the stat block be the default constructed statblock
-        *reinterpret_cast<btree_statblock_t *>(temp_lock.get_data_major_write()) = btree_statblock_t();
+        *static_cast<btree_statblock_t *>(temp_lock.get_data_major_write()) = btree_statblock_t();
         sb->set_stat_block_id(temp_lock.get_block_id());
 
         temp_lock.set_eviction_priority(stat_block_eviction_priority);
@@ -340,7 +338,7 @@ void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, 
     } else {
         buf_lock_t temp_lock(txn);
         buf_out->swap(temp_lock);
-        leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->get_data_major_write()));
+        leaf::init(sizer, static_cast<leaf_node_t *>(buf_out->get_data_major_write()));
         insert_root(buf_out->get_block_id(), sb);
     }
 
@@ -356,7 +354,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority) {
     txn->assert_thread();
 
-    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
+    const node_t *node = static_cast<const node_t *>(buf->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
     if (!node::is_internal(node)) { // This should only be called when update_needed.
@@ -377,7 +375,10 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
 
-    node::split(sizer, buf, reinterpret_cast<node_t *>(rbuf.get_data_major_write()), median);
+    node::split(sizer,
+                static_cast<node_t *>(buf->get_data_major_write()),
+                static_cast<node_t *>(rbuf.get_data_major_write()),
+                median);
     rbuf.set_eviction_priority(buf->get_eviction_priority());
 
     // Insert the key that sets the two nodes apart into the parent.
@@ -385,7 +386,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
         // We're splitting what was previously the root, so create a new root to use as the parent.
         buf_lock_t temp_buf(txn);
         last_buf->swap(temp_buf);
-        internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
+        internal_node::init(sizer->block_size(), static_cast<internal_node_t *>(last_buf->get_data_major_write()));
         rassert(ZERO_EVICTION_PRIORITY < buf->get_eviction_priority());
         last_buf->set_eviction_priority(decr_priority(buf->get_eviction_priority()));
         *root_eviction_priority = last_buf->get_eviction_priority();
@@ -393,7 +394,9 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
         insert_root(last_buf->get_block_id(), sb);
     }
 
-    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
+    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(),
+                                                   static_cast<internal_node_t *>(last_buf->get_data_major_write()), median,
+                                                   buf->get_block_id(), rbuf.get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -412,10 +415,10 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
 void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key) {
-    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
+    const node_t *node = static_cast<const node_t *>(buf->get_data_read());
     if (last_buf->is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
 
-        const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf->get_data_read());
+        const internal_node_t *parent_node = static_cast<const internal_node_t *>(last_buf->get_data_read());
 
         // Acquire a sibling to merge or level with.
         store_key_t key_in_middle;
@@ -424,7 +427,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
 
         // Now decide whether to merge or level.
         buf_lock_t sib_buf(txn, sib_node_id, rwi_write);
-        const node_t *sib_node = reinterpret_cast<const node_t *>(sib_buf.get_data_read());
+        const node_t *sib_node = static_cast<const node_t *>(sib_buf.get_data_read());
 
 #ifndef NDEBUG
         node::validate(sizer, sib_node);
@@ -433,18 +436,24 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
         if (node::is_mergable(sizer, node, sib_node, parent_node)) { // Merge.
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node::merge(sizer, const_cast<node_t *>(node), &sib_buf, parent_node);
+                node::merge(sizer,
+                            static_cast<node_t *>(buf->get_data_major_write()),
+                            static_cast<node_t *>(sib_buf.get_data_major_write()),
+                            parent_node);
                 buf->mark_deleted();
                 buf->swap(sib_buf);
             } else {
-                node::merge(sizer, const_cast<node_t *>(sib_node), buf, parent_node);
+                node::merge(sizer,
+                            static_cast<node_t *>(sib_buf.get_data_major_write()),
+                            static_cast<node_t *>(buf->get_data_major_write()),
+                            parent_node);
                 sib_buf.mark_deleted();
             }
 
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(sizer->block_size(), last_buf, key_in_middle.btree_key());
+                internal_node::remove(sizer->block_size(), static_cast<internal_node_t *>(last_buf->get_data_major_write()), key_in_middle.btree_key());
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -456,10 +465,13 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
             store_key_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
-            bool leveled = node::level(sizer, nodecmp_node_with_sib, buf, &sib_buf, replacement_key, parent_node);
+            bool leveled = node::level(sizer, nodecmp_node_with_sib,
+                                       static_cast<node_t *>(buf->get_data_major_write()),
+                                       static_cast<node_t *>(sib_buf.get_data_major_write()),
+                                       replacement_key, parent_node);
 
             if (leveled) {
-                internal_node::update_key(last_buf, key_in_middle.btree_key(), replacement_key);
+                internal_node::update_key(static_cast<internal_node_t *>(last_buf->get_data_major_write()), key_in_middle.btree_key(), replacement_key);
             }
         }
     }

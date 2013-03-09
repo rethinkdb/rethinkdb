@@ -23,13 +23,13 @@ public:
 
     // This is free to call mark_deleted.
     void process_a_leaf(transaction_t *, buf_lock_t *leaf_node_buf,
-                                const btree_key_t *,
-                                const btree_key_t *,
-                                int *,
-                                UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                        const btree_key_t *,
+                        const btree_key_t *,
+                        int *,
+                        UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
-        leaf::live_iter_t it = iter_for_whole_leaf(node);
+        leaf::live_iter_t it = leaf::iter_for_whole_leaf(node);
 
         const btree_key_t *key;
         while ((key = it.get_key(node))) {

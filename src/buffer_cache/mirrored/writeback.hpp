@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "arch/timer.hpp"
+#include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
-#include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/flush_time_randomizer.hpp"
+#include "serializer/types.hpp"
 #include "utils.hpp"
 
 class cond_t;

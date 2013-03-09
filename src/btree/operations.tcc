@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/operations.hpp"
 
 #include "btree/buf_patches.hpp"
@@ -171,19 +171,33 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
             population_change = 1;
         }
 
-        leaf_patched_insert(&sizer, &kv_loc->buf, key, kv_loc->value.get(), tstamp, km_proof);
+        leaf::insert(&sizer,
+                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                     key,
+                     kv_loc->value.get(),
+                     tstamp,
+                     km_proof);
+
         kv_loc->stats->pm_keys_set.record();
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
             if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-                leaf_patched_remove(&kv_loc->buf, key, tstamp, km_proof);
+                leaf::remove(&sizer,
+                             static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                             key,
+                             tstamp,
+                             km_proof);
                 population_change = -1;
                 kv_loc->stats->pm_keys_set.record();
             } else {
+                // TODO: Oh god oh god get rid of "expired".
                 // Expirations do an erase, not a delete.
-                leaf_patched_erase_presence(&kv_loc->buf, key, km_proof);
+                leaf::erase_presence(&sizer,
+                                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_major_write()),
+                                     key,
+                                     km_proof);
                 population_change = 0;
                 kv_loc->stats->pm_keys_expired.record();
             }

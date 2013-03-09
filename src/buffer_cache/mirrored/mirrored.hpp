@@ -19,7 +19,6 @@
 #include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
 
@@ -167,15 +166,10 @@ public:
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
     void move_data(void* dest, const void* src, size_t n);
 
-    // Makes sure the block itself gets flushed, instead of just the patch log
-    void ensure_flush();
-
     block_id_t get_block_id() const;
 
     bool is_deleted() const;
     void mark_deleted();
-
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
 
     eviction_priority_t get_eviction_priority() const;
     void set_eviction_priority(eviction_priority_t val);

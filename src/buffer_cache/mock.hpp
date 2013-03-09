@@ -4,7 +4,6 @@
 
 #include <algorithm>
 
-#include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -55,12 +54,10 @@ public:
     void set_data(void *dest, const void *src, const size_t n);
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
     void move_data(void *dest, const void *src, const size_t n);
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 
     bool is_acquired() const;
-    void ensure_flush();
     bool is_deleted() const;
     repli_timestamp_t get_recency() const;
 
