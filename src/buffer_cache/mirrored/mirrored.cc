@@ -765,11 +765,6 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     scoped_ptr_t<buf_patch_t> patch(_patch);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    inner_buf->writeback_buf().set_dirty();
-    // Invalidate the token
-    inner_buf->data_token.reset();
-
-    // We just flush everything instead of storing patches.
     ensure_flush();
 }
 
@@ -785,8 +780,6 @@ void *mc_buf_lock_t::get_data_major_write() {
 
     inner_buf->assert_thread();
 
-    // Invalidate the token
-    inner_buf->data_token.reset();
     ensure_flush();
 
     return data;
@@ -1207,23 +1200,9 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         writes_io_account.init(serializer->make_io_account(dynamic_config.io_priority_writes));
     }
 
-#ifndef NDEBUG
-    writebacks_allowed = false;
-#endif
-
-    /* Please note: writebacks must *not* happen prior to this point! */
-    /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
-#ifndef NDEBUG
-    writebacks_allowed = true;
-#endif
-
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
     read_ahead_registered = true;
-
-    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
-    a sync explicitly because it bypassed transaction_t. */
-    writeback.sync(NULL);
 
     /* Init the stat system with the block size */
     stats->pm_block_size.block_size = get_block_size().ser_value();
