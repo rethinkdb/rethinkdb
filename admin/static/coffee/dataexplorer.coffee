@@ -1581,7 +1581,9 @@ module 'DataExplorerView', ->
                                 metadata: @saved_data.metadata
 
                             # Successful query, let's save it in the history
-                            @save_query @raw_query
+                            @save_query
+                                query: @raw_query
+                                broken_query: false
                     else
                         @execute_portion()
 
