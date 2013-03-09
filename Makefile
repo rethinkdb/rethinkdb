@@ -1,3 +1,11 @@
+# Copyright 2010-2013 RethinkDB, all rights reserved.
+
+# Build instructions for rethinkdb are available on the rethinkdb website:
+# http://www.rethinkdb.com/docs/build/
+
+# There is additional information about the build system on the wiki:
+# https://github.com/rethinkdb/rethinkdb/wiki/Build-System
+
 # This Makefile sets up the environment before delegating to mk/main.mk
 
 # To be able to make from a subdirectory, a Makefile with

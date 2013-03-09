@@ -118,7 +118,7 @@ $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_
 $(NODE_MODULES_DIR)/coffee-script: $(NPM_DEP)
 	$P NPM-I coffee-script
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install coffee-script $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.4.0.tar.gz $(SUPPORT_LOG_REDIRECT)
 
 $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS_INT_EXE)).
 	$P LN

@@ -17,13 +17,12 @@ init () {
     min_clang_version=0
     min_icc_version=0
 
-    required_libs="boost_program_options protobuf v8"
+    required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
     support_libs="unwind tcmalloc_minimal v8 protobuf"
-    mostly_recommended_static="boost_program_options protobuf"
+    suggested_static="protobuf"
     recommended_static="tcmalloc_minimal"
-    default_static="$mostly_recommended_static $recommended_static"
 
     web_assets_deps="lessc coffee handlebars"
     npm_deps="$web_assets_deps"
@@ -47,16 +46,13 @@ configure () {
             var $var "$val"
         fi
     done
-    var LIB_SEARCH_PATHS "$lib_paths"
+    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Operating System"
     var OS $(uname)
     require "OS Version"
     show "`uname -msr`"
     case "$OS" in
-        Darwin)
-            with_tcmalloc=false
-            force_paths="$force_paths boost_program_options=/usr/local/lib/libboost_program_options-mt.a protobuf=/usr/local/lib/libprotobuf.a"
-            ;;
+        Darwin) with_tcmalloc=false ;;
         Linux) true ;;
         *) error "unsupported operating system: $OS" ;;
     esac
@@ -82,6 +78,7 @@ configure () {
     if any "$fetch_list" contains "$npm_deps"; then
         check_bin npm
     fi
+    build_try_lib_paths
     for lib in $required_libs; do
         check_lib $lib
     done
@@ -151,7 +148,7 @@ read_args () {
     required=false
     arg_vars=$'\1\2'
     lib_paths=
-    static_libs=$default_static
+    static_libs=$recommended_static
     arg_prefix=
     arg_sysconfdir=
     arg_localstatedir=
@@ -189,8 +186,8 @@ read_args () {
                     die "Don't know how to fetch '$arg'" 
                 fi ;;
             --static) $has_arg
-                if [[ "$arg" = default ]]; then
-                    static_libs=$default_static
+                if [[ "$arg" = suggested ]]; then
+                    static_libs=$suggested_static
                 elif [[ "$arg" = recommended ]]; then
                     static_libs=$recommended_static
                 elif [[ "$arg" = none ]]; then
@@ -266,8 +263,8 @@ EOF
     cat <<EOF
   --static <lib>          Statically link some libraries. <lib> is a library <dep> or one of:
                             all          All libraries
-                            recommended  Highly recommended libraries
-                            default      Recommended libraries
+                            suggested    All recommended static libraries
+                            recommended  Highly recommended static libraries
                             none         No static libraries
   --prefix <dir>          Installation prefix. Defaults to /usr/local
   --sysconfdir <dir>      Configuration prefix. Defaults to /usr/local/etc
@@ -348,8 +345,8 @@ show_descr () {
     if ${can_show:-false}; then
 	show_no
     fi
-    local padded="$*:                        "
-    echo -n "${padded:0:25}"
+    local padded="$*:                               "
+    echo -n "${padded:0:32}"
     write "# $*"
     can_show=true
 }
@@ -360,7 +357,7 @@ show_no () {
     local err=$delayed_error
     show no
     if $req; then
-	error "${err:-Could not detect value}"
+	error "${err:-Not found}"
     elif [[ -n "$delayed_error" ]]; then
 	error "$err"
     fi
@@ -419,7 +416,7 @@ var_append () {
     local val=$*
     show "$val"
     write "$name += $val"
-    eval "$name=$name\ $(quote "$val")"
+    eval "$name=\${$name:-}\ $(quote "$val")"
 }
 
 # boolvar <name> <command> <arguments ...>
@@ -599,96 +596,91 @@ optional_dep () {
 }
 
 # An assoc-list of c++ code to test if a library works
+# TODO: these are unused.
 lib_test_code=':~'
 
 # An assoc-list of possible library aliases
 lib_alias=':~'
 
+# List the paths where static libraries can be found into the try_lib_paths variable
+build_try_lib_paths () {
+    cc_paths=$($CXX -print-search-dirs 2>/dev/null | grep ^libraries | sed -e 's/^libraries[: =]*//; s/:/ /g')
+    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig)
+    if [[ -n "$LDCONFIG" ]]; then
+        ld_paths=$($LDCONFIG -v -N -X 2>/dev/null | grep -v '^	' | sed -e 's/:$//' )
+    else
+        ld_paths="/usr/lib /usr/local/lib" # Default ld search paths on OSX
+    fi
+    try_lib_paths="$lib_paths $cc_paths $ld_paths"
+}
+
 # check_lib <name>
 # Check for the presence of a library and set the correct make flags for it
+# WISHLIST: Properly detect the presence of the headers and check that the
+#           installed version is compatible. Try using pkg-config.
 check_lib () {
-    require $1
+    local path
+    if lookup "$force_paths" $1 path; then
+        require $1
+        var_append LIBRARY_PATHS $path
+        return
+    fi
+    local check
+    if contains "$static_libs" $1; then
+        require "$1 (static)"
+        check=check_static_lib
+    else
+        require $1
+        check=check_dyn_lib
+    fi
     delay_errors=true
     local aliases
     lookup "$lib_alias" $1 aliases || aliases=
     for lib in $1 $aliases; do
-	check_single_lib $lib
+	$check $lib
 	$can_show || return
     done
-    show_no
+    if contains "$support_deps" $1 && $allow_fetch; then
+        fetch_lib $1
+    else
+        show_no
+    fi
 }
 
-# Called by check_lib for each alias of a library
-check_single_lib () {
+check_dyn_lib () {
     # TODO: pkg_config
-    local path
-    if ! lookup "$force_paths" $1 path; then
-       if $allow_fetch && contains "$fetch_list" $1; then
-            fetch_lib $1
-            return 0
-        fi
-        path=$(dynlib_lookup $1)
-        if contains "$static_libs" $1; then
-            local static_path="$(subst "$path" ".so" ".a")"
-            if [[ -e "$static_path" ]]; then
-                var_append LIBRARY_PATHS "$static_path"
-            else
-                if contains "$support_deps" $1 && $allow_fetch; then
-                    fetch_lib $1
-                else
-                    error "library $1 not found"
-                fi
-            fi
-        elif [ -n "$path" ]; then
-            var_append LIBRARY_PATHS "-l$1"
-	else
-	    check_lib_compile $1
-        fi
-    else
+    check_lib_compile $1
+}
+
+# Test if the c++ compiler knows about the library
+check_lib_compile () {
+    local bfile=`dirname $0`/mk/gen/check_$1
+    local code
+    # TODO: If the library is present but the lib_test_code doesn't compile there
+    # TODO: needs to be a better error message than "library not found"
+    # if ! lookup "$lib_test_code" $1 code; then
+        code='int main(){}'
+    # fi
+    echo "$code" > "$bfile.cc"
+    if $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+	var_append LIBRARY_PATHS -l$1
+    fi
+}
+
+check_static_lib () {
+    # TODO: pkg-config
+    local path=$(static_lib_lookup $1)
+    if [[ -n "$path" ]]; then
         var_append LIBRARY_PATHS "$path"
     fi
 }
 
-# Called by check_single_lib if the library is not found to see if it compiles anyway
-# Insufficiently tested
-check_lib_compile () {
-    local file=`dirname $0`/mk/gen/check_$1.cc
-    local code
-    lookup "$lib_test_code" $1 code
-    echo "$code" > "$file"
-    if $CXX ${CXXFLAGS:-} ${LDFLAGS:-} "$file" -l$1 ${LIBRARY_PATHS:-} -o "$(subst "$file" ".cc" ".out")" 1>/dev/null 2>&1; then
-	var_append LIBRARY_PATHS -l$1
-    elif contains "$support_deps" $1 && $allow_fetch; then
-        fetch_lib $1
-    else
-        error "library $1 not found"
-    fi
-}
-
-# Look for a dynamic library by querying ldconfig, or else call lib_lookup
-dynlib_lookup () {
-    which ldconfig >/dev/null && ldconfig -p | awk "/lib$1.so / { print \$NF }" | head -n 1 && return
-    case $OS in
-	Darwin) lib_lookup $1 dylib ;;
-	*) lib_lookup $1 so ;;
-    esac
-}
-
-# Look for a static library
-staticlib_lookup () {
-    lib_lookup $1 a && return 0
-    local f=$(dynlib_lookup)
-    test -f ${f%.*}.a && echo ${f%.*}.a && return 0
-    return 1
-}
-
-# Look for a library in some predetermined paths
-lib_lookup () {
-    for path in /lib /usr/lib /usr/local/lib; do
-	local l=$path/lib$1.$2
+# Find a static library and print it's path
+static_lib_lookup () {
+    for path in $try_lib_paths; do
+	local l=$path/lib$1.a
 	test -f $l && echo $l && return 0
     done
-    return 1
 }
 
 # Some utility functions

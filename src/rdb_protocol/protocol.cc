@@ -889,7 +889,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const sindex_drop_t &d) {
         response->response = sindex_drop_response_t();
-        value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
+        value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
         rdb_value_deleter_t deleter;
 
         store->drop_sindex(
@@ -1138,7 +1138,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
-        value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
+        value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
         rdb_value_deleter_t deleter;
         scoped_ptr_t<buf_lock_t> sindex_block;
         std::set<uuid_u> created_sindexes;
@@ -1194,7 +1194,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   transaction_t *txn,
                                   superblock_t *superblock,
                                   write_token_pair_t *token_pair) {
-    value_sizer_t<rdb_value_t> sizer(txn->cache->get_block_size());
+    value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
     cond_t dummy_interruptor;
 

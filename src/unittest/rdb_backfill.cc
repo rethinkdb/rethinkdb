@@ -5,13 +5,15 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
-#include "unittest/branch_history_manager.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "extproc/pool.hpp"
+#include "extproc/spawner.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -40,7 +42,7 @@ void run_with_broadcaster(
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
 

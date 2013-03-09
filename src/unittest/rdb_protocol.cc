@@ -5,6 +5,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
+#include "extproc/spawner.hpp"
+#include "extproc/pool.hpp"
 #include "memcached/protocol.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -51,7 +53,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
-    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);
     extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
 
