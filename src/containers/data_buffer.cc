@@ -1,5 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#define __STDC_LIMIT_MACROS
+
 #include "containers/data_buffer.hpp"
+
+#include <stdint.h>
+
 #include "utils.hpp"
 
 
@@ -12,4 +17,15 @@ void debug_print(append_only_printf_buffer_t *buf, const intrusive_ptr_t<data_bu
         debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(bytes), ptr->size());
         buf->appendf("}");
     }
+}
+
+intrusive_ptr_t<data_buffer_t> data_buffer_t::create(int64_t size) {
+    static_assert(sizeof(data_buffer_t) == sizeof(ref_count_) + sizeof(size_),
+                  "data_buffer_t is not a packed struct type");
+
+    rassert(size >= 0 && size <= SIZE_MAX - sizeof(data_buffer_t));
+    data_buffer_t *b = static_cast<data_buffer_t *>(malloc(sizeof(data_buffer_t) + size));
+    b->ref_count_ = 0;
+    b->size_ = size;
+    return intrusive_ptr_t<data_buffer_t>(b);
 }
