@@ -13,5 +13,6 @@ void help_rethinkdb_create();
 void help_rethinkdb_serve();
 void help_rethinkdb_proxy();
 void help_rethinkdb_import();
+void help_rethinkdb_porcelain();
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_ */
