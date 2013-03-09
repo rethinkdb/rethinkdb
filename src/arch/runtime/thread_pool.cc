@@ -414,7 +414,7 @@ void linux_thread_t::initiate_shut_down() {
     coroutine_counts_at_shutdown = coroutine_counts;
 #endif
     do_shutdown = true;
-    shutdown_notify_event.write(1);
+    shutdown_notify_event.wakey_wakey();
     res = pthread_mutex_unlock(&do_shutdown_mutex);
     guarantee_xerr(res == 0, res, "could not unlock do_shutdown_mutex");
 }
