@@ -5,7 +5,7 @@
 from subprocess import Popen
 from time import sleep
 from sys import path
-path.append("../../../drivers/python2")
+path.append("../../../drivers/python")
 
 import rethinkdb as r
 

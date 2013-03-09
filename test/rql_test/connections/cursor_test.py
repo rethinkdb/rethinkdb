@@ -3,7 +3,7 @@ from time import sleep
 from random import randint
 from os import putenv
 from sys import path
-path.append("../../../drivers/python2")
+path.append("../../../drivers/python")
 
 import rethinkdb as r
 

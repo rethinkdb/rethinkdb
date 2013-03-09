@@ -31,7 +31,7 @@ var assertNoError = function(err) {
     }
 };
 
-var r = require('../../../drivers/javascript2/build/rethinkdb');
+var r = require('../../../drivers/javascript/build/rethinkdb');
 
 var actions = [
 

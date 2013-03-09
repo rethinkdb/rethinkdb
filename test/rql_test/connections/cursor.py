@@ -4,7 +4,7 @@
 
 from os import getenv
 from sys import path, argv
-path.append("../../../drivers/python2")
+path.append("../../../drivers/python")
 
 import rethinkdb as r
 
