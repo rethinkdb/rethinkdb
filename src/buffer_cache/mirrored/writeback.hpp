@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_
 #define BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_
 
@@ -20,15 +20,9 @@ class mc_inner_buf_t;
 class mc_transaction_t;
 
 class writeback_t : private timer_callback_t {
-    // TODO: These typedefs are horrible, since globally they could be different, in other files.
-    typedef mc_cache_t cache_t;
-    typedef mc_buf_lock_t buf_lock_t;
-    typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_transaction_t transaction_t;
-
 public:
     writeback_t(
-        cache_t *cache,
+        mc_cache_t *cache,
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
@@ -51,9 +45,9 @@ public:
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
     it ought to be throttled. */
-    void begin_transaction(transaction_t *txn);
+    void begin_transaction(mc_transaction_t *txn);
 
-    void on_transaction_commit(transaction_t *txn);
+    void on_transaction_commit(mc_transaction_t *txn);
 
     unsigned int num_dirty_blocks() {
         return dirty_bufs.size();
@@ -77,16 +71,11 @@ public:
         bool get_recency_dirty() const { return recency_dirty; }
         void set_needs_flush(bool does_need_flush) { needs_flush_ = does_need_flush; }
         bool needs_flush() const { return needs_flush_; }
-        void set_last_patch_materialized(patch_counter_t value) { last_patch_materialized_ = value; }
-        patch_counter_t last_patch_materialized() const { return last_patch_materialized_; }
         void mark_block_id_deleted();
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
     private:
-        /* All patches <= last_patch_materialized are in the on-disk log storage */
-        patch_counter_t last_patch_materialized_;
-
         /* true if we have to flush the block instead of just flushing patches. */
         /* Specifically, this is the case if we modified the block while bypassing the patching system */
         bool needs_flush_;
@@ -129,9 +118,7 @@ private:
     /* Use `adjustable_semaphore_t` instead of `semaphore_t` so we can get `force_lock()`. */
     adjustable_semaphore_t dirty_block_semaphore;
 
-    bool force_patch_storage_flush;
-
-    cache_t *cache;
+    mc_cache_t *cache;
 
     /* The flush lock is necessary because if we acquire dirty blocks
      * in random order during the flush, there might be a deadlock
@@ -187,8 +174,7 @@ private:
     struct flush_state_t;
     void start_concurrent_flush();
     void do_concurrent_flush();
-    void flush_prepare_patches();
-    void flush_acquire_bufs(transaction_t *transaction, flush_state_t *state);
+    void flush_acquire_bufs(mc_transaction_t *transaction, flush_state_t *state);
 };
 
 #endif // BUFFER_CACHE_MIRRORED_WRITEBACK_HPP_

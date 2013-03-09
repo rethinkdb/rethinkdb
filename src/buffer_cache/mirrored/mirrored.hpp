@@ -20,7 +20,6 @@
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
@@ -95,9 +94,6 @@ class mc_inner_buf_t : public evictable_t,
     void release_snapshot_data(void *data);
 
 private:
-    // Helper function for inner_buf construction from an existing block
-    void replay_patches();
-    
     // Initializes an mc_inner_buf_t for use with a new block.
     // This is used by allocate() and the new buf constructor mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp)
     void initialize_to_new(version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -117,8 +113,6 @@ private:
 
     // A lock for loading the block.
     rwi_lock_t lock;
-    // A patch counter that belongs to this block.
-    patch_counter_t next_patch_counter;
 
     // The number of mc_buf_lock_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
@@ -191,7 +185,6 @@ public:
     bool is_deleted() const;
     void mark_deleted();
 
-    patch_counter_t get_next_patch_counter();
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
 
     eviction_priority_t get_eviction_priority() const;
@@ -220,10 +213,6 @@ private:
 
     // Presumably, the mode with which this mc_buf_lock_t holds the inner buf.
     access_t mode;
-
-    // Used for perfmon, measuring how much the patches' serialized
-    // size changed.  TODO: Maybe this could be a uint16_t.
-    int32_t patches_serialized_size_at_start;
 
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_lock_t's
     // all pointing at an inner buf.
@@ -418,8 +407,6 @@ private:
     int num_live_non_writeback_transactions;
 
     cond_t *to_pulse_when_last_transaction_commits;
-
-    patch_memory_storage_t patch_memory_storage;
 
     // Pointer, not member, because we need to call its destructor explicitly in our destructor
     scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
