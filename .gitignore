@@ -45,3 +45,6 @@ src/make_filter.sh
 scripts/netrecord/netrecord
 src/cluster_directory_*
 support/
+custom.mk
+config.mk
+mk/gen/*
