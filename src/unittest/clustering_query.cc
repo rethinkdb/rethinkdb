@@ -53,6 +53,7 @@ static void run_read_write_test() {
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster.get_business_card()));
 
     listener_t<dummy_protocol_t> initial_listener(
+        base_path_t("."),
         io_backender.get(),
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
@@ -142,6 +143,7 @@ static void run_broadcaster_problem_test() {
         boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(broadcaster.get_business_card()));
 
     listener_t<dummy_protocol_t> initial_listener(
+        base_path_t("."),
         io_backender.get(),
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable(),

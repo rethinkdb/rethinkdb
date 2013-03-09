@@ -19,6 +19,12 @@ public:
     void run();
     ~epoll_event_queue_t();
 
+    // These should only be called by the event queue itself or by the
+    // linux_* classes
+    void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
+    void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
+    void forget_resource(fd_t resource, linux_event_callback_t *cb);
+
 private:
     linux_queue_parent_t *parent;
 
@@ -37,12 +43,7 @@ private:
     std::map<linux_event_callback_t*, int> events_requested;
 #endif
 
-public:
-    // These should only be called by the event queue itself or by the
-    // linux_* classes
-    void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
-    void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
-    void forget_resource(fd_t resource, linux_event_callback_t *cb);
+    DISABLE_COPYING(epoll_event_queue_t);
 };
 
 

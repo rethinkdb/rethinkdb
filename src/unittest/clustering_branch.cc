@@ -64,7 +64,8 @@ void run_with_broadcaster(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card()));
 
     scoped_ptr_t<listener_t<dummy_protocol_t> > initial_listener(
-        new listener_t<dummy_protocol_t>(io_backender.get(),
+        new listener_t<dummy_protocol_t>(base_path_t("."),
+                                         io_backender.get(),
                                          cluster.get_mailbox_manager(),
                                          broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
                                          &branch_history_manager,
@@ -211,6 +212,7 @@ void run_backfill_test(io_backender_t *io_backender,
     test_store_t<dummy_protocol_t> store2(io_backender, order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
@@ -276,6 +278,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     dummy_protocol_t::region_t subregion('a', 'm');
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),

@@ -165,7 +165,8 @@ public:
                 bool create,
                 perfmon_collection_t *collection,
                 context_t *,
-                io_backender_t *io);
+                io_backender_t *io,
+                const base_path_t &base_path);
         virtual ~store_t();
 
     private:

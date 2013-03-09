@@ -96,7 +96,7 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock) 
+        auto_drainer_t::lock_t lock)
     THROWS_ONLY(interrupted_exc_t);
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
@@ -116,7 +116,8 @@ void bring_sindexes_up_to_date(
 
     boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
-                store->io_backender_, "post_construction_" + uuid_to_str(post_construct_id),
+                store->io_backender_,
+                serializer_filepath_t(store->base_path_, "post_construction_" + uuid_to_str(post_construct_id)),
                 &store->perfmon_collection));
 
     {
@@ -126,8 +127,8 @@ void bring_sindexes_up_to_date(
     }
 
     coro_t::spawn_sometime(boost::bind(
-                &post_construct_and_drain_queue, 
-                sindexes_to_bring_up_to_date, 
+                &post_construct_and_drain_queue,
+                sindexes_to_bring_up_to_date,
                 store,
                 mod_queue,
                 auto_drainer_t::lock_t(&store->drainer)));
@@ -708,8 +709,10 @@ store_t::store_t(serializer_t *serializer,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *_ctx,
-                 io_backender_t *io) :
-    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target, create, parent_perfmon_collection, _ctx, io),
+                 io_backender_t *io,
+                 const base_path_t &base_path) :
+    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target, 
+            create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 { }
 

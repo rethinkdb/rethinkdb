@@ -13,7 +13,7 @@
 namespace unittest {
 
 void run_sindex_low_level_operations_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -93,7 +93,7 @@ TEST(BTreeSindex, LowLevelOps) {
 }
 
 void run_sindex_btree_store_api_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -115,7 +115,8 @@ void run_sindex_btree_store_api_test() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get());
+            io_backender.get(),
+            base_path_t("."));
 
     cond_t dummy_interuptor;
 

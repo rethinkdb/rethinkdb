@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 
+#include <ftw.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -665,6 +666,36 @@ int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
+int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+    int res = ::remove(path);
+    guarantee_err(res == 0, "remove syscall failed");
+    return 0;
+}
+
+void delete_all(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
+    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper than that).
+    const int max_openfd = 128;
+    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+}
+
+std::string temporary_directory_path(const base_path_t& base_path) {
+    return base_path.path() + "/tmp";
+}
+
+void recreate_temporary_directory(const base_path_t& base_path) {
+    const std::string path = temporary_directory_path(base_path);
+
+    delete_all(path.c_str());
+
+    int res;
+    do {
+        res = mkdir(path.c_str(), 0755);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+}
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these

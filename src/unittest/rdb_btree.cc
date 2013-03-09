@@ -71,7 +71,7 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 }
 
 void run_sindex_post_construction() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -93,7 +93,8 @@ void run_sindex_post_construction() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get());
+            io_backender.get(),
+            base_path_t("."));
 
     cond_t dummy_interuptor;
 

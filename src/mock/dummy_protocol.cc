@@ -214,7 +214,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
 dummy_protocol_t::store_t::store_t(serializer_t *_serializer, UNUSED const std::string &,
                                    UNUSED int64_t , bool create,
                                    UNUSED perfmon_collection_t *, UNUSED context_t *,
-                                   io_backender_t *) :
+                                   io_backender_t *, const base_path_t &) :
     store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')),
     serializer(_serializer) {
     if (create) {

@@ -334,6 +334,55 @@ T valgrind_undefined(T value) {
 }
 
 
+// Contains the name of the directory in which all data is stored.
+class base_path_t {
+public:
+    explicit base_path_t(const std::string& path) : path_(path) { }
+
+    const std::string& path() const {
+        guarantee(!path_.empty());
+        return path_;
+    }
+private:
+    std::string path_;
+};
+
+static const char *TEMPORARY_DIRECTORY_NAME = "tmp";
+
+class serializer_filepath_t;
+
+namespace unittest {
+serializer_filepath_t manual_serializer_filepath(const std::string& permanent_path,
+                                                 const std::string& temporary_path);
+}  // namespace unittest
+
+// Contains the name of a serializer file.
+class serializer_filepath_t {
+public:
+    serializer_filepath_t(const base_path_t& directory, const std::string& relative_path)
+        : permanent_path_(directory.path() + "/" + relative_path),
+          temporary_path_(directory.path() + "/" + TEMPORARY_DIRECTORY_NAME + "/" + relative_path + ".create") {
+        guarantee(!relative_path.empty());
+    }
+
+    // A serializer_file_opener_t will first open the file in a temporary location, then move it to
+    // the permanent location when it's finished being created.  These give the names of those
+    // locations.
+    std::string permanent_path() const { return permanent_path_; }
+    std::string temporary_path() const { return temporary_path_; }
+
+private:
+    friend serializer_filepath_t unittest::manual_serializer_filepath(const std::string& permanent_path,
+                                                                      const std::string& temporary_path);
+    serializer_filepath_t(const std::string& permanent_path, const std::string& temporary_path)
+        : permanent_path_(permanent_path), temporary_path_(temporary_path) { }
+
+    const std::string permanent_path_;
+    const std::string temporary_path_;
+};
+
+void recreate_temporary_directory(const base_path_t& base_path);
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__

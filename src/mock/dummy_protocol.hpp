@@ -112,7 +112,7 @@ public:
         store_t(serializer_t *serializer, const std::string &perfmon_name, 
                 UNUSED int64_t cache_size, bool create, 
                 perfmon_collection_t *collection, context_t *ctx,
-                io_backender_t *io);
+                io_backender_t *io, const base_path_t &);
         ~store_t();
 
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;

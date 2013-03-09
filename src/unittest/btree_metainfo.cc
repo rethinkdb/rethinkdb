@@ -39,7 +39,7 @@ std::string vector_to_string(const std::vector<char> &v) {
 }
 
 void run_metainfo_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);

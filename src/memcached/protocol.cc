@@ -443,10 +443,12 @@ store_t::store_t(serializer_t *serializer,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx,
-                 io_backender_t *io) 
+                 io_backender_t *io,
+                 const base_path_t &base_path) 
     : btree_store_t<memcached_protocol_t>(
             serializer, perfmon_name, cache_size, 
-            create, parent_perfmon_collection, ctx, io) 
+            create, parent_perfmon_collection, ctx, io,
+            base_path) 
 { }
 
 store_t::~store_t() {

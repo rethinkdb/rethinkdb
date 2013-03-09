@@ -2,6 +2,8 @@
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
+#include <vector>
+
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/scoped.hpp"

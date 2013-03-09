@@ -45,7 +45,8 @@ public:
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
                   typename protocol_t::context_t *,
-                  io_backender_t *io_backender);
+                  io_backender_t *io_backender,
+                  const base_path_t &base_path);
     virtual ~btree_store_t();
 
     /* store_view_t interface */
@@ -381,6 +382,7 @@ public: // <--- so this is some bullshit right here
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
+    base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
     boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;

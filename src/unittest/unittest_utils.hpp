@@ -3,6 +3,7 @@
 #define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include <set>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -13,14 +14,17 @@
 
 namespace unittest {
 
+serializer_filepath_t make_unittest_filepaths(const std::string &permanent_path,
+                                              const std::string &temporary_path);
+
 class temp_file_t {
 public:
-    explicit temp_file_t(const char *tmpl);
-    const char *name() { return filename.data(); }
+    temp_file_t();
     ~temp_file_t();
+    serializer_filepath_t name() const;
 
 private:
-    scoped_array_t<char> filename;
+    std::string filename;
 
     DISABLE_COPYING(temp_file_t);
 };

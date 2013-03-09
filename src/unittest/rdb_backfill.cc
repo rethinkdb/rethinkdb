@@ -72,14 +72,15 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t<rdb_protocol_t> > initial_listener(
-        new listener_t<rdb_protocol_t>(io_backender.get(),
-                                             cluster.get_mailbox_manager(),
-                                             broadcaster_business_card_watchable_variable.get_watchable(),
-                                             &branch_history_manager,
-                                             broadcaster.get(),
-                                             &get_global_perfmon_collection(),
-                                             &interruptor,
-                                             &order_source));
+        new listener_t<rdb_protocol_t>(base_path_t("."), //TODO is it bad that this isn't configurable?
+                                       io_backender.get(),
+                                       cluster.get_mailbox_manager(),
+                                       broadcaster_business_card_watchable_variable.get_watchable(),
+                                       &branch_history_manager,
+                                       broadcaster.get(),
+                                       &get_global_perfmon_collection(),
+                                       &interruptor,
+                                       &order_source));
 
     fun(io_backender.get(),
         &cluster,
@@ -159,6 +160,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
+        base_path_t("."),
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,

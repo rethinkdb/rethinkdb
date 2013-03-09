@@ -7,7 +7,7 @@
 #include "serializer/config.hpp"
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
-                                                           const std::string& filename,
+                                                           const serializer_filepath_t& filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID) {
     filepath_file_opener_t file_opener(filename, io_backender);
@@ -21,8 +21,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     /* Remove the file we just created from the filesystem, so that it will
        get deleted as soon as the serializer is destroyed or if the process
        crashes */
-    int res = unlink(filename.c_str());
-    guarantee_err(res == 0, "unlink() failed");
+    file_opener.unlink_serializer_file();
 
     /* Create the cache. */
     mirrored_cache_static_config_t cache_static_config;
