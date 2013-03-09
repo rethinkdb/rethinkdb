@@ -233,7 +233,9 @@ lessc:LESS css
 coffee:CoffeScript
 handlebars:Handlebars
 unwind:libunwind
-tcmalloc_mininaml:Google Perf Tools library'
+tcmalloc_minimal:Google Perf Tools library
+v8:v8 javascript engine
+protobuf:Protobuf library'
 
 # Output of --help
 show_help () {
@@ -299,13 +301,23 @@ error () {
 	delayed_error="$*"
 	return
     fi
-    show "error"
-    local type=Error
-    $req || type=Warning
-    echo "* $type: $*" >&2
+    local type
+    if $req; then
+        show "error"
+        type=Error
+    else
+        show "no"
+        type=Warning
+    fi
+    if $req || ! ${ignore_warnings:-false}; then
+        echo "* $type: $*" >&2
+    fi
     write "CONFIGURE_ERROR := $*"
-    if $exit_on_error && $req; then
-        exit 1
+    if $req; then
+        echo "${error_details:-}"
+        if $exit_on_error; then
+            exit 1
+        fi
     fi
     failed=$req
 }
@@ -349,6 +361,7 @@ show_descr () {
     echo -n "${padded:0:32}"
     write "# $*"
     can_show=true
+    error_details=
 }
 
 # Like 'show no', but show the delayed error if there is one
@@ -357,7 +370,7 @@ show_no () {
     local err=$delayed_error
     show no
     if $req; then
-	error "${err:-Not found}"
+	error "${err:-${1:-} not found}"
     elif [[ -n "$delayed_error" ]]; then
 	error "$err"
     fi
@@ -369,7 +382,6 @@ show () {
     if $can_show; then
         echo "$*"
         can_show=false
-        required=true
     fi
     delayed_error=
     delay_errors=false
@@ -436,21 +448,22 @@ boolvar () {
 # Find a C++ compiler that rethinkdb supports
 check_cxx () {
     require "C++ Compiler"
+    local force_CXX
     lookup "$force_paths" cxx force_CXX || :
-    CXX=${force_CXX:-${CXX:-c++}}
-    CXX=$(which "$CXX")
-    if [[ ! -x "$CXX" ]]; then
+    local test_CXX=${force_CXX:-${CXX:-c++}}
+    local full_CXX=$(which "$test_CXX" 2>/dev/null)
+    if [[ ! -x "$full_CXX" ]]; then
         if [[ -n ${force_CXX:-} ]]; then
             error "unable to run $force_CXX"
             return
         fi
-        CXX=$(which g++ || which clang || which icc)
-        if [[ -z "$CXX" ]]; then
+        full_CXX=$(which g++ 2>/dev/null || which clang 2>/dev/null || which icc 2>/dev/null)
+        if [[ -z "$full_CXX" ]]; then
             not_found CXX
             return
         fi
     fi
-    local description=$($CXX --version 2>/dev/null)$($CXX --help 2>/dev/null)
+    local description=$($full_CXX --version 2>/dev/null)$($full_CXX --help 2>/dev/null)
     local version_string=$(echo "$description" | egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?'| head -n 1)
     local type=$(echo "$description" | egrep -io 'gcc|g\+\+|clang|icc' | head -n 1)
     case "$(uc $type)" in
@@ -460,7 +473,7 @@ check_cxx () {
         ICC) min_version=$min_icc_version
              type=INTEL ;;
         *) show "unknown"
-           error "Could not determine C++ compiler type (gcc, clang or icc is required)"
+           error "Could not determine C++ compiler type of $full_CXX (gcc, clang or icc is required)"
            return
     esac
     if [[ -z "$version_string" ]]; then
@@ -471,9 +484,9 @@ check_cxx () {
         test_version_gt $(uc $type) $min_version $(read_version "$version_string") || return
     fi
     
-    show "$(uc $type) $version_string ($CXX)"
-    var COMPILER "" "$(uc $type)"
-    var CXX "" "$CXX"
+    show "$(uc $type) $version_string ($full_CXX)"
+    var COMPILER "$(uc $type)"
+    var CXX "$full_CXX"
 }
 
 # read_version "1.2.3" -> 10203
@@ -547,7 +560,7 @@ check_bin () {
     lookup "$force_paths" $1 force_bin || :
     local ucbin=$(uc $1)
     local bin=${force_bin:-${!ucbin:-$1}}
-    bin=`which "$bin"`
+    bin=$(which "$bin" 2>/dev/null)
     if [[ ! -x "$bin" ]]; then
         if [[ -n "${force_bin:-}" ]]; then
             bin=$force_bin
@@ -605,7 +618,7 @@ lib_alias=':~'
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
     cc_paths=$($CXX -print-search-dirs 2>/dev/null | grep ^libraries | sed -e 's/^libraries[: =]*//; s/:/ /g')
-    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig)
+    LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig 2>/dev/null)
     if [[ -n "$LDCONFIG" ]]; then
         ld_paths=$($LDCONFIG -v -N -X 2>/dev/null | grep -v '^	' | sed -e 's/:$//' )
     else
@@ -627,12 +640,13 @@ check_lib () {
     fi
     local check
     if contains "$static_libs" $1; then
-        require "$1 (static)"
+        static_info=" (static)"
         check=check_static_lib
     else
-        require $1
+        static_info=
         check=check_dyn_lib
     fi
+    require "$1$static_info"
     delay_errors=true
     local aliases
     lookup "$lib_alias" $1 aliases || aliases=
@@ -643,7 +657,7 @@ check_lib () {
     if contains "$support_deps" $1 && $allow_fetch; then
         fetch_lib $1
     else
-        show_no
+        show_no "lib$1$static_info"
     fi
 }
 
@@ -662,8 +676,10 @@ check_lib_compile () {
         code='int main(){}'
     # fi
     echo "$code" > "$bfile.cc"
-    if $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+    if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
 	var_append LIBRARY_PATHS -l$1
+    else
+        error_details="${error_details:-}"$(cat "$bfile.log")
     fi
 }
 
