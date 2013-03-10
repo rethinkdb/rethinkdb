@@ -23,7 +23,8 @@ module RethinkDB
       :group_by => :groupby,
       :concat_map => :concatmap,
       :for_each => :foreach,
-      :js => :javascript
+      :js => :javascript,
+      :type_of => :typeof
     }
     def method_missing(m, *a, &b)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil

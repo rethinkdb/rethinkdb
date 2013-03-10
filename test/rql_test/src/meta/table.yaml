@@ -45,17 +45,25 @@ tests:
     - cd: db.table_drop('foo')
       ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
 
-    - js: db.table_create('nonsense', 'foo')
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
+    - cd: db.table_create('nonsense', 'foo')
+      py: [] # In python, 'foo' becomes the primary key
+      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
 
     - js: db.table_create('nonsense', {'foo':'bar'})
-      ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
+      py: db.table_create('nonsense', foo='bar')
+      rb: db.table_create('nonsense', :foo => 'bar')
+      ot:
+        rb: '"TODO"'
+        js: err('RqlCompileError', 'Unrecognized optional argument `foo`.', [])
+        py: err('TypeError', "table_create() got an unexpected keyword argument 'foo'", [])
 
     - js: db.table_create('nonsense1', {'datacenter':'bar'})
       py: db.table_create('nonsense1', datacenter='bar')
+      rb: db.table_create('nonsense1', :datacenter => 'bar')
       ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
 
     - js: db.table_create('nonsense2', {'cacheSize':'bar'})
       py: db.table_create('nonsense2', cache_size='bar')
+      rb: db.table_create('nonsense2', :cache_size => 'bar')
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
 

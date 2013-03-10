@@ -73,6 +73,7 @@ tests:
       
     # I don't we don't need the merge, just testing r.row just in case
     - cd: tbl.get(1).update(r.row.merge({'d':'b'}))
+      rb: tbl.get(1).update{ |row| row.merge({'d':'b'}) }
       ot: ({'unchanged':1})
       
     # test atomicity constraints (positive and negative test)

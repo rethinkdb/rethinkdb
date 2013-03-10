@@ -17,8 +17,11 @@ tests:
 
     # test coercions
     - cd: r.expr(null).coerce_to('string')
-      ot: "'null'"
+      ot:
+        cd: "'null'"
+        rb: "'nu'+'ll'"
       
     - cd: r.expr(null).coerce_to('null')
+      rb: r.expr(nil).coerce_to('nu'+'ll')
       ot: (null)
       

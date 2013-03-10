@@ -92,11 +92,13 @@ tests:
       
     - py: left.inner_join(right, lambda l, r:l['a'] == r['b']).zip()
       js: left.innerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
+      rb: left.inner_join(right){ |lt, rt| lt[:a].eq(rt[:b]) }.zip
       ot: [{'a':2,'b':2},{'a':3,'b':3}]
     
     # test an outer-join condition where outer-join differs from inner-join
     - py: left.outer_join(right, lambda l, r:l['a'] == r['b']).zip()
       js: left.outerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
+      rb: left.outer_join(right){ |lt, rt| lt[:a].eq(rt[:b]) }.zip
       ot: [{'a':1},{'a':2,'b':2},{'a':3,'b':3}]
     
     
