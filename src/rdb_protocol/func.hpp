@@ -85,7 +85,7 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 
 
 // Used to serialize a function (or gmr) over the wire.
-class wire_func_t : public pb_rcheckable_t {
+class wire_func_t {
 public:
     wire_func_t();
     virtual ~wire_func_t() { }
@@ -102,37 +102,37 @@ protected:
     std::map<int, Datum> scope;
 };
 
-class map_wire_func_t : private wire_func_t {
+class map_wire_func_t : private wire_func_t, private pb_rcheckable_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : wire_func_t(args...) { }
+    map_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class filter_wire_func_t : private wire_func_t {
+class filter_wire_func_t : private wire_func_t, private pb_rcheckable_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : wire_func_t(args...) { }
+    filter_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class reduce_wire_func_t : private wire_func_t {
+class reduce_wire_func_t : private wire_func_t, private pb_rcheckable_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
+    reduce_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class concatmap_wire_func_t : private wire_func_t {
+class concatmap_wire_func_t : private wire_func_t, private pb_rcheckable_t {
 public:
     template <class... Args>
-    concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
+    concatmap_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
