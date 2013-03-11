@@ -39,7 +39,7 @@ class Cursor
 
             # If there's no more data let's notify the waiting callback
             if not @hasNext()
-                cb = @_cbQueue.unshift()
+                cb = @_cbQueue.shift()
                 cb new RqlDriverError "No more rows in the cursor."
             else
 
