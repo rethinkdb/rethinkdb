@@ -3,14 +3,11 @@
 from yaml import load
 from os import walk
 from sys import argv, stdout
-from getopt import getopt
-from subprocess import call, Popen
-from time import sleep
 import types
-import random
-import socket
 import re
 import os
+from subprocess import call
+from test_util import RethinkDBTestServers
 
 # A test script src language
 # This class attempts to abstract some of the details that
@@ -268,66 +265,6 @@ class TestBuilder:
                 for group in self.tests:
                     group.write_group(script, lang)
 
-class RethinkDBTestServers:
-    def __init__(self):
-        pass
-
-    # Implement `with` methods to ensure proper lifetime management
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, *args):
-        self.stop()
-
-    # Find a free port to bind to
-    def find_available_port(self):
-        max_loop = 10
-        for i in xrange(max_loop):
-            port = random.randint(1025, 65535)
-            if self.port_available(port):
-                return port
-        raise Exception("""Wow, you must have won the lottery or something.
-                           Ten random ports and they're all occupied""")
-
-    # Test if a given port is free
-    def port_available(self, port):
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind(("127.0.0.1",port))
-            s.close()
-        except socket.error:
-            return False
-        return True
-
-    def start(self): 
-        log_out = open('build/server-log.txt','a')
-        self.cpp_port = self.find_available_port()
-        self.cpp_server = Popen(['../../build/release/rethinkdb',
-                                 '--driver-port', str(self.cpp_port),
-                                 '--http-port=0',
-                                 '--cluster-port=0'],
-                                stdout=log_out, stderr=log_out)
-
-        # self.js_port = self.find_available_port()
-        # self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
-
-        sleep(0.2)
-
-    def stop(self):
-        self.cpp_server.terminate()
-        # self.js_server.terminate()
-        self.clear_data()
-        sleep(0.1)
-
-    def clear_data(self):
-        # call(['rm', 'rethinkdb-data']) # JS server data
-        call(['rm', '-r', 'rethinkdb_data'])
-
-    def restart(self):
-        self.stop()
-        self.start()
-
 def run_tests(lang, servers):
     if lang is 'py':
         interpreter = 'python'
@@ -347,7 +284,7 @@ def run_tests(lang, servers):
 
 # Run all language tests
 def run():
-    with RethinkDBTestServers() as servers:
+    with RethinkDBTestServers(server_build='release') as servers:
         run_tests('py', servers)
         servers.restart()
         run_tests('js', servers)
@@ -357,15 +294,15 @@ def run():
 # Run just the tests for the given language, can be called
 # from shell as "./test-runner run_py"
 def run_py():
-    with RethinkDBTestServers() as servers:
+    with RethinkDBTestServers(server_build='release') as servers:
         run_tests('py', servers)
 
 def run_rb():
-    with RethinkDBTestServers() as servers:
+    with RethinkDBTestServers(server_build='release') as servers:
         run_tests('rb', servers)
 
 def run_js():
-    with RethinkDBTestServers() as servers:
+    with RethinkDBTestServers(server_build='release') as servers:
         run_tests('js', servers)
 
 def build_test_scripts():
