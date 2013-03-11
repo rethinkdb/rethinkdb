@@ -9,7 +9,7 @@ import ql2_pb2 as p
 
 from errors import *
 
-class Cursor:
+class Cursor(object):
     def __init__(self, conn, query, term, chunk, complete):
         self.chunks = [chunk]
         self.conn = conn
@@ -38,7 +38,7 @@ class Cursor:
     def close(self):
         self.conn._end(self.query, self.term)
 
-class Connection():
+class Connection(object):
 
     def __init__(self, host, port, db='test'):
         self.socket = None
