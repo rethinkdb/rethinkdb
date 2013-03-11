@@ -17,7 +17,7 @@ init () {
     min_clang_version=0
     min_icc_version=0
 
-    required_libs="boost_program_options protobuf v8"
+    required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
     support_libs="unwind tcmalloc_minimal v8 protobuf"
@@ -233,8 +233,7 @@ lessc:LESS css
 coffee:CoffeScript
 handlebars:Handlebars
 unwind:libunwind
-tcmalloc_mininaml:Google Perf Tools library
-boost_program_options:Boost Program Options'
+tcmalloc_mininaml:Google Perf Tools library'
 
 # Output of --help
 show_help () {
@@ -601,8 +600,7 @@ optional_dep () {
 lib_test_code=':~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~
-  ~boost_program_options:boost_program_options-mt~'
+lib_alias=':~'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
