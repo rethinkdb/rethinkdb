@@ -85,7 +85,7 @@ private:
     virtual val_t *eval_impl() {
         std::string op = write_eval_impl();
         datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        const datum_t *num_1 = env->add_ptr(new datum_t(1L));
+        const datum_t *num_1 = env->add_ptr(new datum_t(1.0));
         UNUSED bool b = res->add(op, num_1);
         return new_val(res);
     }
