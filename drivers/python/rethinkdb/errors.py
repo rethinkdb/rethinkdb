@@ -1,5 +1,4 @@
 import ql2_pb2 as p
-import bpdb
 
 class RqlError(Exception):
     def __init__(self, message, term, frames):

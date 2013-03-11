@@ -280,7 +280,16 @@ class EmbeddedConnection extends Connection
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
 rethinkdb.connect = (host, callback) ->
-    unless callback? then callback = (->)
+    # Host must be a string or an object
+    unless typeof(host) is 'string' or typeof(host) is 'object'
+        throw new RqlDriverError "First argument to connect must be a string giving the "+
+                                 "host to connect to or an object giving `host` and `port`."
+
+    # Callback must be a function
+    unless typeof(callback) is 'function'
+        throw new RqlDriverError "Second argument to connect must be a callback to invoke with "+
+                                 "either an error or the successfully established connection."
+
     if TcpConnection.isAvailable()
         new TcpConnection host, callback
     else if HttpConnection.isAvailable()
