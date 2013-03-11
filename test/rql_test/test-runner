@@ -283,27 +283,17 @@ def run_tests(lang, servers):
     stdout.flush()
 
 # Run all language tests
-def run():
+def run(build, lang=None):
     with RethinkDBTestServers(server_build='release') as servers:
-        run_tests('py', servers)
-        servers.restart()
-        run_tests('js', servers)
-        servers.restart()
-        run_tests('rb', servers)
-
-# Run just the tests for the given language, can be called
-# from shell as "./test-runner run_py"
-def run_py():
-    with RethinkDBTestServers(server_build='release') as servers:
-        run_tests('py', servers)
-
-def run_rb():
-    with RethinkDBTestServers(server_build='release') as servers:
-        run_tests('rb', servers)
-
-def run_js():
-    with RethinkDBTestServers(server_build='release') as servers:
-        run_tests('js', servers)
+        if lang:
+            run_tests(lang, servers)
+        else:
+            # Run all
+            run_tests('py', servers)
+            servers.restart()
+            run_tests('js', servers)
+            servers.restart()
+            run_tests('rb', servers)
 
 def build_test_scripts():
     TestBuilder('src')
@@ -312,4 +302,4 @@ test_filter = os.getenv("RQL_TEST") or ".*"
 
 # Call 0-arg function given by shell (e.g. "./test-runner run")
 if __name__ == '__main__':
-    eval(argv[1]+'()')
+    eval(argv[1]+'(%s)' % ', '.join(argv[2:]))

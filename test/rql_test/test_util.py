@@ -62,7 +62,7 @@ class RethinkDBTestServers:
 
     def clear_data(self):
         # call(['rm', 'rethinkdb-data']) # JS server data
-        call(['rm', '-r', 'rethinkdb_data'])
+        call(['rm', '-rf', 'rethinkdb_data'])
 
     def restart(self):
         self.stop()

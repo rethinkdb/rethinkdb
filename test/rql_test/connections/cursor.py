@@ -4,16 +4,17 @@
 
 from os import getenv
 from sys import path, argv
-path.append("../../../drivers/python")
+path.append("../../drivers/python")
 
 import rethinkdb as r
 
-c = r.connect(port=30363)
+num_rows = int(argv[2])
+print "Testing for %d rows" % num_rows
+port = int(argv[1])
+
+c = r.connect(port=port)
 
 tbl = r.table('test')
-
-num_rows = int(argv[1])
-print "Testing for %d rows" % num_rows
 
 cur = tbl.run(c)
 

@@ -1,19 +1,21 @@
-from subprocess import Popen, call
-from time import sleep
+from sys import argv
 from random import randint
-from os import putenv
+from subprocess import call
 from sys import path
-path.append("../../../drivers/python")
+path.append(".")
+from test_util import RethinkDBTestServers
 
+path.append("../../drivers/python")
 import rethinkdb as r
 
-# Run the server in default configuration
-cpp_server = Popen(['../../../build/release/rethinkdb', '--port-offset=2348'])
-sleep(0.1)
-print ''
-
-try:
-    c = r.connect(port=30363)
+server_build = argv[1]
+if 2 in argv:
+    lang = argv[2]
+else:
+    lang = None
+with RethinkDBTestServers(server_build=server_build) as servers:
+    port = servers.cpp_port
+    c = r.connect(port=port)
 
     r.db('test').table_create('test').run(c)
     tbl = r.table('test')
@@ -24,16 +26,11 @@ try:
     tbl.insert([{'id':i} for i in xrange(0, num_rows)]).run(c)
     print "Done\n"
 
-    print "Running Python"
-    call(["python", "cursor.py", str(num_rows)])
-    print ''
-
-    print "Running JS"
-    call(["node", "cursor.js", str(num_rows)])
-    print ''
-
-finally:
-
-    cpp_server.terminate()
-    call(['rm', '-r', 'rethinkdb_data'])
-    sleep(0.1)
+    if not lang or lang is 'py':
+        print "Running Python"
+        call(["python", "connections/cursor.py", str(port), str(num_rows)])
+        print ''
+    if not lang or lang is 'js':
+        print "Running JS"
+        call(["node", "connections/cursor.js", str(port), str(num_rows)])
+        print ''

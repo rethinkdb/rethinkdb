@@ -15,11 +15,13 @@ var assertNoError = function(err) {
     }
 };
 
-r.connect({port:30363}, function(err, c) {
+var port = parseInt(process.argv[2], 10)
+
+r.connect({port:port}, function(err, c) {
     assertNoError(err);
 
     var tbl = r.table('test');
-    var num_rows = parseInt(process.argv[2], 10);
+    var num_rows = parseInt(process.argv[3], 10);
     console.log("Testing for "+num_rows);
 
     tbl.run(c, function(err, cur) {
