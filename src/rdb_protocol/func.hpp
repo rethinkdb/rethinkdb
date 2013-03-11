@@ -88,13 +88,14 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 class wire_func_t {
 public:
     wire_func_t();
-    virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
     wire_func_t(const Term &_source, std::map<int, Datum> *_scope);
 
-protected:
     func_t *compile(env_t *env);
 
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
+
+private:
     // We cache a separate function for every environment.
     std::map<env_t *, func_t *> cached_funcs;
 
@@ -102,40 +103,28 @@ protected:
     std::map<int, Datum> scope;
 };
 
-class map_wire_func_t : private wire_func_t {
+class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     map_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    using wire_func_t::compile;
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class filter_wire_func_t : private wire_func_t {
+class filter_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     filter_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    using wire_func_t::compile;
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class reduce_wire_func_t : private wire_func_t {
+class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    using wire_func_t::compile;
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class concatmap_wire_func_t : private wire_func_t {
+class concatmap_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
-
-    using wire_func_t::compile;
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
 // Count is a fake function because we don't need to send anything.
