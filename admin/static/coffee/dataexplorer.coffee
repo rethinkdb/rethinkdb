@@ -382,6 +382,7 @@ module 'DataExplorerView', ->
             # Look for special commands
             if event?.which?
                 if event.which is 27 # ESC
+                    event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
                 else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
