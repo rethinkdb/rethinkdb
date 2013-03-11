@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_FUNC_HPP_
 
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "utils.hpp"
@@ -97,8 +98,6 @@ protected:
     std::map<int, Datum> scope;
 };
 
-// This is a hack because MAP, FILTER, REDUCE, and CONCATMAP are all the same.
-namespace derived {
 // For whatever reason RDB_MAKE_ME_SERIALIZABLE_3 wasn't happy inside of the
 // template, so, you know, yeah.
 class serializable_wire_func_t : public wire_func_t {
@@ -109,21 +108,30 @@ public:
         : wire_func_t(_source, _scope) { }
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
-enum simple_funcs { MAP, FILTER, REDUCE, CONCATMAP };
-template<int fconst>
-class derived_wire_func_t : public serializable_wire_func_t {
+
+class map_wire_func_t : public serializable_wire_func_t {
 public:
-    derived_wire_func_t() : serializable_wire_func_t() { }
-    derived_wire_func_t(env_t *env, func_t *func)
-        : serializable_wire_func_t(env, func) { }
-    derived_wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
-        : serializable_wire_func_t(_source, _scope) { }
+    template <class... Args>
+    map_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
 };
-} // namespace derived
-typedef derived::derived_wire_func_t<derived::MAP> map_wire_func_t;
-typedef derived::derived_wire_func_t<derived::FILTER> filter_wire_func_t;
-typedef derived::derived_wire_func_t<derived::REDUCE> reduce_wire_func_t;
-typedef derived::derived_wire_func_t<derived::CONCATMAP> concatmap_wire_func_t;
+
+class filter_wire_func_t : public serializable_wire_func_t {
+public:
+    template <class... Args>
+    filter_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+};
+
+class reduce_wire_func_t : public serializable_wire_func_t {
+public:
+    template <class... Args>
+    reduce_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+};
+
+class concatmap_wire_func_t : public serializable_wire_func_t {
+public:
+    template <class... Args>
+    concatmap_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+};
 
 // Count is a fake function because we don't need to send anything.
 struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
