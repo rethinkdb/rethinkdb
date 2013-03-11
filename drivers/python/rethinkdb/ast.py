@@ -3,18 +3,9 @@ import types
 import sys
 from errors import *
 
-class RDBBase():
-    def run(self, c, **global_opt_args):
-        return c._start(self, **global_opt_args)
+class RqlQuery(object):
 
-    def __str__(self):
-        qp = QueryPrinter(self)
-        return qp.print_query()
-
-    def __repr__(self):
-        return "<RDBBase instance: %s >" % str(self)
-
-class RDBOp(RDBBase):
+    # Instantiate this AST node with the given pos and opt args
     def __init__(self, *args, **optargs):
         self.args = [expr(e) for e in args]
 
@@ -24,6 +15,18 @@ class RDBOp(RDBBase):
                 continue
             self.optargs[k] = expr(optargs[k])
 
+    # Send this query to the server to be executed
+    def run(self, c, **global_opt_args):
+        return c._start(self, **global_opt_args)
+
+    def __str__(self):
+        qp = QueryPrinter(self)
+        return qp.print_query()
+
+    def __repr__(self):
+        return "<RqlQuery instance: %s >" % str(self)
+
+    # Compile this query to a binary protobuf buffer
     def build(self, term):
         term.type = self.tt
 
@@ -35,7 +38,10 @@ class RDBOp(RDBBase):
             pair.key = k
             self.optargs[k].build(pair.val)
 
-class RDBValue(RDBOp):
+    # The following are all operators and methods that operate on
+    # Rql queries to build up more complex operations
+
+    # Comparison operators
     def __eq__(self, other):
         return Eq(self, other)
 
@@ -54,6 +60,7 @@ class RDBValue(RDBOp):
     def __ge__(self, other):
         return Ge(self, other)
 
+    # Numeric operators
     def __invert__(self):
         return Not(self)
 
@@ -138,6 +145,7 @@ class RDBValue(RDBOp):
     def contains(self, *attr):
         return Contains(self, *attr)
 
+    # Polymorphic object/sequence operations
     def pluck(self, *attrs):
         return Pluck(self, *attrs)
 
@@ -156,6 +164,7 @@ class RDBValue(RDBOp):
     def delete(self):
         return Delete(self)
 
+    # Rql type inspection
     def coerce_to(self, other_type):
         return CoerceTo(self, other_type)
 
@@ -168,20 +177,16 @@ class RDBValue(RDBOp):
     def append(self, val):
         return Append(self, val)
 
+    # Operator used for get attr / nth / slice. Non-operator versions below
+    # in cases of ambiguity
     def __getitem__(self, index):
         if isinstance(index, slice):
-            # Because of a bug in Python 2 an open ended slice
-            # sets stop to sys.maxint rather than None
-            stop = index.stop
-            if stop == sys.maxint or stop == None:
-                stop = -1
-            return Slice(self, index.start, stop)
+            return Slice(self, index.start or 0, index.stop or -1)
         elif isinstance(index, int):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
             return GetAttr(self, index)
 
-    # Also define nth to add consistency and avoid the ambiguity of __getitem__
     def nth(self, index):
         return Nth(self, index)
 
@@ -193,12 +198,6 @@ class RDBValue(RDBOp):
 
     def limit(self, index):
         return Limit(self, index)
-
-    def pluck(self, *attrs):
-        return Pluck(self, *attrs)
-
-    def without(self, *attrs):
-        return Without(self, *attrs)
 
     def reduce(self, func, base=()):
         return Reduce(self, func_wrap(func), base=base)
@@ -255,30 +254,27 @@ class RDBValue(RDBOp):
         args = [arg1, arg2] + list(rest)
         return GroupBy(self, list(args[:-1]), args[-1])
 
-    def delete(self):
-        return Delete(self)
-
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
 
-### Representation classes
+# These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
     return isinstance(arg, Datum) or isinstance(arg, MakeArray) or isinstance(arg, MakeObj)
 
-class RDBBiOper:
+class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
         if needs_wrap(self.args[0]) and needs_wrap(self.args[1]):
             args[0] = T('r.expr(', args[0], ')')
 
         return T('(', args[0], ' ', self.st, ' ', args[1], ')')
 
-class RDBTopFun:
+class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
         args.extend([repr(name)+'='+optargs[name] for name in optargs.keys()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
-class RDBMethod:
+class RqlMethodQuery(RqlQuery):
     def compose(self, args, optargs):
         if needs_wrap(self.args[0]):
             args[0] = T('r.expr(', args[0], ')')
@@ -296,7 +292,7 @@ class RDBMethod:
 # and object expressions from nested RQL expressions. Constructing pure
 # R_ARRAYs and R_OBJECTs would require verifying that at all nested levels
 # our arrays and objects are composed only of basic types.
-class Datum(RDBValue):
+class Datum(RqlQuery):
     args = []
     optargs = {}
 
@@ -343,7 +339,7 @@ class Datum(RDBValue):
         else:
             raise RuntimeError("type not handled")
 
-class MakeArray(RDBValue):
+class MakeArray(RqlQuery):
     tt = p.Term.MAKE_ARRAY
 
     def compose(self, args, optargs):
@@ -352,57 +348,57 @@ class MakeArray(RDBValue):
     def do(self, func):
         return FunCall(func_wrap(func), self)
 
-class MakeObj(RDBValue):
+class MakeObj(RqlQuery):
     tt = p.Term.MAKE_OBJ
 
     def compose(self, args, optargs):
         return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
 
-class Var(RDBValue):
+class Var(RqlQuery):
     tt = p.Term.VAR
 
     def compose(self, args, optargs):
         return 'var_'+args[0]
 
-class JavaScript(RDBValue, RDBTopFun):
+class JavaScript(RqlTopLevelQuery):
     tt = p.Term.JAVASCRIPT
     st = "js"
 
-class UserError(RDBValue, RDBTopFun):
+class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
-class ImplicitVar(RDBValue):
+class ImplicitVar(RqlQuery):
     tt = p.Term.IMPLICIT_VAR
 
     def compose(self, args, optargs):
         return 'r.row'
 
-class Eq(RDBValue, RDBBiOper):
+class Eq(RqlBiOperQuery):
     tt = p.Term.EQ
     st = "=="
 
-class Ne(RDBValue, RDBBiOper):
+class Ne(RqlBiOperQuery):
     tt = p.Term.NE
     st = "!="
 
-class Lt(RDBValue, RDBBiOper):
+class Lt(RqlBiOperQuery):
     tt = p.Term.LT
     st = "<"
 
-class Le(RDBValue, RDBBiOper):
+class Le(RqlBiOperQuery):
     tt = p.Term.LE
     st = "<="
 
-class Gt(RDBValue, RDBBiOper):
+class Gt(RqlBiOperQuery):
     tt = p.Term.GT
     st = ">"
 
-class Ge(RDBValue, RDBBiOper):
+class Ge(RqlBiOperQuery):
     tt = p.Term.GE
     st = ">="
 
-class Not(RDBValue):
+class Not(RqlQuery):
     tt = p.Term.NOT
 
     def compose(self, args, optargs):
@@ -410,71 +406,71 @@ class Not(RDBValue):
             args[0] = T('r.expr(', args[0], ')')
         return T('(~', args[0], ')')
 
-class Add(RDBValue, RDBBiOper):
+class Add(RqlBiOperQuery):
     tt = p.Term.ADD
     st = "+"
 
-class Sub(RDBValue, RDBBiOper):
+class Sub(RqlBiOperQuery):
     tt = p.Term.SUB
     st = "-"
 
-class Mul(RDBValue, RDBBiOper):
+class Mul(RqlBiOperQuery):
     tt = p.Term.MUL
     st = "*"
 
-class Div(RDBValue, RDBBiOper):
+class Div(RqlBiOperQuery):
     tt = p.Term.DIV
     st = "/"
 
-class Mod(RDBValue, RDBBiOper):
+class Mod(RqlBiOperQuery):
     tt = p.Term.MOD
     st = "%"
 
-class Append(RDBValue, RDBMethod):
+class Append(RqlMethodQuery):
     tt = p.Term.APPEND
     st = "append"
 
-class Slice(RDBValue):
+class Slice(RqlQuery):
     tt = p.Term.SLICE
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ':', args[2], ']')
 
-class Skip(RDBValue, RDBMethod):
+class Skip(RqlMethodQuery):
     tt = p.Term.SKIP
     st = 'skip'
 
-class Limit(RDBValue, RDBMethod):
+class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetAttr(RDBValue):
+class GetAttr(RqlQuery):
     tt = p.Term.GETATTR
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
-class Contains(RDBValue, RDBMethod):
+class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
     st = 'contains'
 
-class Pluck(RDBValue, RDBMethod):
+class Pluck(RqlMethodQuery):
     tt = p.Term.PLUCK
     st = 'pluck'
 
-class Without(RDBValue, RDBMethod):
+class Without(RqlMethodQuery):
     tt = p.Term.WITHOUT
     st = 'without'
 
-class Merge(RDBValue, RDBMethod):
+class Merge(RqlMethodQuery):
     tt = p.Term.MERGE
     st = 'merge'
 
-class Between(RDBValue, RDBMethod):
+class Between(RqlMethodQuery):
     tt = p.Term.BETWEEN
     st = 'between'
 
-class DB(RDBValue, RDBTopFun):
+class DB(RqlTopLevelQuery):
     tt = p.Term.DB
     st = 'db'
 
@@ -490,7 +486,7 @@ class DB(RDBValue, RDBTopFun):
     def table(self, table_name, use_outdated=False):
         return Table(self, table_name, use_outdated=use_outdated)
 
-class FunCall(RDBValue):
+class FunCall(RqlQuery):
     tt = p.Term.FUNCALL
 
     def compose(self, args, optargs):
@@ -502,7 +498,7 @@ class FunCall(RDBValue):
 
         return T(args[1], '.do(', args[0], ')')
 
-class Table(RDBValue):
+class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
@@ -518,133 +514,133 @@ class Table(RDBValue):
         else:
             return T('r.table(', args[0], ')')
 
-class Get(RDBValue, RDBMethod):
+class Get(RqlMethodQuery):
     tt = p.Term.GET
     st = 'get'
 
-class Reduce(RDBValue, RDBMethod):
+class Reduce(RqlMethodQuery):
     tt = p.Term.REDUCE
     st = 'reduce'
 
-class Map(RDBValue, RDBMethod):
+class Map(RqlMethodQuery):
     tt = p.Term.MAP
     st = 'map'
 
-class Filter(RDBValue, RDBMethod):
+class Filter(RqlMethodQuery):
     tt = p.Term.FILTER
     st = 'filter'
 
-class ConcatMap(RDBValue, RDBMethod):
+class ConcatMap(RqlMethodQuery):
     tt = p.Term.CONCATMAP
     st = 'concat_map'
 
-class OrderBy(RDBValue, RDBMethod):
+class OrderBy(RqlMethodQuery):
     tt = p.Term.ORDERBY
     st = 'order_by'
 
-class Distinct(RDBValue, RDBMethod):
+class Distinct(RqlMethodQuery):
     tt = p.Term.DISTINCT
     st = 'distinct'
 
-class Count(RDBValue, RDBMethod):
+class Count(RqlMethodQuery):
     tt = p.Term.COUNT
     st = 'count'
 
-class Union(RDBValue, RDBMethod):
+class Union(RqlMethodQuery):
     tt = p.Term.UNION
     st = 'union'
 
-class Nth(RDBValue):
+class Nth(RqlQuery):
     tt = p.Term.NTH
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
-class GroupedMapReduce(RDBValue, RDBMethod):
+class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
 
-class GroupBy(RDBValue, RDBMethod):
+class GroupBy(RqlMethodQuery):
     tt = p.Term.GROUPBY
     st = 'group_by'
 
-class InnerJoin(RDBValue, RDBMethod):
+class InnerJoin(RqlMethodQuery):
     tt = p.Term.INNER_JOIN
     st = 'inner_join'
 
-class OuterJoin(RDBValue, RDBMethod):
+class OuterJoin(RqlMethodQuery):
     tt = p.Term.OUTER_JOIN
     st = 'outer_join'
 
-class EqJoin(RDBValue, RDBMethod):
+class EqJoin(RqlMethodQuery):
     tt = p.Term.EQ_JOIN
     st = 'eq_join'
 
-class Zip(RDBValue, RDBMethod):
+class Zip(RqlMethodQuery):
     tt = p.Term.ZIP
     st = 'zip'
 
-class CoerceTo(RDBValue, RDBMethod):
+class CoerceTo(RqlMethodQuery):
     tt = p.Term.COERCE_TO
     st = 'coerce_to'
 
-class TypeOf(RDBValue, RDBMethod):
+class TypeOf(RqlMethodQuery):
     tt = p.Term.TYPEOF
     st = 'type_of'
 
-class Update(RDBValue, RDBMethod):
+class Update(RqlMethodQuery):
     tt = p.Term.UPDATE
     st = 'update'
 
-class Delete(RDBValue, RDBMethod):
+class Delete(RqlMethodQuery):
     tt = p.Term.DELETE
     st = 'delete'
 
-class Replace(RDBValue, RDBMethod):
+class Replace(RqlMethodQuery):
     tt = p.Term.REPLACE
     st = 'replace'
 
-class Insert(RDBValue, RDBMethod):
+class Insert(RqlMethodQuery):
     tt = p.Term.INSERT
     st = 'insert'
 
-class DbCreate(RDBValue, RDBTopFun):
+class DbCreate(RqlTopLevelQuery):
     tt = p.Term.DB_CREATE
     st = "db_create"
 
-class DbDrop(RDBValue, RDBTopFun):
+class DbDrop(RqlTopLevelQuery):
     tt = p.Term.DB_DROP
     st = "db_drop"
 
-class DbList(RDBValue, RDBTopFun):
+class DbList(RqlTopLevelQuery):
     tt = p.Term.DB_LIST
     st = "db_list"
 
-class TableCreate(RDBValue, RDBMethod):
+class TableCreate(RqlMethodQuery):
     tt = p.Term.TABLE_CREATE
     st = "table_create"
 
-class TableDrop(RDBValue, RDBMethod):
+class TableDrop(RqlMethodQuery):
     tt = p.Term.TABLE_DROP
     st = "table_drop"
 
-class TableList(RDBValue, RDBMethod):
+class TableList(RqlMethodQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
-class Branch(RDBValue, RDBTopFun):
+class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
     st = "branch"
 
-class Any(RDBValue, RDBBiOper):
+class Any(RqlBiOperQuery):
     tt = p.Term.ANY
     st = "|"
 
-class All(RDBValue, RDBBiOper):
+class All(RqlBiOperQuery):
     tt = p.Term.ALL
     st = "&"
 
-class ForEach(RDBValue, RDBMethod):
+class ForEach(RqlMethodQuery):
     tt =p.Term.FOREACH
     st = 'for_each'
 
@@ -654,7 +650,7 @@ def func_wrap(val):
 
     # Scan for IMPLICIT_VAR or JS
     def ivar_scan(node):
-        if not isinstance(node, RDBBase):
+        if not isinstance(node, RqlQuery):
             return False
 
         if isinstance(node, ImplicitVar):
@@ -670,7 +666,7 @@ def func_wrap(val):
 
     return val
 
-class Func(RDBValue):
+class Func(RqlQuery):
     tt = p.Term.FUNC
     nextVarId = 1
 
@@ -689,11 +685,11 @@ class Func(RDBValue):
     def compose(self, args, optargs):
             return T('lambda ', T(*[v.compose([v.args[0].compose(None, None)], []) for v in self.vrs], intsp=', '), ': ', args[1])
 
-class Asc(RDBValue, RDBTopFun):
+class Asc(RqlTopLevelQuery):
     tt = p.Term.ASC
     st = 'asc'
 
-class Desc(RDBValue, RDBTopFun):
+class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
 

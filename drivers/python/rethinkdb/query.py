@@ -11,13 +11,13 @@ def expr(val):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
-    if isinstance(val, RDBBase):
+    if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, list):
         return MakeArray(*val)
     elif isinstance(val, dict):
         return MakeObj(**val)
-    elif isinstance(val, types.LambdaType):
+    elif callable(val):
         return Func(val)
     else:
         return Datum(val)
