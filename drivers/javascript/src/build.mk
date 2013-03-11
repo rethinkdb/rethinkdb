@@ -52,7 +52,7 @@ $(JS_DRIVER_LIB): $(JS_BUILD_DIR) $(PB_JS_FILE) $(DRIVER_COMPILED_COFFEE)
 		--output_mode=$(JS_OUTPUT_MODE) \
 		--output_file=$@
 ifeq (script,$(JS_OUTPUT_MODE))
-	echo 'CLOSURE_NO_DEPS=true;' >> $@
+	echo -e 'CLOSURE_NO_DEPS=true;\n' | cat - $@ > rethinkdb_temp.js && mv rethinkdb_temp.js $@
 endif
 
 .PHONY: publish
