@@ -17,9 +17,6 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(int64_t _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
-}
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
