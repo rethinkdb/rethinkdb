@@ -313,9 +313,9 @@ form_data_as_object = (form) ->
 # Awful things because /ajax/distribution is bad. We should feel bad too.
 pretty_key = (s) ->
     if s is null
-        return "+∞"
+        return "+Infinity"
     else if s is ""
-        return "-∞"
+        return "-Infinity"
     else if typeof s is "string" and s[0]? and s[0] is 'N'
         s = s.slice(s.indexOf("%23")+3)
         if _.isNaN(parseFloat(s)) is false
