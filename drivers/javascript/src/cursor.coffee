@@ -27,8 +27,7 @@ class Cursor
     _endData: (chunk) ->
         @_addChunk chunk
         @_endFlag = true
-
-        @_contFlag = true
+        @_contFlag = false
         @_promptNext()
         @
 
@@ -68,7 +67,7 @@ class Cursor
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
-        unless @_contFlag
+        if not @_endFlag and not @_contFlag
             @_conn._continueQuery(@_token)
             @_contFlag = true
 
