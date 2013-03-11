@@ -12,6 +12,11 @@ class TermBase
         return self
 
     run: (conn, cb) ->
+        unless conn instanceof Connection
+            throw new RqlDriverError "First argument to `run` must be an open connection."
+        unless typeof(cb) is 'function'
+            throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
+                                     "with either an error or the result of the query."
         conn._start @, cb
 
     toString: -> RqlQueryPrinter::printQuery(@)

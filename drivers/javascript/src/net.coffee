@@ -282,12 +282,12 @@ class EmbeddedConnection extends Connection
 rethinkdb.connect = (host, callback) ->
     # Host must be a string or an object
     unless typeof(host) is 'string' or typeof(host) is 'object'
-        throw new RqlDriverError "First argument to connect must be a string giving the "+
-                                 "host to connect to or an object giving `host` and `port`."
+        throw new RqlDriverError "First argument to `connect` must be a string giving the "+
+                                 "host to `connect` to or an object giving `host` and `port`."
 
     # Callback must be a function
     unless typeof(callback) is 'function'
-        throw new RqlDriverError "Second argument to connect must be a callback to invoke with "+
+        throw new RqlDriverError "Second argument to `connect` must be a callback to invoke with "+
                                  "either an error or the successfully established connection."
 
     if TcpConnection.isAvailable()
