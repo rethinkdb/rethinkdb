@@ -102,37 +102,37 @@ protected:
     std::map<int, Datum> scope;
 };
 
-class map_wire_func_t : private wire_func_t, private pb_rcheckable_t {
+class map_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
+    map_wire_func_t(Args... args) : wire_func_t(args...) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class filter_wire_func_t : private wire_func_t, private pb_rcheckable_t {
+class filter_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
+    filter_wire_func_t(Args... args) : wire_func_t(args...) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class reduce_wire_func_t : private wire_func_t, private pb_rcheckable_t {
+class reduce_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
+    reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class concatmap_wire_func_t : private wire_func_t, private pb_rcheckable_t {
+class concatmap_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    concatmap_wire_func_t(Args... args) : wire_func_t(args...), pb_rcheckable_t(&source) { }
+    concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 
     using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
