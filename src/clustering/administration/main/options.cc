@@ -169,7 +169,7 @@ std::map<std::string, values_t> do_parse_command_line(
         if (option->no_parameter) {
             // Push an empty parameter value -- in particular, this makes our
             // duplicate checking work.
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>{ })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>())));
             res.first->second.values.push_back("");
         } else {
             if (i == argc) {
@@ -183,7 +183,7 @@ std::map<std::string, values_t> do_parse_command_line(
                 throw missing_parameter_error_t(source, option_name);
             }
 
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>{ })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>())));
             res.first->second.values.push_back(option_parameter);
         }
     }
@@ -320,7 +320,7 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
                                                filepath.c_str(), it - lines.begin(), name.c_str()));
         }
 
-        auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>{ })));
+        auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
         res.first->second.values.push_back(value);
     }
 
