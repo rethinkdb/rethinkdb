@@ -82,6 +82,8 @@ private:
 
 RDB_MAKE_PROTOB_SERIALIZABLE(Term);
 RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
+
+
 // Used to serialize a function (or gmr) over the wire.
 class wire_func_t : public pb_rcheckable_t {
 public:
@@ -89,8 +91,10 @@ public:
     virtual ~wire_func_t() { }
     wire_func_t(env_t *env, func_t *_func);
     wire_func_t(const Term &_source, std::map<int, Datum> *_scope);
-    func_t *compile(env_t *env);
+
 protected:
+    func_t *compile(env_t *env);
+
     // We cache a separate function for every environment.
     std::map<env_t *, func_t *> cached_funcs;
 
@@ -98,41 +102,40 @@ protected:
     std::map<int, Datum> scope;
 };
 
-// For whatever reason RDB_MAKE_ME_SERIALIZABLE_3 wasn't happy inside of the
-// template, so, you know, yeah.
-class serializable_wire_func_t : public wire_func_t {
+class map_wire_func_t : private wire_func_t {
 public:
-    // Don't make these use rvalue references -- the subclasses map_wire_func_t,
-    // etc, can't use std::forward yet until OS X gets its -stdlib=libc++ working.
-    serializable_wire_func_t() : wire_func_t() { }
-    serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
-    serializable_wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
-        : wire_func_t(_source, _scope) { }
+    template <class... Args>
+    map_wire_func_t(Args... args) : wire_func_t(args...) { }
+
+    using wire_func_t::compile;
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class map_wire_func_t : public serializable_wire_func_t {
+class filter_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+    filter_wire_func_t(Args... args) : wire_func_t(args...) { }
+
+    using wire_func_t::compile;
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class filter_wire_func_t : public serializable_wire_func_t {
+class reduce_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+    reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
+
+    using wire_func_t::compile;
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
-class reduce_wire_func_t : public serializable_wire_func_t {
+class concatmap_wire_func_t : private wire_func_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
-};
+    concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 
-class concatmap_wire_func_t : public serializable_wire_func_t {
-public:
-    template <class... Args>
-    concatmap_wire_func_t(Args... args) : serializable_wire_func_t(args...) { }
+    using wire_func_t::compile;
+    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 };
 
 // Count is a fake function because we don't need to send anything.

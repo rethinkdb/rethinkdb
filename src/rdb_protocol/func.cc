@@ -128,9 +128,11 @@ bool func_t::is_deterministic() const {
 }
 
 wire_func_t::wire_func_t() : pb_rcheckable_t(&source) { }
-wire_func_t::wire_func_t(env_t *env, func_t *func)
-    : pb_rcheckable_t(func->source) {
-    if (env) cached_funcs[env] = func;
+wire_func_t::wire_func_t(env_t *env, func_t *func) : pb_rcheckable_t(func->source) {
+    if (env) {
+        cached_funcs[env] = func;
+    }
+
     source = *func->source;
     rebase(&source); // TODO: this is hacky (defined in `pb_rcheckable_t`)
     func->dump_scope(&scope);
