@@ -3,7 +3,7 @@ goog.provide("rethinkdb.net")
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.cursor")
 goog.require("VersionDummy")
-goog.require("Query2")
+goog.require("Query")
 goog.require("goog.proto2.WireFormatSerializer")
 
 class Connection
@@ -132,14 +132,14 @@ class Connection
         @nextToken++
 
         # Construct query
-        query = new Query2
-        query.setType Query2.QueryType.START
+        query = new Query
+        query.setType Query.QueryType.START
         query.setQuery term.build()
         query.setToken token
 
         # Set global options
         if @db?
-            pair = new Query2.AssocPair()
+            pair = new Query.AssocPair()
             pair.setKey('db')
             pair.setVal(@db.build())
             query.addGlobalOptargs(pair)
@@ -150,15 +150,15 @@ class Connection
         @_sendQuery(query)
 
     _continueQuery: (token) ->
-        query = new Query2
-        query.setType Query2.QueryType.CONTINUE
+        query = new Query
+        query.setType Query.QueryType.CONTINUE
         query.setToken token
 
         @_sendQuery(query)
 
     _endQuery: (token) ->
-        query = new Query2
-        query.setType Query2.QueryType.STOP
+        query = new Query
+        query.setType Query.QueryType.STOP
         query.setToken token
 
         @_sendQuery(query)

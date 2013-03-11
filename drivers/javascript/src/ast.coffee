@@ -2,7 +2,7 @@ goog.provide("rethinkdb.ast")
 
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.errors")
-goog.require("Term2")
+goog.require("Term")
 goog.require("Datum")
 
 class TermBase
@@ -107,8 +107,8 @@ class DatumTerm extends RDBVal
                     datum.setRStr @data
                 else
                     throw new RqlDriverError "Unknown datum value `#{@data}`, did you forget a `return`?"
-        term = new Term2
-        term.setType Term2.TermType.DATUM
+        term = new Term
+        term.setType Term.TermType.DATUM
         term.setDatum datum
         return term
 
@@ -155,12 +155,12 @@ class RDBOp extends RDBVal
         return self
 
     build: ->
-        term = new Term2
+        term = new Term
         term.setType @tt
         for arg in @args
             term.addArgs arg.build()
         for own key,val of @optargs
-            pair = new Term2.AssocPair
+            pair = new Term.AssocPair
             pair.setKey key
             pair.setVal val.build()
             term.addOptargs pair
@@ -198,11 +198,11 @@ shouldWrap = (arg) ->
     arg instanceof DatumTerm or arg instanceof MakeArray or arg instanceof MakeObject
 
 class MakeArray extends RDBOp
-    tt: Term2.TermType.MAKE_ARRAY
+    tt: Term.TermType.MAKE_ARRAY
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
-    tt: Term2.TermType.MAKE_OBJ
+    tt: Term.TermType.MAKE_OBJ
 
     constructor: (obj) ->
         self = super({})
@@ -214,23 +214,23 @@ class MakeObject extends RDBOp
     compose: (args, optargs) -> kved(optargs)
 
 class Var extends RDBOp
-    tt: Term2.TermType.VAR
+    tt: Term.TermType.VAR
     compose: (args) -> ['var_'+args[0]]
 
 class JavaScript extends RDBOp
-    tt: Term2.TermType.JAVASCRIPT
+    tt: Term.TermType.JAVASCRIPT
     st: 'js'
 
 class UserError extends RDBOp
-    tt: Term2.TermType.ERROR
+    tt: Term.TermType.ERROR
     st: 'error'
 
 class ImplicitVar extends RDBOp
-    tt: Term2.TermType.IMPLICIT_VAR
+    tt: Term.TermType.IMPLICIT_VAR
     compose: -> ['r.row']
 
 class Db extends RDBOp
-    tt: Term2.TermType.DB
+    tt: Term.TermType.DB
     st: 'db'
 
     tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
@@ -240,7 +240,7 @@ class Db extends RDBOp
     table: aropt (tblName, opts) -> new Table opts, @, tblName
 
 class Table extends RDBOp
-    tt: Term2.TermType.TABLE
+    tt: Term.TermType.TABLE
 
     get: ar (key) -> new Get {}, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
@@ -252,211 +252,211 @@ class Table extends RDBOp
             ['r.table(', args[0], ')']
 
 class Get extends RDBOp
-    tt: Term2.TermType.GET
+    tt: Term.TermType.GET
     mt: 'get'
 
 class Eq extends RDBOp
-    tt: Term2.TermType.EQ
+    tt: Term.TermType.EQ
     mt: 'eq'
 
 class Ne extends RDBOp
-    tt: Term2.TermType.NE
+    tt: Term.TermType.NE
     mt: 'ne'
 
 class Lt extends RDBOp
-    tt: Term2.TermType.LT
+    tt: Term.TermType.LT
     mt: 'lt'
 
 class Le extends RDBOp
-    tt: Term2.TermType.LE
+    tt: Term.TermType.LE
     mt: 'le'
 
 class Gt extends RDBOp
-    tt: Term2.TermType.GT
+    tt: Term.TermType.GT
     mt: 'gt'
 
 class Ge extends RDBOp
-    tt: Term2.TermType.GE
+    tt: Term.TermType.GE
     mt: 'ge'
 
 class Not extends RDBOp
-    tt: Term2.TermType.NOT
+    tt: Term.TermType.NOT
     mt: 'not'
 
 class Add extends RDBOp
-    tt: Term2.TermType.ADD
+    tt: Term.TermType.ADD
     mt: 'add'
 
 class Sub extends RDBOp
-    tt: Term2.TermType.SUB
+    tt: Term.TermType.SUB
     mt: 'sub'
 
 class Mul extends RDBOp
-    tt: Term2.TermType.MUL
+    tt: Term.TermType.MUL
     mt: 'mul'
 
 class Div extends RDBOp
-    tt: Term2.TermType.DIV
+    tt: Term.TermType.DIV
     mt: 'div'
 
 class Mod extends RDBOp
-    tt: Term2.TermType.MOD
+    tt: Term.TermType.MOD
     mt: 'mod'
 
 class Append extends RDBOp
-    tt: Term2.TermType.APPEND
+    tt: Term.TermType.APPEND
     mt: 'append'
 
 class Slice extends RDBOp
-    tt: Term2.TermType.SLICE
+    tt: Term.TermType.SLICE
     st: 'slice'
 
 class Skip extends RDBOp
-    tt: Term2.TermType.SKIP
+    tt: Term.TermType.SKIP
     mt: 'skip'
 
 class Limit extends RDBOp
-    tt: Term2.TermType.LIMIT
+    tt: Term.TermType.LIMIT
     st: 'limit'
 
 class GetAttr extends RDBOp
-    tt: Term2.TermType.GETATTR
+    tt: Term.TermType.GETATTR
     compose: (args) -> [args[0], '(', args[1], ')']
 
 class Contains extends RDBOp
-    tt: Term2.TermType.CONTAINS
+    tt: Term.TermType.CONTAINS
     mt: 'contains'
 
 class Pluck extends RDBOp
-    tt: Term2.TermType.PLUCK
+    tt: Term.TermType.PLUCK
     mt: 'pluck'
 
 class Without extends RDBOp
-    tt: Term2.TermType.WITHOUT
+    tt: Term.TermType.WITHOUT
     mt: 'without'
 
 class Merge extends RDBOp
-    tt: Term2.TermType.MERGE
+    tt: Term.TermType.MERGE
     mt: 'merge'
 
 class Between extends RDBOp
-    tt: Term2.TermType.BETWEEN
+    tt: Term.TermType.BETWEEN
     mt: 'between'
 
 class Reduce extends RDBOp
-    tt: Term2.TermType.REDUCE
+    tt: Term.TermType.REDUCE
     mt: 'reduce'
 
 class Map extends RDBOp
-    tt: Term2.TermType.MAP
+    tt: Term.TermType.MAP
     mt: 'map'
 
 class Filter extends RDBOp
-    tt: Term2.TermType.FILTER
+    tt: Term.TermType.FILTER
     mt: 'filter'
 
 class ConcatMap extends RDBOp
-    tt: Term2.TermType.CONCATMAP
+    tt: Term.TermType.CONCATMAP
     mt: 'concatMap'
 
 class OrderBy extends RDBOp
-    tt: Term2.TermType.ORDERBY
+    tt: Term.TermType.ORDERBY
     mt: 'orderBy'
 
 class Distinct extends RDBOp
-    tt: Term2.TermType.DISTINCT
+    tt: Term.TermType.DISTINCT
     mt: 'distinct'
 
 class Count extends RDBOp
-    tt: Term2.TermType.COUNT
+    tt: Term.TermType.COUNT
     mt: 'count'
 
 class Union extends RDBOp
-    tt: Term2.TermType.UNION
+    tt: Term.TermType.UNION
     mt: 'union'
 
 class Nth extends RDBOp
-    tt: Term2.TermType.NTH
+    tt: Term.TermType.NTH
     mt: 'nth'
 
 class GroupedMapReduce extends RDBOp
-    tt: Term2.TermType.GROUPED_MAP_REDUCE
+    tt: Term.TermType.GROUPED_MAP_REDUCE
     mt: 'groupedMapReduce'
 
 class GroupBy extends RDBOp
-    tt: Term2.TermType.GROUPBY
+    tt: Term.TermType.GROUPBY
     mt: 'groupBy'
 
 class GroupBy extends RDBOp
-    tt: Term2.TermType.GROUPBY
+    tt: Term.TermType.GROUPBY
     mt: 'groupBy'
 
 class InnerJoin extends RDBOp
-    tt: Term2.TermType.INNER_JOIN
+    tt: Term.TermType.INNER_JOIN
     mt: 'innerJoin'
 
 class OuterJoin extends RDBOp
-    tt: Term2.TermType.OUTER_JOIN
+    tt: Term.TermType.OUTER_JOIN
     mt: 'outerJoin'
 
 class EqJoin extends RDBOp
-    tt: Term2.TermType.EQ_JOIN
+    tt: Term.TermType.EQ_JOIN
     mt: 'eqJoin'
 
 class Zip extends RDBOp
-    tt: Term2.TermType.ZIP
+    tt: Term.TermType.ZIP
     mt: 'zip'
 
 class CoerceTo extends RDBOp
-    tt: Term2.TermType.COERCE_TO
+    tt: Term.TermType.COERCE_TO
     mt: 'coerceTo'
 
 class TypeOf extends RDBOp
-    tt: Term2.TermType.TYPEOF
+    tt: Term.TermType.TYPEOF
     mt: 'typeOf'
 
 class Update extends RDBOp
-    tt: Term2.TermType.UPDATE
+    tt: Term.TermType.UPDATE
     mt: 'update'
 
 class Delete extends RDBOp
-    tt: Term2.TermType.DELETE
+    tt: Term.TermType.DELETE
     mt: 'delete'
 
 class Replace extends RDBOp
-    tt: Term2.TermType.REPLACE
+    tt: Term.TermType.REPLACE
     mt: 'replace'
 
 class Insert extends RDBOp
-    tt: Term2.TermType.INSERT
+    tt: Term.TermType.INSERT
     mt: 'insert'
 
 class DbCreate extends RDBOp
-    tt: Term2.TermType.DB_CREATE
+    tt: Term.TermType.DB_CREATE
     st: 'dbCreate'
 
 class DbDrop extends RDBOp
-    tt: Term2.TermType.DB_DROP
+    tt: Term.TermType.DB_DROP
     st: 'dbDrop'
 
 class DbList extends RDBOp
-    tt: Term2.TermType.DB_LIST
+    tt: Term.TermType.DB_LIST
     st: 'dbList'
 
 class TableCreate extends RDBOp
-    tt: Term2.TermType.TABLE_CREATE
+    tt: Term.TermType.TABLE_CREATE
     mt: 'tableCreate'
 
 class TableDrop extends RDBOp
-    tt: Term2.TermType.TABLE_DROP
+    tt: Term.TermType.TABLE_DROP
     mt: 'tableDrop'
 
 class TableList extends RDBOp
-    tt: Term2.TermType.TABLE_LIST
+    tt: Term.TermType.TABLE_LIST
     mt: 'tableList'
 
 class FunCall extends RDBOp
-    tt: Term2.TermType.FUNCALL
+    tt: Term.TermType.FUNCALL
     compose: (args) ->
         if args.length > 2
             ['r.do(', intsp(args[1..]), ', ', args[0], ')']
@@ -466,19 +466,19 @@ class FunCall extends RDBOp
             [args[1], '.do(', args[0], ')']
 
 class Branch extends RDBOp
-    tt: Term2.TermType.BRANCH
+    tt: Term.TermType.BRANCH
     st: 'branch'
 
 class Any extends RDBOp
-    tt: Term2.TermType.ANY
+    tt: Term.TermType.ANY
     mt: 'or'
 
 class All extends RDBOp
-    tt: Term2.TermType.ALL
+    tt: Term.TermType.ALL
     mt: 'and'
 
 class ForEach extends RDBOp
-    tt: Term2.TermType.FOREACH
+    tt: Term.TermType.FOREACH
     mt: 'forEach'
 
 funcWrap = (val) ->
@@ -498,7 +498,7 @@ funcWrap = (val) ->
 
 
 class Func extends RDBOp
-    tt: Term2.TermType.FUNC
+    tt: Term.TermType.FUNC
 
     constructor: (optargs, func) ->
         args = []
@@ -516,9 +516,9 @@ class Func extends RDBOp
         ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
-    tt: Term2.TermType.ASC
+    tt: Term.TermType.ASC
     st: 'asc'
 
 class Desc extends RDBOp
-    tt: Term2.TermType.DESC
+    tt: Term.TermType.DESC
     st: 'desc'
