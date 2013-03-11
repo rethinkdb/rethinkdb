@@ -53,7 +53,7 @@ $(JS_DRIVER_LIB): $(JS_BUILD_DIR) $(PB_JS_FILE) $(DRIVER_COMPILED_COFFEE)
 	    --root=$(JS_BUILD_DIR) \
 	    --namespace=rethinkdb.root \
 	    --output_mode=$(JS_OUTPUT_MODE) \
-	) >> $@
+	) > $@
 
 .PHONY: publish
 publish: $(JS_DRIVER_LIB)
