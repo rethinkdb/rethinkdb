@@ -45,15 +45,15 @@ $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee
 
 $(JS_DRIVER_LIB): $(JS_BUILD_DIR) $(PB_JS_FILE) $(DRIVER_COMPILED_COFFEE)
 	$P CLOSURE
-	$(CLOSURE_BUILDER) \
-		--root=$(CLOSURE_LIB) \
-		--root=$(JS_BUILD_DIR) \
-		--namespace=rethinkdb.root \
-		--output_mode=$(JS_OUTPUT_MODE) \
-		--output_file=$@
-ifeq (script,$(JS_OUTPUT_MODE))
-	echo -e 'CLOSURE_NO_DEPS=true;\n' | cat - $@ > rethinkdb_temp.js && mv rethinkdb_temp.js $@
-endif
+	( if [[ script = "$(JS_OUTPUT_MODE)" ]]; then \
+	    echo 'CLOSURE_NO_DEPS=true;' ; \
+	  fi ; \
+	  $(CLOSURE_BUILDER) \
+	    --root=$(CLOSURE_LIB) \
+	    --root=$(JS_BUILD_DIR) \
+	    --namespace=rethinkdb.root \
+	    --output_mode=$(JS_OUTPUT_MODE) \
+	) >> $@
 
 .PHONY: publish
 publish: $(JS_DRIVER_LIB)
