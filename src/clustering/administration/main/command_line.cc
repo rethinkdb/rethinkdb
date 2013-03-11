@@ -571,9 +571,9 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
 
 options::help_section_t get_machine_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Machine name options");
-    options_out->push_back(options::option_t(options::names_t("--machine-name", "-n"),
-                                             options::OPTIONAL,
-                                             get_random_machine_name()));
+    options_out->emplace_back(options::names_t("--machine-name", "-n"),
+                              options::OPTIONAL,
+                              get_random_machine_name());
     help.add("-n [ --machine-name ] arg",
              "the name for this machine (as will appear in the metadata).  If not"
              " specified, it will be randomly chosen from a short list of names.");
@@ -582,17 +582,17 @@ options::help_section_t get_machine_options(std::vector<options::option_t> *opti
 
 options::help_section_t get_file_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("File path options");
-    options_out->push_back(options::option_t(options::names_t("--directory", "-d"),
-                                             options::OPTIONAL,
-                                             "rethinkdb_data"));
+    options_out->emplace_back(options::names_t("--directory", "-d"),
+                              options::OPTIONAL,
+                              "rethinkdb_data");
     help.add("-d [ --directory ] path", "specify directory to store data and metadata");
     return help;
 }
 
 options::help_section_t get_config_file_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Configuration file options");
-    options_out->push_back(options::option_t(options::names_t("--config-file"),
-                                             options::OPTIONAL));
+    options_out->emplace_back(options::names_t("--config-file"),
+                              options::OPTIONAL);
     help.add("--config-file", "take options from a configuration file");
     return help;
 }
@@ -625,49 +625,49 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
 
 options::help_section_t get_web_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Web options");
-    options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
-                                             options::OPTIONAL));
+    options_out->emplace_back(options::names_t("--web-static-directory"),
+                              options::OPTIONAL);
     // No help for --web-static-directory.
-    options_out->push_back(options::option_t(options::names_t("--http-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::http_port)));
+    options_out->emplace_back(options::names_t("--http-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::http_port));
     help.add("--http-port port", "port for web administration console");
-    options_out->push_back(options::option_t(options::names_t("--no-http-admin"),
-                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->emplace_back(options::names_t("--no-http-admin"),
+                              options::OPTIONAL_NO_PARAMETER);
     help.add("--no-http-admin", "disable web administration console");
     return help;
 }
 
 options::help_section_t get_network_options(const bool join_required, std::vector<options::option_t> *options_out) {
     options::help_section_t help("Network options");
-    options_out->push_back(options::option_t(options::names_t("--bind"),
-                                             options::OPTIONAL_REPEAT));
+    options_out->emplace_back(options::names_t("--bind"),
+                              options::OPTIONAL_REPEAT);
     help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
 
-    options_out->push_back(options::option_t(options::names_t("--cluster-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::peer_port)));
+    options_out->emplace_back(options::names_t("--cluster-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::peer_port));
     help.add("--cluster-port port", "port for receiving connections from other nodes");
 
 #ifndef NDEBUG
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
+    options_out->emplace_back(options::names_t("--client-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::client_port));
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
-    options_out->push_back(options::option_t(options::names_t("--driver-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::reql_port)));
+    options_out->emplace_back(options::names_t("--driver-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::reql_port));
     help.add("--driver-port port", "port for rethinkdb protocol client drivers");
 
-    options_out->push_back(options::option_t(options::names_t("--port-offset", "-o"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::port_offset)));
+    options_out->emplace_back(options::names_t("--port-offset", "-o"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::port_offset));
     help.add("-o [ --port-offset ] offset", "all ports used locally will have this value added");
 
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
+    options_out->emplace_back(options::names_t("--join", "-j"),
+                              join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT);
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
 
     return help;
@@ -675,9 +675,9 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
 void get_disk_options(std::vector<options::help_section_t> *help_out,
                       std::vector<options::option_t> *options_out) {
-    options_out->push_back(options::option_t(options::names_t("--io-backend"),
-                                             options::OPTIONAL,
-                                             "pool"));
+    options_out->emplace_back(options::names_t("--io-backend"),
+                              options::OPTIONAL,
+                              "pool");
 
 #ifdef AIOSUPPORT
     options::help_section_t help("Disk I/O options");
@@ -690,25 +690,25 @@ void get_disk_options(std::vector<options::help_section_t> *help_out,
 
 options::help_section_t get_cpu_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("CPU options");
-    options_out->push_back(options::option_t(options::names_t("--cores", "-c"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", get_cpu_count())));
+    options_out->emplace_back(options::names_t("--cores", "-c"),
+                              options::OPTIONAL,
+                              strprintf("%d", get_cpu_count()));
     help.add("-c [ --cores ] n", "the number of cores to use");
     return help;
 }
 
 options::help_section_t get_service_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Service options");
-    options_out->push_back(options::option_t(options::names_t("--pid-file"),
-                                             options::OPTIONAL));
+    options_out->emplace_back(options::names_t("--pid-file"),
+                              options::OPTIONAL);
     help.add("--pid-file path", "a file in which to write the process id when the process is running");
     return help;
 }
 
 options::help_section_t get_help_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("Help options");
-    options_out->push_back(options::option_t(options::names_t("--help", "-h"),
-                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->emplace_back(options::names_t("--help", "-h"),
+                              options::OPTIONAL_NO_PARAMETER);
     help.add("-h [ --help ]", "print this help");
     return help;
 }
@@ -742,9 +742,9 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_help_options(options_out));
 
     options::help_section_t help("Log options");
-    options_out->push_back(options::option_t(options::names_t("--log-file"),
-                                             options::OPTIONAL,
-                                             "log_file"));
+    options_out->emplace_back(options::names_t("--log-file"),
+                              options::OPTIONAL,
+                              "log_file");
     help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
     help_out->push_back(help);
 
@@ -756,18 +756,18 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
     options::help_section_t help("Allowed options");
 
 #ifndef NDEBUG
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
+    options_out->emplace_back(options::names_t("--client-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::client_port));
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
+    options_out->emplace_back(options::names_t("--join", "-j"),
+                              options::OPTIONAL_REPEAT);
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
 
-    options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
-                                             options::OPTIONAL_NO_PARAMETER));
+    options_out->emplace_back(options::names_t("--exit-failure", "-x"),
+                              options::OPTIONAL_NO_PARAMETER);
     help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
 
     help_out->push_back(help);
@@ -778,36 +778,36 @@ void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out
     options::help_section_t help("Allowed options");
 
 #ifndef NDEBUG
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
+    options_out->emplace_back(options::names_t("--client-port"),
+                              options::OPTIONAL,
+                              strprintf("%d", port_defaults::client_port));
     help.add("--client-port port", "port to use when connecting to other nodes (for development)");
 #endif  // NDEBUG
 
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
+    options_out->emplace_back(options::names_t("--join", "-j"),
+                              options::OPTIONAL_REPEAT);
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
 
-    options_out->push_back(options::option_t(options::names_t("--table"),
-                                             options::MANDATORY));
+    options_out->emplace_back(options::names_t("--table"),
+                           options::MANDATORY);
     help.add("--table db_name.table_name", "the database and table into which to import");
 
-    options_out->push_back(options::option_t(options::names_t("--datacenter"),
-                                             options::OPTIONAL));
+    options_out->emplace_back(options::names_t("--datacenter"),
+                              options::OPTIONAL);
     help.add("--datacenter name", "the datacenter into which to create a table");
 
-    options_out->push_back(options::option_t(options::names_t("--primary-key"),
-                                             options::OPTIONAL,
-                                             "id"));
+    options_out->emplace_back(options::names_t("--primary-key"),
+                              options::OPTIONAL,
+                              "id");
     help.add("--primary-key key", "the primary key to create a new table with, or expected primary key");
 
-    options_out->push_back(options::option_t(options::names_t("--separators", "-s"),
-                                             options::OPTIONAL,
-                                             "\t,"));
+    options_out->emplace_back(options::names_t("--separators", "-s"),
+                              options::OPTIONAL,
+                              "\t,");
     help.add("-s [ --separators ]", "list of characters to be used as whitespace -- uses tabs and commas by default");
 
-    options_out->push_back(options::option_t(options::names_t("--input-file"),
-                                             options::MANDATORY));
+    options_out->emplace_back(options::names_t("--input-file"),
+                              options::MANDATORY);
     help.add("--input-file path", "the csv input file");
 
     help_out->push_back(help);
@@ -880,7 +880,7 @@ void output_named_error(const options::named_error_t &ex, const std::vector<opti
                 std::vector<options::help_line_t> one_help_line;
                 one_help_line.push_back(*line);
                 std::vector<options::help_section_t> one_help_section;
-                one_help_section.push_back(options::help_section_t("Usage", one_help_line));
+                one_help_section.emplace_back("Usage", one_help_line);
                 fprintf(stderr, "%s",
                         options::format_help(one_help_section).c_str());
                 break;
