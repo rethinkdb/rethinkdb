@@ -102,6 +102,8 @@ protected:
 // template, so, you know, yeah.
 class serializable_wire_func_t : public wire_func_t {
 public:
+    // Don't make these use rvalue references -- the subclasses map_wire_func_t,
+    // etc, can't use std::forward yet until OS X gets its -stdlib=libc++ working.
     serializable_wire_func_t() : wire_func_t() { }
     serializable_wire_func_t(env_t *env, func_t *func) : wire_func_t(env, func) { }
     serializable_wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
