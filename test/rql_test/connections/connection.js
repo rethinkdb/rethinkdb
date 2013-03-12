@@ -5,7 +5,6 @@
 console.log("Testing JS connection API")
 
 process.on('uncaughtException', function(err) {
-    console.log("Uncaught error: "+err);
     if (cpp_server) cpp_server.kill();
     //if (js_server) js_server.kill();
 });
@@ -180,7 +179,7 @@ var actions = [
         try {
             r(1).run(c, cont);
         } catch(err) {
-            assertErr(err, "RqlDriverError", "Connection is closed");
+            assertErr(err, "RqlDriverError", "Connection is closed.");
         }
         r.connect({port:port}, cont);
     },

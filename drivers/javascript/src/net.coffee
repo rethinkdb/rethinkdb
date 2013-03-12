@@ -125,7 +125,7 @@ class Connection
         @db = new Db {}, db
 
     _start: (term, cb) ->
-        unless @open then throw new RqlDriverError "Connection is closed"
+        unless @open then throw new RqlDriverError "Connection is closed."
 
         # Assign token
         token = ''+@nextToken
