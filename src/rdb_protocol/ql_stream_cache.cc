@@ -28,26 +28,39 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     entry_t *entry = it->second;
     entry->last_activity = time(0);
     try {
-        int chunk_size = 0;
         // This is a hack.  Some streams have an interruptor that is invalid by
         // the time we reach here, so we just reset it to a good one.
         entry->env->interruptor = interruptor;
         env_checkpoint_t(entry->env.get(), &env_t::discard_checkpoint);
 
+        int chunk_size = 0;
+        if (entry->next_datum.has()) {
+            *res->add_response() = *entry->next_datum.get();
+            ++chunk_size;
+            entry->next_datum.reset();
+        }
         while (const datum_t *d = entry->stream->next()) {
-            if (!d) break;
             d->write_to_protobuf(res->add_response());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                res->set_type(Response_ResponseType_SUCCESS_PARTIAL);
-                return true;
+                if (const datum_t *next_d = entry->stream->next()) {
+                    r_sanity_check(!entry->next_datum.has());
+                    entry->next_datum.init(new Datum());
+                    next_d->write_to_protobuf(entry->next_datum.get());
+                    res->set_type(Response::SUCCESS_PARTIAL);
+                }
+                break;
             }
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    erase(key);
-    res->set_type(Response_ResponseType_SUCCESS_SEQUENCE);
+    if (!entry->next_datum.has()) {
+        erase(key);
+        res->set_type(Response::SUCCESS_SEQUENCE);
+    } else {
+        r_sanity_check(res->type() == Response::SUCCESS_PARTIAL);
+    }
     return true;
 }
 
