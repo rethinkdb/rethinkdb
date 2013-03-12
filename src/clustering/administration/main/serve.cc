@@ -306,8 +306,6 @@ bool do_serve(
 
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
-                // query_server_t rdb_pb_server(address_ports.local_addresses, address_ports.reql_port, &rdb_ctx);
-                // logINF("Listening for client driver connections on port %d\n", rdb_pb_server.get_port());
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
                                                address_ports.reql_port, &rdb_ctx);
                 logINF("Listening for client driver connections on port %d\n",
