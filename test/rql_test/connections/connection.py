@@ -13,7 +13,7 @@ path.append("../../drivers/python")
 import rethinkdb as r
 
 server_build = argv[1]
-use_default_port = bool(argv[2])
+use_default_port = bool(int(argv[2]))
 
 print "Running py connection tests"
 
@@ -73,7 +73,7 @@ with RethinkDBTestServers(server_build=server_build) as servers:
         c.reconnect()
         r.expr(1).run(c)
     except r.RqlDriverError as err:
-        raise Exception("Should not have thrown")
+        raise Exception("Should not have thrown: %s" % str(err))
 
     try:
         c = r.connect(port=port)
@@ -102,8 +102,9 @@ with RethinkDBTestServers(server_build=server_build) as servers:
         c.use('test')
         try:
             r.table('t2').run(c)
+            raise Exception("Should have thrown but didn't")
         except r.RqlRuntimeError as err:
-            if not err.message == "Table `t2` does not exist.":
+            if not err.message.startswith("Table `t2` does not exist."):
                 raise err
 
     except r.RqlDriverError as err:
