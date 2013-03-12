@@ -27,29 +27,3 @@ message MetaQuery3 {
 
     optional TableRef drop_table = 4;
 };
-
-message Response3 {
-    enum StatusCode {
-        SUCCESS_EMPTY = 0;
-        SUCCESS_JSON = 1;
-        SUCCESS_PARTIAL = 2; //need to send CONTINUE repeatedly until SUCCESS_STREAM
-        SUCCESS_STREAM = 3;
-
-        BROKEN_CLIENT = 101; // Means the client is misbehaving, not the user
-        BAD_QUERY = 102;
-        RUNTIME_ERROR = 103;
-    }
-    required StatusCode status_code = 1;
-
-    required int64 token = 2;
-
-    repeated string response = 3;
-
-    optional string error_message = 4;
-
-    message Backtrace {
-        repeated string frame = 1;
-    };
-
-    optional Backtrace backtrace = 5;
-}
