@@ -4,8 +4,12 @@
 
 namespace query_language {
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json, json_list_t *_out, query_language::runtime_environment_t *_env, ql::env_t *_ql_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
-    : json(_json), out(_out), env(_env), ql_env(_ql_env),
+transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
+                                         json_list_t *_out,
+                                         ql::env_t *_ql_env,
+                                         const scopes_t &_scopes,
+                                         const backtrace_t &_backtrace)
+    : json(_json), out(_out), ql_env(_ql_env),
       scopes(_scopes), backtrace(_backtrace)
 { }
 

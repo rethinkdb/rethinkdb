@@ -409,7 +409,7 @@ public:
                          jt != data.end();
                          ++jt) {
                         boost::apply_visitor(query_language::transform_visitor_t(
-                                                 *jt, &tmp, env, ql_env, it->scopes,
+                                                 *jt, &tmp, ql_env, it->scopes,
                                                  it->backtrace), it->variant);
                     }
                     data.clear();

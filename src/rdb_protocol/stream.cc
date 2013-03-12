@@ -80,7 +80,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
             for (json_list_t::iterator jt  = accumulator.begin();
                                        jt != accumulator.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(*jt, &tmp, env, ql_env, it->scopes, it->backtrace), it->variant);
+                boost::apply_visitor(transform_visitor_t(*jt, &tmp, ql_env, it->scopes, it->backtrace), it->variant);
             }
 
             /* Equivalent to `accumulator = tmp`, but without the extra copying */

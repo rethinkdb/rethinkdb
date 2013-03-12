@@ -25,7 +25,6 @@ class transform_visitor_t : public boost::static_visitor<void> {
 public:
     transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                         json_list_t *_out,
-                        query_language::runtime_environment_t *_env,
                         ql::env_t *_ql_env,
                         const scopes_t &_scopes,
                         const backtrace_t &_backtrace);
@@ -38,7 +37,6 @@ public:
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
-    query_language::runtime_environment_t *env;
     ql::env_t *ql_env;
     scopes_t scopes;
     backtrace_t backtrace;
