@@ -45,13 +45,6 @@ terminal_initializer_visitor_t::terminal_initializer_visitor_t(
     : out(_out), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
-void terminal_initializer_visitor_t::operator()(
-    const rdb_protocol_details::Length &) const {
-    rget_read_response_t::length_t l;
-    l.length = 0;
-    *out = l;
-}
-
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    ql::env_t *_ql_env,
                    const scopes_t &_scopes,
@@ -60,12 +53,6 @@ terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
     : json(_json), ql_env(_ql_env),
       scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
-
-void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
-    rget_read_response_t::length_t *res_length = boost::get<rget_read_response_t::length_t>(out);
-    guarantee(res_length);
-    ++res_length->length;
-}
 
 void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::gmr_wire_func_t &f) const {

@@ -80,7 +80,6 @@ namespace rdb_protocol_details {
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
 RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
-RDB_IMPL_SERIALIZABLE_0(Length);
 
 }  // namespace rdb_protocol_details
 
@@ -333,18 +332,6 @@ public:
                         boost::get<ql::wire_datum_map_t>(&(_rr->result));
                     r_sanity_check(dm);
                     out_vec->push_back(*dm);
-                }
-            } else if (boost::get<rdb_protocol_details::Length>(&rg.terminal->variant)) {
-                rg_response.result = length_t();
-                length_t *res_length = boost::get<length_t>(&rg_response.result);
-                res_length->length = 0;
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const length_t *length = boost::get<length_t>(&(_rr->result));
-                    res_length->length += length->length;
                 }
             } else {
                 unreachable();

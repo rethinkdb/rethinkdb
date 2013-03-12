@@ -50,8 +50,6 @@ public:
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
 
-    void operator()(const rdb_protocol_details::Length &) const;
-
     void operator()(const ql::gmr_wire_func_t &) const;
     void operator()(const ql::count_wire_func_t &) const;
     void operator()(const ql::reduce_wire_func_t &) const;
@@ -70,8 +68,6 @@ public:
                        const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
-
-    void operator()(const rdb_protocol_details::Length &) const;
 
     void operator()(const ql::count_wire_func_t &) const;
     // This is a non-const reference because it caches the compiled function

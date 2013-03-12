@@ -98,16 +98,7 @@ RDB_DECLARE_SERIALIZABLE(transform_atom_t);
 
 typedef std::list<transform_atom_t> transform_t;
 
-/* There's no protocol buffer for Length (because there's not data associated
- * with it but to make things work with the variant we create a nice empty
- * class. */
-
-struct Length { };
-
-RDB_DECLARE_SERIALIZABLE(Length);
-
-typedef boost::variant<Length,
-                       ql::gmr_wire_func_t,
+typedef boost::variant<ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 
