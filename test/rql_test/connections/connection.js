@@ -5,6 +5,7 @@
 console.log("Testing JS connection API")
 
 process.on('uncaughtException', function(err) {
+    console.log("Uncaught exception:", err);
     if (cpp_server) cpp_server.kill();
     //if (js_server) js_server.kill();
 });
