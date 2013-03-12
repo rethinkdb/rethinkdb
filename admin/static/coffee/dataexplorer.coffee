@@ -2260,9 +2260,9 @@ module 'DataExplorerView', ->
                     extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
                     if extra_size_table > 0 # The table doesn't take the full width
                         expandable_columns = []
-                        for index in [0..@last_keys.length-2] # We skip the column record
+                        for index in [0..@last_keys.length-1] # We skip the column record
                             real_size = 0
-                            @$('.col-'+index).children().children().each((i, bloc) ->
+                            @$('.col-'+index).children().children().children().each((i, bloc) ->
                                 $bloc = $(bloc)
                                 if real_size<$bloc.width()
                                     real_size = $bloc.width()
