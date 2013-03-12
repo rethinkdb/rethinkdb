@@ -51,7 +51,6 @@ public:
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
-    explicit datum_t(int64_t _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(const std::vector<const datum_t *> &_array);

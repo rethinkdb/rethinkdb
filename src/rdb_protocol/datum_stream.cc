@@ -140,7 +140,7 @@ const datum_t *lazy_datum_stream_t::count() {
     env_checkpoint_t ect(env, &env_t::discard_checkpoint);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {
-        *d = datum_t(d->as_int() + shard_data[i]->as_int());
+        *d = datum_t(d->as_num() + shard_data[i]->as_int());
     }
     return d;
 }
