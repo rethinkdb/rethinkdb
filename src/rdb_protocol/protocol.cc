@@ -81,7 +81,6 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
 RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
-RDB_IMPL_PROTOB_SERIALIZABLE(WriteQuery3_ForEach);
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
@@ -400,18 +399,6 @@ public:
 
                     const length_t *length = boost::get<length_t>(&(_rr->result));
                     res_length->length += length->length;
-                }
-            } else if (boost::get<WriteQuery3_ForEach>(&rg.terminal->variant)) {
-                rg_response.result = atom_t();
-                inserted_t *res_inserted = boost::get<inserted_t>(&rg_response.result);
-                res_inserted->inserted = 0;
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const inserted_t *inserted = boost::get<inserted_t>(&(_rr->result));
-                    res_inserted->inserted += inserted->inserted;
                 }
             } else {
                 unreachable();

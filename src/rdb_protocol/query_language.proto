@@ -214,20 +214,7 @@ message ReadQuery3 {
 };
 
 message WriteQuery3 {
-    enum WriteQueryType {
-        FOREACH = 6;
-    };
-
-    required WriteQueryType type = 1;
     optional bool atomic = 11 [default = true];
-
-    message ForEach {
-        required Term3 stream = 1;
-        required string var = 2;
-        repeated WriteQuery3 queries = 3;
-    };
-
-    optional ForEach for_each = 7;
 };
 
 message MetaQuery3 {

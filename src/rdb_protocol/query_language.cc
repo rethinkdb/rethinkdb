@@ -741,26 +741,8 @@ void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, boo
     rq->SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
-void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
-    check_protobuf(WriteQuery3::WriteQueryType_IsValid(w->type()));
-
-    std::vector<const google::protobuf::FieldDescriptor *> fields;
-    w->GetReflection()->ListFields(*w, &fields);
-    check_protobuf(static_cast<int64_t>(fields.size()) == 2 + w->has_atomic());
-
-    switch (w->type()) {
-    case WriteQuery3::FOREACH: {
-        check_protobuf(w->has_for_each());
-        check_term_type(w->mutable_for_each()->mutable_stream(), TERM_TYPE_ARBITRARY, env, is_det_out, backtrace.with("stream"));
-
-        new_scope_t scope_maker(&env->scope, w->mutable_for_each()->var(), term_info_t(TERM_TYPE_JSON, true));
-        for (int i = 0; i < w->for_each().queries_size(); ++i) {
-            check_write_query_type(w->mutable_for_each()->mutable_queries(i), env, is_det_out, backtrace.with(strprintf("query:%d", i)));
-        }
-    } break;
-    default:
-        unreachable("unhandled WriteQuery3");
-    }
+NORETURN void check_write_query_type(UNUSED WriteQuery3 *w, UNUSED type_checking_environment_t *env, UNUSED bool *is_det_out, UNUSED const backtrace_t &backtrace) {
+    crash("unhandled WriteQuery3");
 }
 
 void check_meta_query_type(MetaQuery3 *t, const backtrace_t &backtrace) {
@@ -1339,59 +1321,8 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
     return point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    res->set_status_code(Response3::SUCCESS_JSON);
-    switch (w->type()) {
-    case WriteQuery3::FOREACH: {
-        boost::shared_ptr<json_stream_t> stream =
-            eval_term_as_stream(w->mutable_for_each()->mutable_stream(), env, scopes, backtrace.with("stream"));
-
-        // The cJSON object we'll eventually return (named `lhs` because it's merged with `rhs` below).
-        scoped_cJSON_t lhs(cJSON_CreateObject());
-
-        scopes_t scopes_copy = scopes;
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            variable_type_scope_t::new_scope_t type_scope_maker(&scopes_copy.type_env.scope, w->for_each().var(), term_info_t(TERM_TYPE_JSON, true));
-            variable_val_scope_t::new_scope_t scope_maker(&scopes_copy.scope, w->for_each().var(), json);
-
-            for (int i = 0; i < w->for_each().queries_size(); ++i) {
-                // Run the write query and retrieve the result.
-                guarantee_debug_throw_release(res->response_size() == 0, backtrace);
-                scoped_cJSON_t rhs(0);
-                try {
-                    execute_write_query(w->mutable_for_each()->mutable_queries(i), env, res, scopes_copy, backtrace.with(strprintf("query:%d", i)));
-                    guarantee_debug_throw_release(res->response_size() == 1, backtrace);
-                    rhs.reset(cJSON_Parse(res->response(0).c_str()));
-                } catch (const runtime_exc_t &e) {
-                    rhs.reset(cJSON_CreateObject());
-                    rhs.AddItemToObject("errors", safe_cJSON_CreateNumber(1.0, backtrace));
-                    std::string err = strprintf("Term3 %d of the foreach threw an error: %s\n", i,
-                                                (e.message + "\nBacktrace:\n" + e.backtrace.print()).c_str());
-                    rhs.AddItemToObject("first_error", cJSON_CreateString(err.c_str()));
-                }
-                res->clear_response();
-
-                // Merge the result of the write query into `lhs`
-                scoped_cJSON_t merged(cJSON_merge(lhs.get(), rhs.get()));
-                for (int f = 0; f < merged.GetArraySize(); ++f) {
-                    cJSON *el = merged.GetArrayItem(f);
-                    guarantee_debug_throw_release(el, backtrace);
-                    cJSON *lhs_el = lhs.GetObjectItem(el->string);
-                    cJSON *rhs_el = rhs.GetObjectItem(el->string);
-                    if (lhs_el && lhs_el->type == cJSON_Number &&
-                        rhs_el && rhs_el->type == cJSON_Number) {
-                        el->valueint = lhs_el->valueint + rhs_el->valueint;
-                        el->valuedouble = lhs_el->valuedouble + rhs_el->valuedouble;
-                    }
-                }
-                lhs.reset(merged.release());
-            }
-        }
-        res->add_response(lhs.Print());
-    } break;
-    default:
-        unreachable();
-    }
+void execute_write_query(UNUSED WriteQuery3 *w, UNUSED runtime_environment_t *env, UNUSED Response3 *res, UNUSED const scopes_t &scopes, UNUSED const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+    crash("execute_write_query dead code");
 }
 
 //This doesn't create a scope for the evals

@@ -112,12 +112,6 @@ void terminal_initializer_visitor_t::operator()(
     *out = l;
 }
 
-void terminal_initializer_visitor_t::operator()(const WriteQuery3_ForEach &) const {
-    rget_read_response_t::inserted_t i;
-    i.inserted = 0;
-    *out = i;
-}
-
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    query_language::runtime_environment_t *_env,
                    ql::env_t *_ql_env,
@@ -178,18 +172,6 @@ void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const 
     rget_read_response_t::length_t *res_length = boost::get<rget_read_response_t::length_t>(out);
     guarantee(res_length);
     ++res_length->length;
-}
-
-void terminal_visitor_t::operator()(const WriteQuery3_ForEach &w) const {
-    scopes_t scopes_copy = scopes;
-    new_val_scope_t inner_scope(&scopes_copy.scope);
-    scopes_copy.scope.put_in_scope(w.var(), json);
-
-    for (int i = 0; i < w.queries_size(); ++i) {
-        WriteQuery3 q = w.queries(i);
-        Response3 r; //TODO we need to actually return this somewhere I suppose.
-        execute_write_query(&q, env, &r, scopes_copy, backtrace.with(strprintf("query:%d", i)));
-    }
 }
 
 void terminal_initializer_visitor_t::operator()(

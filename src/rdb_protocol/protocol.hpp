@@ -78,7 +78,6 @@ RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
 RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_DECLARE_SERIALIZABLE(Mapping);
 RDB_DECLARE_SERIALIZABLE(Reduction);
-RDB_DECLARE_SERIALIZABLE(WriteQuery3_ForEach);
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
@@ -134,7 +133,6 @@ RDB_DECLARE_SERIALIZABLE(Length);
 typedef boost::variant<Builtin_GroupedMapReduce,
                        Reduction,
                        Length,
-                       WriteQuery3_ForEach,
                        ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;

@@ -68,8 +68,6 @@ public:
 
     void operator()(const rdb_protocol_details::Length &) const;
 
-    void operator()(const WriteQuery3_ForEach &) const;
-
     void operator()(const ql::gmr_wire_func_t &) const;
     void operator()(const ql::count_wire_func_t &) const;
     void operator()(const ql::reduce_wire_func_t &) const;
@@ -96,8 +94,6 @@ public:
     void operator()(const Reduction &r) const;
 
     void operator()(const rdb_protocol_details::Length &) const;
-
-    void operator()(const WriteQuery3_ForEach &w) const;
 
     void operator()(const ql::count_wire_func_t &) const;
     // This is a non-const reference because it caches the compiled function
