@@ -54,7 +54,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
         orig = mwf2.compile(env)->call(orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             datum_t *resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1L));
+            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1.0));
             bool b = resp->add("skipped", num_1);
             r_sanity_check(!b);
             return resp;
@@ -97,7 +97,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
             }
 
     propagate(&t);
-    return do_replace(orig, map_wire_func_t(t, 0));
+    return do_replace(orig, map_wire_func_t(t, static_cast<std::map<int, Datum> *>(NULL)));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
