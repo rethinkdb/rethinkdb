@@ -216,9 +216,6 @@ message ReadQuery3 {
 message WriteQuery3 {
     enum WriteQueryType {
         FOREACH = 6;
-        POINTUPDATE = 7;
-        POINTDELETE = 8;
-        POINTMUTATE = 9;
     };
 
     required WriteQueryType type = 1;
@@ -231,32 +228,6 @@ message WriteQuery3 {
     };
 
     optional ForEach for_each = 7;
-
-    message PointUpdate {
-        required TableRef table_ref = 1;
-        required string attrname = 2;
-        required Term3 key = 3;
-        required Mapping mapping = 4;
-    };
-
-    optional PointUpdate point_update = 8;
-
-    message PointDelete {
-        required TableRef table_ref = 1;
-        required string attrname = 2;
-        required Term3 key = 3;
-    };
-
-    optional PointDelete point_delete = 9;
-
-    message PointMutate {
-        required TableRef table_ref = 1;
-        required string attrname = 2;
-        required Term3 key = 3;
-        required Mapping mapping = 4;
-    };
-
-    optional PointMutate point_mutate = 10;
 };
 
 message MetaQuery3 {

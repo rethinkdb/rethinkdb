@@ -759,25 +759,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
             check_write_query_type(w->mutable_for_each()->mutable_queries(i), env, is_det_out, backtrace.with(strprintf("query:%d", i)));
         }
     } break;
-    case WriteQuery3::POINTUPDATE: {
-        check_protobuf(w->has_point_update());
-        check_table_ref(w->point_update().table_ref(), backtrace.with("table_ref"));
-        check_term_type(w->mutable_point_update()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
-        implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_point_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
-    } break;
-    case WriteQuery3::POINTDELETE: {
-        check_protobuf(w->has_point_delete());
-        check_table_ref(w->point_delete().table_ref(), backtrace.with("table_ref"));
-        check_term_type(w->mutable_point_delete()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
-    } break;
-    case WriteQuery3::POINTMUTATE: {
-        check_protobuf(w->has_point_mutate());
-        check_table_ref(w->point_mutate().table_ref(), backtrace.with("table_ref"));
-        check_term_type(w->mutable_point_mutate()->mutable_key(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("key"));
-        implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_point_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("point_map"));
-    } break;
     default:
         unreachable("unhandled WriteQuery3");
     }
@@ -1408,58 +1389,6 @@ void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *
             }
         }
         res->add_response(lhs.Print());
-    } break;
-    case WriteQuery3::POINTUPDATE: {
-        namespace_repo_t<rdb_protocol_t>::access_t ns_access =
-            eval_table_ref(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
-        std::string pk = get_primary_key(w->mutable_point_update()->mutable_table_ref(), env, backtrace);
-        std::string attr = w->mutable_point_update()->attrname();
-        if (attr != "" && attr != pk) {
-            throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
-                                backtrace.with("keyname"));
-        }
-        boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_update()->mutable_key(),
-                                                                 env, scopes, backtrace.with("key"));
-        point_modify_ns::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify_ns::UPDATE, env, w->point_update().mapping(), scopes,
-                         w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
-        guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::SKIPPED);
-        res->add_response(strprintf("{\"updated\": %d, \"skipped\": %d, \"errors\": %d}",
-                                    mres == point_modify_ns::MODIFIED, mres == point_modify_ns::SKIPPED, 0));
-    } break;
-    case WriteQuery3::POINTDELETE: {
-        int deleted = -1;
-        std::string pk = get_primary_key(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
-        std::string attr = w->mutable_point_delete()->attrname();
-        if (attr != "" && attr != pk) {
-            throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
-                                backtrace.with("keyname"));
-        }
-        namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval_table_ref(w->mutable_point_delete()->mutable_table_ref(), env, backtrace);
-        boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_delete()->mutable_key(), env, scopes, backtrace.with("key"));
-        deleted = point_delete(ns_access, id, env, backtrace);
-        guarantee_debug_throw_release(deleted == 0 || deleted == 1, backtrace);
-
-        res->add_response(strprintf("{\"deleted\": %d}", deleted));
-    } break;
-    case WriteQuery3::POINTMUTATE: {
-        namespace_repo_t<rdb_protocol_t>::access_t ns_access =
-            eval_table_ref(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-        std::string pk = get_primary_key(w->mutable_point_mutate()->mutable_table_ref(), env, backtrace);
-        std::string attr = w->mutable_point_mutate()->attrname();
-        if (attr != "" && attr != pk) {
-            throw runtime_exc_t(strprintf("Attribute %s is not a primary key (options: %s).", attr.c_str(), pk.c_str()),
-                                backtrace.with("keyname"));
-        }
-        boost::shared_ptr<scoped_cJSON_t> id = eval_term_as_json(w->mutable_point_mutate()->mutable_key(),
-                                                                 env, scopes, backtrace.with("key"));
-        point_modify_ns::result_t mres =
-            point_modify(ns_access, pk, id->get(), point_modify_ns::MUTATE, env, w->point_mutate().mapping(), scopes,
-                         w->atomic(), boost::shared_ptr<scoped_cJSON_t>(), backtrace.with("point_map"));
-        guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::INSERTED ||
-                           mres == point_modify_ns::DELETED  || mres == point_modify_ns::NOP);
-        res->add_response(strprintf("{\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d}",
-                                    mres == point_modify_ns::MODIFIED, mres == point_modify_ns::INSERTED, mres == point_modify_ns::DELETED, 0));
     } break;
     default:
         unreachable();
