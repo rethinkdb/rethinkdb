@@ -125,7 +125,7 @@ class Connection
         @db = new Db {}, db
 
     _start: (term, cb) ->
-        unless @open then throw RqlDriverError "Connection closed"
+        unless @open then throw new RqlDriverError "Connection is closed."
 
         # Assign token
         token = ''+@nextToken
@@ -230,6 +230,8 @@ class TcpConnection extends Connection
         @rawSocket.write buf
 
 class HttpConnection extends Connection
+    DEFAULT_PROTOCOL: 'http'
+
     @isAvailable: -> typeof XMLHttpRequest isnt "undefined"
     constructor: (host, callback) ->
         unless HttpConnection.isAvailable()
@@ -237,7 +239,8 @@ class HttpConnection extends Connection
 
         super(host, callback)
 
-        url = "http://#{@host}:#{@port}/ajax/reql/"
+        protocol = if host.protocol is 'https' then 'https' else @DEFAULT_PROTOCOL
+        url = "#{protocol}://#{@host}:#{@port}/ajax/reql/"
         xhr = new XMLHttpRequest
         xhr.open("GET", url+"open-new-connection", true)
         xhr.responseType = "arraybuffer"
