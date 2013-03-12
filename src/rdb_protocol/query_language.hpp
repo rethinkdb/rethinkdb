@@ -27,8 +27,6 @@
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"
 
-class stream_cache_t;
-
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor, boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t);
 
 namespace query_language {
@@ -54,10 +52,6 @@ point_modify_ns::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs
 /* functions to evaluate the queries */
 // TODO most of these functions that are supposed to only throw runtime exceptions
 // TODO some of these functions may be called from rdb_protocol/btree.cc, which can only handle runtime exceptions
-
-void execute_query(Query3 *q, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
-
-void execute_read_query(ReadQuery3 *r, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 void execute_write_query(WriteQuery3 *r, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 

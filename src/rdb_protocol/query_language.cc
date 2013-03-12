@@ -1127,69 +1127,6 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     return ns_metadata_it->second.get().primary_key.get();
 }
 
-void execute_query(Query3 *q, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    guarantee_debug_throw_release(q->token() == res->token(), backtrace);
-    switch (q->type()) {
-    case Query3::READ: {
-        execute_read_query(q->mutable_read_query(), env, res, scopes, backtrace, stream_cache);
-    } break; //status set in [execute_read_query]
-    case Query3::WRITE: {
-        execute_write_query(q->mutable_write_query(), env, res, scopes, backtrace);
-    } break; //status set in [execute_write_query]
-    case Query3::CONTINUE: {
-        if (!stream_cache->serve(q->token(), res, env->interruptor)) {
-            throw runtime_exc_t(strprintf("Could not serve key %" PRIi64 " from stream cache.", q->token()), backtrace);
-        }
-    } break; //status set in [serve]
-    case Query3::STOP: {
-        if (!stream_cache->contains(q->token())) {
-            throw broken_client_exc_t(strprintf("No key %" PRIi64 " in stream cache.", q->token()));
-        } else {
-            res->set_status_code(Response3::SUCCESS_EMPTY);
-            stream_cache->erase(q->token());
-        }
-    } break;
-    case Query3::META: {
-        execute_meta(q->mutable_meta_query(), env, res, backtrace);
-    } break; //status set in [execute_meta]
-    default:
-        crash("unreachable");
-    }
-}
-
-void execute_read_query(ReadQuery3 *r, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    int type = r->GetExtension(extension::inferred_read_type);
-
-    switch (type) {
-    case TERM_TYPE_JSON: {
-        boost::shared_ptr<scoped_cJSON_t> json = eval_term_as_json(r->mutable_term(), env, scopes, backtrace);
-        res->add_response(json->PrintUnformatted());
-        res->set_status_code(Response3::SUCCESS_JSON);
-        break;
-    }
-    case TERM_TYPE_STREAM:
-    case TERM_TYPE_VIEW: {
-        boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(r->mutable_term(), env, scopes, backtrace);
-        int64_t key = res->token();
-        if (stream_cache->contains(key)) {
-            throw runtime_exc_t(strprintf("Token %" PRIi64 " already in stream cache, use CONTINUE.", key), backtrace);
-        } else {
-            stream_cache->insert(r, key, stream);
-        }
-        bool b = stream_cache->serve(key, res, env->interruptor);
-        guarantee_debug_throw_release(b, backtrace);
-        break; //status code set in [serve]
-    }
-    case TERM_TYPE_ARBITRARY: {
-        eval_term_as_json(r->mutable_term(), env, scopes, backtrace);
-        unreachable("This term has type `TERM_TYPE_ARBITRARY`, so evaluating "
-            "it should throw `runtime_exc_t`.");
-    }
-    default:
-        unreachable("read query type invalid.");
-    }
-}
-
 void throwing_insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, const std::string &pk,
                      boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env,
                      const backtrace_t &backtrace, bool overwrite,
