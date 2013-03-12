@@ -378,10 +378,9 @@ $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(PROTO_OBJS)
-	mkdir -p $(dir $(DEP_DIR)/$*)
-	$(RT_CXX) $(RT_CXXFLAGS) -MM -MP -MQ $@ -MQ $(DEP_DIR)/$*.d $< > $(DEP_DIR)/$*.d
-	mkdir -p $(dir $@)
+	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC $< -o $@
-	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
+	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \
+	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
 
 -include $(DEPS)
