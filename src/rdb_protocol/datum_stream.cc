@@ -104,20 +104,20 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::concatmap(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans
         = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 
