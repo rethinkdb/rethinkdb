@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_DATA_BUFFER_HPP_
 #define CONTAINERS_DATA_BUFFER_HPP_
 
@@ -10,7 +10,7 @@ class append_only_printf_buffer_t;
 struct data_buffer_t {
 private:
     intptr_t ref_count_;
-    int64_t size_;
+    size_t size_;
     char bytes_[];
 
     friend void intrusive_ptr_add_ref(data_buffer_t *buffer);
@@ -24,13 +24,7 @@ public:
         free(p);
     }
 
-    static intrusive_ptr_t<data_buffer_t> create(int64_t size) {
-        rassert(sizeof(data_buffer_t) == 16);
-        data_buffer_t *b = reinterpret_cast<data_buffer_t *>(malloc(sizeof(data_buffer_t) + size));
-        b->ref_count_ = 0;
-        b->size_ = size;
-        return intrusive_ptr_t<data_buffer_t>(b);
-    }
+    static intrusive_ptr_t<data_buffer_t> create(int64_t size);
 
     char *buf() { return bytes_; }
     const char *buf() const { return bytes_; }

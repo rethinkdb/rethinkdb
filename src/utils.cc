@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -11,7 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/resource.h>
 
 #ifdef __MACH__
@@ -592,22 +595,50 @@ char int_to_hex(int x) {
     }
 }
 
-std::string read_file(const char *path) {
-    std::string s;
-    FILE *fp = fopen(path, "rb");
-    char buffer[4096];
-    int count;
-    do {
-        count = fread(buffer, 1, sizeof(buffer), fp);
-        s.append(buffer, buffer + count);
-    } while (count == sizeof(buffer));
+bool blocking_read_file(const char *path, std::string *contents_out) {
+    scoped_fd_t fd;
 
-    rassert(feof(fp));
+    {
+        int res;
+        do {
+            res = open(path, O_RDONLY);
+        } while (res == -1 && errno == EINTR);
 
-    fclose(fp);
+        if (res == -1) {
+            return false;
+        }
+        fd.reset(res);
+    }
 
-    return s;
+    std::string ret;
+
+    char buf[4096];
+    for (;;) {
+        ssize_t res;
+        do {
+            res = read(fd.get(), buf, sizeof(buf));
+        } while (res == -1 && errno == EINTR);
+
+        if (res == -1) {
+            return false;
+        }
+
+        if (res == 0) {
+            *contents_out = ret;
+            return true;
+        }
+
+        ret.append(buf, buf + res);
+    }
 }
+
+std::string blocking_read_file(const char *path) {
+    std::string ret;
+    bool success = blocking_read_file(path, &ret);
+    guarantee(success);
+    return ret;
+}
+
 
 static const char * unix_path_separator = "/";
 
