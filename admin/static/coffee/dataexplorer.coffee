@@ -2570,6 +2570,7 @@ module 'DataExplorerView', ->
         reset_count: =>
             @count = 0
             @done = 0
+
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
             that = @
