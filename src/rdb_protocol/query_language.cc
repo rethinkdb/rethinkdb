@@ -906,7 +906,7 @@ void assign_dc_name(const std::string &dc_name_str, const backtrace_t& bt, name_
 }
 
 
-void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response3 *res, const backtrace_t &bt) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     // This must be performed on the semilattice_metadata's home thread,
     int original_thread = get_thread_id();
     int metadata_home_thread = env->semilattice_metadata->home_thread();
@@ -945,7 +945,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
             throw runtime_exc_t(e.what(), bt);
         }
         env->semilattice_metadata->join(metadata);
-        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately.
+        res->set_status_code(Response3::SUCCESS_EMPTY); //return immediately.
     } break;
     case MetaQuery3::DROP_DB: {
         name_string_t db_name;
@@ -976,7 +976,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
             throw runtime_exc_t(e.what(), bt);
         }
         env->semilattice_metadata->join(metadata);
-        res->set_status_code(Response::SUCCESS_EMPTY);
+        res->set_status_code(Response3::SUCCESS_EMPTY);
     } break;
     case MetaQuery3::LIST_DBS: {
         for (metadata_searcher_t<database_semilattice_metadata_t>::iterator
@@ -989,7 +989,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
             scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
             res->add_response(json.PrintUnformatted());
         }
-        res->set_status_code(Response::SUCCESS_STREAM);
+        res->set_status_code(Response3::SUCCESS_STREAM);
     } break;
     case MetaQuery3::CREATE_TABLE: {
         std::string dc_name_str = m->create_table().datacenter();
@@ -1044,7 +1044,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
         } catch (interrupted_exc_t e) {
             throw runtime_exc_t("Query3 interrupted, probably by user.", bt);
         }
-        res->set_status_code(Response::SUCCESS_EMPTY);
+        res->set_status_code(Response3::SUCCESS_EMPTY);
     } break;
     case MetaQuery3::DROP_TABLE: {
         std::string db_name_str = m->drop_table().db_name();
@@ -1073,7 +1073,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
             throw runtime_exc_t(e.what(), bt);
         }
         env->semilattice_metadata->join(metadata);
-        res->set_status_code(Response::SUCCESS_EMPTY); //return immediately
+        res->set_status_code(Response3::SUCCESS_EMPTY); //return immediately
     } break;
     case MetaQuery3::LIST_TABLES: {
         name_string_t db_name;
@@ -1090,7 +1090,7 @@ void execute_meta(MetaQuery3 *m, runtime_environment_t *env, Response *res, cons
             scoped_cJSON_t json(cJSON_CreateString(it->second.get().name.get().c_str()));
             res->add_response(json.PrintUnformatted());
         }
-        res->set_status_code(Response::SUCCESS_STREAM);
+        res->set_status_code(Response3::SUCCESS_STREAM);
     } break;
     default: crash("unreachable");
     }
@@ -1127,7 +1127,7 @@ std::string get_primary_key(TableRef *t, runtime_environment_t *env,
     return ns_metadata_it->second.get().primary_key.get();
 }
 
-void execute_query(Query3 *q, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_query(Query3 *q, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     guarantee_debug_throw_release(q->token() == res->token(), backtrace);
     switch (q->type()) {
     case Query3::READ: {
@@ -1145,7 +1145,7 @@ void execute_query(Query3 *q, runtime_environment_t *env, Response *res, const s
         if (!stream_cache->contains(q->token())) {
             throw broken_client_exc_t(strprintf("No key %" PRIi64 " in stream cache.", q->token()));
         } else {
-            res->set_status_code(Response::SUCCESS_EMPTY);
+            res->set_status_code(Response3::SUCCESS_EMPTY);
             stream_cache->erase(q->token());
         }
     } break;
@@ -1157,14 +1157,14 @@ void execute_query(Query3 *q, runtime_environment_t *env, Response *res, const s
     }
 }
 
-void execute_read_query(ReadQuery3 *r, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+void execute_read_query(ReadQuery3 *r, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     int type = r->GetExtension(extension::inferred_read_type);
 
     switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval_term_as_json(r->mutable_term(), env, scopes, backtrace);
         res->add_response(json->PrintUnformatted());
-        res->set_status_code(Response::SUCCESS_JSON);
+        res->set_status_code(Response3::SUCCESS_JSON);
         break;
     }
     case TERM_TYPE_STREAM:
@@ -1405,8 +1405,8 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
     return point_delete(ns_access, id->get(), env, backtrace);
 }
 
-void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    res->set_status_code(Response::SUCCESS_JSON);
+void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
+    res->set_status_code(Response3::SUCCESS_JSON);
     switch (w->type()) {
     case WriteQuery3::UPDATE: {
         view_t view = eval_term_as_view(w->mutable_update()->mutable_view(), env, scopes, backtrace.with("view"));

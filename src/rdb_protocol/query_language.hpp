@@ -55,11 +55,11 @@ point_modify_ns::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs
 // TODO most of these functions that are supposed to only throw runtime exceptions
 // TODO some of these functions may be called from rdb_protocol/btree.cc, which can only handle runtime exceptions
 
-void execute_query(Query3 *q, runtime_environment_t *, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+void execute_query(Query3 *q, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-void execute_read_query(ReadQuery3 *r, runtime_environment_t *, Response *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+void execute_read_query(ReadQuery3 *r, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace, stream_cache_t *stream_cache) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
-void execute_write_query(WriteQuery3 *r, runtime_environment_t *, Response *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+void execute_write_query(WriteQuery3 *r, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term3 *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 

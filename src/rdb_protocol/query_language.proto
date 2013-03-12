@@ -333,7 +333,7 @@ message Query3 {
     optional MetaQuery3 meta_query = 5;
 }
 
-message Response {
+message Response3 {
     enum StatusCode {
         SUCCESS_EMPTY = 0;
         SUCCESS_JSON = 1;
