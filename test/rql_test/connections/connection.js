@@ -2,9 +2,12 @@
 // Tests the driver API for making connections and excercising the networking code
 /////
 
+console.log("Testing JS connection API")
+
 process.on('uncaughtException', function(err) {
+    console.log("Uncaught error: "+err);
     if (cpp_server) cpp_server.kill();
-    if (js_server) js_server.kill();
+    //if (js_server) js_server.kill();
 });
 
 var spawn = require('child_process').spawn
@@ -21,17 +24,21 @@ var assertErr = function(err, type, msg) {
     }
 
     if (!(err.constructor.name == type) || !(err.message == msg)) {
-        throw "Error message "+err+" doesn't match "+msg;
+        throw new Error("Error message "+err+" doesn't match "+msg);
     }
 };
 
 var assertNoError = function(err) {
     if (err) {
-        throw "Error not expected"
+        throw new Error("Error "+err+" not expected")
     }
 };
 
 var r = require('../../../drivers/javascript/build/rethinkdb');
+var build = process.argv[2] || 'debug'
+var testDefault = process[3] || false
+
+var port = Math.floor(Math.random()*(65535 - 1025)+1025)
 
 var actions = [
 
@@ -58,47 +65,50 @@ var actions = [
 
     // Run CPP server in default configuration
     function() {
-        cpp_server = spawn('../../../build/release_clang/rethinkdb');
-        setTimeout(cont, 100);
+        cpp_server = spawn('../../build/'+build+'/rethinkdb',
+            ['--driver-port', port, '--http-port=0', '--cluster-port=0'],
+            {stdio: 'inherit'});
+        setTimeout(cont, 1000);
     },
 
     // Test differt ways of connecting to the server
     function() {
-        r.connect({}, cont);
+        testDefault ? r.connect({}, cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        c.reconnect(cont);
+        testDefault ? c.reconnect(cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({host:'localhost'}, cont);
+        testDefault ? r.connect({host:'localhost'}, cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        c.reconnect(cont);
+        testDefault ? c.reconnect(cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({host:'localhost', port:28015}, cont);
+        testDefault ? r.connect({host:'localhost', port:28015}, cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        c.reconnect(cont);
+        testDefault ? c.reconnect(cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        r.connect({port:28015}, cont);
+        testDefault ? r.connect({port:28015}, cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
-        c.reconnect(cont);
+        testDefault ? c.reconnect(cont) : cont();
     },
     function(err, c) {
         assertNoError(err);
         cont();
     },
 
+    /*
     // Kill CPP server, try again with JS server
     function() {
         cpp_server.kill();
@@ -142,10 +152,11 @@ var actions = [
         assertNoError(err);
         cont();
     },
+    */
 
     // Tests closing the connection
     function() {
-        r.connect({}, cont);
+        r.connect({port:port}, cont);
     },
     function(err, c) {
         assertNoError(err);
@@ -162,24 +173,30 @@ var actions = [
     },
     function(err, res) {
         assertNoError(err);
-        r.connect({}, cont);
+        r.connect({port:port}, cont);
     },
     function(err, c) {
         c.close();
-        r(1).run(c, cont);
-    },
-    function(err, res) {
-        assertErr(err, "RqlDriverError", "Connection is closed.");
-        r.connect(c, cont);
+        try {
+            r(1).run(c, cont);
+        } catch(err) {
+            assertErr(err, "RqlDriverError", "Connection is closed");
+        }
+        r.connect({port:port}, cont);
     },
     function(err, c) {
-        js_server.kill()
+        cpp_server.kill()
         setTimeout(function() {
-            r(1).run(c, cont);
+            try {
+                r(1).run(c, cont);
+            } catch(err) {
+                assertErr(err, "RqlDriverError", "Connection is closed.");
+                cont();
+            }
         }, 100);
     },
     function(err, res) {
-        assertErr(err, "RqlDriverError", "Connection is closed.");
+        console.log("done running tests");
         cont();
     }
 ];

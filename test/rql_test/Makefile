@@ -30,7 +30,7 @@ py_connect: connections/connection.py
 	python connections/connection.py $(BUILD) $(TEST_DEFAULT_PORT)
 
 js_connect: connections/connection.js
-	cd connections/; node connection.js $(BUILD) $(TEST_DEFAULT_PORT)
+	node connections/connection.js $(BUILD) $(TEST_DEFAULT_PORT)
 
 cursor:
 	python connections/cursor_test.py $(BUILD)
