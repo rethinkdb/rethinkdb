@@ -750,12 +750,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
 
     bool deterministic = true;
     switch (w->type()) {
-    case WriteQuery3::MUTATE: {
-        check_protobuf(w->has_mutate());
-        check_term_type(w->mutable_mutate()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
-        implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_mutate()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
-    } break;
     case WriteQuery3::INSERT: {
         check_protobuf(w->has_insert());
         check_table_ref(w->insert().table_ref(), backtrace.with("table_ref"));
@@ -1380,46 +1374,6 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
 void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     res->set_status_code(Response3::SUCCESS_JSON);
     switch (w->type()) {
-    case WriteQuery3::MUTATE: {
-        view_t view = eval_term_as_view(w->mutable_mutate()->mutable_view(), env, scopes, backtrace.with("view"));
-
-        int modified = 0, deleted = 0, errors = 0;
-        std::string reported_error = "";
-        while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            guarantee_debug_throw_release(json && json->type() == cJSON_Object, backtrace);
-            try {
-                std::string pk = view.primary_key;
-                cJSON *id = json->GetObjectItem(pk.c_str());
-                point_modify_ns::result_t mres =
-                    point_modify(view.access, pk, id, point_modify_ns::MUTATE,
-                                 env, w->mutate().mapping(), scopes,
-                                 w->atomic(), json, backtrace.with("modify_map"));
-                switch (mres) {
-                case point_modify_ns::INSERTED: //if non-atomic (fallthrough)
-                case point_modify_ns::MODIFIED: modified += 1; break;
-                case point_modify_ns::NOP: //if non-atomic (fallthrough)
-                case point_modify_ns::DELETED: deleted += 1; break;
-
-                case point_modify_ns::SKIPPED:
-                case point_modify_ns::ERROR:
-                default: unreachable("bad return value from `point_modify`");
-                }
-            } catch (const query_language::broken_client_exc_t &e) {
-                ++errors;
-                if (reported_error == "") reported_error = e.message;
-            } catch (const query_language::runtime_exc_t &e) {
-                ++errors;
-                if (reported_error == "") reported_error = e.message + "\nBacktrace:\n" + e.backtrace.print();
-            }
-        }
-        std::string res_list = strprintf("\"modified\": %d, \"inserted\": %d, \"deleted\": %d, \"errors\": %d",
-                                         modified, 0, deleted, errors);
-        if (reported_error != "") {
-            res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
-                                 scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
-        }
-        res->add_response("{" + res_list + "}");
-    } break;
     case WriteQuery3::INSERT: {
         std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
         bool overwrite = w->mutable_insert()->overwrite();

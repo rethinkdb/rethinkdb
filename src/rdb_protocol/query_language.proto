@@ -215,7 +215,6 @@ message ReadQuery3 {
 
 message WriteQuery3 {
     enum WriteQueryType {
-        MUTATE = 3;
         INSERT = 4;
         FOREACH = 6;
         POINTUPDATE = 7;
@@ -225,13 +224,6 @@ message WriteQuery3 {
 
     required WriteQueryType type = 1;
     optional bool atomic = 11 [default = true];
-
-    message Mutate {
-        required Term3 view = 1;
-        required Mapping mapping = 2;
-    };
-
-    optional Mutate mutate = 4;
 
     message Insert {
         required TableRef table_ref = 1;
