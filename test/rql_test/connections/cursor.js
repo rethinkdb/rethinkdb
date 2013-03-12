@@ -9,38 +9,39 @@ process.on('uncaughtException', function(err) {
 
 var r = require('../../../drivers/javascript/build/rethinkdb');
 
-var assertNoError = function(err) {
-    if (err) {
-        throw "Error "+err+" not expected"
-    }
-};
+var port = parseInt(process.env.RQL_TEST_SERVER_PORT, 10)
 
-var port = parseInt(process.argv[2], 10)
+var num_rows = parseInt(process.env.RQL_TEST_NUM_ROWS, 10);
 
-r.connect({port:port}, function(err, c) {
-    assertNoError(err);
+exports['test cursor'] = function(test){
+    console.log("Testing for " + num_rows + " rows");
 
-    var tbl = r.table('test');
-    var num_rows = parseInt(process.argv[3], 10);
-    console.log("Testing for "+num_rows);
+    test.expect(num_rows + 4);
 
-    tbl.run(c, function(err, cur) {
-        assertNoError(err);
+    var go = function(){
+        r.connect({port:port}, function(err, c) {
+            test.equal(err, null);
 
-        var i = 0;
-        cur.each(function(err, row) {
-            assertNoError(err);
-            i++;
+            var tbl = r.table('test');
 
-            // This is the only way to know if the `each` has ended
-            if (!cur.hasNext()) {
-                if (i === num_rows) {
-                    console.log("Test passed!");
-                } else {
-                    console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
-                }
-                c.close();
-            }
+            tbl.run(c, function(err, cur) {
+                test.equal(err, null);
+
+                var i = 0;
+                cur.each(function(err, row) {
+                    test.equal(err, null);
+
+                    i++;
+
+                    // This is the only way to know if the `each` has ended
+                    if (!cur.hasNext()) {
+                        test.equal(i, num_rows);
+                        c.close();
+                        test.done();
+                    }
+                });
+            });
         });
-    });
-});
+    };
+    test.doesNotThrow(go);
+};

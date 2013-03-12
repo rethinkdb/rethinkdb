@@ -1,3 +1,4 @@
+import os
 from sys import argv
 from random import randint
 from subprocess import call
@@ -27,11 +28,13 @@ with RethinkDBTestServers(server_build=server_build) as servers:
     tbl.insert([{'id':i} for i in xrange(0, num_rows)]).run(c)
     print "Done\n"
 
-    if not lang or lang is 'py':
+    if not lang or lang == 'py':
         print "Running Python"
         call(["python", "connections/cursor.py", str(port), str(num_rows)])
         print ''
-    if not lang or lang is 'js':
+
+    if not lang or lang == 'js':
         print "Running JS"
-        call(["node", "connections/cursor.js", str(port), str(num_rows)])
+        os.system("RQL_TEST_SERVER_PORT=" + str(port) +
+               " RQL_TEST_NUM_ROWS=" + str(num_rows) + " nodeunit connections/cursor.js")
         print ''

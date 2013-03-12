@@ -19,7 +19,6 @@ import rethinkdb as r
 server_build = argv[1]
 use_default_port = bool(int(argv[2]))
 
-
 class TestNoConnection(unittest.TestCase):
     # No servers started yet so this should fail
     def test_connect(self):
@@ -134,4 +133,4 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.TextTestRunner(verbosity=1).run(suite)
