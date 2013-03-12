@@ -90,7 +90,7 @@ public:
     MUST_USE bool add(const std::string &key, const datum_t *val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
-    MUST_USE bool del(const std::string &key);
+    MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
     const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
