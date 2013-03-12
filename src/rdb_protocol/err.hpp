@@ -137,7 +137,7 @@ public:
 
     void fill_bt(Backtrace *bt) const;
     // Write out the backtrace to return it to the user.
-    void fill_error(Response2 *res, Response2_ResponseType type, std::string msg) const;
+    void fill_error(Response *res, Response_ResponseType type, std::string msg) const;
     RDB_MAKE_ME_SERIALIZABLE_1(frames);
 
     bool is_empty() { return frames.size() == 0; }
@@ -206,7 +206,7 @@ private:
     std::string exc_msg;
 };
 
-void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
+void fill_error(Response *res, Response_ResponseType type, std::string msg,
                 const backtrace_t &bt = backtrace_t());
 
 } // namespace ql

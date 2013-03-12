@@ -43,11 +43,11 @@ void backtrace_t::fill_bt(Backtrace *bt) const {
         *bt->add_frames() = it->toproto();
     }
 }
-void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
+void backtrace_t::fill_error(Response *res, Response_ResponseType type,
                              std::string msg) const {
-    guarantee(type == Response2::CLIENT_ERROR ||
-              type == Response2::COMPILE_ERROR ||
-              type == Response2::RUNTIME_ERROR);
+    guarantee(type == Response::CLIENT_ERROR ||
+              type == Response::COMPILE_ERROR ||
+              type == Response::RUNTIME_ERROR);
     Datum error_msg;
     error_msg.set_type(Datum::R_STR);
     error_msg.set_r_str(msg);
@@ -55,7 +55,7 @@ void backtrace_t::fill_error(Response2 *res, Response2_ResponseType type,
     *res->add_response() = error_msg;
     fill_bt(res->mutable_backtrace());
 }
-void fill_error(Response2 *res, Response2_ResponseType type, std::string msg,
+void fill_error(Response *res, Response_ResponseType type, std::string msg,
                 const backtrace_t &bt) {
     bt.fill_error(res, type, msg);
 }

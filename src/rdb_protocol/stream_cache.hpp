@@ -31,7 +31,7 @@ public:
     void insert(ReadQuery3 *r, int64_t key,
                 boost::shared_ptr<query_language::json_stream_t> val);
     void erase(int64_t key);
-    bool serve(int64_t key, Response *res, signal_t *interruptor);
+    bool serve(int64_t key, Response3 *res, signal_t *interruptor);
 private:
     void maybe_evict();
 
@@ -58,7 +58,7 @@ public:
     void insert(Query *q, int64_t key,
                 scoped_ptr_t<env_t> *val_env, datum_stream_t *val_stream);
     void erase(int64_t key);
-    MUST_USE bool serve(int64_t key, Response2 *res, signal_t *interruptor);
+    MUST_USE bool serve(int64_t key, Response *res, signal_t *interruptor);
 private:
     void maybe_evict();
 
@@ -73,6 +73,8 @@ private:
         datum_stream_t *stream;
         int max_chunk_size; // Size of 0 = unlimited
         time_t max_age;
+
+        scoped_ptr_t<Datum> next_datum;
     private:
         DISABLE_COPYING(entry_t);
     };

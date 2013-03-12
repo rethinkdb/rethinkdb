@@ -25,26 +25,26 @@ int query_server_t::get_port() const {
     return server.get_port();
 }
 
-static void put_backtrace(const query_language::backtrace_t &bt, Response *res_out) {
+static void put_backtrace(const query_language::backtrace_t &bt, Response3 *res_out) {
     std::vector<std::string> frames = bt.get_frames();
     for (size_t i = 0; i < frames.size(); ++i) {
         res_out->mutable_backtrace()->add_frame(frames[i]);
     }
 }
 
-Response on_unparsable_query(Query3 *q, std::string msg) {
-    Response res;
-    res.set_status_code(Response::BROKEN_CLIENT);
+Response3 on_unparsable_query(Query3 *q, std::string msg) {
+    Response3 res;
+    res.set_status_code(Response3::BROKEN_CLIENT);
     res.set_token( (q && q->has_token()) ? q->token() : -1);
     res.set_error_message(msg);
     return res;
 }
 
-Response query_server_t::handle(Query3 *q, context_t *query_context) {
+Response3 query_server_t::handle(Query3 *q, context_t *query_context) {
     stream_cache_t *stream_cache = &query_context->stream_cache;
     signal_t *interruptor = query_context->interruptor;
     guarantee(interruptor);
-    Response res;
+    Response3 res;
     res.set_token(q->token());
 
     query_language::type_checking_environment_t type_environment;
@@ -68,20 +68,20 @@ Response query_server_t::handle(Query3 *q, context_t *query_context) {
         execute_query(q, &runtime_environment, &res, scopes_t(),
                       root_backtrace, stream_cache);
     } catch (const query_language::broken_client_exc_t &e) {
-        res.set_status_code(Response::BROKEN_CLIENT);
+        res.set_status_code(Response3::BROKEN_CLIENT);
         res.set_error_message(e.message);
         return res;
     } catch (const query_language::bad_query_exc_t &e) {
-        res.set_status_code(Response::BAD_QUERY);
+        res.set_status_code(Response3::BAD_QUERY);
         res.set_error_message(e.message);
         put_backtrace(e.backtrace, &res);
         return res;
     } catch (const query_language::runtime_exc_t &e) {
-        res.set_status_code(Response::RUNTIME_ERROR);
+        res.set_status_code(Response3::RUNTIME_ERROR);
         res.set_error_message(e.message);
         put_backtrace(e.backtrace, &res);
     } catch (const interrupted_exc_t &e) {
-        res.set_status_code(Response::RUNTIME_ERROR);
+        res.set_status_code(Response3::RUNTIME_ERROR);
         res.set_error_message("Query3 interrupted.  Did you shut down the server?");
     }
 
@@ -104,18 +104,18 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
-Response2 on_unparsable_query2(Query *q, std::string msg) {
-    Response2 res;
+Response on_unparsable_query2(Query *q, std::string msg) {
+    Response res;
     res.set_token( (q && q->has_token()) ? q->token() : -1);
-    ql::fill_error(&res, Response2::CLIENT_ERROR, msg);
+    ql::fill_error(&res, Response::CLIENT_ERROR, msg);
     return res;
 }
 
-Response2 query2_server_t::handle(Query *q, context_t *query2_context) {
+Response query2_server_t::handle(Query *q, context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
     guarantee(interruptor);
-    Response2 res;
+    Response res;
     res.set_token(q->token());
 
     try {
@@ -132,10 +132,10 @@ Response2 query2_server_t::handle(Query *q, context_t *query2_context) {
         // `ql::run` will set the status code
         ql::run(q, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
-        ql::fill_error(&res, Response2::RUNTIME_ERROR,
+        ql::fill_error(&res, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
     } catch (const std::exception &e) {
-        ql::fill_error(&res, Response2::RUNTIME_ERROR,
+        ql::fill_error(&res, Response::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));
     }
 
