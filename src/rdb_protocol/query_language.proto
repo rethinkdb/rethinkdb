@@ -28,20 +28,6 @@ message MetaQuery3 {
     optional TableRef drop_table = 4;
 };
 
-message Query3 {
-    enum QueryType {
-        CONTINUE   = 3; //Continue reading from a stream
-        STOP       = 4; //Stop reading from a stream and release its resources
-        META       = 5; //Meta operations that create, drop, or list databases/tables
-    }
-
-    required QueryType type = 1;
-
-    required int64 token = 2;
-
-    optional MetaQuery3 meta_query = 5;
-}
-
 message Response3 {
     enum StatusCode {
         SUCCESS_EMPTY = 0;
