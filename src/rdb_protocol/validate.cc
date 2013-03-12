@@ -6,17 +6,17 @@
 #define check_has(pb, field)                                            \
     rcheck_toplevel(                                                    \
         (pb).has_##field(),                                             \
-        strprintf("MALFRORMED PROTOBUF (missing field `%s`): \n%s",     \
+        strprintf("MALFORRMED PROTOBUF (missing field `%s`):\n%s",      \
                   #field, (pb).DebugString().c_str()))
 #define check_not_has(pb, field)                                        \
     rcheck_toplevel(                                                    \
         !(pb).has_##field(),                                            \
-        strprintf("MALFRORMED PROTOBUF (spurious field `%s`): \n%s",    \
+        strprintf("MALFORRMED PROTOBUF (spurious field `%s`):\n%s",     \
                   #field, (pb).DebugString().c_str()))
 #define check_empty(pb, field)                                          \
     rcheck_toplevel(                                                    \
         (pb).field##_size() == 0,                                       \
-        strprintf("MALFRORMED PROTOBUF (non-empty field `%s`): \n%s",   \
+        strprintf("MALFORRMED PROTOBUF (non-empty field `%s`):\n%s",    \
                   #field, (pb).DebugString().c_str()))
 
 void validate_pb(const Query &q) {

@@ -100,7 +100,12 @@ term_t *compile_term(env_t *env, const Term *t) {
 
 void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
-    validate_pb(*q);
+    try {
+        validate_pb(*q);
+    } catch (const any_ql_exc_t &e) {
+        fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+        return;
+    }
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
