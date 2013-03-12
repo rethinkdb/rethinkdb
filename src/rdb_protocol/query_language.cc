@@ -446,14 +446,6 @@ term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, 
     // from returning the type
 
     switch (c->mutable_builtin()->type()) {
-    case Builtin::NOT:
-    case Builtin::MAPMERGE:
-    case Builtin::ARRAYAPPEND:
-    case Builtin::ADD:
-    case Builtin::SUBTRACT:
-    case Builtin::MULTIPLY:
-    case Builtin::DIVIDE:
-    case Builtin::MODULO:
     case Builtin::DISTINCT:
     case Builtin::LENGTH:
     case Builtin::UNION:
@@ -462,34 +454,10 @@ term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, 
     case Builtin::ARRAYTOSTREAM:
     case Builtin::ANY:
     case Builtin::ALL:
-    case Builtin::SLICE:
         // these builtins only have
         // Builtin.type set
         check_protobuf(field_count == 1);
         break;
-    case Builtin::COMPARE:
-        check_protobuf(b->has_comparison());
-        check_protobuf(Builtin::Comparison_IsValid(b->comparison()));
-        break;
-    case Builtin::GETATTR:
-    case Builtin::IMPLICIT_GETATTR:
-    case Builtin::HASATTR:
-    case Builtin::IMPLICIT_HASATTR:
-        check_protobuf(b->has_attr());
-        break;
-    case Builtin::WITHOUT:
-    case Builtin::IMPLICIT_WITHOUT:
-    case Builtin::PICKATTRS:
-    case Builtin::IMPLICIT_PICKATTRS:
-        break;
-    case Builtin::FILTER: {
-        check_protobuf(b->has_filter());
-        break;
-    }
-    case Builtin::MAP: {
-        check_protobuf(b->has_map());
-        break;
-    }
     case Builtin::CONCATMAP: {
         check_protobuf(b->has_concat_map());
         break;
@@ -514,71 +482,10 @@ term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, 
 
     switch (b->type()) {
         //JSON -> JSON
-        case Builtin::NOT:
-        case Builtin::GETATTR:
-        case Builtin::HASATTR:
-        case Builtin::PICKATTRS:
-        case Builtin::WITHOUT:
-            check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);
-            break;
-        case Builtin::IMPLICIT_GETATTR:
-        case Builtin::IMPLICIT_HASATTR:
-        case Builtin::IMPLICIT_PICKATTRS:
-        case Builtin::IMPLICIT_WITHOUT:
-            check_arg_count(c, 0, backtrace);
-            if (!env->implicit_type.has_value() || env->implicit_type.get_value().type != TERM_TYPE_JSON) {
-                throw bad_query_exc_t("No implicit variable in scope", backtrace);
-            } else if (!env->implicit_type.depth_is_legal()) {
-                throw bad_query_exc_t("Cannot use implicit variable in nested queries.  Name your variables!", backtrace);
-            }
-            deterministic &= env->implicit_type.get_value().deterministic;
-            return term_info_t(TERM_TYPE_JSON, deterministic);
-            break;
-        case Builtin::MAPMERGE:
-        case Builtin::ARRAYAPPEND:
-        case Builtin::MODULO:
-            check_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);
-            break;
-        case Builtin::COMPARE:
-            check_function_args_at_least(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);
-            break;
-        case Builtin::ADD:
-        case Builtin::SUBTRACT:
-        case Builtin::MULTIPLY:
-        case Builtin::DIVIDE:
         case Builtin::ANY:
         case Builtin::ALL:
             check_function_args(c, TERM_TYPE_JSON, c->args_size(), env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);  // variadic JSON type
-            break;
-        case Builtin::SLICE:
-            {
-                check_polymorphic_function_args(c, TERM_TYPE_JSON, 3, env, &deterministic, backtrace);
-                // polymorphic
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
-                return res;
-            }
-        case Builtin::MAP:
-            {
-                check_arg_count(c, 1, backtrace);
-
-                {
-                    implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_mapping_type(b->mutable_map()->mutable_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("mapping"));
-                }
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
-
-                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
-                    res.type = TERM_TYPE_STREAM;
-                }
-
-                return res;
-            }
             break;
         case Builtin::CONCATMAP:
             {
@@ -609,19 +516,6 @@ term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, 
                     res.type = TERM_TYPE_STREAM;
                 }
 
-                return res;
-            }
-            break;
-        case Builtin::FILTER:
-            {
-                check_arg_count(c, 1, backtrace);
-                {
-                    // polymorphic
-                    implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_predicate_type(b->mutable_filter()->mutable_predicate(), env, &deterministic, backtrace.with("predicate"));
-                }
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
                 return res;
             }
             break;
@@ -1582,346 +1476,6 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term3 *t, runtime_environme
 boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
-        case Builtin::NOT:
-            {
-                boost::shared_ptr<scoped_cJSON_t> data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                if (data->get()->type == cJSON_False) {
-                    data->get()->type = cJSON_True;
-                } else if (data->get()->type == cJSON_True) {
-                    data->get()->type = cJSON_False;
-                } else {
-                    throw runtime_exc_t("Not can only be called on a boolean", backtrace.with("arg:0"));
-                }
-                return data;
-            }
-            break;
-        case Builtin::GETATTR:
-        case Builtin::IMPLICIT_GETATTR:
-            {
-                boost::shared_ptr<scoped_cJSON_t> data;
-                if (c->builtin().type() == Builtin::GETATTR) {
-                    data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                } else {
-                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
-                    data = scopes.implicit_attribute_value.get_value();
-                }
-
-                if (data->type() != cJSON_Object) {
-                    throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
-                }
-
-                cJSON *value = data->GetObjectItem(c->builtin().attr().c_str());
-
-                if (!value) {
-                    throw runtime_exc_t("Object:\n" + data->Print() +"\nis missing attribute \"" + c->builtin().attr() + "\"", backtrace.with("attr"));
-                }
-
-                return shared_scoped_json(cJSON_DeepCopy(value));
-            }
-            break;
-        case Builtin::HASATTR:
-        case Builtin::IMPLICIT_HASATTR:
-            {
-                boost::shared_ptr<scoped_cJSON_t> data;
-                if (c->builtin().type() == Builtin::HASATTR) {
-                    data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                } else {
-                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
-                    data = scopes.implicit_attribute_value.get_value();
-                }
-
-                if (data->type() != cJSON_Object) {
-                    throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
-                }
-
-                cJSON *attr = data->GetObjectItem(c->builtin().attr().c_str());
-
-                if (attr) {
-                    return shared_scoped_json(cJSON_CreateTrue());
-                } else {
-                    return shared_scoped_json(cJSON_CreateFalse());
-                }
-            }
-            break;
-        case Builtin::IMPLICIT_WITHOUT:
-        case Builtin::WITHOUT: {
-            boost::shared_ptr<scoped_cJSON_t> data;
-            if (c->builtin().type() == Builtin::WITHOUT) {
-                data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-            } else {
-                guarantee(c->builtin().type() == Builtin::IMPLICIT_WITHOUT);
-                guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
-                data = scopes.implicit_attribute_value.get_value();
-            }
-            if (data->type() != cJSON_Object) {
-                throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
-            }
-            boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(data->DeepCopy()));
-            for (int i = 0; i < c->builtin().attrs_size(); ++i) {
-                res->DeleteItemFromObject(c->builtin().attrs(i).c_str());
-            }
-            return res;
-        } break;
-        case Builtin::PICKATTRS:
-        case Builtin::IMPLICIT_PICKATTRS:
-            {
-                boost::shared_ptr<scoped_cJSON_t> data;
-                if (c->builtin().type() == Builtin::PICKATTRS) {
-                    data = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                } else {
-                    guarantee_debug_throw_release(scopes.implicit_attribute_value.has_value(), backtrace);
-                    data = scopes.implicit_attribute_value.get_value();
-                }
-
-                if (data->type() != cJSON_Object) {
-                    throw runtime_exc_t("Data: \n" + data->Print() + "\nmust be an object", backtrace.with("arg:0"));
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
-
-                for (int i = 0; i < c->builtin().attrs_size(); ++i) {
-                    cJSON *item = data->GetObjectItem(c->builtin().attrs(i).c_str());
-                    if (!item) {
-                        throw runtime_exc_t("Attempting to pick missing attribute " + c->builtin().attrs(i) + " from data:\n" + data->Print(), backtrace.with(strprintf("attrs:%d", i)));
-                    } else {
-                        res->AddItemToObject(item->string, cJSON_DeepCopy(item));
-                    }
-                }
-                return res;
-            }
-            break;
-        case Builtin::MAPMERGE:
-            {
-                boost::shared_ptr<scoped_cJSON_t> left  = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"),
-                                                                                      cJSON_Object, "Data must be an object"),
-                                                  right = eval_term_as_json_and_check(c->mutable_args(1), env, scopes, backtrace.with("arg:1"),
-                                                                                      cJSON_Object, "Data must be an object");
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_merge(left->get(), right->get())));
-            }
-            break;
-        case Builtin::ARRAYAPPEND:
-            {
-                // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"),
-                    cJSON_Array, "The first argument must be an array.");
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(array->DeepCopy()));
-                res->AddItemToArray(eval_term_as_json(c->mutable_args(1), env, scopes, backtrace.with("arg:1"))->DeepCopy());
-                return res;
-            }
-            break;
-        case Builtin::SLICE:
-            {
-                int start, stop;
-
-                // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"),
-                                                                                      cJSON_Array, "The first argument must be an array.");
-
-                int length = array->GetArraySize();
-
-                // Check second arg type
-                {
-                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_term_as_json_and_check_either(c->mutable_args(1), env, scopes, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or an integer.");
-                    if (start_json->type() == cJSON_NULL) {
-                        start = 0;
-                    } else {    // cJSON_Number
-                        double double_start = start_json->get()->valuedouble;
-                        start = static_cast<int>(double_start);
-                        if (double_start != start) {
-                            throw runtime_exc_t("Slice start must be null or an integer.", backtrace.with("arg:1"));
-                        }
-                    }
-                }
-
-                // Check third arg type
-                {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_term_as_json_and_check_either(c->mutable_args(2), env, scopes, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or an integer.");
-                    if (stop_json->type() == cJSON_NULL) {
-                        stop = length;
-                    } else {
-                        double double_stop = stop_json->get()->valuedouble;
-                        stop = static_cast<int>(double_stop);
-                        if (double_stop != stop) {
-                            throw runtime_exc_t("Slice stop must be null or an integer.", backtrace.with("arg:2"));
-                        }
-                    }
-                }
-
-                if (start < 0) {
-                    start = std::max(start + length, 0);
-                }
-                if (start > length) {
-                    start = length;
-                }
-
-                if (stop < 0) {
-                    stop = std::max(stop + length, 0);
-                }
-                if (stop > length) {
-                    stop = length;
-                }
-
-                if (start == 0 && stop == length) {
-                    return array;   // nothing to do
-                }
-
-                // Create a new array and slice the elements into it
-                if (start > stop) {
-                    throw runtime_exc_t("The second argument cannot be greater than the third argument.", backtrace.with("arg:2"));
-                }
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for (int i = start; i < stop; i++) {
-                    res->AddItemToArray(cJSON_DeepCopy(array->GetArrayItem(i)));
-                }
-
-                return res;
-            }
-            break;
-        case Builtin::ADD:
-            {
-                if (c->args_size() == 0) {
-                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                if (arg->type() == cJSON_Number) {
-                    double result = arg->get()->valuedouble;
-
-                    for (int i = 1; i < c->args_size(); ++i) {
-                        arg = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "Cannot ADD numbers to non-numbers");
-                        result += arg->get()->valuedouble;
-                    }
-
-                    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
-                } else if (arg->type() == cJSON_Array) {
-                    boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(arg->DeepCopy()));
-                    for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Array, "Cannot ADD arrays to non-arrays");
-                        for (int j = 0; j < arg2->GetArraySize(); ++j) {
-                            res->AddItemToArray(cJSON_DeepCopy(arg2->GetArrayItem(j)));
-                        }
-                    }
-                    return res;
-                } else {
-                    throw runtime_exc_t("Can only ADD numbers with numbers and arrays with arrays", backtrace.with("arg:0"));
-                }
-            }
-            break;
-        case Builtin::SUBTRACT:
-            {
-                double result = 0.0;
-
-                if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of SUBTRACT must be numbers.");
-                    if (c->args_size() == 1) {
-                        result = -arg->get()->valuedouble;  // (- x) is negate
-                    } else {
-                        result = arg->get()->valuedouble;
-                    }
-
-                    for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of SUBTRACT must be numbers.");
-                        result -= arg2->get()->valuedouble;
-                    }
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
-                return res;
-            }
-            break;
-        case Builtin::MULTIPLY:
-            {
-                double result = 1.0;
-
-                for (int i = 0; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of MULTIPLY must be numbers.");
-                    result *= arg->get()->valuedouble;
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
-                return res;
-            }
-            break;
-        case Builtin::DIVIDE:
-            {
-                double result = 0.0;
-
-                if (c->args_size() > 0) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "All operands of DIVIDE must be numbers.");
-                    if (c->args_size() == 1) {
-                        result = 1.0 / arg->get()->valuedouble;  // (/ x) is reciprocal
-                    } else {
-                        result = arg->get()->valuedouble;
-                    }
-
-                    for (int i = 1; i < c->args_size(); ++i) {
-                        boost::shared_ptr<scoped_cJSON_t> arg2 = eval_term_as_json_and_check(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)), cJSON_Number, "All operands of DIVIDE must be numbers.");
-                        result /= arg2->get()->valuedouble;
-                    }
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(result, backtrace)));
-                return res;
-            }
-            break;
-        case Builtin::MODULO:
-            {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Number, "First operand of MOD must be a number."),
-                                                  rhs = eval_term_as_json_and_check(c->mutable_args(1), env, scopes, backtrace.with("arg:1"), cJSON_Number, "Second operand of MOD must be a number.");
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(safe_cJSON_CreateNumber(fmod(lhs->get()->valuedouble, rhs->get()->valuedouble), backtrace)));
-                return res;
-            }
-            break;
-        case Builtin::COMPARE:
-            {
-                bool result = true;
-
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                for (int i = 1; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> rhs = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
-
-                    int res = lhs->type() == cJSON_NULL && rhs->type() == cJSON_NULL ? 0:
-                        json_cmp(lhs->get(), rhs->get());
-
-                    switch (c->builtin().comparison()) {
-                    case Builtin_Comparison_EQ:
-                        result &= (res == 0);
-                        break;
-                    case Builtin_Comparison_NE:
-                        result &= (res != 0);
-                        break;
-                    case Builtin_Comparison_LT:
-                        result &= (res < 0);
-                        break;
-                    case Builtin_Comparison_LE:
-                        result &= (res <= 0);
-                        break;
-                    case Builtin_Comparison_GT:
-                        result &= (res > 0);
-                        break;
-                    case Builtin_Comparison_GE:
-                        result &= (res >= 0);
-                        break;
-                    default:
-                        crash("Unknown comparison operator.");
-                        break;
-                    }
-
-                    if (!result)
-                        break;
-
-                    lhs = rhs;
-                }
-
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(result)));
-            }
-            break;
-        case Builtin::FILTER:
-        case Builtin::MAP:
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
@@ -2188,23 +1742,6 @@ boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term3 *term, runtime
 boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
-        case Builtin::NOT:
-        case Builtin::GETATTR:
-        case Builtin::IMPLICIT_GETATTR:
-        case Builtin::HASATTR:
-        case Builtin::IMPLICIT_HASATTR:
-        case Builtin::WITHOUT:
-        case Builtin::IMPLICIT_WITHOUT:
-        case Builtin::PICKATTRS:
-        case Builtin::IMPLICIT_PICKATTRS:
-        case Builtin::MAPMERGE:
-        case Builtin::ARRAYAPPEND:
-        case Builtin::ADD:
-        case Builtin::SUBTRACT:
-        case Builtin::MULTIPLY:
-        case Builtin::DIVIDE:
-        case Builtin::MODULO:
-        case Builtin::COMPARE:
         case Builtin::LENGTH:
         case Builtin::NTH:
         case Builtin::STREAMTOARRAY:
@@ -2217,18 +1754,6 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_env
             json_array_iterator_t it(arr->get());
             return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
         } break;
-        case Builtin::FILTER:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
-            }
-            break;
-        case Builtin::MAP:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().map().mapping(), env, 0, scopes, backtrace.with("mapping"));
-            }
-            break;
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
@@ -2253,47 +1778,6 @@ boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_env
                 return boost::shared_ptr<json_stream_t>(new distinct_stream_t<shared_scoped_less_t>(stream, comparator));
             }
             break;
-        case Builtin::SLICE:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                int start, stop;
-                bool stop_unbounded = false;
-
-                {
-                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_term_as_json_and_check_either(c->mutable_args(1), env, scopes, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or a nonnegative integer.");
-                    if (start_json->type() == cJSON_NULL) {
-                        start = 0;
-                    } else {    // cJSON_Number
-                        double double_start = start_json->get()->valuedouble;
-                        start = static_cast<int>(double_start);
-                        if (double_start != start || start < 0) {
-                            throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
-                        }
-                    }
-                }
-
-                // Check third arg type
-                {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_term_as_json_and_check_either(c->mutable_args(2), env, scopes, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or a nonnegative integer.");
-                    if (stop_json->type() == cJSON_NULL) {
-                        stop_unbounded = true;
-                        stop = 0;
-                    } else {
-                        double double_stop = stop_json->get()->valuedouble;
-                        stop = static_cast<int>(double_stop);
-                        if (double_stop != stop || stop < 0) {
-                            throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
-                        }
-                    }
-                }
-
-                if (!stop_unbounded && stop < start) {
-                    throw runtime_exc_t("Slice stop cannot be before slice start", backtrace.with("arg:2"));
-                }
-
-                return boost::shared_ptr<json_stream_t>(new slice_stream_t(stream, start, stop_unbounded, stop));
-            }
         case Builtin::UNION:
             {
                 union_stream_t::stream_list_t streams;
@@ -2397,23 +1881,6 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
 view_t eval_call_as_view(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (c->builtin().type()) {
         //JSON -> JSON
-        case Builtin::NOT:
-        case Builtin::GETATTR:
-        case Builtin::IMPLICIT_GETATTR:
-        case Builtin::HASATTR:
-        case Builtin::IMPLICIT_HASATTR:
-        case Builtin::WITHOUT:
-        case Builtin::IMPLICIT_WITHOUT:
-        case Builtin::PICKATTRS:
-        case Builtin::IMPLICIT_PICKATTRS:
-        case Builtin::MAPMERGE:
-        case Builtin::ARRAYAPPEND:
-        case Builtin::ADD:
-        case Builtin::SUBTRACT:
-        case Builtin::MULTIPLY:
-        case Builtin::DIVIDE:
-        case Builtin::MODULO:
-        case Builtin::COMPARE:
         case Builtin::LENGTH:
         case Builtin::NTH:
         case Builtin::STREAMTOARRAY:
@@ -2421,20 +1888,11 @@ view_t eval_call_as_view(Term3::Call *c, runtime_environment_t *env, const scope
         case Builtin::ALL:
         case Builtin::ANY:
         case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::MAP:
         case Builtin::CONCATMAP:
         case Builtin::DISTINCT:
         case Builtin::UNION:
         case Builtin::ARRAYTOSTREAM:
             unreachable("eval_call_as_view called on a function that does not return a view");
-            break;
-        case Builtin::FILTER:
-            {
-                view_t view = eval_term_as_view(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                boost::shared_ptr<json_stream_t> new_stream =
-                    view.stream->add_transformation(c->builtin().filter(), env, 0, scopes, backtrace.with("predicate"));
-                return view_t(view.access, view.primary_key, new_stream);
-            }
             break;
         case Builtin::ORDERBY:
             {
@@ -2444,48 +1902,6 @@ view_t eval_call_as_view(Term3::Call *c, runtime_environment_t *env, const scope
                 boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream));
                 sorted_stream->sort(o);
                 return view_t(view.access, view.primary_key, sorted_stream);
-            }
-            break;
-        case Builtin::SLICE:
-            {
-                view_t view = eval_term_as_view(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                int start, stop;
-                bool stop_unbounded = false;
-
-                {
-                    boost::shared_ptr<scoped_cJSON_t> start_json = eval_term_as_json_and_check_either(c->mutable_args(1), env, scopes, backtrace.with("arg:1"), cJSON_NULL, cJSON_Number, "Slice start must be null or a nonnegative integer.");
-                    if (start_json->type() == cJSON_NULL) {
-                        start = 0;
-                    } else {    // cJSON_Number
-                        double double_start = start_json->get()->valuedouble;
-                        start = static_cast<int>(double_start);
-                        if (double_start != start || start < 0) {
-                            throw runtime_exc_t("Slice start must be null or a nonnegative integer.", backtrace.with("arg:1"));
-                        }
-                    }
-                }
-
-                // Check third arg type
-                {
-                    boost::shared_ptr<scoped_cJSON_t> stop_json = eval_term_as_json_and_check_either(c->mutable_args(2), env, scopes, backtrace.with("arg:2"), cJSON_NULL, cJSON_Number, "Slice stop must be null or a nonnegative integer.");
-                    if (stop_json->type() == cJSON_NULL) {
-                        stop_unbounded = true;
-                        stop = 0;
-                    } else {
-                        double double_stop = stop_json->get()->valuedouble;
-                        stop = static_cast<int>(double_stop);
-                        if (double_stop != stop || stop < 0) {
-                            throw runtime_exc_t("Slice stop must be null or a nonnegative integer.", backtrace.with("arg:2"));
-                        }
-                    }
-                }
-
-                if (!stop_unbounded && stop < start) {
-                    throw runtime_exc_t("Slice stop cannot be before slice start", backtrace.with("arg:2"));
-                }
-
-                return view_t(view.access, view.primary_key, boost::shared_ptr<json_stream_t>(new slice_stream_t(view.stream, start, stop_unbounded, stop)));
             }
             break;
         case Builtin::RANGE:
