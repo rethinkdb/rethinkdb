@@ -2,6 +2,7 @@
 # Tests the driver cursor API
 ###
 
+import unittest
 from os import getenv
 from sys import path, argv
 path.append("../../drivers/python")
@@ -9,20 +10,28 @@ path.append("../../drivers/python")
 import rethinkdb as r
 
 num_rows = int(argv[2])
-print "Testing for %d rows" % num_rows
 port = int(argv[1])
 
-c = r.connect(port=port)
+class TestCursor(unittest.TestCase):
 
-tbl = r.table('test')
+    def setUp(self):
+        c = r.connect(port=port)
+        tbl = r.table('test')
+        self.cur = tbl.run(c)
 
-cur = tbl.run(c)
+    def test_type(self):
+        self.assertEqual(type(self.cur), r.Cursor)
 
-i = 0
-for row in cur:
-    i += 1
+    def test_count(self):
+        i = 0
+        for row in self.cur:
+            i += 1
 
-if not i == num_rows:
-    print "Test failed: expected %d rows but found %d." % (num_rows, i)
-else:
-    print "Test passed!"
+        self.assertEqual(i, num_rows)
+
+if __name__ == '__main__':
+    print "Testing cursor for %d rows" % num_rows
+    suite = unittest.TestSuite()
+    loader = unittest.TestLoader()
+    suite.addTest(loader.loadTestsFromTestCase(TestCursor))
+    unittest.TextTestRunner(verbosity=2).run(suite)
