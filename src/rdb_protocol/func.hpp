@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_FUNC_HPP_
 
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -106,25 +107,25 @@ private:
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
 class filter_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit filter_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
 class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
 class concatmap_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
+    explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
 // Count is a fake function because we don't need to send anything.
