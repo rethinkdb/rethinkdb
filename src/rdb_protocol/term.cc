@@ -2,6 +2,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/term_walker.hpp"
+#include "rdb_protocol/validate.hpp"
 
 #include "rdb_protocol/terms/arith.hpp"
 #include "rdb_protocol/terms/arr.hpp"
@@ -99,6 +100,7 @@ term_t *compile_term(env_t *env, const Term *t) {
 
 void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
+    validate_pb(*q);
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
