@@ -9,10 +9,11 @@ path.append("../../drivers/python")
 import rethinkdb as r
 
 server_build = argv[1]
-if 2 in argv:
+if len(argv) >= 3:
     lang = argv[2]
 else:
     lang = None
+
 with RethinkDBTestServers(server_build=server_build) as servers:
     port = servers.cpp_port
     c = r.connect(port=port)

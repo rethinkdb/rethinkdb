@@ -2,6 +2,7 @@ import ql2_pb2 as p
 import types
 import sys
 from errors import *
+from net import Connection
 
 class RqlQuery(object):
 
@@ -16,7 +17,13 @@ class RqlQuery(object):
             self.optargs[k] = expr(optargs[k])
 
     # Send this query to the server to be executed
-    def run(self, c, **global_opt_args):
+    def run(self, c=None, **global_opt_args):
+        if not c:
+            if Connection.repl_connection:
+                c = Connection.repl_connection
+            else:
+                raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
+            
         return c._start(self, **global_opt_args)
 
     def __str__(self):

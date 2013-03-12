@@ -39,6 +39,7 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
+    repl_connection = None
 
     def __init__(self, host, port, db='test'):
         self.socket = None
@@ -71,6 +72,13 @@ class Connection(object):
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
+
+    # Not thread safe. Sets this connection as global state that will be used
+    # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
+    # a Python repl environment.
+    def repl(self):
+        Connection.repl_connection = self
+        return self
 
     def _start(self, term, **global_opt_args):
         token = self.next_token

@@ -87,6 +87,30 @@ with RethinkDBTestServers(server_build=server_build) as servers:
 
     try:
         c = r.connect(port=port)
+        
+        r.db('test').table_create('t1').run(c)
+        r.db_create('db2').run(c)
+        r.db('db2').table_create('t2').run(c)
+
+        # Default db should be 'test' so this will work
+        r.table('t1').run(c)
+
+        # Use a new database
+        c.use('db2')
+        r.table('t2').run(c)
+
+        c.use('test')
+        try:
+            r.table('t2').run(c)
+        except r.RqlRuntimeError as err:
+            if not err.message == "Table `t2` does not exist.":
+                raise err
+
+    except r.RqlDriverError as err:
+        raise Exception("Should not have thrown")
+
+    try:
+        c = r.connect(port=port)
         r.expr(1).run(c)
 
         servers.stop()
