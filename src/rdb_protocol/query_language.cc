@@ -750,12 +750,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
 
     bool deterministic = true;
     switch (w->type()) {
-    case WriteQuery3::UPDATE: {
-        check_protobuf(w->has_update());
-        check_term_type(w->mutable_update()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
-        implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic));
-        check_mapping_type(w->mutable_update()->mutable_mapping(), TERM_TYPE_JSON, env, is_det_out, backtrace.with("modify_map"));
-    } break;
     case WriteQuery3::DELETE: {
         check_protobuf(w->has_delete_());
         check_term_type(w->mutable_delete_()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
@@ -1390,37 +1384,6 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
 void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     res->set_status_code(Response3::SUCCESS_JSON);
     switch (w->type()) {
-    case WriteQuery3::UPDATE: {
-        view_t view = eval_term_as_view(w->mutable_update()->mutable_view(), env, scopes, backtrace.with("view"));
-        std::string reported_error = "";
-
-        int updated = 0, errors = 0, skipped = 0;
-        while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            guarantee_debug_throw_release(json && json->type() == cJSON_Object, backtrace);
-            try {
-                std::string pk = view.primary_key;
-                cJSON *id = json->GetObjectItem(pk.c_str());
-                point_modify_ns::result_t mres =
-                    point_modify(view.access, pk, id, point_modify_ns::UPDATE, env, w->update().mapping(), scopes,
-                                 w->atomic(), json, backtrace.with("modify_map"));
-                guarantee(mres == point_modify_ns::MODIFIED || mres == point_modify_ns::SKIPPED);
-                updated += (mres == point_modify_ns::MODIFIED);
-                skipped += (mres == point_modify_ns::SKIPPED);
-            } catch (const query_language::broken_client_exc_t &e) {
-                ++errors;
-                if (reported_error == "") reported_error = e.message;
-            } catch (const query_language::runtime_exc_t &e) {
-                ++errors;
-                if (reported_error == "") reported_error = e.message + "\nBacktrace:\n" + e.backtrace.print();
-            }
-        }
-        std::string res_list = strprintf("\"updated\": %d, \"skipped\": %d, \"errors\": %d", updated, skipped, errors);
-        if (reported_error != "") {
-            res_list = strprintf("%s, \"first_error\": %s", res_list.c_str(),
-                                 scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
-        }
-        res->add_response("{" + res_list + "}");
-    } break;
     case WriteQuery3::MUTATE: {
         view_t view = eval_term_as_view(w->mutable_mutate()->mutable_view(), env, scopes, backtrace.with("view"));
 
