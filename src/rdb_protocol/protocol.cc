@@ -17,7 +17,6 @@
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/environment.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
@@ -234,17 +233,8 @@ class unshard_visitor_t : public boost::static_visitor<void> {
 public:
     unshard_visitor_t(const read_response_t *_responses,
                       size_t _count,
-                      read_response_t *_response_out, context_t *ctx)
-        : responses(_responses), count(_count), response_out(_response_out),
-          env(ctx->pool_group,
-              ctx->ns_repo,
-              ctx->cross_thread_namespace_watchables[get_thread_id()].get()->get_watchable(),
-              ctx->cross_thread_database_watchables[get_thread_id()].get()->get_watchable(),
-              ctx->semilattice_metadata,
-              boost::make_shared<js::runner_t>(),
-              ctx->signals[get_thread_id()].get(),
-              ctx->machine_id)
-    { }
+                      read_response_t *_response_out)
+        : responses(_responses), count(_count), response_out(_response_out) { }
 
     void operator()(const point_read_t &) {
         guarantee(count == 1);
@@ -409,11 +399,10 @@ private:
     const read_response_t *responses;
     size_t count;
     read_response_t *response_out;
-    query_language::runtime_environment_t env;
 };
 
-void read_t::unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    unshard_visitor_t v(responses, count, response, ctx);
+void read_t::unshard(read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    unshard_visitor_t v(responses, count, response);
     boost::apply_visitor(v, read);
 }
 
@@ -509,7 +498,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
     void operator()(const rget_read_t &rget) {
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &env, &ql_env, rget.transform, rget.terminal, &res);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, &res);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -545,16 +534,6 @@ struct read_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         superblock(_superblock),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
-        env(ctx->pool_group,
-            ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
-                ->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()
-                ->get_watchable(),
-            ctx->semilattice_metadata,
-            boost::make_shared<js::runner_t>(),
-            &interruptor,
-            ctx->machine_id),
         ql_env(ctx->pool_group,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id()].get()
@@ -574,7 +553,6 @@ private:
     transaction_t *txn;
     superblock_t *superblock;
     wait_any_t interruptor;
-    query_language::runtime_environment_t env;
     ql::env_t ql_env;
 };
 
@@ -629,16 +607,6 @@ struct write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
-        env(ctx->pool_group,
-            ctx->ns_repo,
-            ctx->cross_thread_namespace_watchables[get_thread_id()].get()
-                ->get_watchable(),
-            ctx->cross_thread_database_watchables[get_thread_id()].get()
-                ->get_watchable(),
-            ctx->semilattice_metadata,
-            boost::make_shared<js::runner_t>(),
-            &interruptor,
-            ctx->machine_id),
         ql_env(ctx->pool_group,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[
@@ -659,7 +627,6 @@ private:
     superblock_t *superblock;
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
-    query_language::runtime_environment_t env;
     ql::env_t ql_env;
 };
 

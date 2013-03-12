@@ -35,10 +35,6 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
-namespace query_language {
-    class runtime_environment_t;
-} //namespace query_language
-
 class parallel_traversal_progress_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
@@ -125,7 +121,6 @@ struct rget_response_t {
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,

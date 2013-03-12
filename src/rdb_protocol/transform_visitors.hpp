@@ -16,8 +16,6 @@ namespace query_language {
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
-class runtime_environment_t;
-
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 
 /* A visitor for applying a transformation to a bit of json. */
