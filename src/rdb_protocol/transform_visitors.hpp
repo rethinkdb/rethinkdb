@@ -31,8 +31,6 @@ public:
                         const scopes_t &_scopes,
                         const backtrace_t &_backtrace);
 
-    void operator()(const Mapping &mapping) const;
-
     // This is a non-const reference because it caches the compiled function
     void operator()(ql::map_wire_func_t &func/*NOLINT*/) const;
     void operator()(ql::filter_wire_func_t &func/*NOLINT*/) const;
@@ -56,8 +54,6 @@ public:
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
 
-    void operator()(const Reduction &) const;
-
     void operator()(const rdb_protocol_details::Length &) const;
 
     void operator()(const ql::gmr_wire_func_t &) const;
@@ -80,8 +76,6 @@ public:
                        const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
-
-    void operator()(const Reduction &r) const;
 
     void operator()(const rdb_protocol_details::Length &) const;
 

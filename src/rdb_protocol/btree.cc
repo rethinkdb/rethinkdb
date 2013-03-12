@@ -250,55 +250,6 @@ void rdb_replace(btree_slice_t *slice,
     resp->write_to_protobuf(response_out);
 }
 
-void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
-                query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
-                const Mapping &mapping,
-                btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response) {
-    try {
-        keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
-                                         &slice->root_eviction_priority, &slice->stats);
-        boost::shared_ptr<scoped_cJSON_t> lhs;
-        if (!kv_location.value.has()) {
-            lhs.reset(new scoped_cJSON_t(cJSON_CreateNull()));
-        } else {
-            lhs = get_data(kv_location.value.get(), txn);
-            guarantee(lhs->GetObjectItem(primary_key.c_str()));
-        }
-        boost::shared_ptr<scoped_cJSON_t> new_row;
-        std::string new_key;
-        point_modify_ns::result_t res = query_language::calculate_modify(
-            lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
-        switch (res) {
-        case point_modify_ns::INSERTED:
-            if (new_key != key_to_unescaped_str(key)) {
-                throw query_language::runtime_exc_t(strprintf("mutate can't change the primary key (%s) when doing an insert of %s",
-                                                              primary_key.c_str(), new_row->Print().c_str()), backtrace);
-            }
-            //FALLTHROUGH
-        case point_modify_ns::MODIFIED: {
-            guarantee(new_row);
-            kv_location_set(&kv_location, key, new_row, slice, timestamp, txn);
-        } break;
-        case point_modify_ns::DELETED: {
-            kv_location_delete(&kv_location, key, slice, timestamp, txn);
-        } break;
-        case point_modify_ns::SKIPPED: break;
-        case point_modify_ns::NOP: break;
-        case point_modify_ns::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
-        default: unreachable();
-        }
-        response->result = res;
-    } catch (const query_language::runtime_exc_t &e) {
-        response->result = point_modify_ns::ERROR;
-        response->exc = e;
-    } catch (const ql::exc_t &e2) {
-        response->result = point_modify_ns::ERROR;
-        response->ql_exc = e2;
-    }
-}
-
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {

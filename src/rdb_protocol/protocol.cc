@@ -53,9 +53,6 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
-typedef rdb_protocol_t::point_modify_t point_modify_t;
-typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
-
 typedef rdb_protocol_t::point_replace_t point_replace_t;
 typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
 
@@ -73,9 +70,6 @@ typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
 typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
-
-RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
-RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
@@ -310,27 +304,6 @@ public:
 
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
-            } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
-                //Normal Mapreduce
-                rg_response.result = atom_t();
-                atom_t *res_atom = boost::get<atom_t>(&rg_response.result);
-
-                Term3 base = r->base();
-                *res_atom = eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("base"));
-
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const atom_t *atom = boost::get<atom_t>(&(_rr->result));
-
-                    scopes_t scopes_copy = rg.terminal->scopes;
-                    query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                    scopes_copy.scope.put_in_scope(r->var1(), *res_atom);
-                    scopes_copy.scope.put_in_scope(r->var2(), *atom);
-                    Term3 body = r->body();
-                    *res_atom = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("body"));
-                }
             } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
                        || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
                 typedef std::vector<ql::wire_datum_t> wire_data_t;
@@ -471,10 +444,6 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pw.key);
     }
 
-    region_t operator()(const point_modify_t &pw) const {
-        return rdb_protocol_t::monokey_region(pw.key);
-    }
-
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }
@@ -500,10 +469,6 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     { }
 
     write_t operator()(const point_write_t &pw) const {
-        rassert(rdb_protocol_t::monokey_region(pw.key) == region);
-        return write_t(pw);
-    }
-    write_t operator()(const point_modify_t &pw) const {
         rassert(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
@@ -656,12 +621,6 @@ struct write_visitor_t : public boost::static_visitor<void> {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
-    }
-
-    void operator()(const point_modify_t &m) {
-        response->response = point_modify_response_t();
-        point_modify_response_t &res = boost::get<point_modify_response_t>(response->response);
-        rdb_modify(m.primary_key, m.key, m.op, &env, m.scopes, m.backtrace, m.mapping, btree, timestamp, txn, superblock, &res);
     }
 
     void operator()(const point_delete_t &d) {
@@ -976,11 +935,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::point_modify_response_t, result, exc);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
-
-RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::point_modify_t, primary_key, key, op, scopes, backtrace, mapping);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 

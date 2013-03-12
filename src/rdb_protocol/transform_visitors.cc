@@ -10,11 +10,6 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
       scopes(_scopes), backtrace(_backtrace)
 { }
 
-void transform_visitor_t::operator()(const Mapping &mapping) const {
-    Term3 t = mapping.body();
-    out->push_back(query_language::map_rdb(mapping.arg(), &t, env, scopes, backtrace, json));
-}
-
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
@@ -48,11 +43,6 @@ terminal_initializer_visitor_t::terminal_initializer_visitor_t(
     : out(_out), env(_env), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
-void terminal_initializer_visitor_t::operator()(const Reduction &r) const {
-    Term3 base = r.base();
-    *out = eval_term_as_json(&base, env, scopes, backtrace.with("base"));
-}
-
 void terminal_initializer_visitor_t::operator()(
     const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t l;
@@ -69,20 +59,6 @@ terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
     : json(_json), env(_env), ql_env(_ql_env),
       scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
-
-void terminal_visitor_t::operator()(const Reduction &r) const {
-    //we assume the result has already been set to groups_t
-    rget_read_response_t::atom_t *res_atom = boost::get<rget_read_response_t::atom_t>(out);
-    guarantee(res_atom);
-    guarantee(*res_atom);
-
-    scopes_t scopes_copy = scopes;
-    new_val_scope_t inner_scope(&scopes_copy.scope);
-    scopes_copy.scope.put_in_scope(r.var1(), *res_atom);
-    scopes_copy.scope.put_in_scope(r.var2(), json);
-    Term3 body = r.body();
-    *res_atom = eval_term_as_json(&body, env, scopes_copy, backtrace.with("body"));
-}
 
 void terminal_visitor_t::operator()(const rdb_protocol_details::Length &) const {
     rget_read_response_t::length_t *res_length = boost::get<rget_read_response_t::length_t>(out);

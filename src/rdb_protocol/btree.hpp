@@ -32,9 +32,6 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
-typedef rdb_protocol_t::point_modify_t point_modify_t;
-typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
-
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
@@ -89,12 +86,6 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out) THROWS_NOTHING;
-
-void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify_ns::op_t op,
-                query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
-                const Mapping &mapping,
-                btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,

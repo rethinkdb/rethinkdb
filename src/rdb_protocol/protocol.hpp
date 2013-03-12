@@ -60,21 +60,6 @@ enum point_delete_result_t {
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
 
-namespace point_modify_ns {
-enum result_t { MODIFIED, INSERTED, SKIPPED, DELETED, NOP, ERROR };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, MODIFIED, ERROR);
-enum op_t { UPDATE, MUTATE };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, UPDATE, MUTATE);
-static inline std::string op_name(op_t op) {
-    if (op == UPDATE) return "update";
-    if (op == MUTATE) return "mutate";
-    unreachable();
-}
-}
-
-RDB_DECLARE_SERIALIZABLE(Mapping);
-RDB_DECLARE_SERIALIZABLE(Reduction);
-
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 
@@ -96,8 +81,7 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
-typedef boost::variant<Mapping,
-                       ql::map_wire_func_t,
+typedef boost::variant<ql::map_wire_func_t,
                        ql::filter_wire_func_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 
@@ -123,8 +107,7 @@ struct Length { };
 
 RDB_DECLARE_SERIALIZABLE(Length);
 
-typedef boost::variant<Reduction,
-                       Length,
+typedef boost::variant<Length,
                        ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
@@ -362,51 +345,18 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    struct point_modify_response_t {
-        point_modify_ns::result_t result;
-        query_language::runtime_exc_t exc;
-        ql::exc_t ql_exc;
-        point_modify_response_t() { }
-        explicit point_modify_response_t(point_modify_ns::result_t _result) : result(_result) {
-            guarantee(result != point_modify_ns::ERROR);
-        }
-        explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
-            : result(point_modify_ns::ERROR), exc(_exc) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
     typedef Datum point_replace_response_t;
 
     struct write_response_t {
         boost::variant<point_write_response_t,
-                       point_modify_response_t,
                        point_delete_response_t,
                        point_replace_response_t> response;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : response(w.response) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
-        explicit write_response_t(const point_modify_response_t& m) : response(m) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
         explicit write_response_t(const Datum& d) : response(d) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class point_modify_t {
-    public:
-        point_modify_t() { }
-        point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify_ns::op_t &_op,
-                       const query_language::scopes_t &_scopes, const backtrace_t &_backtrace, const Mapping &_mapping)
-            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), backtrace(_backtrace), mapping(_mapping) { }
-
-        std::string primary_key;
-        store_key_t key;
-        point_modify_ns::op_t op;
-        query_language::scopes_t scopes;
-        backtrace_t backtrace;
-        Mapping mapping;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -450,7 +400,7 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, point_delete_t, point_modify_t, point_replace_t> write;
+        boost::variant<point_write_t, point_delete_t, point_replace_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
@@ -460,7 +410,6 @@ struct rdb_protocol_t {
         write_t(const write_t& w) : write(w.write) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const point_modify_t &m) : write(m) { }
         explicit write_t(const point_replace_t &r) : write(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
