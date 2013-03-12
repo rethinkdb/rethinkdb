@@ -1,4 +1,0 @@
-// Internal extensions. Do not distribute.
-package query_language.extension;
-
-import "rdb_protocol/query_language.proto";

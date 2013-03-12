@@ -12,7 +12,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
-#include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/proto_utils.hpp"

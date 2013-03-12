@@ -22,7 +22,6 @@
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.pb.h"
 #include "rdb_protocol/scope.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"

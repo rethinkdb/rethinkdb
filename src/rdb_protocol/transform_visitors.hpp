@@ -11,7 +11,6 @@
 #include "http/json.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.pb.h"
 
 namespace query_language {
 
