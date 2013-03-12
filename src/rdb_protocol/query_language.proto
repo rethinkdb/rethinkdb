@@ -14,7 +14,6 @@ message Term3 {
         JSON_NULL = 0; //can't use just "NULL" here we get in trouble
         VAR = 1;
         LET = 2;
-        CALL = 3;
         IF = 4;
         ERROR = 5;
         NUMBER = 6;
@@ -39,13 +38,6 @@ message Term3 {
     };
 
     optional Let let = 3;
-
-    message Call {
-        required Builtin builtin = 1;
-        repeated Term3 args = 2;
-    };
-
-    optional Call call = 4;
 
     message If {
         required Term3 test = 1;
@@ -86,80 +78,6 @@ message Term3 {
 
     // reserved for RethinkDB internal use.
     extensions 1000 to 1099;
-};
-
-message Builtin {
-    enum BuiltinType {
-        CONCATMAP = 22;
-        ORDERBY = 23;
-        DISTINCT = 24;
-        LENGTH = 26;
-        UNION = 27;
-        NTH = 28;
-        STREAMTOARRAY = 29;
-        ARRAYTOSTREAM = 30;
-        REDUCE = 31;
-        GROUPEDMAPREDUCE = 32;
-        ANY = 35;
-        ALL = 36;
-        RANGE = 37;
-    };
-
-    enum Comparison {
-        EQ = 1;
-        NE = 2;
-        LT = 3;
-        LE = 4;
-        GT = 5;
-        GE = 6;
-    };
-
-    required BuiltinType type = 1;
-
-    optional Comparison comparison = 4;
-
-    message Filter {
-        required Predicate predicate = 1;
-    };
-
-    optional Filter filter = 5;
-
-    message Map {
-        required Mapping mapping = 1;
-    };
-
-    optional Map map = 6;
-
-    message ConcatMap {
-        required Mapping mapping = 1;
-    };
-
-    optional ConcatMap concat_map = 7;
-
-    message OrderBy {
-        required string attr = 1;
-        optional bool ascending = 2 [default = true];
-    };
-
-    repeated OrderBy order_by = 8;
-
-    optional Reduction reduce = 9;
-
-    message GroupedMapReduce {
-        required Mapping group_mapping = 1;
-        required Mapping value_mapping = 2;
-        required Reduction reduction = 3;
-    };
-
-    optional GroupedMapReduce grouped_map_reduce = 10;
-
-    message Range {
-        required string attrname = 1;
-        optional Term3 lowerbound = 2;
-        optional Term3 upperbound = 3;
-    };
-
-    optional Range range = 11;
 };
 
 message Reduction {

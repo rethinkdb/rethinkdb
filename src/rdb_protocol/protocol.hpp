@@ -72,10 +72,6 @@ static inline std::string op_name(op_t op) {
 }
 }
 
-RDB_DECLARE_SERIALIZABLE(Builtin_Range);
-RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
-RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
-RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_DECLARE_SERIALIZABLE(Mapping);
 RDB_DECLARE_SERIALIZABLE(Reduction);
 
@@ -100,10 +96,7 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
-typedef boost::variant<Builtin_Filter,
-                       Mapping,
-                       Builtin_ConcatMap,
-                       Builtin_Range,
+typedef boost::variant<Mapping,
                        ql::map_wire_func_t,
                        ql::filter_wire_func_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
@@ -130,8 +123,7 @@ struct Length { };
 
 RDB_DECLARE_SERIALIZABLE(Length);
 
-typedef boost::variant<Builtin_GroupedMapReduce,
-                       Reduction,
+typedef boost::variant<Reduction,
                        Length,
                        ql::gmr_wire_func_t,
                        ql::count_wire_func_t,

@@ -74,11 +74,6 @@ typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
-RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Range);
-RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Filter);
-RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_Map);
-RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_ConcatMap);
-RDB_IMPL_PROTOB_SERIALIZABLE(Builtin_GroupedMapReduce);
 RDB_IMPL_PROTOB_SERIALIZABLE(Mapping);
 RDB_IMPL_PROTOB_SERIALIZABLE(Reduction);
 
@@ -314,28 +309,6 @@ public:
                     }
 
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
-                }
-            } else if (const Builtin_GroupedMapReduce *gmr = boost::get<Builtin_GroupedMapReduce>(&rg.terminal->variant)) {
-                //GroupedMapreduce
-                rg_response.result = groups_t();
-                groups_t *res_groups = boost::get<groups_t>(&rg_response.result);
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-
-                    const groups_t *groups = boost::get<groups_t>(&(_rr->result));
-
-                    for (groups_t::const_iterator j = groups->begin(); j != groups->end(); ++j) {
-                        Term3 base = gmr->reduction().base(),
-                             body = gmr->reduction().body();
-
-                        scopes_t scopes_copy = rg.terminal->scopes;
-                        query_language::new_val_scope_t inner_scope(&scopes_copy.scope);
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var1(),
-                            res_groups->insert(std::make_pair(j->first, eval_term_as_json(&base, &env, rg.terminal->scopes, rg.terminal->backtrace.with("reduction").with("base")))).first->second);
-                        scopes_copy.scope.put_in_scope(gmr->reduction().var2(), j->second);
-                        (*res_groups)[j->first] = eval_term_as_json(&body, &env, scopes_copy, rg.terminal->backtrace.with("reduction").with("body"));
-                    }
                 }
             } else if (const Reduction *r = boost::get<Reduction>(&rg.terminal->variant)) {
                 //Normal Mapreduce

@@ -31,13 +31,7 @@ public:
                         const scopes_t &_scopes,
                         const backtrace_t &_backtrace);
 
-    void operator()(const Builtin_Filter &filter) const;
-
     void operator()(const Mapping &mapping) const;
-
-    void operator()(const Builtin_ConcatMap &concatmap) const;
-
-    void operator()(Builtin_Range range) const;
 
     // This is a non-const reference because it caches the compiled function
     void operator()(ql::map_wire_func_t &func/*NOLINT*/) const;
@@ -61,8 +55,6 @@ public:
                                    ql::env_t *_ql_env,
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
-
-    void operator()(const Builtin_GroupedMapReduce &) const;
 
     void operator()(const Reduction &) const;
 
@@ -88,8 +80,6 @@ public:
                        const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
-
-    void operator()(const Builtin_GroupedMapReduce &gmr) const;
 
     void operator()(const Reduction &r) const;
 

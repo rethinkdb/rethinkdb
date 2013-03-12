@@ -65,17 +65,12 @@ namespace query_language {
 
 term_info_t get_term_type(Term3 *t, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_term_type(Term3 *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_reduction_type(Reduction *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_predicate_type(Predicate *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
-
-boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term3::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
-
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
@@ -95,8 +90,6 @@ public:
 };
 
 view_t eval_term_as_view(Term3 *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
-
-view_t eval_call_as_view(Term3::Call *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 view_t eval_table_as_view(Term3::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
@@ -245,10 +238,6 @@ term_info_t get_term_type(Term3 *t, type_checking_environment_t *env, const back
         res.deterministic &= args_are_det;
         ret.reset(res);
     } break;
-    case Term3::CALL: {
-        check_protobuf(t->has_call());
-        ret.reset(get_function_type(t->mutable_call(), env, backtrace));
-    } break;
     case Term3::IF: {
         check_protobuf(t->has_if_());
         bool test_is_det = true;
@@ -360,247 +349,6 @@ void check_term_type(Term3 *t, term_type_t expected, type_checking_environment_t
     if (is_det_out) {
         *is_det_out &= actual.deterministic;
     }
-}
-
-void check_arg_count(Term3::Call *c, int n_args, const backtrace_t &backtrace) {
-    if (c->args_size() != n_args) {
-        const char* fn_name = Builtin::BuiltinType_Name(c->builtin().type()).c_str();
-        throw bad_query_exc_t(strprintf(
-            "%s takes %d argument%s (%d given)",
-            fn_name,
-            n_args,
-            n_args != 1 ? "s" : "",
-            c->args_size()
-            ),
-            backtrace);
-    }
-}
-
-void check_arg_count_at_least(Term3::Call *c, int n_args, const backtrace_t &backtrace) {
-    if (c->args_size() < n_args) {
-        const char* fn_name = Builtin::BuiltinType_Name(c->builtin().type()).c_str();
-        throw bad_query_exc_t(strprintf(
-            "%s takes at least %d argument%s (%d given)",
-            fn_name,
-            n_args,
-            n_args != 1 ? "s" : "",
-            c->args_size()
-            ),
-            backtrace);
-    }
-}
-
-void check_function_args(Term3::Call *c, const term_type_t &arg_type, int n_args,
-                         type_checking_environment_t *env, bool *is_det_out,
-                         const backtrace_t &backtrace) {
-    check_arg_count(c, n_args, backtrace);
-    for (int i = 0; i < c->args_size(); ++i) {
-        check_term_type(c->mutable_args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
-    }
-}
-
-void check_function_args_at_least(Term3::Call *c, const term_type_t &arg_type, int n_args,
-                                  type_checking_environment_t *env, bool *is_det_out,
-                                  const backtrace_t &backtrace) {
-    // requires the number of arguments to be at least n_args
-    check_arg_count_at_least(c, n_args, backtrace);
-    for (int i = 0; i < c->args_size(); ++i) {
-        check_term_type(c->mutable_args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
-    }
-}
-
-void check_polymorphic_function_args(Term3::Call *c, const term_type_t &arg_type, int n_args,
-                         type_checking_environment_t *env, bool *is_det_out,
-                         const backtrace_t &backtrace) {
-    // for functions that work with selections/streams/jsons, where the first argument can be any type
-    check_arg_count(c, n_args, backtrace);
-    for (int i = 1; i < c->args_size(); ++i) {
-        check_term_type(c->mutable_args(i), arg_type, env, is_det_out, backtrace.with(strprintf("arg:%d", i)));
-    }
-}
-
-void check_function_args(Term3::Call *c, const term_type_t &arg1_type, const term_type_t &arg2_type,
-                         type_checking_environment_t *env, bool *is_det_out,
-                         const backtrace_t &backtrace) {
-    check_arg_count(c, 2, backtrace);
-    check_term_type(c->mutable_args(0), arg1_type, env, is_det_out, backtrace.with("arg:0"));
-    check_term_type(c->mutable_args(1), arg2_type, env, is_det_out, backtrace.with("arg:1"));
-}
-
-term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace) {
-    Builtin *b = c->mutable_builtin();
-
-    check_protobuf(Builtin::BuiltinType_IsValid(b->type()));
-
-    bool deterministic = true;
-    std::vector<const google::protobuf::FieldDescriptor *> fields;
-
-
-    b->GetReflection()->ListFields(*b, &fields);
-
-    int field_count = fields.size();
-
-    check_protobuf(field_count <= 2);
-
-    // this is a bit cleaner when we check well-formedness separate
-    // from returning the type
-
-    switch (c->mutable_builtin()->type()) {
-    case Builtin::DISTINCT:
-    case Builtin::LENGTH:
-    case Builtin::UNION:
-    case Builtin::NTH:
-    case Builtin::STREAMTOARRAY:
-    case Builtin::ARRAYTOSTREAM:
-    case Builtin::ANY:
-    case Builtin::ALL:
-        // these builtins only have
-        // Builtin.type set
-        check_protobuf(field_count == 1);
-        break;
-    case Builtin::CONCATMAP: {
-        check_protobuf(b->has_concat_map());
-        break;
-    }
-    case Builtin::ORDERBY:
-        check_protobuf(b->order_by_size() > 0);
-        break;
-    case Builtin::REDUCE: {
-        check_protobuf(b->has_reduce());
-        break;
-    }
-    case Builtin::GROUPEDMAPREDUCE: {
-        check_protobuf(b->has_grouped_map_reduce());
-        break;
-    }
-    case Builtin::RANGE:
-        check_protobuf(b->has_range());
-        break;
-    default:
-        crash("unreachable");
-    }
-
-    switch (b->type()) {
-        //JSON -> JSON
-        case Builtin::ANY:
-        case Builtin::ALL:
-            check_function_args(c, TERM_TYPE_JSON, c->args_size(), env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);  // variadic JSON type
-            break;
-        case Builtin::CONCATMAP:
-            {
-                check_arg_count(c, 1, backtrace);
-
-                {
-                    implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
-                    check_mapping_type(b->mutable_concat_map()->mutable_mapping(), TERM_TYPE_ARBITRARY, env, &deterministic, backtrace.with("mapping"));
-                }
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
-
-                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
-                    res.type = TERM_TYPE_STREAM;
-                }
-
-                return res;
-            }
-            break;
-        case Builtin::DISTINCT:
-            {
-                check_arg_count(c, 1, backtrace);
-
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
-
-                if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
-                    res.type = TERM_TYPE_STREAM;
-                }
-
-                return res;
-            }
-            break;
-        case Builtin::ORDERBY:
-            {
-                check_arg_count(c, 1, backtrace);
-
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                res.deterministic &= deterministic;
-                return res;
-            }
-            break;
-        case Builtin::NTH:
-            {
-                check_polymorphic_function_args(c, TERM_TYPE_JSON, 2, env, &deterministic, backtrace);
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                return term_info_t(TERM_TYPE_JSON, deterministic && res.deterministic);
-                break;
-            }
-            break;
-        case Builtin::LENGTH:
-            {
-                check_arg_count(c, 1, backtrace);
-                term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-                return term_info_t(TERM_TYPE_JSON, deterministic & res.deterministic);
-            }
-        case Builtin::STREAMTOARRAY:
-            check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_JSON, deterministic);
-            break;
-        case Builtin::REDUCE:
-            {
-                check_arg_count(c, 1, backtrace);
-                check_reduction_type(b->mutable_reduce(), env, &deterministic, backtrace.with("reduce"));
-                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
-                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
-            }
-            break;
-        case Builtin::GROUPEDMAPREDUCE:
-            {
-                check_arg_count(c, 1, backtrace);
-                {
-                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_group_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("group_mapping"));
-                    check_mapping_type(b->mutable_grouped_map_reduce()->mutable_value_mapping(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("value_mapping"));
-                    check_reduction_type(b->mutable_grouped_map_reduce()->mutable_reduction(), env, &deterministic, backtrace.with("reduction"));
-                }
-                term_info_t argtype = get_term_type(c->mutable_args(0), env, backtrace);
-                return term_info_t(TERM_TYPE_JSON, deterministic && argtype.deterministic);
-            }
-            break;
-        case Builtin::UNION: {
-            check_arg_count(c, 2, backtrace);
-            term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-            check_function_args(c, res.type, 2, env, &deterministic, backtrace);
-            res.deterministic &= deterministic;
-
-            if (term_type_is_convertible(res.type, TERM_TYPE_STREAM)) {
-                res.type = TERM_TYPE_STREAM;
-            }
-
-            return res;
-        } break;
-        case Builtin::ARRAYTOSTREAM: {
-            check_function_args(c, TERM_TYPE_JSON, 1, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
-            break;
-        } break;
-        case Builtin::RANGE: {
-            if (b->range().has_lowerbound()) {
-                check_term_type(b->mutable_range()->mutable_lowerbound(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("lowerbound"));
-            }
-            if (b->range().has_upperbound()) {
-                check_term_type(b->mutable_range()->mutable_upperbound(), TERM_TYPE_JSON, env, &deterministic, backtrace.with("upperbound"));
-            }
-            check_arg_count(c, 1, backtrace);
-            term_info_t res = get_term_type(c->mutable_args(0), env, backtrace);
-            res.deterministic &= deterministic;
-            return res;
-        } break;
-        default:
-            crash("unreachable");
-            break;
-    }
-
-    crash("unreachable");
 }
 
 void check_reduction_type(Reduction *r, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace) {
@@ -1262,9 +1010,6 @@ boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term3 *t, runtime_environmen
             return eval_term_as_json(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
-    case Term3::CALL:
-        return eval_call_as_json(t->mutable_call(), env, scopes, backtrace);
-        break;
     case Term3::IF:
         {
             boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
@@ -1430,9 +1175,6 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term3 *t, runtime_environme
             return eval_term_as_stream(t->mutable_let()->mutable_expr(), env, scopes_copy, backtrace.with("expr"));
         }
         break;
-    case Term3::CALL:
-        return eval_call_as_stream(t->mutable_call(), env, scopes, backtrace);
-        break;
     case Term3::IF:
         {
             boost::shared_ptr<scoped_cJSON_t> test = eval_term_as_json_and_check_either(t->mutable_if_()->mutable_test(), env, scopes, backtrace.with("test"), cJSON_True, cJSON_False, "The IF test must evaluate to a boolean.");
@@ -1473,180 +1215,6 @@ boost::shared_ptr<json_stream_t> eval_term_as_stream(Term3 *t, runtime_environme
     unreachable();
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval_call_as_json(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    switch (c->builtin().type()) {
-        //JSON -> JSON
-        case Builtin::CONCATMAP:
-        case Builtin::ORDERBY:
-        case Builtin::DISTINCT:
-        case Builtin::UNION:
-        case Builtin::RANGE: {
-            boost::shared_ptr<json_stream_t> stream = eval_call_as_stream(c, env, scopes, backtrace);
-            boost::shared_ptr<scoped_cJSON_t>
-                arr(new scoped_cJSON_t(cJSON_CreateArray()));
-            boost::shared_ptr<scoped_cJSON_t> json;
-            while ((json = stream->next())) {
-                arr->AddItemToArray(json->DeepCopy());
-            }
-            return arr;
-        } break;
-        case Builtin::ARRAYTOSTREAM:
-            unreachable("eval_term_as_json called on a function that returns a stream (use eval_term_as_stream instead).");
-            break;
-        case Builtin::LENGTH:
-            {
-                int length = 0;
-
-                if (c->args(0).GetExtension(extension::inferred_type) == TERM_TYPE_JSON)
-                {
-                    // Check first arg type
-                    boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"), cJSON_Array, "LENGTH argument must be an array.");
-                    length = array->GetArraySize();
-                } else {
-                    boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                    result_t res = stream->apply_terminal(rdb_protocol_details::Length(), env, 0, scopes, backtrace);
-                    rdb_protocol_t::rget_read_response_t::length_t *l = boost::get<rdb_protocol_t::rget_read_response_t::length_t>(&res);
-                    guarantee(l, "Applying the terminal returned an unexpected result.");
-                    length = l->length;
-                }
-
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(safe_cJSON_CreateNumber(length, backtrace)));
-            }
-            break;
-        case Builtin::NTH:
-            if (c->args(0).GetExtension(extension::inferred_type) == TERM_TYPE_JSON) {
-                boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json_and_check(c->mutable_args(0), env, scopes, backtrace.with("arg:0"),
-                    cJSON_Array, "The first argument must be an array.");
-
-                boost::shared_ptr<scoped_cJSON_t> index_json = eval_term_as_json_and_check(c->mutable_args(1), env, scopes, backtrace.with("arg:1"),
-                    cJSON_Number, "The second argument must be an integer.");
-
-                double double_index = index_json->get()->valuedouble;
-                int index = static_cast<int>(double_index);
-                if (double_index != index) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
-                }
-
-                int length = array->GetArraySize();
-
-                if (index < 0) {
-                    index += length;
-                }
-                if (index < 0 || index >= length) {
-                    throw runtime_exc_t("Array index out of bounds.", backtrace.with("arg:1"));
-                }
-
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(array->GetArrayItem(index))));
-            } else {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> index_json = eval_term_as_json_and_check(c->mutable_args(1), env, scopes, backtrace.with("arg:1"), cJSON_Number, "The second argument must be an integer.");
-                double index_double = index_json->get()->valuedouble;
-                int index = static_cast<int>(index_double);
-                if (index_double != index || index < 0) {
-                    throw runtime_exc_t("The second argument must be a nonnegative integer.", backtrace.with("arg:1"));
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> json;
-                for (int i = 0; i <= index; ++i) {
-                    json = stream->next();
-                    if (!json) {
-                        throw runtime_exc_t("Index out of bounds.", backtrace.with("arg:1"));
-                    }
-                }
-
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json->DeepCopy()));
-            }
-            break;
-        case Builtin::STREAMTOARRAY:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-
-                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    res->AddItemToArray(json->DeepCopy());
-                }
-
-                return res;
-            }
-            break;
-        case Builtin::REDUCE:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                try {
-                    return boost::get<boost::shared_ptr<scoped_cJSON_t> >(stream->apply_terminal(c->builtin().reduce(), env, 0, scopes, backtrace.with("reduce")));
-                } catch (const boost::bad_get &) {
-                    crash("Expected a json atom... something is implemented wrong in the clustering code\n");
-                }
-            }
-            break;
-        case Builtin::GROUPEDMAPREDUCE: {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                try {
-                    rdb_protocol_t::rget_read_response_t::result_t result = stream->apply_terminal(c->builtin().grouped_map_reduce(), env, 0, scopes, backtrace);
-                    rdb_protocol_t::rget_read_response_t::groups_t *groups = boost::get<rdb_protocol_t::rget_read_response_t::groups_t>(&result);
-                    boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                    std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t>::iterator it;
-                    for (it = groups->begin(); it != groups->end(); ++it) {
-                        scoped_cJSON_t obj(cJSON_CreateObject());
-                        obj.AddItemToObject("group", it->first->release());
-                        obj.AddItemToObject("reduction", it->second->release());
-                        res->AddItemToArray(obj.release());
-                    }
-                    return res;
-                } catch (const boost::bad_get &) {
-                    crash("Expected a json atom... something is implemented wrong in the clustering code\n");
-                }
-        } break;
-        case Builtin::ALL:
-            {
-                bool result = true;
-
-                for (int i = 0; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
-                    if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands of ALL must be booleans.", backtrace.with(strprintf("arg:%d", i)));
-                    }
-                    if (arg->type() != cJSON_True) {
-                        result = false;
-                        break;
-                    }
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateBool(result)));
-                return res;
-            }
-            break;
-        case Builtin::ANY:
-            {
-                bool result = false;
-
-                for (int i = 0; i < c->args_size(); ++i) {
-                    boost::shared_ptr<scoped_cJSON_t> arg = eval_term_as_json(c->mutable_args(i), env, scopes, backtrace.with(strprintf("arg:%d", i)));
-                    if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
-                        throw runtime_exc_t("All operands of ANY must be booleans.", backtrace.with(strprintf("arg:%d", i)));
-                    }
-                    if (arg->type() == cJSON_True) {
-                        result = true;
-                        break;
-                    }
-                }
-
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateBool(result)));
-                return res;
-            }
-            break;
-        default:
-            crash("unreachable");
-            break;
-    }
-    crash("unreachable");
-}
-
 predicate_t::predicate_t(const Predicate &_pred, runtime_environment_t *_env, const scopes_t &_scopes, const backtrace_t &_backtrace)
     : pred(_pred), env(_env), scopes(_scopes), backtrace(_backtrace)
 { }
@@ -1668,49 +1236,6 @@ bool predicate_t::operator()(boost::shared_ptr<scoped_cJSON_t> json) {
         throw runtime_exc_t("Predicate failed to evaluate to a bool", backtrace);
     }
 }
-
-class ordering_t {
-public:
-    ordering_t(const google::protobuf::RepeatedPtrField<Builtin::OrderBy> &_order, const backtrace_t &bt)
-        : order(_order), backtrace(bt)
-    { }
-
-    //returns true if x < y according to the ordering
-    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) const {
-        if (x->type() != cJSON_Object) {
-            throw runtime_exc_t(
-                strprintf("Orderby encountered a non-object %s.\n", x->Print().c_str()),
-                backtrace);
-        } else if (y->type() != cJSON_Object) {
-            throw runtime_exc_t(
-                strprintf("Orderby encountered a non-object %s.\n", y->Print().c_str()),
-                backtrace);
-        }
-        for (int i = 0; i < order.size(); ++i) {
-            const Builtin::OrderBy& cur = order.Get(i);
-
-            cJSON *a = cJSON_GetObjectItem(x->get(), cur.attr().c_str());
-            cJSON *b = cJSON_GetObjectItem(y->get(), cur.attr().c_str());
-
-            if (a == NULL || b == NULL) {
-                std::string str = strprintf("ORDERBY encountered a row missing attr '%s': %s\n", cur.attr().c_str(),
-                                            (a == NULL ? x->Print().c_str() : y->Print().c_str()));
-                throw runtime_exc_t(str, backtrace);
-            }
-
-            int cmp = json_cmp(a, b);
-            if (cmp) {
-                return (cmp > 0) ^ cur.ascending();
-            }
-        }
-
-        return false;
-    }
-
-private:
-    const google::protobuf::RepeatedPtrField<Builtin::OrderBy> &order;
-    backtrace_t backtrace;
-};
 
 /* Renaming map here because otherwise it conflicts with std::map. */
 boost::shared_ptr<scoped_cJSON_t> map_rdb(std::string arg, Term3 *term, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> val) {
@@ -1739,120 +1264,6 @@ boost::shared_ptr<json_stream_t> concatmap(std::string arg, Term3 *term, runtime
     return eval_term_as_stream(term, env, scopes_copy, backtrace);
 }
 
-boost::shared_ptr<json_stream_t> eval_call_as_stream(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    switch (c->builtin().type()) {
-        //JSON -> JSON
-        case Builtin::LENGTH:
-        case Builtin::NTH:
-        case Builtin::STREAMTOARRAY:
-        case Builtin::REDUCE:
-        case Builtin::ALL:
-        case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::ANY: {
-            boost::shared_ptr<scoped_cJSON_t> arr = eval_call_as_json(c, env, scopes, backtrace);
-            require_type(arr->get(), cJSON_Array, backtrace);
-            json_array_iterator_t it(arr->get());
-            return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
-        } break;
-        case Builtin::CONCATMAP:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                return stream->add_transformation(c->builtin().concat_map(), env, 0, scopes, backtrace.with("mapping"));
-            }
-            break;
-        case Builtin::ORDERBY: {
-            ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
-            boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-            boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
-            sorted_stream->sort(o);
-            return sorted_stream;
-        }
-            break;
-        case Builtin::DISTINCT:
-            {
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                shared_scoped_less_t comparator(backtrace);
-
-                return boost::shared_ptr<json_stream_t>(new distinct_stream_t<shared_scoped_less_t>(stream, comparator));
-            }
-            break;
-        case Builtin::UNION:
-            {
-                union_stream_t::stream_list_t streams;
-
-                streams.push_back(eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0")));
-
-                streams.push_back(eval_term_as_stream(c->mutable_args(1), env, scopes, backtrace.with("arg:1")));
-
-                return boost::shared_ptr<json_stream_t>(new union_stream_t(streams));
-            }
-            break;
-        case Builtin::ARRAYTOSTREAM:
-            {
-                boost::shared_ptr<scoped_cJSON_t> array = eval_term_as_json(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-                require_type(array->get(), cJSON_Array, backtrace);
-                json_array_iterator_t it(array->get());
-
-                return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
-            }
-            break;
-        case Builtin::RANGE:
-            {
-                // TODO: ***use an index***
-                boost::shared_ptr<json_stream_t> stream = eval_term_as_stream(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                boost::shared_ptr<scoped_cJSON_t> lowerbound, upperbound;
-
-                Builtin::Range *r = c->mutable_builtin()->mutable_range();
-
-                key_range_t range;
-
-                if (r->has_lowerbound()) {
-                    lowerbound = eval_term_as_json(r->mutable_lowerbound(), env, scopes, backtrace.with("lowerbound"));
-                    if (lowerbound->type() != cJSON_Number && lowerbound->type() != cJSON_String) {
-                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be a string or a number, not %s.",
-                                                      lowerbound->Print().c_str()), backtrace.with("lowerbound"));
-                    }
-                }
-
-                if (r->has_upperbound()) {
-                    upperbound = eval_term_as_json(r->mutable_upperbound(), env, scopes, backtrace.with("upperbound"));
-                    if (upperbound->type() != cJSON_Number && upperbound->type() != cJSON_String) {
-                        throw runtime_exc_t(strprintf("Upper bound of RANGE must be a string or a number, not %s.",
-                                                      upperbound->Print().c_str()), backtrace.with("upperbound"));
-                    }
-                }
-
-                if (lowerbound && upperbound) {
-                    if (json_cmp(lowerbound->get(), upperbound->get()) > 0) {
-                        throw runtime_exc_t(strprintf("Lower bound of RANGE must be <= upper bound (%s vs. %s).",
-                                                      lowerbound->Print().c_str(), upperbound->Print().c_str()),
-                                            backtrace.with("lowerbound"));
-                    }
-
-                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
-                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
-                } else if (lowerbound) {
-                    range = key_range_t(key_range_t::closed, store_key_t(cJSON_print_primary(lowerbound->get(), backtrace)),
-                                        key_range_t::none, store_key_t());
-                } else if (upperbound) {
-                    range = key_range_t(key_range_t::none, store_key_t(),
-                                        key_range_t::closed, store_key_t(cJSON_print_primary(upperbound->get(), backtrace)));
-                }
-
-                return boost::shared_ptr<json_stream_t>(
-                    new range_stream_t(stream, range, r->attrname(), backtrace));
-            } break;
-        default:
-            crash("unreachable");
-            break;
-    }
-    crash("unreachable");
-
-}
-
 namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_environment_t *env, const backtrace_t &bt)
     THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     name_string_t table_name;
@@ -1878,43 +1289,6 @@ namespace_repo_t<rdb_protocol_t>::access_t eval_table_ref(TableRef *t, runtime_e
         env->ns_repo, id, env->interruptor);
 }
 
-view_t eval_call_as_view(Term3::Call *c, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    switch (c->builtin().type()) {
-        //JSON -> JSON
-        case Builtin::LENGTH:
-        case Builtin::NTH:
-        case Builtin::STREAMTOARRAY:
-        case Builtin::REDUCE:
-        case Builtin::ALL:
-        case Builtin::ANY:
-        case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::CONCATMAP:
-        case Builtin::DISTINCT:
-        case Builtin::UNION:
-        case Builtin::ARRAYTOSTREAM:
-            unreachable("eval_call_as_view called on a function that does not return a view");
-            break;
-        case Builtin::ORDERBY:
-            {
-                ordering_t o(c->builtin().order_by(), backtrace.with("order_by"));
-                view_t view = eval_term_as_view(c->mutable_args(0), env, scopes, backtrace.with("arg:0"));
-
-                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream));
-                sorted_stream->sort(o);
-                return view_t(view.access, view.primary_key, sorted_stream);
-            }
-            break;
-        case Builtin::RANGE:
-            throw runtime_exc_t("Unimplemented: Builtin::RANGE", backtrace);
-            break;
-        default:
-            crash("unreachable");
-            break;
-    }
-    crash("unreachable");
-
-}
-
 view_t eval_term_as_view(Term3 *t, runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     switch (t->type()) {
     case Term3::IMPLICIT_VAR:
@@ -1930,9 +1304,6 @@ view_t eval_term_as_view(Term3 *t, runtime_environment_t *env, const scopes_t &s
     case Term3::OBJECT:
     case Term3::JAVASCRIPT:
         crash("eval_term_as_view called on incompatible Term3");
-        break;
-    case Term3::CALL:
-        return eval_call_as_view(t->mutable_call(), env, scopes, backtrace);
         break;
     case Term3::IF:
         {
