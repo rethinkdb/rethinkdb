@@ -15,7 +15,6 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
 
 result_t json_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
-    UNUSED runtime_environment_t *env,
     ql::env_t *ql_env,
     const scopes_t &scopes,
     const backtrace_t &backtrace) {
@@ -146,7 +145,6 @@ boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const
 
 result_t batched_rget_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &t,
-    UNUSED runtime_environment_t *env2,
     UNUSED ql::env_t *ql_env,
     const scopes_t &scopes,
     const backtrace_t &per_op_backtrace) {

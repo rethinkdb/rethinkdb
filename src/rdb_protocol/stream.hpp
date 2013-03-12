@@ -34,7 +34,6 @@ public:
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
-                                    runtime_environment_t *env,
                                     ql::env_t *ql_env,
                                     const scopes_t &scopes,
                                     const backtrace_t &backtrace);
@@ -99,7 +98,6 @@ public:
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
-                            runtime_environment_t *env,
                             ql::env_t *ql_env,
                             const scopes_t &scopes,
                             const backtrace_t &backtrace);
