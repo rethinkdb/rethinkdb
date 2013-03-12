@@ -12,7 +12,6 @@
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/ql2.hpp"
 
 class query2_server_t {

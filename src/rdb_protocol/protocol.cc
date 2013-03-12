@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "rdb_protocol/protocol.hpp"
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/function.hpp>
 #include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
@@ -16,8 +17,7 @@
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.hpp"
+#include "rdb_protocol/environment.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"

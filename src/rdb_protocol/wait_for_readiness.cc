@@ -1,26 +1,20 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "rdb_protocol/query_language.hpp"
-
-#include <cmath>
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "rdb_protocol/wait_for_readiness.hpp"
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
-#include <boost/variant.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "clustering/administration/main/ports.hpp"
-#include "clustering/administration/suggester.hpp"
-#include "concurrency/cross_thread_signal.hpp"
-#include "extproc/pool.hpp"
-#include "http/json.hpp"
-#include "rdb_protocol/js.hpp"
-#include "rdb_protocol/stream_cache.hpp"
-#include "rdb_protocol/proto_utils.hpp"
-#include "rpc/directory/read_manager.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/signal.hpp"
+#include "containers/uuid.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rpc/semilattice/view.hpp"
 
 
-//TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment
+
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
-                                  namespace_id_t namespace_id,
+                                  uuid_u namespace_id,
                                   signal_t *interruptor,
                                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
     /* The following is an ugly hack, but it's probably what we want.  It

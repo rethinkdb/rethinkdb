@@ -17,7 +17,6 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/environment.hpp"
-#include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
