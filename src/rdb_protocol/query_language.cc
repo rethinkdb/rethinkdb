@@ -748,7 +748,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
     w->GetReflection()->ListFields(*w, &fields);
     check_protobuf(static_cast<int64_t>(fields.size()) == 2 + w->has_atomic());
 
-    bool deterministic = true;
     switch (w->type()) {
     case WriteQuery3::FOREACH: {
         check_protobuf(w->has_for_each());
