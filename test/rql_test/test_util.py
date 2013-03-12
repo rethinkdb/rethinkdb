@@ -45,8 +45,8 @@ class RethinkDBTestServers:
             self.cpp_port = self.find_available_port()
         self.cpp_server = Popen(['../../build/%s/rethinkdb' % self.server_build,
                                  '--driver-port', str(self.cpp_port),
-                                 '--http-port=0',
-                                 '--cluster-port=0'],
+                                 '--http-port', '0',
+                                 '--cluster-port', '0'],
                                 stdout=log_out, stderr=log_out)
 
         # self.js_port = self.find_available_port()
