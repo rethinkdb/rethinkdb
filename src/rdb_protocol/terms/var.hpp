@@ -18,7 +18,7 @@ private:
         // debugf("VARTERM %p -> %p\n", datum_val, *datum_val);
         return new_val(*datum_val);
     }
-    RDB_NAME("var");
+    virtual const char *name() const { return "var"; }
 };
 
 class implicit_var_term_t : public op_term_t {
@@ -32,7 +32,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(*datum_val);
     }
-    RDB_NAME("var");
+    virtual const char *name() const { return "var"; }
 };
 
 

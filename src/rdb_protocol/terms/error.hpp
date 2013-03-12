@@ -14,7 +14,7 @@ private:
         rfail("%s", arg(0)->as_str().c_str());
         unreachable();
     }
-    RDB_NAME("error");
+    virtual const char *name() const { return "error"; }
 };
 
 } //namespace ql

@@ -26,7 +26,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val("+" + arg(0)->as_str());
     }
-    RDB_NAME("asc");
+    virtual const char *name() const { return "asc"; }
 };
 
 class desc_term_t : public op_term_t {
@@ -36,7 +36,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val("-" + arg(0)->as_str());
     }
-    RDB_NAME("desc");
+    virtual const char *name() const { return "desc"; }
 };
 
 class orderby_term_t : public op_term_t {
@@ -95,7 +95,7 @@ private:
             env, lt_cmp, seq, this);
         return tbl ? new_val(tbl, s) : new_val(s);
     }
-    RDB_NAME("orderby");
+    virtual const char *name() const { return "orderby"; }
 
 private:
     const Term *src_term;
@@ -119,7 +119,7 @@ private:
         }
         return new_val(new array_datum_stream_t(env, arr, this));
     }
-    RDB_NAME("distinct");
+    virtual const char *name() const { return "distinct"; }
 };
 
 } // namespace ql
