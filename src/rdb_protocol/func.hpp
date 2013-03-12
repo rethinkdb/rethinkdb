@@ -103,28 +103,56 @@ private:
     std::map<int, Datum> scope;
 };
 
-class map_wire_func_t : public wire_func_t {
+class map_wire_func_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : wire_func_t(args...) { }
+    map_wire_func_t(Args... args) : wire_func(args...) { }
+
+    func_t *compile(env_t *env) { return wire_func.compile(env); }
+
+    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
+
+private:
+    wire_func_t wire_func;
 };
 
-class filter_wire_func_t : public wire_func_t {
+class filter_wire_func_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : wire_func_t(args...) { }
+    filter_wire_func_t(Args... args) : wire_func(args...) { }
+
+    func_t *compile(env_t *env) { return wire_func.compile(env); }
+
+    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
+
+private:
+    wire_func_t wire_func;
 };
 
-class reduce_wire_func_t : public wire_func_t {
+class reduce_wire_func_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
+    reduce_wire_func_t(Args... args) : wire_func(args...) { }
+
+    func_t *compile(env_t *env) { return wire_func.compile(env); }
+
+    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
+
+private:
+    wire_func_t wire_func;
 };
 
-class concatmap_wire_func_t : public wire_func_t {
+class concatmap_wire_func_t {
 public:
     template <class... Args>
-    concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
+    concatmap_wire_func_t(Args... args) : wire_func(args...) { }
+
+    func_t *compile(env_t *env) { return wire_func.compile(env); }
+
+    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
+
+private:
+    wire_func_t wire_func;
 };
 
 // Count is a fake function because we don't need to send anything.
