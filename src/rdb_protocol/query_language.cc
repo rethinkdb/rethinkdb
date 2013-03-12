@@ -750,10 +750,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
 
     bool deterministic = true;
     switch (w->type()) {
-    case WriteQuery3::DELETE: {
-        check_protobuf(w->has_delete_());
-        check_term_type(w->mutable_delete_()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
-    } break;
     case WriteQuery3::MUTATE: {
         check_protobuf(w->has_mutate());
         check_term_type(w->mutable_mutate()->mutable_view(), TERM_TYPE_VIEW, env, is_det_out, backtrace.with("view"));
@@ -1423,16 +1419,6 @@ void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *
                                  scoped_cJSON_t(cJSON_CreateString(reported_error.c_str())).Print().c_str());
         }
         res->add_response("{" + res_list + "}");
-    } break;
-    case WriteQuery3::DELETE: {
-        view_t view = eval_term_as_view(w->mutable_delete_()->mutable_view(), env, scopes, backtrace.with("view"));
-
-        int deleted = 0;
-        while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-            deleted += point_delete(view.access, json->GetObjectItem(view.primary_key.c_str()), env, backtrace);
-        }
-
-        res->add_response(strprintf("{\"deleted\": %d}", deleted));
     } break;
     case WriteQuery3::INSERT: {
         std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);

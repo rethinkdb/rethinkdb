@@ -215,7 +215,6 @@ message ReadQuery3 {
 
 message WriteQuery3 {
     enum WriteQueryType {
-        DELETE = 2;
         MUTATE = 3;
         INSERT = 4;
         FOREACH = 6;
@@ -226,12 +225,6 @@ message WriteQuery3 {
 
     required WriteQueryType type = 1;
     optional bool atomic = 11 [default = true];
-
-    message Delete {
-        required Term3 view = 1;
-    };
-
-    optional Delete delete = 3;
 
     message Mutate {
         required Term3 view = 1;
