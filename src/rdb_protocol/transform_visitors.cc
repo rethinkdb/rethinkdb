@@ -39,11 +39,10 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func/*NOLINT*/) con
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(
     rget_read_response_t::result_t *_out,
-    query_language::runtime_environment_t *_env,
     ql::env_t *_ql_env,
     const scopes_t &_scopes,
     const backtrace_t &_backtrace)
-    : out(_out), env(_env), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
+    : out(_out), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace)
 { }
 
 void terminal_initializer_visitor_t::operator()(
@@ -54,12 +53,11 @@ void terminal_initializer_visitor_t::operator()(
 }
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                   query_language::runtime_environment_t *_env,
                    ql::env_t *_ql_env,
                    const scopes_t &_scopes,
                    const backtrace_t &_backtrace,
                    rget_read_response_t::result_t *_out)
-    : json(_json), env(_env), ql_env(_ql_env),
+    : json(_json), ql_env(_ql_env),
       scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
 

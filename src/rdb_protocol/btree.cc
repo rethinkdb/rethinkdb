@@ -371,7 +371,7 @@ public:
 
             if (terminal) {
                 boost::apply_visitor(query_language::terminal_initializer_visitor_t(
-                                         &response->result, env, ql_env,
+                                         &response->result, ql_env,
                                          terminal->scopes, terminal->backtrace),
                                      terminal->variant);
             }
@@ -437,7 +437,7 @@ public:
                 json_list_t::iterator jt;
                 for (jt = data.begin(); jt != data.end(); ++jt) {
                     boost::apply_visitor(query_language::terminal_visitor_t(
-                                             *jt, env, ql_env, terminal->scopes,
+                                             *jt, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
                                          terminal->variant);
                     // A reduce returns a `wire_datum_t` and a gmr returns a

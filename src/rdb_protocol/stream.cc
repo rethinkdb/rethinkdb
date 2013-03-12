@@ -15,16 +15,16 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
 
 result_t json_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
-    runtime_environment_t *env,
+    UNUSED runtime_environment_t *env,
     ql::env_t *ql_env,
     const scopes_t &scopes,
     const backtrace_t &backtrace) {
     rdb_protocol_details::terminal_variant_t t = _t;
     result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res, env, ql_env, scopes, backtrace), t);
+    boost::apply_visitor(terminal_initializer_visitor_t(&res, ql_env, scopes, backtrace), t);
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) {
-        boost::apply_visitor(terminal_visitor_t(json, env, ql_env,
+        boost::apply_visitor(terminal_visitor_t(json, ql_env,
                                                 scopes, backtrace, &res),
                              t);
     }
