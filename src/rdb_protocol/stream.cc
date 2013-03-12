@@ -2,7 +2,6 @@
 #include "rdb_protocol/stream.hpp"
 
 #include "rdb_protocol/ql2.hpp"
-#include "rdb_protocol/environment.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
 namespace query_language {
