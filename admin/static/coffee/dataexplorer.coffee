@@ -2565,13 +2565,12 @@ module 'DataExplorerView', ->
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
-            @hack_driver()
-
             @connect()
         
         reset_count: =>
             @count = 0
             @done = 0
+
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
             that = @
