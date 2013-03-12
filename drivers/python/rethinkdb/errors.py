@@ -1,5 +1,4 @@
 import ql2_pb2 as p
-import bpdb
 
 class RqlError(Exception):
     def __init__(self, message, term, frames):
@@ -29,7 +28,7 @@ class RqlDriverError(Exception):
     def __str__(self):
         return self.message
 
-class QueryPrinter:
+class QueryPrinter(object):
     def __init__(self, root, frames=[]):
         self.root = root
         self.frames = frames
@@ -64,7 +63,10 @@ class QueryPrinter:
 
         return [' ' if i != '^' else '^' for i in term.compose(args, optargs)]
 
-class T:
+# This 'enhanced' tuple recursively iterates over it's elements allowing us to
+# construct nested heirarchies that insert subsequences into tree. It's used
+# to construct the query representation used by the pretty printer.
+class T(object):
     # N.B Python 2.x doesn't allow keyword default arguments after *seq
     #     In Python 3.x we can rewrite this as `__init__(self, *seq, intsp=''`
     def __init__(self, *seq, **opts):

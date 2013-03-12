@@ -187,7 +187,7 @@ void terminal_visitor_t::operator()(const WriteQuery3_ForEach &w) const {
 
     for (int i = 0; i < w.queries_size(); ++i) {
         WriteQuery3 q = w.queries(i);
-        Response r; //TODO we need to actually return this somewhere I suppose.
+        Response3 r; //TODO we need to actually return this somewhere I suppose.
         execute_write_query(&q, env, &r, scopes_copy, backtrace.with(strprintf("query:%d", i)));
     }
 }

@@ -19,7 +19,7 @@ void stream_cache_t::erase(int64_t key) {
     guarantee(num_erased == 1);
 }
 
-bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
+bool stream_cache_t::serve(int64_t key, Response3 *res, signal_t *interruptor) {
     std::map<int64_t, entry_t>::iterator it = streams.find(key);
     if (it == streams.end()) return false;
     entry_t *entry = &it->second;
@@ -32,7 +32,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         while (boost::shared_ptr<scoped_cJSON_t> json = entry->stream->next()) {
             res->add_response(json->PrintUnformatted());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                res->set_status_code(Response::SUCCESS_PARTIAL);
+                res->set_status_code(Response3::SUCCESS_PARTIAL);
                 return true;
             }
         }
@@ -41,7 +41,7 @@ bool stream_cache_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         throw;
     }
     erase(key);
-    res->set_status_code(Response::SUCCESS_STREAM);
+    res->set_status_code(Response3::SUCCESS_STREAM);
     return true;
 }
 

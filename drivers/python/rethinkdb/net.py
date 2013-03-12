@@ -9,7 +9,7 @@ import ql2_pb2 as p
 
 from errors import *
 
-class Cursor:
+class Cursor(object):
     def __init__(self, conn, query, term, chunk, complete):
         self.chunks = [chunk]
         self.conn = conn
@@ -38,7 +38,8 @@ class Cursor:
     def close(self):
         self.conn._end(self.query, self.term)
 
-class Connection():
+class Connection(object):
+    repl_connection = None
 
     def __init__(self, host, port, db='test'):
         self.socket = None
@@ -71,6 +72,13 @@ class Connection():
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
+
+    # Not thread safe. Sets this connection as global state that will be used
+    # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
+    # a Python repl environment.
+    def repl(self):
+        Connection.repl_connection = self
+        return self
 
     def _start(self, term, **global_opt_args):
         token = self.next_token
@@ -129,33 +137,33 @@ class Connection():
             raise RqlDriverError("Connection is closed.")
 
         # Construct response
-        response = p.Response2()
+        response = p.Response()
         response.ParseFromString(response_protobuf)
 
         # Error responses
-        if response.type is p.Response2.RUNTIME_ERROR:
+        if response.type is p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlRuntimeError(message, term, frames)
-        elif response.type is p.Response2.COMPILE_ERROR:
+        elif response.type is p.Response.COMPILE_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlCompileError(message, term, frames)
-        elif response.type is p.Response2.CLIENT_ERROR:
+        elif response.type is p.Response.CLIENT_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlClientError(message, term, frames)
 
         # Sequence responses
-        if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
+        if response.type is p.Response.SUCCESS_PARTIAL or response.type is p.Response.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return Cursor(self, query, term, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
+            return Cursor(self, query, term, chunk, response.type is p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
-        if response.type is p.Response2.SUCCESS_ATOM:
+        if response.type is p.Response.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
 
 def connect(host='localhost', port=28015):

@@ -46,7 +46,7 @@ class Connection
 
             responseArray = new Uint8Array @buffer, 4, responseLength
             deserializer = new goog.proto2.WireFormatSerializer
-            response = deserializer.deserialize Response2.getDescriptor(), responseArray
+            response = deserializer.deserialize Response.getDescriptor(), responseArray
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
@@ -78,30 +78,30 @@ class Connection
         token = response.getToken()
         {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
         if cursor?
-            if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+            if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor._addData mkSeq response
-            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
                 cursor._endData mkSeq response
                 @_delQuery(token)
         else if cb
             # Behavior varies considerably based on response type
-            if response.getType() is Response2.ResponseType.COMPILE_ERROR
+            if response.getType() is Response.ResponseType.COMPILE_ERROR
                 cb mkErr(RqlCompileError, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.CLIENT_ERROR
+            else if response.getType() is Response.ResponseType.CLIENT_ERROR
                 cb mkErr(RqlClientErr, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.RUNTIME_ERROR
+            else if response.getType() is Response.ResponseType.RUNTIME_ERROR
                 cb mkErr(RqlRuntimeError, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.SUCCESS_ATOM
+            else if response.getType() is Response.ResponseType.SUCCESS_ATOM
                 cb null, mkAtom(response)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+            else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor = new Cursor @, token
                 @outstandingCallbacks[token].cursor = cursor
                 cb null, cursor._addData(mkSeq response)
-            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
                 cursor = new Cursor @, token
                 @_delQuery(token)
                 cb null, cursor._endData(mkSeq response)
@@ -125,7 +125,7 @@ class Connection
         @db = new Db {}, db
 
     _start: (term, cb) ->
-        unless @open then throw RqlDriverError "Connection closed"
+        unless @open then throw new RqlDriverError "Connection is closed."
 
         # Assign token
         token = ''+@nextToken
@@ -230,6 +230,8 @@ class TcpConnection extends Connection
         @rawSocket.write buf
 
 class HttpConnection extends Connection
+    DEFAULT_PROTOCOL: 'http'
+
     @isAvailable: -> typeof XMLHttpRequest isnt "undefined"
     constructor: (host, callback) ->
         unless HttpConnection.isAvailable()
@@ -237,7 +239,8 @@ class HttpConnection extends Connection
 
         super(host, callback)
 
-        url = "http://#{@host}:#{@port}/ajax/reql/"
+        protocol = if host.protocol is 'https' then 'https' else @DEFAULT_PROTOCOL
+        url = "#{protocol}://#{@host}:#{@port}/ajax/reql/"
         xhr = new XMLHttpRequest
         xhr.open("GET", url+"open-new-connection", true)
         xhr.responseType = "arraybuffer"
@@ -280,7 +283,16 @@ class EmbeddedConnection extends Connection
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
 rethinkdb.connect = (host, callback) ->
-    unless callback? then callback = (->)
+    # Host must be a string or an object
+    unless typeof(host) is 'string' or typeof(host) is 'object'
+        throw new RqlDriverError "First argument to `connect` must be a string giving the "+
+                                 "host to `connect` to or an object giving `host` and `port`."
+
+    # Callback must be a function
+    unless typeof(callback) is 'function'
+        throw new RqlDriverError "Second argument to `connect` must be a callback to invoke with "+
+                                 "either an error or the successfully established connection."
+
     if TcpConnection.isAvailable()
         new TcpConnection host, callback
     else if HttpConnection.isAvailable()

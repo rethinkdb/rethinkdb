@@ -63,11 +63,10 @@ module RethinkDB
         return self if !@more
         q = Query.new
         q.type = Query::QueryType::CONTINUE
-        q.query = @msg
         q.token = @token
         res = @conn.run_internal q
         @results = Shim.response_to_native(res, @msg)
-        if res.type == Response2::ResponseType::SUCCESS_SEQUENCE
+        if res.type == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
       end
@@ -111,9 +110,9 @@ module RethinkDB
       }
 
       res = run_internal q
-      if res.type == Response2::ResponseType::SUCCESS_PARTIAL
+      if res.type == Response::ResponseType::SUCCESS_PARTIAL
         Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
-      elsif res.type == Response2::ResponseType::SUCCESS_SEQUENCE
+      elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
         Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
       else
         Shim.response_to_native(res, msg)
@@ -218,7 +217,7 @@ module RethinkDB
           end
           #TODO: Recovery
           begin
-            protob = Response2.new.parse_from_string(response)
+            protob = Response.new.parse_from_string(response)
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
