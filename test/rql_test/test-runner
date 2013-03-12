@@ -284,7 +284,7 @@ def run_tests(lang, servers):
 
 # Run all language tests
 def run(build, lang=None):
-    with RethinkDBTestServers(server_build='release') as servers:
+    with RethinkDBTestServers(server_build=build) as servers:
         if lang:
             run_tests(lang, servers)
         else:

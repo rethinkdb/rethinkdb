@@ -63,7 +63,6 @@ module RethinkDB
         return self if !@more
         q = Query.new
         q.type = Query::QueryType::CONTINUE
-        q.query = @msg
         q.token = @token
         res = @conn.run_internal q
         @results = Shim.response_to_native(res, @msg)

@@ -39,15 +39,15 @@ message Query {
                       // (see [Response]).
         STOP     = 3; // Stop a query partway through executing.
     };
-    required QueryType type = 1;
+    optional QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
     optional Term query = 2; // only present when [type] = [START]
-    required int64 token = 3;
+    optional int64 token = 3;
     optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
 
     message AssocPair {
-        required string key = 1;
-        required Term val = 2;
+        optional string key = 1;
+        optional Term val = 2;
     };
     repeated AssocPair global_optargs = 6;
 };
@@ -58,7 +58,7 @@ message Frame {
         POS = 1; // Error occured in a positional argument.
         OPT = 2; // Error occured in an optional argument.
     };
-    required FrameType type = 1;
+    optional FrameType type = 1;
     optional int64 pos = 2; // The index of the positional argument.
     optional string opt = 3; // The name of the optional argument.
 };
@@ -90,8 +90,8 @@ message Response {
                             // they turn out at runtime to be booleans rather
                             // than numbers.
     };
-    required ResponseType type = 1;
-    required int64 token = 2; // Indicates what [Query] this response corresponds to.
+    optional ResponseType type = 1;
+    optional int64 token = 2; // Indicates what [Query] this response corresponds to.
 
     // [response] contains 1 RQL datum if [type] is [SUCCESS_ATOM], or many RQL
     // data if [type] is [SUCCESS_SEQUENCE] or [SUCCESS_PARTIAL].  It contains 1
@@ -122,15 +122,15 @@ message Datum {
         R_ARRAY  = 5;
         R_OBJECT = 6;
     };
-    required DatumType type = 1;
+    optional DatumType type = 1;
     optional bool r_bool = 2;
     optional double r_num = 3;
     optional string r_str = 4;
 
     repeated Datum r_array = 5;
     message AssocPair {
-        required string key = 1;
-        required Datum val = 2;
+        optional string key = 1;
+        optional Datum val = 2;
     };
     repeated AssocPair r_object = 6;
 
@@ -378,15 +378,15 @@ message Term {
         ASC = 73;
         DESC = 74;
     };
-    required TermType type = 1;
+    optional TermType type = 1;
 
     // This is only used when type is DATUM.
     optional Datum datum = 2;
 
     repeated Term args = 3; // Holds the positional arguments of the query.
     message AssocPair {
-        required string key = 1;
-        required Term val = 2;
+        optional string key = 1;
+        optional Term val = 2;
     };
     repeated AssocPair optargs = 4; // Holds the optional arguments of the query.
     // (Note that the order of the optional arguments doesn't matter; think of a
