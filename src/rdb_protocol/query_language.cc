@@ -70,7 +70,6 @@ void check_reduction_type(Reduction *m, type_checking_environment_t *env, bool *
 void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_predicate_type(Predicate *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_write_query_type(WriteQuery3 *wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
 
@@ -741,10 +740,6 @@ void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, boo
     rq->SetExtension(extension::inferred_read_type, static_cast<int32_t>(res.type));
 }
 
-NORETURN void check_write_query_type(UNUSED WriteQuery3 *w, UNUSED type_checking_environment_t *env, UNUSED bool *is_det_out, UNUSED const backtrace_t &backtrace) {
-    crash("unhandled WriteQuery3");
-}
-
 void check_meta_query_type(MetaQuery3 *t, const backtrace_t &backtrace) {
     check_protobuf(MetaQuery3::MetaQueryType_IsValid(t->type()));
     switch (t->type()) {
@@ -803,7 +798,7 @@ void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_
         check_protobuf(q->has_write_query());
         check_protobuf(!q->has_read_query());
         check_protobuf(!q->has_meta_query());
-        check_write_query_type(q->mutable_write_query(), env, is_det_out, backtrace);
+        crash("DEQL unhandled WriteQuery3");
         break;
     case Query3::CONTINUE:
         check_protobuf(!q->has_read_query());
@@ -1319,10 +1314,6 @@ point_modify_ns::result_t point_modify(namespace_repo_t<rdb_protocol_t>::access_
 
 int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env, const backtrace_t &backtrace) {
     return point_delete(ns_access, id->get(), env, backtrace);
-}
-
-void execute_write_query(UNUSED WriteQuery3 *w, UNUSED runtime_environment_t *env, UNUSED Response3 *res, UNUSED const scopes_t &scopes, UNUSED const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
-    crash("execute_write_query dead code");
 }
 
 //This doesn't create a scope for the evals

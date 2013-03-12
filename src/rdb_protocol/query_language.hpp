@@ -43,8 +43,6 @@ point_modify_ns::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs
 // TODO most of these functions that are supposed to only throw runtime exceptions
 // TODO some of these functions may be called from rdb_protocol/btree.cc, which can only handle runtime exceptions
 
-NORETURN void execute_write_query(WriteQuery3 *r, runtime_environment_t *, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
-
 boost::shared_ptr<scoped_cJSON_t> eval_term_as_json(Term3 *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
 
 boost::shared_ptr<json_stream_t> eval_term_as_stream(Term3 *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
