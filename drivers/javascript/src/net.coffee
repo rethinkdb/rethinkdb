@@ -46,7 +46,7 @@ class Connection
 
             responseArray = new Uint8Array @buffer, 4, responseLength
             deserializer = new goog.proto2.WireFormatSerializer
-            response = deserializer.deserialize Response2.getDescriptor(), responseArray
+            response = deserializer.deserialize Response.getDescriptor(), responseArray
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
@@ -78,30 +78,30 @@ class Connection
         token = response.getToken()
         {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
         if cursor?
-            if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+            if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor._addData mkSeq response
-            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
                 cursor._endData mkSeq response
                 @_delQuery(token)
         else if cb
             # Behavior varies considerably based on response type
-            if response.getType() is Response2.ResponseType.COMPILE_ERROR
+            if response.getType() is Response.ResponseType.COMPILE_ERROR
                 cb mkErr(RqlCompileError, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.CLIENT_ERROR
+            else if response.getType() is Response.ResponseType.CLIENT_ERROR
                 cb mkErr(RqlClientErr, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.RUNTIME_ERROR
+            else if response.getType() is Response.ResponseType.RUNTIME_ERROR
                 cb mkErr(RqlRuntimeError, response, root)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.SUCCESS_ATOM
+            else if response.getType() is Response.ResponseType.SUCCESS_ATOM
                 cb null, mkAtom(response)
                 @_delQuery(token)
-            else if response.getType() is Response2.ResponseType.SUCCESS_PARTIAL
+            else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor = new Cursor @, token
                 @outstandingCallbacks[token].cursor = cursor
                 cb null, cursor._addData(mkSeq response)
-            else if response.getType() is Response2.ResponseType.SUCCESS_SEQUENCE
+            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
                 cursor = new Cursor @, token
                 @_delQuery(token)
                 cb null, cursor._endData(mkSeq response)

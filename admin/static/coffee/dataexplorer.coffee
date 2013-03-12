@@ -2566,19 +2566,20 @@ module 'DataExplorerView', ->
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
             @hack_driver()
-
             @connect()
         
         reset_count: =>
             @count = 0
             @done = 0
+
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
-            that = @
-            TermBase.prototype.private_run = TermBase.prototype.run
-            TermBase.prototype.run = ->
-                throw that.container.query_error_template
-                    found_run: true
+            if not TermBase.prototype.private_run?
+                that = @
+                TermBase.prototype.private_run = TermBase.prototype.run
+                TermBase.prototype.run = ->
+                    throw that.container.query_error_template
+                        found_run: true
 
         connect: =>
             that = @

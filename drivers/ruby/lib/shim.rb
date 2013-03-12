@@ -33,6 +33,8 @@ module RethinkDB
           raise RqlRuntimeError, "#{r.response[0].r_str}"
         when rt::COMPILE_ERROR then # TODO: remove?
           raise RqlCompileError, "#{r.response[0].r_str}"
+        when rt::CLIENT_ERROR then
+          raise RqlDriverError, "#{r.response[0].r_str}"
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e

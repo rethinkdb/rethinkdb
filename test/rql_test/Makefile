@@ -1,4 +1,3 @@
-BUILD=build
 SRC=src
 DRIVERS=drivers
 

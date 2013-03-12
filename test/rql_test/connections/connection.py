@@ -6,88 +6,99 @@ from sys import argv
 from subprocess import Popen
 from time import sleep
 from sys import path
+import unittest
 path.append('.')
 from test_util import RethinkDBTestServers
 path.append("../../drivers/python")
 
+# We import the module both ways because this used to crash and we
+# need to test for it
+from rethinkdb import *
 import rethinkdb as r
 
 server_build = argv[1]
-use_default_port = bool(argv[2])
+use_default_port = bool(int(argv[2]))
 
-print "Running py connection tests"
 
-# No servers started yet so this should fail
-try:
-    conn = r.connect()
-    raise Exception("No connect error")
-except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to localhost:28015.":
-        raise Exception("Connect err is wrong")
+class TestNoConnection(unittest.TestCase):
+    # No servers started yet so this should fail
+    def test_connect(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Could not connect to localhost:28015.",
+            r.connect)
 
-try:
-    conn = r.connect(port=11221)
-    raise Exception("No connect error")
-except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to localhost:11221.":
-        print str(err)
-        raise Exception("Connect err is wrong")
+    def test_connect_port(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Could not connect to localhost:11221.",
+            r.connect, port=11221)
 
-try:
-    conn = r.connect(host="0.0.0.0")
-    raise Exception("No connect error")
-except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to 0.0.0.0:28015.":
-        raise Exception("Connect err is wrong")
+    def test_connect_host(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Could not connect to 0.0.0.0:28015.",
+            r.connect, host="0.0.0.0")
 
-try:
-    conn = r.connect(host="0.0.0.0", port=11221)
-    raise Exception("No connect error")
-except r.RqlDriverError as err:
-    if not str(err) == "Could not connect to 0.0.0.0:11221.":
-        raise Exception("Connect err is wrong")
+    def test_connect_host(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Could not connect to 0.0.0.0:11221.",
+            r.connect, host="0.0.0.0", port=11221)
 
-# Now run with an actual server running
-if use_default_port:
-    with RethinkDBTestServers(server_build=server_build, use_default_port=use_default_port):
-        try:
-            conn = r.connect()
-            conn.reconnect()
-            conn = r.connect(host='localhost')
-            conn.reconnect()
-            conn = r.connect(host='localhost', port=28015)
-            conn.reconnect()
-            conn = r.connect(port=28015)
-            conn.reconnect()
-        except r.RqlDriverError as err:
-            raise Exception("Should have connected to default CPP server")
+class TestConnectionDefaultPort(unittest.TestCase):
 
-with RethinkDBTestServers(server_build=server_build) as servers:
-    port = servers.cpp_port
+    def setUp(self):
+        if not use_default_port:
+            skipTest("Not testing default port")
+        self.servers = RethinkDBTestServers(server_build=server_build, use_default_port=use_default_port)
+        self.servers.__enter__()
 
-    try:
-        c = r.connect(port=port)
+    def tearDown(self):
+        self.default_server.__exit__(None, None, None)
+
+    def test_connect(self):
+        conn = r.connect()
+        conn.reconnect()
+
+    def test_connect_host(self):
+        conn = r.connect(host='localhost')
+        conn.reconnect()
+
+    def test_connect_host_port(self):
+        conn = r.connect(host='localhost', port=28015)
+        conn.reconnect()
+
+    def test_connect_port(self):
+        conn = r.connect(port=28015)
+        conn.reconnect()
+
+class TestWithConnection(unittest.TestCase):
+
+    def setUp(self):
+        self.servers = RethinkDBTestServers(server_build=server_build)
+        self.servers.__enter__()
+        self.port = self.servers.cpp_port
+
+    def tearDown(self):
+        self.servers.__exit__(None, None, None)
+
+class TestConnection(TestWithConnection):
+    def test_connect_close_reconnect(self):
+        c = r.connect(port=self.port)
         r.expr(1).run(c)
         c.close()
         c.close()
         c.reconnect()
         r.expr(1).run(c)
-    except r.RqlDriverError as err:
-        raise Exception("Should not have thrown")
 
-    try:
-        c = r.connect(port=port)
+    def test_connect_close_expr(self):
+        c = r.connect(port=self.port)
         r.expr(1).run(c)
         c.close()
-        r.expr(1).run(c)
-        raise Exception("Should have thrown")
-    except r.RqlDriverError as err:
-        if not str(err) == "Connection is closed.":
-            raise Exception("Error message wrong")
+        self.assertRaisesRegexp(
+            r.RqlDriverError, "Connection is closed.",
+            r.expr(1).run, c)
 
-    try:
-        c = r.connect(port=port)
-        
+    def test_db(self):
+        c = r.connect(port=self.port)
+
         r.db('test').table_create('t1').run(c)
         r.db_create('db2').run(c)
         r.db('db2').table_create('t2').run(c)
@@ -100,27 +111,27 @@ with RethinkDBTestServers(server_build=server_build) as servers:
         r.table('t2').run(c)
 
         c.use('test')
-        try:
-            r.table('t2').run(c)
-        except r.RqlRuntimeError as err:
-            if not err.message == "Table `t2` does not exist.":
-                raise err
+        self.assertRaisesRegexp(
+            r.RqlRuntimeError, "Table `t2` does not exist.",
+            r.table('t2').run, c)
 
-    except r.RqlDriverError as err:
-        raise Exception("Should not have thrown")
-
-    try:
-        c = r.connect(port=port)
+class TestShutdown(TestWithConnection):
+    def test_shutdown(self):
+        c = r.connect(port=self.port)
         r.expr(1).run(c)
+        self.servers.stop()
+        sleep(0.2)
+        self.assertRaisesRegexp(
+            r.RqlDriverError, "Connection is closed.",
+            r.expr(1).run, c)
 
-        servers.stop()
-        sleep(0.1)
+# # TODO: test cursors, streaming large values
 
-        r.expr(1).run(c)
-        raise Exception("Should have thrown")
-    except r.RqlDriverError as err:
-        if not str(err) == "Connection is closed.":
-            raise Exception("Error message wrong")
-
-# TODO: test cursors, streaming large values
-
+if __name__ == '__main__':
+    print "Running py connection tests"
+    suite = unittest.TestSuite()
+    loader = unittest.TestLoader()
+    suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
+    unittest.TextTestRunner(verbosity=2).run(suite)
