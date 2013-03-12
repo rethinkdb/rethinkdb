@@ -129,33 +129,33 @@ class Connection(object):
             raise RqlDriverError("Connection is closed.")
 
         # Construct response
-        response = p.Response2()
+        response = p.Response()
         response.ParseFromString(response_protobuf)
 
         # Error responses
-        if response.type is p.Response2.RUNTIME_ERROR:
+        if response.type is p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlRuntimeError(message, term, frames)
-        elif response.type is p.Response2.COMPILE_ERROR:
+        elif response.type is p.Response.COMPILE_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlCompileError(message, term, frames)
-        elif response.type is p.Response2.CLIENT_ERROR:
+        elif response.type is p.Response.CLIENT_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlClientError(message, term, frames)
 
         # Sequence responses
-        if response.type is p.Response2.SUCCESS_PARTIAL or response.type is p.Response2.SUCCESS_SEQUENCE:
+        if response.type is p.Response.SUCCESS_PARTIAL or response.type is p.Response.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return Cursor(self, query, term, chunk, response.type is p.Response2.SUCCESS_SEQUENCE)
+            return Cursor(self, query, term, chunk, response.type is p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
-        if response.type is p.Response2.SUCCESS_ATOM:
+        if response.type is p.Response.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
 
 def connect(host='localhost', port=28015):

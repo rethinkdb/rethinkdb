@@ -98,7 +98,7 @@ term_t *compile_term(env_t *env, const Term *t) {
 }
 
 void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
-         Response2 *res, stream_cache2_t *stream_cache2) {
+         Response *res, stream_cache2_t *stream_cache2) {
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
@@ -134,7 +134,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             root_term = env->new_term(t);
             // TODO: handle this properly
         } catch (const exc_t &e) {
-            fill_error(res, Response2::COMPILE_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace);
             return;
         }
 
@@ -142,14 +142,14 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(!stream_cache2->contains(token),
                 strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
-            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
             return;
         }
 
         try {
             val_t *val = root_term->eval(false);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
-                res->set_type(Response2_ResponseType_SUCCESS_ATOM);
+                res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 const datum_t *d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
@@ -161,7 +161,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                                "(got %s).", val->get_type().name());
             }
         } catch (const exc_t &e) {
-            fill_error(res, Response2::RUNTIME_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace);
             return;
         }
     } break;
@@ -171,7 +171,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(b, strprintf("Token %" PRIi64 " not in stream cache.",
                                          token));
         } catch (const exc_t &e) {
-            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
             return;
         }
     } break;
@@ -181,7 +181,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                 strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
-            fill_error(res, Response2::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
             return;
         }
     } break;

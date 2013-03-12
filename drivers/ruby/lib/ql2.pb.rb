@@ -54,7 +54,7 @@
 #     repeated AssocPair global_optargs = 6;
 # };
 # 
-# // A backtrace frame (see `backtrace` in Response2 below)
+# // A backtrace frame (see `backtrace` in Response below)
 # message Frame {
 #     enum FrameType {
 #         POS = 1; // Error occured in a positional argument.
@@ -69,7 +69,7 @@
 # }
 # 
 # // You get back a response with the same [token] as your query.
-# message Response2 {
+# message Response {
 #     enum ResponseType {
 #         // These response types indicate success.
 #         SUCCESS_ATOM     = 1; // Query returned a single RQL datatype.
@@ -490,7 +490,7 @@ class Backtrace < ::Protobuf::Message
   defined_in __FILE__
   repeated :Frame, :frames, 1
 end
-class Response2 < ::Protobuf::Message
+class Response < ::Protobuf::Message
   defined_in __FILE__
   class ResponseType < ::Protobuf::Enum
     defined_in __FILE__

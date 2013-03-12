@@ -22,7 +22,7 @@ void stream_cache2_t::erase(int64_t key) {
     guarantee(num_erased == 1);
 }
 
-bool stream_cache2_t::serve(int64_t key, Response2 *res, signal_t *interruptor) {
+bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
@@ -38,7 +38,7 @@ bool stream_cache2_t::serve(int64_t key, Response2 *res, signal_t *interruptor) 
             if (!d) break;
             d->write_to_protobuf(res->add_response());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                res->set_type(Response2_ResponseType_SUCCESS_PARTIAL);
+                res->set_type(Response_ResponseType_SUCCESS_PARTIAL);
                 return true;
             }
         }
@@ -47,7 +47,7 @@ bool stream_cache2_t::serve(int64_t key, Response2 *res, signal_t *interruptor) 
         throw;
     }
     erase(key);
-    res->set_type(Response2_ResponseType_SUCCESS_SEQUENCE);
+    res->set_type(Response_ResponseType_SUCCESS_SEQUENCE);
     return true;
 }
 
