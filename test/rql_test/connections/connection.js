@@ -6,6 +6,7 @@ console.log("Testing JS connection API")
 
 process.on('uncaughtException', function(err) {
     console.log("Uncaught exception:", err);
+    console.log(err.toString() + err.stack.toString());
     if (cpp_server) cpp_server.kill();
     //if (js_server) js_server.kill();
 });
@@ -23,8 +24,12 @@ var assertErr = function(err, type, msg) {
         throw new Error("No Error");
     }
 
-    if (!(err.constructor.name == type) || !(err.message == msg)) {
-        throw new Error("Error message "+err+" doesn't match "+msg);
+    if (!(err.constructor.name == type)) {
+        throw new Error("Error message type `"+err.constructor.name+"` doesn't match expected type `"+type+"`");
+    }
+    var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+    if (!(_msg == msg)) {
+        throw new Error("Error message '"+_msg+"' doesn't match expected '"+msg+"'");
     }
 };
 
@@ -66,7 +71,7 @@ var actions = [
     // Run CPP server in default configuration
     function() {
         cpp_server = spawn('../../build/'+build+'/rethinkdb',
-            ['--driver-port', port, '--http-port=0', '--cluster-port=0'],
+            ['--driver-port', port, '--http-port', '0', '--cluster-port', '0'],
             {stdio: 'inherit'});
         setTimeout(cont, 1000);
     },
@@ -189,15 +194,15 @@ var actions = [
     function(err, c_l) {
         assertNoError(err);
         c = c_l; // make it global to use below
-        r.db('test').table_create('t1').run(c, cont);
+        r.db('test').tableCreate('t1').run(c, cont);
     },
     function(err, res) {
         assertNoError(err);
-        r.db_create('db2').run(c, cont);
+        r.dbCreate('db2').run(c, cont);
     },
     function(err, res) {
         assertNoError(err);
-        r.db('db2').table_create('t2').run(c, cont);
+        r.db('db2').tableCreate('t2').run(c, cont);
     },
     function(err, res) {
         assertNoError(err);
