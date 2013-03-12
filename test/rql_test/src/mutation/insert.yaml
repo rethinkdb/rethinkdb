@@ -66,6 +66,12 @@ tests:
     - cd: tblpkey
       ot: ([{'foo':uuid()}])
 
+    # test upsert pkey generation
+    - py: tblpkey.insert({'b':20}, upsert=True)
+      js: tblpkey.insert({'b':20}, {upsert:true})
+      rb: tblpkey.insert({:b => 20}, :upsert)
+      ot: ({'inserted':1,'generated_keys':arrlen(1,uuid())})
+
     - cd: r.db('test').table_drop('testpkey')
       ot: "({'dropped':1})"
 
