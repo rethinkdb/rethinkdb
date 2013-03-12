@@ -63,6 +63,18 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
 
 namespace query_language {
 
+term_info_t get_term_type(Term3 *t, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_term_type(Term3 *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_reduction_type(Reduction *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_predicate_type(Predicate *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_write_query_type(WriteQuery3 *wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
+
+
+
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
     if (!std::isfinite(d)) throw runtime_exc_t(strprintf("Illegal numeric value %e.", d), backtrace);
     return cJSON_CreateNumber(d);

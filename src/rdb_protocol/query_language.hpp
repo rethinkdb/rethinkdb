@@ -34,16 +34,6 @@ namespace query_language {
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-term_info_t get_term_type(Term3 *t, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_term_type(Term3 *t, term_type_t expected, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-term_info_t get_function_type(Term3::Call *c, type_checking_environment_t *env, const backtrace_t &backtrace);
-void check_reduction_type(Reduction *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_mapping_type(Mapping *m, term_type_t return_type, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_predicate_type(Predicate *m, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_write_query_type(WriteQuery3 *wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
-
 point_modify_ns::result_t calculate_modify(boost::shared_ptr<scoped_cJSON_t> lhs, const std::string &primary_key, point_modify_ns::op_t op,
                                            const Mapping &mapping, runtime_environment_t *env, const scopes_t &scopes,
                                            const backtrace_t &backtrace, boost::shared_ptr<scoped_cJSON_t> *json_out,
