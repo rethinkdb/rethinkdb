@@ -73,6 +73,26 @@ void check_read_query_type(ReadQuery3 *rq, type_checking_environment_t *env, boo
 void check_write_query_type(WriteQuery3 *wq, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_out, const backtrace_t &backtrace);
 
+class view_t {
+public:
+    view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
+           const std::string &_primary_key,
+           boost::shared_ptr<json_stream_t> _stream)
+        : access(_access), primary_key(_primary_key), stream(_stream)
+    { }
+
+    namespace_repo_t<rdb_protocol_t>::access_t access;
+    std::string primary_key;
+    boost::shared_ptr<json_stream_t> stream;
+};
+
+view_t eval_term_as_view(Term3 *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+
+view_t eval_call_as_view(Term3::Call *t, runtime_environment_t *, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+
+view_t eval_table_as_view(Term3::Table *t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t);
+
+
 
 
 cJSON *safe_cJSON_CreateNumber(double d, const backtrace_t &backtrace) {
