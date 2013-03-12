@@ -183,6 +183,37 @@ var actions = [
         }
         r.connect({port:port}, cont);
     },
+
+    // Test `use`
+    function(err, c_l) {
+        assertNoError(err);
+        c = c_l; // make it global to use below
+        r.db('test').table_create('t1').run(c, cont);
+    },
+    function(err, res) {
+        assertNoError(err);
+        r.db_create('db2').run(c, cont);
+    },
+    function(err, res) {
+        assertNoError(err);
+        r.db('db2').table_create('t2').run(c, cont);
+    },
+    function(err, res) {
+        assertNoError(err);
+
+        c.use('db2');
+        r.table('t2').run(c, cont);
+    },
+    function(err, res) {
+        assertNoError(err);
+
+        c.use('test');
+        r.table('t2').run(c, cont);
+    },
+    function(err, res) {
+        assertErr(err, "RqlRuntimeError", "Table `t2` does not exist.");
+        r.connect({port:port}, cont);
+    },
     function(err, c) {
         cpp_server.kill()
         setTimeout(function() {
