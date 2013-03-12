@@ -45,10 +45,6 @@ public:
         ql::runtime_check(test, file, line, pred, msg, bt_src);
     }
 
-    void rebase(const Term *t) {
-        bt_src = &t->GetExtension(ql2::extension::backtrace);
-    }
-
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 private:
