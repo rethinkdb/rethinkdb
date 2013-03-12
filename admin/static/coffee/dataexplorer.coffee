@@ -2565,8 +2565,6 @@ module 'DataExplorerView', ->
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
-            @hack_driver()
-
             @connect()
         
         reset_count: =>
