@@ -17,6 +17,8 @@ c = r.connect(port=port)
 tbl = r.table('test')
 
 cur = tbl.run(c)
+if not type(cur) is r.Cursor
+    print "Test failed -- r.Cursor name is wrong"
 
 i = 0
 for row in cur:

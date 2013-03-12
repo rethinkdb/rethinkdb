@@ -10,6 +10,9 @@ path.append('.')
 from test_util import RethinkDBTestServers
 path.append("../../drivers/python")
 
+# We import the module both ways because this used to crash and we
+# need to test for it
+from rethinkdb import *
 import rethinkdb as r
 
 server_build = argv[1]
