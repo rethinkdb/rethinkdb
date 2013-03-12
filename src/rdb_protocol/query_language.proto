@@ -213,10 +213,6 @@ message ReadQuery3 {
     extensions 1000 to 1099;
 };
 
-message WriteQuery3 {
-    optional bool atomic = 11 [default = true];
-};
-
 message MetaQuery3 {
     enum MetaQueryType {
         CREATE_DB     = 1; //db_name
@@ -244,7 +240,6 @@ message MetaQuery3 {
 message Query3 {
     enum QueryType {
         READ       = 1; //Begin reading from a stream (and possibly finish if it's short)
-        WRITE      = 2; //Write to a table (currently does not create a stream)
         CONTINUE   = 3; //Continue reading from a stream
         STOP       = 4; //Stop reading from a stream and release its resources
         META       = 5; //Meta operations that create, drop, or list databases/tables
@@ -255,7 +250,6 @@ message Query3 {
     required int64 token = 2;
 
     optional ReadQuery3 read_query = 3;
-    optional WriteQuery3 write_query = 4;
     optional MetaQuery3 meta_query = 5;
 }
 

@@ -790,30 +790,20 @@ void check_query_type(Query3 *q, type_checking_environment_t *env, bool *is_det_
     switch (q->type()) {
     case Query3::READ:
         check_protobuf(q->has_read_query());
-        check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         check_read_query_type(q->mutable_read_query(), env, is_det_out, backtrace);
         break;
-    case Query3::WRITE:
-        check_protobuf(q->has_write_query());
-        check_protobuf(!q->has_read_query());
-        check_protobuf(!q->has_meta_query());
-        crash("DEQL unhandled WriteQuery3");
-        break;
     case Query3::CONTINUE:
         check_protobuf(!q->has_read_query());
-        check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         break;
     case Query3::STOP:
         check_protobuf(!q->has_read_query());
-        check_protobuf(!q->has_write_query());
         check_protobuf(!q->has_meta_query());
         break;
     case Query3::META:
         check_protobuf(q->has_meta_query());
         check_protobuf(!q->has_read_query());
-        check_protobuf(!q->has_write_query());
         check_meta_query_type(q->mutable_meta_query(), backtrace);
         break;
     default:
