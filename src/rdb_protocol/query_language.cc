@@ -750,18 +750,6 @@ void check_write_query_type(WriteQuery3 *w, type_checking_environment_t *env, bo
 
     bool deterministic = true;
     switch (w->type()) {
-    case WriteQuery3::INSERT: {
-        check_protobuf(w->has_insert());
-        check_table_ref(w->insert().table_ref(), backtrace.with("table_ref"));
-        if (w->insert().terms_size() == 1) {
-            // We want to do the get to produce determinism information
-            get_term_type(w->mutable_insert()->mutable_terms(0), env, backtrace);
-            break; //Single-element insert polymorphic over streams and arrays
-        }
-        for (int i = 0; i < w->insert().terms_size(); ++i) {
-            check_term_type(w->mutable_insert()->mutable_terms(i), TERM_TYPE_JSON, env, is_det_out, backtrace.with(strprintf("term:%d", i)));
-        }
-    } break;
     case WriteQuery3::FOREACH: {
         check_protobuf(w->has_for_each());
         check_term_type(w->mutable_for_each()->mutable_stream(), TERM_TYPE_ARBITRARY, env, is_det_out, backtrace.with("stream"));
@@ -1374,62 +1362,6 @@ int point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::sh
 void execute_write_query(WriteQuery3 *w, runtime_environment_t *env, Response3 *res, const scopes_t &scopes, const backtrace_t &backtrace) THROWS_ONLY(interrupted_exc_t, runtime_exc_t, broken_client_exc_t) {
     res->set_status_code(Response3::SUCCESS_JSON);
     switch (w->type()) {
-    case WriteQuery3::INSERT: {
-        std::string pk = get_primary_key(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-        bool overwrite = w->mutable_insert()->overwrite();
-        namespace_repo_t<rdb_protocol_t>::access_t ns_access =
-            eval_table_ref(w->mutable_insert()->mutable_table_ref(), env, backtrace);
-
-        std::string first_error;
-        int errors = 0;
-        int inserted = 0;
-        std::vector<std::string> generated_keys;
-        if (w->insert().terms_size() == 1) {
-            Term3 *t = w->mutable_insert()->mutable_terms(0);
-            int32_t t_type = t->GetExtension(extension::inferred_type);
-            boost::shared_ptr<json_stream_t> stream;
-            if (t_type == TERM_TYPE_JSON) {
-                boost::shared_ptr<scoped_cJSON_t> data = eval_term_as_json(t, env, scopes, backtrace.with("term:0"));
-                if (data->type() == cJSON_Array) {
-                    stream.reset(new in_memory_stream_t(json_array_iterator_t(data->get())));
-                } else {
-                    nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
-                                       &inserted, &errors, &first_error);
-                }
-            } else if (t_type == TERM_TYPE_STREAM || t_type == TERM_TYPE_VIEW) {
-                stream = eval_term_as_stream(w->mutable_insert()->mutable_terms(0), env, scopes, backtrace.with("term:0"));
-            } else { unreachable("bad term type"); }
-            if (stream) {
-                while (boost::shared_ptr<scoped_cJSON_t> data = stream->next()) {
-                    nonthrowing_insert(ns_access, pk, data, env, backtrace.with("term:0"), overwrite, &generated_keys,
-                                       &inserted, &errors, &first_error);
-                }
-            }
-        } else {
-            for (int i = 0; i < w->insert().terms_size(); ++i) {
-                boost::shared_ptr<scoped_cJSON_t> data =
-                    eval_term_as_json(w->mutable_insert()->mutable_terms(i), env, scopes, backtrace.with(strprintf("term:%d", i)));
-                nonthrowing_insert(ns_access, pk, data, env, backtrace.with(strprintf("term:%d", i)), overwrite, &generated_keys,
-                                   &inserted, &errors, &first_error);
-            }
-        }
-
-        /* Construct a response. */
-        boost::shared_ptr<scoped_cJSON_t> res_json(new scoped_cJSON_t(cJSON_CreateObject()));
-        res_json->AddItemToObject("inserted", safe_cJSON_CreateNumber(inserted, backtrace));
-        res_json->AddItemToObject("errors", safe_cJSON_CreateNumber(errors, backtrace));
-
-        if (first_error != "") res_json->AddItemToObject("first_error", cJSON_CreateString(first_error.c_str()));
-        if (!generated_keys.empty()) {
-            res_json->AddItemToObject("generated_keys", cJSON_CreateArray());
-            cJSON *array = res_json->GetObjectItem("generated_keys");
-            guarantee(array);
-            for (std::vector<std::string>::iterator it = generated_keys.begin(); it != generated_keys.end(); ++it) {
-                cJSON_AddItemToArray(array, cJSON_CreateString(it->c_str()));
-            }
-        }
-        res->add_response(res_json->Print());
-    } break;
     case WriteQuery3::FOREACH: {
         boost::shared_ptr<json_stream_t> stream =
             eval_term_as_stream(w->mutable_for_each()->mutable_stream(), env, scopes, backtrace.with("stream"));

@@ -215,7 +215,6 @@ message ReadQuery3 {
 
 message WriteQuery3 {
     enum WriteQueryType {
-        INSERT = 4;
         FOREACH = 6;
         POINTUPDATE = 7;
         POINTDELETE = 8;
@@ -224,14 +223,6 @@ message WriteQuery3 {
 
     required WriteQueryType type = 1;
     optional bool atomic = 11 [default = true];
-
-    message Insert {
-        required TableRef table_ref = 1;
-        repeated Term3 terms = 2;
-        optional bool overwrite = 3 [default = false];
-    };
-
-    optional Insert insert = 5;
 
     message ForEach {
         required Term3 stream = 1;
