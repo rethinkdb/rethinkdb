@@ -102,8 +102,9 @@ with RethinkDBTestServers(server_build=server_build) as servers:
         c.use('test')
         try:
             r.table('t2').run(c)
+            raise Exception("Should have thrown but didn't")
         except r.RqlRuntimeError as err:
-            if not err.message == "Table `t2` does not exist.":
+            if not err.message.startswith("Table `t2` does not exist."):
                 raise err
 
     except r.RqlDriverError as err:
