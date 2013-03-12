@@ -27,6 +27,8 @@
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/environment.hpp"
 
+class stream_cache_t;
+
 void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo, namespace_id_t namespace_id, signal_t *interruptor, boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t);
 
 namespace query_language {
