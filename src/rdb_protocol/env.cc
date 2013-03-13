@@ -1,15 +1,24 @@
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/term_walker.hpp"
 
 namespace ql {
 
-bool env_t::add_optarg(const std::string &key, term_t *val) {
+bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
-    optargs[key] = val;
+    env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
+    Term *arg = &ewt->t;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+    N2(FUNC, N0(MAKE_ARRAY), *arg = val);
+#pragma GCC diagnostic pop
+    term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
+    optargs[key] = wire_func_t(*arg, 0);
     return false;
 }
 val_t *env_t::get_optarg(const std::string &key){
     if (!optargs.count(key)) return 0;
-    return optargs[key]->eval(true);
+    return optargs[key].compile(this)->call();
 }
 
 
@@ -113,18 +122,18 @@ void env_t::pop_var(int var) {
     // debugf("%p VAR pop %d (%p)\n", this, var, vars[var].top());
     vars[var].pop();
 }
-void env_t::dump_scope(std::map<int, const datum_t **> *out) {
-    for (std::map<int, std::stack<const datum_t **> >::iterator
+void env_t::dump_scope(std::map<int64_t, const datum_t **> *out) {
+    for (std::map<int64_t, std::stack<const datum_t **> >::iterator
              it = vars.begin(); it != vars.end(); ++it) {
         if (it->second.size() == 0) continue;
         r_sanity_check(it->second.top());
         (*out)[it->first] = it->second.top();
     }
 }
-void env_t::push_scope(std::map<int, Datum> *in) {
+void env_t::push_scope(std::map<int64_t, Datum> *in) {
     scope_stack.push(std::vector<std::pair<int, const datum_t *> >());
 
-    for (std::map<int, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
+    for (std::map<int64_t, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
         const datum_t *d = add_ptr(new datum_t(&it->second, this));
         scope_stack.top().push_back(std::make_pair(it->first, d));
     }

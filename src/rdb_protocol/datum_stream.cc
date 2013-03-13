@@ -27,7 +27,6 @@ const datum_t *datum_stream_t::next() {
     }
 }
 
-
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {

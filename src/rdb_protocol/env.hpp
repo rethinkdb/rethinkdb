@@ -35,10 +35,10 @@ bool is_joined(const T &multiple, const T &divisor) {
 class env_t : private home_thread_mixin_t {
 public:
     // returns whether or not there was a key conflict
-    MUST_USE bool add_optarg(const std::string &key, term_t *val);
+    MUST_USE bool add_optarg(const std::string &key, const Term &val);
     val_t *get_optarg(const std::string &key); // returns NULL if no entry
 private:
-    std::map<std::string, term_t *> optargs;
+    std::map<std::string, wire_func_t> optargs;
 
 public:
     // returns a globaly unique variable
@@ -56,13 +56,13 @@ public:
     void pop_var(int var);
 
     // Dump the current scope.
-    void dump_scope(std::map<int, const datum_t **> *out);
+    void dump_scope(std::map<int64_t, const datum_t **> *out);
     // Swap in a previously-dumped scope.
-    void push_scope(std::map<int, Datum> *in);
+    void push_scope(std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 private:
-    std::map<int, std::stack<const datum_t **> > vars;
+    std::map<int64_t, std::stack<const datum_t **> > vars;
     std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
 
 public:

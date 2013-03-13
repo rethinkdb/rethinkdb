@@ -120,8 +120,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             // Parse global optargs
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
-                term_t *op_term = compile_term(env, &ap.val());
-                bool conflict = env->add_optarg(ap.key(), op_term);
+                bool conflict = env->add_optarg(ap.key(), ap.val());
                 rcheck_toplevel(
                     !conflict,
                     strprintf("Duplicate global optarg: %s", ap.key().c_str()));
@@ -133,8 +132,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             N1(DB, NDATUM("test"));
 #pragma GCC diagnostic pop
             term_walker_t(arg, t_bt); // duplicate toplevel backtrace
-            term_t *db_term = compile_term(env, arg);
-            UNUSED bool _b = env->add_optarg("db", db_term);
+            UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query

@@ -28,12 +28,13 @@ public:
     static func_t *new_identity_func(env_t *env, const datum_t *obj,
                                      const pb_rcheckable_t *root);
     val_t *call(const std::vector<const datum_t *> &args);
-    // Prefer these two version of call.
+    // Prefer these versions of call.
+    val_t *call();
     val_t *call(const datum_t *arg);
     val_t *call(const datum_t *arg1, const datum_t *arg2);
     bool filter_call(env_t *env, const datum_t *arg);
 
-    void dump_scope(std::map<int, Datum> *out) const;
+    void dump_scope(std::map<int64_t, Datum> *out) const;
     bool is_deterministic() const;
 
 private:
@@ -47,7 +48,7 @@ private:
     bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<int, const datum_t **> scope;
+    std::map<int64_t, const datum_t **> scope;
 
     term_t *js_parent;
     env_t *js_env;
@@ -90,7 +91,7 @@ class wire_func_t {
 public:
     wire_func_t();
     wire_func_t(env_t *env, func_t *_func);
-    wire_func_t(const Term &_source, std::map<int, Datum> *_scope);
+    wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope);
 
     func_t *compile(env_t *env);
 
@@ -101,7 +102,7 @@ private:
     std::map<env_t *, func_t *> cached_funcs;
 
     Term source;
-    std::map<int, Datum> scope;
+    std::map<int64_t, Datum> scope;
 };
 
 class map_wire_func_t {

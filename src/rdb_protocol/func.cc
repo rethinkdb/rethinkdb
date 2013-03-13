@@ -102,6 +102,11 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
     }
 }
 
+val_t *func_t::call() {
+    std::vector<const datum_t *> args;
+    return call(args);
+}
+
 val_t *func_t::call(const datum_t *arg) {
     std::vector<const datum_t *> args;
     args.push_back(arg);
@@ -115,9 +120,9 @@ val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
     return call(args);
 }
 
-void func_t::dump_scope(std::map<int, Datum> *out) const {
+void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
     r_sanity_check(body && source && !js_env && !js_parent);
-    for (std::map<int, const datum_t **>::const_iterator
+    for (std::map<int64_t, const datum_t **>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
         if (!*it->second) continue;
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
@@ -135,11 +140,9 @@ wire_func_t::wire_func_t(env_t *env, func_t *func) : source(*func->source) {
 
     func->dump_scope(&scope);
 }
-wire_func_t::wire_func_t(const Term &_source, std::map<int, Datum> *_scope)
+wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
     : source(_source) {
-    if (_scope) {
-        scope = *_scope;
-    }
+    if (_scope) scope = *_scope;
 }
 
 func_t *wire_func_t::compile(env_t *env) {
