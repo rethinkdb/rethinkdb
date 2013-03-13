@@ -280,5 +280,4 @@ def uuid():
     return Uuid()
 
 def shard(table_name):
-    if shard_table(CLUSTER_PORT, BUILD, table_name) > 0:
-        print_test_failure("", "shard("+repr(table_name)+")", "Failed to shard the table")
+    shard_table(CLUSTER_PORT, BUILD, table_name)
