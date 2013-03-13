@@ -216,9 +216,6 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
-    # We hack once the driver when everything is ready
-    DataExplorerView.DriverHandler.prototype.hack_driver()
-
     render_loading()
     bind_dev_tools()
 

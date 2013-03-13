@@ -35,7 +35,7 @@ const datum_t *eager_datum_stream_t::count() {
         if (!next()) break;
         ++i;
     }
-    return env->add_ptr(new datum_t(i));
+    return env->add_ptr(new datum_t(static_cast<double>(i)));
 }
 
 const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
@@ -136,11 +136,11 @@ void lazy_datum_stream_t::run_terminal(T t) {
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    datum_t *d = env->add_ptr(new datum_t(0L));
+    datum_t *d = env->add_ptr(new datum_t(0.0));
     env_checkpoint_t ect(env, &env_t::discard_checkpoint);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {
-        *d = datum_t(d->as_int() + shard_data[i]->as_int());
+        *d = datum_t(d->as_num() + shard_data[i]->as_int());
     }
     return d;
 }

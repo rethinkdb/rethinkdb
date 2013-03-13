@@ -80,7 +80,7 @@ private:
         // Sam says this is a floating-point exception
         rcheck(!(i0 == INT64_MIN && i1 == -1),
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
-        return new_val(i0 % i1);
+        return new_val(static_cast<double>(i0 % i1));
     }
     RDB_NAME("mod");
 };

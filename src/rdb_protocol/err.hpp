@@ -37,20 +37,19 @@ public:
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    pb_rcheckable_t(const Term *t)
+    explicit pb_rcheckable_t(const Term *t)
         : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
-    pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
+
+    explicit pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
+
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
         ql::runtime_check(test, file, line, pred, msg, bt_src);
     }
 
-    void rebase(const Term *t) {
-        bt_src = &t->GetExtension(ql2::extension::backtrace);
-    }
-
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
+
 private:
     const Backtrace *bt_src;
 };
@@ -93,7 +92,7 @@ private:
 // A backtrace we return to the user.  Pretty self-explanatory.
 class backtrace_t {
 public:
-    backtrace_t(const Backtrace *bt) {
+    explicit backtrace_t(const Backtrace *bt) {
         if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
             push_back(bt->frames(i));
@@ -174,7 +173,6 @@ class exc_t : public any_ql_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    // explicit exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     template<class T>
     exc_t(const std::string &_exc_msg, const T *bt_src)
         : exc_msg(_exc_msg) {
@@ -203,7 +201,7 @@ private:
 // turned into a normal `exc_t`.
 class datum_exc_t : public any_ql_exc_t {
 public:
-    datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    explicit datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 private:
