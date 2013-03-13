@@ -109,12 +109,61 @@ class TestConnection(TestWithConnection):
         # Use a new database
         c.use('db2')
         r.table('t2').run(c)
+        self.assertRaisesRegexp(
+            r.RqlRuntimeError, "Table `t1` does not exist.",
+            r.table('t1').run, c)
 
         c.use('test')
+        r.table('t1').run(c)
         self.assertRaisesRegexp(
             r.RqlRuntimeError, "Table `t2` does not exist.",
             r.table('t2').run, c)
 
+        c.close()
+        
+        # Test setting the db in connect
+        c = r.connect(db='db2', port=self.port)
+        r.table('t2').run(c)
+
+        self.assertRaisesRegexp(
+            r.RqlRuntimeError, "Table `t1` does not exist.",
+            r.table('t1').run, c)
+
+        c.close()
+
+        # Test setting the db as a `run` option
+        c = r.connect(port=self.port)
+        r.table('t2').run(c, db='db2')
+
+    def test_use_outdated(self):
+        c = r.connect(port=self.port)
+        r.db('test').table_create('t1').run(c)
+
+        # Use outdated is an option that can be passed to db.table or `run`
+        # We're just testing here if the server actually accepts the option.
+
+        r.table('t1', use_outdated=True).run(c)
+        r.table('t1').run(c, use_outdated=True)
+
+    def test_repl(self):
+        
+        # Calling .repl() should set this connection as global state
+        # to be used when `run` is not otherwise passed a connection.
+        c = r.connect(port=self.port).repl()
+
+        r.expr(1).run()
+
+        c.repl() # is idempotent
+
+        r.expr(1).run()
+
+        c.close()
+
+        # And make sure that was actually the connection we were using
+        self.assertRaisesRegexp(
+            r.RqlDriverError, "Connection is closed.",
+            r.expr(1).run)
+    
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):
         c = r.connect(port=self.port)
@@ -125,6 +174,56 @@ class TestShutdown(TestWithConnection):
             r.RqlDriverError, "Connection is closed.",
             r.expr(1).run, c)
 
+
+# This doesn't really have anything to do with connections but it'll go
+# in here for the time being.
+class TestPrinting(unittest.TestCase):
+
+    # Just test that RQL queries support __str__ using the pretty printer.
+    # An exhaustive test of the pretty printer would be, well, exhausing.
+    def runTest(self):
+        self.assertEqual(str(r.db('db1').table('tbl1').map(lambda x: x)),
+                            "r.db('db1').table('tbl1').map(lambda var_1: var_1)")
+
+class TestBatching(TestWithConnection):
+    def runTest(self):
+        c = r.connect(port=self.port)
+
+        # Test the cursor API when there is exactly mod batch size elements in the result stream
+        r.db('test').table_create('t1').run(c)
+        t1 = r.table('t1')
+
+        if server_build == 'debug':
+            batch_size = 5
+        else:
+            self.assertEqual(server_build, 'release')
+            batch_size = 1000
+
+        t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
+        cursor = t1.run(c)
+
+        # We're going to have to inspect the state of the cursor object to ensure this worked right
+        # If this test fails in the future check first if the structure of the object has changed.
+
+        # Only the first chunk (of either 1 or 2) should have loaded
+        self.assertEqual(len(cursor.chunks), 1)
+        
+        # Either the whole stream should have loaded in one batch or the server reserved at least
+        # one element in the stream for the second batch.
+        if cursor.end_flag:
+            self.assertEqual(len(cursor.chunks[0]), batch_size)
+        else:
+            assertLess(len(cursor.chunks[0]), batch_size)
+
+        itr = iter(cursor)
+        for i in xrange(0, batch_size - 1):
+            itr.next()
+
+        # In both cases now there should at least one element left in the last chunk
+        self.assertTrue(cursor.end_flag)
+        self.assertGreaterEqual(len(cursor.chunks), 1)
+        self.assertGreaterEqual(len(cursor.chunks[0]), 1)
+
 # # TODO: test cursors, streaming large values
 
 if __name__ == '__main__':
@@ -134,4 +233,6 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
+    suite.addTest(TestPrinting())
+    suite.addTest(TestBatching())
     unittest.TextTestRunner(verbosity=2).run(suite)
