@@ -24,6 +24,8 @@
 
 namespace ql {
 
+// #define INSTRUMENT 1
+
 term_t *compile_term(env_t *env, const Term *t) {
     switch (t->type()) {
     case Term_TermType_DATUM:              return new datum_term_t(env, t);
@@ -106,6 +108,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
         return;
     }
+#ifdef INSTRUMENT
+    debugf("Query: %s\n", q->DebugString().c_str());
+#endif // INSTRUMENT
     env_t *env = env_ptr->get();
     int64_t token = q->token();
 
@@ -203,7 +208,6 @@ term_t::~term_t() { }
 // Uncomment the define to enable instrumentation (you'll be able to see where
 // you are in query execution when something goes wrong).
 
-// #define INSTRUMENT 1
 #ifdef INSTRUMENT
 __thread int DBG_depth = 0;
 #define DBG(s, args...) do {                                            \
@@ -230,18 +234,23 @@ val_t *term_t::eval(bool _use_cached_val) {
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
-    use_cached_val = _use_cached_val;
     try {
-        if (!cached_val || !use_cached_val) cached_val = eval_impl();
-    } catch (const datum_exc_t &e) {
-        DEC_DEPTH;
-        DBG("%s THREW\n", name());
-        rfail("%s", e.what());
-    }
+        use_cached_val = _use_cached_val;
+        try {
+            if (!cached_val || !use_cached_val) cached_val = eval_impl();
+        } catch (const datum_exc_t &e) {
+            DBG("%s THREW\n", name());
+            rfail("%s", e.what());
+        }
 
-    DEC_DEPTH;
-    DBG("%s returned %s\n", name(), cached_val->print().c_str());
-    return cached_val;
+        DEC_DEPTH;
+        DBG("%s returned %s\n", name(), cached_val->print().c_str());
+        return cached_val;
+    } catch (...) {
+        DEC_DEPTH;
+        DBG("%s THREW OUTER\n", name());
+        throw;
+    }
 }
 
 val_t *term_t::new_val(datum_t *d) {

@@ -32,7 +32,8 @@ class RethinkDBTestServers(object):
         self.clear_data()
 
     def clear_data(self):
-        call(['rm', '-rf', 'run'])
+#        call(['rm', '-rf', 'run'])
+        pass
 
     def restart(self):
         self.stop()
