@@ -2,241 +2,132 @@
 // Tests the driver API for making connections and excercising the networking code
 /////
 
-console.log("Testing JS connection API")
-
-process.on('uncaughtException', function(err) {
-    console.log("Uncaught exception:", err);
-    console.log(err.toString() + err.stack.toString());
-    if (cpp_server) cpp_server.kill();
-    //if (js_server) js_server.kill();
-});
-
 var spawn = require('child_process').spawn
 
-var cont = function() {
-    var nextAction = actions.shift()
-    if (!nextAction) throw "done";
-    nextAction.apply({}, arguments);
-};
-
-var assertErr = function(err, type, msg) {
-    if (!err) {
-        throw new Error("No Error");
-    }
-
-    if (!(err.constructor.name == type)) {
-        throw new Error("Error message type `"+err.constructor.name+"` doesn't match expected type `"+type+"`");
-    }
-    var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
-    if (!(_msg == msg)) {
-        throw new Error("Error message '"+_msg+"' doesn't match expected '"+msg+"'");
-    }
-};
-
-var assertNoError = function(err) {
-    if (err) {
-        throw new Error("Error "+err+" not expected")
-    }
-};
+var assert = require('assert');
 
 var r = require('../../../drivers/javascript/build/rethinkdb');
-var build = process.argv[2] || 'debug'
-var testDefault = process[3] || false
+var build = process.env.BUILD || 'debug'
+var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
 var port = Math.floor(Math.random()*(65535 - 1025)+1025)
 
-var actions = [
+var assertErr = function(err, type, msg) {
+    assertNotNull(err);
+    assert.equal(err.constructor.name, type);
+    var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+    assert.equal(_msg, msg);
+};
 
-    // All these fail as there is on server to connect to
-    function() {
-        r.connect({}, cont);
-    },
-    function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to localhost:28015.")
-        r.connect({port:11221}, cont);
-    },
-    function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to localhost:11221.")
-        r.connect({host:'0.0.0.0'}, cont);
-    },
-    function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to 0.0.0.0:28015.")
-        r.connect({host:'0.0.0.0', port:11221}, cont);
-    },
-    function(err, c) {
-        assertErr(err, "RqlDriverError", "Could not connect to 0.0.0.0:11221.")
-        cont();
-    },
+var throwsError = function(type, msg, done){
+    return function(err){
+        assertErr(err, type, msg);
+        done();
+    };
+};
 
-    // Run CPP server in default configuration
-    function() {
-        cpp_server = spawn('../../build/'+build+'/rethinkdb',
-            ['--driver-port', port, '--http-port', '0', '--cluster-port', '0'],
-            {stdio: 'inherit'});
-        setTimeout(cont, 1000);
-    },
-
-    // Test differt ways of connecting to the server
-    function() {
-        testDefault ? r.connect({}, cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? c.reconnect(cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? r.connect({host:'localhost'}, cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? c.reconnect(cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? r.connect({host:'localhost', port:28015}, cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? c.reconnect(cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? r.connect({port:28015}, cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        testDefault ? c.reconnect(cont) : cont();
-    },
-    function(err, c) {
-        assertNoError(err);
-        cont();
-    },
-
-    /*
-    // Kill CPP server, try again with JS server
-    function() {
-        cpp_server.kill();
-        js_server = spawn('../../../build/release_clang/rethinkdb');
-        setTimeout(cont, 100);
-    },
-
-    // Test differt ways of connecting to the server
-    function() {
-        r.connect({}, cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        c.reconnect(cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        r.connect({host:'localhost'}, cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        c.reconnect(cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        r.connect({host:'localhost', port:28015}, cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        c.reconnect(cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        r.connect({port:28015}, cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        c.reconnect(cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        cont();
-    },
-    */
-
-    // Tests closing the connection
-    function() {
-        r.connect({port:port}, cont);
-    },
-    function(err, c) {
-        assertNoError(err);
-        r(1).run(c, function(err, res) {
-            assertNoError(err);
-            c.close(); 
-            c.close();
-            c.reconnect(cont);
+var withConnection = function(f){
+    return function(done){
+        r.connect({port:port}, function(err, c){
+            assertNull(err);
+            f(done, c);
         });
-    },
-    function(err, c) {
-        assertNoError(err);
-        r(1).run(c, cont);
-    },
-    function(err, res) {
-        assertNoError(err);
-        r.connect({port:port}, cont);
-    },
-    function(err, c) {
-        c.close();
-        try {
-            r(1).run(c, cont);
-        } catch(err) {
-            assertErr(err, "RqlDriverError", "Connection is closed.");
-        }
-        r.connect({port:port}, cont);
-    },
+    };
+};
 
-    // Test `use`
-    function(err, c_l) {
-        assertNoError(err);
-        c = c_l; // make it global to use below
-        r.db('test').tableCreate('t1').run(c, cont);
-    },
-    function(err, res) {
-        assertNoError(err);
-        r.dbCreate('db2').run(c, cont);
-    },
-    function(err, res) {
-        assertNoError(err);
-        r.db('db2').tableCreate('t2').run(c, cont);
-    },
-    function(err, res) {
-        assertNoError(err);
+var testSimpleQuery = function(c, done){
+    r(1).run(c, function(err, res){
+        assertNull(err);
+        assert.equal(res, 1);
+        done();
+    });
+};
 
-        c.use('db2');
-        r.table('t2').run(c, cont);
-    },
-    function(err, res) {
-        assertNoError(err);
+var noError = function(f){
+    return function(err){
+        assertNull(err);
+        f.apply({}, arguments);
+    };
+}
 
-        c.use('test');
-        r.table('t2').run(c, cont);
-    },
-    function(err, res) {
-        assertErr(err, "RqlRuntimeError", "Table `t2` does not exist.");
-        r.connect({port:port}, cont);
-    },
-    function(err, c) {
-        cpp_server.kill()
-        setTimeout(function() {
-            try {
-                r(1).run(c, cont);
-            } catch(err) {
-                assertErr(err, "RqlDriverError", "Connection is closed.");
-                cont();
-            }
-        }, 100);
-    },
-    function(err, res) {
-        console.log("done running tests");
-        cont();
-    }
-];
+var assertNull = function(x){
+    assert.equal(x, null);
+}
 
-cont();
+var assertNotNull = function(x){
+    assert.notEqual(x, null);
+}
+
+describe('Javascript connection API', function(){
+    describe('With no server', function(){
+        it("fails when trying to connect", function(done){
+            r.connect({}, throwsError("RqlDriverError", "Could not connect to localhost:28015.", function(){
+                r.connect({port:11221}, throwsError("RqlDriverError", "Could not connect to localhost:11221.", function(){
+                    r.connect({host:'0.0.0.0'}, throwsError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", function(){
+                        r.connect({host:'0.0.0.0', port:11221}, throwsError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))}))}));
+        });
+    });
+
+    describe('With a server', function(){
+
+        var cpp_server;
+
+        before(function(done){
+            cpp_server = spawn(
+                '../../build/'+build+'/rethinkdb',
+                ['--driver-port', port, '--http-port', '0', '--cluster-port', '0']);
+            // cpp_server.stderr.on('data',function(d){ console.log(d.toString()) });
+            setTimeout(done, 1000);
+        });
+
+        after(function(){
+            cpp_server.kill();
+            spawn('rm', ['-rf', 'rethinkdb_data']);
+        });
+
+        // TODO: test default port
+
+        it("close twice and reconnect", withConnection(function(done, c){
+            testSimpleQuery(c, function(){
+                assert.doesNotThrow(function(){
+                    c.close();
+                    c.close();
+                    c.reconnect(function(err, c){
+                        assertNull(err);
+                        testSimpleQuery(c, done);
+                    });
+                });
+            });
+        }));
+
+        it("fails to query after close", withConnection(function(done, c){
+            c.close();
+            assert.throws(function(){ r(1).run(c); }, "RqlDriverError");
+            done();
+        }));
+
+        it("test use", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, noError(function(){
+                r.dbCreate('db2').run(c, noError(function(){
+                    r.db('db2').tableCreate('t2').run(c, noError(function(){
+                        c.use('db2');
+                        r.table('t2').run(c, noError(function(){
+                            c.use('test');
+                            r.table('t2').run(c, throwsError("RqlRuntimeError", "Table `t2` does not exist.",
+                                                             done))
+                        }))}))}))}))}));
+
+        it("fails to query after kill", function(done){
+            cpp_server.kill();
+            setTimeout(function() {
+                assert.throws(function(){
+                    r(1).run(c);
+                }, "RqlDriverError", "Connection is closed.");
+                done();
+            }, 100);
+        });
+    });
+});
 
 // TODO: test cursors, streaming large values
+
