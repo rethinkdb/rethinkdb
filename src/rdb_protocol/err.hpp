@@ -93,9 +93,7 @@ private:
 class backtrace_t {
 public:
     explicit backtrace_t(const Backtrace *bt) {
-        if (bt == NULL) {
-            return;
-        }
+        if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
             push_back(bt->frames(i));
         }
