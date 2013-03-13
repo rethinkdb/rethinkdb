@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include "containers/scoped.hpp"
 #include "btree/node.hpp"
+#include "concurrency/promise.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "repli_timestamp.hpp"
@@ -55,6 +56,8 @@ public:
 
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
+
+    bool no_releasing;  // SAMRSI Ask Joe why he put RSI on this line.
 
 private:
     buf_lock_t sb_buf_;
@@ -109,9 +112,20 @@ class btree_stats_t;
 template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
+    keyvalue_location_t()
+        : superblock(NULL), pass_back_superblock(NULL),
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
+          stats(NULL) { }
+
+    ~keyvalue_location_t() {
+        if (pass_back_superblock && superblock) {
+            pass_back_superblock->pulse(superblock);
+        }
+    }
 
     superblock_t *superblock;
+
+    promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;

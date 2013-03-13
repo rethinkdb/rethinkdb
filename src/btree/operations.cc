@@ -9,10 +9,12 @@
 #include "buffer_cache/blob.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
+    no_releasing = false;
     sb_buf_.swap(*sb_buf);
 }
 
 void real_superblock_t::release() {
+    guarantee(!no_releasing);
     sb_buf_.release_if_acquired();
 }
 
@@ -292,7 +294,6 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
-    sb->release(); //XXX it's a little bit weird that we release this from here.
 }
 
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
@@ -310,7 +311,6 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
         temp_lock.set_eviction_priority(stat_block_eviction_priority);
     }
 }
-
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
