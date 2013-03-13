@@ -77,7 +77,7 @@
               "examples": [
                 {
                   "description": "Setup your top level namespace",
-                  "code": "from rethinkdb import r"
+                  "code": "import rethinkdb as r"
                 }
               ]
             }
