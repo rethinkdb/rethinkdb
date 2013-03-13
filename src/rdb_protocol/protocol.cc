@@ -149,7 +149,7 @@ void post_construct_and_drain_queue(
     /* Drain the queue. */
 
     int previous_size = mod_queue->size();
-    debugf("Draining %ld entries from the queue.\n", mod_queue->size());
+    debugf("Draining %" PRIi64 " entries from the queue.\n", mod_queue->size());
     while (true) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
