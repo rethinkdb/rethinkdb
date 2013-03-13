@@ -308,7 +308,11 @@ function uuid() {
         return "uuid()";
     };
     return fun;
-};
+}
+
+function shard() {
+    // Don't do anything in JS
+}
 
 True = true;
 False = false;

@@ -2,9 +2,9 @@ desc: Tests that manipulation data in tables
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test')
+    - cd: r.db('test').table_create('test1')
       ot: ({'created':1})
-      def: tbl = r.db('test').table('test')
+      def: tbl = r.db('test').table('test1')
 
     - def: obj = r.expr({'id':0,'a':0})
 

@@ -7,9 +7,9 @@ tests:
     - def: db = r.db('test')
     - def: obj = r.expr({'a':1})
     - def: array = r.expr([1])
-    - cd: db.table_create('test')
+    - cd: db.table_create('test1')
       ot: ({'created':1})
-      def: tbl = db.table('test')
+      def: tbl = db.table('test1')
     
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
@@ -162,5 +162,5 @@ tests:
     # TODO: between, merge, slice
 
     # Clean up
-    - cd: db.table_drop('test')
+    - cd: db.table_drop('test1')
       ot: ({'dropped':1})
