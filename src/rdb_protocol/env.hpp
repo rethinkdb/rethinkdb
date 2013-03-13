@@ -36,7 +36,9 @@ class env_t : private home_thread_mixin_t {
 public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
+    void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     val_t *get_optarg(const std::string &key); // returns NULL if no entry
+    const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
 
@@ -145,7 +147,8 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
-        uuid_u _this_machine);
+        uuid_u _this_machine,
+        const std::map<std::string, wire_func_t> &_optargs);
     ~env_t();
 
     extproc::pool_t *pool;      // for running external JS jobs

@@ -83,12 +83,13 @@ private:
 
 class batched_rget_stream_t : public json_stream_t {
 public:
+    // batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    //                       signal_t *_interruptor, key_range_t _range,
+    //                       const backtrace_t &_table_scan_backtrace,
+    //                       bool _use_outdated);
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
                           signal_t *_interruptor, key_range_t _range,
-                          const backtrace_t &_table_scan_backtrace,
-                          bool _use_outdated);
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                          signal_t *_interruptor, key_range_t _range,
+                          const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated);
 
     boost::shared_ptr<scoped_cJSON_t> next();
@@ -118,6 +119,7 @@ private:
     // See the TODO(jdoliner) above.
     // int index;
     bool finished, started;
+    const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
 
     boost::optional<backtrace_t> table_scan_backtrace;

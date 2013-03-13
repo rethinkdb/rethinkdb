@@ -98,22 +98,24 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
     return shared_from_this();
 }
 
-batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                                             signal_t *_interruptor, key_range_t _range,
-                                             const backtrace_t &_table_scan_backtrace,
-                                             bool _use_outdated)
-    : ns_access(_ns_access), interruptor(_interruptor),
-      range(_range),
-      finished(false), started(false), use_outdated(_use_outdated),
-      table_scan_backtrace(_table_scan_backtrace)
-{ }
+// batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+//                                              signal_t *_interruptor, key_range_t _range,
+//                                              const backtrace_t &_table_scan_backtrace,
+//                                              bool _use_outdated)
+//     : ns_access(_ns_access), interruptor(_interruptor),
+//       range(_range),
+//       finished(false), started(false), use_outdated(_use_outdated),
+//       table_scan_backtrace(_table_scan_backtrace)
+// { }
 
-batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, key_range_t _range,
-                      bool _use_outdated)
+batched_rget_stream_t::batched_rget_stream_t(
+    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    signal_t *_interruptor, key_range_t _range,
+    const std::map<std::string, ql::wire_func_t> &_optargs,
+    bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
       range(_range),
-      finished(false), started(false), use_outdated(_use_outdated),
+      finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       table_scan_backtrace()
 { }
 
@@ -181,7 +183,8 @@ result_t batched_rget_stream_t::apply_terminal(
 }
 
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(rdb_protocol_t::region_t(range), transform);
+    rdb_protocol_t::rget_read_t rget_read(
+        rdb_protocol_t::region_t(range), transform, optargs);
     rdb_protocol_t::read_t read(rget_read);
     try {
         guarantee(ns_access.get_namespace_if());

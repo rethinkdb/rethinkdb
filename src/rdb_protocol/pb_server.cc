@@ -49,7 +49,8 @@ Response query2_server_t::handle(Query *q, context_t *query2_context) {
                 ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread]->get_watchable(),
                 ctx->semilattice_metadata, ctx->directory_read_manager,
-                js_runner, interruptor, ctx->machine_id));
+                js_runner, interruptor, ctx->machine_id,
+                std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
         ql::run(q, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {

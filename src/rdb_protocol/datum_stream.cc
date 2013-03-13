@@ -93,7 +93,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
-                      use_outdated))
+                      env->get_all_optargs(), use_outdated))
 { }
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {

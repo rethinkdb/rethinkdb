@@ -16,9 +16,16 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     optargs[key] = wire_func_t(*arg, 0);
     return false;
 }
+void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
+    r_sanity_check(optargs.size() == 0);
+    optargs = _optargs;
+}
 val_t *env_t::get_optarg(const std::string &key){
     if (!optargs.count(key)) return 0;
     return optargs[key].compile(this)->call();
+}
+const std::map<std::string, wire_func_t> &env_t::get_all_optargs() {
+    return optargs;
 }
 
 
@@ -250,8 +257,10 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     boost::shared_ptr<js::runner_t> _js_runner,
     signal_t *_interruptor,
-    uuid_u _this_machine)
-  : next_gensym_val(-2),
+    uuid_u _this_machine,
+    const std::map<std::string, wire_func_t> &_optargs)
+  : optargs(_optargs),
+    next_gensym_val(-2),
     implicit_depth(0),
     pool(_pool_group->get()),
     ns_repo(_ns_repo),

@@ -496,6 +496,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
+        ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
         rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, &res);
@@ -541,10 +542,11 @@ struct read_visitor_t : public boost::static_visitor<void> {
                ctx->cross_thread_database_watchables[get_thread_id()].get()
                    ->get_watchable(),
                ctx->semilattice_metadata,
-               NULL,
+               nullptr,
                boost::make_shared<js::runner_t>(),
                &interruptor,
-               ctx->machine_id)
+               ctx->machine_id,
+               std::map<std::string, ql::wire_func_t>())
     { }
 
 private:
@@ -573,6 +575,7 @@ namespace {
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
+        ql_env.init_optargs(r.optargs);
         response->response = point_replace_response_t();
         point_replace_response_t *res =
             boost::get<point_replace_response_t>(&response->response);
@@ -617,7 +620,8 @@ struct write_visitor_t : public boost::static_visitor<void> {
                0,
                boost::make_shared<js::runner_t>(),
                &interruptor,
-               ctx->machine_id)
+               ctx->machine_id,
+               std::map<std::string, ql::wire_func_t>())
     { }
 
 private:
@@ -882,7 +886,8 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region,
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::rget_read_t, region, transform, terminal);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_t,
+                           region, transform, terminal, optargs);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);

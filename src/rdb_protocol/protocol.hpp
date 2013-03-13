@@ -252,26 +252,30 @@ struct rdb_protocol_t {
             : region(_region) { }
 
         rget_read_t(const region_t &_region,
-                    const rdb_protocol_details::transform_t &_transform)
-            : region(_region), transform(_transform)
+                    const rdb_protocol_details::transform_t &_transform,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), transform(_transform), optargs(_optargs)
         { }
 
         rget_read_t(const region_t &_region,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
-            : region(_region), terminal(_terminal)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), terminal(_terminal), optargs(_optargs)
         { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(_region), transform(_transform),
-              terminal(_terminal)
+              terminal(_terminal), optargs(_optargs)
         { }
 
         region_t region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
+        std::map<std::string, ql::wire_func_t> optargs;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -355,14 +359,16 @@ struct rdb_protocol_t {
     public:
         point_replace_t() { }
         point_replace_t(const std::string &_primary_key, const store_key_t &_key,
-                        const ql::map_wire_func_t &_f)
-            : primary_key(_primary_key), key(_key), f(_f) { }
+                        const ql::map_wire_func_t &_f,
+                        const std::map<std::string, ql::wire_func_t> &_optargs)
+            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs) { }
 
         std::string primary_key;
         store_key_t key;
         ql::map_wire_func_t f;
+        std::map<std::string, ql::wire_func_t> optargs;
 
-        RDB_MAKE_ME_SERIALIZABLE_3(primary_key, key, f);
+        RDB_MAKE_ME_SERIALIZABLE_4(primary_key, key, f, optargs);
     };
 
     class point_write_t {
