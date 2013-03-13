@@ -10,12 +10,12 @@ TEST_DEFAULT_PORT=0
 
 .SILENT:
 
-run: $(TEST_FILES)
+run: $(TEST_FILES) cursor connect
 	./test-runner run \"$(BUILD)\"
 
-py: py_connect
+py: py_connect py_cursor
 
-js: js_connect
+js: js_connect js_cursor
 
 py js rb: $(TEST_FILES)
 	python connections/cursor_test.py $(BUILD) $@
@@ -29,10 +29,18 @@ py_connect: connections/connection.py
 	python connections/connection.py $(BUILD) $(TEST_DEFAULT_PORT)
 
 js_connect: connections/connection.js
-	node connections/connection.js $(BUILD) $(TEST_DEFAULT_PORT)
+	BUILD=$(BUILD) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
+	    _mocha -R spec connections/connection.js
 
 cursor:
 	python connections/cursor_test.py $(BUILD)
+
+js_cursor:
+	python connections/cursor_test.py $(BUILD) js
+
+py_cursor:
+	python connections/cursor_test.py $(BUILD) py
+
 
 connect: js_connect py_connect
 
