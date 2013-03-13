@@ -258,7 +258,7 @@ MUST_USE bool datum_t::add(const std::string &key, const datum_t *val,
     return key_in_obj;
 }
 
-MUST_USE bool datum_t::del(const std::string &key) {
+MUST_USE bool datum_t::delete_key(const std::string &key) {
     return r_object.erase(key);
 }
 

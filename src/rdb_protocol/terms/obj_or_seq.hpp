@@ -73,7 +73,7 @@ private:
         scoped_ptr_t<datum_t> out(new datum_t(obj->as_object()));
         for (size_t i = 1; i < num_args(); ++i) {
             const std::string &key = arg(i)->as_str();
-            UNUSED bool b = out->del(key);
+            UNUSED bool b = out->delete_key(key);
         }
         return new_val(out.release());
     }

@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_TERMS_SORT_HPP_
 
 #include <string>
+#include <utility>
 
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/err.hpp"

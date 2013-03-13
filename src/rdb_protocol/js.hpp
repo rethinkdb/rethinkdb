@@ -8,10 +8,9 @@
 #include <vector>
 #include <utility>
 
-#include <boost/variant/variant.hpp>
-
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/variant/variant.hpp>
 
 #include "arch/timing.hpp"      // signal_timer_t
 #include "containers/archive/archive.hpp"

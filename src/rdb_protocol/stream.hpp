@@ -18,7 +18,6 @@
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
 namespace ql { class env_t; }

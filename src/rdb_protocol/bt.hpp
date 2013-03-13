@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_BACKTRACE_HPP_
-#define RDB_PROTOCOL_BACKTRACE_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef RDB_PROTOCOL_BT_HPP_
+#define RDB_PROTOCOL_BT_HPP_
 
 #include <string>
 #include <vector>
@@ -36,4 +36,4 @@ public:
 
 }   /* namespace query_language */
 
-#endif /* RDB_PROTOCOL_BACKTRACE_HPP_ */
+#endif /* RDB_PROTOCOL_BT_HPP_ */

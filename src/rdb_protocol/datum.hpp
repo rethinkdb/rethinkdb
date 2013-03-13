@@ -43,11 +43,11 @@ public:
     explicit datum_t(type_t _type);
 
     // These allow you to construct a datum from the type of value it
-    // represents.  Note that the `bool` constructor is special to avoid nasty
-    // pointer conversion bugs, and an undefined `bool` constructor is declared
-    // to catch cases where people try to write `datum_t(true)` (which would
-    // otherwise be converted to an `int`).
-    explicit datum_t(bool _bool); // undefined, catches implicit conversion errors
+    // represents.  We have some gotchya-constructors to scare away implicit
+    // conversions.
+    explicit datum_t(bool) = delete;
+    explicit datum_t(int) = delete;
+    explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
     explicit datum_t(double _num);
@@ -90,7 +90,7 @@ public:
     MUST_USE bool add(const std::string &key, const datum_t *val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
-    MUST_USE bool del(const std::string &key);
+    MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
     const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;

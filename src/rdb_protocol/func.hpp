@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_FUNC_HPP_
 
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -106,7 +107,7 @@ private:
 class map_wire_func_t {
 public:
     template <class... Args>
-    map_wire_func_t(Args... args) : wire_func(args...) { }
+    explicit map_wire_func_t(Args... args) : wire_func(args...) { }
 
     func_t *compile(env_t *env) { return wire_func.compile(env); }
 
@@ -119,7 +120,7 @@ private:
 class filter_wire_func_t {
 public:
     template <class... Args>
-    filter_wire_func_t(Args... args) : wire_func(args...) { }
+    explicit filter_wire_func_t(Args... args) : wire_func(args...) { }
 
     func_t *compile(env_t *env) { return wire_func.compile(env); }
 
@@ -132,7 +133,7 @@ private:
 class reduce_wire_func_t {
 public:
     template <class... Args>
-    reduce_wire_func_t(Args... args) : wire_func(args...) { }
+    explicit reduce_wire_func_t(Args... args) : wire_func(args...) { }
 
     func_t *compile(env_t *env) { return wire_func.compile(env); }
 
@@ -145,7 +146,7 @@ private:
 class concatmap_wire_func_t {
 public:
     template <class... Args>
-    concatmap_wire_func_t(Args... args) : wire_func(args...) { }
+    explicit concatmap_wire_func_t(Args... args) : wire_func(args...) { }
 
     func_t *compile(env_t *env) { return wire_func.compile(env); }
 
