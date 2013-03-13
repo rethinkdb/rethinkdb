@@ -1322,11 +1322,17 @@ TODO: retire this
         .error{ font-family: @sans; }
         .error_details{
             font-family: @monospace;
-            word-break: break-word;
             padding: 7px 10px;
             border: 1px solid #CCC;
             border-radius: 3px;
             background: #EEE;
+            white-space: pre-wrap; /* css-3 */
+            white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+            white-space: -pre-wrap; /* Opera 4-6 */
+            white-space: -o-pre-wrap; /* Opera 7 */
+            word-wrap: break-word; /* Internet Explorer 5.5+, 6, 7, 8 compability-mode */
+            -ms-word-break: break-all; /* Internet Explorer 8 */
+            word-break: break-word;
         }
         .query{
             font-family: @monospace;

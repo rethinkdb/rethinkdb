@@ -1029,7 +1029,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
@@ -1139,7 +1139,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. An import process needs to connect to something!\n"

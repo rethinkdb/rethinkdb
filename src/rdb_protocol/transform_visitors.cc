@@ -219,13 +219,13 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func/*NOLINT*/) const {
 
 void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::count_wire_func_t &f) const {
-    *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0L)));
+    *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0.0)));
 }
 
 void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
     // TODO: just pass an int around
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    d->reset(ql_env->add_ptr(new ql::datum_t(d->get()->as_int() + 1)));
+    d->reset(ql_env->add_ptr(new ql::datum_t(d->get()->as_int() + 1.0)));
 }
 
 void terminal_initializer_visitor_t::operator()(

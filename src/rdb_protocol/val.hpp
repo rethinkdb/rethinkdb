@@ -14,6 +14,10 @@ namespace ql {
 class env_t;
 class val_t;
 class term_t;
+class stream_cache2_t;
+}
+
+namespace ql {
 
 class table_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
@@ -43,7 +47,7 @@ public:
             // false.
             UNUSED bool key_in_object =
                 datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1L)));
+                || datum->add("errors", env_add_ptr(new datum_t(1.0)));
             return datum;
         }
     }
@@ -153,5 +157,6 @@ private:
     DISABLE_COPYING(val_t);
 };
 
-} //namespace ql
+}  //namespace ql
+
 #endif // RDB_PROTOCOL_VAL_HPP_

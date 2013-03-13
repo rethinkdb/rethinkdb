@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_TERM_WALKER_
-#define RDB_PROTOCOL_TERM_WALKER_
+#ifndef RDB_PROTOCOL_TERM_WALKER_HPP_
+#define RDB_PROTOCOL_TERM_WALKER_HPP_
 
 namespace ql {
 
@@ -12,7 +12,7 @@ class term_walker_t {
 public:
     // This constructor fills in the backtraces of a term (`walk`) and checks
     // that it's well-formed with regard to write placement.
-    term_walker_t(Term *root) : depth(0), writes_legal(true), bt(0) {
+    explicit term_walker_t(Term *root) : depth(0), writes_legal(true), bt(0) {
         walk(root, 0, head_frame);
     }
 
@@ -154,4 +154,4 @@ private:
 
 } // namespace ql
 
-#endif // RDB_PROTOCOL_TERM_WALKER_
+#endif // RDB_PROTOCOL_TERM_WALKER_HPP_

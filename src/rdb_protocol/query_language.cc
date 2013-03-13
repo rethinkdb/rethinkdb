@@ -14,8 +14,9 @@
 #include "http/json.hpp"
 #include "rdb_protocol/internal_extensions.pb.h"
 #include "rdb_protocol/js.hpp"
-#include "rpc/directory/read_manager.hpp"
+#include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/proto_utils.hpp"
+#include "rpc/directory/read_manager.hpp"
 
 
 //TODO: why is this not in the query_language namespace? - because it's also used by rethinkdb import at the moment

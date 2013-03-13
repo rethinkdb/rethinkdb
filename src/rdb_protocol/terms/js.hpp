@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "errors.hpp"
 #include <boost/variant/static_visitor.hpp>
 
 #include "rdb_protocol/op.hpp"
