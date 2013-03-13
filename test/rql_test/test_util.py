@@ -3,8 +3,46 @@ import socket
 from time import sleep
 from subprocess import call, Popen
 
-# Manages starting and stopping instances of the Rethindb server
-class RethinkDBTestServers:
+# Manages a cluster of RethinkDB servers
+class RethinkDBTestServers(object):
+    def __init__(self, num_servers=4, server_build='debug', use_default_port=False):
+        assert num_servers >= 1
+        self.num_servers = num_servers
+        self.server_build = server_build
+        self.use_default_port = use_default_port
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.stop()
+
+    def start(self):
+        self.servers = [RethinkDBTestServer(self.server_build, self.use_default_port)
+                            for i in xrange(0, self.num_servers)]
+
+        cluster_port = self.servers[0].start()
+        for server in self.servers[1:]:
+            server.join(cluster_port)
+
+    def stop(self):
+        for server in self.servers:     
+            server.stop()
+        self.clear_data()
+
+    def clear_data(self):
+        call(['rm', '-rf', 'run'])
+
+    def restart(self):
+        self.stop()
+        self.start()
+
+    def driver_port(self):
+        return self.servers[0].cpp_port
+
+# Manages starting and stopping an instance of the Rethindb server
+class RethinkDBTestServer(object):
     def __init__(self, server_build='debug', use_default_port=False):
         self.server_build = server_build
         self.use_default_port = use_default_port
@@ -38,32 +76,55 @@ class RethinkDBTestServers:
         return True
 
     def start(self): 
-        log_out = open('build/server-log.txt','a')
         if self.use_default_port:
             self.cpp_port = 28015
         else:
             self.cpp_port = self.find_available_port()
-        self.cpp_server = Popen(['../../build/%s/rethinkdb' % self.server_build,
+        cluster_port = self.find_available_port()
+        executable, directory, log_out = self.create()
+
+        self.cpp_server = Popen([executable, 'serve',
                                  '--driver-port', str(self.cpp_port),
+                                 '--directory', directory,
                                  '--http-port', '0',
-                                 '--cluster-port', '0'],
+                                 '--cluster-port', str(cluster_port)],
                                 stdout=log_out, stderr=log_out)
-
-        # self.js_port = self.find_available_port()
-        # self.js_server = Popen(['node', '../../rqljs/build/rqljs', str(self.js_port), "0"])
-
         sleep(0.2)
+
+        # Create database 'test' which the tests assume but doesn't get created when we
+        # start up rethinkdb like this
+        call([executable, 'admin', '--join', 'localhost:%d' % cluster_port, 'create', 'database', 'test'],
+            stdout=log_out, stderr=log_out)
+        return cluster_port
+
+    # Join a cluster headed by a server previously invoked with start
+    def join(self, cluster_port):
+        self.cpp_port = self.find_available_port()
+        executable, directory, log_out = self.create()
+        self.cpp_server = Popen([executable, 'serve',
+                                 '--driver-port', str(self.cpp_port),
+                                 '--directory', directory,
+                                 '--http-port', '0',
+                                 '--join', 'localhost:%d' % cluster_port],
+                                stdout=log_out, stderr=log_out)
+        sleep(0.2)
+
+    def create(self):
+        # Really I should use python's directory tools to ensure compatibility with platforms
+        # that use an alternative path separator but I'm not going to.
+        directory = 'run/server_%s/' % self.cpp_port
+        rdbfile = directory+'rdb'
+        call(['mkdir', '-p', directory])
+        log_out = open(directory+'server-log.txt','a')
+        executable = '../../build/%s/rethinkdb' % self.server_build
+        call([executable, 'create', '--directory', rdbfile], stdout=log_out, stderr=log_out)
+        return executable, rdbfile, log_out
 
     def stop(self):
         self.cpp_server.terminate()
-        # self.js_server.terminate()
-        self.clear_data()
         sleep(0.1)
-
-    def clear_data(self):
-        # call(['rm', 'rethinkdb-data']) # JS server data
-        call(['rm', '-rf', 'rethinkdb_data'])
 
     def restart(self):
         self.stop()
         self.start()
+
