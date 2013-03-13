@@ -41,7 +41,7 @@ class Cursor(object):
 class Connection(object):
     repl_connection = None
 
-    def __init__(self, host, port, db='test'):
+    def __init__(self, host, port, db):
         self.socket = None
         self.host = host
         self.port = port
@@ -90,9 +90,14 @@ class Connection(object):
         query.token = token
 
         # Set global opt args
-        if not 'db' in global_opt_args:
+
+        # The 'db' option will default to this connection's default
+        # if not otherwise specified.
+        if 'db' in global_opt_args:
+            global_opt_args['db'] = DB(global_opt_args['db'])
+        else:
             if self.db:
-                global_opt_args['db'] = self.db
+               global_opt_args['db'] = self.db
 
         for k,v in global_opt_args.iteritems():
             pair = query.global_optargs.add()
@@ -166,8 +171,8 @@ class Connection(object):
         if response.type is p.Response.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
 
-def connect(host='localhost', port=28015):
-    return Connection(host, port)
+def connect(host='localhost', port=28015, db='test'):
+    return Connection(host, port, db)
 
 from ast import Datum, DB
 from query import expr
