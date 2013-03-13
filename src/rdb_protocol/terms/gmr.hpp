@@ -19,7 +19,7 @@ private:
         func_t *g = arg(1)->as_func(), *m = arg(2)->as_func(), *r = arg(3)->as_func();
         return new_val(arg(0)->as_seq()->gmr(g, m, base, r));
     }
-    RDB_NAME("grouped_map_reduce");
+    virtual const char *name() const { return "grouped_map_reduce"; }
 };
 
 } // namespace ql

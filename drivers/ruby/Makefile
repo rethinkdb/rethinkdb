@@ -8,10 +8,7 @@ QUIET:=@
 endif
 
 SOURCE_DIR?=../../src
-PYTHON_PBDIR:=../../build/drivers/python
-PYTHON_PBFILE:=query_language_pb2.py
 RUBY_PBDIR:=../../build/drivers/ruby
-RUBY_PBFILE:=query_language.pb.rb
 RUBY_PBFILE2:=ql2.pb.rb
 BUILD_DRIVERS?=1
 PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
@@ -34,16 +31,9 @@ $(RUBY_PBDIR):
 	$(QUIET) mkdir -p $(RUBY_PBDIR)
 
 driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE2)
-PROTOFILE:=$(SOURCE_DIR)/rdb_protocol/query_language.proto
 PROTOFILE2:=$(SOURCE_DIR)/rdb_protocol/ql2.proto
 PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
-$(RUBY_PBDIR)/$(RUBY_PBFILE): $(RUBY_PBDIR) $(PROTOFILE) $(TC_RPROTOC_EXE)
 $(RUBY_PBDIR)/$(RUBY_PBFILE2): $(RUBY_PBDIR) $(PROTOFILE2) $(TC_RPROTOC_EXE)
-ifeq ($(VERBOSE),0)
-	@echo "    PROTOC[RB] $(PROTOFILE)"
-endif
-	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE) | \
-		(grep -v 'writing...' || true)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[RB] $(PROTOFILE2)"
 endif

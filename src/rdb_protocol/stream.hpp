@@ -23,8 +23,6 @@
 namespace ql { class env_t; }
 namespace query_language {
 
-class runtime_environment_t;
-
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
@@ -32,9 +30,8 @@ class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
-    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
-                                    runtime_environment_t *env,
                                     ql::env_t *ql_env,
                                     const scopes_t &scopes,
                                     const backtrace_t &backtrace);
@@ -72,14 +69,13 @@ private:
 
 class transform_stream_t : public json_stream_t {
 public:
-    transform_stream_t(boost::shared_ptr<json_stream_t> stream, runtime_environment_t *env, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
+    transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
 
     boost::shared_ptr<scoped_cJSON_t> next();
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
 
 private:
     boost::shared_ptr<json_stream_t> stream;
-    runtime_environment_t *env;
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     json_list_t data;
@@ -97,9 +93,8 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
-                            runtime_environment_t *env,
                             ql::env_t *ql_env,
                             const scopes_t &scopes,
                             const backtrace_t &backtrace);
@@ -136,7 +131,7 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, runtime_environment_t *env, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
 
     /* TODO: Maybe we can optimize `apply_terminal()`. */
 

@@ -16,7 +16,7 @@ public:
 private:
     virtual bool is_deterministic_impl() const { return true; }
     virtual val_t *eval_impl() { return raw_val; }
-    RDB_NAME("datum");
+    virtual const char *name() const { return "datum"; }
     val_t *raw_val;
 };
 
@@ -32,7 +32,7 @@ private:
         }
         return new_val(acc);
     }
-    RDB_NAME("make_array");
+    virtual const char *name() const { return "make_array"; }
 };
 
 class make_obj_term_t : public op_term_t {
@@ -49,7 +49,7 @@ private:
         }
         return new_val(acc);
     }
-    RDB_NAME("make_obj");
+    virtual const char *name() const { return "make_obj"; }
 };
 
 } // namespace ql

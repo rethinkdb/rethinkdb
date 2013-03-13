@@ -283,12 +283,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
-QL_PROTO_NAMES := rdb_protocol/query_language rdb_protocol/internal_extensions
-QL_PROTO_SOURCES := $(foreach _,$(QL_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
-QL_PROTO_HEADERS := $(foreach _,$(QL_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
-QL_PROTO_CODE := $(foreach _,$(QL_PROTO_NAMES),$(PROTO_DIR)/$_.pb.cc)
-QL_PROTO_OBJS := $(foreach _,$(QL_PROTO_NAMES),$(OBJ_DIR)/$_.pb.o)
-
 QL2_PROTO_NAMES := rdb_protocol/ql2 rdb_protocol/ql2_extensions
 QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
 QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
@@ -299,11 +293,11 @@ PROTOCFLAGS_CXX := --proto_path=$(SOURCE_DIR)
 
 NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS := $(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS := $(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
+SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
 
-SERVER_NOMAIN_OBJS := $(QL_PROTO_OBJS) $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -331,13 +325,8 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
-.SECONDARY: $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS) $(QL_PROTO_CODE) $(QL2_PROTO_CODE)
-$(QL_PROTO_HEADERS) $(QL_PROTO_CODE): $(PROTO_DIR)/.protocppgen
+.SECONDARY: $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
 $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE): $(PROTO_DIR)/.protocppgen2
-$(PROTO_DIR)/.protocppgen: $(QL_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
-	$P PROTOC[CPP] $^
-	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
-	touch $@
 $(PROTO_DIR)/.protocppgen2: $(QL2_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
 	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
@@ -384,12 +373,12 @@ $(TOP)/src/clean:
 	$P RM $(BUILD_DIR)
 	rm -rf $(BUILD_DIR)
 
-$(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL_PROTO_HEADERS) $(QL2_PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL_PROTO_OBJS) $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \

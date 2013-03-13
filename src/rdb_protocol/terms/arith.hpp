@@ -82,7 +82,7 @@ private:
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(static_cast<double>(i0 % i1));
     }
-    RDB_NAME("mod");
+    virtual const char *name() const { return "mod"; }
 };
 
 } //namespace ql

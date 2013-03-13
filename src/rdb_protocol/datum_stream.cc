@@ -103,20 +103,20 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::concatmap(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans
         = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, 0, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return out;
 }
 
@@ -126,7 +126,7 @@ template<class T>
 void lazy_datum_stream_t::run_terminal(T t) {
     terminal = rdb_protocol_details::terminal_variant_t(t);
     rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(terminal, 0, env, _s, _b);
+        json_stream->apply_terminal(terminal, env, _s, _b);
     std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);
     r_sanity_check(data);
     for (size_t i = 0; i < data->size(); ++i) {
@@ -164,7 +164,7 @@ const datum_t *lazy_datum_stream_t::gmr(
     func_t *g, func_t *m, const datum_t *d, func_t *r) {
     terminal = rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r));
     rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(terminal, 0, env, _s, _b);
+        json_stream->apply_terminal(terminal, env, _s, _b);
     typedef std::vector<wire_datum_map_t> wire_datum_maps_t;
     wire_datum_maps_t *dms = boost::get<wire_datum_maps_t>(&res);
     r_sanity_check(dms);

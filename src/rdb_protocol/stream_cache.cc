@@ -1,81 +1,89 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 
-bool stream_cache_t::contains(int64_t key) {
+#include "rdb_protocol/env.hpp"
+
+namespace ql {
+
+bool stream_cache2_t::contains(int64_t key) {
     return streams.find(key) != streams.end();
 }
 
-void stream_cache_t::insert(ReadQuery3 *r, int64_t key,
-                            boost::shared_ptr<query_language::json_stream_t> val) {
+void stream_cache2_t::insert(Query *q, int64_t key,
+                             scoped_ptr_t<env_t> *val_env,
+                             datum_stream_t *val_stream) {
     maybe_evict();
-    std::pair<std::map<int64_t, entry_t>::iterator, bool> res = streams.insert(std::pair<int64_t, entry_t>(key, entry_t(time(0), val, r)));
+    std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res =
+        streams.insert(key, new entry_t(time(0), val_env, val_stream, q));
     guarantee(res.second);
 }
 
-void stream_cache_t::erase(int64_t key) {
+void stream_cache2_t::erase(int64_t key) {
     size_t num_erased = streams.erase(key);
     guarantee(num_erased == 1);
 }
 
-bool stream_cache_t::serve(int64_t key, Response3 *res, signal_t *interruptor) {
-    std::map<int64_t, entry_t>::iterator it = streams.find(key);
+bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
+    boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
     if (it == streams.end()) return false;
-    entry_t *entry = &it->second;
+    entry_t *entry = it->second;
     entry->last_activity = time(0);
     try {
-        int chunk_size = 0;
         // This is a hack.  Some streams have an interruptor that is invalid by
         // the time we reach here, so we just reset it to a good one.
-        entry->stream->reset_interruptor(interruptor);
-        while (boost::shared_ptr<scoped_cJSON_t> json = entry->stream->next()) {
-            res->add_response(json->PrintUnformatted());
+        entry->env->interruptor = interruptor;
+        env_checkpoint_t(entry->env.get(), &env_t::discard_checkpoint);
+
+        int chunk_size = 0;
+        if (entry->next_datum.has()) {
+            *res->add_response() = *entry->next_datum.get();
+            ++chunk_size;
+            entry->next_datum.reset();
+        }
+        while (const datum_t *d = entry->stream->next()) {
+            d->write_to_protobuf(res->add_response());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                res->set_status_code(Response3::SUCCESS_PARTIAL);
-                return true;
+                if (const datum_t *next_d = entry->stream->next()) {
+                    r_sanity_check(!entry->next_datum.has());
+                    entry->next_datum.init(new Datum());
+                    next_d->write_to_protobuf(entry->next_datum.get());
+                    res->set_type(Response::SUCCESS_PARTIAL);
+                }
+                break;
             }
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    erase(key);
-    res->set_status_code(Response3::SUCCESS_STREAM);
+    if (!entry->next_datum.has()) {
+        erase(key);
+        res->set_type(Response::SUCCESS_SEQUENCE);
+    } else {
+        r_sanity_check(res->type() == Response::SUCCESS_PARTIAL);
+    }
     return true;
 }
 
-void stream_cache_t::maybe_evict() {
-    time_t cur_time = time(0);
-    std::map<int64_t, entry_t>::iterator it_old, it = streams.begin();
-    while (it != streams.end()) {
-        it_old = it++;
-        entry_t *entry = &it_old->second;
-        if (entry->max_age && cur_time - entry->last_activity > entry->max_age) {
-            streams.erase(it_old);
-        }
-    }
+void stream_cache2_t::maybe_evict() {
+    // We never evict right now.
 }
 
-/*******************************************************************************
-                                    ENTRY_T
-*******************************************************************************/
 bool valid_chunk_size(int64_t chunk_size) {
+    // TODO: when users can specify chunk sizes, pick a better bound than INT_MAX.
     return 0 <= chunk_size && chunk_size <= INT_MAX;
 }
 bool valid_age(int64_t age) { return 0 <= age; }
-stream_cache_t::entry_t::entry_t(
-    time_t _last_activity,
-    boost::shared_ptr<query_language::json_stream_t> _stream,
-    ReadQuery3 *r)
-    : last_activity(_last_activity), stream(_stream),
-      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) {
-    if (r) {
-        if (r->has_max_chunk_size() && valid_chunk_size(r->max_chunk_size())) {
-            max_chunk_size = r->max_chunk_size();
-        }
-        if (r->has_max_age() && valid_age(max_age)) {
-            max_age = r->max_age();
-        }
-    }
+
+stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
+                                 datum_stream_t *_stream, UNUSED Query *q)
+    : last_activity(_last_activity), env(env_ptr->release() /*!!!*/), stream(_stream),
+      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE)
+{
+    // TODO: Once we actually support setting chunk size and age in the clients,
+    // parse the possible non-default values out of `q` here.
 }
+
+stream_cache2_t::entry_t::~entry_t() { }
+
+
+} // namespace ql

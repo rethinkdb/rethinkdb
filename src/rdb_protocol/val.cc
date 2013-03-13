@@ -137,7 +137,7 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
         SINGLE_SELECTION = val_t::type_t::SINGLE_SELECTION,
         DATUM = val_t::type_t::DATUM,
         FUNC = val_t::type_t::FUNC;
-    switch(t1) {
+    switch (t1) {
     case DB: return t2 == DB;
     case TABLE: return t2 == TABLE || t2 == SELECTION || t2 == SEQUENCE;
     case SELECTION: return t2 == SELECTION || t2 == SEQUENCE;
@@ -154,7 +154,7 @@ bool val_t::type_t::is_convertible(type_t rhs) const {
 }
 
 const char *val_t::type_t::name() const {
-    switch(raw_type) {
+    switch (raw_type) {
     case DB: return "DATABASE";
     case TABLE: return "TABLE";
     case SELECTION: return "SELECTION";
@@ -299,7 +299,7 @@ func_t *val_t::as_func(function_shortcut_t shortcut) {
             rcheck_literal_type(type_t::FUNC);
         }
         r_sanity_check(parent);
-        switch(shortcut) {
+        switch (shortcut) {
         case IDENTITY_SHORTCUT: {
             func = env->add_ptr(func_t::new_identity_func(env, as_datum(), parent));
         } break;

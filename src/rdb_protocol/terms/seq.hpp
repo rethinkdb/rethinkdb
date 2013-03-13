@@ -20,7 +20,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->count());
     }
-    RDB_NAME("count");
+    virtual const char *name() const { return "count"; }
 };
 
 class map_term_t : public op_term_t {
@@ -30,7 +30,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
     }
-    RDB_NAME("map");
+    virtual const char *name() const { return "map"; }
 };
 
 class concatmap_term_t : public op_term_t {
@@ -41,7 +41,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
     }
-    RDB_NAME("concatmap");
+    virtual const char *name() const { return "concatmap"; }
 };
 
 class filter_term_t : public op_term_t {
@@ -59,7 +59,7 @@ private:
             return new_val(v0->as_seq()->filter(f));
         }
     }
-    RDB_NAME("filter");
+    virtual const char *name() const { return "filter"; }
 
     const Term *src_term;
 };
@@ -73,7 +73,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
     }
-    RDB_NAME("reduce");
+    virtual const char *name() const { return "reduce"; }
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
@@ -122,7 +122,7 @@ private:
         //debugf("%s\n", filter_func->DebugString().c_str());
         return new_val(tbl, seq->filter(env->new_func(filter_func.get())));
     }
-    RDB_NAME("between");
+    virtual const char *name() const { return "between"; }
 
     scoped_ptr_t<Term> filter_func;
 };
@@ -137,7 +137,7 @@ private:
         for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
         return new_val(new union_datum_stream_t(env, streams, this));
     }
-    RDB_NAME("union");
+    virtual const char *name() const { return "union"; }
 };
 
 class zip_term_t : public op_term_t {
@@ -147,7 +147,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_seq()->zip());
     }
-    RDB_NAME("zip");
+    virtual const char *name() const { return "zip"; }
 };
 
 } //namespace ql

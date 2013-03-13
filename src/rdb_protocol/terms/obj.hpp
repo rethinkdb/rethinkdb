@@ -14,7 +14,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(arg(0)->as_datum()->el(arg(1)->as_str()));
     }
-    RDB_NAME("getattr");
+    virtual const char *name() const { return "getattr"; }
 };
 
 class contains_term_t : public op_term_t {
@@ -30,7 +30,7 @@ private:
         }
         return new_val(new datum_t(datum_t::R_BOOL, contains));
     }
-    RDB_NAME("contains");
+    virtual const char *name() const { return "contains"; }
 };
 
 } // namespace ql

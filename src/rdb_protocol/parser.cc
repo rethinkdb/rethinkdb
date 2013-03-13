@@ -6,8 +6,6 @@
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
-#include "rdb_protocol/query_language.pb.h"
-
 namespace rdb_protocol {
 
 query_http_app_t::query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,

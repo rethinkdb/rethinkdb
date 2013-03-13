@@ -32,15 +32,8 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
-typedef rdb_protocol_t::point_modify_t point_modify_t;
-typedef rdb_protocol_t::point_modify_response_t point_modify_response_t;
-
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
-
-namespace query_language {
-    class runtime_environment_t;
-} //namespace query_language
 
 class parallel_traversal_progress_t;
 
@@ -90,12 +83,6 @@ void rdb_replace(btree_slice_t *slice,
                  ql::env_t *ql_env,
                  Datum *response_out) THROWS_NOTHING;
 
-void rdb_modify(const std::string &primary_key, const store_key_t &key, const point_modify_ns::op_t op,
-                query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
-                const Mapping &mapping,
-                btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response);
-
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
@@ -134,7 +121,6 @@ struct rget_response_t {
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,

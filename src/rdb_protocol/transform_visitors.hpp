@@ -11,13 +11,10 @@
 #include "http/json.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.pb.h"
 
 namespace query_language {
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-
-class runtime_environment_t;
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
 
@@ -26,18 +23,9 @@ class transform_visitor_t : public boost::static_visitor<void> {
 public:
     transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                         json_list_t *_out,
-                        query_language::runtime_environment_t *_env,
                         ql::env_t *_ql_env,
                         const scopes_t &_scopes,
                         const backtrace_t &_backtrace);
-
-    void operator()(const Builtin_Filter &filter) const;
-
-    void operator()(const Mapping &mapping) const;
-
-    void operator()(const Builtin_ConcatMap &concatmap) const;
-
-    void operator()(Builtin_Range range) const;
 
     // This is a non-const reference because it caches the compiled function
     void operator()(ql::map_wire_func_t &func/*NOLINT*/) const;
@@ -47,7 +35,6 @@ public:
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
     json_list_t *out;
-    query_language::runtime_environment_t *env;
     ql::env_t *ql_env;
     scopes_t scopes;
     backtrace_t backtrace;
@@ -57,25 +44,15 @@ private:
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                   query_language::runtime_environment_t *_env,
                                    ql::env_t *_ql_env,
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
-
-    void operator()(const Builtin_GroupedMapReduce &) const;
-
-    void operator()(const Reduction &) const;
-
-    void operator()(const rdb_protocol_details::Length &) const;
-
-    void operator()(const WriteQuery3_ForEach &) const;
 
     void operator()(const ql::gmr_wire_func_t &) const;
     void operator()(const ql::count_wire_func_t &) const;
     void operator()(const ql::reduce_wire_func_t &) const;
 private:
     rget_read_response_t::result_t *out;
-    query_language::runtime_environment_t *env;
     ql::env_t *ql_env;
     scopes_t scopes;
     backtrace_t backtrace;
@@ -85,19 +62,10 @@ private:
 class terminal_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                       query_language::runtime_environment_t *_env,
                        ql::env_t *_ql_env,
                        const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
-
-    void operator()(const Builtin_GroupedMapReduce &gmr) const;
-
-    void operator()(const Reduction &r) const;
-
-    void operator()(const rdb_protocol_details::Length &) const;
-
-    void operator()(const WriteQuery3_ForEach &w) const;
 
     void operator()(const ql::count_wire_func_t &) const;
     // This is a non-const reference because it caches the compiled function
@@ -105,7 +73,6 @@ public:
     void operator()(ql::reduce_wire_func_t &) const;
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
-    query_language::runtime_environment_t *env;
     ql::env_t *ql_env;
     scopes_t scopes;
     backtrace_t backtrace;

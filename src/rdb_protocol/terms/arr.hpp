@@ -19,7 +19,7 @@ private:
         out->add(new_el);
         return new_val(out.release());
     }
-    RDB_NAME("append");
+    virtual const char *name() const { return "append"; }
 };
 
 // This gets the literal index of a (possibly negative) index relative to a
@@ -66,7 +66,7 @@ private:
             }
         }
     }
-    RDB_NAME("nth");
+    virtual const char *name() const { return "nth"; }
 };
 
 // TODO: this kinda sucks.
@@ -110,7 +110,7 @@ private:
         rfail("Cannot slice non-sequences.");
         unreachable();
     }
-    RDB_NAME("slice");
+    virtual const char *name() const { return "slice"; }
 };
 
 class limit_term_t : public op_term_t {
@@ -134,7 +134,7 @@ private:
         }
         return t ? new_val(t, new_ds) : new_val(new_ds);
     }
-    RDB_NAME("limit");
+    virtual const char *name() const { return "limit"; }
 };
 
 } // namespace ql

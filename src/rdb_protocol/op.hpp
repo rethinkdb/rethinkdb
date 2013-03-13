@@ -8,6 +8,7 @@
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
+
 namespace ql {
 
 // Specifies the range of normal arguments a function can take.
@@ -63,13 +64,6 @@ private:
     boost::ptr_map<const std::string, term_t> optargs;
 };
 
-// There was a good reason for defining both of these, but I forget it.  Maybe
-// debugging?  In any case, this macro can be used to name terms that inherit
-// from `op_term_t`.
-#define RDB_NAME(str) \
-    static const char *_name() { return str; } \
-    virtual const char *name() const { return str; } \
-    typedef int RDB_NAME_MACRO_WAS_NOT_TERMINATED_WITH_SEMICOLON
+}  // namespace ql
 
-} // namespace ql
 #endif // RDB_PROTOCOL_OP_HPP_

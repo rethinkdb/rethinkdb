@@ -159,7 +159,7 @@ private:
         }
         return argout;
     }
-    RDB_NAME("groupby");
+    virtual const char *name() const { return "groupby"; }
 };
 #pragma GCC diagnostic pop
 
@@ -192,7 +192,7 @@ public:
                  N0(MAKE_ARRAY))));
 #pragma GCC diagnostic pop
     }
-    RDB_NAME("inner_join");
+    virtual const char *name() const { return "inner_join"; }
 };
 
 class outer_join_term_t : public rewrite_term_t {
@@ -236,7 +236,7 @@ public:
                  NDATUM("ARRAY"))));
 #pragma GCC diagnostic pop
     }
-    RDB_NAME("outer_join");
+    virtual const char *name() const { return "outer_join"; }
 };
 
 class eq_join_term_t : public rewrite_term_t {
@@ -268,7 +268,7 @@ private:
               N2(GET, *arg = *r, N2(GETATTR, NVAR(row), *arg = *lattr))));
 #pragma GCC diagnostic pop
     }
-    RDB_NAME("inner_join");
+    virtual const char *name() const { return "inner_join"; }
 };
 
 class delete_term_t : public rewrite_term_t {
@@ -286,7 +286,7 @@ private:
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
 #pragma GCC diagnostic pop
      }
-     RDB_NAME("delete");
+     virtual const char *name() const { return "delete"; }
 };
 
 class update_term_t : public rewrite_term_t {
@@ -315,7 +315,7 @@ private:
                  N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
 #pragma GCC diagnostic pop
     }
-    RDB_NAME("update");
+    virtual const char *name() const { return "update"; }
 };
 
 class skip_term_t : public rewrite_term_t {
@@ -331,7 +331,7 @@ private:
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
 #pragma GCC diagnostic pop
      }
-     RDB_NAME("skip");
+     virtual const char *name() const { return "skip"; }
 };
 
 } // namespace ql

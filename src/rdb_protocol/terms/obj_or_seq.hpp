@@ -58,7 +58,7 @@ private:
         }
         return new_val(out.release());
     }
-    RDB_NAME("pluck");
+    virtual const char *name() const { return "pluck"; }
 };
 
 class without_term_t : public obj_or_seq_op_term_t {
@@ -77,7 +77,7 @@ private:
         }
         return new_val(out.release());
     }
-    RDB_NAME("without");
+    virtual const char *name() const { return "without"; }
 };
 
 class merge_term_t : public obj_or_seq_op_term_t {
@@ -92,7 +92,7 @@ private:
         }
         return new_val(d);
     }
-    RDB_NAME("merge");
+    virtual const char *name() const { return "merge"; }
 };
 
 

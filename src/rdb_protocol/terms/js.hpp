@@ -26,7 +26,7 @@ private:
 
         return boost::apply_visitor(js_result_visitor_t(env, this), result);
     }
-    RDB_NAME("javascript");
+    virtual const char *name() const { return "javascript"; }
 
     // No JS term is considered deterministic
     virtual bool is_deterministic_impl() const {

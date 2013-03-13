@@ -16,8 +16,6 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
-#include "rdb_protocol/environment.hpp"
-#include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
@@ -250,55 +248,6 @@ void rdb_replace(btree_slice_t *slice,
     resp->write_to_protobuf(response_out);
 }
 
-void rdb_modify(const std::string &primary_key, const store_key_t &key, point_modify_ns::op_t op,
-                query_language::runtime_environment_t *env, const scopes_t &scopes, const backtrace_t &backtrace,
-                const Mapping &mapping,
-                btree_slice_t *slice, repli_timestamp_t timestamp,
-                transaction_t *txn, superblock_t *superblock, point_modify_response_t *response) {
-    try {
-        keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
-                                         &slice->root_eviction_priority, &slice->stats);
-        boost::shared_ptr<scoped_cJSON_t> lhs;
-        if (!kv_location.value.has()) {
-            lhs.reset(new scoped_cJSON_t(cJSON_CreateNull()));
-        } else {
-            lhs = get_data(kv_location.value.get(), txn);
-            guarantee(lhs->GetObjectItem(primary_key.c_str()));
-        }
-        boost::shared_ptr<scoped_cJSON_t> new_row;
-        std::string new_key;
-        point_modify_ns::result_t res = query_language::calculate_modify(
-            lhs, primary_key, op, mapping, env, scopes, backtrace, &new_row, &new_key);
-        switch (res) {
-        case point_modify_ns::INSERTED:
-            if (new_key != key_to_unescaped_str(key)) {
-                throw query_language::runtime_exc_t(strprintf("mutate can't change the primary key (%s) when doing an insert of %s",
-                                                              primary_key.c_str(), new_row->Print().c_str()), backtrace);
-            }
-            //FALLTHROUGH
-        case point_modify_ns::MODIFIED: {
-            guarantee(new_row);
-            kv_location_set(&kv_location, key, new_row, slice, timestamp, txn);
-        } break;
-        case point_modify_ns::DELETED: {
-            kv_location_delete(&kv_location, key, slice, timestamp, txn);
-        } break;
-        case point_modify_ns::SKIPPED: break;
-        case point_modify_ns::NOP: break;
-        case point_modify_ns::ERROR: unreachable("execute_modify should never return ERROR, it should throw");
-        default: unreachable();
-        }
-        response->result = res;
-    } catch (const query_language::runtime_exc_t &e) {
-        response->result = point_modify_ns::ERROR;
-        response->exc = e;
-    } catch (const ql::exc_t &e2) {
-        response->result = point_modify_ns::ERROR;
-        response->ql_exc = e2;
-    }
-}
-
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
@@ -407,21 +356,20 @@ class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_c
 public:
     rdb_rget_depth_first_traversal_callback_t(
         transaction_t *txn,
-        query_language::runtime_environment_t *_env,
         ql::env_t *_ql_env,
         const rdb_protocol_details::transform_t &_transform,
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
         rget_read_response_t *_response)
         : bad_init(false), transaction(txn), response(_response), cumulative_size(0),
-          env(_env), ql_env(_ql_env), transform(_transform), terminal(_terminal)
+          ql_env(_ql_env), transform(_transform), terminal(_terminal)
     {
         try {
             response->last_considered_key = range.left;
 
             if (terminal) {
                 boost::apply_visitor(query_language::terminal_initializer_visitor_t(
-                                         &response->result, env, ql_env,
+                                         &response->result, ql_env,
                                          terminal->scopes, terminal->backtrace),
                                      terminal->variant);
             }
@@ -459,7 +407,7 @@ public:
                          jt != data.end();
                          ++jt) {
                         boost::apply_visitor(query_language::transform_visitor_t(
-                                                 *jt, &tmp, env, ql_env, it->scopes,
+                                                 *jt, &tmp, ql_env, it->scopes,
                                                  it->backtrace), it->variant);
                     }
                     data.clear();
@@ -487,7 +435,7 @@ public:
                 json_list_t::iterator jt;
                 for (jt = data.begin(); jt != data.end(); ++jt) {
                     boost::apply_visitor(query_language::terminal_visitor_t(
-                                             *jt, env, ql_env, terminal->scopes,
+                                             *jt, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
                                          terminal->variant);
                     // A reduce returns a `wire_datum_t` and a gmr returns a
@@ -522,7 +470,6 @@ public:
     transaction_t *transaction;
     rget_read_response_t *response;
     size_t cumulative_size;
-    query_language::runtime_environment_t *env;
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
@@ -530,12 +477,11 @@ public:
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    query_language::runtime_environment_t *env,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, env, ql_env, transform, terminal, range, response);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {

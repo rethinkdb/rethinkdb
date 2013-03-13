@@ -104,7 +104,7 @@ private:
                                      strprintf("Database `%s` does not exist.",
                                                db_name.c_str()), this));
     }
-    RDB_NAME("db");
+    virtual const char *name() const { return "db"; }
 };
 
 class db_create_term_t : public meta_write_op_t {
@@ -138,7 +138,7 @@ private:
 
         return "created";
     }
-    RDB_NAME("db_create");
+    virtual const char *name() const { return "db_create"; }
 };
 
 static const char *const table_create_optargs[] =
@@ -211,7 +211,7 @@ private:
 
         return "created";
     }
-    RDB_NAME("table_create");
+    virtual const char *name() const { return "table_create"; }
 };
 
 class db_drop_term_t : public meta_write_op_t {
@@ -256,7 +256,7 @@ private:
 
         return "dropped";
     }
-    RDB_NAME("db_drop");
+    virtual const char *name() const { return "db_drop"; }
 };
 
 class table_drop_term_t : public meta_write_op_t {
@@ -291,7 +291,7 @@ private:
 
         return "dropped";
     }
-    RDB_NAME("table_drop");
+    virtual const char *name() const { return "table_drop"; }
 };
 
 class db_list_term_t : public meta_op_t {
@@ -311,7 +311,7 @@ private:
         }
         return new_val(arr);
     }
-    RDB_NAME("db_list");
+    virtual const char *name() const { return "db_list"; }
 };
 
 class table_list_term_t : public meta_op_t {
@@ -333,7 +333,7 @@ private:
         }
         return new_val(arr);
     }
-    RDB_NAME("table_list");
+    virtual const char *name() const { return "table_list"; }
 };
 
 static const char *const table_optargs[] = {"use_outdated"};
@@ -359,7 +359,7 @@ private:
         }
         return new_val(new table_t(env, db, name, use_outdated, this));
     }
-    RDB_NAME("table");
+    virtual const char *name() const { return "table"; }
 };
 
 class get_term_t : public op_term_t {
@@ -372,7 +372,7 @@ private:
         const datum_t *row = table->get_row(pkey);
         return new_val(row, table);
     }
-    RDB_NAME("get");
+    virtual const char *name() const { return "get"; }
 };
 
 } // namespace ql

@@ -12,31 +12,7 @@
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/query_language.hpp"
 #include "rdb_protocol/ql2.hpp"
-
-class query_server_t {
-public:
-    query_server_t(const std::set<ip_address_t> &local_addresses, int port, rdb_protocol_t::context_t *_ctx);
-
-    http_app_t *get_http_app();
-
-    int get_port() const;
-
-    struct context_t {
-        context_t() : interruptor(0) { }
-        stream_cache_t stream_cache;
-        signal_t *interruptor;
-    };
-private:
-    Response3 handle(Query3 *q, context_t *query_context);
-    protob_server_t<Query3, Response3, context_t> server;
-    rdb_protocol_t::context_t *ctx;
-    uuid_u parser_id;
-    one_per_thread_t<int> thread_counters;
-
-    DISABLE_COPYING(query_server_t);
-};
 
 class query2_server_t {
 public:
@@ -62,7 +38,5 @@ private:
     DISABLE_COPYING(query2_server_t);
 };
 
-Response3 on_unparsable_query(Query3 *q, std::string msg);
-Response on_unparsable_query2(Query *q, std::string msg);
 
 #endif /* RDB_PROTOCOL_PB_SERVER_HPP_ */
