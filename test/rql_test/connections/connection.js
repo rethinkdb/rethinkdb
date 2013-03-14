@@ -122,12 +122,12 @@ describe('Javascript connection API', function(){
                         r.table('t2').run(c, noError(function(){
                             c.use('test');
                             r.table('t2').run(c, givesError("RqlRuntimeError", "Table `t2` does not exist.",
-                                                             done))
-                        }))}))}))}))}));
+                                                            done));
+                        }));}));}));}));}));
 
         it("use_outdated", withConnection(function(done ,c){
             r.db('test').tableCreate('t1').run(c, function(){
-                r.table('t1', {use_outdated:true}).run(c, function(){
+                r.db('test').table('t1', {use_outdated:true}).run(c, function(){
                     r.table('t1').run({connection: c, use_outdated: true}, done);});});
         }));
 
@@ -155,6 +155,12 @@ describe('Javascript connection API', function(){
                     }));
                 });
             });
+        }));
+
+        it.only("missing arguments cause exception", withConnection(function(done,c){
+            assert.throws(function(){ r.connect(); });
+            assert.throws(function(){ c.use(); });
+            done();
         }));
     });
 });

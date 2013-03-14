@@ -17,7 +17,7 @@ ar = (fun) -> (args...) ->
 aropt = (fun) -> (args...) ->
     expectedPosArgs = fun.length - 1
     perhapsOptDict = args[expectedPosArgs]
-    
+
     if perhapsOptDict and ((not (perhapsOptDict instanceof Object)) or (perhapsOptDict instanceof TermBase))
         perhapsOptDict = null
 
