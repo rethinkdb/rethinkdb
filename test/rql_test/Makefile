@@ -19,7 +19,6 @@ py: py_connect py_cursor
 js: js_connect js_cursor
 
 py js rb: $(TEST_FILES)
-	#python connections/cursor_test.py $(BUILD) $@
 	./test-runner run \"$(BUILD)\" \"$@\"
 
 $(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
@@ -31,7 +30,7 @@ py_connect: connections/connection.py
 
 js_connect: connections/connection.js
 	BUILD=$(BUILD) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
-	    _mocha -R spec connections/connection.js
+	    _mocha -R nyan connections/connection.js
 
 cursor:
 	python connections/cursor_test.py $(BUILD)
