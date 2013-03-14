@@ -2958,7 +2958,7 @@
         },
         {
           "tag": "not",
-          "description": "Compute the logical inverse",
+          "description": "Compute the logical inverse (not).",
           "parent": "json",
           "returns": "bool",
           "langs": {
@@ -2967,7 +2967,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "This is all pretty self explanatory really",
+                  "description": "Not true is false",
                   "code": "r.expr(true).not().run()",
                   "can_try": true,
                   "dataset": "marvel"
@@ -2981,7 +2981,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "This is all pretty self explanatory really",
+                  "description": "Not true is false",
                   "code": "(~r.expr(true)).run()"
                 }
               ]
@@ -2992,7 +2992,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "This is all pretty self explanatory really",
+                  "description": "Not true is false",
                   "code": "r(true).not.run"
                 }
               ]
