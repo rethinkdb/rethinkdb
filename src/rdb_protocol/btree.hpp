@@ -32,6 +32,8 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
+typedef rdb_protocol_t::batched_writes_response_t batched_writes_response_t;
+
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
@@ -87,6 +89,8 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
 
+void rdb_batched_set(const std::vector<point_write_t> &writes, btree_slice_t *slice, repli_timestamp_t timestamp,
+                     transaction_t *txn, superblock_t *superblock, batched_writes_response_t *response);
 
 class rdb_backfill_callback_t {
 public:

@@ -328,6 +328,17 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    struct batched_writes_response_t {
+        // SAMRSI: sizeof(point_write_response_t) is needlessly big. Also make sure we really use this value.
+        std::vector<point_write_response_t> point_write_responses;
+
+        batched_writes_response_t() { }
+        explicit batched_writes_response_t(const std::vector<point_write_response_t> &_point_write_responses)
+            : point_write_responses(_point_write_responses) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct point_delete_response_t {
         point_delete_result_t result;
 
@@ -343,12 +354,15 @@ struct rdb_protocol_t {
 
     struct write_response_t {
         boost::variant<point_write_response_t,
+                       batched_writes_response_t,
                        point_delete_response_t,
                        point_replace_response_t> response;
 
         write_response_t() { }
+        // SAMRSI: A useless copy constructor.
         write_response_t(const write_response_t& w) : response(w.response) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
+        explicit write_response_t(const batched_writes_response_t& bw) : response(bw) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
         explicit write_response_t(const Datum& d) : response(d) { }
 
@@ -384,6 +398,16 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class batched_writes_t {
+    public:
+        batched_writes_t() { }
+        batched_writes_t(const std::vector<point_write_t> &_point_writes) : point_writes(_point_writes) { }
+
+        std::vector<point_write_t> point_writes;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     class point_delete_t {
     public:
         point_delete_t() { }
@@ -396,15 +420,15 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, point_delete_t, point_replace_t> write;
+        boost::variant<point_write_t, batched_writes_t, point_delete_t, point_replace_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
-        write_t(const write_t& w) : write(w.write) { }
         explicit write_t(const point_write_t &w) : write(w) { }
+        explicit write_t(const batched_writes_t &bw) : write(bw) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
         explicit write_t(const point_replace_t &r) : write(r) { }
 

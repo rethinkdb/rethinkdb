@@ -22,9 +22,6 @@
 #include "serializer/config.hpp"
 
 
-// TODO: this is absurd, and messes up my ETAGS jumping.  We should just alias
-// the module to something shorter and type out the shorter name everywhere, or
-// else use a `using` declaration.
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 
 typedef rdb_protocol_t::context_t context_t;
@@ -51,6 +48,9 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
+
+typedef rdb_protocol_t::batched_writes_t batched_writes_t;
+// SAMRSI: Where's the batched_writes_response_t?
 
 typedef rdb_protocol_t::point_replace_t point_replace_t;
 typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
@@ -413,11 +413,57 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 /* write_t::get_region() implementation */
 
-namespace {
+// Returns the smallest region that contains the set of keys.  It might be
+// useful to return something other than the universal region -- often batched
+// writes end up hitting the same key range.
+hash_region_t<key_range_t> smallest_covering_region(const std::vector<store_key_t> &keys) {
+    if (keys.empty()) {
+        // We can't find the minimum or maximum of an empty sequence, so we
+        // special-case the empty case.
+        return hash_region_t<key_range_t>();
+    }
 
+    store_key_t minimum_key = store_key_t::min();
+    store_key_t maximum_key = store_key_t::max();
+    uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
+    uint64_t maximum_hash_value = 0;
+
+    for (auto key = keys.begin(); key != keys.end(); ++key) {
+        if (*key < minimum_key) {
+            minimum_key = *key;
+        }
+        if (*key > maximum_key) {
+            maximum_key = *key;
+        }
+
+        const uint64_t hash_value = hash_region_hasher(key->contents(), key->size());
+        if (hash_value < minimum_hash_value) {
+            minimum_hash_value = hash_value;
+        }
+        if (hash_value > maximum_hash_value) {
+            maximum_hash_value = hash_value;
+        }
+    }
+
+    return hash_region_t<key_range_t>(minimum_hash_value, maximum_hash_value + 1,
+                                      key_range_t(key_range_t::closed, minimum_key, key_range_t::closed, maximum_key));
+}
+
+// SAMRSI: This entire type is suspect, given that smallest_covering_region
+// would have to be slow.  Is it used in anything other than assertions?
 struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
+    }
+
+    region_t operator()(const batched_writes_t &bw) const {
+        // SAMRSI: Avoid this expensive copying somehow.
+        std::vector<store_key_t> keys;
+        for (auto write = bw.point_writes.begin(); write != bw.point_writes.end(); ++write) {
+            keys.push_back(write->key);
+        }
+
+        return smallest_covering_region(keys);
     }
 
     region_t operator()(const point_delete_t &pd) const {
@@ -429,15 +475,20 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     }
 };
 
-}   /* anonymous namespace */
-
 region_t write_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(w_get_region_visitor(), write);
 }
 
 /* write_t::shard implementation */
 
-namespace {
+bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
+    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+    if (region.beg <= hash_value && hash_value < region.end) {
+        return region.inner.contains_key(key);
+    } else {
+        return false;
+    }
+}
 
 struct w_shard_visitor : public boost::static_visitor<write_t> {
     explicit w_shard_visitor(const region_t &_region)
@@ -445,9 +496,28 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     { }
 
     write_t operator()(const point_write_t &pw) const {
+        // SAMRSI: This assertion is questionable.  Why would the region already be shrunk down to size?
         rassert(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
+
+    write_t operator()(const batched_writes_t &bw) const {
+        // SAMRSI: Iterating through the list of batched writes over and over again for each region is wasteful.
+        //
+        // We could instead have a shard function whose type looks somewhat like
+        // (write_t, vector<region_t>) -> vector<pair<region_t, write_t> >.
+        std::vector<point_write_t> writes;
+        for (auto point_write = bw.point_writes.begin(); point_write != bw.point_writes.end(); ++point_write) {
+            if (region_contains_key(region, point_write->key)) {
+                // SAMRSI: So much needless copying.
+                writes.push_back(*point_write);
+            }
+        }
+
+        // SAMRSI: So much needless copying.
+        return write_t(batched_writes_t(writes));
+    }
+
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
@@ -457,10 +527,10 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
         rassert(rdb_protocol_t::monokey_region(pr.key) == region);
         return write_t(pr);
     }
+
     const region_t &region;
 };
 
-}   /* anonymous namespace */
 
 write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
@@ -589,6 +659,16 @@ struct write_visitor_t : public boost::static_visitor<void> {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
+    }
+
+    void operator()(const batched_writes_t &bw) {
+        response->response = batched_writes_response_t();
+        // SAMRSI: Use the pointer version of boost::get.
+        batched_writes_response_t &res = boost::get<batched_writes_response_t>(response->response);
+        rdb_batched_set(bw.point_writes, btree, timestamp, txn, superblock, &res);
+
+        // SAMRSI: This is broken, because we need to break up the batched set
+        // into a bunch of separate transactions (to avoid starving everybody).
     }
 
     void operator()(const point_delete_t &d) {
@@ -897,7 +977,11 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_response_t, point_write_responses);
+
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
+
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_t, point_writes);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 

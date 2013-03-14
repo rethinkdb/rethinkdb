@@ -251,7 +251,6 @@ void rdb_replace(btree_slice_t *slice,
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
-    //block_size_t block_size = slice->cache()->get_block_size();
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool had_value = kv_location.value.has();
@@ -260,6 +259,13 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
     }
     response->result = (had_value ? DUPLICATE : STORED);
 }
+
+void rdb_batched_set(UNUSED const std::vector<point_write_t> &writes,
+                     UNUSED btree_slice_t *slice, UNUSED repli_timestamp_t timestamp,
+                     UNUSED transaction_t *txn, UNUSED superblock_t *superblock, UNUSED batched_writes_response_t *response) {
+    // SAMRSI: Implement this.
+}
+
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
