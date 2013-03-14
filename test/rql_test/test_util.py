@@ -137,11 +137,11 @@ class RethinkDBTestServer(object):
 
 def shard_table(port, build, table_name):
     rtn_sum = 0
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, str(25)],
-                    stdout=PIPE, stderr=PIPE)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, str(50)],
-                    stdout=PIPE, stderr=PIPE)
-    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name, str(75)],
-                    stdout=PIPE, stderr=PIPE)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
+					'Nc040800000000000\2333'], stdout=PIPE, stderr=PIPE)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
+					'Nc048800000000000\2349'], stdout=PIPE, stderr=PIPE)
+    rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
+					'Nc04f000000000000\2362'], stdout=PIPE, stderr=PIPE)
     sleep(3.0)
     return rtn_sum
