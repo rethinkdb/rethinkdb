@@ -29,6 +29,11 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
+
+typedef rdb_protocol_t::batched_replaces_response_t batched_replaces_response_t;
+
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
@@ -85,12 +90,16 @@ void rdb_replace(btree_slice_t *slice,
                  ql::env_t *ql_env,
                  Datum *response_out) THROWS_NOTHING;
 
+void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
+                         transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
+                         batched_replaces_response_t *response_out);
+
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
 
 void rdb_batched_set(const std::vector<point_write_t> &writes, btree_slice_t *slice, repli_timestamp_t timestamp,
-                     transaction_t *txn, superblock_t *superblock, batched_writes_response_t *response);
+                     transaction_t *txn, superblock_t *superblock, batched_writes_response_t *response_out);
 
 class rdb_backfill_callback_t {
 public:

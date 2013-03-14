@@ -317,6 +317,19 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    typedef Datum point_replace_response_t;
+
+    struct batched_replaces_response_t {
+        std::vector<point_replace_response_t> point_replace_responses;
+
+        batched_replaces_response_t() { }
+        explicit batched_replaces_response_t(const std::vector<point_replace_response_t> &_point_replace_responses)
+            : point_replace_responses(_point_replace_responses) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+
     struct point_write_response_t {
         point_write_result_t result;
 
@@ -350,21 +363,21 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    typedef Datum point_replace_response_t;
-
     struct write_response_t {
-        boost::variant<point_write_response_t,
+        boost::variant<point_replace_response_t,
+                       batched_replaces_response_t,
+                       point_write_response_t,
                        batched_writes_response_t,
-                       point_delete_response_t,
-                       point_replace_response_t> response;
+                       point_delete_response_t> response;
 
         write_response_t() { }
         // SAMRSI: A useless copy constructor.
         write_response_t(const write_response_t& w) : response(w.response) { }
+        explicit write_response_t(const point_replace_response_t& r) : response(r) { }
+        explicit write_response_t(const batched_replaces_response_t& br) : response(br) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
         explicit write_response_t(const batched_writes_response_t& bw) : response(bw) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
-        explicit write_response_t(const Datum& d) : response(d) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -382,7 +395,17 @@ struct rdb_protocol_t {
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
 
-        RDB_MAKE_ME_SERIALIZABLE_4(primary_key, key, f, optargs);
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    class batched_replaces_t {
+    public:
+        batched_replaces_t() { }
+        batched_replaces_t(const std::vector<point_replace_t> &_point_replaces) : point_replaces(_point_replaces) { }
+
+        std::vector<point_replace_t> point_replaces;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {
@@ -420,17 +443,18 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, batched_writes_t, point_delete_t, point_replace_t> write;
+        boost::variant<point_replace_t, batched_replaces_t, point_write_t, batched_writes_t, point_delete_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
 
         write_t() { }
+        explicit write_t(const point_replace_t &r) : write(r) { }
+        explicit write_t(const batched_replaces_t &br) : write(br) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const batched_writes_t &bw) : write(bw) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const point_replace_t &r) : write(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

@@ -153,22 +153,23 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
 // just a different function passed to this function).
-void rdb_replace(btree_slice_t *slice,
-                 repli_timestamp_t timestamp,
-                 transaction_t *txn,
-                 superblock_t *superblock,
-                 const std::string &primary_key,
-                 const store_key_t &key,
-                 ql::map_wire_func_t *f,
-                 ql::env_t *ql_env,
-                 Datum *response_out) THROWS_NOTHING {
+void do_a_replace_with_promise(btree_slice_t *slice,
+                               repli_timestamp_t timestamp,
+                               transaction_t *txn,
+                               superblock_t *superblock,
+                               const std::string &primary_key,
+                               const store_key_t &key,
+                               ql::map_wire_func_t *f,
+                               ql::env_t *ql_env,
+                               promise_t<superblock_t *> *superblock_promise_or_null,
+                               Datum *response_out) THROWS_NOTHING {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
             txn, superblock, key.btree_key(), &kv_location,
-            &slice->root_eviction_priority, &slice->stats);
+            &slice->root_eviction_priority, &slice->stats, superblock_promise_or_null);
 
         bool started_empty, ended_empty;
         const ql::datum_t *old_val;
@@ -247,6 +248,58 @@ void rdb_replace(btree_slice_t *slice,
     }
     resp->write_to_protobuf(response_out);
 }
+
+void rdb_replace(btree_slice_t *slice,
+                 repli_timestamp_t timestamp,
+                 transaction_t *txn,
+                 superblock_t *superblock,
+                 const std::string &primary_key,
+                 const store_key_t &key,
+                 ql::map_wire_func_t *f,
+                 ql::env_t *ql_env,
+                 Datum *response_out) THROWS_NOTHING {
+    do_a_replace_with_promise(slice, timestamp, txn, superblock, primary_key, key, f, ql_env, NULL, response_out);
+}
+
+void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
+                                       const point_replace_t *replace,
+                                       btree_slice_t *slice,
+                                       repli_timestamp_t timestamp,
+                                       transaction_t *txn,
+                                       superblock_t *superblock,
+                                       ql::env_t *ql_env,
+                                       promise_t<superblock_t *> *superblock_promise_or_null,
+                                       Datum *response_out) {
+    // SAMRSI: Drop this const_cast.
+    ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&replace->f);
+    do_a_replace_with_promise(slice, timestamp, txn, superblock, replace->primary_key,
+                              replace->key, f, ql_env, superblock_promise_or_null, response_out);
+}
+
+void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
+                         transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
+                         batched_replaces_response_t *response_out) {
+    // SAMRSI: We should assign to *response_out, not response_out->point_replace_responses.
+    auto_drainer_t drainer;
+
+    // Note the destructor ordering: We release the superblock before draining on all the write operations.
+    scoped_ptr_t<superblock_t> current_superblock(superblock);
+
+    response_out->point_replace_responses.resize(replaces.size());
+    for (size_t i = 0; i < replaces.size(); ++i) {
+        promise_t<superblock_t *> superblock_promise;
+        coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
+                                  auto_drainer_t::lock_t(&drainer),
+                                  &replaces[i], slice, timestamp, txn,
+                                  current_superblock.release(),
+                                  ql_env,
+                                  &superblock_promise,
+                                  &response_out->point_replace_responses[i]));
+        current_superblock.init(superblock_promise.wait());
+    }
+}
+
+
 
 void do_a_set_with_promise(const store_key_t &key, const boost::shared_ptr<scoped_cJSON_t> &data, const bool overwrite,
                            btree_slice_t *const slice,

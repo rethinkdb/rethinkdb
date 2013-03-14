@@ -46,14 +46,17 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
+
+typedef rdb_protocol_t::batched_replaces_t batched_replaces_t;
+// SAMRSI: Where's the batched_replaces_response_t?
+
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::batched_writes_t batched_writes_t;
 // SAMRSI: Where's the batched_writes_response_t?
-
-typedef rdb_protocol_t::point_replace_t point_replace_t;
-typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
@@ -452,6 +455,20 @@ hash_region_t<key_range_t> smallest_covering_region(const std::vector<store_key_
 // SAMRSI: This entire type is suspect, given that smallest_covering_region
 // would have to be slow.  Is it used in anything other than assertions?
 struct w_get_region_visitor : public boost::static_visitor<region_t> {
+    region_t operator()(const point_replace_t &pr) const {
+        return rdb_protocol_t::monokey_region(pr.key);
+    }
+
+    region_t operator()(const batched_replaces_t &br) const {
+        // SAMRSI: Avoid this expensive copying somehow.
+        std::vector<store_key_t> keys;
+        for (auto replace = br.point_replaces.begin(); replace != br.point_replaces.end(); ++replace) {
+            keys.push_back(replace->key);
+        }
+
+        return smallest_covering_region(keys);
+    }
+
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
     }
@@ -468,10 +485,6 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
 
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
-    }
-
-    region_t operator()(const point_replace_t &pr) const {
-        return rdb_protocol_t::monokey_region(pr.key);
     }
 };
 
@@ -494,6 +507,25 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     explicit w_shard_visitor(const region_t &_region)
         : region(_region)
     { }
+
+    write_t operator()(const point_replace_t &pr) const {
+        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
+        return write_t(pr);
+    }
+
+    write_t operator()(const batched_replaces_t &br) const {
+        // SAMRSI: Iterating through the list of batched writes over and over again for each region is wasteful.
+        std::vector<point_replace_t> replaces;
+        for (auto point_replace = br.point_replaces.begin(); point_replace != br.point_replaces.end(); ++point_replace) {
+            if (region_contains_key(region, point_replace->key)) {
+                // SAMRSI: So much needless copying.
+                replaces.push_back(*point_replace);
+            }
+        }
+
+        // SAMRSI: So much needless copying.
+        return write_t(batched_replaces_t(replaces));
+    }
 
     write_t operator()(const point_write_t &pw) const {
         // SAMRSI: This assertion is questionable.  Why would the region already be shrunk down to size?
@@ -521,11 +553,6 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
-    }
-
-    write_t operator()(const point_replace_t &pr) const {
-        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
-        return write_t(pr);
     }
 
     const region_t &region;
@@ -653,6 +680,13 @@ struct write_visitor_t : public boost::static_visitor<void> {
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_replace(btree, timestamp, txn, superblock,
                     r.primary_key, r.key, f, &ql_env, res);
+    }
+
+    void operator()(const batched_replaces_t &br) {
+        response->response = batched_replaces_response_t();
+        batched_replaces_response_t &res = boost::get<batched_replaces_response_t>(response->response);
+        rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
+                            &ql_env, &res);
     }
 
     void operator()(const point_write_t &w) {
@@ -978,11 +1012,13 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_response_t, point_write_responses);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 
+
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
-
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_t, point_writes);
-
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
