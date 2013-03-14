@@ -44,8 +44,6 @@ public:
         other.ptr_ = tmp;
     }
 
-
-
     T *get() const {
         rassert(ptr_);
         return ptr_;
@@ -59,7 +57,6 @@ public:
     bool has() const {
         return ptr_ != NULL;
     }
-
 
 private:
     T *ptr_;
