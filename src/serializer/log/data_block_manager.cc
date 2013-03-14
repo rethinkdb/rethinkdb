@@ -840,23 +840,6 @@ void gc_entry::destroy() {
     delete this;
 }
 
-#ifndef NDEBUG
-void gc_entry::print() {
-    debugf("gc_entry:\n");
-    debugf("extent_ref offset: %" PRIi64 "\n", extent_ref.offset());
-    for (size_t i = 0; i < g_array.size(); ++i) {
-        int64_t block_offset = extent_ref.offset() + i * DEVICE_BLOCK_SIZE;
-        debugf("%.8" PRIx64 ":\t%d\n", block_offset, g_array.test(i));
-    }
-    debugf("\n");
-    debugf("\n");
-}
-#endif
-
-
-
-
-
 /* functions for gc structures */
 
 // Answers the following question: We're in the middle of gc'ing, and

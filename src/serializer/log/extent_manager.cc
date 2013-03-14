@@ -211,10 +211,6 @@ extent_zone_t *extent_manager_t::zone_for_offset(int64_t offset) {
 
 void extent_manager_t::reserve_extent(int64_t extent, extent_reference_t *extent_ref) {
     assert_thread();
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Reserve extent %.8lx\n", this, extent);
-    debugf("%s", format_backtrace(false).c_str());
-#endif
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
@@ -234,44 +230,16 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
     }
     state = state_running;
 
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Start. Extents in use:\n", this);
-    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
-        if (extent_info(extent) == EXTENT_IN_USE) {
-            fprintf(stderr, "%.8lx ", extent);
-        }
-    }
-    fprintf(stderr, "\n");
-#endif
 }
 
 void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     assert_thread();
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Prepare metablock. Extents in use:\n", this);
-    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
-        if (extent_info(extent) == EXTENT_IN_USE) {
-            fprintf(stderr, "%.8lx ", extent);
-        }
-    }
-    fprintf(stderr, "\n");
-#endif
     rassert(state == state_running);
     metablock->padding = 0;
 }
 
 void extent_manager_t::shutdown() {
     assert_thread();
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Shutdown. Extents in use:\n", this);
-    for (int64_t extent = 0; extent < (unsigned)(extents.get_size() * extent_size); extent += extent_size) {
-        if (extent_info(extent) == EXTENT_IN_USE) {
-            fprintf(stderr, "%.8lx ", extent);
-        }
-    }
-    fprintf(stderr, "\n");
-#endif
-
     rassert(state == state_running);
     rassert(!current_transaction);
     state = state_shut_down;
@@ -307,10 +275,6 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
     /* In case we are not on a block device */
     dbfile->set_size_at_least(extent_ref.offset() + extent_size);
 
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Gen extent %.8lx\n", this, extent);
-    debugf("%s", format_backtrace(false).c_str());
-#endif
     extent_ref_out->init(extent_ref.release());
 }
 
@@ -332,10 +296,6 @@ void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
 
 void extent_manager_t::release_extent_preliminaries() {
     assert_thread();
-#ifdef DEBUG_EXTENTS
-    debugf("EM %p: Release extent %.8lx\n", this, extent);
-    debugf("%s", format_backtrace(false).c_str());
-#endif
     rassert(state == state_running);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;

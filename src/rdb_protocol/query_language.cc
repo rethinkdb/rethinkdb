@@ -299,7 +299,6 @@ term_info_t get_term_type(Term *t, type_checking_environment_t *env, const backt
     guarantee_debug_throw_release(ret, backtrace);
     t->SetExtension(extension::inferred_type, static_cast<int32_t>(ret->type));
     t->SetExtension(extension::deterministic, ret->deterministic);
-    //debugf("%s", t->DebugString().c_str());
     return *ret;
 }
 

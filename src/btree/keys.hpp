@@ -23,9 +23,6 @@ struct btree_key_t {
     bool fits(int space) const {
         return space > 0 && space > size;
     }
-    void print() const {
-        debugf("%*.*s\n", size, size, contents);
-    }
 };
 
 struct store_key_t {
@@ -67,14 +64,6 @@ public:
 
     void assign(const btree_key_t *key) {
         assign(key->size, key->contents);
-    }
-
-    void print() const {
-        printf("%*.*s", size(), size(), contents());
-    }
-
-    void debug_print() const {
-        debugf("%*.*s\n", size(), size(), contents());
     }
 
     static store_key_t min() {
