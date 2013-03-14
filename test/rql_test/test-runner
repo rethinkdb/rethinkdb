@@ -14,7 +14,7 @@ from test_util import RethinkDBTestServers
 # separate our source languages.
 class SrcLang:
     # Returns the approriate line comment string
-    def comment(self, ):
+    def comment(self):
         return "#"
 
     # Converts input value into the appropriate string
@@ -124,9 +124,10 @@ class Langs:
 
 # Abstracts a set of tests given in a single file
 class TestGroup:
-    def __init__(self, path, group):
+    def __init__(self, path, group, shard):
         self.path = path
         self.group = group
+        self.shard = shard
 
     def write_group(self, out, lang):
 
@@ -164,12 +165,12 @@ class TestGroup:
             # We want to auto-shard tables that we create. There is stil no
             # way to do this from rql so we have to hack the admin cli.
 
-            pattern = 'table_create\\(\'(\\w+)\'\\)'
-            mo = re.search(pattern, test_case)
-            if mo:
-                table_name = mo.group(1)
-                out.write('shard("'+table_name+'")\n')
-                
+            if self.shard > 0:
+                pattern = 'table_create\\(\'(\\w+)\'\\)'
+                mo = re.search(pattern, test_case)
+                if mo:
+                    table_name = mo.group(1)
+                    out.write('shard("'+table_name+'")\n')
 
     def write_def(self, out, defobj, lang, index):
         code = self.get_code(defobj, lang, index + '-def')
@@ -236,8 +237,9 @@ class TestGroup:
 
 # Build test scripts by walking a tree of yaml files
 class TestBuilder:
-    def __init__(self, root="src"):
+    def __init__(self, root, shard):
         self.root = root
+        self.shard = shard
         self.tests = self.get_test_structure()
         self.build_test_scripts()
 
@@ -246,6 +248,7 @@ class TestBuilder:
     # a test group. The test groups themselves are nested by
     # their directory structure.
     def get_test_structure(self):
+
         tests = []
         for root, dirs, files in walk(self.root):
         
@@ -256,7 +259,7 @@ class TestBuilder:
             for name in filter(lambda name: name.endswith('.yaml'), files):
                 test_group = load(open(root+'/'+name))
                 leaf = name.partition('.')[0]
-                tests.append(TestGroup(path+[leaf], test_group))
+                tests.append(TestGroup(path+[leaf], test_group, self.shard))
 
         return tests
 
@@ -304,8 +307,8 @@ def run(build, lang=None):
             servers.restart()
             run_tests('rb', servers)
 
-def build_test_scripts():
-    TestBuilder('src')
+def build_test_scripts(shard):
+    TestBuilder('src', shard)
 
 test_filter = os.getenv("RQL_TEST") or ".*"
 

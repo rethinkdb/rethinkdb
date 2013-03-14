@@ -7,6 +7,7 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
 
 BUILD='release'
 TEST_DEFAULT_PORT=0
+SHARD=0
 
 .SILENT:
 
@@ -23,7 +24,7 @@ py js rb: $(TEST_FILES)
 
 $(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
 	mkdir -p build
-	./test-runner build_test_scripts
+	./test-runner build_test_scripts $(SHARD)
 
 py_connect: connections/connection.py
 	python connections/connection.py $(BUILD) $(TEST_DEFAULT_PORT)
