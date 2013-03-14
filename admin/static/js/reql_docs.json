@@ -1854,7 +1854,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class",
-                  "code": "r.table('marvel').groupedMapReduce(function(hero) {\n return hero('weightClass')\n}, function(hero) {\n return hero.pick('name', 'strength')\n}, function(acc, hero) {\n return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n}, {name:'none', strength:0}).run()",
+                  "code": "r.table('marvel').groupedMapReduce(function(hero) {\n return hero('weightClass')\n}, function(hero) {\n return hero.pluck('name', 'strength')\n}, function(acc, hero) {\n return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n}, {name:'none', strength:0}).run()",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1866,7 +1866,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class",
-                  "code": "r.table('marvel').grouped_map_reduce(lambda hero: hero['weightClass'],\n  lambda hero: hero.pick('name', 'strength'),\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),\n  {'name':'none', 'strength':0}\n).run()"
+                  "code": "r.table('marvel').grouped_map_reduce(lambda hero: hero['weightClass'],\n  lambda hero: hero.pluck('name', 'strength'),\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),\n  {'name':'none', 'strength':0}\n).run()"
                 }
               ]
             },
@@ -1876,7 +1876,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class",
-                  "code": "r.table('marvel').grouped_map_reduce(lambda {|hero|\n hero[:weight_class]\n}, lambda {|hero|\n hero.pick(:name, :strength)\n}, {:name => 'none', :strength => 0}, lambda {|acc, hero|\n r.branch(acc[:strength] < hero[:strength], hero, acc)\n}).run"
+                  "code": "r.table('marvel').grouped_map_reduce(lambda {|hero|\n hero[:weight_class]\n}, lambda {|hero|\n hero.pluck(:name, :strength)\n}, {:name => 'none', :strength => 0}, lambda {|acc, hero|\n r.branch(acc[:strength] < hero[:strength], hero, acc)\n}).run"
                 }
               ]
             }
