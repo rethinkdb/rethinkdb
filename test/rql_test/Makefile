@@ -14,7 +14,7 @@ SHARD=0
 run: $(TEST_FILES) cursor connect
 	./test-runner run \"$(BUILD)\"
 
-#py: py_connect py_cursor
+py: py_connect py_cursor
 
 js: js_connect js_cursor
 
