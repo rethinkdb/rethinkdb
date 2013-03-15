@@ -106,7 +106,7 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-unused-macros -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
