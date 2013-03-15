@@ -6,7 +6,7 @@ RethinkDB data files before upgrading to RethinkDB 1.4.
 You can use this handy data migration script to easily migrate your cluster
 to the new version.
 
-### Steps For Migrating Your Cluster
+### Steps for migrating your cluster
 
 1. Run `import_export.rb --export --host HOST --port PORT`, where HOST:PORT
 connects to a machine in your cluster.  This will write everything in your
@@ -27,7 +27,7 @@ table into the original RDB protocol; this will be fixed in future versions.)
 You can specify this with the `--primary-keys` option, which takes a JSON
 document of the form `{"db_name.table_name": "key_name, ...}`.**
 
-### Simple Example
+### Simple example
 
 Alice is running a single RethinkDB server on localhost with the default ports.
 She does the following:
@@ -78,7 +78,7 @@ Usage: import_export.rb [options]
 ~/rethinkdb_migration $
 ```
 
-### Complex Example
+### Complex example
 
 Bob is running two distinct RethinkDB clusters.  He can connect to one of them
 at `newton:60715` and the other at `magneto:60515`.  The cluster on `newton`
