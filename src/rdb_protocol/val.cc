@@ -64,6 +64,23 @@ const datum_t *table_t::make_error_datum(const any_ql_exc_t &exception) {
     return datum;
 }
 
+const datum_t *table_t::replace(const datum_t *original, func_t *replacement_generator, bool nondet_ok) {
+    try {
+        return do_replace(original, replacement_generator, nondet_ok);
+    } catch (const any_ql_exc_t &exc) {
+        return make_error_datum(exc);
+    }
+}
+
+const datum_t *table_t::replace(const datum_t *original, const datum_t *replacement, bool upsert) {
+    try {
+        return do_replace(original, replacement, upsert);
+    } catch (const any_ql_exc_t &exc) {
+        return make_error_datum(exc);
+    }
+}
+
+
 std::vector<const datum_t *> table_t::batch_replace(const std::vector<const datum_t *> &original_values,
                                                     func_t *replacement_generator,
                                                     const bool nondeterministic_replacements_ok) {

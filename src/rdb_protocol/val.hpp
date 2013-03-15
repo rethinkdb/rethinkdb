@@ -30,14 +30,9 @@ public:
 
     const datum_t *make_error_datum(const any_ql_exc_t &exception);
 
-    template <class... Args>
-    const datum_t *replace(Args... args) {
-        try {
-            return do_replace(args...);
-        } catch (const any_ql_exc_t &exc) {
-            return make_error_datum(exc);
-        }
-    }
+
+    const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
 
     std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
                                                func_t *replacement_generator,
