@@ -3226,7 +3226,7 @@
                   "dataset": "marvel"
                 },
                 {
-                  "description": "Select all documents where the 'magazines' field is greater than 5 by running Javascript on the server",
+                  "description": "Concatenate two strings using Javascript.",
                   "code": "r.table('marvel').filter(r.js('(function (row) { return row.magazines > 5; })')).run()",
                   "can_try": true,
                   "dataset": "marvel"
@@ -3238,7 +3238,7 @@
               "body": "js_string",
               "examples" : [
                 {
-                  "description": "String concatenation is not otherwise possible in RQL, but with js there are few limits",
+                  "description": "Concatenate two strings using Javascript.",
                   "code": "r.js(\"'str1' + 'str2'\").run()"
                 },
                 {
