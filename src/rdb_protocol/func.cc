@@ -4,6 +4,8 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, term_t *parent)
@@ -186,16 +188,9 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
         const datum_t *val = it->second;
 
         Term *arg = t->add_args();
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#endif
         N2(EQ,
            N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
            val->write_to_protobuf(pb::set_datum(arg)));
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic pop
-#endif
     }
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
@@ -206,14 +201,7 @@ func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
                                   const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     Term *arg = &twrap->t;
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#endif
         N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic pop
-#endif
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
 }

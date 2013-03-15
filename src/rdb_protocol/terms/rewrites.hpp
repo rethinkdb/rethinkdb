@@ -7,10 +7,7 @@
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-#endif
 
 namespace ql {
 
@@ -297,9 +294,5 @@ private:
 };
 
 } // namespace ql
-
-#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
-#pragma GCC diagnostic pop
-#endif
 
 #endif // RDB_PROTOCOL_TERMS_REWRITES_HPP_
