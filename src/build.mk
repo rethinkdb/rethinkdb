@@ -106,14 +106,14 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
 
 else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
-  RT_CXXFLAGS += -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow
+  RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
 
 else ifeq ($(COMPILER), GCC)
