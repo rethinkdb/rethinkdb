@@ -64,6 +64,141 @@ const datum_t *table_t::make_error_datum(const any_ql_exc_t &exception) {
     return datum;
 }
 
+std::vector<const datum_t *> table_t::batch_replace(const std::vector<const datum_t *> &original_values,
+                                                    func_t *replacement_generator,
+                                                    const bool nondeterministic_replacements_ok) {
+    if (replacement_generator->is_deterministic()) {
+        std::vector<datum_func_pair_t> pairs(original_values.size());
+        map_wire_func_t wire_func = map_wire_func_t(env, replacement_generator);
+        for (size_t i = 0; i < original_values.size(); ++i) {
+            try {
+                pairs[i] = datum_func_pair_t(original_values[i], &wire_func);
+            } catch (const any_ql_exc_t &exc) {
+                pairs[i] = datum_func_pair_t(make_error_datum(exc));
+            }
+        }
+
+        return batch_replace(pairs);
+    } else {
+        r_sanity_check(nondeterministic_replacements_ok);
+
+        scoped_array_t<map_wire_func_t> funcs(original_values.size());
+        std::vector<datum_func_pair_t> pairs(original_values.size());
+        for (size_t i = 0; i < original_values.size(); ++i) {
+            try {
+                const datum_t *replacement = replacement_generator->call(original_values[i])->as_datum();
+
+                Term t;
+                const int x = env->gensym();
+                Term *const arg = pb::set_func(&t, x);
+                replacement->write_to_protobuf(pb::set_datum(arg));
+                propagate(&t);
+
+                funcs[i] = map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL));
+                pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
+            } catch (const any_ql_exc_t &exc) {
+                pairs[i] = datum_func_pair_t(make_error_datum(exc));
+            }
+        }
+
+        return batch_replace(pairs);
+    }
+}
+
+std::vector<const datum_t *> table_t::batch_replace(const std::vector<const datum_t *> &original_values,
+                                                    const std::vector<const datum_t *> &replacement_values,
+                                                    bool upsert) {
+    r_sanity_check(original_values.size() == replacement_values.size());
+    scoped_array_t<map_wire_func_t> funcs(original_values.size());
+    std::vector<datum_func_pair_t> pairs(original_values.size());
+    for (size_t i = 0; i < original_values.size(); ++i) {
+        try {
+            Term t;
+            const int x = env->gensym();
+            Term *const arg = pb::set_func(&t, x);
+            if (upsert) {
+                replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
+            } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+                N3(BRANCH,
+                   N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+                   NDATUM(replacement_values[i]),
+                   N1(ERROR, NDATUM("Duplicate primary key.")));
+#pragma GCC diagnostic pop
+            }
+
+            propagate(&t);
+            funcs[i] = map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL));
+            pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
+        } catch (const any_ql_exc_t &exc) {
+            pairs[i] = datum_func_pair_t(make_error_datum(exc));
+        }
+    }
+
+    return batch_replace(pairs);
+}
+
+std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func_pair_t> &replacements) {
+    std::vector<const datum_t *> ret(replacements.size(), NULL);
+
+    std::vector<rdb_protocol_t::point_replace_t> point_replaces;
+
+    for (size_t i = 0; i < replacements.size(); ++i) {
+        try {
+            if (replacements[i].error_value != NULL) {
+                r_sanity_check(replacements[i].original_value == NULL);
+                ret[i] = replacements[i].error_value;
+            } else {
+                const datum_t *orig = replacements[i].original_value;
+                r_sanity_check(orig != NULL);
+
+                if (orig->get_type() == datum_t::R_NULL) {
+                    // TODO: We copy this for some reason, possibly no reason.
+                    map_wire_func_t mwf = *replacements[i].replacer;
+                    orig = mwf.compile(env)->call(orig)->as_datum();
+                    if (orig->get_type() == datum_t::R_NULL) {
+                        datum_t *const resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+                        const datum_t *const one = env->add_ptr(new ql::datum_t(1.0));
+                        const bool b = resp->add("skipped", one);
+                        r_sanity_check(!b);
+                        ret[i] = resp;
+                        continue;
+                    }
+                }
+
+                const std::string &pk = get_pkey();
+                store_key_t store_key(orig->el(pk)->print_primary());
+                point_replaces.push_back(rdb_protocol_t::point_replace_t(pk, store_key,
+                                                                         *replacements[i].replacer,
+                                                                         env->get_all_optargs()));
+            }
+        } catch (const any_ql_exc_t& exc) {
+            ret[i] = make_error_datum(exc);
+        }
+    }
+
+    rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
+    rdb_protocol_t::write_response_t response;
+    access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+    rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
+        = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
+    r_sanity_check(batched_replaces_response != NULL);
+    std::vector<Datum> *datums = &batched_replaces_response->point_replace_responses;
+    size_t j = 0;
+    for (size_t i = 0; i < ret.size(); ++i) {
+        if (ret[i] == NULL) {
+            r_sanity_check(j < datums->size());
+            ret[i] = env->add_ptr(new datum_t(&(*datums)[j], env));
+            ++j;
+        }
+    }
+    r_sanity_check(j == datums->size());
+
+    return ret;
+}
+
+
 const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {

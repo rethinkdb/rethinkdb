@@ -39,7 +39,36 @@ public:
         }
     }
 
+    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
+                                               func_t *replacement_generator,
+                                               bool nondeterministic_replacements_ok);
+
+    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
+                                               const std::vector<const datum_t *> &replacement_values,
+                                               bool upsert);
+
 private:
+    struct datum_func_pair_t {
+        datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
+        datum_func_pair_t(const datum_t *_original_value, const map_wire_func_t *_replacer)
+            : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
+
+        explicit datum_func_pair_t(const datum_t *_error_value)
+            : original_value(NULL), replacer(NULL), error_value(_error_value) { }
+
+        // One of these datum_t *'s is NULL.
+        const datum_t *original_value;
+        const map_wire_func_t *replacer;
+        const datum_t *error_value;
+    };
+
+    std::vector<const datum_t *> batch_replace(const std::vector<datum_func_pair_t> &replacements);
+
+    struct datum_datum_pair_t {
+        const datum_t *original_value;
+        const datum_t *replacement_value;
+    };
+
     const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
