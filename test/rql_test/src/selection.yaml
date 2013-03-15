@@ -2,9 +2,9 @@ desc: Tests that manipulation data in tables
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test')
+    - cd: r.db('test').table_create('test1')
       ot: ({'created':1})
-      def: tbl = r.db('test').table('test')
+      def: tbl = r.db('test').table('test1')
 
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
@@ -86,7 +86,7 @@ tests:
       ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
 
     # Access a table from default db
-    - cd: r.table('test').count()
+    - cd: r.table('test1').count()
       ot: 100
 
     - cd: tbl.get(20).count()

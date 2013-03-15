@@ -2,10 +2,10 @@ desc: Tests replacement of selections
 tests:
 
     # Set up some data
-    - cd: r.db('test').table_create('test')
+    - cd: r.db('test').table_create('test1')
       ot: ({'created':1})
 
-    - def: tbl = r.db('test').table('test')
+    - def: tbl = r.db('test').table('test1')
 
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
@@ -117,7 +117,7 @@ tests:
       ot: ({'deleted':99})
 
     # clean up
-    - cd: r.db('test').table_drop('test')
+    - cd: r.db('test').table_drop('test1')
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"

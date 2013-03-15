@@ -12,12 +12,19 @@ class TermBase
         return self
 
     run: (conn, cb) ->
+        use_outdated = false
+        if typeof(conn) is 'object' and not (conn instanceof Connection)
+            use_outdated = !!conn.use_outdated
+            for own key of conn
+                unless key in ['connection', 'use_outdated']
+                    throw new RqlDriverError ("Invalid option '"+key+"' in first argument to `run`.")
+            conn = conn.connection
         unless conn instanceof Connection
-            throw new RqlDriverError "First argument to `run` must be an open connection."
+            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, use_outdated: <bool> }."
         unless typeof(cb) is 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb
+        conn._start @, cb, use_outdated
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
