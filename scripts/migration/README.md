@@ -11,13 +11,13 @@ cluster to disk, so make sure you have enough space.
 all the data on disk into your cluster.  You must run this in the same directory
 you ran the `import_export.rb --export` command, or else specify the directory
 to read from with `import_export.rb --import DIR`.  You will also have to
-specify the directory if you exported from more than one RethinkDB cluster. **
-NOTE: If any of your tables have a nonstandard primary key (anything except
-`id`), you need to tell the script about the nonstandard keys while importing.
-(We stupidly forgot to build a way to fetch the primary key of a table into the
-original RDB protocol; this will be fixed in future versions.)  You can specify
-this with the `--primary-keys` option, which takes a JSON document of the form
-`{"db_name.table_name": "key_name, ...}`. **
+specify the directory if you exported from more than one RethinkDB
+cluster. **NOTE: If any of your tables have a nonstandard primary key (anything
+except `id`), you need to tell the script about the nonstandard keys while
+importing.  (We stupidly forgot to build a way to fetch the primary key of a
+table into the original RDB protocol; this will be fixed in future versions.)
+You can specify this with the `--primary-keys` option, which takes a JSON
+document of the form `{"db_name.table_name": "key_name, ...}`.**
 
 ### Simple Example
 
