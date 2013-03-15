@@ -279,6 +279,7 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
 void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out) {
+    debugf("about to rdb_batched_replace\n");
     // SAMRSI: We should assign to *response_out, not response_out->point_replace_responses.
     auto_drainer_t drainer;
 
@@ -287,6 +288,7 @@ void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_sli
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
+        debugf("rdb_batched_replace iteration %zu\n", i);
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
                                   auto_drainer_t::lock_t(&drainer),
@@ -295,6 +297,7 @@ void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_sli
                                   ql_env,
                                   &superblock_promise,
                                   &response_out->point_replace_responses[i]));
+        debugf("rdb_batched_replace iteration %zu almost done\n", i);
         current_superblock.init(superblock_promise.wait());
     }
 }
@@ -344,7 +347,8 @@ void do_a_set_from_batched_set(auto_drainer_t::lock_t /*lock*/,
 
 void rdb_batched_set(const std::vector<point_write_t> &writes,
                      btree_slice_t *const slice, const repli_timestamp_t timestamp,
-                     transaction_t *const txn, superblock_t *const superblock, batched_writes_response_t *const response) {
+                     transaction_t *const txn, superblock_t *const superblock,
+                     batched_writes_response_t *const response) {
     // SAMRSI: We should assign to *response, not response->point_write_responses.
     auto_drainer_t drainer;
 

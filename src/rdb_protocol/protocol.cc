@@ -514,6 +514,8 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     }
 
     write_t operator()(const batched_replaces_t &br) const {
+        debugf("about to shard batched replace\n");
+
         // SAMRSI: Iterating through the list of batched writes over and over again for each region is wasteful.
         std::vector<point_replace_t> replaces;
         for (auto point_replace = br.point_replaces.begin(); point_replace != br.point_replaces.end(); ++point_replace) {
@@ -523,6 +525,7 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
             }
         }
 
+        debugf("almost done sharding batched replace\n");
         // SAMRSI: So much needless copying.
         return write_t(batched_replaces_t(replaces));
     }
@@ -560,10 +563,13 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
 
 
 write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
+    debugf("about to shard write\n");
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
 void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    debugf("about to unshard writes, count == %zu.\n", count);
+    // SAMRSI: This must be wrong.
     guarantee(count == 1);
     *response = responses[0];
 }
@@ -687,6 +693,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         batched_replaces_response_t &res = boost::get<batched_replaces_response_t>(response->response);
         rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
                             &ql_env, &res);
+        debugf("done rdb_batched_replace\n");
     }
 
     void operator()(const point_write_t &w) {
@@ -757,8 +764,12 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
                              superblock_t *superblock,
                              signal_t *interruptor) {
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
-    boost::apply_visitor(v, write.write);
+    debugf("Reached protocol_write.\n");
+    {
+        write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
+        boost::apply_visitor(v, write.write);
+    }
+    debugf("done write\n");
 }
 
 namespace {

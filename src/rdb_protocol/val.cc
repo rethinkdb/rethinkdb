@@ -161,6 +161,8 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func
 
     std::vector<rdb_protocol_t::point_replace_t> point_replaces;
 
+    debugf("In batch_replace.\n");
+
     for (size_t i = 0; i < replacements.size(); ++i) {
         try {
             if (replacements[i].error_value != NULL) {
@@ -195,14 +197,21 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func
         }
     }
 
+    debugf("batch_replace About to construct write with %zu elements.\n", point_replaces.size());
+
     rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
+    debugf("batch_replace constructed write.\n");
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+    debugf("batch_replace did write.\n");
     rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
         = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
     r_sanity_check(batched_replaces_response != NULL);
+    debugf("batch_replace did boost get.\n");
     std::vector<Datum> *datums = &batched_replaces_response->point_replace_responses;
     size_t j = 0;
+    debugf("batch_replace About to for loop.\n");
+
     for (size_t i = 0; i < ret.size(); ++i) {
         if (ret[i] == NULL) {
             r_sanity_check(j < datums->size());
@@ -212,6 +221,7 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func
     }
     r_sanity_check(j == datums->size());
 
+    debugf("batch_replace done for loop.\n");
     return ret;
 }
 

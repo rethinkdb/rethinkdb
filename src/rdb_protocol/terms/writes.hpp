@@ -106,11 +106,17 @@ private:
                     }
                 }
 
+                debugf("About to call batch_replace with %zu datums\n", datums.size());
+
                 std::vector<const datum_t *> results = t->batch_replace(datums, datums, upsert);
+
+                debugf("Finished calling batch_replace with %zu datums\n", datums.size());
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(env, *result, stats_merge);
                 }
+
+                debugf("Finished merging stats with %zu datums\n", datums.size());
             }
         }
 
