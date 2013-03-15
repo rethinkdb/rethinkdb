@@ -185,8 +185,8 @@ class Files(object):
             self.machine_name = machine_name
 
         create_args = command_prefix + [executable_path, "create",
-            "--directory=" + self.db_path,
-            "--machine-name=" + self.machine_name]
+            "--directory", self.db_path,
+            "--machine-name", self.machine_name]
 
         if log_path is None:
             print "setting log_path to /dev/null."
@@ -215,8 +215,9 @@ class _Process(object):
             for peer in cluster.processes:
                 if peer is not self:
                     # TODO(OSX) Why did we ever use socket.gethostname() and not localhost?
-                    # self.args.append("--join=" + socket.gethostname() + ":" + str(peer.cluster_port))
-                    self.args.append("--join=" + "localhost" + ":" + str(peer.cluster_port))
+                    # self.args.append("--join",  socket.gethostname() + ":" + str(peer.cluster_port))
+                    self.args.append("--join")
+                    self.args.append("localhost" + ":" + str(peer.cluster_port))
 
             self.log_path = log_path
             if self.log_path is None:
@@ -347,12 +348,12 @@ class Process(_Process):
         self.local_cluster_port = 29015 + self.port_offset
 
         options = ["serve",
-                   "--directory=" + self.files.db_path,
-                   "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port),
-                   "--cluster-port=0",
-                   "--driver-port=0",
-                   "--http-port=0"
+                   "--directory",  self.files.db_path,
+                   "--port-offset",  str(self.port_offset),
+                   "--client-port",  str(self.local_cluster_port),
+                   "--cluster-port", "0",
+                   "--driver-port", "0",
+                   "--http-port", "0"
                    ] + extra_options
 
         _Process.__init__(self, cluster, options,
@@ -377,9 +378,9 @@ class ProxyProcess(_Process):
         self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",
-                   "--log-file=" + self.logfile_path,
-                   "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port),
+                   "--log-file",  self.logfile_path,
+                   "--port-offset",  str(self.port_offset),
+                   "--client-port",  str(self.local_cluster_port),
                    "--http-port=0",
                    "--cluster-port=0",
                    "--driver-port=0"] + extra_options
