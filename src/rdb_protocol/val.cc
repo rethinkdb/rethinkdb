@@ -98,7 +98,8 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
             }
 
     propagate(&t);
-    return do_replace(orig, map_wire_func_t(t, nullptr));
+    return do_replace(
+        orig, map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL)));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
