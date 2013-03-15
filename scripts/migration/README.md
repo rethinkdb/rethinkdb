@@ -1,10 +1,10 @@
 ### 
 ### Migrating data from previous versions
-Due to improvements in the data format, you will need to migrate your existing 
-RethinkDB data files before upgrading to RethinkDB 1.4.
+Due to improvements in the data format, you will need to migrate your existing
+data files before upgrading to new versions of RethinkDB.
 
 You can use this handy data migration script to easily migrate your cluster
-to the new version.
+to a new version.
 
 ### Steps for migrating your cluster
 
