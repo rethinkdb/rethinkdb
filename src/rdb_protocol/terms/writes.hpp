@@ -67,8 +67,8 @@ private:
 
     virtual val_t *eval_impl() {
         table_t *t = arg(0)->as_table();
-        val_t *upsert_val = optarg("upsert", 0);
-        bool upsert = upsert_val ? upsert_val->as_bool() : false;
+        val_t *const upsert_val = optarg("upsert", 0);
+        const bool upsert = upsert_val != NULL && upsert_val->as_bool();
 
         bool done = false;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
@@ -97,7 +97,8 @@ private:
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
+                const datum_t *result = t->replace(d, d, upsert);
+                stats = stats->merge(env, result, stats_merge);
             }
         }
 
