@@ -87,8 +87,8 @@ public:
         return true;
     }
 
-    static void assert_key_in_range(const btree_key_t *k, const btree_key_t *left_excl, const btree_key_t *right_incl) {
-        guarantee(key_in_range(k, left_excl, right_incl));
+    static void assert_key_in_range(DEBUG_VAR const btree_key_t *k, DEBUG_VAR const btree_key_t *left_excl, DEBUG_VAR const btree_key_t *right_incl) {
+        rassert(key_in_range(k, left_excl, right_incl));
     }
 
     // Checks if (x_l_excl, x_r_incl] intersects (y_l_excl, y_r_incl].
