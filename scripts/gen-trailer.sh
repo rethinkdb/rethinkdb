@@ -6,7 +6,12 @@
 #	DEB_RELEASE
 #	DEB_RELEASE_NUM
 # 	PACKAGE_VERSION
+#       PACKAGE_BUILD_NUMBER
 # . These can be blank as desired.
+
+if [ "" = "$PACKAGE_BUILD_NUMBER" ]; then
+    PACKAGE_BUILD_NUMBER=0
+fi
 
 # We can automatically fill in blanks for Debian things if necessary. The sed blocks are copied from the Makefile.
 if [ "$DEB_RELEASE" = "" ] && [ "$DEB_RELEASE_NUM" != "" ] ;
@@ -21,7 +26,7 @@ fi ;
 if [ "$UBUNTU_RELEASE" != "" ] ;
 then
 	# For Ubuntu, we use Debian number 0 and append the Ubuntu stuff.
-	PRODUCT_VERSION="$PACKAGE_VERSION"-0ubuntu1~"$UBUNTU_RELEASE" ;
+	PRODUCT_VERSION="$PACKAGE_VERSION"-"$PACKAGE_BUILD_NUMBER"ubuntu1~"$UBUNTU_RELEASE" ;
 	OS_RELEASE="$UBUNTU_RELEASE" ;
 elif [ "$DEB_RELEASE" != "" ] ;
 then
