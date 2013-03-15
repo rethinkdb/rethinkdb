@@ -45,7 +45,8 @@ She does the following:
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
 # Fetch the migration script from Github.
-~/rethinkdb_migration $ wget --no-check-certificate http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
+~/rethinkdb_migration $ wget --no-check-certificate \
+                          http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
 ~/rethinkdb_migration $ chmod a+x import_export.rb
 ~/rethinkdb_migration $ ./import_export.rb --help
 Usage: import_export.rb [options]
