@@ -78,8 +78,8 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
             r_sanity_check(!body && !source && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
-            for (const datum_t *arg : args) {
-                json_args.push_back(arg->as_json());
+            for (auto arg_iter = args.begin(); arg_it != args.end(); ++arg_iter) {
+                json_args.push_back((*arg_iter)->as_json());
             }
 
             boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
