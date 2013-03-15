@@ -34,6 +34,7 @@ The migration script requires Ruby to be installed, as well as a few gems:
 ```bash
 gem install json ruby_protobuf
 ```
+__Note for OS X:__ Due to a bug in `ruby_protobuf`, Ruby 1.9+ is required for the migration script.
 
 ### Simple example
 
