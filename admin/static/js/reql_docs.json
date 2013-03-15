@@ -691,7 +691,7 @@
       "commands": [
         {
           "tag": "insert",
-          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. <br /><br /> Insert returns an object that contains at least 2 fields: <code>inserted</code> - the number of documents that were succesfully inserted; <code>errors</code> - the number of errors encountered while inserting. It can also contain a field <code>generated_keys</code> providing a list of generated primary key values",
+          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. <br /><br /> Insert returns an object that contains one or more of: <code>inserted</code> - the number of documents that were succesfully inserted; <code>errors</code> - the number of errors encountered while inserting; <code>first_error</code> - the text of the first error encountered. It can also contain a field <code>generated_keys</code> providing a list of generated primary key values",
           "parent": "table",
           "returns": "query",
           "langs": {
@@ -2113,7 +2113,7 @@
         },
         {
           "tag": "pluck",
-          "description": "A map that picks just the given attributes from a document",
+          "description": "Plucks out one or more attributes from either an object or a sequence of objects.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
@@ -2167,7 +2167,7 @@
         },
         {
           "tag": "without",
-          "description": "A map that excludes the given attributes from a document",
+          "description": "The opposite of pluck; takes an object or a sequence of objects, and removes all attributes except for the ones specified.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
@@ -2397,7 +2397,7 @@
       "commands": [
         {
           "tag": "add",
-          "description": "Sum two numbers or concatenate two arrays",
+          "description": "Sum two numbers or concatenate two strings",
           "parent": "json",
           "returns": "json",
           "langs": {
@@ -2412,8 +2412,8 @@
                   "dataset": "marvel"
                 },
                 {
-                  "description": "Array objects can be concatenated too",
-                  "code": "r.expr([1,2,3]).add([4,5,6]).run()",
+                  "description": "Strings can be concatenated too",
+                  "code": "r.expr(\"foo\").add(\"bar\").run()",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2430,8 +2430,8 @@
                   "code": "(r.expr(2) + 2).run()"
                 },
                 {
-                  "description": "Array objects can be concatenated too",
-                  "code": "(r.expr([1,2,3]) + [4,5,6]).run()"
+                  "description": "Strings can be concatenated too",
+                  "code": "(r.expr(\"foo\") + \"bar\").run()"
                 }
               ]
             },
@@ -2445,8 +2445,8 @@
                   "code": "(r(2) + 2).run"
                 },
                 {
-                  "description": "Array objects can be concatenated too",
-                  "code": "(r([1,2,3]) + [4,5,6]).run"
+                  "description": "Strings can be concatenated too",
+                  "code": "(r(\"foo\") + \"bar\").run"
                 }
               ]
             }
@@ -3058,7 +3058,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes",
-                  "code": "r.let({ironman: r.table('marvel').get('IronMan'), thor: r.table('marvel').get('Thor')},\n r.branch(r.letVar('ironman')('manliness').gt(r.letVar('thor')('manliness')),\n  r.letVar('ironman'),\n  r.letVar('thor')).run()",
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n function(ironman, thor) {\n  return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)\n})",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3070,7 +3070,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes",
-                  "code": "r.let({'ironman': r.table('marvel').get('IronMan'), 'thor': r.table('marvel').get('Thor')},\n r.branch(r.letvar('ironman')['manliness'] > r.letvar('thor')['manliness'],\n  r.letvar('ironman'),\n  r.letvar('thor')).run()"
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n lambda ironman, thor: r.branch(ironman['manliness'].gt(thor['manliness']), ironman, thor))"
                 }
               ]
             },
@@ -3080,7 +3080,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes",
-                  "code": "r.let(:ironman => r.table('marvel').get('IronMan'), :thor => r.table('marvel').get('Thor')) {\n  r.branch(r.letvar(:ironman)[:manliness] > r.letvar(:thor)[:manliness],\n    r.letvar(:ironman),\n    r.letvar(:thor))\n}.run"
+                  "code": "r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {\n  r.branch(ironman[:manliness] > thor[:manliness], ironman thor)\n}.run"
                 }
               ]
             }
@@ -3138,7 +3138,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle",
-                  "code": "r.let({ironman: r.table('marvel').get('IronMan')},\n r.branch(r.letVar('ironman')('victories').lt(r.letVar('ironman')('battles')),\n  r.error('impossible code path'),\n  r.letVar('ironman')\n)).run()",
+                  "code": "r.table('marvel').get('IronMan').do(function(ironman) {\n return r.branch(ironman('victories').lt(ironman('battles')),\n  r.error('impossible code path'),\n  ironman\n)).run()",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3150,7 +3150,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle",
-                  "code": "r.let('ironman': r.table('marvel').get('IronMan')},\n r.branch(r.letvar('ironman')['victories'] < r.letVar(:ironman)['battles'],\n  r.error('impossible code path'),\n  r.letvar('ironman')\n)).run()"
+                  "code": "r.table('marvel').get('IronMan').do(\n lambda ironman: r.branch(ironman['victories'] < ironman['battles'],\n  r.error('impossible code path'),\n  ironman\n)).run()"
                 }
               ]
             },
@@ -3160,7 +3160,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle",
-                  "code": "r.let(:ironman => r.table('marvel').get('IronMan')) {\n  r.branch(r.letvar(:ironman)[:victories] < r.letvar(:ironman)[:battles],\n    r.error('impossible code path'),\n    r.letvar('ironman'))\n}.run"
+                  "code": "r.table('marvel').get('IronMan').do {\n  r.branch(ironman[:victories] < ironman[:battles],\n    r.error('impossible code path'),\n    ironman)\n}.run"
                 }
               ]
             }
@@ -3220,7 +3220,7 @@
               "body": "jsString",
               "examples" : [
                 {
-                  "description": "String concatenation is not otherwise possible in RQL, but with js there are few limits",
+                  "description": "Concatenate two strings using Javascript.",
                   "code": "r.js(\"'str1' + 'str2'\").run()",
                   "can_try": true,
                   "dataset": "marvel"
@@ -3298,6 +3298,46 @@
                 {
                   "description": "Convert a table to an array",
                   "code": "r.table('marvel').coerce_to('array').run"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "tag": "type_of",
+          "description": "Gets the type of a value.",
+          "parent": "json",
+          "returns": "json",
+          "langs": {
+            "js": {
+              "name": "typeOf",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Get the type of a string.",
+                  "code": "r.expr(\"foo\").typeOf().run()",
+                  "can_try": true,
+                  "dataset": "marvel"
+                }
+              ]
+            },
+            "py": {
+              "name": "type_of",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Get the type of a string.",
+                  "code": "r.expr(\"foo\").type_of().run()"
+                }
+              ]
+            },
+            "rb": {
+              "name": "type_of",
+              "body": "value",
+              "examples" : [
+                {
+                  "description": "Get the type of a string.",
+                  "code": "r(\"foo\").typeof.run"
                 }
               ]
             }
