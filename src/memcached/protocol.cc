@@ -565,10 +565,10 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock,
+                             scoped_ptr_t<superblock_t> *superblock,
                              UNUSED signal_t *interruptor) {
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
-    write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree, txn, superblock->get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);
 }
 

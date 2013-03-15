@@ -684,7 +684,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
-        rdb_replace(btree, timestamp, txn, superblock,
+        rdb_replace(btree, timestamp, txn, superblock->get(),
                     r.primary_key, r.key, f, &ql_env, res);
     }
 
@@ -699,7 +699,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), &res);
     }
 
     void operator()(const batched_writes_t &bw) {
@@ -715,12 +715,12 @@ struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
         point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
-        rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
+        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), &res);
     }
 
     write_visitor_t(btree_slice_t *_btree,
                     transaction_t *_txn,
-                    superblock_t *_superblock,
+                    scoped_ptr_t<superblock_t> *_superblock,
                     repli_timestamp_t _timestamp,
                     rdb_protocol_t::context_t *ctx,
                     write_response_t *_response,
@@ -749,7 +749,7 @@ private:
     btree_slice_t *btree;
     transaction_t *txn;
     write_response_t *response;
-    superblock_t *superblock;
+    scoped_ptr_t<superblock_t> *superblock;
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     ql::env_t ql_env;
@@ -762,7 +762,7 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock,
+                             scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
     debugf("Reached protocol_write.\n");
     {

@@ -102,7 +102,7 @@ protected:
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 transaction_t *txn,
-                                superblock_t *superblock,
+                                scoped_ptr_t<superblock_t> *superblock,
                                 signal_t *interruptor) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
