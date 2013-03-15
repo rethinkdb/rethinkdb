@@ -29,7 +29,7 @@ She does the following:
 ```
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
-~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/ql-refactor/scripts/migration/import_export.rb
+~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
 ~/rethinkdb_migration $ chmod a+x import_export.rb
 ~/rethinkdb_migration $ ./import_export.rb --help
 Usage: import_export.rb [options]
@@ -81,7 +81,7 @@ uses the key `pkey` as the primary key in the tables `test.test` and `test.foo`.
 ```
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
-~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/ql-refactor/scripts/migration/import_export.rb
+~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
 ~/rethinkdb_migration $ chmod a+x import_export.rb
 ~/rethinkdb_migration $ ./import_export.rb --help
 Usage: import_export.rb [options]
