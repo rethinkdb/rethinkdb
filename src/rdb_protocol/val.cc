@@ -46,9 +46,9 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *datum_t::make_error_datum(const any_ql_exc_t &exception) {
+const datum_t *table_t::make_error_datum(const any_ql_exc_t &exception) {
     datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
-    const std::string err = e.what();
+    const std::string err = exception.what();
 
     // The bool is true if there's a conflict when inserting the
     // key, but since we just created an empty object above conflicts
@@ -64,8 +64,7 @@ const datum_t *datum_t::make_error_datum(const any_ql_exc_t &exception) {
     return datum;
 }
 
-const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                                   UNUSED bool _so_the_template_matches) {
+const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
