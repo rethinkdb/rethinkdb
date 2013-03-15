@@ -27,6 +27,26 @@ const datum_t *datum_stream_t::next() {
     }
 }
 
+std::vector<const datum_t *> datum_stream_t::next_batch() {
+    env->throw_if_interruptor_pulsed();
+    try {
+        return next_batch_impl();
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
+}
+
+std::vector<const datum_t *> datum_stream_t::next_batch_impl() {
+    std::vector<const datum_t *> ret;
+    const datum_t *value = next_impl();
+    if (value != NULL) {
+        ret.push_back(value);
+    }
+    return ret;
+}
+
+
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {

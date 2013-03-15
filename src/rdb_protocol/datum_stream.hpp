@@ -40,8 +40,19 @@ public:
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     const datum_t *next();
+
+    // Gets the next elements from the stream.  (Returns zero elements only when
+    // the end of the stream has been reached.  Otherwise, returns at least one
+    // element.)  (Wrapper around `next_batch_impl`.)
+    std::vector<const datum_t *> next_batch();
+
 private:
     virtual const datum_t *next_impl() = 0;
+
+    // The default implementation just returns a vector with one element (or
+    // zero elements, if the end of stream has been reached).
+    virtual std::vector<const datum_t *> next_batch_impl();
+
 protected:
     env_t *env;
 };
