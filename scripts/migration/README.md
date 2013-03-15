@@ -124,7 +124,8 @@ rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 ~/rethinkdb_migration $ <REMOVE ALL RETHINKDB_DATA DIRECTORIES>
 ~/rethinkdb_migration $ <UPGRADE BOTH CLUSTERS>
 ~/rethinkdb_migration $ <RESTART BOTH CLUSTERS>
-~/rethinkdb_migration $ ./import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 --primary-keys '{"test.test": "pkey", "test.foo": "pkey"}'
+~/rethinkdb_migration $ ./import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 \
+                          --primary-keys '{"test.test": "pkey", "test.foo": "pkey"}'
 2013-03-14T21:25:14-07:00 Importing from rethinkdb_export_2013-03-14T21:22:01-07:00_5048...
 2013-03-14T21:25:14-07:00 Connecting to newton:60715...
 2013-03-14T21:25:14-07:00 Connected with query language Query_Language_2...
