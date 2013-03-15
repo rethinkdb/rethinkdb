@@ -78,6 +78,7 @@ Bob is running two distinct RethinkDB clusters.  He can connect to one of them
 at `newton:60715` and the other at `magneto:60515`.  The cluster on `newton`
 uses the key `pkey` as the primary key in the tables `test.test` and `test.foo`.
 
+```
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
 ~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/ql-refactor/scripts/migration/import_export.rb
