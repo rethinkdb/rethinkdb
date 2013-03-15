@@ -28,32 +28,19 @@ public:
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);
 
-    // A wrapper around `do_replace` that does error handling correctly.
-    // TODO: Use a variadic template so we can get rid of
-    // `_so_the_template_matches` above?
-    template<class T>
-    const datum_t *replace(const datum_t *d, T t, bool b) {
-        rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
+    const datum_t *make_error_datum(const any_ql_exc_t &exception);
+
+    template <class... Args>
+    const datum_t *replace(Args... args) {
         try {
-            return do_replace(d, t, b);
-        } catch (const any_ql_exc_t &e) {
-            datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
-            std::string err = e.what();
-            // TODO why is this bool (which is marked as MUST USE not used?)
-            // T0D0NE: the bool is true if there's a conflict when inserting the
-            // key, but since we just created an empty object above conflicts
-            // are impossible here.  If you want to harden this against future
-            // changes, you could store the bool and `r_sanity_check` that it's
-            // false.
-            UNUSED bool key_in_object =
-                datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1.0)));
-            return datum;
+            return do_replace(args...);
+        } catch (const any_ql_exc_t &exc) {
+            return make_error_datum(exc);
         }
     }
+
 private:
-    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                             bool _so_the_template_matches = false);
+    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
 

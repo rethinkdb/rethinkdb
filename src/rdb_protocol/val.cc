@@ -46,6 +46,24 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
+const datum_t *datum_t::make_error_datum(const any_ql_exc_t &exception) {
+    datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
+    const std::string err = e.what();
+
+    // The bool is true if there's a conflict when inserting the
+    // key, but since we just created an empty object above conflicts
+    // are impossible here.  If you want to harden this against future
+    // changes, you could store the bool and `r_sanity_check` that it's
+    // false.
+    DEBUG_VAR const bool had_first_error = datum->add("first_error", env_add_ptr(new datum_t(err)));
+    rassert(!had_first_error);
+
+    DEBUG_VAR const bool had_errors = datum->add("errors", env_add_ptr(new datum_t(1.0)));
+    rassert(!had_errors);
+
+    return datum;
+}
+
 const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
                                    UNUSED bool _so_the_template_matches) {
     const std::string &pk = get_pkey();
@@ -69,7 +87,6 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
     return env->add_ptr(new datum_t(d, env));
 }
 
-
 const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
     if (f->is_deterministic()) {
         return do_replace(orig, map_wire_func_t(env, f));
@@ -91,9 +108,9 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")))
+           N1(ERROR, NDATUM("Duplicate primary key.")));
 #pragma GCC diagnostic pop
-            }
+    }
 
     propagate(&t);
     return do_replace(orig, map_wire_func_t(t, nullptr));
