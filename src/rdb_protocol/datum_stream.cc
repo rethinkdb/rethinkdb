@@ -9,6 +9,14 @@
 
 namespace ql {
 
+std::vector<const datum_t *> consumptive_next_batch_impl(datum_stream_t *stream) {
+    std::vector<const datum_t *> ret;
+    while (const datum_t *datum = stream->next()) {
+        ret.push_back(datum);
+    }
+    return ret;
+}
+
 // DATUM_STREAM_T
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
@@ -220,13 +228,19 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
     : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
-    return arr->el(index++, NOTHROW);
+    const size_t old_index = index;
+    ++index;
+    return arr->el(old_index, NOTHROW);
+}
+
+std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
+    return consumptive_next_batch_impl(this);
 }
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
     const datum_t *arg = src->next();
-    return !arg ? 0 : f->call(arg)->as_datum();
+    return !arg ? NULL : f->call(arg)->as_datum();
 }
 
 // CONCATMAP_DATUM_STREAM_T
@@ -249,8 +263,8 @@ const datum_t *filter_datum_stream_t::next_impl() {
         if (!(arg = src->next())) return 0;
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
         if (f->filter_call(env, arg)) {
-                outer_checkpoint.reset(&env_t::merge_checkpoint);
-                break;
+            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            break;
         }
     }
     return arg;
@@ -260,6 +274,7 @@ const datum_t *filter_datum_stream_t::next_impl() {
 slice_datum_stream_t::slice_datum_stream_t(
     env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
     : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+
 const datum_t *slice_datum_stream_t::next_impl() {
     if (l > r || ind > r) return 0;
     while (ind++ < l) {
