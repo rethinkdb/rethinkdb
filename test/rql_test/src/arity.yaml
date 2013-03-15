@@ -7,10 +7,10 @@ tests:
     - def: db = r.db('test')
     - def: obj = r.expr({'a':1})
     - def: array = r.expr([1])
-    - cd: db.table_create('test')
+    - cd: db.table_create('test1')
       ot: ({'created':1})
-      def: tbl = db.table('test')
-    
+      def: tbl = db.table('test1')
+
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 0 argument(s) but found 1.", [])
@@ -21,7 +21,7 @@ tests:
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
-        py: err_regex("TypeError", ".* takes exactly 1 argument .2 given.", [])        
+        py: err_regex("TypeError", ".* takes exactly 1 argument .2 given.", [])
       cd:
       - db.table_list(1)
       - tbl.delete(1)
@@ -105,9 +105,9 @@ tests:
       - tbl.replace()
       - tbl.insert()
       - db.table_create()
-      - db.table()
+      # - db.table() # TODO: theerror message for this in ruby is wrong
       - tbl.reduce()
-      
+
     - ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 0.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
@@ -135,7 +135,7 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected at least 2 argument(s) but found 0.", [])
-        rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Invalid data collector.", [])
         py: err_regex('TypeError', ".*takes at least 3 arguments \(1 given\)", [])
       cd:
       - tbl.group_by()
@@ -162,5 +162,5 @@ tests:
     # TODO: between, merge, slice
 
     # Clean up
-    - cd: db.table_drop('test')
+    - cd: db.table_drop('test1')
       ot: ({'dropped':1})

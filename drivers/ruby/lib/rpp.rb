@@ -68,7 +68,7 @@ module RethinkDB
 
     def self.can_prefix (name, args)
       return false if name == "db" || name == "funcall"
-      return false if name == "table" && args.size == 1
+      return false if args.size == 1 && args[0].type == Term::TermType::DATUM
       return true
     end
     def self.pp_int(q, term, pre_dot=false)

@@ -47,13 +47,15 @@ tests:
 
     - cd: db.table_create('nonsense', 'foo')
       py: [] # In python, 'foo' becomes the primary key
-      ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
+      ot:
+        cd: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
+        rb: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
 
     - js: db.table_create('nonsense', {'foo':'bar'})
       py: db.table_create('nonsense', foo='bar')
       rb: db.table_create('nonsense', :foo => 'bar')
       ot:
-        rb: '"TODO"'
+        rb: err('RqlCompileError', "Unrecognized optional argument `foo`.", [])
         js: err('RqlCompileError', 'Unrecognized optional argument `foo`.', [])
         py: err('TypeError', "table_create() got an unexpected keyword argument 'foo'", [])
 

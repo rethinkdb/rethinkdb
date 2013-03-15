@@ -4,6 +4,8 @@ import pdb
 import collections
 import types
 import re
+path.insert(0, '.')
+from test_util import shard_table
 path.insert(0, "../../drivers/python")
 
 from os import environ
@@ -11,6 +13,8 @@ import rethinkdb as r
 
 # JSPORT = int(sys.argv[1])
 CPPPORT = int(sys.argv[2])
+CLUSTER_PORT = int(sys.argv[3])
+BUILD = sys.argv[4]
 
 # -- utilities --
 
@@ -274,3 +278,6 @@ def arrlen(length, thing=None):
 
 def uuid():
     return Uuid()
+
+def shard(table_name):
+    shard_table(CLUSTER_PORT, BUILD, table_name)
