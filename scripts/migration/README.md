@@ -1,7 +1,7 @@
 ### Steps For Migrating Your Cluster
 
-1. Run `import_export.rb --export --host HOST --port PORT`, where HOST:PORT is
-the address of a machine in your cluster.  This will write everything in your
+1. Run `import_export.rb --export --host HOST --port PORT`, where HOST:PORT
+connects to a machine in your cluster.  This will write everything in your
 cluster to disk, so make sure you have enough space.
 
 2. Upgrade RethinkDB on all your servers, then move or delete all your
