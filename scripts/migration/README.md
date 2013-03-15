@@ -27,15 +27,25 @@ table into the original RDB protocol; this will be fixed in future versions.)
 You can specify this with the `--primary-keys` option, which takes a JSON
 document of the form `{"db_name.table_name": "key_name, ...}`.**
 
+### Required dependencies
+
+The migration script requires Ruby to be installed, as well as a few gems:
+
+```bash
+gem install json ruby_protobuf
+```
+
 ### Simple example
 
 Alice is running a single RethinkDB server on localhost with the default ports.
 She does the following:
 
 ```
+# Make a directory for the migration files we'll generate.
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
-~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
+# Fetch the migration script from Github.
+~/rethinkdb_migration $ wget --no-check-certificate http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
 ~/rethinkdb_migration $ chmod a+x import_export.rb
 ~/rethinkdb_migration $ ./import_export.rb --help
 Usage: import_export.rb [options]
