@@ -15,7 +15,8 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    rcheck(std::isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
+    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
@@ -43,7 +44,8 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Number: {
         type = R_NUM;
         r_num = json->valuedouble;
-        r_sanity_check(std::isfinite(r_num));
+        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        r_sanity_check(isfinite(r_num));
     } break;
     case cJSON_String: {
         type = R_STR;
