@@ -89,16 +89,28 @@ private:
         }
 
         if (!done) {
-            datum_stream_t *ds = v1->as_seq();
-            while (const datum_t *d = ds->next()) {
-                try {
-                    maybe_generate_key(t, &generated_keys, &d);
-                } catch (const any_ql_exc_t &) {
-                    // We just ignore it, the same error will be handled in `replace`.
-                    // TODO: that solution sucks.
+            datum_stream_t *datum_stream = v1->as_seq();
+
+            for (;;) {
+                std::vector<const datum_t *> datums = datum_stream->next_batch();
+                if (datums.empty()) {
+                    break;
                 }
-                const datum_t *result = t->replace(d, d, upsert);
-                stats = stats->merge(env, result, stats_merge);
+
+                for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
+                    try {
+                        maybe_generate_key(t, &generated_keys, &*datum);
+                    } catch (const any_ql_exc_t &) {
+                        // We just ignore it, the same error will be handled in `replace`.
+                        // TODO: that solution sucks.
+                    }
+                }
+
+                std::vector<const datum_t *> results = t->batch_replace(datums, datums, upsert);
+
+                for (auto result = results.begin(); result != results.end(); ++result) {
+                    stats = stats->merge(env, *result, stats_merge);
+                }
             }
         }
 

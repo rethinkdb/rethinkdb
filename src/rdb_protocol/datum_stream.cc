@@ -9,14 +9,6 @@
 
 namespace ql {
 
-std::vector<const datum_t *> consumptive_next_batch_impl(datum_stream_t *stream) {
-    std::vector<const datum_t *> ret;
-    while (const datum_t *datum = stream->next()) {
-        ret.push_back(datum);
-    }
-    return ret;
-}
-
 // DATUM_STREAM_T
 datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
     return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
@@ -229,12 +221,27 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
 
 const datum_t *array_datum_stream_t::next_impl() {
     const size_t old_index = index;
-    ++index;
-    return arr->el(old_index, NOTHROW);
+    const datum_t *ret = arr->el(old_index, NOTHROW);
+    if (ret) { ++index; }
+    return ret;
 }
 
 std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
-    return consumptive_next_batch_impl(this);
+    std::vector<const datum_t *> ret;
+    for (;;) {
+        if (ret.size() == 100) {
+            break;
+        }
+
+        const datum_t *value = next_impl();
+        if (value == NULL) {
+            break;
+        }
+
+        ret.push_back(value);
+    }
+
+    return ret;
 }
 
 // MAP_DATUM_STREAM_T

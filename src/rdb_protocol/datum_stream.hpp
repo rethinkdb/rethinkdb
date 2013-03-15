@@ -46,6 +46,8 @@ public:
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<const datum_t *> next_batch();
 
+    static const int MAX_BATCH_SIZE = 100;
+
 private:
     virtual const datum_t *next_impl() = 0;
 
