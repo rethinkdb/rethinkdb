@@ -7,6 +7,11 @@
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
+
 namespace ql {
 
 // This file implements terms that are rewritten into other terms.  See
@@ -40,9 +45,6 @@ private:
     scoped_ptr_t<term_t> real;
 };
 
-//TODO(mlucy for Joe): Why do we push around the whole term, then push again internally?
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
 class groupby_term_t : public rewrite_term_t {
 public:
     groupby_term_t(env_t *env, const Term *term)
@@ -54,14 +56,11 @@ public:
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
         Term *arg = out;
         arg = final_wrap(env, arg, dc, dc_arg);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
            group_fn(env, arg, &in->args(1)),
            map_fn(env, arg, dc, dc_arg),
            reduce_fn(env, arg, dc, dc_arg));
-#pragma GCC diagnostic pop
     }
 private:
     static void parse_dc(const Term *t, std::string *dc_out,
@@ -79,14 +78,11 @@ private:
         int obj = env->gensym();
         int attr = env->gensym();
         arg = pb::set_func(arg, obj);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
               N2(CONTAINS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
-#pragma GCC diagnostic pop
         // debugf("%s\n", arg->DebugString().c_str());
     }
     static void map_fn(env_t *env, Term *arg,
@@ -96,25 +92,19 @@ private:
         if (dc == "COUNT") {
             NDATUM(1.0);
         } else if (dc == "SUM") {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
-#pragma GCC diagnostic pop
         } else if (dc == "AVG") {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(CONTAINS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
                   N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
                *arg = *dc_arg);
-#pragma GCC diagnostic pop
         } else if (dc == "AVG") {
         } else { unreachable(); }
     }
@@ -123,19 +113,13 @@ private:
         int a = env->gensym(), b = env->gensym();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
             N2(ADD, NVAR(a), NVAR(b));
-#pragma GCC diagnostic pop
         } else if (dc == "AVG") {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
             N2(MAKE_ARRAY,
                N2(ADD, N2(NTH, NVAR(a), NDATUM(0.0)),
                        N2(NTH, NVAR(b), NDATUM(0.0))),
                N2(ADD, N2(NTH, NVAR(a), NDATUM(1.0)),
                        N2(NTH, NVAR(b), NDATUM(1.0))));
-#pragma GCC diagnostic pop
         } else { unreachable(); }
     }
     static Term *final_wrap(env_t *env, Term *arg,
@@ -145,8 +129,6 @@ private:
         int val = env->gensym(), obj = env->gensym();
         Term *argout = 0;
         if (dc == "AVG") {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
                     "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
@@ -155,13 +137,11 @@ private:
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
                        N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
-#pragma GCC diagnostic pop
         }
         return argout;
     }
     virtual const char *name() const { return "groupby"; }
 };
-#pragma GCC diagnostic pop
 
 class inner_join_term_t : public rewrite_term_t {
 public:
@@ -176,8 +156,6 @@ public:
         int m = env->gensym();
 
         Term *arg = out;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         // `l`.concatmap { |n|
         N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, n);
            // `r`.concatmap { |m|
@@ -190,7 +168,6 @@ public:
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                  // [])}}
                  N0(MAKE_ARRAY))));
-#pragma GCC diagnostic pop
     }
     virtual const char *name() const { return "inner_join"; }
 };
@@ -206,8 +183,6 @@ public:
 
         Term *arg = out;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         // `l`.concatmap { |n|
         N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, n);
            // r.funcall(lambda { |lst
@@ -234,7 +209,6 @@ public:
                        N0(MAKE_ARRAY))),
                  // "ARRAY"))}
                  NDATUM("ARRAY"))));
-#pragma GCC diagnostic pop
     }
     virtual const char *name() const { return "outer_join"; }
 };
@@ -250,8 +224,6 @@ private:
         int row = env->gensym(), v = env->gensym();
 
         Term *arg = out;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         // `l`.concat_map { |row|
         N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, row);
            // r.funcall(lambda { |v|
@@ -266,7 +238,6 @@ private:
                  N0(MAKE_ARRAY)),
               // `r`.get(l[`lattr`]))}
               N2(GET, *arg = *r, N2(GETATTR, NVAR(row), *arg = *lattr))));
-#pragma GCC diagnostic pop
     }
     virtual const char *name() const { return "inner_join"; }
 };
@@ -281,10 +252,7 @@ private:
         int x = env->gensym();
 
         Term *arg = out;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
-#pragma GCC diagnostic pop
      }
      virtual const char *name() const { return "delete"; }
 };
@@ -301,8 +269,6 @@ private:
         int new_row = env->gensym(false);
 
         Term *arg = out;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
            N3(BRANCH,
               N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
@@ -313,7 +279,6 @@ private:
                     NVAR(old_row),
                     N2(MERGE, NVAR(old_row), NVAR(new_row))),
                  N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
-#pragma GCC diagnostic pop
     }
     virtual const char *name() const { return "update"; }
 };
@@ -326,14 +291,15 @@ private:
     static void rewrite(UNUSED env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
-#pragma GCC diagnostic pop
      }
      virtual const char *name() const { return "skip"; }
 };
 
 } // namespace ql
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic pop
+#endif
 
 #endif // RDB_PROTOCOL_TERMS_REWRITES_HPP_

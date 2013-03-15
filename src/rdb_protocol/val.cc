@@ -88,13 +88,17 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));
     } else {
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#endif
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
            N1(ERROR, NDATUM("Duplicate primary key.")))
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic pop
+#endif
             }
 
     propagate(&t);

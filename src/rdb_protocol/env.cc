@@ -8,10 +8,14 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
     Term *arg = &ewt->t;
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#endif
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic pop
+#endif
     term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
     optargs[key] = wire_func_t(*arg, 0);
     return false;

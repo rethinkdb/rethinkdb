@@ -132,10 +132,14 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             }
             env_wrapper_t<Term> *ewt = env->add_ptr(new env_wrapper_t<Term>());
             Term *arg = &ewt->t;
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#endif
             N1(DB, NDATUM("test"));
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic pop
+#endif
             term_walker_t(arg, t_bt); // duplicate toplevel backtrace
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
