@@ -3,7 +3,6 @@
 
 #include "hash_region.hpp"
 #include "btree/keys.hpp"
-#include "memcached/region.hpp"
 
 namespace unittest {
 

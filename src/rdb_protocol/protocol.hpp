@@ -22,7 +22,6 @@
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
-#include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/func.hpp"
