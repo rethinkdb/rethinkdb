@@ -12,7 +12,7 @@ if 2**63 != (2**62)*2
       class VarintField < BaseField
         INT64_MAX = (2**62)*2 - 1
         INT64_MIN = (2**62)*-2
-        UNT64_MAX = (2**62)*4 - 1
+        UINT64_MAX = (2**62)*4 - 1
       end
     end
   end
