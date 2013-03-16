@@ -93,7 +93,6 @@ region_map_t<protocol_t, version_range_t> to_version_range_map(const region_map_
 
 
 
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
@@ -113,20 +112,6 @@ bool version_is_divergent<mock::dummy_protocol_t>(
         const mock::dummy_protocol_t::region_t &relevant_region);
 
 template
-bool version_is_ancestor<memcached_protocol_t>(
-        branch_history_manager_t<memcached_protocol_t> *bhm,
-        version_t ancestor,
-        version_t descendent,
-        memcached_protocol_t::region_t relevant_region);
-
-template
-bool version_is_divergent<memcached_protocol_t>(
-        branch_history_manager_t<memcached_protocol_t> *bhm,
-        version_t v1,
-        version_t v2,
-        const memcached_protocol_t::region_t &relevant_region);
-
-template
 bool version_is_ancestor<rdb_protocol_t>(
         branch_history_manager_t<rdb_protocol_t> *bhm,
         version_t ancestor,
@@ -141,7 +126,5 @@ bool version_is_divergent<rdb_protocol_t>(
         const rdb_protocol_t::region_t &relevant_region);
 
 template region_map_t<mock::dummy_protocol_t, version_range_t> to_version_range_map<mock::dummy_protocol_t>(const region_map_t<mock::dummy_protocol_t, binary_blob_t> &blob_map);
-
-template region_map_t<memcached_protocol_t, version_range_t> to_version_range_map<memcached_protocol_t>(const region_map_t<memcached_protocol_t, binary_blob_t> &blob_map);
 
 template region_map_t<rdb_protocol_t, version_range_t> to_version_range_map<rdb_protocol_t>(const region_map_t<rdb_protocol_t, binary_blob_t> &blob_map);

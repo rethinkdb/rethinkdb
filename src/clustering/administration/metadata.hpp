@@ -20,8 +20,6 @@
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/cow_ptr.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol.hpp"
-#include "memcached/protocol_json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -34,18 +32,17 @@ public:
     cluster_semilattice_metadata_t() { }
 
     cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > dummy_namespaces;
-    cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > memcached_namespaces;
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > rdb_namespaces;
 
     machines_semilattice_metadata_t machines;
     datacenters_semilattice_metadata_t datacenters;
     databases_semilattice_metadata_t databases;
 
-    RDB_MAKE_ME_SERIALIZABLE_6(dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, rdb_namespaces, machines, datacenters, databases);
 };
 
-RDB_MAKE_SEMILATTICE_JOINABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
-RDB_MAKE_EQUALITY_COMPARABLE_6(cluster_semilattice_metadata_t, dummy_namespaces, memcached_namespaces, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_SEMILATTICE_JOINABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, rdb_namespaces, machines, datacenters, databases);
+RDB_MAKE_EQUALITY_COMPARABLE_5(cluster_semilattice_metadata_t, dummy_namespaces, rdb_namespaces, machines, datacenters, databases);
 
 //json adapter concept for cluster_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
@@ -76,7 +73,6 @@ public:
         machine_id(mid), peer_id(pid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
-    namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
     namespaces_directory_metadata_t<rdb_protocol_t> rdb_namespaces;
 
     /* Tell the other peers what our machine ID is */
@@ -92,7 +88,7 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t

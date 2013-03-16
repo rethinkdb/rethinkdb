@@ -201,8 +201,5 @@ serializer_filepath_t file_based_svs_by_namespace_t<protocol_t>::file_name_for(n
 #include "mock/dummy_protocol.hpp"
 template class file_based_svs_by_namespace_t<mock::dummy_protocol_t>;
 
-#include "memcached/protocol.hpp"
-template class file_based_svs_by_namespace_t<memcached_protocol_t>;
-
 #include "rdb_protocol/protocol.hpp"
 template class file_based_svs_by_namespace_t<rdb_protocol_t>;

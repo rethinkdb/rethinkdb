@@ -5,6 +5,7 @@
 
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 
 template <class protocol_t>
 void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {
@@ -73,13 +74,6 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
 template <class protocol_t>
 void on_subfield_change(persistable_blueprint_t<protocol_t> *) { }
 
-#include "memcached/protocol.hpp"
-#include "memcached/protocol_json_adapter.hpp"
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
-template cJSON *render_as_json<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
-template void apply_json_to<memcached_protocol_t>(cJSON *, persistable_blueprint_t<memcached_protocol_t> *);
-template void on_subfield_change<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
-template void debug_print<memcached_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<memcached_protocol_t> &x);
 
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);

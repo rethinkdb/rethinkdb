@@ -24,7 +24,6 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
 #include "extproc/pool.hpp"
-#include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rdb_protocol/parser.hpp"
@@ -190,12 +189,6 @@ bool do_serve(
                 field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
             &dummy_ctx);
 
-        memcached_protocol_t::context_t mc_ctx;
-        namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-            &mc_ctx);
-
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
@@ -237,29 +230,6 @@ bool do_serve(
                         dummy_reactor_driver->get_watchable(),
                         &our_root_directory_variable));
 
-            // Memcached
-            file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, base_path);
-            scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
-                new reactor_driver_t<memcached_protocol_t>(
-                    base_path,
-                    io_backender,
-                    &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-                    persistent_file->get_memcached_branch_history_manager(),
-                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                    &memcached_svs_source,
-                    &perfmon_repo,
-                    NULL));
-            scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-                memcached_reactor_directory_copier(!i_am_a_server ? NULL :
-                    new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
-                        &cluster_directory_metadata_t::memcached_namespaces,
-                        memcached_reactor_driver->get_watchable(),
-                        &our_root_directory_variable));
 
             // RDB
             file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(io_backender, base_path);
@@ -295,15 +265,6 @@ bool do_serve(
                     &local_issue_tracker,
                     &perfmon_repo);
 
-                parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
-                    &mailbox_manager,
-                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                    address_ports.local_addresses,
-                    address_ports.port_offset,
-                    &memcached_namespace_repo,
-                    &local_issue_tracker,
-                    &perfmon_repo);
-
                 rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
                 query2_server_t rdb_pb2_server(address_ports.local_addresses,
@@ -330,7 +291,6 @@ bool do_serve(
                                 &metadata_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
-                                &memcached_namespace_repo,
                                 &rdb_namespace_repo,
                                 &admin_tracker,
                                 rdb_pb2_server.get_http_app(),

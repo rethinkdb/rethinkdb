@@ -237,10 +237,8 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
 }
 
 
-#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 template class backfiller_t<mock::dummy_protocol_t>;
-template class backfiller_t<memcached_protocol_t>;
 template class backfiller_t<rdb_protocol_t>;

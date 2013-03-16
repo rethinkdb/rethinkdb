@@ -6,6 +6,7 @@
 
 #include "http/json.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 
 namespace reactor_business_card_details {
 
@@ -277,13 +278,6 @@ void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target) {
 template <class protocol_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *) { }
 
-
-#include "memcached/protocol.hpp"
-#include "memcached/protocol_json_adapter.hpp"
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
-template cJSON *render_as_json<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
-template void apply_json_to<memcached_protocol_t>(cJSON *change, reactor_business_card_t<memcached_protocol_t> *target);
-template void on_subfield_change<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *);
 
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);

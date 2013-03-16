@@ -44,10 +44,6 @@ void debug_print(append_only_printf_buffer_t *buf, const blueprint_t<protocol_t>
     buf->appendf("}");
 }
 
-#include "memcached/protocol.hpp"
-template class blueprint_t<memcached_protocol_t>;
-template void debug_print<memcached_protocol_t>(append_only_printf_buffer_t *buf, const blueprint_t<memcached_protocol_t> &blueprint);
-
 #include "mock/dummy_protocol.hpp"
 template class blueprint_t<mock::dummy_protocol_t>;
 template void debug_print<mock::dummy_protocol_t>(append_only_printf_buffer_t *buf, const blueprint_t<mock::dummy_protocol_t> &blueprint);

@@ -217,9 +217,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
 }
 
 #include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 template class namespace_repo_t<mock::dummy_protocol_t>;
-template class namespace_repo_t<memcached_protocol_t>;
 template class namespace_repo_t<rdb_protocol_t>;

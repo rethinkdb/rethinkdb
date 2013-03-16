@@ -1,8 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "clustering/administration/metadata.hpp"
+
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/machine_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 
 
 //json adapter concept for machine_semilattice_metadata_t
@@ -132,7 +134,6 @@ void with_ctx_on_subfield_change(databases_semilattice_metadata_t *target, const
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >, vclock_ctx_t>(&target->dummy_namespaces, ctx));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >, vclock_ctx_t>(&target->memcached_namespaces, ctx));
     res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >, vclock_ctx_t>(&target->rdb_namespaces, ctx));
     res["machines"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<machines_semilattice_metadata_t, vclock_ctx_t>(&target->machines, ctx));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t>(new json_ctx_adapter_t<datacenters_semilattice_metadata_t, vclock_ctx_t>(&target->datacenters, ctx));
@@ -157,7 +158,6 @@ void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {
     json_adapter_if_t::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> >(&target->dummy_namespaces));
-    res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t> >(&target->memcached_namespaces));
     res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<namespaces_directory_metadata_t<rdb_protocol_t> >(&target->rdb_namespaces));
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<machine_id_t>(&target->machine_id)); // TODO: should be 'me'?
     res["peer_id"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<peer_id_t>(&target->peer_id));
@@ -298,18 +298,6 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *t
 template <class protocol_t>
 void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target) { }
 
-
-
-#include "memcached/protocol_json_adapter.hpp"
-template json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template cJSON *with_ctx_render_as_json<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template void with_ctx_apply_json_to<memcached_protocol_t>(cJSON *change, namespaces_semilattice_metadata_t<memcached_protocol_t> *target, const vclock_ctx_t &ctx);
-template void with_ctx_on_subfield_change<memcached_protocol_t>(namespaces_semilattice_metadata_t<memcached_protocol_t> *, const vclock_ctx_t &);
-
-template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template cJSON *render_as_json<memcached_protocol_t>(namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template void apply_json_to<memcached_protocol_t>(cJSON *change, namespaces_directory_metadata_t<memcached_protocol_t> *target);
-template void on_subfield_change<memcached_protocol_t>(UNUSED namespaces_directory_metadata_t<memcached_protocol_t> *target);
 
 
 #include "rdb_protocol/protocol.hpp"

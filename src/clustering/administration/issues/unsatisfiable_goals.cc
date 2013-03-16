@@ -120,6 +120,5 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     std::list<clone_ptr_t<global_issue_t> > issues;
     make_issues(metadata.rdb_namespaces, actual_machines_in_datacenters, &issues);
     make_issues(metadata.dummy_namespaces, actual_machines_in_datacenters, &issues);
-    make_issues(metadata.memcached_namespaces, actual_machines_in_datacenters, &issues);
     return issues;
 }

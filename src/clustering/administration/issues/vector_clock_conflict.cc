@@ -48,7 +48,6 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
 
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > issues;
 
-    check_namespaces_for_protocol(metadata.memcached_namespaces, &issues);
     check_namespaces_for_protocol(metadata.dummy_namespaces, &issues);
     check_namespaces_for_protocol(metadata.rdb_namespaces, &issues);
 
