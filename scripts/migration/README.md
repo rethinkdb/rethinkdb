@@ -20,7 +20,9 @@ all the data on disk into your cluster.  You must run this in the same directory
 you ran the `import_export.rb --export` command, or else specify the directory
 to read from with `import_export.rb --import DIR`.  You will also have to
 specify the directory if you exported from more than one RethinkDB
-cluster. **NOTE: If any of your tables have a nonstandard primary key (anything
+cluster. 
+
+**NOTE: If any of your tables use a nonstandard primary key (anything
 except `id`), you need to tell the script about the nonstandard keys while
 importing.  (We stupidly forgot to build a way to fetch the primary key of a
 table into the original RDB protocol; this will be fixed in future versions.)
@@ -34,7 +36,9 @@ The migration script requires Ruby to be installed, as well as a few gems:
 ```bash
 gem install json ruby_protobuf
 ```
-__Note for OS X users:__ Due to an incompatibility between `ruby_protobuf` and Ruby 1.8.7, Ruby 1.9 is required for the migration script.
+
+__Note for OS X users:__ Due to an incompatibility between `ruby_protobuf` and Ruby 1.8.7, 
+Ruby 1.9 is required for the migration script.
 
 ### Simple example
 
@@ -95,7 +99,7 @@ Usage: import_export.rb [options]
 
 Bob is running two distinct RethinkDB clusters.  He can connect to one of them
 at `newton:60715` and the other at `magneto:60515`.  The cluster on `newton`
-uses the key `pkey` as the primary key in the tables `test.test` and `test.foo`.
+has two tables `test.test` and `test.foo` that use as primary key `pkey` (instead of `id`).
 
 ```
 # Make a directory for the migration files we'll generate.
