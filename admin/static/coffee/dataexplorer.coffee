@@ -373,7 +373,7 @@ module 'DataExplorerView', ->
         pair_char: (event, stack) =>
             if event?.which?
                 # If there is a selection and the user hit a quote, we wrap the seleciton in quotes
-                if @codemirror.getSelection() isnt ''
+                if @codemirror.getSelection() isnt '' and event.type is 'keypress' # This is madness. If we look for keydown, shift+right arrow match a single quote...
                     char_to_insert = String.fromCharCode event.which
                     if char_to_insert? and char_to_insert is '"' or char_to_insert is "'"
                         @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
