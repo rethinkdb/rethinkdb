@@ -7,6 +7,24 @@ require 'socket'
 require 'thread'
 require 'json'
 
+require 'protobuf/message/field'
+if 2**63 != (2**62)*2
+  puts "WARNING: Ruby believes 2**63 = #{2**63} rather than #{(2**62)*2}!"
+  puts "Consider upgrading your verison of Ruby."
+  puts "Hot-patching ruby_protobuf to compensate..."
+  rethinkdb_verbose, $VERBOSE = $VERBOSE, nil
+  module Protobuf
+    module Field
+      class VarintField < BaseField
+        INT64_MAX = (2**62)*2 - 1
+        INT64_MIN = (2**62)*-2
+        UNT64_MAX = (2**62)*4 - 1
+      end
+    end
+  end
+  $VERBOSE = rethinkdb_verbose
+end
+
 module Query_Language_1
   # Copyright 2010-2012 RethinkDB, all rights reserved.
   module RethinkDB

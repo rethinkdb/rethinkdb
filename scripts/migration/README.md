@@ -53,7 +53,7 @@ She does the following:
 ~/rethinkdb_migration $ curl -L \
                           http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb \
                           > import_export.rb
-# Run the migration script
+# Run the migration script.
 ~/rethinkdb_migration $ ruby import_export.rb --help
 Usage: import_export.rb [options]
     -h, --host HOST                  host to connect to (default localhost)
@@ -109,7 +109,7 @@ has two tables `test.test` and `test.foo` that use as primary key `pkey` (instea
 ~/rethinkdb_migration $ curl -L \
                           http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb \
                           > import_export.rb
-# Run the migration script
+# Run the migration script.
 ~/rethinkdb_migration $ ruby import_export.rb --help
 Usage: import_export.rb [options]
     -h, --host HOST                  host to connect to (default localhost)
