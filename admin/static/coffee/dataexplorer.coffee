@@ -391,14 +391,18 @@ module 'DataExplorerView', ->
                     if previous_char of @matching_opening_bracket
                         next_char = @get_next_char()
                         if next_char is @matching_opening_bracket[previous_char]
-                            @remove_next()
-                            return true
+                            num_not_closed_bracket = @count_not_closed_brackets previous_char
+                            if num_not_closed_bracket <= 0
+                                @remove_next()
+                                return true
                     # If the user remove the first quote of an empty string, we remove both quotes
                     else if previous_char is '"' or previous_char is "'"
                         next_char = @get_next_char()
                         if next_char is previous_char and @get_previous_char(2) isnt '\\'
-                            @remove_next()
-                            return true
+                            num_quote = @count_char char_to_insert
+                            if num_quote%2 is 0
+                                @remove_next()
+                                return true
                     return true
 
                 char_to_insert = String.fromCharCode event.which
@@ -447,7 +451,7 @@ module 'DataExplorerView', ->
                                     @move_cursor 1
                                     event.preventDefault()
                                 return true
-            return true
+            return false
 
         get_next_char: =>
             cursor_end = @codemirror.getCursor()
@@ -723,10 +727,12 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i] + '\n'
                     else
                         query_after_cursor += query_lines[i]
-            @query_last_part = query_after_cursor
 
             # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
             # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
+            # We now compute this stack earlier, because we need it for @pair_char
+            # BUT we don't want to save data too early
+            previous_element = @current_element
             @current_element = ''
 
             stack = @extract_data_from_query
@@ -734,20 +740,9 @@ module 'DataExplorerView', ->
                 position: 0
 
             @pair_char(event, stack)
-            # If a selection is active, we just catch shift+enter
-            if @codemirror.getSelection() isnt ''
-                @hide_suggestion_and_description()
-                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
-                    @hide_suggestion_and_description()
-                    if event.type isnt 'keydown'
-                        return true
-                    @execute_query()
-                    return true # We do not replace the selection with a new line
-                # If the user select something and end somehwere with suggestion
-                if event?.type isnt 'mouseup'
-                    return false
-                else
-                    return true
+
+            current_element = @current_element
+            @current_element = previous_element
 
             # If there is a hilighted suggestion, we want to catch enter
             if @$('.suggestion_name_li_hl').length > 0
@@ -785,6 +780,25 @@ module 'DataExplorerView', ->
 
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').empty()
+
+            # Valid step, let's save the data
+            @query_last_part = query_after_cursor
+            @current_element = current_element
+
+            # If a selection is active, we just catch shift+enter
+            if @codemirror.getSelection() isnt ''
+                @hide_suggestion_and_description()
+                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
+                    @hide_suggestion_and_description()
+                    if event.type isnt 'keydown'
+                        return true
+                    @execute_query()
+                    return true # We do not replace the selection with a new line
+                # If the user select something and end somehwere with suggestion
+                if event?.type isnt 'mouseup'
+                    return false
+                else
+                    return true
 
             result =
                 status: null
