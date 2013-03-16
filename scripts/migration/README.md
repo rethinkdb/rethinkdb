@@ -38,7 +38,7 @@ gem install json ruby_protobuf
 ```
 
 __Note for OS X users:__ Due to an incompatibility between `ruby_protobuf` and Ruby 1.8.7, 
-Ruby 1.9 is required for the migration script.
+__Ruby 1.9 is required__ for the migration script.
 
 ### Simple example
 
