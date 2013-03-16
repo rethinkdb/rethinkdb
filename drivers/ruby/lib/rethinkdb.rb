@@ -2,17 +2,17 @@
 require 'rubygems'
 require 'ql2.pb.rb'
 
-if 2**63 != (2**62)*2
-  puts "WARNING: Ruby believes 2**63 = #{2**63} rather than #{(2**62)*2}!"
+if 2**63 != 9223372036854775808
+  puts "WARNING: Ruby believes 2**63 = #{2**63} rather than 9223372036854775808!"
   puts "Consider upgrading your verison of Ruby."
   puts "Hot-patching ruby_protobuf to compensate..."
   rethinkdb_verbose, $VERBOSE = $VERBOSE, nil
   module Protobuf
     module Field
       class VarintField < BaseField
-        INT64_MAX = (2**62)*2 - 1
-        INT64_MIN = (2**62)*-2
-        UINT64_MAX = (2**62)*4 - 1
+        INT64_MAX = 9223372036854775807
+        INT64_MIN = -9223372036854775808
+        UINT64_MAX = 18446744073709551615
       end
     end
   end
