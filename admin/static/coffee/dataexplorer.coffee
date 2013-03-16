@@ -379,14 +379,14 @@ module 'DataExplorerView', ->
                         @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
                         event.preventDefault()
                         return true
-                    return false
+                    return true
 
                 if event.which is 8 # Backspace
                     if event.type isnt 'keydown'
-                        return false
+                        return true
                     previous_char = @get_previous_char()
                     if previous_char is null
-                        return false
+                        return true
                     # If the user remove the opening bracket and the next char is the closing bracket, we delete both
                     if previous_char of @matching_opening_bracket
                         next_char = @get_next_char()
@@ -399,12 +399,12 @@ module 'DataExplorerView', ->
                         if next_char is previous_char and @get_previous_char(2) isnt '\\'
                             @remove_next()
                             return true
-                    return false
+                    return true
 
                 char_to_insert = String.fromCharCode event.which
                 if char_to_insert?
                     if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
-                        return false
+                        return true
 
                     if char_to_insert is '"' or char_to_insert is "'"
                         num_quote = @count_char char_to_insert
@@ -417,7 +417,7 @@ module 'DataExplorerView', ->
                                     return true
                                 else
                                     # We are at the begining of a string, so let's just add one quote
-                                    return false
+                                    return true
                             else
                                 # Let's add the closing/opening quote missing
                                 return true
@@ -427,9 +427,9 @@ module 'DataExplorerView', ->
                                 if @last_element_type_if_incomplete(stack) isnt 'string'
                                     @insert_next char_to_insert
                                 else # We add a quote inside a string, probably something like that 'He doesn|\'t'
-                                    return false
+                                    return true
                             else # Else we'll just insert one quote
-                                return false
+                                return true
                     else if @last_element_type_if_incomplete(stack) isnt 'string'
                         next_char = @get_next_char()
 
@@ -437,7 +437,7 @@ module 'DataExplorerView', ->
                             num_not_closed_bracket = @count_not_closed_brackets char_to_insert
                             if num_not_closed_bracket >= 0 # We insert a closing bracket only if it help having a balanced number of opened/closed brackets
                                 @insert_next @matching_opening_bracket[char_to_insert]
-                                return false
+                                return true
                             return true
                         else if char_to_insert of @matching_closing_bracket
                             opening_char = @matching_closing_bracket[char_to_insert]
@@ -447,7 +447,7 @@ module 'DataExplorerView', ->
                                     @move_cursor 1
                                     event.preventDefault()
                                 return true
-            return false
+            return true
 
         get_next_char: =>
             cursor_end = @codemirror.getCursor()
@@ -733,8 +733,7 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 position: 0
 
-            if @pair_char(event, stack) is true
-                return true
+            @pair_char(event, stack)
             # If a selection is active, we just catch shift+enter
             if @codemirror.getSelection() isnt ''
                 @hide_suggestion_and_description()
