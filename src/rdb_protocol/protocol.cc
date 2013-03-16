@@ -570,8 +570,6 @@ void store_t::protocol_read(const read_t &read,
     boost::apply_visitor(v, read.read);
 }
 
-namespace {
-
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
@@ -633,8 +631,6 @@ private:
     wait_any_t interruptor;
     ql::env_t ql_env;
 };
-
-}   /* anonymous namespace */
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
