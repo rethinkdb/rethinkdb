@@ -1,10 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/iterators.hpp"
-#include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
