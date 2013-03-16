@@ -1,7 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/generic/nonoverlapping_regions.hpp"
 
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/region.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t>

@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "btree/keys.hpp"
 #include "http/json/json_adapter.hpp"
 
 struct cJSON;
@@ -40,5 +41,37 @@ void apply_json_to(cJSON *, hash_region_t<key_range_t> *);
 void  on_subfield_change(hash_region_t<key_range_t> *);
 std::string render_region_as_string(hash_region_t<key_range_t> *target);
 std::string to_string_for_json_key(hash_region_t<key_range_t> *target);
+
+
+
+
+/* The protocol API specifies that the following standalone functions must be
+defined for `protocol_t::region_t`. Most of them are thin wrappers around
+existing methods or functions with slightly different names. */
+
+// RSISAM: Deinline these?
+inline bool region_is_empty(const key_range_t &r) {
+    return r.is_empty();
+}
+
+inline bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
+    return potential_superset.is_superset(potential_subset);
+}
+
+inline key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
+    return r1.intersection(r2);
+}
+
+inline bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
+    return r1.overlaps(r2);
+}
+
+MUST_USE region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_t *out) THROWS_NOTHING;
+
+std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
+
+
+
+
 
 #endif /* MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_ */

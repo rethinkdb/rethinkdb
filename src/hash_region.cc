@@ -4,7 +4,7 @@
 #include <limits.h>
 
 #include "btree/keys.hpp"
-
+#include "rdb_protocol/region.hpp"
 #include "stl_utils.hpp"
 
 // TODO: Replace this with a real hash function, if it is not one

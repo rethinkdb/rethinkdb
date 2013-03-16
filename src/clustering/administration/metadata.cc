@@ -4,7 +4,7 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/machine_metadata.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/region.hpp"
 
 
 //json adapter concept for machine_semilattice_metadata_t

@@ -4,7 +4,7 @@
 
 #include "clustering/administration/http/distribution_app.hpp"
 #include "containers/uuid.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/region.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "stl_utils.hpp"
 

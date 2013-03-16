@@ -5,7 +5,7 @@
 
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
-#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/region.hpp"
 
 template <class protocol_t>
 void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {

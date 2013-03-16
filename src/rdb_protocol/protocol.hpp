@@ -25,6 +25,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/region.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 
