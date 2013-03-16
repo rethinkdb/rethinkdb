@@ -367,6 +367,218 @@ module 'DataExplorerView', ->
         handle_click: (event) =>
             @handle_keypress null, event
 
+        # Pair ', ", {, [, (
+        # Return true if we want code mirror to ignore the key event
+        pair_char: (event, stack) =>
+            if event?.which?
+                # If there is a selection and the user hit a quote, we wrap the seleciton in quotes
+                if @codemirror.getSelection() isnt ''
+                    char_to_insert = String.fromCharCode event.which
+                    if char_to_insert? and char_to_insert is '"' or char_to_insert is "'"
+                        @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
+                        event.preventDefault()
+                        return true
+                    return false
+
+                if event.which is 8 # Backspace
+                    if event.type isnt 'keydown'
+                        return false
+                    previous_char = @get_previous_char()
+                    if previous_char is null
+                        return false
+                    # If the user remove the opening bracket and the next char is the closing bracket, we delete both
+                    if previous_char of @matching_opening_bracket
+                        next_char = @get_next_char()
+                        if next_char is @matching_opening_bracket[previous_char]
+                            @remove_next()
+                            return true
+                    # If the user remove the first quote of an empty string, we remove both quotes
+                    else if previous_char is '"' or previous_char is "'"
+                        next_char = @get_next_char()
+                        if next_char is previous_char and @get_previous_char(2) isnt '\\'
+                            @remove_next()
+                            return true
+                    return false
+
+                char_to_insert = String.fromCharCode event.which
+                if char_to_insert?
+                    if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
+                        return false
+
+                    if char_to_insert is '"' or char_to_insert is "'"
+                        num_quote = @count_char char_to_insert
+                        next_char = @get_next_char()
+                        if next_char is char_to_insert # Next char is a single quote
+                            if num_quote%2 is 0
+                                if @last_element_type_if_incomplete(stack) is 'string' # We are at the end of a string and the user just wrote a quote 
+                                    @move_cursor 1
+                                    event.preventDefault()
+                                    return true
+                                else
+                                    # We are at the begining of a string, so let's just add one quote
+                                    return false
+                            else
+                                # Let's add the closing/opening quote missing
+                                return true
+                        else
+                            if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes. 
+                                # Let's keep a number of quote even, so we add one extra quote
+                                if @last_element_type_if_incomplete(stack) isnt 'string'
+                                    @insert_next char_to_insert
+                                else # We add a quote inside a string, probably something like that 'He doesn|\'t'
+                                    return false
+                            else # Else we'll just insert one quote
+                                return false
+                    else if @last_element_type_if_incomplete(stack) isnt 'string'
+                        next_char = @get_next_char()
+
+                        if char_to_insert of @matching_opening_bracket
+                            num_not_closed_bracket = @count_not_closed_brackets char_to_insert
+                            if num_not_closed_bracket >= 0 # We insert a closing bracket only if it help having a balanced number of opened/closed brackets
+                                @insert_next @matching_opening_bracket[char_to_insert]
+                                return false
+                            return true
+                        else if char_to_insert of @matching_closing_bracket
+                            opening_char = @matching_closing_bracket[char_to_insert]
+                            num_not_closed_bracket = @count_not_closed_brackets opening_char
+                            if next_char is char_to_insert
+                                if num_not_closed_bracket <= 0 # g(f(...|) In this case we add a closing parenthesis. Same behavior as in Ace
+                                    @move_cursor 1
+                                    event.preventDefault()
+                                return true
+            return false
+
+        get_next_char: =>
+            cursor_end = @codemirror.getCursor()
+            cursor_end.ch++
+            return @codemirror.getRange @codemirror.getCursor(), cursor_end
+
+        get_previous_char: (less_value) =>
+            cursor_start = @codemirror.getCursor()
+            cursor_end = @codemirror.getCursor()
+            if less_value?
+                cursor_start.ch -= less_value
+                cursor_end.ch -= (less_value-1)
+            else
+                cursor_start.ch--
+            if cursor_start.ch < 0
+                return null
+            return @codemirror.getRange cursor_start, cursor_end
+
+
+        # Insert str after the cursor in codemirror
+        insert_next: (str) =>
+            @codemirror.replaceRange str, @codemirror.getCursor()
+            @move_cursor -1
+
+        remove_next: =>
+            end_cursor = @codemirror.getCursor()
+            end_cursor.ch++
+            @codemirror.replaceRange '', @codemirror.getCursor(), end_cursor
+
+        # Move cursor of move_value
+        # A negative value move the cursor to the left
+        move_cursor: (move_value) =>
+            cursor = @codemirror.getCursor()
+            cursor.ch += move_value
+            if cursor.ch < 0
+                cursor.ch = 0
+            @codemirror.setCursor cursor
+
+
+        # Count how many time char_to_count appeared ignoring strings and comments
+        count_char: (char_to_count) =>
+            query = @codemirror.getValue()
+
+            is_parsing_string = false
+            to_skip = 0
+            result = 0
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
+                        is_parsing_string = false # Else we just keep parsing the string
+                        if char is char_to_count
+                            result++
+                else # if element.is_parsing_string is false
+                    if char is char_to_count
+                        result++
+
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+                    
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
+                        continue
+
+            return result
+
+        matching_opening_bracket:
+            '(': ')'
+            '{': '}'
+            '[': ']'
+        matching_closing_bracket:
+            ')': '('
+            '}': '{'
+            ']': '['
+
+
+        # opening_char has to be in @matching_bracket
+        # Count how many time opening_char has been opened but not closed
+        # A result < 0 means that the closing char has been found more often than the opening one
+        count_not_closed_brackets: (opening_char) =>
+            query = @codemirror.getValue()
+
+            is_parsing_string = false
+            to_skip = 0
+            result = 0
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
+                        is_parsing_string = false # Else we just keep parsing the string
+                else # if element.is_parsing_string is false
+                    if char is opening_char
+                        result++
+                    else if char is @matching_opening_bracket[opening_char]
+                        result--
+
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+                    
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
+                        continue
+
+            return result
+
+
         # Handle events on codemirror
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
@@ -481,6 +693,37 @@ module 'DataExplorerView', ->
                     event.preventDefault()
                     return true
 
+            # Codemirror return a position given by line/char.
+            # We need to retrieve the lines first
+            query_lines = @codemirror.getValue().split '\n'
+            # Then let's get query before the cursor
+            query_before_cursor = ''
+            if @codemirror.getCursor().line > 0
+                for i in [0..@codemirror.getCursor().line-1]
+                    query_before_cursor += query_lines[i] + '\n'
+            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+
+            # Get query after the cursor
+            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
+            if query_lines.length > @codemirror.getCursor().line+1
+                query_after_cursor += '\n'
+                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
+                    if i isnt query_lines.length-1
+                        query_after_cursor += query_lines[i] + '\n'
+                    else
+                        query_after_cursor += query_lines[i]
+            @query_last_part = query_after_cursor
+
+            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
+            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
+            @current_element = ''
+
+            stack = @extract_data_from_query
+                query: query_before_cursor
+                position: 0
+
+            if @pair_char(event, stack) is true
+                return true
             # If a selection is active, we just catch shift+enter
             if @codemirror.getSelection() isnt ''
                 @hide_suggestion_and_description()
@@ -532,35 +775,6 @@ module 'DataExplorerView', ->
 
             @current_highlighted_suggestion = -1
             @.$('.suggestion_name_list').empty()
-
-            # Codemirror return a position given by line/char.
-            # We need to retrieve the lines first
-            query_lines = @codemirror.getValue().split '\n'
-            # Then let's get query before the cursor
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-
-            # Get query after the cursor
-            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
-            if query_lines.length > @codemirror.getCursor().line+1
-                query_after_cursor += '\n'
-                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
-                    if i isnt query_lines.length-1
-                        query_after_cursor += query_lines[i] + '\n'
-                    else
-                        query_after_cursor += query_lines[i]
-            @query_last_part = query_after_cursor
-
-            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
-            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
-            @current_element = ''
-
-            stack = @extract_data_from_query
-                query: query_before_cursor
-                position: 0
 
             result =
                 status: null
@@ -632,9 +846,9 @@ module 'DataExplorerView', ->
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
             opening:
-                '(': true
-                '{': true
-                '[': true
+                '(': ')'
+                '{': '}'
+                '[': ']'
             closing:
                 ')': '(' # Match the opening character
                 '}': '{'
@@ -1319,7 +1533,10 @@ module 'DataExplorerView', ->
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
-            @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+            if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
+                @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+            else
+                @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
     
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
