@@ -315,6 +315,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
                 tabSize: 2
+                #smartIndent: false # Indent a new line as the previous one
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
@@ -597,6 +598,16 @@ module 'DataExplorerView', ->
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
+                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false or event.metaKey is false)
+                    if event.type is 'keydown'
+                        previous_char = @get_previous_char()
+                        if previous_char of @matching_opening_bracket
+                            next_char = @get_next_char()
+                            if @matching_opening_bracket[previous_char] is next_char
+                                cursor = @codemirror.getCursor()
+                                @insert_next '\n'
+                                @codemirror.setCursor cursor
+                                return false
                 else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
                     event.preventDefault()
                     if event.type is 'keydown'
