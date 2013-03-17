@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/protocol.hpp"
 
+#include <algorithm>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
@@ -557,14 +559,62 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(rdb_w_shard_visitor(region), write);
 }
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+template <class T>
+bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &right) {
+    return left.first < right.first;
+}
+
+
+void write_t::unshard(const write_response_t *responses,  size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     // SAMRSI: There is no hope of unsharding if count is 0.  We need to avoid
     // zero-count batched writes.
 
-    debugf("about to unshard writes, count == %zu.\n", count);
-    // SAMRSI: This must be wrong.
-    guarantee(count == 1);
-    *response = responses[0];
+    guarantee(count > 0);
+
+    // Every response but batched_replaces_t and batched_writes_t have a count
+    // of 1, since they have one key.  We catch batched_replaces_t and
+    // batched_writes_t in this case too, because it's not incorrect.  (If it
+    // were incorrect, sharding/unsharding would be badly designed.)
+    if (count == 1) {
+        *response = responses[0];
+    } else {
+        if (NULL != boost::get<batched_replaces_response_t *>(&responses[0].response)) {
+            std::vector<std::pair<int64_t, point_replace_response_t> > combined;
+
+            for (size_t i = 0; i < count; ++i) {
+                const batched_replaces_response_t *batched_response = boost::get<batched_replaces_response_t>(&responses[i].response);
+                guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
+
+                combined.insert(combined.end(),
+                                batched_response->point_replace_responses.begin(),
+                                batched_response->point_replace_responses.end());
+            }
+
+            std::sort(combined.begin(), combined.end(), first_less<point_replace_response_t>);
+
+            *response = write_response_t(batched_replaces_response_t(combined));
+
+        } else if (NULL != boost::get<batched_writes_response_t *>(&responses[0].response)) {
+
+            std::vector<std::pair<int64_t, point_write_response_t> > combined;
+
+            for (size_t i = 0; i < count; ++i) {
+                const batched_writes_response_t *batched_response = boost::get<batched_writes_response_t>(&responses[i].response);
+                guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
+
+                combined.insert(combined.end(),
+                                batched_response->point_write_responses.begin(),
+                                batched_response->point_write_responses.end());
+            }
+
+            std::sort(combined.begin(), combined.end(), first_less<point_write_response_t>);
+
+            *response = write_response_t(batched_writes_response_t(combined));
+
+        } else {
+            crash("response with count %zu (greater than 1) returned for non-batched write.\n", count);
+        }
+    }
 }
 
 store_t::store_t(serializer_t *serializer,
