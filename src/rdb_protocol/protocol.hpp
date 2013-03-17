@@ -401,9 +401,11 @@ struct rdb_protocol_t {
     class batched_replaces_t {
     public:
         batched_replaces_t() { }
-        batched_replaces_t(const std::vector<point_replace_t> &_point_replaces) : point_replaces(_point_replaces) { }
+        batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
+            : point_replaces(_point_replaces) { }
 
-        std::vector<point_replace_t> point_replaces;
+        // The replaces are numbered so that unshard can sort them back in order.
+        std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -424,9 +426,11 @@ struct rdb_protocol_t {
     class batched_writes_t {
     public:
         batched_writes_t() { }
-        batched_writes_t(const std::vector<point_write_t> &_point_writes) : point_writes(_point_writes) { }
+        batched_writes_t(const std::vector<std::pair<int64_t, point_write_t> > &_point_writes)
+            : point_writes(_point_writes) { }
 
-        std::vector<point_write_t> point_writes;
+        // The writes are numbered so that unshard can sort them back in order.
+        std::vector<std::pair<int64_t, point_write_t> > point_writes;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

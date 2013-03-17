@@ -161,7 +161,7 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<const datu
 std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func_pair_t> &replacements) {
     std::vector<const datum_t *> ret(replacements.size(), NULL);
 
-    std::vector<rdb_protocol_t::point_replace_t> point_replaces;
+    std::vector<std::pair<int64_t, rdb_protocol_t::point_replace_t> > point_replaces;
 
     debugf("In batch_replace.\n");
 
@@ -190,9 +190,10 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func
 
                 const std::string &pk = get_pkey();
                 store_key_t store_key(orig->el(pk)->print_primary());
-                point_replaces.push_back(rdb_protocol_t::point_replace_t(pk, store_key,
-                                                                         *replacements[i].replacer,
-                                                                         env->get_all_optargs()));
+                point_replaces.push_back(std::make_pair(static_cast<int64_t>(point_replaces.size()),
+                                                        rdb_protocol_t::point_replace_t(pk, store_key,
+                                                                                        *replacements[i].replacer,
+                                                                                        env->get_all_optargs())));
             }
         } catch (const any_ql_exc_t& exc) {
             ret[i] = make_error_datum(exc);

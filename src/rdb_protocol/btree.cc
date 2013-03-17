@@ -276,9 +276,14 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
                               replace->key, f, ql_env, superblock_promise_or_null, response_out);
 }
 
-void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
+// The int64_t in replaces is ignored -- that's used for preserving order
+// through sharding/unsharding.  We're not about to repack a new vector just to
+// call this function.
+void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces,
+                         btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out) {
+
     debugf("about to rdb_batched_replace\n");
     // SAMRSI: We should assign to *response_out, not response_out->point_replace_responses.
     auto_drainer_t drainer;
@@ -292,7 +297,7 @@ void rdb_batched_replace(const std::vector<point_replace_t> &replaces, btree_sli
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
                                   auto_drainer_t::lock_t(&drainer),
-                                  &replaces[i], slice, timestamp, txn,
+                                  &replaces[i].second, slice, timestamp, txn,
                                   current_superblock.release(),
                                   ql_env,
                                   &superblock_promise,
@@ -345,7 +350,7 @@ void do_a_set_from_batched_set(auto_drainer_t::lock_t /*lock*/,
 }
 
 
-void rdb_batched_set(const std::vector<point_write_t> &writes,
+void rdb_batched_set(const std::vector<std::pair<int64_t, point_write_t> > &writes,
                      btree_slice_t *slice, const repli_timestamp_t timestamp,
                      transaction_t *txn, scoped_ptr_t<superblock_t> *superblock,
                      batched_writes_response_t *response) {
@@ -361,7 +366,7 @@ void rdb_batched_set(const std::vector<point_write_t> &writes,
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_set_from_batched_set,
                                   auto_drainer_t::lock_t(&drainer),
-                                  &writes[i], slice, timestamp, txn,
+                                  &writes[i].second, slice, timestamp, txn,
                                   current_superblock.release(),
                                   &superblock_promise,
                                   &response->point_write_responses[i]));
