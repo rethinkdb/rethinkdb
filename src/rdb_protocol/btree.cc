@@ -293,6 +293,10 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
+        // Pass out the int64_t for shard/unshard reordering.
+        response_out->point_replace_responses[i].first = replaces[i].first;
+
+        // Pass out the point_replace_response_t.
         debugf("rdb_batched_replace iteration %zu\n", i);
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
@@ -301,7 +305,8 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                                   current_superblock.release(),
                                   ql_env,
                                   &superblock_promise,
-                                  &response_out->point_replace_responses[i]));
+                                  &response_out->point_replace_responses[i].second));
+
         debugf("rdb_batched_replace iteration %zu almost done\n", i);
         current_superblock.init(superblock_promise.wait());
     }
@@ -363,13 +368,18 @@ void rdb_batched_set(const std::vector<std::pair<int64_t, point_write_t> > &writ
 
     response->point_write_responses.resize(writes.size());
     for (size_t i = 0; i < writes.size(); ++i) {
+        // Put int64_t in response for shard/unshard reordering.
+        response->point_write_responses[i].first = writes[i].first;
+
+        // Put result in response because that's the point of the response.
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_set_from_batched_set,
                                   auto_drainer_t::lock_t(&drainer),
                                   &writes[i].second, slice, timestamp, txn,
                                   current_superblock.release(),
                                   &superblock_promise,
-                                  &response->point_write_responses[i]));
+                                  &response->point_write_responses[i].second));
+
         current_superblock.init(superblock_promise.wait());
     }
 }

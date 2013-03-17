@@ -158,6 +158,24 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<const datu
     return batch_replace(pairs);
 }
 
+bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
+    if (v.size() == 0) {
+        return true;
+    }
+
+    auto it = v.begin();
+    auto jt = it + 1;
+    while (jt < v.end()) {
+        if (!(it->first < jt->first)) {
+            return false;
+        }
+        ++it;
+        ++jt;
+    }
+    return true;
+}
+
+
 std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func_pair_t> &replacements) {
     std::vector<const datum_t *> ret(replacements.size(), NULL);
 
@@ -211,14 +229,17 @@ std::vector<const datum_t *> table_t::batch_replace(const std::vector<datum_func
         = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
     r_sanity_check(batched_replaces_response != NULL);
     debugf("batch_replace did boost get.\n");
-    std::vector<Datum> *datums = &batched_replaces_response->point_replace_responses;
+    std::vector<std::pair<int64_t, Datum> > *datums = &batched_replaces_response->point_replace_responses;
+
+    rassert(is_sorted_by_first(*datums));
+
     size_t j = 0;
     debugf("batch_replace About to for loop.\n");
 
     for (size_t i = 0; i < ret.size(); ++i) {
         if (ret[i] == NULL) {
             r_sanity_check(j < datums->size());
-            ret[i] = env->add_ptr(new datum_t(&(*datums)[j], env));
+            ret[i] = env->add_ptr(new datum_t(&(*datums)[j].second, env));
             ++j;
         }
     }

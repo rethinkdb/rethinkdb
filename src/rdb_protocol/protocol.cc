@@ -558,6 +558,9 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
 }
 
 void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    // SAMRSI: There is no hope of unsharding if count is 0.  We need to avoid
+    // zero-count batched writes.
+
     debugf("about to unshard writes, count == %zu.\n", count);
     // SAMRSI: This must be wrong.
     guarantee(count == 1);

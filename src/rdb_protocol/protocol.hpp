@@ -320,10 +320,10 @@ struct rdb_protocol_t {
     typedef Datum point_replace_response_t;
 
     struct batched_replaces_response_t {
-        std::vector<point_replace_response_t> point_replace_responses;
+        std::vector<std::pair<int64_t, point_replace_response_t> > point_replace_responses;
 
         batched_replaces_response_t() { }
-        explicit batched_replaces_response_t(const std::vector<point_replace_response_t> &_point_replace_responses)
+        explicit batched_replaces_response_t(const std::vector<std::pair<int64_t, point_replace_response_t> > &_point_replace_responses)
             : point_replace_responses(_point_replace_responses) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -343,10 +343,10 @@ struct rdb_protocol_t {
 
     struct batched_writes_response_t {
         // SAMRSI: sizeof(point_write_response_t) is needlessly big. Also make sure we really use this value.
-        std::vector<point_write_response_t> point_write_responses;
+        std::vector<std::pair<int64_t, point_write_response_t> > point_write_responses;
 
         batched_writes_response_t() { }
-        explicit batched_writes_response_t(const std::vector<point_write_response_t> &_point_write_responses)
+        explicit batched_writes_response_t(const std::vector<std::pair<int64_t, point_write_response_t> > &_point_write_responses)
             : point_write_responses(_point_write_responses) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
