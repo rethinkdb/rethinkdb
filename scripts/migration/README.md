@@ -20,12 +20,25 @@ all the data on disk into your cluster.  You must run this in the same directory
 you ran the `import_export.rb --export` command, or else specify the directory
 to read from with `import_export.rb --import DIR`.  You will also have to
 specify the directory if you exported from more than one RethinkDB
-cluster. **NOTE: If any of your tables have a nonstandard primary key (anything
+cluster. 
+
+**NOTE: If any of your tables use a nonstandard primary key (anything
 except `id`), you need to tell the script about the nonstandard keys while
 importing.  (We stupidly forgot to build a way to fetch the primary key of a
 table into the original RDB protocol; this will be fixed in future versions.)
 You can specify this with the `--primary-keys` option, which takes a JSON
 document of the form `{"db_name.table_name": "key_name, ...}`.**
+
+### Required dependencies
+
+The migration script requires Ruby to be installed, as well as a few gems:
+
+```bash
+gem install json ruby_protobuf
+```
+
+__Note for OS X users:__ Due to an incompatibility between `ruby_protobuf` and Ruby 1.8.7, 
+__Ruby 1.9 is required__ for the migration script.
 
 ### Simple example
 
@@ -33,11 +46,15 @@ Alice is running a single RethinkDB server on localhost with the default ports.
 She does the following:
 
 ```
+# Make a directory for the migration files we'll generate.
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
-~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
-~/rethinkdb_migration $ chmod a+x import_export.rb
-~/rethinkdb_migration $ ./import_export.rb --help
+# Fetch the migration script from Github.
+~/rethinkdb_migration $ curl -L \
+                          http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb \
+                          > import_export.rb
+# Run the migration script
+~/rethinkdb_migration $ ruby import_export.rb --help
 Usage: import_export.rb [options]
     -h, --host HOST                  host to connect to (default localhost)
     -p, --port PORT                  port to connect on (default 28015)
@@ -46,7 +63,7 @@ Usage: import_export.rb [options]
     -k, --primary-keys JSON_SPEC     when importing data from old RethinkDB versions, you
                                      must specify all non-`id` primary keys as follows:
                                      '{"db_name.table_name": "key_name"}'
-~/rethinkdb_migration $ ./import_export.rb --export
+~/rethinkdb_migration $ ruby import_export.rb --export
 2013-03-14T20:49:59-07:00 Exporting to rethinkdb_export_2013-03-14T20:49:59-07:00_23642...
 2013-03-14T20:49:59-07:00 Connecting to localhost:28015...
 2013-03-14T20:49:59-07:00 Connected with query language Query_Language_1...
@@ -62,7 +79,7 @@ Usage: import_export.rb [options]
 ~/rethinkdb_migration $ <MOVE/DELETE RETHINKDB_DATA DIRECTORY>
 ~/rethinkdb_migration $ <UPGRADE RETHINKDB>
 ~/rethinkdb_migration $ <RESTART RETHINKDB>
-~/rethinkdb_migration $ ./import_export.rb --import
+~/rethinkdb_migration $ ruby import_export.rb --import
 2013-03-14T20:50:31-07:00 No directory specified, defaulting to `rethinkdb_export_2013-03-14T20:49:59-07:00_23642`.
 2013-03-14T20:50:31-07:00 Importing from rethinkdb_export_2013-03-14T20:49:59-07:00_23642...
 2013-03-14T20:50:31-07:00 Connecting to localhost:28015...
@@ -82,14 +99,18 @@ Usage: import_export.rb [options]
 
 Bob is running two distinct RethinkDB clusters.  He can connect to one of them
 at `newton:60715` and the other at `magneto:60515`.  The cluster on `newton`
-uses the key `pkey` as the primary key in the tables `test.test` and `test.foo`.
+has two tables `test.test` and `test.foo` that use as primary key `pkey` (instead of `id`).
 
 ```
+# Make a directory for the migration files we'll generate.
 ~ $ mkdir rethinkdb_migration
 ~ $ cd rethinkdb_migration
-~/rethinkdb_migration $ wget http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb
-~/rethinkdb_migration $ chmod a+x import_export.rb
-~/rethinkdb_migration $ ./import_export.rb --help
+# Fetch the migration script from Github.
+~/rethinkdb_migration $ curl -L \
+                          http://raw.github.com/rethinkdb/rethinkdb/next/scripts/migration/import_export.rb \
+                          > import_export.rb
+# Run the migration script
+~/rethinkdb_migration $ ruby import_export.rb --help
 Usage: import_export.rb [options]
     -h, --host HOST                  host to connect to (default localhost)
     -p, --port PORT                  port to connect on (default 28015)
@@ -98,7 +119,7 @@ Usage: import_export.rb [options]
     -k, --primary-keys JSON_SPEC     when importing data from old RethinkDB versions, you
                                      must specify all non-`id` primary keys as follows:
                                      '{"db_name.table_name": "key_name"}'
-~/rethinkdb_migration $ ./import_export.rb -h newton -p 60715 --export
+~/rethinkdb_migration $ ruby import_export.rb -h newton -p 60715 --export
 2013-03-14T21:22:01-07:00 Exporting to rethinkdb_export_2013-03-14T21:22:01-07:00_5048...
 2013-03-14T21:22:01-07:00 Connecting to newton:60715...
 2013-03-14T21:22:01-07:00 Connected with query language Query_Language_1...
@@ -110,7 +131,7 @@ Usage: import_export.rb [options]
 2013-03-14T21:22:01-07:00 Exporting table test.test...
 2013-03-14T21:22:01-07:00 Exporting table test.foo...
 2013-03-14T21:22:01-07:00 Done!
-~/rethinkdb_migration $ ./import_export.rb -h magneto -p 60515 --export
+~/rethinkdb_migration $ ruby import_export.rb -h magneto -p 60515 --export
 2013-03-14T21:22:47-07:00 Exporting to rethinkdb_export_2013-03-14T21:22:47-07:00_5052...
 2013-03-14T21:22:47-07:00 Connecting to magneto:60515...
 2013-03-14T21:22:47-07:00 Connected with query language Query_Language_1...
@@ -130,7 +151,7 @@ rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 ~/rethinkdb_migration $ <REMOVE ALL RETHINKDB_DATA DIRECTORIES>
 ~/rethinkdb_migration $ <UPGRADE BOTH CLUSTERS>
 ~/rethinkdb_migration $ <RESTART BOTH CLUSTERS>
-~/rethinkdb_migration $ ./import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 \
+~/rethinkdb_migration $ ruby import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 \
                           --primary-keys '{"test.test": "pkey", "test.foo": "pkey"}'
 2013-03-14T21:25:14-07:00 Importing from rethinkdb_export_2013-03-14T21:22:01-07:00_5048...
 2013-03-14T21:25:14-07:00 Connecting to newton:60715...
@@ -143,7 +164,7 @@ rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 2013-03-14T21:25:15-07:00 Importing table test.test with primary key pkey...
 2013-03-14T21:25:15-07:00 Importing table test.foo with primary key pkey...
 2013-03-14T21:25:15-07:00 Done!
-~/rethinkdb_migration $ ./import_export.rb -h magneto -p 60515 --import rethinkdb_export_2013-03-14T21:22:47-07:00_5052
+~/rethinkdb_migration $ ruby import_export.rb -h magneto -p 60515 --import rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 2013-03-14T21:25:48-07:00 Importing from rethinkdb_export_2013-03-14T21:22:47-07:00_5052...
 2013-03-14T21:25:48-07:00 Connecting to magneto:60515...
 2013-03-14T21:25:48-07:00 Connected with query language Query_Language_2...

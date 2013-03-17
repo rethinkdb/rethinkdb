@@ -645,7 +645,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
                ctx->cross_thread_database_watchables[get_thread_id()].get()
                    ->get_watchable(),
                ctx->semilattice_metadata,
-               nullptr,
+               NULL,
                boost::make_shared<js::runner_t>(),
                &interruptor,
                ctx->machine_id,

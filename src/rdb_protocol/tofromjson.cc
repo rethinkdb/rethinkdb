@@ -130,7 +130,8 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     } else if (value->IsNumber()) {
         double d = value->NumberValue();
         cJSON *r = 0;
-        if (std::isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
+        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        if (isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
         if (!r) *errmsg = "cJSON_CreateNumber() failed";
         return r;
 

@@ -11,6 +11,7 @@ module RethinkDB
   end
 
   class RQL
+    @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
     def run(c=@@default_conn, opts=nil)
       # $f.puts "("+RPP::pp(@body)+"),"

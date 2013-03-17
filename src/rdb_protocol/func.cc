@@ -4,6 +4,8 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, term_t *parent)
@@ -76,8 +78,8 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
             r_sanity_check(!body && !source && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
-            for (const datum_t *arg : args) {
-                json_args.push_back(arg->as_json());
+            for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
+                json_args.push_back((*arg_iter)->as_json());
             }
 
             boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
@@ -186,12 +188,9 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
         const datum_t *val = it->second;
 
         Term *arg = t->add_args();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N2(EQ,
            N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
            val->write_to_protobuf(pb::set_datum(arg)));
-#pragma GCC diagnostic pop
     }
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
@@ -202,10 +201,7 @@ func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
                                   const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     Term *arg = &twrap->t;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
-#pragma GCC diagnostic pop
     bt_src->propagate(&twrap->t);
     return env->add_ptr(new func_t(env, &twrap->t));
 }

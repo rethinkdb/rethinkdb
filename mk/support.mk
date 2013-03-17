@@ -13,6 +13,8 @@ GETURL := wget --quiet --output-document=-
 
 ifneq (1,$(FETCH_INTERNAL_TOOLS))
   GETURL = bash -c 'echo "Error: Refusing to download $$0 (needed to build $@)" >&2; echo Run ./configure with --allow-fetch to enable downloads. >&2; false'
+else
+  PATH := $(abspath $(TOP)/support/usr/bin):$(PATH)
 endif
 
 SUPPORT_DIR := $(TOP)/support
