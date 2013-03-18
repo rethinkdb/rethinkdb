@@ -133,7 +133,7 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
     virtual const datum_t *next_impl();
-    virtual const datum_t *as_array() { return 0; } // cannot be converted implicitly
+    virtual const datum_t *as_array() { return NULL; } // cannot be converted implicitly
 private:
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
@@ -203,13 +203,15 @@ public:
     virtual const datum_t *next_impl() {
         maybe_load_data();
         r_sanity_check(data_index >= 0);
-        if (data_index >= static_cast<int>(data.size())) return 0;
-        //                ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
+        if (data_index >= static_cast<int>(data.size())) {
+            //            ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
+            return NULL;
+        }
         return data[data_index++];
     }
 private:
     virtual const datum_t *as_array() {
-        return is_arr() ? eager_datum_stream_t::as_array() : 0;
+        return is_arr() ? eager_datum_stream_t::as_array() : NULL;
     }
     bool is_arr() {
         maybe_load_data();
