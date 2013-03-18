@@ -503,16 +503,17 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
     }
 
     write_t operator()(const batched_replaces_t &br) const {
-        std::vector<std::pair<int64_t, point_replace_t> > replaces;
+        write_t ret;
+        ret.write = batched_replaces_t();
+        batched_replaces_t *replaces = boost::get<batched_replaces_t>(&ret.write);
+
         for (auto point_replace = br.point_replaces.begin(); point_replace != br.point_replaces.end(); ++point_replace) {
             if (region_contains_key(region, point_replace->second.key)) {
-                // SAMRSI: So much needless copying.
-                replaces.push_back(*point_replace);
+                replaces->point_replaces.push_back(*point_replace);
             }
         }
 
-        // SAMRSI: So much needless copying.
-        return write_t(batched_replaces_t(replaces));
+        return ret;
     }
 
     write_t operator()(const point_write_t &pw) const {
