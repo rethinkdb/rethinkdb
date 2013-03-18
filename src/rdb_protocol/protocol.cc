@@ -5,7 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/iterator/transform_iterator.hpp>
 #include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
@@ -57,9 +56,6 @@ typedef rdb_protocol_t::batched_replaces_t batched_replaces_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
-
-typedef rdb_protocol_t::batched_writes_t batched_writes_t;
-// SAMRSI: Where's the batched_writes_response_t?
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
@@ -453,23 +449,40 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     }
 
     region_t operator()(const batched_replaces_t &br) const {
-        return smallest_covering_region(
-            boost::make_transform_iterator(br.point_replaces.begin(), point_replace_key),
-            boost::make_transform_iterator(br.point_replaces.end(), point_replace_key));
+        // It shouldn't be empty, but we let the places that would break use a guarantee.
+        rassert(!br.point_replaces.empty());
+        if (br.point_replaces.empty()) {
+            return hash_region_t<key_range_t>();
+        }
+
+        store_key_t minimum_key = store_key_t::min();
+        store_key_t maximum_key = store_key_t::max();
+        uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
+        uint64_t maximum_hash_value = 0;
+
+        for (auto pair = br.point_replaces.begin(); pair != br.point_replaces.end(); ++pair) {
+            if (pair->second.key < minimum_key) {
+                minimum_key = pair->second.key;
+            }
+            if (pair->second.key > maximum_key) {
+                maximum_key = pair->second.key;
+            }
+
+            const uint64_t hash_value = hash_region_hasher(pair->second.key.contents(), pair->second.key.size());
+            if (hash_value < minimum_hash_value) {
+                minimum_hash_value = hash_value;
+            }
+            if (hash_value > maximum_hash_value) {
+                maximum_hash_value = hash_value;
+            }
+        }
+
+        return hash_region_t<key_range_t>(minimum_hash_value, maximum_hash_value + 1,
+                                          key_range_t(key_range_t::closed, minimum_key, key_range_t::closed, maximum_key));
     }
 
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
-    }
-
-    static const store_key_t &point_write_key(const std::pair<int64_t, point_write_t> &pair) {
-        return pair.second.key;
-    }
-
-    region_t operator()(const batched_writes_t &bw) const {
-        return smallest_covering_region(
-            boost::make_transform_iterator(bw.point_writes.begin(), point_write_key),
-            boost::make_transform_iterator(bw.point_writes.end(), point_write_key));
     }
 
     region_t operator()(const point_delete_t &pd) const {
@@ -521,23 +534,6 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
         return write_t(pw);
     }
 
-    write_t operator()(const batched_writes_t &bw) const {
-        // TODO: Iterating through the list of batched writes over and over again for each region is wasteful.
-        //
-        // We could instead have a shard function whose type looks somewhat like
-        // (write_t, vector<region_t>) -> vector<pair<region_t, write_t> >.
-        std::vector<std::pair<int64_t, point_write_t> > writes;
-        for (auto point_write = bw.point_writes.begin(); point_write != bw.point_writes.end(); ++point_write) {
-            if (region_contains_key(region, point_write->second.key)) {
-                // SAMRSI: So much needless copying.
-                writes.push_back(*point_write);
-            }
-        }
-
-        // SAMRSI: So much needless copying.
-        return write_t(batched_writes_t(writes));
-    }
-
     write_t operator()(const point_delete_t &pd) const {
         rassert(rdb_protocol_t::monokey_region(pd.key) == region);
         return write_t(pd);
@@ -560,10 +556,10 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
 void write_t::unshard(const write_response_t *responses,  size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
     guarantee(count > 0);
 
-    // Every response but batched_replaces_t and batched_writes_t have a count
-    // of 1, since they have one key.  We catch batched_replaces_t and
-    // batched_writes_t in this case too, because it's not incorrect.  (If it
-    // were incorrect, sharding/unsharding would be badly designed.)
+    // Every response but batched_replaces_t has a count of 1, since they have
+    // one key.  We catch batched_replaces_t in this case too, because it's not
+    // incorrect.  (If it were incorrect, sharding/unsharding would be badly
+    // designed.)
     if (count == 1) {
         *response = responses[0];
     } else {
@@ -582,23 +578,6 @@ void write_t::unshard(const write_response_t *responses,  size_t count, write_re
             std::sort(combined.begin(), combined.end(), first_less<point_replace_response_t>);
 
             *response = write_response_t(batched_replaces_response_t(combined));
-
-        } else if (NULL != boost::get<batched_writes_response_t>(&responses[0].response)) {
-
-            std::vector<std::pair<int64_t, point_write_response_t> > combined;
-
-            for (size_t i = 0; i < count; ++i) {
-                const batched_writes_response_t *batched_response = boost::get<batched_writes_response_t>(&responses[i].response);
-                guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
-
-                combined.insert(combined.end(),
-                                batched_response->point_write_responses.begin(),
-                                batched_response->point_write_responses.end());
-            }
-
-            std::sort(combined.begin(), combined.end(), first_less<point_write_response_t>);
-
-            *response = write_response_t(batched_writes_response_t(combined));
 
         } else {
             crash("response with count %zu (greater than 1) returned for non-batched write.  ('which'=%d)\n", count, responses[0].response.which());
@@ -724,12 +703,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response = point_write_response_t();
         point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res);
-    }
-
-    void operator()(const batched_writes_t &bw) {
-        response->response = batched_writes_response_t();
-        batched_writes_response_t *res = boost::get<batched_writes_response_t>(&response->response);
-        rdb_batched_set(bw.point_writes, btree, timestamp, txn, superblock, res);
     }
 
     void operator()(const point_delete_t &d) {
@@ -1020,14 +993,12 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_response_t, point_write_responses);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 
 
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_writes_t, point_writes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);

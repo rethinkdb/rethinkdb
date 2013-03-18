@@ -337,50 +337,6 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
     do_a_set_with_promise(key, data, overwrite, slice, timestamp, txn, superblock, NULL, response);
 }
 
-void do_a_set_from_batched_set(auto_drainer_t::lock_t /*lock*/,
-                               const point_write_t *write,
-                               btree_slice_t *slice,
-                               repli_timestamp_t timestamp,
-                               transaction_t *txn,
-                               superblock_t *superblock,
-                               promise_t<superblock_t *> *superblock_promise,
-                               point_write_response_t *response_out) {
-    do_a_set_with_promise(write->key, write->data, write->overwrite,
-                          slice, timestamp, txn,
-                          superblock, superblock_promise,
-                          response_out);
-}
-
-
-void rdb_batched_set(const std::vector<std::pair<int64_t, point_write_t> > &writes,
-                     btree_slice_t *slice, const repli_timestamp_t timestamp,
-                     transaction_t *txn, scoped_ptr_t<superblock_t> *superblock,
-                     batched_writes_response_t *response) {
-    auto_drainer_t drainer;
-
-    // Note the destructor ordering: We release the superblock before draining on all the write
-    // operations (instead of holding it needlessly).
-    scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-
-    response->point_write_responses.resize(writes.size());
-    for (size_t i = 0; i < writes.size(); ++i) {
-        // Put int64_t in response for shard/unshard reordering.
-        response->point_write_responses[i].first = writes[i].first;
-
-        // Put result in response because that's the point of the response.
-        promise_t<superblock_t *> superblock_promise;
-        coro_t::spawn(boost::bind(&do_a_set_from_batched_set,
-                                  auto_drainer_t::lock_t(&drainer),
-                                  &writes[i].second, slice, timestamp, txn,
-                                  current_superblock.release(),
-                                  &superblock_promise,
-                                  &response->point_write_responses[i].second));
-
-        current_superblock.init(superblock_promise.wait());
-    }
-}
-
-
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
