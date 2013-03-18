@@ -282,8 +282,6 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out) {
-
-    debugf("about to rdb_batched_replace\n");
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
@@ -295,7 +293,6 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
         response_out->point_replace_responses[i].first = replaces[i].first;
 
         // Pass out the point_replace_response_t.
-        debugf("rdb_batched_replace iteration %zu\n", i);
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
                                   auto_drainer_t::lock_t(&drainer),
@@ -305,36 +302,21 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                                   &superblock_promise,
                                   &response_out->point_replace_responses[i].second));
 
-        debugf("rdb_batched_replace iteration %zu almost done\n", i);
         current_superblock.init(superblock_promise.wait());
     }
 }
 
-
-
-void do_a_set_with_promise(const store_key_t &key, const boost::shared_ptr<scoped_cJSON_t> &data, const bool overwrite,
-                           btree_slice_t *const slice,
-                           repli_timestamp_t timestamp,
-                           transaction_t *const txn,
-                           superblock_t *const superblock,
-                           promise_t<superblock_t *> *const superblock_promise_or_null,
-                           point_write_response_t *const response_out) {
+void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+             btree_slice_t *slice, repli_timestamp_t timestamp,
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
-                                     &slice->root_eviction_priority, &slice->stats,
-                                     superblock_promise_or_null);
-    bool had_value = kv_location.value.has();
+                                     &slice->root_eviction_priority, &slice->stats);
+    const bool had_value = kv_location.value.has();
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, data, slice, timestamp, txn);
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
-}
-
-
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
-             btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
-    do_a_set_with_promise(key, data, overwrite, slice, timestamp, txn, superblock, NULL, response);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
