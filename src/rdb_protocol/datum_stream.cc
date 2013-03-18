@@ -261,24 +261,7 @@ std::vector<const datum_t *> map_datum_stream_t::next_batch_impl() {
     return ret;
 }
 
-
-// CONCATMAP_DATUM_STREAM_T
-const datum_t *concatmap_datum_stream_t::next_impl() {
-    for (;;) {
-        if (subsource == NULL) {
-            const datum_t *arg = source->next();
-            if (arg == NULL) {
-                return NULL;
-            }
-            subsource = f->call(arg)->as_seq();
-        }
-        if (const datum_t *retval = subsource->next()) {
-            return retval;
-        }
-        subsource = 0;
-    }
-}
-
+// FILTER_DATUM_STREAM_T
 const datum_t *filter_datum_stream_t::next_impl() {
     for (;;) {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
@@ -323,6 +306,44 @@ std::vector<const datum_t *> filter_datum_stream_t::next_batch_impl() {
         }
     }
 }
+
+// CONCATMAP_DATUM_STREAM_T
+const datum_t *concatmap_datum_stream_t::next_impl() {
+    for (;;) {
+        if (subsource == NULL) {
+            const datum_t *arg = source->next();
+            if (arg == NULL) {
+                return NULL;
+            }
+            subsource = f->call(arg)->as_seq();
+        }
+        if (const datum_t *retval = subsource->next()) {
+            return retval;
+        }
+        subsource = NULL;
+    }
+}
+
+std::vector<const datum_t *> concatmap_datum_stream_t::next_batch_impl() {
+    for (;;) {
+        if (subsource == NULL) {
+            const datum_t *arg = source->next();
+            if (arg == NULL) {
+                return std::vector<const datum_t *>();
+            }
+            subsource = f->call(arg)->as_seq();
+        }
+
+        std::vector<const datum_t *> batch = subsource->next_batch();
+        if (!batch.empty()) {
+            return batch;
+        }
+        subsource = NULL;
+    }
+}
+
+
+
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)

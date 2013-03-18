@@ -112,8 +112,10 @@ public:
         : eager_datum_stream_t(env, _source), f(_f), source(_source), subsource(NULL) {
         guarantee(f != NULL && source != NULL);
     }
-    virtual const datum_t *next_impl();
 private:
+    virtual const datum_t *next_impl();
+    virtual std::vector<const datum_t *> next_batch_impl();
+
     func_t *f;
     datum_stream_t *source;
     datum_stream_t *subsource;
