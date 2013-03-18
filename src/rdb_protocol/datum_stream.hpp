@@ -15,8 +15,8 @@ namespace ql {
 class datum_stream_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     template<class T>
-    datum_stream_t(env_t *_env, const T *bt_src)
-        : pb_rcheckable_t(bt_src), env(_env) {
+    datum_stream_t(env_t *_env, const T *backtrace_source)
+        : pb_rcheckable_t(backtrace_source), env(_env) {
         guarantee(env);
     }
     virtual ~datum_stream_t() { }
@@ -48,22 +48,22 @@ public:
 
     static const int MAX_BATCH_SIZE = 100;
 
+protected:
+    env_t *env;
+
 private:
     virtual const datum_t *next_impl() = 0;
 
     // The default implementation just returns a vector with one element (or
     // zero elements, if the end of stream has been reached).
     virtual std::vector<const datum_t *> next_batch_impl();
-
-protected:
-    env_t *env;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
     template<class T>
-    eager_datum_stream_t(env_t *env, const T *bt_src)
-        : datum_stream_t(env, bt_src) { }
+    eager_datum_stream_t(env_t *env, const T *backtrace_source)
+        : datum_stream_t(env, backtrace_source) { }
 
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
@@ -78,43 +78,42 @@ public:
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
-        guarantee(f && src);
+    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source) {
+        guarantee(f != NULL && source != NULL);
     }
 
 private:
     virtual const datum_t *next_impl();
-
     virtual std::vector<const datum_t *> next_batch_impl();
 
     func_t *f;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
-        guarantee(f && src);
+    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source) {
+        guarantee(f && source);
     }
     virtual const datum_t *next_impl();
 private:
     func_t *f;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src), subsrc(0) {
-        guarantee(f && src);
+    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source), subsource(NULL) {
+        guarantee(f != NULL && source != NULL);
     }
     virtual const datum_t *next_impl();
 private:
     func_t *f;
-    datum_stream_t *src;
-    datum_stream_t *subsrc;
+    datum_stream_t *source;
+    datum_stream_t *subsource;
 };
 
 

@@ -117,6 +117,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {
+    // RSI: WHAT THE FUCK
     *this = *src;
 }
 
@@ -216,8 +217,8 @@ const datum_t *lazy_datum_stream_t::next_impl() {
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
-                                           const pb_rcheckable_t *bt_src)
-    : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
+                                           const pb_rcheckable_t *backtrace_source)
+    : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
     const size_t old_index = index;
@@ -246,12 +247,12 @@ std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg = src->next();  // RSI: Should this call ->next or ->next_impl()?
+    const datum_t *arg = source->next();  // RSI: Should this call ->next or ->next_impl()?
     return arg == NULL ? NULL : f->call(arg)->as_datum();
 }
 
 std::vector<const datum_t *> map_datum_stream_t::next_batch_impl() {
-    const std::vector<const datum_t *> datums = src->next_batch();
+    const std::vector<const datum_t *> datums = source->next_batch();
     std::vector<const datum_t *> ret;
     ret.reserve(datums.size());
     for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
@@ -264,21 +265,29 @@ std::vector<const datum_t *> map_datum_stream_t::next_batch_impl() {
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next_impl() {
     for (;;) {
-        if (!subsrc) {
-            const datum_t *arg = src->next();
-            if (!arg) return 0;
-            subsrc = f->call(arg)->as_seq();
+        if (subsource == NULL) {
+            const datum_t *arg = source->next();
+            if (arg == NULL) {
+                return NULL;
+            }
+            subsource = f->call(arg)->as_seq();
         }
-        if (const datum_t *retval = subsrc->next()) return retval;
-        subsrc = 0;
+        if (const datum_t *retval = subsource->next()) {
+            return retval;
+        }
+        subsource = 0;
     }
 }
 
 const datum_t *filter_datum_stream_t::next_impl() {
-    const datum_t *arg = 0;
+    const datum_t *arg = NULL;
     for (;;) {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
-        if (!(arg = src->next())) return 0;
+
+        arg = source->next();
+        if (arg == NULL) {
+            return NULL;
+        }
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
         if (f->filter_call(env, arg)) {
             outer_checkpoint.reset(&env_t::merge_checkpoint);
@@ -289,8 +298,7 @@ const datum_t *filter_datum_stream_t::next_impl() {
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
+slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
     : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
 
 const datum_t *slice_datum_stream_t::next_impl() {
