@@ -5,6 +5,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 #include <boost/make_shared.hpp>
 
 #include "btree/erase_range.hpp"
@@ -406,8 +407,9 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 // Returns the smallest region that contains the set of keys.  It might be
 // useful to return something other than the universal region -- often batched
 // writes end up hitting the same key range.
-hash_region_t<key_range_t> smallest_covering_region(const std::vector<store_key_t> &keys) {
-    if (keys.empty()) {
+template <class store_key_iter_t>
+hash_region_t<key_range_t> smallest_covering_region(store_key_iter_t keys_begin, store_key_iter_t keys_end) {
+    if (keys_begin == keys_end) {
         // We can't find the minimum or maximum of an empty sequence, so we
         // special-case the empty case.
         return hash_region_t<key_range_t>();
@@ -418,15 +420,15 @@ hash_region_t<key_range_t> smallest_covering_region(const std::vector<store_key_
     uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
     uint64_t maximum_hash_value = 0;
 
-    for (auto key = keys.begin(); key != keys.end(); ++key) {
-        if (*key < minimum_key) {
-            minimum_key = *key;
+    while (keys_begin != keys_end) {
+        if (*keys_begin < minimum_key) {
+            minimum_key = *keys_begin;
         }
-        if (*key > maximum_key) {
-            maximum_key = *key;
+        if (*keys_begin > maximum_key) {
+            maximum_key = *keys_begin;
         }
 
-        const uint64_t hash_value = hash_region_hasher(key->contents(), key->size());
+        const uint64_t hash_value = hash_region_hasher(keys_begin->contents(), keys_begin->size());
         if (hash_value < minimum_hash_value) {
             minimum_hash_value = hash_value;
         }
@@ -446,28 +448,28 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return rdb_protocol_t::monokey_region(pr.key);
     }
 
-    region_t operator()(const batched_replaces_t &br) const {
-        // SAMRSI: Avoid this expensive copying somehow.
-        std::vector<store_key_t> keys;
-        for (auto replace = br.point_replaces.begin(); replace != br.point_replaces.end(); ++replace) {
-            keys.push_back(replace->second.key);
-        }
+    static const store_key_t &point_replace_key(const std::pair<int64_t, point_replace_t> &pair) {
+        return pair.second.key;
+    }
 
-        return smallest_covering_region(keys);
+    region_t operator()(const batched_replaces_t &br) const {
+        return smallest_covering_region(
+            boost::make_transform_iterator(br.point_replaces.begin(), point_replace_key),
+            boost::make_transform_iterator(br.point_replaces.end(), point_replace_key));
     }
 
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
     }
 
-    region_t operator()(const batched_writes_t &bw) const {
-        // SAMRSI: Avoid this expensive copying somehow.
-        std::vector<store_key_t> keys;
-        for (auto write = bw.point_writes.begin(); write != bw.point_writes.end(); ++write) {
-            keys.push_back(write->second.key);
-        }
+    static const store_key_t &point_write_key(const std::pair<int64_t, point_write_t> &pair) {
+        return pair.second.key;
+    }
 
-        return smallest_covering_region(keys);
+    region_t operator()(const batched_writes_t &bw) const {
+        return smallest_covering_region(
+            boost::make_transform_iterator(bw.point_writes.begin(), point_write_key),
+            boost::make_transform_iterator(bw.point_writes.end(), point_write_key));
     }
 
     region_t operator()(const point_delete_t &pd) const {
