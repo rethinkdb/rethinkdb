@@ -363,6 +363,25 @@ const datum_t *slice_datum_stream_t::next_impl() {
     return source->next();
 }
 
+std::vector<const datum_t *> slice_datum_stream_t::next_batch_impl() {
+    if (left > right || index > right) {
+        return std::vector<const datum_t *>();
+    }
+
+    // RSI: We get more elements than necessary.  Wouldn't it be nice if we
+    // could ask for a size-limited batch?
+    std::vector<const datum_t *> batch = source->next_batch();
+
+    // We have to add 1 because we use closed intervals for some insane reason.
+    if (batch.size() > right + 1 - index) {
+        // RSI: If we truncate the batch, we leak the datums on the right side of the batch.
+        batch.resize(right + 1 - index);
+    }
+
+    index += batch.size();
+    return batch;
+}
+
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
     : eager_datum_stream_t(_env, _src), env(_env), src(_src) { }

@@ -171,6 +171,7 @@ public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *source);
 private:
     virtual const datum_t *next_impl();
+    virtual std::vector<const datum_t *> next_batch_impl();
 
     env_t *env;
     size_t index, left, right;
