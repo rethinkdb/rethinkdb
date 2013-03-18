@@ -512,37 +512,58 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
     return left.first < right.first;
 }
 
+struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
+    void operator()(const point_replace_response_t &) const { monokey_response(); }
 
-void write_t::unshard(const write_response_t *responses,  size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+    // The special case here is batched_replaces_response_t, which actually gets sharded into
+    // multiple operations instead of getting sent unsplit in a single direction.
+    void operator()(const batched_replaces_response_t &) const {
+        std::vector<std::pair<int64_t, point_replace_response_t> > combined;
+
+        for (size_t i = 0; i < count; ++i) {
+            const batched_replaces_response_t *batched_response = boost::get<batched_replaces_response_t>(&responses[i].response);
+            guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
+
+            combined.insert(combined.end(),
+                            batched_response->point_replace_responses.begin(),
+                            batched_response->point_replace_responses.end());
+        }
+
+        std::sort(combined.begin(), combined.end(), first_less<point_replace_response_t>);
+
+        *response_out = write_response_t(batched_replaces_response_t(combined));
+    }
+
+    void operator()(const point_write_response_t &) const { monokey_response(); }
+    void operator()(const point_delete_response_t &) const { monokey_response(); }
+
+    rdb_w_unshard_visitor_t(const write_response_t *_responses, size_t _count,
+                            write_response_t *_response_out)
+        : responses(_responses), count(_count), response_out(_response_out) { }
+
+private:
+    void monokey_response() const {
+        guarantee(count == 1,
+                  "Response with count %zu (greater than 1) returned "
+                  "for non-batched write.  (type = %d)",
+                  count, responses[0].response.which());
+
+        *response_out = write_response_t(responses[0]);
+    }
+
+    const write_response_t *const responses;
+    const size_t count;
+    write_response_t *const response_out;
+};
+
+
+
+
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response_out, UNUSED context_t *ctx) const THROWS_NOTHING {
     guarantee(count > 0);
 
-    // Every response but batched_replaces_t has a count of 1, since they have
-    // one key.  We catch batched_replaces_t in this case too, because it's not
-    // incorrect.  (If it were incorrect, sharding/unsharding would be badly
-    // designed.)
-    if (count == 1) {
-        *response = responses[0];
-    } else {
-        if (NULL != boost::get<batched_replaces_response_t>(&responses[0].response)) {
-            std::vector<std::pair<int64_t, point_replace_response_t> > combined;
-
-            for (size_t i = 0; i < count; ++i) {
-                const batched_replaces_response_t *batched_response = boost::get<batched_replaces_response_t>(&responses[i].response);
-                guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
-
-                combined.insert(combined.end(),
-                                batched_response->point_replace_responses.begin(),
-                                batched_response->point_replace_responses.end());
-            }
-
-            std::sort(combined.begin(), combined.end(), first_less<point_replace_response_t>);
-
-            *response = write_response_t(batched_replaces_response_t(combined));
-
-        } else {
-            crash("response with count %zu (greater than 1) returned for non-batched write.  ('which'=%d)\n", count, responses[0].response.which());
-        }
-    }
+    const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
+    boost::apply_visitor(visitor, responses[0].response);
 }
 
 store_t::store_t(serializer_t *serializer,
