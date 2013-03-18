@@ -270,10 +270,9 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
                                        ql::env_t *ql_env,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out) {
-    // SAMRSI: Drop this const_cast.
-    ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&replace->f);
+    ql::map_wire_func_t f = replace->f;
     do_a_replace_with_promise(slice, timestamp, txn, superblock, replace->primary_key,
-                              replace->key, f, ql_env, superblock_promise_or_null, response_out);
+                              replace->key, &f, ql_env, superblock_promise_or_null, response_out);
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -285,7 +284,6 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          batched_replaces_response_t *response_out) {
 
     debugf("about to rdb_batched_replace\n");
-    // SAMRSI: We should assign to *response_out, not response_out->point_replace_responses.
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
@@ -330,7 +328,6 @@ void do_a_set_with_promise(const store_key_t &key, const boost::shared_ptr<scope
         kv_location_set(&kv_location, key, data, slice, timestamp, txn);
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
-    // SAMRSI: We should assign to *response, not response->result.
 }
 
 
@@ -359,7 +356,6 @@ void rdb_batched_set(const std::vector<std::pair<int64_t, point_write_t> > &writ
                      btree_slice_t *slice, const repli_timestamp_t timestamp,
                      transaction_t *txn, scoped_ptr_t<superblock_t> *superblock,
                      batched_writes_response_t *response) {
-    // SAMRSI: We should assign to *response, not response->point_write_responses.
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write

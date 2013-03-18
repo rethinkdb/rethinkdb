@@ -233,27 +233,27 @@ public:
 
     void operator()(const point_read_t &) {
         guarantee(count == 1);
-        guarantee(boost::get<point_read_response_t>(&responses[0].response));
+        guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
         *response_out = responses[0];
     }
 
     void operator()(const rget_read_t &rg) {
         response_out->response = rget_read_response_t();
-        rget_read_response_t &rg_response = boost::get<rget_read_response_t>(response_out->response);
-        rg_response.truncated = false;
-        rg_response.key_range = read_t(rg).get_region().inner;
-        rg_response.last_considered_key = read_t(rg).get_region().inner.left;
+        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rg_response->truncated = false;
+        rg_response->key_range = read_t(rg).get_region().inner;
+        rg_response->last_considered_key = read_t(rg).get_region().inner.left;
 
         try {
             /* First check to see if any of the responses we're unsharding threw. */
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(_rr);
+                const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                guarantee(rr != NULL);
 
-                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
+                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&rr->result)) {
                     throw *e;
-                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&rr->result)) {
                     throw *e2;
                 }
             }
@@ -261,60 +261,55 @@ public:
             if (!rg.terminal) {
                 //A vanilla range get
                 //First we need to determine the cutoff key:
-                rg_response.last_considered_key = store_key_t::max();
+                rg_response->last_considered_key = store_key_t::max();
                 for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(rr != NULL);
 
-                    if (rg_response.last_considered_key > _rr->last_considered_key && _rr->truncated) {
-                        rg_response.last_considered_key = _rr->last_considered_key;
+                    if (rg_response->last_considered_key > rr->last_considered_key && rr->truncated) {
+                        rg_response->last_considered_key = rr->last_considered_key;
                     }
                 }
 
-                rg_response.result = stream_t();
-                stream_t *res_stream = boost::get<stream_t>(&rg_response.result);
+                rg_response->result = stream_t();
+                stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
                 for (size_t i = 0; i < count; ++i) {
                     // TODO: we're ignoring the limit when recombining.
-                    const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
+                    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(rr != NULL);
 
-                    const stream_t *stream = boost::get<stream_t>(&(_rr->result));
+                    const stream_t *stream = boost::get<stream_t>(&(rr->result));
 
                     for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                        if (it->first <= rg_response.last_considered_key) {
+                        if (it->first <= rg_response->last_considered_key) {
                             res_stream->push_back(*it);
                         }
                     }
 
-                    rg_response.truncated = rg_response.truncated || _rr->truncated;
+                    rg_response->truncated = rg_response->truncated || rr->truncated;
                 }
-            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
-                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant) != NULL
+                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant) != NULL) {
                 typedef std::vector<ql::wire_datum_t> wire_data_t;
-                wire_data_t *out_vec = boost::get<wire_data_t>(
-                    &(rg_response.result = wire_data_t()));
+                rg_response->result = wire_data_t();
+                wire_data_t *out_vec = boost::get<wire_data_t>(&rg_response->result);
                 for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    if (const ql::wire_datum_t *d =
-                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(rr != NULL);
+                    if (const ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&rr->result)) {
                         out_vec->push_back(*d);
                     } else {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(
-                                      &(_rr->result)));
+                        guarantee(boost::get<rget_read_response_t::empty_t>(&rr->result));
                     }
                 }
-            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant) != NULL) {
                 typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
-                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
-                    &(rg_response.result = wire_datum_maps_t()));
+                rg_response->result = wire_datum_maps_t();
+                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(&rg_response->result);
                 for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    const ql::wire_datum_map_t *dm =
-                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(rr != NULL);
+                    const ql::wire_datum_map_t *dm = boost::get<ql::wire_datum_map_t>(&rr->result);
                     r_sanity_check(dm);
                     out_vec->push_back(*dm);
                 }
@@ -322,9 +317,9 @@ public:
                 unreachable();
             }
         } catch (const runtime_exc_t &e) {
-            rg_response.result = e;
+            rg_response->result = e;
         } catch (const ql::exc_t &e) {
-            rg_response.result = e;
+            rg_response->result = e;
         }
     }
 
@@ -336,7 +331,7 @@ public:
 
         for (size_t i = 0; i < count; ++i) {
             const distribution_read_response_t *result = boost::get<distribution_read_response_t>(&responses[i].response);
-            guarantee(result, "Bad boost::get\n");
+            guarantee(result != NULL, "Bad boost::get\n");
             results[i] = *result;
         }
 
@@ -444,7 +439,7 @@ hash_region_t<key_range_t> smallest_covering_region(const std::vector<store_key_
                                       key_range_t(key_range_t::closed, minimum_key, key_range_t::closed, maximum_key));
 }
 
-// SAMRSI: This entire type is suspect, given that smallest_covering_region
+// TODO: This entire type is suspect, given that smallest_covering_region
 // would have to be slow.  Is it used in anything other than assertions?
 struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_replace_t &pr) const {
@@ -506,9 +501,6 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
     }
 
     write_t operator()(const batched_replaces_t &br) const {
-        debugf("about to shard batched replace\n");
-
-        // SAMRSI: Iterating through the list of batched writes over and over again for each region is wasteful.
         std::vector<std::pair<int64_t, point_replace_t> > replaces;
         for (auto point_replace = br.point_replaces.begin(); point_replace != br.point_replaces.end(); ++point_replace) {
             if (region_contains_key(region, point_replace->second.key)) {
@@ -517,19 +509,17 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
             }
         }
 
-        debugf("almost done sharding batched replace\n");
         // SAMRSI: So much needless copying.
         return write_t(batched_replaces_t(replaces));
     }
 
     write_t operator()(const point_write_t &pw) const {
-        // SAMRSI: This assertion is questionable.  Why would the region already be shrunk down to size?
         rassert(rdb_protocol_t::monokey_region(pw.key) == region);
         return write_t(pw);
     }
 
     write_t operator()(const batched_writes_t &bw) const {
-        // SAMRSI: Iterating through the list of batched writes over and over again for each region is wasteful.
+        // TODO: Iterating through the list of batched writes over and over again for each region is wasteful.
         //
         // We could instead have a shard function whose type looks somewhat like
         // (write_t, vector<region_t>) -> vector<pair<region_t, write_t> >.
@@ -555,7 +545,6 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
 
 
 write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
-    debugf("about to shard write\n");
     return boost::apply_visitor(rdb_w_shard_visitor(region), write);
 }
 
@@ -566,9 +555,6 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
 
 
 void write_t::unshard(const write_response_t *responses,  size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
-    // SAMRSI: There is no hope of unsharding if count is 0.  We need to avoid
-    // zero-count batched writes.
-
     guarantee(count > 0);
 
     // Every response but batched_replaces_t and batched_writes_t have a count
@@ -635,37 +621,37 @@ store_t::~store_t() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
         response->response = point_read_response_t();
-        point_read_response_t &res = boost::get<point_read_response_t>(response->response);
-        rdb_get(get.key, btree, txn, superblock, &res);
+        point_read_response_t *res = boost::get<point_read_response_t>(&response->response);
+        rdb_get(get.key, btree, txn, superblock, res);
     }
 
     void operator()(const rget_read_t &rget) {
         ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
-        rget_read_response_t &res = boost::get<rget_read_response_t>(response->response);
-        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, &res);
+        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
+        rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, res);
     }
 
     void operator()(const distribution_read_t &dg) {
         response->response = distribution_read_response_t();
-        distribution_read_response_t &res = boost::get<distribution_read_response_t>(response->response);
-        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, &res);
-        for (std::map<store_key_t, int64_t>::iterator it = res.key_counts.begin(); it != res.key_counts.end(); ) {
+        distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
+        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, res);
+        for (std::map<store_key_t, int64_t>::iterator it = res->key_counts.begin(); it != res->key_counts.end(); ) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
                 std::map<store_key_t, int64_t>::iterator tmp = it;
                 ++it;
-                res.key_counts.erase(tmp);
+                res->key_counts.erase(tmp);
             } else {
                 ++it;
             }
         }
 
         // If the result is larger than the requested limit, scale it down
-        if (dg.result_limit > 0 && res.key_counts.size() > dg.result_limit) {
-            scale_down_distribution(dg.result_limit, &res.key_counts);
+        if (dg.result_limit > 0 && res->key_counts.size() > dg.result_limit) {
+            scale_down_distribution(dg.result_limit, &res->key_counts);
         }
 
-        res.region = dg.region;
+        res->region = dg.region;
     }
 
     rdb_read_visitor_t(btree_slice_t *_btree,
@@ -717,8 +703,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
         ql_env.init_optargs(r.optargs);
         response->response = point_replace_response_t();
-        point_replace_response_t *res =
-            boost::get<point_replace_response_t>(&response->response);
+        point_replace_response_t *res = boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_replace(btree, timestamp, txn, superblock->get(),
@@ -727,32 +712,27 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const batched_replaces_t &br) {
         response->response = batched_replaces_response_t();
-        batched_replaces_response_t &res = boost::get<batched_replaces_response_t>(response->response);
+        batched_replaces_response_t *res = boost::get<batched_replaces_response_t>(&response->response);
         rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
-                            &ql_env, &res);
-        debugf("done rdb_batched_replace\n");
+                            &ql_env, res);
     }
 
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
-        point_write_response_t &res = boost::get<point_write_response_t>(response->response);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), &res);
+        point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res);
     }
 
     void operator()(const batched_writes_t &bw) {
         response->response = batched_writes_response_t();
-        // SAMRSI: Use the pointer version of boost::get.
-        batched_writes_response_t &res = boost::get<batched_writes_response_t>(response->response);
-        rdb_batched_set(bw.point_writes, btree, timestamp, txn, superblock, &res);
-
-        // SAMRSI: This is broken, because we need to break up the batched set
-        // into a bunch of separate transactions (to avoid starving everybody).
+        batched_writes_response_t *res = boost::get<batched_writes_response_t>(&response->response);
+        rdb_batched_set(bw.point_writes, btree, timestamp, txn, superblock, res);
     }
 
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
-        point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
-        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), &res);
+        point_delete_response_t *res = boost::get<point_delete_response_t>(&response->response);
+        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res);
     }
 
     rdb_write_visitor_t(btree_slice_t *_btree,
@@ -799,12 +779,8 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
                              scoped_ptr_t<superblock_t> *superblock,
                              signal_t *interruptor) {
-    debugf("Reached protocol_write.\n");
-    {
-        rdb_write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
-        boost::apply_visitor(v, write.write);
-    }
-    debugf("done write\n");
+    rdb_write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
+    boost::apply_visitor(v, write.write);
 }
 
 struct rdb_backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
