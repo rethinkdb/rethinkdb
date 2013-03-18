@@ -117,7 +117,6 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {
-    // RSI: WHAT THE FUCK
     *this = *src;
 }
 
