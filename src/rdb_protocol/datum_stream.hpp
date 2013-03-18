@@ -14,8 +14,7 @@ namespace ql {
 
 class datum_stream_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    template<class T>
-    datum_stream_t(env_t *_env, const T *backtrace_source)
+    datum_stream_t(env_t *_env, const pb_rcheckable_t *backtrace_source)
         : pb_rcheckable_t(backtrace_source), env(_env) {
         guarantee(env);
     }
