@@ -181,8 +181,11 @@ private:
 class zip_datum_stream_t : public eager_datum_stream_t {
 public:
     zip_datum_stream_t(env_t *env, datum_stream_t *source);
-    virtual const datum_t *next_impl();
+
 private:
+    virtual const datum_t *next_impl();
+    virtual std::vector<const datum_t *> next_batch_impl();
+
     env_t *env;
     datum_stream_t *source;
 };

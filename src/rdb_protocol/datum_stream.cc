@@ -387,15 +387,30 @@ zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_source)
     : eager_datum_stream_t(_env, _source), env(_env), source(_source) { }
 
 const datum_t *zip_datum_stream_t::next_impl() {
-    const datum_t *d = source->next();
-    if (d == NULL) {
+    const datum_t *datum = source->next();
+    if (datum == NULL) {
         return NULL;
     }
-    const datum_t *left = d->el("left", NOTHROW);
-    const datum_t *right = d->el("right", NOTHROW);
+    const datum_t *left = datum->el("left", NOTHROW);
+    const datum_t *right = datum->el("right", NOTHROW);
     rcheck(left != NULL, "ZIP can only be called on the result of a join.");
     return right != NULL ? env->add_ptr(left->merge(right)) : left;
 }
+
+std::vector<const datum_t *> zip_datum_stream_t::next_batch_impl() {
+    std::vector<const datum_t *> datums = source->next_batch();
+
+    for (auto it = datums.begin(); it != datums.end(); ++it) {
+        const datum_t *datum = *it;
+        const datum_t *left = datum->el("left", NOTHROW);
+        const datum_t *right = datum->el("right", NOTHROW);
+        rcheck(left != NULL, "ZIP can only be called on the result of a join.");
+        *it = right != NULL ? env->add_ptr(left->merge(right)) : left;
+    }
+
+    return datums;
+}
+
 
 // UNION_DATUM_STREAM_T
 const datum_t *union_datum_stream_t::next_impl() {
