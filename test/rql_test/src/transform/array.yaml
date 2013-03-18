@@ -1,0 +1,165 @@
+desc: Tests manipulation operations on arrays
+tests:
+    
+    # Define a sequence to work with
+    - def: arr = r.expr([1, 2, 3])
+    - def: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
+
+    ## Append
+
+    - cd: arr.append(4)
+      ot: [1,2,3,4]
+    - cd: arr.append('a')
+      ot: [1,2,3,'a']
+
+    ## Slice
+
+    # Python uses the slice syntax
+    - py: ["arr[1:2]", "arr.slice(1, 2)"]
+      js: arr.slice(1,2)
+      rb: [ "arr[(1..2)]", "arr[(1...3)]", "arr.slice(1,2)"]
+      ot: [2,3]
+
+    # One ended slices
+    - py: arr[:1]
+      js: arr.slice(0,1)
+      rb: [ "arr[(0..1)]", "arr[(0...2)]" ]
+      ot: [1,2]
+    - py: arr[1:]
+      js:
+        cd: arr.slice(1)
+        ot: err("RqlDriverError", "Expected 2 argument(s) but found 1.")
+      rb: []
+      ot: [2,3]
+
+    # Negative indicies
+    # Python 2.x doesn't handle negative indicies properly
+    - cd: arr.slice(-2, -1)
+      rb: arr[(-2..-1)]
+      ot: [2,3]
+
+    ## Skip
+
+    - cd: arr.skip(1)
+      ot: [2,3]
+    - cd: arr.skip(2)
+      ot: [3]
+    - cd: arr.skip(12)
+      ot: []
+
+    ## Limit
+
+    - cd: arr.limit(2)
+      ot: [1,2]
+    - cd: arr.limit(0)
+      ot: []
+    - cd: arr.limit(12)
+      ot: [1,2,3]
+
+    ## Pluck
+
+    - cd: objArr.pluck('a', 'b')
+      ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
+    - cd: objArr.pluck('a')
+      ot: [{'a':1}, {'a':2}, {'a':3}]
+    - cd: objArr.pluck()
+      ot: [{}, {}, {}]
+
+    ## Without
+
+    - cd: objArr.without('a', 'b')
+      ot: [{}, {}, {}]
+    - cd: objArr.without('a')
+      ot: [{'b':'a'}, {'b':'b'}, {'b':'c'}]
+    - cd: objArr.without()
+      ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
+
+    ## Map
+
+    - py: "arr.map(lambda v: v + 1)"
+      js: arr.map(function(v) { return v.add(1); })
+      rb: arr.map{ |v| v + 1 }
+      ot: [2,3,4]
+    #- py: objArr.map(r.row['b'])
+    #  js: objArr.map(r.row('b'))
+    #  ot: ['a', 'b', 'c']
+
+    ## Reduce
+
+    - py: "arr.reduce(lambda a, b: a + b)"
+      js: arr.reduce(function(a,b) { return a.add(b); })
+      rb: arr.reduce{ |a, b| a + b }
+      ot: 6
+
+    - py: arr.reduce(lambda a, b:a + b, base=0)
+      js: arr.reduce(function(a,b) { return a.add(b); }, 0)
+      rb: arr.reduce(0){ |a, b| a + b }
+      ot: 6
+
+    ## Filter
+
+    - py: "objArr.filter(lambda row: row['b'] == 'b')"
+      js: objArr.filter(function(row) { return row('b').eq('b'); })
+      rb: objArr.filter{ |row| row[:b].eq 'b' }
+      ot: [{'a':2, 'b':'b'}]
+
+    ## ConcatMap
+
+    - py: "arr.concat_map(lambda v: [1,2])"
+      js: "arr.concatMap(function(v) { return [1,2]; })"
+      rb: arr.concat_map{ |v| [1,2] }
+      ot: [1,2,1,2,1,2]
+    - py: "arr.concat_map(lambda v: [{'v':v}, {'v2':v + 1}])"
+      js: "arr.concatMap(function(v) { return [{'v':v}, {'v2':v.add(1)}]; })"
+      rb: arr.concat_map{ |v| [{:v => v}, {:v2 => v + 1}] }
+      ot: [{'v':1}, {'v2':2}, {'v':2}, {'v2':3}, {'v':3}, {'v2':4}]
+
+    ## OrderBy
+
+    - cd: objArr.order_by('b')
+      rb: objArr.order_by :b
+      ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
+      
+    - cd: objArr.order_by(r.desc('b'))
+      ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
+
+    - cd: r.expr([{'-a':1},{'-a':2}]).order_by('-a')
+      rb: r.expr([{ '-a' => 1}, {'-a' => 2}]).order_by('-a')
+      ot:
+        cd: [{'-a':1},{'-a':2}]
+        rb: "[{'-a'=>1},{'-a'=>2}]"
+
+    ## Distinct
+
+    - cd: r.expr([1,1,2,2,2,3,4]).distinct()
+      ot: [1,2,3,4]
+
+    ## Count
+    
+    - cd: arr.count()
+      ot: 3
+      cd: objArr.count()
+      ot: 3
+
+    ## Union
+
+    - cd: arr.union(objArr)
+      ot: [1, 2, 3, {'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
+
+    ## Nth
+
+    - cd: ["arr[1]", "arr.nth(1)"]
+      js: arr.nth(1)
+      ot: 2
+    - py: arr[0]
+      rb: arr[0]
+      js: arr.nth(0)
+      ot: 1
+
+    ## Grouped Map Reduce
+
+    ## Group by
+
+    ## Inner Join
+
+    ## Outer Join

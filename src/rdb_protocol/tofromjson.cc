@@ -130,7 +130,8 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     } else if (value->IsNumber()) {
         double d = value->NumberValue();
         cJSON *r = 0;
-        if (std::isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
+        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        if (isfinite(d)) r = cJSON_CreateNumber(value->NumberValue());
         if (!r) *errmsg = "cJSON_CreateNumber() failed";
         return r;
 
@@ -145,8 +146,9 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
         return r;
 
     } else {
-        *errmsg = value->IsUndefined() ? "cannot convert javascript 'undefined' to JSON"
-                                       : "unrecognized value type when converting to JSON";
+        *errmsg = value->IsUndefined()
+            ? "Cannot convert javascript `undefined` to JSON."
+            : "Unrecognized value type when converting to JSON.";
         return NULL;
     }
 }
