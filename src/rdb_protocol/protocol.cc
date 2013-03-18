@@ -578,7 +578,7 @@ void write_t::unshard(const write_response_t *responses,  size_t count, write_re
     if (count == 1) {
         *response = responses[0];
     } else {
-        if (NULL != boost::get<batched_replaces_response_t *>(&responses[0].response)) {
+        if (NULL != boost::get<batched_replaces_response_t>(&responses[0].response)) {
             std::vector<std::pair<int64_t, point_replace_response_t> > combined;
 
             for (size_t i = 0; i < count; ++i) {
@@ -594,7 +594,7 @@ void write_t::unshard(const write_response_t *responses,  size_t count, write_re
 
             *response = write_response_t(batched_replaces_response_t(combined));
 
-        } else if (NULL != boost::get<batched_writes_response_t *>(&responses[0].response)) {
+        } else if (NULL != boost::get<batched_writes_response_t>(&responses[0].response)) {
 
             std::vector<std::pair<int64_t, point_write_response_t> > combined;
 
@@ -612,7 +612,7 @@ void write_t::unshard(const write_response_t *responses,  size_t count, write_re
             *response = write_response_t(batched_writes_response_t(combined));
 
         } else {
-            crash("response with count %zu (greater than 1) returned for non-batched write.\n", count);
+            crash("response with count %zu (greater than 1) returned for non-batched write.  ('which'=%d)\n", count, responses[0].response.which());
         }
     }
 }
