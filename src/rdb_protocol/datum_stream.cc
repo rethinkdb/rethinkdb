@@ -346,16 +346,21 @@ std::vector<const datum_t *> concatmap_datum_stream_t::next_batch_impl() {
 
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _right,
+                                           datum_stream_t *_source)
+    : eager_datum_stream_t(_env, _source), env(_env), index(0),
+      left(_left), right(_right), source(_source) { }
 
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (l > r || ind > r) return 0;
-    while (ind++ < l) {
-        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        src->next();
+    if (left > right || index > right) {
+        return NULL;
     }
-    return src->next();
+
+    while (index++ < left) {
+        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+        source->next();
+    }
+    return source->next();
 }
 
 // ZIP_DATUM_STREAM_T

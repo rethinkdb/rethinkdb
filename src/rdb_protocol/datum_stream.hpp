@@ -157,21 +157,24 @@ private:
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
     array_datum_stream_t(env_t *env, const datum_t *_arr, const pb_rcheckable_t *bt_src);
+
+private:
     virtual const datum_t *next_impl();
     virtual std::vector<const datum_t *> next_batch_impl();
-private:
+
     size_t index;
     const datum_t *arr;
 };
 
 class slice_datum_stream_t : public eager_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src);
-    virtual const datum_t *next_impl();
+    slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *source);
 private:
+    virtual const datum_t *next_impl();
+
     env_t *env;
-    size_t ind, l, r;
-    datum_stream_t *src;
+    size_t index, left, right;
+    datum_stream_t *source;
 };
 
 class zip_datum_stream_t : public eager_datum_stream_t {
