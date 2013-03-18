@@ -246,9 +246,20 @@ std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg = src->next();
-    return !arg ? NULL : f->call(arg)->as_datum();
+    const datum_t *arg = src->next();  // RSI: Should this call ->next or ->next_impl()?
+    return arg == NULL ? NULL : f->call(arg)->as_datum();
 }
+
+std::vector<const datum_t *> map_datum_stream_t::next_batch_impl() {
+    const std::vector<const datum_t *> datums = src->next_batch();
+    std::vector<const datum_t *> ret;
+    ret.reserve(datums.size());
+    for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
+        ret.push_back(f->call(*datum)->as_datum());
+    }
+    return ret;
+}
+
 
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next_impl() {
