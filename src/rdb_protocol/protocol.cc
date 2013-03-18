@@ -36,8 +36,6 @@ typedef rdb_protocol_t::read_response_t read_response_t;
 
 typedef rdb_protocol_t::point_read_t point_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
-
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
@@ -52,7 +50,6 @@ typedef rdb_protocol_t::point_replace_t point_replace_t;
 typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
 
 typedef rdb_protocol_t::batched_replaces_t batched_replaces_t;
-// SAMRSI: Where's the batched_replaces_response_t?
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
@@ -975,7 +972,7 @@ rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const r
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
 
-
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
                            result, errors, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
