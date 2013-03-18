@@ -61,8 +61,7 @@ private:
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
-    template<class T>
-    eager_datum_stream_t(env_t *env, const T *backtrace_source)
+    eager_datum_stream_t(env_t *env, const pb_rcheckable_t *backtrace_source)
         : datum_stream_t(env, backtrace_source) { }
 
     virtual datum_stream_t *filter(func_t *f);
