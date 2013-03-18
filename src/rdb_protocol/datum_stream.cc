@@ -415,9 +415,24 @@ std::vector<const datum_t *> zip_datum_stream_t::next_batch_impl() {
 // UNION_DATUM_STREAM_T
 const datum_t *union_datum_stream_t::next_impl() {
     for (; streams_index < streams.size(); ++streams_index) {
-        if (const datum_t *d = streams[streams_index]->next()) return d;
+        if (const datum_t *d = streams[streams_index]->next()) {
+            return d;
+        }
     }
-    return 0;
+    return NULL;
 };
+
+std::vector<const datum_t *> union_datum_stream_t::next_batch_impl() {
+    for (; streams_index < streams.size(); ++streams_index) {
+        std::vector<const datum_t *> batch = streams[streams_index]->next_batch();
+        if (!batch.empty()) {
+            return batch;
+        }
+    }
+    return std::vector<const datum_t *>();
+}
+
+
+
 
 } // namespace ql

@@ -254,8 +254,10 @@ public:
     union_datum_stream_t(env_t *env, const std::vector<datum_stream_t *> &_streams,
                          const pb_rcheckable_t *bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
-    virtual const datum_t *next_impl();
 private:
+    virtual const datum_t *next_impl();
+    virtual std::vector<const datum_t *> next_batch_impl();
+
     std::vector<datum_stream_t *> streams;
     size_t streams_index;
 };
