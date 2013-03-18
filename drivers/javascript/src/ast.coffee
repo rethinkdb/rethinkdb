@@ -44,41 +44,41 @@ class RDBVal extends TermBase
     div: (others...) -> new Div {}, @, others...
     mod: (other) -> new Mod {}, @, other
 
-    append: ar (val) -> new Append {}, @, val
-    slice: ar (left, right) -> new Slice {}, @, left, right
-    skip: ar (index) -> new Skip {}, @, index
-    limit: ar (index) -> new Limit {}, @, index
-    getAttr: ar (field) -> new GetAttr {}, @, field
+    append: ar('append', (val) -> new Append {}, @, val)
+    slice: ar('slice', (left, right) -> new Slice {}, @, left, right)
+    skip: ar('skip', (index) -> new Skip {}, @, index)
+    limit: ar('limit', (index) -> new Limit {}, @, index)
+    getAttr: ar('getAttr', (field) -> new GetAttr {}, @, field)
     contains: (fields...) -> new Contains {}, @, fields...
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
-    merge: ar (other) -> new Merge {}, @, other
-    between: ar (left, right) -> new Between {leftBound: (if left? then left else undefined), rightBound: (if right? then right else undefined)}, @
-    reduce: aropt (func, base) -> new Reduce {base:base}, @, funcWrap(func)
-    map: ar (func) -> new Map {}, @, funcWrap(func)
-    filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
-    concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
+    merge: ar('merge', (other) -> new Merge {}, @, other)
+    between: ar('between', (left, right) -> new Between {leftBound: (if left? then left else undefined), rightBound: (if right? then right else undefined)}, @)
+    reduce: aropt('reduce', (func, base) -> new Reduce {base:base}, @, funcWrap(func))
+    map: ar('map', (func) -> new Map {}, @, funcWrap(func))
+    filter: ar('filter', (predicate) -> new Filter {}, @, funcWrap(predicate))
+    concatMap: ar('concatMap', (func) -> new ConcatMap {}, @, funcWrap(func))
     orderBy: (fields...) -> new OrderBy {}, @, fields...
-    distinct: ar () -> new Distinct {}, @
-    count: ar () -> new Count {}, @
+    distinct: ar('distinct', () -> new Distinct {}, @)
+    count: ar('count', () -> new Count {}, @)
     union: (others...) -> new Union {}, @, others...
-    nth: ar (index) -> new Nth {}, @, index
-    groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
-    innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
-    outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
-    zip: ar () -> new Zip {}, @
-    coerceTo: ar (type) -> new CoerceTo {}, @, type
+    nth: ar('nth', (index) -> new Nth {}, @, index)
+    groupedMapReduce: aropt('groupedMapReduce', (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
+    innerJoin: ar('innerJoin', (other, predicate) -> new InnerJoin {}, @, other, predicate)
+    outerJoin: ar('outerJoin', (other, predicate) -> new OuterJoin {}, @, other, predicate)
+    eqJoin: ar('eqJoin', (left_attr, right) -> new EqJoin {}, @, left_attr, right)
+    zip: ar('zip', () -> new Zip {}, @)
+    coerceTo: ar('coerceTo', (type) -> new CoerceTo {}, @, type)
     typeOf: -> new TypeOf {}, @
-    update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
-    delete: ar () -> new Delete {}, @
-    replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
-    do: ar (func) -> new FunCall {}, funcWrap(func), @
+    update: aropt('update', (func, opts) -> new Update opts, @, funcWrap(func))
+    delete: ar('delete', () -> new Delete {}, @)
+    replace: aropt('replace', (func, opts) -> new Replace opts, @, funcWrap(func))
+    do: ar('do', (func) -> new FunCall {}, funcWrap(func), @)
 
     or: (others...) -> new Any {}, @, others...
     and: (others...) -> new All {}, @, others...
 
-    forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
+    forEach: ar('forEach', (func) -> new ForEach {}, @, funcWrap(func))
 
     groupBy: (attrs..., collector = null) ->
         arg_count = attrs.length + (collector && 1 || 0)
@@ -245,17 +245,17 @@ class Db extends RDBOp
     tt: Term.TermType.DB
     st: 'db'
 
-    tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
-    tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
+    tableCreate: aropt('tableCreate', (tblName, opts) -> new TableCreate opts, @, tblName)
+    tableDrop: ar('tableDrop', (tblName) -> new TableDrop {}, @, tblName)
     tableList: ar(-> new TableList {}, @)
 
-    table: aropt (tblName, opts) -> new Table opts, @, tblName
+    table: aropt('table', (tblName, opts) -> new Table opts, @, tblName)
 
 class Table extends RDBOp
     tt: Term.TermType.TABLE
 
-    get: ar (key) -> new Get {}, @, key
-    insert: aropt (doc, opts) -> new Insert opts, @, doc
+    get: ar('get', (key) -> new Get {}, @, key)
+    insert: aropt('insert', (doc, opts) -> new Insert opts, @, doc)
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
