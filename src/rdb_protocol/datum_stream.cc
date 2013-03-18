@@ -247,7 +247,7 @@ std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg = source->next();  // RSI: Should this call ->next or ->next_impl()?
+    const datum_t *arg = source->next();
     return arg == NULL ? NULL : f->call(arg)->as_datum();
 }
 
