@@ -223,14 +223,12 @@ struct rdb_protocol_t {
     };
 
     struct read_response_t {
-    private:
-        typedef boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> _response_t;
     public:
-        _response_t response;
+        boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> response;
 
         read_response_t() { }
-        read_response_t(const read_response_t& r) : response(r.response) { }
-        explicit read_response_t(const _response_t &r) : response(r) { }
+        explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
+            : response(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -298,18 +296,15 @@ struct rdb_protocol_t {
 
 
     struct read_t {
-    private:
-        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t> _read_t;
-    public:
-        _read_t read;
+        boost::variant<point_read_t, rget_read_t, distribution_read_t> read;
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
         void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
 
         read_t() { }
-        read_t(const read_t& r) : read(r.read) { }
-        explicit read_t(const _read_t &r) : read(r) { }
+        explicit read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t> &r)
+            : read(r) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
@@ -359,8 +354,6 @@ struct rdb_protocol_t {
                        point_delete_response_t> response;
 
         write_response_t() { }
-        // SAMRSI: A useless copy constructor.
-        write_response_t(const write_response_t& w) : response(w.response) { }
         explicit write_response_t(const point_replace_response_t& r) : response(r) { }
         explicit write_response_t(const batched_replaces_response_t& br) : response(br) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
