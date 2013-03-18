@@ -9,12 +9,10 @@
 #include "buffer_cache/blob.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
-    no_releasing = false;
     sb_buf_.swap(*sb_buf);
 }
 
 void real_superblock_t::release() {
-    guarantee(!no_releasing);
     sb_buf_.release_if_acquired();
 }
 

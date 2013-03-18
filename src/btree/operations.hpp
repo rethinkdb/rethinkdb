@@ -57,8 +57,6 @@ public:
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
-    bool no_releasing;  // SAMRSI Ask Joe why he put RSI on this line.
-
 private:
     buf_lock_t sb_buf_;
 };
