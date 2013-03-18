@@ -180,11 +180,11 @@ private:
 
 class zip_datum_stream_t : public eager_datum_stream_t {
 public:
-    zip_datum_stream_t(env_t *_env, datum_stream_t *_src);
+    zip_datum_stream_t(env_t *env, datum_stream_t *source);
     virtual const datum_t *next_impl();
 private:
     env_t *env;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There
