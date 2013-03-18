@@ -182,8 +182,8 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
     int x = env->gensym();
     Term *t = pb::set_func(&twrap->t, x);
     pb::set(t, Term_TermType_ALL, 0, 0);
-    for (std::map<const std::string, const datum_t *>::const_iterator
-             it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
+    const std::map<std::string, const datum_t *> &obj_as_object = obj->as_object();
+    for (auto it = obj_as_object.begin(); it != obj_as_object.end(); ++it) {
         std::string key = it->first;
         const datum_t *val = it->second;
 

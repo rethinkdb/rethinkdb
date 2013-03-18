@@ -54,7 +54,7 @@ public:
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(const std::vector<const datum_t *> &_array);
-    explicit datum_t(const std::map<const std::string, const datum_t *> &_object);
+    explicit datum_t(const std::map<std::string, const datum_t *> &_object);
 
     // These construct a datum from an equivalent representation.
     explicit datum_t(const Datum *d); // Undefined, need to pass `env` below.
@@ -85,7 +85,7 @@ public:
     const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
 
     // Use of `el` is preferred to `as_object` when possible.
-    const std::map<const std::string, const datum_t *> &as_object() const;
+    const std::map<std::string, const datum_t *> &as_object() const;
     // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, const datum_t *val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
@@ -135,7 +135,7 @@ private:
     double r_num;
     std::string r_str;
     std::vector<const datum_t *> r_array;
-    std::map<const std::string, const datum_t *> r_object;
+    std::map<std::string, const datum_t *> r_object;
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);
@@ -192,8 +192,8 @@ private:
             return *a < *b;
         }
     };
-    typedef std::map<const datum_t *, const datum_t *, datum_value_compare_t> map_t;
-    map_t map;
+
+    std::map<const datum_t *, const datum_t *, datum_value_compare_t> map;
     std::vector<std::pair<Datum, Datum> > map_pb;
 
 public:

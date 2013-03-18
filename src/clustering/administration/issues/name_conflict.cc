@@ -64,7 +64,7 @@ public:
 private:
     class case_insensitive_less_t {
     public:
-        bool operator()(const name_string_t &a, const name_string_t &b) {
+        bool operator()(const name_string_t &a, const name_string_t &b) const {
             return strcasecmp(a.c_str(), b.c_str()) < 0;
         }
     };
@@ -117,7 +117,7 @@ private:
 
     class case_insensitive_less_t {
     public:
-        bool operator()(const db_table_name_t &a, const db_table_name_t &b) {
+        bool operator()(const db_table_name_t &a, const db_table_name_t &b) const {
             int cmp = strcasecmp(a.db_name.c_str(), b.db_name.c_str());
             if (cmp != 0) { return cmp < 0; }
             return strcasecmp(a.table_name.c_str(), b.table_name.c_str()) < 0;
