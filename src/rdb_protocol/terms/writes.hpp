@@ -44,7 +44,7 @@ const datum_t *pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
     return 0;
 }
 
-static const char *const insert_optargs[] = {"upsert"};
+static const char *const insert_optargs[] = { "upsert" };
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, const Term *term)
@@ -128,7 +128,7 @@ private:
     virtual const char *name() const { return "insert"; }
 };
 
-static const char *const replace_optargs[] = {"non_atomic"};
+static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, const Term *term)
@@ -146,15 +146,16 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<table_t *, const datum_t *> tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
+        } else {
+            std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
+            table_t *tbl = tblrows.first;
+            datum_stream_t *ds = tblrows.second;
+            const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+            while (const datum_t *d = ds->next()) {
+                stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
+            }
+            return new_val(stats);
         }
-        std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
-        table_t *tbl = tblrows.first;
-        datum_stream_t *ds = tblrows.second;
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        while (const datum_t *d = ds->next()) {
-            stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
-        }
-        return new_val(stats);
     }
     virtual const char *name() const { return "replace"; }
 };
