@@ -397,45 +397,8 @@ bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t
 
 /* write_t::get_region() implementation */
 
-// Returns the smallest region that contains the set of keys.  It might be
-// useful to return something other than the universal region -- often batched
-// writes end up hitting the same key range.
-template <class store_key_iter_t>
-hash_region_t<key_range_t> smallest_covering_region(store_key_iter_t keys_begin, store_key_iter_t keys_end) {
-    if (keys_begin == keys_end) {
-        // We can't find the minimum or maximum of an empty sequence, so we
-        // special-case the empty case.
-        return hash_region_t<key_range_t>();
-    }
-
-    store_key_t minimum_key = store_key_t::min();
-    store_key_t maximum_key = store_key_t::max();
-    uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
-    uint64_t maximum_hash_value = 0;
-
-    while (keys_begin != keys_end) {
-        if (*keys_begin < minimum_key) {
-            minimum_key = *keys_begin;
-        }
-        if (*keys_begin > maximum_key) {
-            maximum_key = *keys_begin;
-        }
-
-        const uint64_t hash_value = hash_region_hasher(keys_begin->contents(), keys_begin->size());
-        if (hash_value < minimum_hash_value) {
-            minimum_hash_value = hash_value;
-        }
-        if (hash_value > maximum_hash_value) {
-            maximum_hash_value = hash_value;
-        }
-    }
-
-    return hash_region_t<key_range_t>(minimum_hash_value, maximum_hash_value + 1,
-                                      key_range_t(key_range_t::closed, minimum_key, key_range_t::closed, maximum_key));
-}
-
-// TODO: This entire type is suspect, given that smallest_covering_region
-// would have to be slow.  Is it used in anything other than assertions?
+// TODO: This entire type is suspect, given the performance for batched_replaces_t.  Is it used in
+// anything other than assertions?
 struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_replace_t &pr) const {
         return rdb_protocol_t::monokey_region(pr.key);
