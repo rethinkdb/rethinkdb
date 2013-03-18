@@ -49,8 +49,8 @@ class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
-private:
 
+private:
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
                             const datum_t **datum_out) {
@@ -133,6 +133,7 @@ class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
+
 private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
@@ -157,6 +158,7 @@ private:
             return new_val(stats);
         }
     }
+
     virtual const char *name() const { return "replace"; }
 };
 
@@ -166,6 +168,7 @@ class foreach_term_t : public op_term_t {
 public:
     foreach_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
+
 private:
     virtual val_t *eval_impl() {
         const char *fail_msg = "FOREACH expects one or more write queries.";
@@ -191,6 +194,7 @@ private:
         }
         return new_val(stats);
     }
+
     virtual const char *name() const { return "foreach"; }
 };
 
