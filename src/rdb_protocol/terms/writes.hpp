@@ -152,9 +152,19 @@ private:
             table_t *tbl = tblrows.first;
             datum_stream_t *ds = tblrows.second;
             const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            while (const datum_t *d = ds->next()) {
-                stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
+
+            for (;;) {
+                std::vector<const datum_t *> datums = ds->next_batch();
+                if (datums.empty()) {
+                    break;
+                }
+                std::vector<const datum_t *> results = tbl->batch_replace(datums, f, nondet_ok);
+
+                for (auto result = results.begin(); result != results.end(); ++result) {
+                    stats = stats->merge(env, *result, stats_merge);
+                }
             }
+
             return new_val(stats);
         }
     }
