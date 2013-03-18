@@ -142,9 +142,8 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
-template<class T>
-void lazy_datum_stream_t::run_terminal(T t) {
-    terminal = rdb_protocol_details::terminal_variant_t(t);
+void lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
+    terminal = t;
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(terminal, env, _s, _b);
     std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);

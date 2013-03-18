@@ -147,8 +147,7 @@ private:
     query_language::scopes_t _s;
     query_language::backtrace_t _b;
 
-    template<class T>
-    void run_terminal(T t); // only used in datum_stream.cc
+    void run_terminal(const rdb_protocol_details::terminal_variant_t &t);
     std::vector<const datum_t *> shard_data; // used by run_terminal
 };
 
