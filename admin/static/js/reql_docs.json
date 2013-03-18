@@ -87,7 +87,7 @@
               "examples": [
                 {
                   "description": "Setup your top level namespace:",
-                  "code": "require 'rethinkdb'\nr = RethinkDB::RQL.new\n# or\nextend RethinkDB::Shortcuts"
+                  "code": "require 'rethinkdb'\ninclude RethinkDB::Shortcuts"
                 }
               ]
             },
