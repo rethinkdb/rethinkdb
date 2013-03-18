@@ -280,21 +280,48 @@ const datum_t *concatmap_datum_stream_t::next_impl() {
 }
 
 const datum_t *filter_datum_stream_t::next_impl() {
-    const datum_t *arg = NULL;
     for (;;) {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
 
-        arg = source->next();
+        const datum_t *arg = source->next();
         if (arg == NULL) {
             return NULL;
         }
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
         if (f->filter_call(env, arg)) {
             outer_checkpoint.reset(&env_t::merge_checkpoint);
-            break;
+            return arg;
         }
     }
-    return arg;
+}
+
+std::vector<const datum_t *> filter_datum_stream_t::next_batch_impl() {
+    for (;;) {
+        env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
+
+        // RSI: How do we free the memory of the values that get filtered away
+        // here?  If any values survive the filtering, all of these are under
+        // the same checkpoint.
+        std::vector<const datum_t *> unfiltered = source->next_batch();
+
+        if (unfiltered.empty()) {
+            return unfiltered;
+        }
+
+        env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
+
+        std::vector<const datum_t *> filtered;
+        for (auto it = unfiltered.begin(); it != unfiltered.end(); ++it) {
+            if (f->filter_call(env, *it)) {
+                filtered.push_back(*it);
+            }
+        }
+
+        if (!filtered.empty()) {
+            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            return filtered;
+        }
+    }
 }
 
 // SLICE_DATUM_STREAM_T
