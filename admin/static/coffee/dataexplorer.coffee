@@ -684,13 +684,13 @@ module 'DataExplorerView', ->
                 else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
                     if @history_displayed_id < @history.length
                         @history_displayed_id++
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                 else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                     else if @history_displayed_id is 1
@@ -699,35 +699,15 @@ module 'DataExplorerView', ->
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                     event.preventDefault()
                     return true
-
-            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
-            query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
-
-            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
-            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
-            # We now compute this stack earlier, because we need it for @pair_char
-            # BUT we don't want to save data too early
-            previous_element = @current_element
-            @current_element = ''
-
-            stack = @extract_data_from_query
-                query: query_before_cursor
-                position: 0
-
-            @pair_char(event, stack)
-
-            current_element = @current_element
-            @current_element = previous_element
-
             # If there is a hilighted suggestion, we want to catch enter
             if @$('.suggestion_name_li_hl').length > 0
                 if event?.which is 13
@@ -748,8 +728,16 @@ module 'DataExplorerView', ->
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
 
-            if event?.which isnt 9 # has to be before create_suggestion()
-                @cursor_for_auto_completion = @codemirror.getCursor()
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+            query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
+
+            # Compute the structure of the query written by the user.
+            # We compute it earlier than before because @pair_char also listen on keydown and needs stack
+            stack = @extract_data_from_query
+                query: query_before_cursor
+                position: 0
+
+            @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
@@ -768,7 +756,6 @@ module 'DataExplorerView', ->
 
             # Valid step, let's save the data
             @query_last_part = query_after_cursor
-            @current_element = current_element
 
             # If a selection is active, we just catch shift+enter
             if @codemirror.getSelection() isnt ''
@@ -784,6 +771,10 @@ module 'DataExplorerView', ->
                     return false
                 else
                     return true
+
+            @current_suggestions = []
+            @current_element = ''
+            @cursor_for_auto_completion = @codemirror.getCursor()
 
             result =
                 status: null
@@ -808,7 +799,6 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 result: result
 
-            @current_suggestions = []
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
                     @current_suggestions.push suggestion
