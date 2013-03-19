@@ -3265,9 +3265,9 @@
         },
         {
           "tag": "coerce_to",
-          "description": "Converts a value of one type into another. Supported conversions: NUMBER -> STRING, SELECTION -> ARRAY, OBJECT -> ARRAY.",
+          "description": "Converts a value of one type into another. <br /><br />You can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.",
           "parent": "json",
-          "returns": "json",
+          "returns": "type",
           "langs": {
             "js": {
               "name": "coerceTo",
@@ -3278,6 +3278,14 @@
                   "code": "r.table('marvel').coerceTo('array').run(c)",
                   "can_try": true,
                   "dataset": "marvel"
+                },
+                {
+                  "description": "Convert an array of pairs into an array:",
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                },
+                {
+                  "description": "Convert a number to a string",
+                  "code": "r.expr(1).coerce_to('string').run(c)"
                 }
               ]
             },
@@ -3288,7 +3296,15 @@
                 {
                   "description": "Convert a table to an array:",
                   "code": "r.table('marvel').coerce_to('array').run(c)"
-                }
+                },
+                {
+                  "description": "Convert an array of pairs into an array:",
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                },
+                {
+                  "description": "Convert a number to a string",
+                  "code": "r.expr(1).coerce_to('string').run(c)"
+                }                
               ]
             },
             "rb": {
@@ -3298,6 +3314,14 @@
                 {
                   "description": "Convert a table to an array:",
                   "code": "r.table('marvel').coerce_to('array').run(c)"
+                },
+                {
+                  "description": "Convert an array of pairs into an array:",
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                },
+                {
+                  "description": "Convert a number to a string",
+                  "code": "r.expr(1).coerce_to('string').run(c)"
                 }
               ]
             }
