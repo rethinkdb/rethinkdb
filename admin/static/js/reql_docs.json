@@ -556,7 +556,7 @@
           "langs": {
             "js": {
               "name": "tableCreate",
-              "body": "tableNameOrOptions",
+              "body": "tableName[, options]",
               "examples": [
                 {
                   "description": "Create a table named 'dc-universe' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
@@ -566,7 +566,7 @@
                 },
                 {
                   "description": "Create a table named 'dc-universe' using the field 'name' as primary key:",
-                  "code": "r.db('test').tableCreate({tableName: 'dc-universe', primaryKey: 'name'})\n.run(c)",
+                  "code": "r.db('test').tableCreate('dc-universe', {primaryKey: 'name'})\n.run(c)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -980,7 +980,7 @@
           "langs": {
             "js": {
               "name": "table",
-              "body": "name[, opt_useOutdated]",
+              "body": "name[, {useOutdated: false}]",
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database:",
@@ -994,7 +994,7 @@
                   "dataset": "marvel"
                 }, {
                   "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass a flag allowing out of date data:",
-                  "code": "r.db('heroes').table('marvel', true).run(c)",
+                  "code": "r.db('heroes').table('marvel', {useOutdated: true}).run(c)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
