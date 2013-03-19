@@ -10,8 +10,12 @@ endif
 
 UNAME:=$(shell uname)
 
+CXX:=c++
+
 ifeq ($(UNAME),Darwin)
 SPREFIX?=/usr/local
+LDFLAGS += -lc++
+CXXFLAGS += -stdlib=libc++
 else
 SPREFIX?=/usr
 endif
@@ -51,7 +55,8 @@ protoc-gen-js: js/javascript_package.pb.cc js/int64_encoding.pb.cc
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC protoc-gen-js" ;
 endif
-	$(QUIET) g++ -I $(INCLUDE) \
+	$(QUIET) $(CXX) -I $(INCLUDE) \
+	$(LDFLAGS) $(CXXFLAGS) \
 	$(TC_PROTOC_CFLAGS) \
 	-I . \
 	./js/code_generator.cc \
@@ -67,7 +72,8 @@ protoc-gen-ccjs: js/javascript_package.pb.cc js/int64_encoding.pb.cc
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC protoc-gen-ccjs" ;
 endif
-	$(QUIET) g++ -I $(INCLUDE) \
+	$(QUIET) $(CXX) -I $(INCLUDE) \
+	$(LDFLAGS) $(CXXFLAGS) \
 	$(TC_PROTOC_CFLAGS) \
 	-I . \
 	./ccjs/code_generator.cc \

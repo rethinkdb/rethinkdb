@@ -161,10 +161,8 @@ private:
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
                     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-                    const std::map<const std::string, const datum_t *> &obj =
-                        d->as_object();
-                    for (std::map<const std::string, const datum_t *>::const_iterator
-                             it = obj.begin(); it != obj.end(); ++it) {
+                    const std::map<std::string, const datum_t *> &obj = d->as_object();
+                    for (auto it = obj.begin(); it != obj.end(); ++it) {
                         datum_t *pair = env->add_ptr(new datum_t(datum_t::R_ARRAY));
                         pair->add(env->add_ptr(new datum_t(it->first)));
                         pair->add(it->second);

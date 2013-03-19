@@ -11,7 +11,7 @@ AC_INIT([Google C++ Testing Framework],
 
 # Provide various options to initialize the Autoconf and configure processes.
 AC_PREREQ([2.59])
-AC_CONFIG_SRCDIR([./COPYING])
+AC_CONFIG_SRCDIR([./LICENSE])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([build-aux/config.h])
@@ -55,7 +55,7 @@ AS_IF([test "x$with_pthreads" != "xno"],
                [AC_MSG_FAILURE(
                  [--with-pthreads was specified, but unable to be used])])])
        have_pthreads="$acx_pthread_ok"])
-AM_CONDITIONAL([HAVE_PTHREADS],[test "x$have_pthreads" == "xyes"])
+AM_CONDITIONAL([HAVE_PTHREADS],[test "x$have_pthreads" = "xyes"])
 AC_SUBST(PTHREAD_CFLAGS)
 AC_SUBST(PTHREAD_LIBS)
 
