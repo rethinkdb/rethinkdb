@@ -3361,7 +3361,7 @@
               "examples" : [
                 {
                   "description": "Get the type of a string:",
-                  "code": "r(\"foo\").typeof.run(c)"
+                  "code": "r(\"foo\").type_of.run(c)"
                 }
               ]
             }
