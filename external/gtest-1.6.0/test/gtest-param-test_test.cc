@@ -280,10 +280,10 @@ class DogAdder {
   bool operator<(const DogAdder& other) const {
     return value_ < other.value_;
   }
-  const ::testing::internal::String& value() const { return value_; }
+  const std::string& value() const { return value_; }
 
  private:
-  ::testing::internal::String value_;
+  std::string value_;
 };
 
 TEST(RangeTest, WorksWithACustomType) {
@@ -606,6 +606,7 @@ class TestGenerationEnvironment : public ::testing::Environment {
           << "has not been run as expected.";
     }
   }
+
  private:
   TestGenerationEnvironment() : fixture_constructor_count_(0), set_up_count_(0),
                                 tear_down_count_(0), test_body_count_(0) {}
@@ -674,6 +675,7 @@ class TestGenerationTest : public TestWithParam<int> {
 
     EXPECT_TRUE(collected_parameters_ == expected_values);
   }
+
  protected:
   int current_parameter_;
   static vector<int> collected_parameters_;
@@ -861,6 +863,13 @@ TEST_P(ParameterizedDerivedTest, SeesSequence) {
   EXPECT_EQ(17, n_);
   EXPECT_EQ(0, count_++);
   EXPECT_EQ(GetParam(), global_count_++);
+}
+
+class ParameterizedDeathTest : public ::testing::TestWithParam<int> { };
+
+TEST_F(ParameterizedDeathTest, GetParamDiesFromTestF) {
+  EXPECT_DEATH_IF_SUPPORTED(GetParam(),
+                            ".* value-parameterized test .*");
 }
 
 INSTANTIATE_TEST_CASE_P(RangeZeroToFive, ParameterizedDerivedTest, Range(0, 5));
