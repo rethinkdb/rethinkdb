@@ -86,6 +86,58 @@ private:
     T *p_;
 };
 
+template <class> class single_threaded_shared_mixin_t;
+
+template <class T>
+inline void intrusive_ptr_add_ref(single_threaded_shared_mixin_t<T> *p);
+template <class T>
+inline void intrusive_ptr_release(single_threaded_shared_mixin_t<T> *p);
+template <class T>
+inline intptr_t intrusive_ptr_use_count(const single_threaded_shared_mixin_t<T> *p);
+
+template <class T>
+class single_threaded_shared_mixin_t {
+public:
+    single_threaded_shared_mixin_t() : refcount_(0) { }
+
+protected:
+    ~single_threaded_shared_mixin_t() { }
+
+private:
+    friend void intrusive_ptr_add_ref<T>(single_threaded_shared_mixin_t<T> *p);
+    friend void intrusive_ptr_release<T>(single_threaded_shared_mixin_t<T> *p);
+    friend intptr_t intrusive_ptr_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
+
+    intptr_t refcount_;
+    DISABLE_COPYING(single_threaded_shared_mixin_t);
+};
+
+template <class T>
+inline void intrusive_ptr_add_ref(single_threaded_shared_mixin_t<T> *p) {
+    p->refcount_ += 1;
+    rassert(p->refcount_ > 0);
+}
+
+template <class T>
+inline void intrusive_ptr_release(single_threaded_shared_mixin_t<T> *p) {
+    rassert(p->refcount_ > 0);
+    --p->refcount_;
+    if (p->refcount_ == 0) {
+        delete static_cast<T *>(p);
+    }
+}
+
+template <class T>
+inline intptr_t intrusive_ptr_use_count(const single_threaded_shared_mixin_t<T> *p) {
+    return p->refcount_;
+}
+
+
+
+
+
+
+
 template <class> class slow_shared_mixin_t;
 
 template <class T>
