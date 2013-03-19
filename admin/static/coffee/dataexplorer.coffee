@@ -602,7 +602,7 @@ module 'DataExplorerView', ->
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
-                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false or event.metaKey is false)
+                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
                     if event.type is 'keydown'
                         previous_char = @get_previous_char()
                         if previous_char of @matching_opening_bracket
