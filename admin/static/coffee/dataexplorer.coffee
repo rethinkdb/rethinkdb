@@ -709,25 +709,8 @@ module 'DataExplorerView', ->
                     event.preventDefault()
                     return true
 
-            # Codemirror return a position given by line/char.
-            # We need to retrieve the lines first
-            query_lines = @codemirror.getValue().split '\n'
-            # Then let's get query before the cursor
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-
-            # Get query after the cursor
-            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
-            if query_lines.length > @codemirror.getCursor().line+1
-                query_after_cursor += '\n'
-                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
-                    if i isnt query_lines.length-1
-                        query_after_cursor += query_lines[i] + '\n'
-                    else
-                        query_after_cursor += query_lines[i]
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+            query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
 
             # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
             # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
@@ -767,6 +750,7 @@ module 'DataExplorerView', ->
 
             if event?.which isnt 9 # has to be before create_suggestion()
                 @cursor_for_auto_completion = @codemirror.getCursor()
+
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false
@@ -841,7 +825,7 @@ module 'DataExplorerView', ->
 
             if event?.which is 9 # Catch tab
                 # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
-                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
+                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
                     return false
@@ -1633,12 +1617,7 @@ module 'DataExplorerView', ->
         # We could create a new stack with @extract_data_from_query, but that would be a more expensive for not that much
         # We can not use the previous stack too since autocompletion doesn't validate the query until you hit enter (or another key than tab)
         extract_database_used: =>
-            query_lines = @codemirror.getValue().split '\n'
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
