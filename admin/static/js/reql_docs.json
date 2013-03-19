@@ -3302,7 +3302,7 @@
                   "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
                 },
                 {
-                  "description": "Convert a number to a string",
+                  "description": "Convert a number to a string:",
                   "code": "r.expr(1).coerce_to('string').run(c)"
                 }                
               ]
