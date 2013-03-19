@@ -610,6 +610,7 @@ module 'DataExplorerView', ->
                             if @matching_opening_bracket[previous_char] is next_char
                                 cursor = @codemirror.getCursor()
                                 @insert_next '\n'
+                                @codemirror.indentLine cursor.line+1, 'smart'
                                 @codemirror.setCursor cursor
                                 return false
                 else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
