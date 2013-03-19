@@ -51,7 +51,7 @@ endif
 all : $(TESTS)
 
 clean :
-	rm -f $(TESTS) gtest.a gtest_main.a *.o
+	$(QUIET) rm -f $(TESTS) gtest.a gtest_main.a *.o
 
 # Builds gtest.a and gtest_main.a.
 
