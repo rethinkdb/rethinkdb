@@ -22,7 +22,7 @@ datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
     : type(R_ARRAY), r_array(_array) { }
-datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
+datum_t::datum_t(const std::map<std::string, const datum_t *> &_object)
     : type(R_OBJECT), r_object(_object) { }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -184,16 +184,17 @@ const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
 }
 
 const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
-    std::map<const std::string, const datum_t *>::const_iterator
-        it = as_object().find(key);
-    if (it != as_object().end()) return it->second;
+    auto it = as_object().find(key);
+    if (it != as_object().end()) {
+        return it->second;
+    }
     if (throw_bool == THROW) {
         rfail("No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
     }
     return 0;
 }
 
-const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
+const std::map<std::string, const datum_t *> &datum_t::as_object() const {
     check_type(R_OBJECT);
     return r_object;
 }
@@ -213,7 +214,7 @@ cJSON *datum_t::as_raw_json() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<const std::string, const datum_t *>::const_iterator
+        for (std::map<std::string, const datum_t *>::const_iterator
                  it = as_object().begin(); it != as_object().end(); ++it) {
             obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
         }
@@ -266,18 +267,16 @@ MUST_USE bool datum_t::delete_key(const std::string &key) {
 
 const datum_t *datum_t::merge(const datum_t *rhs) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
-    const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
-    for (std::map<const std::string, const datum_t *>::const_iterator
-             it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
+    const std::map<std::string, const datum_t *> &rhs_obj = rhs->as_object();
+    for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         UNUSED bool b = d->add(it->first, it->second, CLOBBER);
     }
     return d.release();
 }
 const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) const {
     datum_t *d = env->add_ptr(new datum_t(as_object()));
-    const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
-    for (std::map<const std::string, const datum_t *>::const_iterator
-             it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
+    const std::map<std::string, const datum_t *> &rhs_obj = rhs->as_object();
+    for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (const datum_t *l = el(it->first, NOTHROW)) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
@@ -316,12 +315,10 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<const std::string, const datum_t *>
-            &obj = as_object(),
-            &rhs_obj = rhs.as_object();
-        std::map<const std::string, const datum_t *>::const_iterator
-            it = obj.begin(),
-            it2 = rhs_obj.begin();
+        const std::map<std::string, const datum_t *> &obj = as_object();
+        const std::map<std::string, const datum_t *> &rhs_obj = rhs.as_object();
+        std::map<std::string, const datum_t *>::const_iterator it = obj.begin();
+        std::map<std::string, const datum_t *>::const_iterator it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
             int key_cmpval = derived_cmp(it->first, it2->first);
             if (key_cmpval) return key_cmpval;
@@ -408,7 +405,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
-        for (std::map<const std::string, const datum_t *>::const_reverse_iterator
+        for (std::map<std::string, const datum_t *>::const_reverse_iterator
                  it = r_object.rbegin(); it != r_object.rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
@@ -430,8 +427,7 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
             for (size_t i = 0; i < as_array().size(); ++i) el(i)->iter(callback, env);
         } break;
         case R_OBJECT: {
-            for (std::map<const std::string, const datum_t *>::const_iterator
-                     it = as_object().begin(); it != as_object().end(); ++it) {
+            for (auto it = as_object().begin(); it != as_object().end(); ++it) {
                 it->second->iter(callback, env);
             }
         } break;
@@ -506,7 +502,7 @@ void wire_datum_map_t::finalize() {
 const datum_t *wire_datum_map_t::to_arr(env_t *env) const {
     r_sanity_check(state == COMPILED);
     datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-    for (map_t::const_iterator it = map.begin(); it != map.end(); ++it) {
+    for (auto it = map.begin(); it != map.end(); ++it) {
         datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         bool b1 = obj->add("group", it->first);
         bool b2 = obj->add("reduction", it->second);

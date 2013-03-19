@@ -87,17 +87,7 @@ public:
         return true;
     }
 
-    static void assert_key_in_range(const btree_key_t *k, const btree_key_t *left_excl, const btree_key_t *right_incl) {
-        if (!key_in_range(k, left_excl, right_incl)) {
-            debugf("Assert key in range failing:\n");
-            if (left_excl) {
-                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", left_excl->size, left_excl->size, left_excl->size, left_excl->contents, k->size, k->size, k->size, k->contents);
-            }
-            if (right_incl) {
-                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", right_incl->size, right_incl->size, right_incl->size, right_incl->contents, k->size, k->size, k->size, k->contents);
-            }
-        }
-
+    static void assert_key_in_range(DEBUG_VAR const btree_key_t *k, DEBUG_VAR const btree_key_t *left_excl, DEBUG_VAR const btree_key_t *right_incl) {
         rassert(key_in_range(k, left_excl, right_incl));
     }
 

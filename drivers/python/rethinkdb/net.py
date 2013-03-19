@@ -136,14 +136,19 @@ class Connection(object):
         if len(response_header) == 0:
             raise RqlDriverError("Connection is closed.")
 
+        # The first 4 bytes give the expected length of this response
         (response_len,) = struct.unpack("<L", response_header)
-        response_protobuf = self.socket.recv(response_len)
-        if len(response_protobuf) == 0:
-            raise RqlDriverError("Connection is closed.")
+
+        response_buf = ''
+        while len(response_buf) < response_len:
+            chunk = self.socket.recv(response_len - len(response_buf))
+            if chunk == '':
+                raise RqlDriverError("Connection is broken.")
+            response_buf += chunk
 
         # Construct response
         response = p.Response()
-        response.ParseFromString(response_protobuf)
+        response.ParseFromString(response_buf)
 
         # Error responses
         if response.type is p.Response.RUNTIME_ERROR:

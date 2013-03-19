@@ -12,6 +12,8 @@
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
 
+UNAME := $(shell uname)
+
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
 GTEST_DIR = ..
@@ -20,10 +22,12 @@ GTEST_DIR = ..
 USER_DIR = ../samples
 
 # Flags passed to the preprocessor.
-CPPFLAGS += -I$(GTEST_DIR)/include
+# Set Google Test's header directory as a system directory, such that
+# the compiler doesn't generate warnings in Google Test headers.
+CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra
+CXXFLAGS += -g -Wall -Wextra -Wno-missing-field-initializers -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -37,6 +41,10 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 QUIET = @
 
 ARFLAGS := rc
+
+ifeq ($(UNAME),Darwin)
+CXXFLAGS += -stdlib=libc++
+endif
 
 # House-keeping build targets.
 

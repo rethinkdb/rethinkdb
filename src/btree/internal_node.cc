@@ -348,24 +348,6 @@ int nodecmp(const internal_node_t *node1, const internal_node_t *node2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
-void print(const internal_node_t *node) {
-    int freespace = node->frontmost_offset - (sizeof(internal_node_t) + (node->npairs + 1) * sizeof(*node->pair_offsets) + sizeof(btree_internal_pair) + MAX_KEY_SIZE);
-    printf("Free space in node: %d\n", freespace);
-    for (int i = 0; i < node->npairs; i++) {
-        const btree_internal_pair *pair = get_pair_by_index(node, i);
-        printf("|\t");
-        pair->key.print();
-        printf("\t");
-    }
-    printf("|\n");
-    for (int i = 0; i < node->npairs; i++) {
-        printf("|\t");
-        printf(".");
-        printf("\t");
-    }
-    printf("|\n");
-}
-
 namespace impl {
 
 size_t pair_size_with_key(const btree_key_t *key) {

@@ -181,16 +181,16 @@ __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
 
 void mcheck_init(void) {
 #ifdef MCHECK_PEDANTIC
-    debugf("*** MCHECK_PEDANTIC INITIALIZING ***\n");
+    logINF("*** MCHECK_PEDANTIC INITIALIZING ***\n");
     mcheck_pedantic(mcheck_abortfunc);
 #else
-    debugf("*** MCHECK INITIALIZING ***\n");
+    logINF("*** MCHECK INITIALIZING ***\n");
     mcheck(mcheck_abortfunc);
 #endif  // MCHECK_PEDANTIC
 }
 
 void mcheck_all(void) {
-    debugf("*** MCHECK_CHECK_ALL ***\n");
+    logINF("*** MCHECK_CHECK_ALL ***\n");
     mcheck_check_all();
 }
 #endif  // MCHECK

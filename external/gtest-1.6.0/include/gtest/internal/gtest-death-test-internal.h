@@ -127,11 +127,11 @@ class GTEST_API_ DeathTest {
   // the last death test.
   static const char* LastMessage();
 
-  static void set_last_death_test_message(const String& message);
+  static void set_last_death_test_message(const std::string& message);
 
  private:
   // A string containing a description of the outcome of the last death test.
-  static String last_death_test_message_;
+  static std::string last_death_test_message_;
 
   GTEST_DISALLOW_COPY_AND_ASSIGN_(DeathTest);
 };
@@ -217,12 +217,23 @@ GTEST_API_ bool ExitedUnsuccessfully(int exit_status);
 // The symbol "fail" here expands to something into which a message
 // can be streamed.
 
+// This macro is for implementing ASSERT/EXPECT_DEBUG_DEATH when compiled in
+// NDEBUG mode. In this case we need the statements to be executed, the regex is
+// ignored, and the macro must accept a streamed message even though the message
+// is never printed.
+# define GTEST_EXECUTE_STATEMENT_(statement, regex) \
+  GTEST_AMBIGUOUS_ELSE_BLOCKER_ \
+  if (::testing::internal::AlwaysTrue()) { \
+     GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
+  } else \
+    ::testing::Message()
+
 // A class representing the parsed contents of the
 // --gtest_internal_run_death_test flag, as it existed when
 // RUN_ALL_TESTS was called.
 class InternalRunDeathTestFlag {
  public:
-  InternalRunDeathTestFlag(const String& a_file,
+  InternalRunDeathTestFlag(const std::string& a_file,
                            int a_line,
                            int an_index,
                            int a_write_fd)
@@ -234,13 +245,13 @@ class InternalRunDeathTestFlag {
       posix::Close(write_fd_);
   }
 
-  String file() const { return file_; }
+  const std::string& file() const { return file_; }
   int line() const { return line_; }
   int index() const { return index_; }
   int write_fd() const { return write_fd_; }
 
  private:
-  String file_;
+  std::string file_;
   int line_;
   int index_;
   int write_fd_;
