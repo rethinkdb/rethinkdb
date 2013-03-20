@@ -8,7 +8,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/ptr_bag.hpp"
-#include "containers/scoped.hpp"
+#include "containers/counted.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/err.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -36,15 +36,13 @@ public:
     val_t *new_val(const datum_t *d);
     val_t *new_val(datum_t *d, table_t *t); // shadow vvv
     val_t *new_val(const datum_t *d, table_t *t);
-    val_t *new_val(scoped_ptr_t<datum_stream_t> &&s);
-    val_t *new_val(table_t *t, datum_stream_t *s);
+    val_t *new_val(counted_t<datum_stream_t> s);
+    val_t *new_val(table_t *t, counted_t<datum_stream_t> s);
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
     val_t *new_val_bool(bool b);
 
-    template<class T>
-    val_t *new_val(T *t) { return new_val(static_cast<datum_stream_t *>(t)); }
     template<class T>
     val_t *new_val(T t) { return new_val(new datum_t(t)); }
 

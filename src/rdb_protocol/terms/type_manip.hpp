@@ -178,11 +178,10 @@ private:
         if (opaque_start_type.is_convertible(val_t::type_t::SEQUENCE)
             && !(start_supertype == val_t::type_t::DATUM
                  && start_type != R_ARRAY_TYPE)) {
-            datum_stream_t *ds;
+            counted_t<datum_stream_t> ds;
             try {
                 ds = val->as_seq();
             } catch (const any_ql_exc_t &e) {
-
                 rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();

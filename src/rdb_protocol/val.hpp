@@ -23,7 +23,7 @@ class table_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
             bool use_outdated, const pb_rcheckable_t *src);
-    scoped_ptr_t<datum_stream_t> as_datum_stream();
+    counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);
@@ -106,17 +106,17 @@ public:
 
     val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
     val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(scoped_ptr_t<datum_stream_t> &&_sequence, const term_t *_parent, env_t *_env);
+    val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, datum_stream_t *_sequence,
+    val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
           const term_t *_parent, env_t *_env);
     val_t(uuid_u _db, const term_t *_parent, env_t *_env);
     val_t(func_t *_func, const term_t *_parent, env_t *_env);
 
     uuid_u as_db();
     table_t *as_table();
-    std::pair<table_t *, datum_stream_t *> as_selection();
-    datum_stream_t *as_seq();
+    std::pair<table_t *, counted_t<datum_stream_t> > as_selection();
+    counted_t<datum_stream_t> as_seq();
     std::pair<table_t *, const datum_t *> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
@@ -144,30 +144,21 @@ public:
         }
     }
 
-    // RSI This exposes a private thing.
-    const pb_rcheckable_t *get_parent() const { return parent; }
-
-    // RSI This exposes a private thing.
-    datum_stream_t *get_sequence() const { return sequence; }
-
-    // RSI make private.
+private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
-private:
     const term_t *parent;
     env_t *env;
 
     type_t type;
     uuid_u db;
     table_t *table;
-    datum_stream_t *sequence;
+    counted_t<datum_stream_t> sequence;
     const datum_t *datum;
     func_t *func;
 
     DISABLE_COPYING(val_t);
 };
-
-datum_stream_t *as_datum_stream(val_t *value, env_t *env);
 
 
 }  //namespace ql

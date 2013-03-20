@@ -39,7 +39,7 @@ public:
 
     // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    counted_t(const counted_t<U> &&movee) : p_(movee.p_) {
+    counted_t(counted_t<U> &&movee) : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
@@ -127,9 +127,9 @@ counted_t<T> make_counted(Args... args) {
 template <class> class single_threaded_shared_mixin_t;
 
 template <class T>
-inline void counted_t_add_ref(single_threaded_shared_mixin_t<T> *p);
+inline void counted_t_add_ref(const single_threaded_shared_mixin_t<T> *p);
 template <class T>
-inline void counted_t_release(single_threaded_shared_mixin_t<T> *p);
+inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p);
 template <class T>
 inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p);
 
@@ -139,11 +139,16 @@ public:
     single_threaded_shared_mixin_t() : refcount_(0) { }
 
 protected:
+    counted_t<T> counted_from_this() {
+        rassert(refcount_ > 0);
+        return counted_t<T>(static_cast<T *>(this));
+    }
+
     ~single_threaded_shared_mixin_t() { }
 
 private:
-    friend void counted_t_add_ref<T>(single_threaded_shared_mixin_t<T> *p);
-    friend void counted_t_release<T>(single_threaded_shared_mixin_t<T> *p);
+    friend void counted_t_add_ref<T>(const single_threaded_shared_mixin_t<T> *p);
+    friend void counted_t_release<T>(const single_threaded_shared_mixin_t<T> *p);
     friend intptr_t counted_t_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
 
     mutable intptr_t refcount_;
@@ -161,7 +166,7 @@ inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
-        delete static_cast<T *>(p);
+        delete static_cast<T *>(const_cast<single_threaded_shared_mixin_t<T> *>(p));
     }
 }
 

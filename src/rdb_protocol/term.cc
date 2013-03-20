@@ -267,11 +267,11 @@ val_t *term_t::new_val(const datum_t *d, table_t *t) {
     return env->new_val(d, t, this);
 }
 
-val_t *term_t::new_val(scoped_ptr_t<datum_stream_t> &&s) {
-    return env->add_ptr(new val_t(std::move(s), this, env));
+val_t *term_t::new_val(counted_t<datum_stream_t> s) {
+    return env->add_ptr(new val_t(s, this, env));
 }
-val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
-    return env->new_val(d, s, this);
+val_t *term_t::new_val(table_t *d, counted_t<datum_stream_t> s) {
+    return env->add_ptr(new val_t(d, s, this, env));
 }
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }

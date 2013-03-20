@@ -53,7 +53,7 @@ private:
         val_t *v0 = arg(0), *v1 = arg(1);
         func_t *f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, datum_stream_t *> ts = v0->as_selection();
+            std::pair<table_t *, counted_t<datum_stream_t> > ts = v0->as_selection();
             return new_val(ts.first, ts.second->filter(f));
         } else {
             return new_val(v0->as_seq()->filter(f));
@@ -99,14 +99,14 @@ private:
     }
 
     virtual val_t *eval_impl() {
-        std::pair<table_t *, datum_stream_t *> sel = arg(0)->as_selection();
+        std::pair<table_t *, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
         val_t *lb = optarg("left_bound", 0);
         val_t *rb = optarg("right_bound", 0);
         if (!lb && !rb) return new_val(sel.first, sel.second);
 
         table_t *tbl = sel.first;
         const std::string &pk = tbl->get_pkey();
-        datum_stream_t *seq = sel.second;
+        counted_t<datum_stream_t> seq = sel.second;
 
         if (!filter_func.has()) {
             filter_func.init(new Term());
@@ -133,9 +133,12 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual val_t *eval_impl() {
-        std::vector<datum_stream_t *> streams;
-        for (size_t i = 0; i < num_args(); ++i) streams.push_back(arg(i)->as_seq());
-        return new_val(new union_datum_stream_t(env, streams, this));
+        std::vector<counted_t<datum_stream_t> > streams;
+        for (size_t i = 0; i < num_args(); ++i) {
+            streams.push_back(arg(i)->as_seq());
+        }
+        counted_t<datum_stream_t> union_stream(new union_datum_stream_t(env, streams, this));
+        return new_val(union_stream);
     }
     virtual const char *name() const { return "union"; }
 };

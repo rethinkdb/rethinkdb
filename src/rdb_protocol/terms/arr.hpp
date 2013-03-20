@@ -50,7 +50,7 @@ private:
             size_t real_n = canonicalize(this, n, arr->size());
             return new_val(arr->el(real_n));
         } else {
-            datum_stream_t *s = v->as_seq();
+            counted_t<datum_stream_t> s = v->as_seq();
             rcheck(n >= -1, strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             const datum_t *last_d = 0;
@@ -101,10 +101,10 @@ private:
             if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
                 t = v->as_selection().first;
             }
-            datum_stream_t *seq = v->as_seq();
+            counted_t<datum_stream_t> seq = v->as_seq();
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
-            datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
+            counted_t<datum_stream_t> new_ds = seq->slice(fake_l, fake_r);
             return t ? new_val(t, new_ds) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
@@ -123,10 +123,10 @@ private:
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             t = v->as_selection().first;
         }
-        datum_stream_t *ds = v->as_seq();
+        counted_t<datum_stream_t> ds = v->as_seq();
         int32_t r = arg(1)->as_int<int32_t>();
         rcheck(r >= 0, strprintf("LIMIT takes a non-negative argument (got %d)", r));
-        datum_stream_t *new_ds;
+        counted_t<datum_stream_t> new_ds;
         if (r == 0) {
             new_ds = ds->slice(1, 0); // (0, -1) has a different meaning
         } else {

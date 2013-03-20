@@ -10,11 +10,11 @@
 namespace ql {
 
 // DATUM_STREAM_T
-datum_stream_t *datum_stream_t::slice(size_t l, size_t r) {
-    return env->add_ptr(new slice_datum_stream_t(env, l, r, this));
+counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
+    return make_counted<slice_datum_stream_t>(env, l, r, this->counted_from_this());
 }
-datum_stream_t *datum_stream_t::zip() {
-    return env->add_ptr(new zip_datum_stream_t(env, this));
+counted_t<datum_stream_t> datum_stream_t::zip() {
+    return make_counted<zip_datum_stream_t>(env, this->counted_from_this());
 }
 
 const datum_t *datum_stream_t::next() {
@@ -70,14 +70,14 @@ const datum_t *eager_datum_stream_t::gmr(
     return egct.finalize(map.to_arr(env));
 }
 
-datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
-    return env->add_ptr(new filter_datum_stream_t(env, f, this));
+counted_t<datum_stream_t> eager_datum_stream_t::filter(func_t *f) {
+    return make_counted<filter_datum_stream_t>(env, f, this->counted_from_this());
 }
-datum_stream_t *eager_datum_stream_t::map(func_t *f) {
-    return env->add_ptr(new map_datum_stream_t(env, f, this));
+counted_t<datum_stream_t> eager_datum_stream_t::map(func_t *f) {
+    return make_counted<map_datum_stream_t>(env, f, this->counted_from_this());
 }
-datum_stream_t *eager_datum_stream_t::concatmap(func_t *f) {
-    return env->add_ptr(new concatmap_datum_stream_t(env, f, this));
+counted_t<datum_stream_t> eager_datum_stream_t::concatmap(func_t *f) {
+    return make_counted<concatmap_datum_stream_t>(env, f, this->counted_from_this());
 }
 
 const datum_t *eager_datum_stream_t::as_array() {
@@ -96,28 +96,26 @@ lazy_datum_stream_t::lazy_datum_stream_t(
                       env->get_all_optargs(), use_outdated))
 { }
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
-    : datum_stream_t(src->env, src) {
-    *this = *src;
-}
+    : datum_stream_t(src->env, src), json_stream(src->json_stream), trans(src->trans), terminal(src->terminal), _s(src->_s), _b(src->_b), shard_data(src->shard_data) { }
 
-datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+counted_t<datum_stream_t> lazy_datum_stream_t::map(func_t *f) {
+    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
-    return out;
+    return counted_t<datum_stream_t>(out.release());
 }
-datum_stream_t *lazy_datum_stream_t::concatmap(func_t *f) {
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(func_t *f) {
+    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans
         = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
-    return out;
+    return counted_t<datum_stream_t>(out.release());
 }
-datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
-    lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
+counted_t<datum_stream_t> lazy_datum_stream_t::filter(func_t *f) {
+    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
-    return out;
+    return counted_t<datum_stream_t>(out.release());
 }
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
@@ -218,7 +216,7 @@ const datum_t *concatmap_datum_stream_t::next_impl() {
             subsrc = f->call(arg)->as_seq();
         }
         if (const datum_t *retval = subsrc->next()) return retval;
-        subsrc = 0;
+        subsrc.reset();
     }
 }
 
@@ -238,8 +236,8 @@ const datum_t *filter_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+    env_t *_env, size_t _l, size_t _r, counted_t<datum_stream_t> _src)
+    : eager_datum_stream_t(_env, _src.get()), env(_env), ind(0), l(_l), r(_r), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
     if (l > r || ind > r) return 0;
     while (ind++ < l) {
@@ -250,8 +248,8 @@ const datum_t *slice_datum_stream_t::next_impl() {
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), src(_src) { }
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, counted_t<datum_stream_t> _src)
+    : eager_datum_stream_t(_env, _src.get()), env(_env), src(_src) { }
 const datum_t *zip_datum_stream_t::next_impl() {
     const datum_t *d = src->next();
     if (!d) return 0;

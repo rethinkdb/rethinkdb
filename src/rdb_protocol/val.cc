@@ -119,8 +119,8 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-scoped_ptr_t<datum_stream_t> table_t::as_datum_stream() {
-    return make_scoped_ptr<lazy_datum_stream_t>(env, use_outdated, access.get(), this);
+counted_t<datum_stream_t> table_t::as_datum_stream() {
+    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(), this);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -188,29 +188,29 @@ val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_
     guarantee(table);
     guarantee(datum);
 }
-val_t::val_t(scoped_ptr_t<datum_stream_t> &&_sequence, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SEQUENCE),
       table(NULL),
-      sequence(env->add_ptr(_sequence.release())),
+      sequence(_sequence),
       datum(NULL),
       func(NULL) {
     guarantee(sequence);
     // Some streams are really arrays in disguise.
     if ((datum = sequence->as_array())) {
-        sequence = NULL;
+        sequence.reset();
         type = type_t::DATUM;
     }
 }
 
-val_t::val_t(table_t *_table, datum_stream_t *_sequence,
+val_t::val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
              const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SELECTION),
       table(env->add_ptr(_table)),
-      sequence(env->add_ptr(_sequence)),
+      sequence(_sequence),
       datum(0),
       func(0) {
     guarantee(table);
@@ -263,16 +263,16 @@ table_t *val_t::as_table() {
     return table;
 }
 
-datum_stream_t *val_t::as_seq() {
+counted_t<datum_stream_t> val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
         if (!sequence) {
-            sequence = env->add_ptr(table->as_datum_stream().release());
+            sequence = table->as_datum_stream();
         }
     } else if (type.raw_type == type_t::DATUM) {
         if (!sequence) {
-            sequence = env->add_ptr(datum->as_datum_stream(env, parent).release());
+            sequence.reset(datum->as_datum_stream(env, parent).release());
         }
     } else {
         rcheck_literal_type(type_t::SEQUENCE);
@@ -280,7 +280,7 @@ datum_stream_t *val_t::as_seq() {
     return sequence;
 }
 
-std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
+std::pair<table_t *, counted_t<datum_stream_t> > val_t::as_selection() {
 
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -364,20 +364,6 @@ void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
     rcheck(type.raw_type == expected_raw_type,
            strprintf("Expected type %s but found %s:\n%s",
                      type_t(expected_raw_type).name(), type.name(), print().c_str()));
-}
-
-datum_stream_t *as_datum_stream(val_t *value, env_t *env) {
-    const val_t::type_t::raw_type_t raw_type = value->get_type().get_raw_type();
-    if (raw_type == val_t::type_t::SEQUENCE || raw_type == val_t::type_t::SELECTION) {
-        return value->get_sequence();
-    } else if (raw_type == val_t::type_t::TABLE) {
-        return env->add_ptr(value->as_table()->as_datum_stream().release());
-    } else if (raw_type == val_t::type_t::DATUM) {
-        return env->add_ptr(value->as_datum()->as_datum_stream(env, value->get_parent()).release());
-    } else {
-        value->rcheck_literal_type(val_t::type_t::SEQUENCE);
-        unreachable();
-    }
 }
 
 } //namespace ql

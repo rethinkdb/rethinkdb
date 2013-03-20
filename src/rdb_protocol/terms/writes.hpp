@@ -89,7 +89,7 @@ private:
         }
 
         if (!done) {
-            datum_stream_t *ds = v1->as_seq();
+            counted_t<datum_stream_t> ds = v1->as_seq();
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
@@ -135,9 +135,9 @@ private:
             std::pair<table_t *, const datum_t *> tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
         }
-        std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
+        std::pair<table_t *, counted_t<datum_stream_t> > tblrows = v0->as_selection();
         table_t *tbl = tblrows.first;
-        datum_stream_t *ds = tblrows.second;
+        counted_t<datum_stream_t> ds = tblrows.second;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *d = ds->next()) {
             stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
@@ -157,7 +157,7 @@ private:
     virtual val_t *eval_impl() {
         const char *fail_msg = "FOREACH expects one or more write queries.";
 
-        datum_stream_t *ds = arg(0)->as_seq();
+        counted_t<datum_stream_t> ds = arg(0)->as_seq();
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         while (const datum_t *row = ds->next()) {
             val_t *v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);

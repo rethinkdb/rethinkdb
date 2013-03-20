@@ -10,7 +10,7 @@ bool stream_cache2_t::contains(int64_t key) {
 
 void stream_cache2_t::insert(Query *q, int64_t key,
                              scoped_ptr_t<env_t> *val_env,
-                             datum_stream_t *val_stream) {
+                             counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res =
         streams.insert(key, new entry_t(time(0), val_env, val_stream, q));
@@ -75,7 +75,7 @@ bool valid_chunk_size(int64_t chunk_size) {
 bool valid_age(int64_t age) { return 0 <= age; }
 
 stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
-                                 datum_stream_t *_stream, UNUSED Query *q)
+                                  counted_t<datum_stream_t> _stream, UNUSED Query *q)
     : last_activity(_last_activity), env(env_ptr->release() /*!!!*/), stream(_stream),
       max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE)
 {
