@@ -2,7 +2,7 @@
 #ifndef CONTAINERS_DATA_BUFFER_HPP_
 #define CONTAINERS_DATA_BUFFER_HPP_
 
-#include "containers/intrusive_ptr.hpp"
+#include "containers/counted.hpp"
 #include "errors.hpp"
 
 class append_only_printf_buffer_t;
@@ -13,8 +13,8 @@ private:
     size_t size_;
     char bytes_[];
 
-    friend void intrusive_ptr_add_ref(data_buffer_t *buffer);
-    friend void intrusive_ptr_release(data_buffer_t *buffer);
+    friend void counted_t_add_ref(data_buffer_t *buffer);
+    friend void counted_t_release(data_buffer_t *buffer);
 
     DISABLE_COPYING(data_buffer_t);
 
@@ -24,19 +24,19 @@ public:
         free(p);
     }
 
-    static intrusive_ptr_t<data_buffer_t> create(int64_t size);
+    static counted_t<data_buffer_t> create(int64_t size);
 
     char *buf() { return bytes_; }
     const char *buf() const { return bytes_; }
     int64_t size() const { return size_; }
 };
 
-inline void intrusive_ptr_add_ref(data_buffer_t *buffer) {
+inline void counted_t_add_ref(data_buffer_t *buffer) {
     DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&buffer->ref_count_, 1);
     rassert(res > 0);
 }
 
-inline void intrusive_ptr_release(data_buffer_t *buffer) {
+inline void counted_t_release(data_buffer_t *buffer) {
     const intptr_t res = __sync_sub_and_fetch(&buffer->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
@@ -44,7 +44,7 @@ inline void intrusive_ptr_release(data_buffer_t *buffer) {
     }
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const intrusive_ptr_t<data_buffer_t>& ptr);
+void debug_print(append_only_printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr);
 
 
 

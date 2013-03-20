@@ -12,7 +12,7 @@
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
-#include "containers/intrusive_ptr.hpp"
+#include "containers/counted.hpp"
 #include "memcached/region.hpp"
 #include "hash_region.hpp"
 #include "utils.hpp"
@@ -40,13 +40,13 @@ struct get_query_t {
 };
 
 struct get_result_t {
-    get_result_t(const intrusive_ptr_t<data_buffer_t>& v, mcflags_t f, cas_t c) :
+    get_result_t(const counted_t<data_buffer_t>& v, mcflags_t f, cas_t c) :
         value(v), flags(f), cas(c) { }
     get_result_t() :
         value(), flags(0), cas(0) { }
 
     // NULL means not found.
-    intrusive_ptr_t<data_buffer_t> value;
+    counted_t<data_buffer_t> value;
 
     mcflags_t flags;
     cas_t cas;
@@ -66,10 +66,10 @@ struct rget_query_t {
 struct key_with_data_buffer_t {
     store_key_t key;
     mcflags_t mcflags;
-    intrusive_ptr_t<data_buffer_t> value_provider;
+    counted_t<data_buffer_t> value_provider;
 
     key_with_data_buffer_t() { }
-    key_with_data_buffer_t(const store_key_t& _key, mcflags_t _mcflags, const intrusive_ptr_t<data_buffer_t>& _value_provider)
+    key_with_data_buffer_t(const store_key_t& _key, mcflags_t _mcflags, const counted_t<data_buffer_t>& _value_provider)
         : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 };
 
@@ -139,7 +139,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    intrusive_ptr_t<data_buffer_t> data;
+    counted_t<data_buffer_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -160,7 +160,7 @@ struct sarc_mutation_t {
 
     sarc_mutation_t() { }
     sarc_mutation_t(const store_key_t& _key,
-                    const intrusive_ptr_t<data_buffer_t>& _data,
+                    const counted_t<data_buffer_t>& _data,
                     mcflags_t _flags,
                     exptime_t _exptime,
                     add_policy_t _add_policy,
@@ -257,10 +257,10 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_kind_t, int8_t, append_prep
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    intrusive_ptr_t<data_buffer_t> data;
+    counted_t<data_buffer_t> data;
 
     append_prepend_mutation_t() { }
-    append_prepend_mutation_t(append_prepend_kind_t _kind, const store_key_t &_key, const intrusive_ptr_t<data_buffer_t> &_data) :
+    append_prepend_mutation_t(append_prepend_kind_t _kind, const store_key_t &_key, const counted_t<data_buffer_t> &_data) :
         kind(_kind), key(_key), data(_data) { }
 };
 

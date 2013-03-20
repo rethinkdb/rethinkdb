@@ -581,7 +581,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          pipeliner_acq_t *pipeliner_acq_raw,
                          storage_command_t sc,
                          store_key_t key,
-                         const intrusive_ptr_t<data_buffer_t>& data,
+                         const counted_t<data_buffer_t>& data,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
@@ -830,7 +830,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     /* Read the data off the socket. For now we always read the data into a buffer. In the
        future we may want to be able to stream the data to its destination. */
-    intrusive_ptr_t<data_buffer_t> dp = data_buffer_t::create(value_size);
+    counted_t<data_buffer_t> dp = data_buffer_t::create(value_size);
     char crlf_buf[2];
     try {
         rh->read(dp->buf(), value_size);

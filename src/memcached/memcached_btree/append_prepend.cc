@@ -6,7 +6,7 @@
 
 struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
 
-    memcached_append_prepend_oper_t(intrusive_ptr_t<data_buffer_t> _data, bool _append)
+    memcached_append_prepend_oper_t(counted_t<data_buffer_t> _data, bool _append)
         : data(_data), append(_append)
     { }
 
@@ -52,11 +52,11 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
 
     append_prepend_result_t result;
 
-    intrusive_ptr_t<data_buffer_t> data;
+    counted_t<data_buffer_t> data;
     bool append;   // true = append, false = prepend
 };
 
-append_prepend_result_t memcached_append_prepend(const store_key_t &key, btree_slice_t *slice, const intrusive_ptr_t<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
+append_prepend_result_t memcached_append_prepend(const store_key_t &key, btree_slice_t *slice, const counted_t<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
     memcached_append_prepend_oper_t oper(data, append);
     run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;

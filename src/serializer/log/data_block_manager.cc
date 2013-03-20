@@ -185,8 +185,8 @@ public:
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                intrusive_ptr_t<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
-                intrusive_ptr_t<standard_block_token_t> token = to_standard_block_token(block_id, ls_token);
+                counted_t<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
+                counted_t<standard_block_token_t> token = to_standard_block_token(block_id, ls_token);
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
@@ -406,7 +406,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         // correctly "alive" when we write it.  (We can just say "hey,
         // initialize the t_array bit to be set.")
 
-        std::vector<intrusive_ptr_t<ls_block_token_pointee_t> > block_tokens;
+        std::vector<counted_t<ls_block_token_pointee_t> > block_tokens;
         block_tokens.reserve(num_writes);
 
         {
@@ -449,7 +449,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 if (parent->gc_state.current_entry->i_array[block_id]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    intrusive_ptr_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    counted_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
                     index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
                 }
 

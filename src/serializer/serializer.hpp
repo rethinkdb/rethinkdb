@@ -15,11 +15,11 @@
 struct index_write_op_t {
     block_id_t block_id;
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
-    boost::optional<intrusive_ptr_t<standard_block_token_t> > token;
+    boost::optional<counted_t<standard_block_token_t> > token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 
     explicit index_write_op_t(block_id_t _block_id,
-                              boost::optional<intrusive_ptr_t<standard_block_token_t> > _token = boost::none,
+                              boost::optional<counted_t<standard_block_token_t> > _token = boost::none,
                               boost::optional<repli_timestamp_t> _recency = boost::none)
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
@@ -60,10 +60,10 @@ public:
 
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
+    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -86,14 +86,14 @@ public:
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
-    virtual intrusive_ptr_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
+    virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     /* Non-blocking variants */
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
-    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
     virtual block_size_t get_block_size() const = 0;
@@ -109,7 +109,7 @@ private:
 // The do_write interface is now obvious helper functions
 
 struct serializer_write_launched_callback_t {
-    virtual void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& token) = 0;
+    virtual void on_write_launched(const counted_t<standard_block_token_t>& token) = 0;
     virtual ~serializer_write_launched_callback_t() {}
 };
 struct serializer_write_t {
@@ -150,11 +150,11 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
 }
 
 template <class serializer_type>
-intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
+counted_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
+    counted_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
     cb.wait();
     return result;
 

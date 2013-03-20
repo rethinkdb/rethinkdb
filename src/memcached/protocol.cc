@@ -43,7 +43,7 @@ typedef memcached_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 const std::string memcached_protocol_t::protocol_name("memcached");
 
-write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
+write_message_t &operator<<(write_message_t &msg, const counted_t<data_buffer_t> &buf) {
     if (buf) {
         bool exists = true;
         msg << exists;
@@ -57,7 +57,7 @@ write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buf
     return msg;
 }
 
-archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
+archive_result_t deserialize(read_stream_t *s, counted_t<data_buffer_t> *buf) {
     bool exists;
     archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }

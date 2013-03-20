@@ -9,7 +9,7 @@
 class superblock_t;
 
 set_result_t memcached_set(const store_key_t &key, btree_slice_t *slice,
-                       const intrusive_ptr_t<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
+                       const counted_t<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
                        cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock);

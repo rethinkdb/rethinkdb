@@ -130,7 +130,7 @@ public:
         out->init(new mock_cache_account_t());
     }
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     bool contains_block(block_id_t id);
 

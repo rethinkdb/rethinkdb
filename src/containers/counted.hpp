@@ -1,6 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#ifndef CONTAINERS_INTRUSIVE_PTR_HPP_
-#define CONTAINERS_INTRUSIVE_PTR_HPP_
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef CONTAINERS_COUNTED_HPP_
+#define CONTAINERS_COUNTED_HPP_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -9,75 +9,75 @@
 
 #include "errors.hpp"
 
-// Yes, this is a clone of boost::intrusive_ptr.  This will probably
+// Yes, this is a clone of boost::counted_t.  This will probably
 // not be the case in the future.
 
 // Now it supports .unique(), and in order to use it, your type needs
-// to provide an intrusive_ptr_use_count implementation.
+// to provide an counted_t_use_count implementation.
 
 template <class T>
-class intrusive_ptr_t {
+class counted_t {
 public:
-    intrusive_ptr_t() : p_(NULL) { }
-    explicit intrusive_ptr_t(T *p) : p_(p) {
-        if (p_) { intrusive_ptr_add_ref(p_); }
+    counted_t() : p_(NULL) { }
+    explicit counted_t(T *p) : p_(p) {
+        if (p_) { counted_t_add_ref(p_); }
     }
 
-    intrusive_ptr_t(const intrusive_ptr_t &copyee) : p_(copyee.p_) {
-        if (p_) { intrusive_ptr_add_ref(p_); }
+    counted_t(const counted_t &copyee) : p_(copyee.p_) {
+        if (p_) { counted_t_add_ref(p_); }
     }
 
     // TODO: Add noexcept on versions of compilers that support it.  noexcept is
     // good to have because types like std::vectors use it to see whether to
     // call the copy constructor or move constructor.
-    intrusive_ptr_t(intrusive_ptr_t &&movee) : p_(movee.p_) {
+    counted_t(counted_t &&movee) : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
     // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    intrusive_ptr_t(const intrusive_ptr_t<U> &&movee) : p_(movee.p_) {
+    counted_t(const counted_t<U> &&movee) : p_(movee.p_) {
         movee.p_ = NULL;
     }
 
-    ~intrusive_ptr_t() {
-        if (p_) { intrusive_ptr_release(p_); }
+    ~counted_t() {
+        if (p_) { counted_t_release(p_); }
     }
 
-    void swap(intrusive_ptr_t &other) {
+    void swap(counted_t &other) {
         T *tmp = p_;
         p_ = other.p_;
         other.p_ = tmp;
     }
 
     // TODO: Add noexcept on versions of compilers that support it.
-    intrusive_ptr_t &operator=(intrusive_ptr_t &&other) {
-        intrusive_ptr_t tmp(std::move(other));
+    counted_t &operator=(counted_t &&other) {
+        counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
     }
 
     // TODO: Add noexcept on versions of compilers that support it.
     template <class U>
-    intrusive_ptr_t &operator=(intrusive_ptr_t<U> &&other) {
-        intrusive_ptr_t tmp(std::move(other));
+    counted_t &operator=(counted_t<U> &&other) {
+        counted_t tmp(std::move(other));
         swap(tmp);
         return *this;
     }
 
-    intrusive_ptr_t &operator=(const intrusive_ptr_t &other) {
-        intrusive_ptr_t tmp(other);
+    counted_t &operator=(const counted_t &other) {
+        counted_t tmp(other);
         swap(tmp);
         return *this;
     }
 
     void reset() {
-        intrusive_ptr_t tmp;
+        counted_t tmp;
         swap(tmp);
     }
 
     void reset(T *other) {
-        intrusive_ptr_t tmp(other);
+        counted_t tmp(other);
         swap(tmp);  // NOLINT
     }
 
@@ -98,7 +98,7 @@ public:
     }
 
     bool unique() const {
-        return intrusive_ptr_use_count(p_) == 1;
+        return counted_t_use_count(p_) == 1;
     }
 
     class hidden_t {
@@ -107,7 +107,7 @@ public:
     typedef void booleanesque_t(hidden_t);
 
     operator booleanesque_t*() const {
-        return p_ ? &intrusive_ptr_t<T>::dummy_method : 0;
+        return p_ ? &counted_t<T>::dummy_method : 0;
     }
 
 private:
@@ -119,11 +119,11 @@ private:
 template <class> class single_threaded_shared_mixin_t;
 
 template <class T>
-inline void intrusive_ptr_add_ref(single_threaded_shared_mixin_t<T> *p);
+inline void counted_t_add_ref(single_threaded_shared_mixin_t<T> *p);
 template <class T>
-inline void intrusive_ptr_release(single_threaded_shared_mixin_t<T> *p);
+inline void counted_t_release(single_threaded_shared_mixin_t<T> *p);
 template <class T>
-inline intptr_t intrusive_ptr_use_count(const single_threaded_shared_mixin_t<T> *p);
+inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p);
 
 template <class T>
 class single_threaded_shared_mixin_t {
@@ -134,22 +134,22 @@ protected:
     ~single_threaded_shared_mixin_t() { }
 
 private:
-    friend void intrusive_ptr_add_ref<T>(single_threaded_shared_mixin_t<T> *p);
-    friend void intrusive_ptr_release<T>(single_threaded_shared_mixin_t<T> *p);
-    friend intptr_t intrusive_ptr_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
+    friend void counted_t_add_ref<T>(single_threaded_shared_mixin_t<T> *p);
+    friend void counted_t_release<T>(single_threaded_shared_mixin_t<T> *p);
+    friend intptr_t counted_t_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
 
     intptr_t refcount_;
     DISABLE_COPYING(single_threaded_shared_mixin_t);
 };
 
 template <class T>
-inline void intrusive_ptr_add_ref(single_threaded_shared_mixin_t<T> *p) {
+inline void counted_t_add_ref(single_threaded_shared_mixin_t<T> *p) {
     p->refcount_ += 1;
     rassert(p->refcount_ > 0);
 }
 
 template <class T>
-inline void intrusive_ptr_release(single_threaded_shared_mixin_t<T> *p) {
+inline void counted_t_release(single_threaded_shared_mixin_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
@@ -158,7 +158,7 @@ inline void intrusive_ptr_release(single_threaded_shared_mixin_t<T> *p) {
 }
 
 template <class T>
-inline intptr_t intrusive_ptr_use_count(const single_threaded_shared_mixin_t<T> *p) {
+inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p) {
     return p->refcount_;
 }
 
@@ -171,11 +171,11 @@ inline intptr_t intrusive_ptr_use_count(const single_threaded_shared_mixin_t<T> 
 template <class> class slow_shared_mixin_t;
 
 template <class T>
-inline void intrusive_ptr_add_ref(slow_shared_mixin_t<T> *p);
+inline void counted_t_add_ref(slow_shared_mixin_t<T> *p);
 template <class T>
-inline void intrusive_ptr_release(slow_shared_mixin_t<T> *p);
+inline void counted_t_release(slow_shared_mixin_t<T> *p);
 template <class T>
-inline intptr_t intrusive_ptr_use_count(const slow_shared_mixin_t<T> *p);
+inline intptr_t counted_t_use_count(const slow_shared_mixin_t<T> *p);
 
 template <class T>
 class slow_shared_mixin_t {
@@ -186,22 +186,22 @@ protected:
     ~slow_shared_mixin_t() { }
 
 private:
-    friend void intrusive_ptr_add_ref<T>(slow_shared_mixin_t<T> *p);
-    friend void intrusive_ptr_release<T>(slow_shared_mixin_t<T> *p);
-    friend intptr_t intrusive_ptr_use_count<T>(const slow_shared_mixin_t<T> *p);
+    friend void counted_t_add_ref<T>(slow_shared_mixin_t<T> *p);
+    friend void counted_t_release<T>(slow_shared_mixin_t<T> *p);
+    friend intptr_t counted_t_use_count<T>(const slow_shared_mixin_t<T> *p);
 
     intptr_t refcount_;
     DISABLE_COPYING(slow_shared_mixin_t);
 };
 
 template <class T>
-inline void intrusive_ptr_add_ref(slow_shared_mixin_t<T> *p) {
+inline void counted_t_add_ref(slow_shared_mixin_t<T> *p) {
     DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
     rassert(res > 0);
 }
 
 template <class T>
-inline void intrusive_ptr_release(slow_shared_mixin_t<T> *p) {
+inline void counted_t_release(slow_shared_mixin_t<T> *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
@@ -210,7 +210,7 @@ inline void intrusive_ptr_release(slow_shared_mixin_t<T> *p) {
 }
 
 template <class T>
-inline intptr_t intrusive_ptr_use_count(const slow_shared_mixin_t<T> *p) {
+inline intptr_t counted_t_use_count(const slow_shared_mixin_t<T> *p) {
     // Finally a practical use for volatile.
     intptr_t tmp = static_cast<const volatile intptr_t&>(p->refcount_);
     rassert(tmp > 0);
@@ -218,4 +218,4 @@ inline intptr_t intrusive_ptr_use_count(const slow_shared_mixin_t<T> *p) {
 }
 
 
-#endif  // CONTAINERS_INTRUSIVE_PTR_HPP_
+#endif  // CONTAINERS_COUNTED_HPP_

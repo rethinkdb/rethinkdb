@@ -8,7 +8,7 @@ file_account_t *serializer_t::make_io_account(int priority) {
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -16,7 +16,7 @@ void serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& tok
     cb.wait();
 }
 
-intrusive_ptr_t<standard_block_token_t>
+counted_t<standard_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
 }
@@ -71,7 +71,7 @@ void perform_write(const serializer_write_t *write, serializer_t *ser, file_acco
         op->recency = write->action.update.recency;
     } break;
     case serializer_write_t::DELETE: {
-        op->token = intrusive_ptr_t<standard_block_token_t>();
+        op->token = counted_t<standard_block_token_t>();
         op->recency = repli_timestamp_t::invalid;
     } break;
     case serializer_write_t::TOUCH: {

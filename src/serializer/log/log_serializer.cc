@@ -413,7 +413,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     assert_thread();
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -423,7 +423,7 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
 }
 
 // TODO(sam): block_read can call the callback before it returns. Is this acceptable?
-void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
@@ -431,9 +431,9 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const intrusive_ptr_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
+        my_cb_t(iocallback_t *_cb, const counted_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
         iocallback_t *cb;
-        intrusive_ptr_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
+        counted_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
         log_serializer_stats_t *stats;
     };
@@ -459,15 +459,15 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr_t<ls_block_token_pointee_t>& tok) {
+counted_t<ls_block_token_pointee_t> get_ls_block_token(const counted_t<ls_block_token_pointee_t>& tok) {
     return tok;
 }
 #else
-intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr_t<scs_block_token_t<log_serializer_t> >& tok) {
+counted_t<ls_block_token_pointee_t> get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
     if (tok) {
         return tok->inner_token;
     } else {
-        return intrusive_ptr_t<ls_block_token_pointee_t>();
+        return counted_t<ls_block_token_pointee_t>();
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -496,7 +496,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                intrusive_ptr_t<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
+                counted_t<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
@@ -609,12 +609,12 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     }
 }
 
-intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token(int64_t offset) {
+counted_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token(int64_t offset) {
     assert_thread();
-    return intrusive_ptr_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
+    return counted_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
 }
 
-intrusive_ptr_t<ls_block_token_pointee_t>
+counted_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     // TODO: Implement a duration sampler perfmon for this
@@ -625,7 +625,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     return generate_block_token(offset);
 }
 
-intrusive_ptr_t<ls_block_token_pointee_t>
+counted_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     assert_thread();
     rassert(block_id != NULL_BLOCK_ID, "If this assertion fails, inform Sam and remove the assertion.");
@@ -746,21 +746,21 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
     assert_thread();
     ++stats->pm_serializer_index_reads;
 
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
-        return intrusive_ptr_t<ls_block_token_pointee_t>();
+        return counted_t<ls_block_token_pointee_t>();
     }
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return intrusive_ptr_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
+        return counted_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
     } else {
-        return intrusive_ptr_t<ls_block_token_pointee_t>();
+        return counted_t<ls_block_token_pointee_t>();
     }
 }
 
@@ -928,7 +928,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
@@ -985,10 +985,10 @@ void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
     }
 }
 
-void intrusive_ptr_add_ref(ls_block_token_pointee_t *p) {
+void counted_t_add_ref(ls_block_token_pointee_t *p) {
     adjust_ref(p, 1);
 }
 
-void intrusive_ptr_release(ls_block_token_pointee_t *p) {
+void counted_t_release(ls_block_token_pointee_t *p) {
     adjust_ref(p, -1);
 }

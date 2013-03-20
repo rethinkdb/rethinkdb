@@ -134,16 +134,16 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
 
     bool get_delete_bit(block_id_t id);
-    intrusive_ptr_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
+    counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
 
-    void block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    counted_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    counted_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     block_size_t get_block_size() const;
 
@@ -154,9 +154,9 @@ private:
     bool tokens_exist_for_offset(int64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
-    intrusive_ptr_t<ls_block_token_pointee_t> generate_block_token(int64_t offset);
+    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset);
 
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     struct index_write_context_t {
