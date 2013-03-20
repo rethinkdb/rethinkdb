@@ -19,12 +19,12 @@ contains () {
 
 for path in $dir/tests/*.param; do
     test=`basename $path .param`
-    if contains "$tests" "$test"; then
+    if [[ "$tests" = all ]] || contains "$tests" "$test"; then
         cmd=`cat $path | grep ^TEST_COMMAND | sed 's/^TEST_COMMAND=//' | sed 's/=/ /g'`
         echo $test: $cmd
         ( mkdir $dir-$test
           cd $dir-$test
-          eval "$cmd" > >(tee test.out) 2> >(tee test.err)
+          /usr/bin/time --output test.time bash -c "$cmd" > >(tee test.out) 2> >(tee test.err)
           echo $? > test.code
           cd ..
           rm -rf "$dir/$test"
