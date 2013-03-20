@@ -105,7 +105,7 @@
         },
         {
           "tag": "connect",
-          "description": "Create a new connection to the database server.",
+          "description": "Create a new connection to the database server.<br /><br />If the connection cannot be established, a <code>RqlDriverError</code> exception will be thrown.",
           "parent": "r",
           "returns": "connection",
           "langs": {
@@ -125,7 +125,7 @@
               "examples" : [
                 {
                   "description": "Opens a connection using the default host and port but specifying the default database:",
-                  "code": "conn = r.connect(dbName='heroes')"
+                  "code": "conn = r.connect(db='heroes')"
                 }
               ]
             },
@@ -143,7 +143,7 @@
         },
         {
           "tag": "repl",
-          "description": "Set the default connection to make REPL use easier.",
+          "description": "Set the default connection to make REPL use easier. Allows calling <code>run()</code> without specifying a connection.",
           "parent": "connection",
           "returns": null,
           "langs": {
@@ -172,7 +172,7 @@
         },
         {
           "tag": "close",
-          "description": "Close an open connection.",
+          "description": "Close an open connection. Closing a connection cancels all outstanding requests and frees the memory associated with the open requests.",
           "parent": "connection",
           "returns": null,
           "langs": {
@@ -181,7 +181,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests:",
+                  "description": "Close an open connection:",
                   "code": "conn.close()"
                 }
               ]
@@ -191,7 +191,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests:",
+                  "description": "Close an open connection:",
                   "code": "conn.close()"
                 }
               ]
@@ -201,7 +201,7 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "Close an open connection to cancel outstanding requests and free the memory associated with the open requests:",
+                  "description": "Close an open connection:",
                   "code": "conn.close"
                 }
               ]
@@ -322,7 +322,7 @@
               "body": "conn[, opts]",
               "examples" : [
                 {
-                  "description": "Use the cursor (enumerable) to iterate over the results and print them.",
+                  "description": "Use the cursor (enumerable) to iterate over the results and print them:",
                   "code": "r.table('marvel').run(conn).each{|x| p x}"
                 },
                 {
@@ -422,9 +422,9 @@
       "commands": [
         {
           "tag" : "db_create",
-          "description": "Create a database. A RethinkDB database is a collection of tables, similar to relational databases.",
+          "description": "Create a database. A RethinkDB database is a collection of tables, similar to relational databases.<br /><br />If successful, the operation returns an object: <code>{created: 1}</code>. If a database with the same name already exists the operation throws <code>RqlRuntimeError</code>.",
           "parent": "r",
-          "returns": "query",
+          "returns": "json",
           "langs": {
             "js": {
               "name": "dbCreate",
@@ -432,7 +432,7 @@
               "examples": [
                 {
                   "description": "Create a database named 'superheroes':",
-                  "code": "r.dbCreate('superheroes').run(c)",
+                  "code": "r.dbCreate('superheroes').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -444,7 +444,7 @@
               "examples": [
                 {
                   "description": "Create a database named 'superheroes':",
-                  "code": "r.db_create('superheroes').run(c)"
+                  "code": "r.db_create('superheroes').run(conn)"
                 }
               ]
             },
@@ -454,7 +454,7 @@
               "examples": [
                 {
                   "description": "Create a database named 'superheroes':",
-                  "code": "r.db_create('superheroes').run(c)"
+                  "code": "r.db_create('superheroes').run(conn)"
                 }
               ]
             }
@@ -462,9 +462,9 @@
         },
         {
           "tag": "db_drop",
-          "description": "Drop a database. The database, all its tables, and corresponding data will be deleted.",
+          "description": "Drop a database. The database, all its tables, and corresponding data will be deleted.<br /><br />If successful, the operation returns an object: <code>{dropped: 1}</code>. If the specified database doesn't exist a <code>RqlRuntimeError</code> is thrown.",
           "parent": "r",
-          "returns": "query",
+          "returns": "object",
           "langs": {
             "js": {
               "name": "dbDrop",
@@ -472,7 +472,7 @@
               "examples": [
                 {
                   "description": "Drop a database named 'superheroes':",
-                  "code": "r.dbDrop('superheroes').run(c)",
+                  "code": "r.dbDrop('superheroes').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -484,7 +484,7 @@
               "examples": [
                 {
                   "description": "Drop a database named 'superheroes':",
-                  "code": "r.db_drop('superheroes').run(c)"
+                  "code": "r.db_drop('superheroes').run(conn)"
                 }
               ]
             },
@@ -494,7 +494,7 @@
               "examples": [
                 {
                   "description": "Drop a database named 'superheroes':",
-                  "code": "r.db_drop('superheroes').run(c)"
+                  "code": "r.db_drop('superheroes').run(conn)"
                 }
               ]
             }
@@ -504,7 +504,7 @@
           "tag": "db_list",
           "description": "List all database names in the system.",
           "parent": "r",
-          "returns": "query",
+          "returns": "array",
           "langs": {
             "js": {
               "name": "dbList",
@@ -512,7 +512,7 @@
               "examples": [
                 {
                   "description": "List all databases:",
-                  "code": "r.dbList().run(c)",
+                  "code": "r.dbList().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -524,7 +524,7 @@
               "examples": [
                 {
                   "description": "List all databases:",
-                  "code": "r.db_list().run(c)"
+                  "code": "r.db_list().run(conn)"
                 }
               ]
             },
@@ -535,7 +535,7 @@
               "examples": [
                 {
                   "description": "List all databases:",
-                  "code": "r.db_list.run(c)"
+                  "code": "r.db_list.run(conn)"
                 }
               ]
             }
@@ -550,9 +550,9 @@
       "commands": [
         {
           "tag": "table_create",
-          "description": "Create a table. A RethinkDB table is a collection of JSON documents.",
+          "description": "Create a table. A RethinkDB table is a collection of JSON documents.<br /><br />If successful, the operation returns an object: <code>{created: 1}</code>.  If a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.",
           "parent": "db",
-          "returns": "query",
+          "returns": "json",
           "langs": {
             "js": {
               "name": "tableCreate",
@@ -560,13 +560,13 @@
               "examples": [
                 {
                   "description": "Create a table named 'dc-universe' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
-                  "code": "r.db('test').tableCreate('dc-universe').run(c)",
+                  "code": "r.db('test').tableCreate('dc-universe').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Create a table named 'dc-universe' using the field 'name' as primary key:",
-                  "code": "r.db('test').tableCreate('dc-universe', {primaryKey: 'name'})\n.run(c)",
+                  "code": "r.db('test').tableCreate('dc-universe', {primaryKey: 'name'})\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -578,11 +578,11 @@
               "examples": [
                 {
                   "description": "Create a table named 'dc-universe' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
-                  "code": "r.db('test').table_create('dc-universe').run(c)"
+                  "code": "r.db('test').table_create('dc-universe').run(conn)"
                 },
                 {
                   "description": "Create a table named 'dc-universe' using the field 'name' as primary key:",
-                  "code": "r.db('test').table_create('dc-universe', primary_key='name').run(c)"
+                  "code": "r.db('test').table_create('dc-universe', primary_key='name').run(conn)"
                 }
               ]
             },
@@ -592,11 +592,11 @@
               "examples": [
                 {
                   "description": "Create a table named 'dc-universe' with the primary key set to field 'id'. If a new document doesn't contain the field 'id', the database will autogenerate a value for it.",
-                  "code": "r.db('test').table_create('dc-universe').run(c)"
+                  "code": "r.db('test').table_create('dc-universe').run(conn)"
                 },
                 {
                   "description": "Create a table named 'dc-universe' using the field 'name' as primary key:",
-                  "code": "r.db('test').table_create('dc-universe', :primary_key => 'name').run(c)"
+                  "code": "r.db('test').table_create('dc-universe', :primary_key => 'name').run(conn)"
                 }                
               ]
             }
@@ -604,9 +604,9 @@
         },
         {
           "tag": "table_drop",
-          "description": "Drop a table. The table and all its rows will be deleted.",
+          "description": "Drop a table. The table and all its data will be deleted.<br /><br />If succesful, the operation returns an object: <code>{dropped: 1}</code>. If the specified table doesn't exist a <code>RqlRuntimeError</code> is thrown.",
           "parent": "db",
-          "returns": "query",
+          "returns": "json",
           "langs": {
             "js": {
               "name": "tableDrop",
@@ -614,7 +614,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'dc-universe':",
-                  "code": "r.db('test').tableDrop('dc-universe').run(c)",
+                  "code": "r.db('test').tableDrop('dc-universe').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -626,7 +626,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'dc-universe':",
-                  "code": "r.db('test').table_drop('dc-universe').run(c)"
+                  "code": "r.db('test').table_drop('dc-universe').run(conn)"
                 }
               ]
             },
@@ -636,7 +636,7 @@
               "examples": [
                 {
                   "description": "Drop a table named 'dc-universe':",
-                  "code": "r.db('test').table_drop('dc-universe').run(c)"
+                  "code": "r.db('test').table_drop('dc-universe').run(conn)"
                 }
               ]
             }
@@ -646,7 +646,7 @@
           "tag": "table_list",
           "description": "List all table names in a database.",
           "parent": "db",
-          "returns": "query",
+          "returns": "array",
           "langs": {
             "js": {
               "name": "tableList",
@@ -654,7 +654,7 @@
               "examples": [
                 {
                   "description": "List all tables of the 'test' database:",
-                  "code": "r.db('test').tableList().run(c)",
+                  "code": "r.db('test').tableList().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -666,7 +666,7 @@
               "examples": [
                 {
                   "description": "List all tables of the 'test' database:",
-                  "code": "r.db('test').table_list().run(c)"
+                  "code": "r.db('test').table_list().run(conn)"
                 }
               ]
             },
@@ -676,7 +676,7 @@
               "examples": [
                 {
                   "description": "List all tables of the 'test' database:",
-                  "code": "r.db('test').table_list().run(c)"
+                  "code": "r.db('test').table_list().run(conn)"
                 }
               ]
             }
@@ -691,29 +691,29 @@
       "commands": [
         {
           "tag": "insert",
-          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. <br /><br /> Insert returns an object that contains one or more of: <code>inserted</code> - the number of documents that were succesfully inserted; <code>errors</code> - the number of errors encountered while inserting; <code>first_error</code> - the text of the first error encountered. It can also contain a field <code>generated_keys</code> providing a list of generated primary key values.",
+          "description": "Insert JSON documents into a table. Accepts a single JSON document or an array of documents. <br /><br />Insert returns an object that contains one or more of:<ul><li><code>inserted</code> - the number of documents that were succesfully inserted;</li><li><code>replaced</code> - the number of documents that were updated when <code>upsert</code> is used;</li><li><code>errors</code> - the number of errors encountered while inserting;</li><li><code>first_error</code> - the text of the first error encountered;</li><li>it can also contain a field <code>generated_keys</code> providing a list of generated primary key values.</li></ul>",
           "parent": "table",
           "returns": "query",
           "langs": {
             "js": {
               "name": "insert",
-              "body": "json | [json]",
+              "body": "json | [json][, {upsert: true}]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel':",
-                  "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' }).run(c)",
+                  "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel':",
-                  "code": "r.table('marvel').insert([{ superhero: 'Wolverine', superpower: 'Adamantium' }, { superhero: 'Spiderman', superpower: 'spidy sense' }]).run(c)",
+                  "code": "r.table('marvel').insert([\n    { superhero: 'Wolverine', superpower: 'Adamantium' },\n    { superhero: 'Spiderman', superpower: 'spidy sense' }\n]).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, 
                 {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists:",
-                  "code": "r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' }, {upsert: true}).run(c)",
+                  "code": "r.table('marvel').insert(\n    { superhero: 'Iron Man', superpower: 'Arc Reactor' },\n    {upsert: true}\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -721,37 +721,37 @@
             },
             "py": {
               "name": "insert",
-              "body": "json | [json]",
+              "body": "json | [json][, upsert=False]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel':",
-                  "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' }).run(c)"
+                  "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })\n .run(conn)"
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel':",
-                  "code": "r.table('marvel').insert([{ 'superhero': 'Wolverine', 'superpower': 'Adamantium' }, { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }]).run(c)"
+                  "code": "r.table('marvel').insert([\n    { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },\n    { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }\n]).run(conn)"
                 }, 
                 {
-                  "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists:",
-                  "code": "r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' }, upsert=true).run(c)"
+                  "description": "Insert a row into a table named 'marvel', overwriting if the document already exists:",
+                  "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },\n    upsert=true\n).run(conn)"
                 }
               ]
             },
             "rb": {
               "name": "insert",
-              "body": "json | [json][, upsert]",
+              "body": "json | [json][, :upsert]",
               "examples": [
                 {
                   "description": "Insert a row into a table named 'marvel':",
-                  "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'}).run(c)"
+                  "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'})\n .run(conn)"
                 }, 
                 {
                   "description": "Insert multiple rows into a table named 'marvel':",
-                  "code": "r.table('marvel').insert([{:superhero => 'Wolverine', :superpower => 'Adamantium'}, {:superhero => 'Spiderman', :superpower => 'spidy sense'}]).run(c)"
+                  "code": "r.table('marvel').insert([\n    {:superhero => 'Wolverine', :superpower => 'Adamantium'},\n    {:superhero => 'Spiderman', :superpower => 'spidy sense'}\n]).run(conn)"
                 }, 
                 {
                   "description": "Insert a row into a table named 'marvel'. Overwriting if the document already exists:",
-                  "code": "r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor' }, :upsert).run(c)"
+                  "code": "r.table('marvel').insert(\n    {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },\n    :upsert\n).run(conn)"
                 }
               ]
             }
@@ -759,7 +759,7 @@
         },
         {
           "tag": "update",
-          "description": "Update JSON documents in a table. Accepts a JSON document, a RQL expression, or a combination of the two.",
+          "description": "Update JSON documents in a table. Accepts a JSON document, a RQL expression, or a combination of the two.<br /><br />Update returns an object that contains one or more of:<ul><li><code>replaced</code> - the number of documents that were updated;</li><li><code>errors</code> - the number of errors encountered while performing the update;</li><li><code>first_error</code> - the text of the first error encountered.</li></ul>",
           "parent": "selection",
           "returns": "query",
           "langs": {
@@ -769,17 +769,17 @@
               "examples": [
                 {
                   "description": "Update Superman's age to 30. If attribute 'age' doesn't exist, adds it to the document:",
-                  "code": "r.table('marvel').get('superman').update({ age: 30 }).run(c)",
+                  "code": "r.table('marvel').get('superman').update({ age: 30 }).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error:",
-                  "code": "r.table('marvel').update({ age: r.row('age').add(1) }).run(c)",
+                  "code": "r.table('marvel').update({ age: r.row('age').add(1) }).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').update({ age: r.row('age').add(r.js('1')) }, {'nonAtomic':true}).run(c)",
+                  "code": "r.table('marvel').update({ age: r.row('age').add(r.js('1')) },\n    {'nonAtomic':true}\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -791,13 +791,13 @@
               "examples": [
                 {
                   "description": "Update Superman's age to 30. If attribute 'age' doesn't exist, adds it to the document:",
-                  "code": "r.table('marvel').get('superman').update({ 'age': 30 }).run(c)"
+                  "code": "r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error:",
-                  "code": "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run(c)"
+                  "code": "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run(conn)"
                 }, {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').update(lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(c)"
+                  "code": "r.table('marvel').update(lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True)\n .run(conn)"
                 }
               ]
             },
@@ -807,13 +807,13 @@
               "examples": [
                 {
                   "description": "Update Superman's age to 30. If attribute 'age' doesn't exist, adds it to the document:",
-                  "code": "r.table('marvel').get('superman').update{ {:age => 30} }.run(c)"
+                  "code": "r.table('marvel').get('superman').update{ {:age => 30} }.run(conn)"
                 }, {
                   "description": "Increment every superhero's age. If age doesn't exist, throws an error:",
-                  "code": "r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run(c)"
+                  "code": "r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run(conn)"
                 }, {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}}.run(c)"
+                  "code": "r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}}\n .run(conn)"
                 }
               ]
             }
@@ -821,7 +821,7 @@
         },
         {
           "tag": "replace",
-          "description": "Replace documents in a table. Accepts a JSON document or a RQL expression, and replaces the original\ndocument with the new one. The new document must have the same primary key as the original document.",
+          "description": "Replace documents in a table. Accepts a JSON document or a RQL expression, and replaces the original document with the new one. The new document must have the same primary key as the original document.<br /><br />Replace returns an object that contains one or more of:<ul><li><code>replaced</code> - the number of documents that were replaced;</li><li><code>errors</code> - the number of errors encountered while performing the replace;</li><li><code>first_error</code> - the text of the first error encountered.</li></ul>",
           "parent": "selection",
           "returns": "query",
           "langs": {
@@ -831,13 +831,13 @@
               "examples": [
                 {
                   "description": "Remove all existing attributes from Superman's document, and add an attribute 'age':",
-                  "code": "r.table('marvel').get('superman').replace({ id: 'superman', age: 30 }).run(c)",
+                  "code": "r.table('marvel').get('superman').replace({ id: 'superman', age: 30 }).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').get('superman').replace({ id: 'superman', age: r.js('30') }, { 'nonAtomic': true }).run(c)",
+                  "code": "r.table('marvel').get('superman').replace({ id: 'superman', age: r.js('30') },\n    { 'nonAtomic': true }\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -849,11 +849,11 @@
               "examples": [
                 {
                   "description": "Remove all existing attributes from Superman's document, and add an attribute 'age':",
-                  "code": "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(c)"
+                  "code": "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)"
                 },
                 {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }, non_atomic=True).run(c)"
+                  "code": "r.table('marvel').get('superman')\n .replace({ 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)"
                 }
               ]
             },
@@ -863,11 +863,11 @@
               "examples": [
                 {
                   "description": "Remove all existing attributes from Superman's document, and add an attribute 'age':",
-                  "code": "r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run(c)"
+                  "code": "r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run(conn)"
                 },
                 {
                   "description": "Allow the server to run non-atomic operations:",
-                  "code": "r.table('marvel').get('superman').replace(:non_atomic, {:id => 'superman', :age => 30}).run(c)"
+                  "code": "r.table('marvel').get('superman').replace(:non_atomic, {:id => 'superman', :age => 30}).run(conn)"
                 }
               ]
             }
@@ -875,7 +875,7 @@
         },
         {
           "tag": "delete",
-          "description": "Delete one or more documents from a table.",
+          "description": "Delete one or more documents from a table.<br /><br />Delete returns an object that contains one or more of:<ul><li><code>deleted</code> - the number of documents that were deleted;</li><li><code>skipped</code> - the number of documents from the selection that were not deleted.</li></ul>",
           "parent": "selection",
           "returns": "query",
           "langs": {
@@ -885,12 +885,12 @@
               "examples": [
                 {
                   "description": "Delete superman from the database:",
-                  "code": "r.table('marvel').get('superman').delete().run(c)",
+                  "code": "r.table('marvel').get('superman').delete().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "Delete every document from the table 'marvel':",
-                  "code": "r.table('marvel').delete().run(c)",
+                  "code": "r.table('marvel').delete().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -902,10 +902,10 @@
               "examples": [
                 {
                   "description": "Delete superman from the database:",
-                  "code": "r.table('marvel').get('superman').delete().run(c)"
+                  "code": "r.table('marvel').get('superman').delete().run(conn)"
                 }, {
                   "description": "Delete every document from the table 'marvel':",
-                  "code": "r.table('marvel').delete().run(c)"
+                  "code": "r.table('marvel').delete().run(conn)"
                 }
               ]
             },
@@ -916,10 +916,10 @@
               "examples": [
                 {
                   "description": "Delete superman from the database:",
-                  "code": "r.table('marvel').get('superman').delete.run(c)"
+                  "code": "r.table('marvel').get('superman').delete.run(conn)"
                 }, {
                   "description": "Delete every document from the table 'marvel':",
-                  "code": "r.table('marvel').delete.run(c)"
+                  "code": "r.table('marvel').delete.run(conn)"
                 }
               ]
             }
@@ -944,7 +944,7 @@
               "examples" : [
                 {
                   "description": "Before we can query a table we have to select the correct database:",
-                  "code": "r.db('heroes').table('marvel').run(c)",
+                  "code": "r.db('heroes').table('marvel').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -956,7 +956,7 @@
               "examples" : [
                 {
                   "description": "Before we can query a table we have to select the correct database:",
-                  "code": "r.db('heroes').table('marvel').run(c)"
+                  "code": "r.db('heroes').table('marvel').run(conn)"
                 }
               ]
             },
@@ -966,7 +966,7 @@
               "examples" : [
                 {
                   "description": "Before we can query a table we have to select the correct database:",
-                  "code": "r.db('heroes').table('marvel').run(c)"
+                  "code": "r.db('heroes').table('marvel').run(conn)"
                 }
               ]
             }
@@ -976,7 +976,7 @@
           "tag": "table",
           "description": "Select all documents in a table. This command can be chained with other commands to do further processing on the data.",
           "parent": "db",
-          "returns": "table",
+          "returns": "selection",
           "langs": {
             "js": {
               "name": "table",
@@ -984,17 +984,17 @@
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database:",
-                  "code": "r.table('marvel').run(c)",
+                  "code": "r.table('marvel').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes':",
-                  "code": "r.db('heroes').table('marvel').run(c)",
+                  "code": "r.db('heroes').table('marvel').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass a flag allowing out of date data:",
-                  "code": "r.db('heroes').table('marvel', {useOutdated: true}).run(c)",
+                  "code": "r.db('heroes').table('marvel', {useOutdated: true}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1006,13 +1006,13 @@
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database:",
-                  "code": "r.table('marvel').run(c)"
+                  "code": "r.table('marvel').run(conn)"
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes':",
-                  "code": "r.db('heroes').table('marvel').run(c)"
+                  "code": "r.db('heroes').table('marvel').run(conn)"
                 }, {
                   "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass a flag allowing out of date data:",
-                  "code": "r.db('heroes').table('marvel', True).run(c)" 
+                  "code": "r.db('heroes').table('marvel', True).run(conn)" 
                 }
               ]
             },
@@ -1022,13 +1022,13 @@
               "examples": [
                 {
                   "description": "Return all documents in the table 'marvel' of the default database:",
-                  "code": "r.table('marvel').run(c)"
+                  "code": "r.table('marvel').run(conn)"
                 }, {
                   "description": "Return all documents in the table 'marvel' of the database 'heroes':",
-                  "code": "r.db('heroes').table('marvel').run(c)"
+                  "code": "r.db('heroes').table('marvel').run(conn)"
                 }, {
                   "description": "If you are OK with potentially out of date data from this table and want potentially faster reads, pass an options object specifying that out of date reads are OK:",
-                  "code": "r.db('heroes').table('marvel', {:use_outdated => true}).run(c)" 
+                  "code": "r.db('heroes').table('marvel', {:use_outdated => true}).run(conn)" 
                 }
               ]
             }
@@ -1046,7 +1046,7 @@
               "examples": [
                 {
                   "description": "Find a document with the primary key 'superman':",
-                  "code": "r.table('marvel').get('superman').run(c)",
+                  "code": "r.table('marvel').get('superman').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1058,7 +1058,7 @@
               "examples": [
                 {
                   "description": "Find a document with the primary key 'superman':",
-                  "code": "r.table('marvel').get('superman').run(c)"
+                  "code": "r.table('marvel').get('superman').run(conn)"
                 }
               ]
             },
@@ -1068,7 +1068,7 @@
               "examples": [
                 {
                   "description": "Find a document with the primary key 'superman':",
-                  "code": "r.table('marvel').get('superman').run(c)"
+                  "code": "r.table('marvel').get('superman').run(conn)"
                 }
               ]
             }
@@ -1086,7 +1086,7 @@
               "examples": [
                 {
                   "description": "Find all users with primary keys between 10 and 20, inclusive:",
-                  "code": "r.table('marvel').between(10, 20).run(c)",
+                  "code": "r.table('marvel').between(10, 20).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1098,7 +1098,7 @@
               "examples": [
                 {
                   "description": "Find all users with primary keys between 10 and 20, inclusive:",
-                  "code": "r.table('marvel').between(10, 20).run(c)"
+                  "code": "r.table('marvel').between(10, 20).run(conn)"
                 }
               ]
             },
@@ -1108,7 +1108,7 @@
               "examples": [
                 {
                   "description": "Find all users with primary keys between 10 and 20, inclusive:",
-                  "code": "r.table('marvel').between(10, 20).run(c)"
+                  "code": "r.table('marvel').between(10, 20).run(conn)"
                 }
               ]
             }
@@ -1126,19 +1126,19 @@
               "examples": [
                 {
                   "description": "Get all active users aged 30:",
-                  "code": "r.table('users').filter({'active': true, 'age': 30})",
+                  "code": "r.table('users').filter({'active': true, 'age': 30}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5:",
-                  "code": "r.table('marvel').filter(r.row('magazines').gt(5)).run(c)",
+                  "code": "r.table('marvel').filter(r.row('magazines').gt(5)).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength':",
-                  "code": "r.table('marvel').filter(function(hero) {\n return hero('abilities').contains('super-strength')\n}).run(c)",
+                  "code": "r.table('marvel').filter(function(hero) {\n return hero('abilities').contains('super-strength')\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1150,15 +1150,15 @@
               "examples": [
                 {
                   "description": "Get all active users aged 30:",
-                  "code": "r.table('users').filter({'active': True, 'age': 30}).run(c)"
+                  "code": "r.table('users').filter({'active': True, 'age': 30}).run(conn)"
                 },              
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5:",
-                  "code": "r.table('users').filter(r.row['magazines'] > 5).run(c)"
+                  "code": "r.table('users').filter(r.row['magazines'] > 5).run(conn)"
                 },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength':",
-                  "code": "r.table('marvel').filter(lambda hero: hero['abilities'].contains('super-strength')).run(c)"
+                  "code": "r.table('marvel').filter(lambda hero: hero['abilities'].contains('super-strength'))\n .run(conn)"
                 }
               ]
             },
@@ -1169,15 +1169,15 @@
               "examples": [
                 {
                   "description": "Get all active users aged 30:",
-                  "code": "r.table('users').filter('active' => true, 'age' => 30)"
+                  "code": "r.table('users').filter('active' => true, 'age' => 30).run(conn)"
                 },              
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5:",
-                  "code": "r.table('users').filter{|user| user[:magazines] > 5}.run(c)"
+                  "code": "r.table('users').filter{|user| user[:magazines] > 5}.run(conn)"
                 },              
                 {
                   "description": "Select all documents where the 'abilities' field contains a key called 'super-strength':",
-                  "code": "r.table('marvel').filter {|hero|\n hero[:abilities].contains('super-strength')\n}.run(c)"
+                  "code": "r.table('marvel').filter {|hero|\n hero[:abilities].contains('super-strength')\n}.run(conn)"
                 }
               ]
             }
@@ -1202,7 +1202,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose:",
-                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run(c)",
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1214,7 +1214,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose:",
-                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(c)"
+                  "code": "r.table('marvel').inner_join(r.table('dc'),\n    lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)"
                 }
               ]
             },
@@ -1224,7 +1224,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose:",
-                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run(c)"
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run(conn)"
                 }
               ]
             }
@@ -1242,7 +1242,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence:",
-                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run(c)",
+                  "code": "r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {\n return marvelRow('strength').lt(dcRow('strength'))\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1254,7 +1254,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence:",
-                  "code": "r.table('marvel').outer_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(c)"
+                  "code": "r.table('marvel').outer_join(r.table('dc'),\n    lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)"
                 }
               ]
             },
@@ -1264,7 +1264,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence:",
-                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run(c)"
+                  "code": "r.table('marvel').outer_join(r.table('dc')) {|marvel_row, dc_row|\n marvel_row[:strength] < dc_row[:strength]\n}.run(conn)"
                 }
               ]
             }
@@ -1282,12 +1282,12 @@
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
-                  "code": "r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(c)",
+                  "code": "r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes:",
-                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(left, right) {\n return left('main_dc_collaborator').eq(right('hero_name'));\n}).run(c)",
+                  "code": "r.table('marvel').innerJoin(r.table('dc'), function(left, right) {\n return left('main_dc_collaborator').eq(right('hero_name'));\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1299,10 +1299,10 @@
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
-                  "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(c)"
+                  "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)"
                 }, {
                   "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes:",
-                  "code": "r.table('marvel').inner_join(r.table('dc'), lambda left, right: left['main_dc_collaborator'] == right['hero_name'])).run(c)"
+                  "code": "r.table('marvel').inner_join(r.table('dc'),\n    lambda left, right: left['main_dc_collaborator'] == right['hero_name'])\n).run(conn)"
                 }
               ]
             },
@@ -1312,10 +1312,10 @@
               "examples": [
                 {
                   "description": "Let our heroes join forces to battle evil!",
-                  "code": "r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run(c)"
+                  "code": "r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run(conn)"
                 }, {
                   "description": "The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes:",
-                  "code": "r.table('marvel').inner_join(r.table('dc')) {|left, right|\n left[:main_dc_collaborator].eq(right[:hero_name])\n}.run(c)"
+                  "code": "r.table('marvel').inner_join(r.table('dc')) {|left, right|\n left[:main_dc_collaborator].eq(right[:hero_name])\n}.run(conn)"
                 }
               ]
             }
@@ -1333,7 +1333,7 @@
               "examples": [
                 {
                   "description": "'zips up' the sequence by merging the left and right fields produced by a join:",
-                  "code": "joinResult.zip().run(c)",
+                  "code": "joinResult.zip().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1345,7 +1345,7 @@
               "examples": [
                 {
                   "description": "'zips up' the sequence by merging the left and right fields produced by a join:",
-                  "code": "join_result.zip().run(c)"
+                  "code": "join_result.zip().run(conn)"
                 }
               ]
             },
@@ -1356,7 +1356,7 @@
               "examples": [
                 {
                   "description": "'zips up' the sequence by merging the left and right fields produced by a join:",
-                  "code": "joinresult.zip.run(c)"
+                  "code": "joinresult.zip.run(conn)"
                 }
               ]
             }
@@ -1381,7 +1381,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings:",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run(c)",
+                  "code": "r.table('marvel').map(function(hero) {\n return hero('combatPower').add(hero('compassionPower').mul(2))\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1393,7 +1393,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings:",
-                  "code": "r.table('marvel').map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run(c)"
+                  "code": "r.table('marvel')\n .map(lambda hero: hero['combatPower'] + hero['compassionPower'] * 2)\n .run(conn)"
                 }
               ]
             },
@@ -1404,7 +1404,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of hero power ratings:",
-                  "code": "r.table('marvel').map {|hero|\n hero[:combat_power] + hero[:compassion_power] * 2\n}.run(c)"
+                  "code": "r.table('marvel').map {|hero|\n hero[:combat_power] + hero[:compassion_power] * 2\n}.run(conn)"
                 }
               ]
             }
@@ -1412,7 +1412,7 @@
         },
         {
           "tag": "concatMap",
-          "description": "Construct a sequence composed of all elements returned by the given mapping function.",
+          "description": "Flattens a sequence of arrays returned by the <code>mappingFunction</code> into a single sequence.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
@@ -1422,7 +1422,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence:",
-                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('defeatedMonsters')\n}).run(c)",
+                  "code": "r.table('marvel').concatMap(function(hero) {\n return hero('defeatedMonsters')\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1434,7 +1434,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence:",
-                  "code": "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(c)"
+                  "code": "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)"
                 }
               ]
             },
@@ -1445,7 +1445,7 @@
               "examples": [
                 {
                   "description": "Construct a sequence of all monsters defeated by Marvel heroes. Here the field :defeated_monsters is a list that is concatenated to the sequence:",
-                  "code": "r.table('marvel').concat_map {|hero|\n hero[:defeated_monsters]\n}.run(c)"
+                  "code": "r.table('marvel').concat_map {|hero|\n hero[:defeated_monsters]\n}.run(conn)"
                 }
               ]
             }
@@ -1453,7 +1453,7 @@
         },
         {
           "tag": "orderby",
-          "description": "Sort the sequence by document values of the given key(s). Order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.",
+          "description": "Sort the sequence by document values of the given key(s).<br /><br /><code>order by</code> defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
@@ -1463,12 +1463,12 @@
               "examples" : [
                 {
                   "description": "Order our heroes by a series of performance metrics:",
-                  "code": "r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run(c)",
+                  "code": "r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }, {
                   "description": "Let's lead with our best vanquishers by specify descending ordering:",
-                  "code": "r.table('marvel').orderBy(r.desc('enemiesVanquished'), r.asc('damselsSaved')).run(c)",
+                  "code": "r.table('marvel').orderBy(r.desc('enemiesVanquished'), r.asc('damselsSaved'))\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1479,11 +1479,11 @@
               "body": "key1, [key2...]",
               "examples" : [
                 {
-                  "description": "Order our heroes by a series of performance metrics",
-                  "code": "r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(c)"
+                  "description": "Order our heroes by a series of performance metrics:",
+                  "code": "r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(conn)"
                 }, {
                   "description": "Let's lead with our best vanquishers by specify descending ordering:",
-                  "code": "r.table('marvel').order_by(r.desc('enemies_vanquished'), r.asc('damsels_saved')).run(c)"
+                  "code": "r.table('marvel')\n .order_by(r.desc('enemies_vanquished'), r.asc('damsels_saved'))\n .run(conn)"
                 }
               ]
             },
@@ -1492,11 +1492,11 @@
               "body": "key1, [key2...]",
               "examples" : [
                 {
-                  "description": "Order our heroes by a series of performance metrics",
-                  "code": "r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run(c)"
+                  "description": "Order our heroes by a series of performance metrics:",
+                  "code": "r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run(conn)"
                 }, {
                   "description": "Let's lead with our best vanquishers by specify descending ordering:",
-                  "code": "r.table('marvel').order_by(r.desc(:enemies_vanquished), r.asc(:damsels_saved)).run(c)"
+                  "code": "r.table('marvel').order_by(r.desc(:enemies_vanquished), r.asc(:damsels_saved))\n .run(conn)"
                 }
               ]
             }
@@ -1514,7 +1514,7 @@
               "examples" : [
                 {
                   "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes:",
-                  "code": "r.table('marvel').orderBy('successMetric').skip(10).run(c)",
+                  "code": "r.table('marvel').orderBy('successMetric').skip(10).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1526,7 +1526,7 @@
               "examples" : [
                 {
                   "description": "Here in conjunction with order_by we choose to ignore the most successful heroes:",
-                  "code": "r.table('marvel').order_by('successMetric').skip(10).run(c)"
+                  "code": "r.table('marvel').order_by('successMetric').skip(10).run(conn)"
                 }
               ]
             },
@@ -1536,7 +1536,7 @@
               "examples" : [
                 {
                   "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes:",
-                  "code": "r.table('marvel').order_by(:success_metric).skip(10).run(c)"
+                  "code": "r.table('marvel').order_by(:success_metric).skip(10).run(conn)"
                 }
               ]
             }
@@ -1554,7 +1554,7 @@
               "examples" : [
                 {
                   "description": "Only so many can fit in our Pantheon of heroes:",
-                  "code": "r.table('marvel').orderBy(:belovedness).limit(10).run(c)",
+                  "code": "r.table('marvel').orderBy(:belovedness).limit(10).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1566,7 +1566,7 @@
               "examples" : [
                 {
                   "description": "Only so many can fit in our Pantheon of heroes:",
-                  "code": "r.table('marvel').order_by(:belovedness:).limit(10).run(c)"
+                  "code": "r.table('marvel').order_by(:belovedness:).limit(10).run(conn)"
                 }
               ]
             },
@@ -1576,7 +1576,7 @@
               "examples" : [
                 {
                   "description": "Only so many can fit in our Pantheon of heroes:",
-                  "code": "r.table('marvel').order_by(:belovedness).limit(10).run(c)"
+                  "code": "r.table('marvel').order_by(:belovedness).limit(10).run(conn)"
                 }
               ]
             }
@@ -1594,7 +1594,7 @@
               "examples" : [
                 {
                   "description": "For this fight, we need heroes with a good mix of strength and agility:",
-                  "code": "r.table('marvel').orderBy('strength').slice(5, 10).run(c)",
+                  "code": "r.table('marvel').orderBy('strength').slice(5, 10).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1609,7 +1609,7 @@
               "examples" : [
                 {
                   "description": "For this fight, we need heroes with a good mix of strength and agility:",
-                  "code": "r.table('marvel').order_by('strength')[5:10].run(c)"
+                  "code": "r.table('marvel').order_by('strength')[5:10].run(conn)"
                 }
               ]
             },
@@ -1622,7 +1622,7 @@
               "examples" : [
                 {
                   "description": "For this fight, we need heroes with a good mix of strength and agility:",
-                  "code": "r.table('marvel').order_by(:strength)[5..10].run(c)"
+                  "code": "r.table('marvel').order_by(:strength)[5..10].run(conn)"
                 }
               ]
             }
@@ -1640,7 +1640,7 @@
               "examples" : [
                 {
                   "description": "Select the second element in the array:",
-                  "code": "r.expr([1,2,3]).nth(1).run(c)",
+                  "code": "r.expr([1,2,3]).nth(1).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1655,7 +1655,7 @@
               "examples" : [
                 {
                   "description": "Select the second element in the array:",
-                  "code": "r.expr([1,2,3])[1].run(c)"
+                  "code": "r.expr([1,2,3])[1].run(conn)"
                 }
               ]
             },
@@ -1668,7 +1668,7 @@
               "examples" : [
                 {
                   "description": "Select the second element in the array:",
-                  "code": "r([1,2,3])[1].run(c)"
+                  "code": "r([1,2,3])[1].run(conn)"
                 }
               ]
             }
@@ -1686,7 +1686,7 @@
               "examples" : [
                 {
                   "description": "Construct a stream of all heroes:",
-                  "code": "r.table('marvel').union(r.table('dc')).run(c)",
+                  "code": "r.table('marvel').union(r.table('dc')).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1698,7 +1698,7 @@
               "examples" : [
                 {
                   "description": "Construct a stream of all heroes:",
-                  "code": "r.table('marvel').union(r.table('dc')).run(c)"
+                  "code": "r.table('marvel').union(r.table('dc')).run(conn)"
                 }
               ]
             },
@@ -1708,7 +1708,7 @@
               "examples" : [
                 {
                   "description": "Construct a stream of all heroes:",
-                  "code": "r.table('marvel').union(r.table('dc')).run(c)"
+                  "code": "r.table('marvel').union(r.table('dc')).run(conn)"
                 }
               ]
             }
@@ -1733,7 +1733,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('monstersKilled')).add(hero('superVillainsVanquished'))\n}).reduce(function(acc, val) {\n return acc.add(val)\n}, 0).run(c)",
+                  "code": "r.table('marvel').map(function(hero) {\n return hero('monstersKilled')).add(hero('superVillainsVanquished'))\n}).reduce(function(acc, val) {\n return acc.add(val)\n}, 0).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1745,7 +1745,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel').map(lambda hero: hero['monstersKilled'] + hero['superVillainsVanquished']).reduce(lambda acc, val: acc + val, 0).run(c)"
+                  "code": "r.table('marvel')\n .map(lambda hero: hero['monstersKilled'] + hero['superVillainsVanquished'])\n .reduce(lambda acc, val: acc + val, 0).run(conn)"
                 }
               ]
             },
@@ -1755,7 +1755,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel').map {|hero|\n  hero[:monsters_killed] + hero[:super_villains_vanquished]\n}.reduce(0) {|acc, val|\n  acc + val\n}.run(c)"
+                  "code": "r.table('marvel').map {|hero|\n  hero[:monsters_killed] + hero[:super_villains_vanquished]\n}.reduce(0) {|acc, val|\n  acc + val\n}.run(conn)"
                 }
               ]
             }
@@ -1773,7 +1773,7 @@
               "examples" : [
                 {
                   "description": "Just how many super heroes are there?",
-                  "code": "r.table('marvel').count().add(r.table('dc').count()).run(c)",
+                  "code": "r.table('marvel').count().add(r.table('dc').count()).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1785,7 +1785,7 @@
               "examples" : [
                 {
                   "description": "Just how many super heroes are there?",
-                  "code": "(r.table('marvel').count() + r.table('dc').count()).run(c)"
+                  "code": "(r.table('marvel').count() + r.table('dc').count()).run(conn)"
                 }
               ]
             },
@@ -1795,7 +1795,7 @@
               "examples" : [
                 {
                   "description": "Just how many super heroes are there?",
-                  "code": "(r.table('marvel').count + r.table('dc').count).run(c)"
+                  "code": "(r.table('marvel').count + r.table('dc').count).run(conn)"
                 }
               ]
             }
@@ -1812,8 +1812,8 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villains have been vanquished by marvel heroes?",
-                  "code": "r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct().count().run(c)",
+                  "description": "Which unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1824,8 +1824,8 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villains have been vanquished by marvel heroes?",
-                  "code": "r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().count().run(c)"
+                  "description": "Which unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().run(conn)"
                 }
               ]
             },
@@ -1835,8 +1835,8 @@
               "body": "",
               "examples" : [
                 {
-                  "description": "How many unique villains have been vanquished by marvel heroes?",
-                  "code": "r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.count.run(c)"
+                  "description": "Which unique villains have been vanquished by marvel heroes?",
+                  "code": "r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.run(conn)"
                 }
               ]
             }
@@ -1844,7 +1844,7 @@
         },
         {
           "tag": "groupedmapreduce",
-          "description": "Partition the sequence into groups and then perform mapping and reduction steps across the groups.",
+          "description": "Partition the sequence into groups based on the <code>grouping</code> function. The elements of each group are then mapped using the <code>mapping</code> function and reduced using the <code>reduction</code> function.<br /><br /><code>grouped_map_reduce</code> is a generalized form of <code>group by</code>.",
           "parent": "sequence",
           "returns": "json",
           "langs": {
@@ -1854,7 +1854,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class:",
-                  "code": "r.table('marvel').groupedMapReduce(function(hero) {\n return hero('weightClass')\n}, function(hero) {\n return hero.pluck('name', 'strength')\n}, function(acc, hero) {\n return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n}, {name:'none', strength:0}).run(c)",
+                  "code": "r.table('marvel').groupedMapReduce(\n  function(hero) { return hero('weightClass')},  # grouping\n  function(hero) { return hero.pluck('name', 'strength')},  # mapping\n  function(acc, hero) {  # reduction\n    return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n  },\n  {name:'none', strength:0} # reduction base\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1866,7 +1866,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class:",
-                  "code": "r.table('marvel').grouped_map_reduce(lambda hero: hero['weightClass'],\n  lambda hero: hero.pluck('name', 'strength'),\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),\n  {'name':'none', 'strength':0}\n).run(c)"
+                  "code": "r.table('marvel').grouped_map_reduce(\n  lambda hero: hero['weightClass'],  # grouping\n  lambda hero: hero.pluck('name', 'strength'),  # mapping\n  lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),\n  {'name':'none', 'strength':0}  # base\n).run(conn)"
                 }
               ]
             },
@@ -1876,7 +1876,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class:",
-                  "code": "r.table('marvel').grouped_map_reduce(lambda {|hero|\n hero[:weight_class]\n}, lambda {|hero|\n hero.pluck(:name, :strength)\n}, {:name => 'none', :strength => 0}, lambda {|acc, hero|\n r.branch(acc[:strength] < hero[:strength], hero, acc)\n}).run(c)"
+                  "code": "r.table('marvel').grouped_map_reduce(\n  lambda {|hero| hero[:weight_class]},  # grouping\n  lambda {|hero| hero.pluck(:name, :strength)},  #  mapping\n  {:name => 'none', :strength => 0},  # reduction base\n  lambda {|acc, hero| r.branch(acc[:strength] < hero[:strength], hero, acc)}\n).run(conn)"
                 }
               ]
             }
@@ -1894,7 +1894,7 @@
               "examples" : [
                 {
                   "description": "Using a predefined reduction we can easily find the average strength of members of each weight class:",
-                  "code": "r.table('marvel').groupBy('weightClass', r.avg('strength')).run(c)",
+                  "code": "r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1906,7 +1906,7 @@
               "examples" : [
                 {
                   "description": "Using a predefined reduction we can easily find the average strength of members of each weight class:",
-                  "code": "r.table('marvel').group_by('weightClass', r.avg('strength')).run(c)"
+                  "code": "r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)"
                 }
               ]
             },
@@ -1916,7 +1916,7 @@
               "examples" : [
                 {
                   "description": "Using a predefined reduction we can easily find the average strength of members of each weight class:",
-                  "code": "r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(c)"
+                  "code": "r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)"
                 }
               ]
             }
@@ -1942,7 +1942,7 @@
               "examples" : [
                 {
                   "description": "Just how many heroes do we have at each strength level?",
-                  "code": "r.table('marvel').groupBy('strength', r.count).run(c)",
+                  "code": "r.table('marvel').groupBy('strength', r.count).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1954,7 +1954,7 @@
               "examples" : [
                 {
                   "description": "Just how many heroes do we have at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.count).run(c)"
+                  "code": "r.table('marvel').group_by('strength', r.count).run(conn)"
                 }
               ]
             },
@@ -1965,7 +1965,7 @@
               "examples" : [
                 {
                   "description": "Just how many heroes do we have at each strength level?",
-                  "code": "r.table('marvel').group_by(:strength, r.count).run(c)"
+                  "code": "r.table('marvel').group_by(:strength, r.count).run(conn)"
                 }
               ]
             }
@@ -1983,7 +1983,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have been vanquished by heroes at each strength level?",
-                  "code": "r.table('marvel').groupBy('strength', r.sum('enemiesVanquished')).run(c)",
+                  "code": "r.table('marvel').groupBy('strength', r.sum('enemiesVanquished')).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1995,7 +1995,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have been vanquished by heroes at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run(c)"
+                  "code": "r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run(conn)"
                 }
               ]
             },
@@ -2005,7 +2005,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have been vanquished by heroes at each strength level?",
-                  "code": "r.table('marvel').group_by(:strength, r.sum(:enemies_vanquished)).run(c)"
+                  "code": "r.table('marvel').group_by(:strength, r.sum(:enemies_vanquished)).run(conn)"
                 }
               ]
             }
@@ -2023,7 +2023,7 @@
               "examples" : [
                 {
                   "description": "What's the average agility of heroes at each strength level?",
-                  "code": "r.table('marvel').groupBy('strength', r.avg('agility')).run(c)",
+                  "code": "r.table('marvel').groupBy('strength', r.avg('agility')).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2035,7 +2035,7 @@
               "examples" : [
                 {
                   "description": "What's the average agility of heroes at each strength level?",
-                  "code": "r.table('marvel').group_by('strength', r.avg('agility')).run(c)"
+                  "code": "r.table('marvel').group_by('strength', r.avg('agility')).run(conn)"
                 }
               ]
             },
@@ -2045,7 +2045,7 @@
               "examples" : [
                 {
                   "description": "What's the average agility of heroes at each strength level?",
-                  "code": "r.table('marvel').group_by(:strength, r.avg(:agility)).run(c)"
+                  "code": "r.table('marvel').group_by(:strength, r.avg(:agility)).run(conn)"
                 }
               ]
             }
@@ -2071,19 +2071,19 @@
               "examples": [
                 {
                   "description": "Get all users whose age is greater than 5:",
-                  "code": "r.table('users').filter(r.row('age').gt(5)).run(c)",
+                  "code": "r.table('users').filter(r.row('age').gt(5)).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Accessing the attribute 'child' of an embedded document:",
-                  "code": "r.table('users').filter(r.row('embedded_doc')('child') > 5).run(c)",
+                  "code": "r.table('users').filter(r.row('embedded_doc')('child') > 5).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Add 1 to every element of an array:",
-                  "code": "r.expr([1, 2, 3]).map(r.row.add(1)).run(c)",
+                  "code": "r.expr([1, 2, 3]).map(r.row.add(1)).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2097,15 +2097,15 @@
               "examples": [
                 {
                   "description": "Get all users whose age is greater than 5:",
-                  "code": "r.table('users').filter(r.row['age'] > 5).run(c)"
+                  "code": "r.table('users').filter(r.row['age'] > 5).run(conn)"
                 },
                 {
                   "description": "Accessing the attribute 'child' of an embedded document:",
-                  "code": "r.table('users').filter(r.row['embedded_doc']['child'] > 5).run(c)"
+                  "code": "r.table('users').filter(r.row['embedded_doc']['child'] > 5).run(conn)"
                 },
                 {
                   "description": "Add 1 to every element of an array:",
-                  "code": "r.expr([1, 2, 3]).map(r.row + 1).run(c)"
+                  "code": "r.expr([1, 2, 3]).map(r.row + 1).run(conn)"
                 }
               ]
             }
@@ -2123,13 +2123,13 @@
               "examples" : [
                 {
                   "description": "We just need information about IronMan's reactor and not the rest of the document:",
-                  "code": "r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(c)",
+                  "code": "r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "For the hero beauty contest we only care about certain qualities:",
-                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(c)",
+                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2141,11 +2141,11 @@
               "examples" : [
                 {
                   "description": "We just need information about IronMan's reactor and not the rest of the document:",
-                  "code": "r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(c)"
+                  "code": "r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)"
                 },
                 {
                   "description": "For the hero beauty contest we only care about certain qualities:",
-                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(c)"
+                  "code": "r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)"
                 }
               ]
             },
@@ -2155,11 +2155,11 @@
               "examples" : [
                 {
                   "description": "We just need information about IronMan's reactor and not the rest of the document:",
-                  "code": "r.table('marvel').get('IronMan').pluck(:reactor_state, :reactor_power).run(c)"
+                  "code": "r.table('marvel').get('IronMan').pluck(:reactor_state, :reactor_power).run(conn)"
                 },
                 {
                   "description": "For the hero beauty contest we only care about certain qualities:",
-                  "code": "r.table('marvel').pluck(:beauty, :muscle_tone, :charm).run(c)"
+                  "code": "r.table('marvel').pluck(:beauty, :muscle_tone, :charm).run(conn)"
                 }
               ]
             }
@@ -2177,13 +2177,13 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests:",
-                  "code": "r.table('marvel').get('IronMan').without('personalVictoriesList').run(c)",
+                  "code": "r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Without their prized weapons, our enemies will quickly be vanquished:",
-                  "code": "r.table('enemies').without('weapons').run(c)",
+                  "code": "r.table('enemies').without('weapons').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2195,11 +2195,11 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests:",
-                  "code": "r.table('marvel').get('IronMan').without('personalVictoriesList').run(c)"
+                  "code": "r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)"
                 },
                 {
                   "description": "Without their prized weapons, our enemies will quickly be vanquished:",
-                  "code": "r.table('enemies').without('weapons').run(c)"
+                  "code": "r.table('enemies').without('weapons').run(conn)"
                 }
               ]
             },
@@ -2209,11 +2209,11 @@
               "examples" : [
                 {
                   "description": "Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests:",
-                  "code": "r.table('marvel').get('IronMan').without(:personal_victories_list).run(c)"
+                  "code": "r.table('marvel').get('IronMan').without(:personal_victories_list).run(conn)"
                 },
                 {
                   "description": "Without their prized weapons, our enemies will quickly be vanquished:",
-                  "code": "r.table('enemies').without(:weapons).run(c)"
+                  "code": "r.table('enemies').without(:weapons).run(conn)"
                 }
               ]
             }
@@ -2231,7 +2231,7 @@
               "examples" : [
                 {
                   "description": "Equip IronMan for battle:",
-                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alienInvasionKit')).run(c)",
+                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alienInvasionKit'))\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2243,7 +2243,7 @@
               "examples" : [
                 {
                   "description": "Equip IronMan for battle:",
-                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alienInvasionKit')).run(c)"
+                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alienInvasionKit'))\n .run(conn)"
                 }
               ]
             },
@@ -2253,7 +2253,7 @@
               "examples" : [
                 {
                   "description": "Equip IronMan for battle:",
-                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alien_invasion_kit')).run(c)"
+                  "code": "r.table('marvel').get('IronMan').merge(r.table('loadouts').get('alien_invasion_kit'))\n .run(conn)"
                 }
               ]
             }
@@ -2271,7 +2271,7 @@
               "examples" : [
                 {
                   "description": "Retrieve Iron Man's equipment list with the addition of some new boots:",
-                  "code": "r.table('marvel').get('IronMan')('equipment').append('newBoots').run(c)",
+                  "code": "r.table('marvel').get('IronMan')('equipment').append('newBoots').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2283,7 +2283,7 @@
               "examples" : [
                 {
                   "description": "Retrieve Iron Man's equipment list with the addition of some new boots:",
-                  "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(c)"
+                  "code": "r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(conn)"
                 }
               ]
             },
@@ -2293,7 +2293,7 @@
               "examples" : [
                 {
                   "description": "Retrieve Iron Man's equipment list with the addition of some new boots:",
-                  "code": "r.table('marvel').get('IronMan')[:equipment].append('new_boots').run(c)"
+                  "code": "r.table('marvel').get('IronMan')[:equipment].append('new_boots').run(conn)"
                 }
               ]
             }
@@ -2314,7 +2314,7 @@
               "examples" : [
                 {
                   "description": "What was Iron Man's first appearance in a comic?",
-                  "code": "r.table('marvel').get('IronMan')('firstAppearance').run(c)",
+                  "code": "r.table('marvel').get('IronMan')('firstAppearance').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2329,7 +2329,7 @@
               "examples" : [
                 {
                   "description": "What was Iron Man's first appearance in a comic?",
-                  "code": "r.table('marvel').get('IronMan')['firstAppearance'].run(c)"
+                  "code": "r.table('marvel').get('IronMan')['firstAppearance'].run(conn)"
                 }
               ]
             },
@@ -2342,7 +2342,7 @@
               "examples" : [
                 {
                   "description": "What was Iron Man's first appearance in a comic?",
-                  "code": "r.table('marvel').get('IronMan')[:first_appearance].run(c)"
+                  "code": "r.table('marvel').get('IronMan')[:first_appearance].run(conn)"
                 }
               ]
             }
@@ -2360,7 +2360,7 @@
               "examples" : [
                 {
                   "description": "Which heroes are married?",
-                  "code": "r.table('marvel').filter(function(hero) {return hero.contains('spouse')}).run(c)",
+                  "code": "r.table('marvel').filter(function(hero) {return hero.contains('spouse')}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2372,7 +2372,7 @@
               "examples" : [
                 {
                   "description": "Which heroes are married?",
-                  "code": "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(c)"
+                  "code": "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
                 }
               ]
             },
@@ -2382,7 +2382,7 @@
               "examples" : [
                 {
                   "description": "Which heroes are married?",
-                  "code": "r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(c)"
+                  "code": "r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)"
                 }
               ]
             }
@@ -2398,22 +2398,22 @@
         {
           "tag": "add",
           "description": "Sum two numbers or concatenate two strings.",
-          "parent": "json",
-          "returns": "json",
+          "parent": "number | string",
+          "returns": "number | string",
           "langs": {
             "js": {
               "name": "add",
-              "body": "other",
+              "body": "number | string",
               "examples" : [
                 {
                   "description": "It's as easy as 2 + 2 = 4:",
-                  "code": "r.expr(2).add(2).run(c)",
+                  "code": "r.expr(2).add(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Strings can be concatenated too:",
-                  "code": "r.expr(\"foo\").add(\"bar\").run(c)",
+                  "code": "r.expr(\"foo\").add(\"bar\").run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2427,11 +2427,11 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 + 2 = 4:",
-                  "code": "(r.expr(2) + 2).run(c)"
+                  "code": "(r.expr(2) + 2).run(conn)"
                 },
                 {
                   "description": "Strings can be concatenated too:",
-                  "code": "(r.expr(\"foo\") + \"bar\").run(c)"
+                  "code": "(r.expr(\"foo\") + \"bar\").run(conn)"
                 }
               ]
             },
@@ -2442,11 +2442,11 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 + 2 = 4:",
-                  "code": "(r(2) + 2).run(c)"
+                  "code": "(r(2) + 2).run(conn)"
                 },
                 {
                   "description": "Strings can be concatenated too:",
-                  "code": "(r(\"foo\") + \"bar\").run(c)"
+                  "code": "(r(\"foo\") + \"bar\").run(conn)"
                 }
               ]
             }
@@ -2464,7 +2464,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 - 2 = 0:",
-                  "code": "r.expr(2).sub(2).run(c)",
+                  "code": "r.expr(2).sub(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2477,7 +2477,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 - 2 = 0:",
-                  "code": "(r.expr(2) - 2).run(c)"
+                  "code": "(r.expr(2) - 2).run(conn)"
                 }
               ]
             },
@@ -2488,7 +2488,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 - 2 = 0:",
-                  "code": "(r(2) - 2).run(c)"
+                  "code": "(r(2) - 2).run(conn)"
                 }
               ]
             }
@@ -2506,7 +2506,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 * 2 = 4:",
-                  "code": "r.expr(2).mul(2).run(c)",
+                  "code": "r.expr(2).mul(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2519,7 +2519,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 * 2 = 4:",
-                  "code": "(r.expr(2) * 2).run(c)"
+                  "code": "(r.expr(2) * 2).run(conn)"
                 }
               ]
             },
@@ -2530,7 +2530,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 * 2 = 4:",
-                  "code": "(r(2) * 2).run(c)"
+                  "code": "(r(2) * 2).run(conn)"
                 }
               ]
             }
@@ -2548,7 +2548,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 / 2 = 1:",
-                  "code": "r.expr(2).div(2).run(c)",
+                  "code": "r.expr(2).div(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2561,7 +2561,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 / 2 = 1:",
-                  "code": "(r.expr(2) / 2).run(c)"
+                  "code": "(r.expr(2) / 2).run(conn)"
                 }
               ]
             },
@@ -2572,7 +2572,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 / 2 = 1:",
-                  "code": "(r(2) / 2).run(c)"
+                  "code": "(r(2) / 2).run(conn)"
                 }
               ]
             }
@@ -2590,7 +2590,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 % 2 = 0:",
-                  "code": "r.expr(2).mod(2).run(c)",
+                  "code": "r.expr(2).mod(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2603,7 +2603,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 % 2 = 0:",
-                  "code": "(r.expr(2) % 2).run(c)"
+                  "code": "(r.expr(2) % 2).run(conn)"
                 }
               ]
             },
@@ -2614,7 +2614,7 @@
               "examples" : [
                 {
                   "description": "It's as easy as 2 % 2 = 0:",
-                  "code": "(r(2) % 2).run(c)"
+                  "code": "(r(2) % 2).run(conn)"
                 }
               ]
             }
@@ -2632,7 +2632,7 @@
               "examples" : [
                 {
                   "description": "True and false anded is false?",
-                  "code": "r.expr(true).and(false).run(c)",
+                  "code": "r.expr(true).and(false).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2645,7 +2645,7 @@
               "examples" : [
                 {
                   "description": "True and false anded is false?",
-                  "code": "(r.expr(true) & false).run(c)"
+                  "code": "(r.expr(true) & false).run(conn)"
                 }
               ]
             },
@@ -2656,7 +2656,7 @@
               "examples" : [
                 {
                   "description": "True and false anded is false?",
-                  "code": "(r(true) & false).run(c)"
+                  "code": "(r(true) & false).run(conn)"
                 }
               ]
             }
@@ -2674,7 +2674,7 @@
               "examples" : [
                 {
                   "description": "True or false ored is true?",
-                  "code": "r.expr(true).or(false).run(c)",
+                  "code": "r.expr(true).or(false).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2687,7 +2687,7 @@
               "examples" : [
                 {
                   "description": "True or false ored is false?",
-                  "code": "(r.expr(true) | false).run(c)"
+                  "code": "(r.expr(true) | false).run(conn)"
                 }
               ]
             },
@@ -2698,7 +2698,7 @@
               "examples" : [
                 {
                   "description": "True and false ored is false?",
-                  "code": "(r(true) | false).run(c)"
+                  "code": "(r(true) | false).run(conn)"
                 }
               ]
             }
@@ -2716,7 +2716,7 @@
               "examples" : [
                 {
                   "description": "Does 2 equal 2?",
-                  "code": "r.expr(2).eq(2).run(c)",
+                  "code": "r.expr(2).eq(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2729,7 +2729,7 @@
               "examples" : [
                 {
                   "description": "Does 2 equal 2?",
-                  "code": "(r.expr(2) == 2).run(c)"
+                  "code": "(r.expr(2) == 2).run(conn)"
                 }
               ]
             },
@@ -2740,7 +2740,7 @@
               "examples" : [
                 {
                   "description": "Does 2 equal 2?",
-                  "code": "(r(2).eq 2).run(c)"
+                  "code": "(r(2).eq 2).run(conn)"
                 }
               ]
             }
@@ -2758,7 +2758,7 @@
               "examples" : [
                 {
                   "description": "Does 2 not equal 2?",
-                  "code": "r.expr(2).ne(2).run(c)",
+                  "code": "r.expr(2).ne(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2771,7 +2771,7 @@
               "examples" : [
                 {
                   "description": "Does 2 not equal 2?",
-                  "code": "(r.expr(2) != 2).run(c)"
+                  "code": "(r.expr(2) != 2).run(conn)"
                 }
               ]
             },
@@ -2782,7 +2782,7 @@
               "examples" : [
                 {
                   "description": "Does 2 not equal 2?",
-                  "code": "(r(2).ne 2).run(c)"
+                  "code": "(r(2).ne 2).run(conn)"
                 }
               ]
             }
@@ -2800,7 +2800,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than 2?",
-                  "code": "r.expr(2).gt(2).run(c)",
+                  "code": "r.expr(2).gt(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2813,7 +2813,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than 2?",
-                  "code": "(r.expr(2) > 2).run(c)"
+                  "code": "(r.expr(2) > 2).run(conn)"
                 }
               ]
             },
@@ -2824,7 +2824,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than 2?",
-                  "code": "(r(2) > 2).run(c)"
+                  "code": "(r(2) > 2).run(conn)"
                 }
               ]
             }
@@ -2842,7 +2842,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than or equal to 2?",
-                  "code": "r.expr(2).ge(2).run(c)",
+                  "code": "r.expr(2).ge(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2855,7 +2855,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than or equal to 2?",
-                  "code": "(r.expr(2) >= 2).run(c)"
+                  "code": "(r.expr(2) >= 2).run(conn)"
                 }
               ]
             },
@@ -2866,7 +2866,7 @@
               "examples" : [
                 {
                   "description": "Is 2 greater than or equal to 2?",
-                  "code": "(r(2) >= 2).run(c)"
+                  "code": "(r(2) >= 2).run(conn)"
                 }
               ]
             }
@@ -2884,7 +2884,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than 2?",
-                  "code": "r.expr(2).lt(2).run(c)",
+                  "code": "r.expr(2).lt(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2897,7 +2897,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than 2?",
-                  "code": "(r.expr(2) < 2).run(c)"
+                  "code": "(r.expr(2) < 2).run(conn)"
                 }
               ]
             },
@@ -2908,7 +2908,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than 2?",
-                  "code": "(r(2) < 2).run(c)"
+                  "code": "(r(2) < 2).run(conn)"
                 }
               ]
             }
@@ -2926,7 +2926,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than or equal to 2?",
-                  "code": "r.expr(2).le(2).run(c)",
+                  "code": "r.expr(2).le(2).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2939,7 +2939,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than or equal to 2?",
-                  "code": "(r.expr(2) <= 2).run(c)"
+                  "code": "(r.expr(2) <= 2).run(conn)"
                 }
               ]
             },
@@ -2950,7 +2950,7 @@
               "examples" : [
                 {
                   "description": "Is 2 less than or equal to 2?",
-                  "code": "(r(2) <= 2).run(c)"
+                  "code": "(r(2) <= 2).run(conn)"
                 }
               ]
             }
@@ -2968,7 +2968,7 @@
               "examples" : [
                 {
                   "description": "Not true is false:",
-                  "code": "r.expr(true).not().run(c)",
+                  "code": "r.expr(true).not().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2982,7 +2982,7 @@
               "examples" : [
                 {
                   "description": "Not true is false:",
-                  "code": "(~r.expr(true)).run(c)"
+                  "code": "(~r.expr(true)).run(conn)"
                 }
               ]
             },
@@ -2993,7 +2993,7 @@
               "examples" : [
                 {
                   "description": "Not true is false:",
-                  "code": "r(true).not.run(c)"
+                  "code": "r(true).not.run(conn)"
                 }
               ]
             }
@@ -3008,7 +3008,7 @@
       "commands": [
         {
           "tag": "do",
-          "description": "Bind values to names.",
+          "description": "Evaluate the <code>inExpr</code> in the context of one or more value bindings.",
           "parent": "r",
           "returns": "json",
           "langs": {
@@ -3018,7 +3018,7 @@
               "examples" : [
                 {
                   "description": "The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n     function (ironman) { return ironman('name'); }).run(c)",
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n     function (ironman) { return ironman('name'); }\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3030,7 +3030,7 @@
               "examples" : [
                 {
                   "description": "The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n     lambda ironman: ironman['name']).run(c)"
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n     lambda ironman: ironman['name']).run(conn)"
                 }
               ]
             },
@@ -3040,7 +3040,7 @@
               "examples" : [
                 {
                   "description": "The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings:",
-                  "code": "r.do(r.table('marvel').get('IronMan')) { |ironman| ironman[:name] }.run(c)"
+                  "code": "r.do(r.table('marvel').get('IronMan')) { |ironman| ironman[:name] }.run(conn)"
                 }
               ]
             }
@@ -3058,7 +3058,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n function(ironman, thor) {\n  return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)\n})",
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n function(ironman, thor) {\n  return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3070,7 +3070,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n lambda ironman, thor: r.branch(ironman['manliness'].gt(thor['manliness']), ironman, thor))"
+                  "code": "r.do(r.table('marvel').get('IronMan'),\n  r.table('marvel').get('Thor'),\n  lambda ironman, thor: r.branch(ironman['manliness'] > thor['manliness'],\n                                  ironman,\n                                  thor)\n).run(conn)"
                 }
               ]
             },
@@ -3080,7 +3080,7 @@
               "examples" : [
                 {
                   "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {\n  r.branch(ironman[:manliness] > thor[:manliness], ironman thor)\n}.run(c)"
+                  "code": "r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {\n  r.branch(ironman[:manliness] > thor[:manliness], ironman thor)\n}.run(conn)"
                 }
               ]
             }
@@ -3098,7 +3098,7 @@
               "examples" : [
                 {
                   "description": "Now that our heroes have defeated their villains, we can safely remove them from the villain table:",
-                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villains').get(hero('villainDefeated')).del()\n}).run(c)",
+                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villains').get(hero('villainDefeated')).del()\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3110,7 +3110,7 @@
               "examples" : [
                 {
                   "description": "Now that our heroes have defedated their villains, we can safely remove them from the villain table:",
-                  "code": "r.table('marvel').for_each(lambda hero: r.table('villains').get(hero['villainDefeated']).delete()).run(c)"
+                  "code": "r.table('marvel').for_each(\n    lambda hero: r.table('villains').get(hero['villainDefeated']).delete()\n).run(conn)"
                 }
               ]
             },
@@ -3120,7 +3120,7 @@
               "examples" : [
                 {
                   "description": "Now that our heroes have defedated their villains, we can safely remove them from the villain table:",
-                  "code": "r.table('marvel').for_each {|hero|\n  r.table('villains').get(hero[:villain_defeated]).delete\n}.run(c)"
+                  "code": "r.table('marvel').for_each {|hero|\n  r.table('villains').get(hero[:villain_defeated]).delete\n}.run(conn)"
                 }
               ]
             }
@@ -3138,7 +3138,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle:",
-                  "code": "r.table('marvel').get('IronMan').do(function(ironman) {\n return r.branch(ironman('victories').lt(ironman('battles')),\n  r.error('impossible code path'),\n  ironman\n)).run(c)",
+                  "code": "r.table('marvel').get('IronMan').do(function(ironman) {\n return r.branch(ironman('victories').lt(ironman('battles')),\n  r.error('impossible code path'),\n  ironman\n)).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3150,7 +3150,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle:",
-                  "code": "r.table('marvel').get('IronMan').do(\n lambda ironman: r.branch(ironman['victories'] < ironman['battles'],\n  r.error('impossible code path'),\n  ironman\n)).run(c)"
+                  "code": "r.table('marvel').get('IronMan').do(\n  lambda ironman: r.branch(ironman['victories'] < ironman['battles'],\n                            r.error('impossible code path'),\n                            ironman)\n).run(conn)"
                 }
               ]
             },
@@ -3160,7 +3160,7 @@
               "examples" : [
                 {
                   "description": "Iron Man can't possibly have lost a battle:",
-                  "code": "r.table('marvel').get('IronMan').do {\n  r.branch(ironman[:victories] < ironman[:battles],\n    r.error('impossible code path'),\n    ironman)\n}.run(c)"
+                  "code": "r.table('marvel').get('IronMan').do {\n  r.branch(ironman[:victories] < ironman[:battles],\n    r.error('impossible code path'),\n    ironman)\n}.run(conn)"
                 }
               ]
             }
@@ -3178,7 +3178,7 @@
               "examples" : [
                 {
                   "description": "Objects wrapped with expr can then be manipulated by RQL API functions:",
-                  "code": "r.expr({a:'b'}).merge({b:[1,2,3]}).run(c)",
+                  "code": "r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3190,7 +3190,7 @@
               "examples" : [
                 {
                   "description": "Objects wrapped with expr can then be manipulated by RQL API functions:",
-                  "code": "r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(c)"
+                  "code": "r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(conn)"
                 }
               ]
             },
@@ -3200,10 +3200,10 @@
               "examples" : [
                 {
                   "description": "Objects wrapped with expr can then be manipulated by RQL API functions:",
-                  "code": "r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run(c)"
+                  "code": "r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)"
                 }, {
                   "description": "In Ruby, you can also do this with just r:",
-                  "code": "r({:a => 'b'}).merge({:b => [1,2,3]}).run(c)"
+                  "code": "r({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)"
                 }
               ]
             }
@@ -3221,13 +3221,13 @@
               "examples" : [
                 {
                   "description": "Concatenate two strings using Javascript:",
-                  "code": "r.js(\"'str1' + 'str2'\").run(c)",
+                  "code": "r.js(\"'str1' + 'str2'\").run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5 by running Javascript on the server:",
-                  "code": "r.table('marvel').filter(r.js('(function (row) { return row.magazines > 5; })')).run(c)",
+                  "code": "r.table('marvel').filter(r.js('(function (row) { return row.magazines > 5; })'))\n .run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3239,11 +3239,11 @@
               "examples" : [
                 {
                   "description": "Concatenate two strings using Javascript:",
-                  "code": "r.js(\"'str1' + 'str2'\").run(c)"
+                  "code": "r.js(\"'str1' + 'str2'\").run(conn)"
                 },
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5 by running Javascript on the server:",
-                  "code": "r.table('users').filter(r.js('(function (row) { return row.magazines > 5; })')).run(c)"
+                  "code": "r.table('users').filter(r.js('(function (row) { return row.magazines > 5; })'))\n .run(conn)"
                 }
               ]
             },
@@ -3253,11 +3253,11 @@
               "examples" : [
                 {
                   "description": "Concatenate two strings using Javascript:",
-                  "code": "r.js(\"'str1' + 'str2'\").run(c)"
+                  "code": "r.js(\"'str1' + 'str2'\").run(conn)"
                 },
                 {
                   "description": "Select all documents where the 'magazines' field is greater than 5 by running Javascript on the server:",
-                  "code": "r.table('users').filter(r.js('(function (row) { return row.magazines > 5; })')).run(c)"
+                  "code": "r.table('users').filter(r.js('(function (row) { return row.magazines > 5; })'))\n .run(conn)"
                 }
               ]
             }
@@ -3275,17 +3275,17 @@
               "examples" : [
                 {
                   "description": "Convert a table to an array:",
-                  "code": "r.table('marvel').coerceTo('array').run(c)",
+                  "code": "r.table('marvel').coerceTo('array').run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 },
                 {
                   "description": "Convert an array of pairs into an object:",
-                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerceTo('object').run(conn)"
                 },
                 {
                   "description": "Convert a number to a string:",
-                  "code": "r.expr(1).coerce_to('string').run(c)"
+                  "code": "r.expr(1).coerceTo('string').run(conn)"
                 }
               ]
             },
@@ -3295,15 +3295,15 @@
               "examples" : [
                 {
                   "description": "Convert a table to an array:",
-                  "code": "r.table('marvel').coerce_to('array').run(c)"
+                  "code": "r.table('marvel').coerce_to('array').run(conn)"
                 },
                 {
                   "description": "Convert an array of pairs into an object:",
-                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(conn)"
                 },
                 {
                   "description": "Convert a number to a string:",
-                  "code": "r.expr(1).coerce_to('string').run(c)"
+                  "code": "r.expr(1).coerce_to('string').run(conn)"
                 }                
               ]
             },
@@ -3313,15 +3313,15 @@
               "examples" : [
                 {
                   "description": "Convert a table to an array:",
-                  "code": "r.table('marvel').coerce_to('array').run(c)"
+                  "code": "r.table('marvel').coerce_to('array').run(conn)"
                 },
                 {
                   "description": "Convert an array of pairs into an object:",
-                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(c)"
+                  "code": "r.expr([['name', 'Ironman'], ['victories': 2000]]).coerce_to('object').run(conn)"
                 },
                 {
                   "description": "Convert a number to a string:",
-                  "code": "r.expr(1).coerce_to('string').run(c)"
+                  "code": "r.expr(1).coerce_to('string').run(conn)"
                 }
               ]
             }
@@ -3339,7 +3339,7 @@
               "examples" : [
                 {
                   "description": "Get the type of a string:",
-                  "code": "r.expr(\"foo\").typeOf().run(c)",
+                  "code": "r.expr(\"foo\").typeOf().run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3351,7 +3351,7 @@
               "examples" : [
                 {
                   "description": "Get the type of a string:",
-                  "code": "r.expr(\"foo\").type_of().run(c)"
+                  "code": "r.expr(\"foo\").type_of().run(conn)"
                 }
               ]
             },
@@ -3361,7 +3361,7 @@
               "examples" : [
                 {
                   "description": "Get the type of a string:",
-                  "code": "r(\"foo\").type_of.run(c)"
+                  "code": "r(\"foo\").type_of.run(conn)"
                 }
               ]
             }
