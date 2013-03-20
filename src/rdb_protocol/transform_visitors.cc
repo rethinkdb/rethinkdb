@@ -34,7 +34,7 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func/*NOLINT*/) 
 
 void transform_visitor_t::operator()(ql::filter_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
-    ql::func_t *f = func.compile(ql_env);
+    counted_t<ql::func_t> f = func.compile(ql_env);
     counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     if (f->filter_call(ql_env, arg)) {
         out->push_back(arg->as_json());

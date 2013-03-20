@@ -37,7 +37,7 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
     return make_counted<const datum_t>(static_cast<double>(i));
 }
 
-counted_t<const datum_t> eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
+counted_t<const datum_t> eager_datum_stream_t::reduce(val_t *base_val, counted_t<func_t> f) {
     counted_t<const datum_t> base;
     base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
@@ -49,7 +49,7 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(val_t *base_val, func_t *f
 }
 
 counted_t<const datum_t> eager_datum_stream_t::gmr(
-    func_t *g, func_t *m, counted_t<const datum_t> d, func_t *r) {
+    counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r) {
     wire_datum_map_t map;
     while (counted_t<const datum_t> el = next()) {
         counted_t<const datum_t> el_group = g->call(el)->as_datum();
@@ -63,13 +63,13 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(
     return map.to_arr();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::filter(func_t *f) {
+counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f) {
     return make_counted<filter_datum_stream_t>(env, f, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::map(func_t *f) {
+counted_t<datum_stream_t> eager_datum_stream_t::map(counted_t<func_t> f) {
     return make_counted<map_datum_stream_t>(env, f, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::concatmap(func_t *f) {
+counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
     return make_counted<concatmap_datum_stream_t>(env, f, this->counted_from_this());
 }
 
@@ -93,20 +93,20 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src), json_stream(src->json_stream), trans(src->trans), terminal(src->terminal), _s(src->_s), _b(src->_b), shard_data(src->shard_data) { }
 
-counted_t<datum_stream_t> lazy_datum_stream_t::map(func_t *f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return counted_t<datum_stream_t>(out.release());
 }
-counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(func_t *f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans
         = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
     return counted_t<datum_stream_t>(out.release());
 }
-counted_t<datum_stream_t> lazy_datum_stream_t::filter(func_t *f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
     out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
@@ -137,7 +137,7 @@ counted_t<const datum_t> lazy_datum_stream_t::count() {
     return counted_t<const datum_t>(d.release());
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
+counted_t<const datum_t> lazy_datum_stream_t::reduce(val_t *base_val, counted_t<func_t> f) {
     run_terminal(reduce_wire_func_t(env, f));
     counted_t<const datum_t> out;
     if (base_val) {
@@ -154,7 +154,7 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(val_t *base_val, func_t *f)
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::gmr(
-    func_t *g, func_t *m, counted_t<const datum_t> d, func_t *r) {
+    counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r) {
     terminal = rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r));
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(terminal, env, _s, _b);

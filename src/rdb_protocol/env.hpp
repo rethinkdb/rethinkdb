@@ -79,8 +79,8 @@ public:
         bags[bags.size()-1]->add(p);
         return p;
     }
-    func_t *new_func(const Term *term) {
-        return add_ptr(new func_t(this, term));
+    counted_t<func_t> new_func(const Term *term) {
+        return make_counted<func_t>(this, term);
     }
     template<class T>
     val_t *new_val(T *ptr, term_t *parent) {

@@ -51,7 +51,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         val_t *v0 = arg(0), *v1 = arg(1);
-        func_t *f = v1->as_func(IDENTITY_SHORTCUT);
+        counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, counted_t<datum_stream_t> > ts = v0->as_selection();
             return new_val(ts.first, ts.second->filter(f));

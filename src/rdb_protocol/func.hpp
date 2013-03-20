@@ -9,7 +9,7 @@
 #include "utils.hpp"
 
 #include "containers/ptr_bag.hpp"
-#include "containers/scoped.hpp"
+#include "containers/counted.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/term.hpp"
@@ -17,16 +17,16 @@
 
 namespace ql {
 
-class func_t : public ptr_baggable_t, public pb_rcheckable_t {
+class func_t : public single_threaded_shared_mixin_t<func_t>, public pb_rcheckable_t {
 public:
     func_t(env_t *env, js::id_t id, term_t *parent);
     func_t(env_t *env, const Term *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static func_t *new_filter_func(env_t *env, counted_t<const datum_t> obj,
-                                   const pb_rcheckable_t *root);
-    static func_t *new_identity_func(env_t *env, counted_t<const datum_t> obj,
-                                     const pb_rcheckable_t *root);
+    static counted_t<func_t> new_filter_func(env_t *env, counted_t<const datum_t> obj,
+                                             const pb_rcheckable_t *root);
+    static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
+                                               const pb_rcheckable_t *root);
     val_t *call(const std::vector<counted_t<const datum_t> > &args);
     // Prefer these versions of call.
     val_t *call();
@@ -74,7 +74,7 @@ public:
 
     // This JS evaluation resulted in an id for a js function
     result_type operator()(const id_t id_val) const {
-        return parent->new_val(new func_t(env, id_val, parent));
+        return parent->new_val(make_counted<func_t>(env, id_val, parent));
     }
 
 private:
@@ -90,16 +90,16 @@ RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
 class wire_func_t {
 public:
     wire_func_t();
-    wire_func_t(env_t *env, func_t *_func);
+    wire_func_t(env_t *env, counted_t<func_t> _func);
     wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope);
 
-    func_t *compile(env_t *env);
+    counted_t<func_t> compile(env_t *env);
 
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 
 private:
     // We cache a separate function for every environment.
-    std::map<env_t *, func_t *> cached_funcs;
+    std::map<env_t *, counted_t<func_t> > cached_funcs;
 
     Term source;
     std::map<int64_t, Datum> scope;
@@ -110,7 +110,7 @@ public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func(args...) { }
 
-    func_t *compile(env_t *env) { return wire_func.compile(env); }
+    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
 
     RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
 
@@ -123,7 +123,7 @@ public:
     template <class... Args>
     explicit filter_wire_func_t(Args... args) : wire_func(args...) { }
 
-    func_t *compile(env_t *env) { return wire_func.compile(env); }
+    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
 
     RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
 
@@ -136,7 +136,7 @@ public:
     template <class... Args>
     explicit reduce_wire_func_t(Args... args) : wire_func(args...) { }
 
-    func_t *compile(env_t *env) { return wire_func.compile(env); }
+    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
 
     RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
 
@@ -149,7 +149,7 @@ public:
     template <class... Args>
     explicit concatmap_wire_func_t(Args... args) : wire_func(args...) { }
 
-    func_t *compile(env_t *env) { return wire_func.compile(env); }
+    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
 
     RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
 
@@ -164,11 +164,11 @@ struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }
-    gmr_wire_func_t(env_t *env, func_t *_group, func_t *_map, func_t *_reduce)
+    gmr_wire_func_t(env_t *env, counted_t<func_t> _group, counted_t<func_t> _map, counted_t<func_t> _reduce)
         : group(env, _group), map(env, _map), reduce(env, _reduce) { }
-    func_t *compile_group(env_t *env) { return group.compile(env); }
-    func_t *compile_map(env_t *env) { return map.compile(env); }
-    func_t *compile_reduce(env_t *env) { return reduce.compile(env); }
+    counted_t<func_t> compile_group(env_t *env) { return group.compile(env); }
+    counted_t<func_t> compile_map(env_t *env) { return map.compile(env); }
+    counted_t<func_t> compile_reduce(env_t *env) { return reduce.compile(env); }
 private:
     map_wire_func_t group;
     map_wire_func_t map;
@@ -185,7 +185,7 @@ private:
     virtual bool is_deterministic_impl() const;
     virtual val_t *eval_impl();
     virtual const char *name() const { return "func"; }
-    func_t *func;
+    counted_t<func_t> func;
 };
 
 } // namespace ql

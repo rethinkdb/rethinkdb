@@ -277,7 +277,7 @@ val_t *term_t::new_val(table_t *d, counted_t<datum_stream_t> s) {
 }
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
-val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
+val_t *term_t::new_val(counted_t<func_t> f) { return env->add_ptr(new val_t(f, this, env)); }
 val_t *term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }

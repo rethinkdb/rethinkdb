@@ -53,7 +53,7 @@ public:
 private:
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf,
                                         bool _so_the_template_matches = false);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, func_t *f, bool nondet_ok);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
 
     env_t *env;
@@ -110,7 +110,7 @@ public:
     val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
           const term_t *_parent, env_t *_env);
     val_t(uuid_u _db, const term_t *_parent, env_t *_env);
-    val_t(func_t *_func, const term_t *_parent, env_t *_env);
+    val_t(counted_t<func_t> _func, const term_t *_parent, env_t *_env);
 
     uuid_u as_db();
     table_t *as_table();
@@ -118,7 +118,7 @@ public:
     counted_t<datum_stream_t> as_seq();
     std::pair<table_t *, counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum(); // prefer the 4 below
     bool as_bool();
@@ -154,7 +154,7 @@ private:
     table_t *table;
     counted_t<datum_stream_t> sequence;
     counted_t<const datum_t> datum;
-    func_t *func;
+    counted_t<func_t> func;
 
     DISABLE_COPYING(val_t);
 };

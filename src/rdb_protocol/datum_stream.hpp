@@ -21,14 +21,14 @@ public:
     virtual ~datum_stream_t() { }
 
     // stream -> stream
-    virtual counted_t<datum_stream_t> filter(func_t *f) = 0;
-    virtual counted_t<datum_stream_t> map(func_t *f) = 0;
-    virtual counted_t<datum_stream_t> concatmap(func_t *f) = 0;
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f) = 0;
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f) = 0;
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f) = 0;
 
     // stream -> atom
     virtual counted_t<const datum_t> count() = 0;
-    virtual counted_t<const datum_t> reduce(val_t *base_val, func_t *f) = 0;
-    virtual counted_t<const datum_t> gmr(func_t *g, func_t *m, counted_t<const datum_t> d, func_t *r) = 0;
+    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f) = 0;
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r) = 0;
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -53,50 +53,50 @@ public:
     eager_datum_stream_t(env_t *env, const pb_rcheckable_t *bt_src)
         : datum_stream_t(env, bt_src) { }
 
-    virtual counted_t<datum_stream_t> filter(func_t *f);
-    virtual counted_t<datum_stream_t> map(func_t *f);
-    virtual counted_t<datum_stream_t> concatmap(func_t *f);
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(val_t *base_val, func_t *f);
-    virtual counted_t<const datum_t> gmr(func_t *g, func_t *m, counted_t<const datum_t> d, func_t *r);
+    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f);
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
 
     virtual counted_t<const datum_t> as_array();
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, func_t *_f, counted_t<datum_stream_t> _src)
+    map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
         : eager_datum_stream_t(env, _src.get()), f(_f), src(_src) {
         guarantee(f && src);
     }
     virtual counted_t<const datum_t> next_impl();
 private:
-    func_t *f;
+    counted_t<func_t> f;
     counted_t<datum_stream_t> src;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, func_t *_f, counted_t<datum_stream_t> _src)
+    filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
         : eager_datum_stream_t(env, _src.get()), f(_f), src(_src) {
         guarantee(f && src);
     }
     virtual counted_t<const datum_t> next_impl();
 private:
-    func_t *f;
+    counted_t<func_t> f;
     counted_t<datum_stream_t> src;
 };
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, func_t *_f, counted_t<datum_stream_t> _src)
+    concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
         : eager_datum_stream_t(env, _src.get()), f(_f), src(_src), subsrc(0) {
         guarantee(f && src);
     }
     virtual counted_t<const datum_t> next_impl();
 private:
-    func_t *f;
+    counted_t<func_t> f;
     counted_t<datum_stream_t> src;
     counted_t<datum_stream_t> subsrc;
 };
@@ -107,13 +107,13 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         const pb_rcheckable_t *bt_src);
-    virtual counted_t<datum_stream_t> filter(func_t *f);
-    virtual counted_t<datum_stream_t> map(func_t *f);
-    virtual counted_t<datum_stream_t> concatmap(func_t *f);
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(val_t *base_val, func_t *f);
-    virtual counted_t<const datum_t> gmr(func_t *g, func_t *m, counted_t<const datum_t> d, func_t *r);
+    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f);
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
     virtual counted_t<const datum_t> next_impl();
     virtual counted_t<const datum_t> as_array() { return counted_t<const datum_t>(); } // cannot be converted implicitly
 private:

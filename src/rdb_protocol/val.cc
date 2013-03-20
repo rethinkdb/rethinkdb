@@ -69,7 +69,7 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, cons
 }
 
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, func_t *f, bool nondet_ok) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok) {
     if (f->is_deterministic()) {
         return do_replace(orig, map_wire_func_t(env, f));
     } else {
@@ -233,14 +233,14 @@ val_t::val_t(uuid_u _db, const term_t *_parent, env_t *_env)
       datum(0),
       func(0) {
 }
-val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<func_t> _func, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::FUNC),
       table(0),
       sequence(0),
       datum(0),
-      func(env->add_ptr(_func)) {
+      func(_func) {
     guarantee(func);
 }
 
@@ -289,7 +289,7 @@ std::pair<table_t *, counted_t<const datum_t> > val_t::as_single_selection() {
     return std::make_pair(table, datum);
 }
 
-func_t *val_t::as_func(function_shortcut_t shortcut) {
+counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (shortcut == NO_SHORTCUT) {
         rcheck_literal_type(type_t::FUNC);
         r_sanity_check(func);
@@ -301,7 +301,7 @@ func_t *val_t::as_func(function_shortcut_t shortcut) {
         r_sanity_check(parent);
         switch (shortcut) {
         case IDENTITY_SHORTCUT: {
-            func = env->add_ptr(func_t::new_identity_func(env, as_datum(), parent));
+            func = func_t::new_identity_func(env, as_datum(), parent);
         } break;
         case NO_SHORTCUT: // fallthru
         default: unreachable();

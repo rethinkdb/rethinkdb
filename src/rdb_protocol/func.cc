@@ -135,7 +135,7 @@ bool func_t::is_deterministic() const {
 }
 
 wire_func_t::wire_func_t() { }
-wire_func_t::wire_func_t(env_t *env, func_t *func) : source(*func->source) {
+wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func) : source(*func->source) {
     if (env) {
         cached_funcs[env] = func;
     }
@@ -147,7 +147,7 @@ wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
     if (_scope) scope = *_scope;
 }
 
-func_t *wire_func_t::compile(env_t *env) {
+counted_t<func_t> wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env) == 0) {
         env->push_scope(&scope);
         cached_funcs[env] = env->new_func(&source);
@@ -168,7 +168,7 @@ bool func_term_t::is_deterministic_impl() const {
 bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg) {
     counted_t<const datum_t> d = call(arg)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT) {
-        func_t *f2 = new_filter_func(env, d, this);
+        counted_t<func_t> f2 = new_filter_func(env, d, this);
         d = f2->call(arg)->as_datum();
     }
     if (d->get_type() == datum_t::R_BOOL) return d->as_bool();
@@ -176,7 +176,7 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg) {
           d->get_type_name());
 }
 
-func_t *func_t::new_filter_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> func_t::new_filter_func(env_t *env, counted_t<const datum_t> obj,
                                 const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     int x = env->gensym();
@@ -193,17 +193,17 @@ func_t *func_t::new_filter_func(env_t *env, counted_t<const datum_t> obj,
            val->write_to_protobuf(pb::set_datum(arg)));
     }
     bt_src->propagate(&twrap->t);
-    return env->add_ptr(new func_t(env, &twrap->t));
+    return make_counted<func_t>(env, &twrap->t);
 }
 
 
-func_t *func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                   const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     Term *arg = &twrap->t;
         N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     bt_src->propagate(&twrap->t);
-    return env->add_ptr(new func_t(env, &twrap->t));
+    return make_counted<func_t>(env, &twrap->t);
 }
 
 } // namespace ql

@@ -40,7 +40,7 @@ public:
     val_t *new_val(table_t *t, counted_t<datum_stream_t> s);
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
-    val_t *new_val(func_t *f);
+    val_t *new_val(counted_t<func_t> f);
     val_t *new_val_bool(bool b);
 
     virtual bool is_deterministic() const;
