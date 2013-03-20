@@ -18,6 +18,9 @@
 template <class T>
 class counted_t {
 public:
+    template <class U>
+    friend class counted_t;
+
     counted_t() : p_(NULL) { }
     explicit counted_t(T *p) : p_(p) {
         if (p_) { counted_t_add_ref(p_); }

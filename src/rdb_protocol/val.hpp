@@ -23,7 +23,7 @@ class table_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
             bool use_outdated, const pb_rcheckable_t *src);
-    datum_stream_t *as_datum_stream();
+    scoped_ptr_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
     datum_t *env_add_ptr(datum_t *d);

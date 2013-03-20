@@ -119,9 +119,8 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::as_datum_stream() {
-    return env->add_ptr(
-        new lazy_datum_stream_t(env, use_outdated, access.get(), this));
+scoped_ptr_t<datum_stream_t> table_t::as_datum_stream() {
+    return make_scoped_ptr<lazy_datum_stream_t>(env, use_outdated, access.get(), this);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -269,7 +268,7 @@ datum_stream_t *val_t::as_seq() {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
         if (!sequence) {
-            sequence = table->as_datum_stream();
+            sequence = env->add_ptr(table->as_datum_stream().release());
         }
     } else if (type.raw_type == type_t::DATUM) {
         if (!sequence) {
