@@ -42,8 +42,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
-        for (boost::ptr_map<const std::string, term_t>::iterator
-                 it = optargs.begin(); it != optargs.end(); ++it) {
+        for (auto it = optargs.begin(); it != optargs.end(); ++it) {
             bool dup = acc->add(it->first, it->second->eval(use_cached_val)->as_datum());
             rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }

@@ -30,7 +30,7 @@ public:
             *out.add_optargs() = in->optargs(i);
         }
         //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
-        real.init(compile_term(env, &out));
+        real = compile_term(env, &out);
     }
 private:
 
@@ -39,7 +39,7 @@ private:
     const Term *in;
     Term out;
 
-    scoped_ptr_t<term_t> real;
+    counted_t<term_t> real;
 };
 
 class groupby_term_t : public rewrite_term_t {

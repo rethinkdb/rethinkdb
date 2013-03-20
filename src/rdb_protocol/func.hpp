@@ -19,7 +19,7 @@ namespace ql {
 
 class func_t : public single_threaded_shared_mixin_t<func_t>, public pb_rcheckable_t {
 public:
-    func_t(env_t *env, js::id_t id, term_t *parent);
+    func_t(env_t *env, js::id_t id, counted_t<term_t> parent);
     func_t(env_t *env, const Term *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
@@ -40,7 +40,7 @@ public:
 private:
     // Pointers to this function's arguments.
     std::vector<counted_t<const datum_t> > argptrs;
-    term_t *body; // body to evaluate with functions bound
+    counted_t<term_t> body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
     friend class wire_func_t;
@@ -50,14 +50,14 @@ private:
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int64_t, counted_t<const datum_t> *> scope;
 
-    term_t *js_parent;
+    counted_t<term_t> js_parent;
     env_t *js_env;
     js::id_t js_id;
 };
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env, term_t *_parent) : env(_env), parent(_parent) { }
+    js_result_visitor_t(env_t *_env, counted_t<term_t> _parent) : env(_env), parent(_parent) { }
 
     // This JS evaluation resulted in an error
     counted_t<val_t> operator()(const std::string err_val) const;
@@ -70,7 +70,7 @@ public:
 
 private:
     env_t *env;
-    term_t *parent;
+    counted_t<term_t> parent;
 };
 
 RDB_MAKE_PROTOB_SERIALIZABLE(Term);

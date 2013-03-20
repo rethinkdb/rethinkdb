@@ -93,8 +93,8 @@ public:
     counted_t<val_t> new_val(uuid_u db, term_t *parent) {
         return make_counted<val_t>(db, parent, this);
     }
-    term_t *new_term(const Term *source) {
-        return add_ptr(compile_term(this, source));
+    counted_t<term_t> new_term(const Term *source) {
+        return compile_term(this, source);
     }
 
     // Checkpoint code (most of the logic is in `env_checkpoint_t` and

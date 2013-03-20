@@ -24,7 +24,7 @@ private:
         boost::shared_ptr<js::runner_t> js = env->get_js_runner();
         js::js_result_t result = js->eval(source);
 
-        return boost::apply_visitor(js_result_visitor_t(env, this), result);
+        return boost::apply_visitor(js_result_visitor_t(env, this->counted_from_this()), result);
     }
     virtual const char *name() const { return "javascript"; }
 

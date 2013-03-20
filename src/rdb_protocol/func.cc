@@ -8,8 +8,8 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env, js::id_t id, term_t *parent)
-    : pb_rcheckable_t(parent), body(0), source(0),
+func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
+    : pb_rcheckable_t(parent.get() /* RSI is this good? */), body(0), source(0),
       js_parent(parent), js_env(env), js_id(id) { }
 
 func_t::func_t(env_t *env, const Term *_source)

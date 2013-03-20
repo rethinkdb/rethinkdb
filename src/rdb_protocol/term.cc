@@ -28,75 +28,75 @@ namespace ql {
 
 // #define INSTRUMENT 1
 
-term_t *compile_term(env_t *env, const Term *t) {
+counted_t<term_t> compile_term(env_t *env, const Term *t) {
     switch (t->type()) {
-    case Term_TermType_DATUM:              return new datum_term_t(env, t);
-    case Term_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
-    case Term_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
-    case Term_TermType_VAR:                return new var_term_t(env, t);
-    case Term_TermType_JAVASCRIPT:         return new javascript_term_t(env, t);
-    case Term_TermType_ERROR:              return new error_term_t(env, t);
-    case Term_TermType_IMPLICIT_VAR:       return new implicit_var_term_t(env, t);
-    case Term_TermType_DB:                 return new db_term_t(env, t);
-    case Term_TermType_TABLE:              return new table_term_t(env, t);
-    case Term_TermType_GET:                return new get_term_t(env, t);
+    case Term_TermType_DATUM:              return make_counted<datum_term_t>(env, t);
+    case Term_TermType_MAKE_ARRAY:         return make_counted<make_array_term_t>(env, t);
+    case Term_TermType_MAKE_OBJ:           return make_counted<make_obj_term_t>(env, t);
+    case Term_TermType_VAR:                return make_counted<var_term_t>(env, t);
+    case Term_TermType_JAVASCRIPT:         return make_counted<javascript_term_t>(env, t);
+    case Term_TermType_ERROR:              return make_counted<error_term_t>(env, t);
+    case Term_TermType_IMPLICIT_VAR:       return make_counted<implicit_var_term_t>(env, t);
+    case Term_TermType_DB:                 return make_counted<db_term_t>(env, t);
+    case Term_TermType_TABLE:              return make_counted<table_term_t>(env, t);
+    case Term_TermType_GET:                return make_counted<get_term_t>(env, t);
     case Term_TermType_EQ:                 // fallthru
     case Term_TermType_NE:                 // fallthru
     case Term_TermType_LT:                 // fallthru
     case Term_TermType_LE:                 // fallthru
     case Term_TermType_GT:                 // fallthru
-    case Term_TermType_GE:                 return new predicate_term_t(env, t);
-    case Term_TermType_NOT:                return new not_term_t(env, t);
+    case Term_TermType_GE:                 return make_counted<predicate_term_t>(env, t);
+    case Term_TermType_NOT:                return make_counted<not_term_t>(env, t);
     case Term_TermType_ADD:                // fallthru
     case Term_TermType_SUB:                // fallthru
     case Term_TermType_MUL:                // fallthru
-    case Term_TermType_DIV:                return new arith_term_t(env, t);
-    case Term_TermType_MOD:                return new mod_term_t(env, t);
-    case Term_TermType_APPEND:             return new append_term_t(env, t);
-    case Term_TermType_SLICE:              return new slice_term_t(env, t);
-    case Term_TermType_GETATTR:            return new getattr_term_t(env, t);
-    case Term_TermType_CONTAINS:           return new contains_term_t(env, t);
-    case Term_TermType_PLUCK:              return new pluck_term_t(env, t);
-    case Term_TermType_WITHOUT:            return new without_term_t(env, t);
-    case Term_TermType_MERGE:              return new merge_term_t(env, t);
-    case Term_TermType_BETWEEN:            return new between_term_t(env, t);
-    case Term_TermType_REDUCE:             return new reduce_term_t(env, t);
-    case Term_TermType_MAP:                return new map_term_t(env, t);
-    case Term_TermType_FILTER:             return new filter_term_t(env, t);
-    case Term_TermType_CONCATMAP:          return new concatmap_term_t(env, t);
-    case Term_TermType_ORDERBY:            return new orderby_term_t(env, t);
-    case Term_TermType_DISTINCT:           return new distinct_term_t(env, t);
-    case Term_TermType_COUNT:              return new count_term_t(env, t);
-    case Term_TermType_UNION:              return new union_term_t(env, t);
-    case Term_TermType_NTH:                return new nth_term_t(env, t);
-    case Term_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
-    case Term_TermType_LIMIT:              return new limit_term_t(env, t);
-    case Term_TermType_SKIP:               return new skip_term_t(env, t);
-    case Term_TermType_GROUPBY:            return new groupby_term_t(env, t);
-    case Term_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
-    case Term_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
-    case Term_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
-    case Term_TermType_ZIP:                return new zip_term_t(env, t);
-    case Term_TermType_COERCE_TO:          return new coerce_term_t(env, t);
-    case Term_TermType_TYPEOF:             return new typeof_term_t(env, t);
-    case Term_TermType_UPDATE:             return new update_term_t(env, t);
-    case Term_TermType_DELETE:             return new delete_term_t(env, t);
-    case Term_TermType_REPLACE:            return new replace_term_t(env, t);
-    case Term_TermType_INSERT:             return new insert_term_t(env, t);
-    case Term_TermType_DB_CREATE:          return new db_create_term_t(env, t);
-    case Term_TermType_DB_DROP:            return new db_drop_term_t(env, t);
-    case Term_TermType_DB_LIST:            return new db_list_term_t(env, t);
-    case Term_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
-    case Term_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
-    case Term_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
-    case Term_TermType_FUNCALL:            return new funcall_term_t(env, t);
-    case Term_TermType_BRANCH:             return new branch_term_t(env, t);
-    case Term_TermType_ANY:                return new any_term_t(env, t);
-    case Term_TermType_ALL:                return new all_term_t(env, t);
-    case Term_TermType_FOREACH:            return new foreach_term_t(env, t);
-    case Term_TermType_FUNC:               return new func_term_t(env, t);
-    case Term_TermType_ASC:                return new asc_term_t(env, t);
-    case Term_TermType_DESC:               return new desc_term_t(env, t);
+    case Term_TermType_DIV:                return make_counted<arith_term_t>(env, t);
+    case Term_TermType_MOD:                return make_counted<mod_term_t>(env, t);
+    case Term_TermType_APPEND:             return make_counted<append_term_t>(env, t);
+    case Term_TermType_SLICE:              return make_counted<slice_term_t>(env, t);
+    case Term_TermType_GETATTR:            return make_counted<getattr_term_t>(env, t);
+    case Term_TermType_CONTAINS:           return make_counted<contains_term_t>(env, t);
+    case Term_TermType_PLUCK:              return make_counted<pluck_term_t>(env, t);
+    case Term_TermType_WITHOUT:            return make_counted<without_term_t>(env, t);
+    case Term_TermType_MERGE:              return make_counted<merge_term_t>(env, t);
+    case Term_TermType_BETWEEN:            return make_counted<between_term_t>(env, t);
+    case Term_TermType_REDUCE:             return make_counted<reduce_term_t>(env, t);
+    case Term_TermType_MAP:                return make_counted<map_term_t>(env, t);
+    case Term_TermType_FILTER:             return make_counted<filter_term_t>(env, t);
+    case Term_TermType_CONCATMAP:          return make_counted<concatmap_term_t>(env, t);
+    case Term_TermType_ORDERBY:            return make_counted<orderby_term_t>(env, t);
+    case Term_TermType_DISTINCT:           return make_counted<distinct_term_t>(env, t);
+    case Term_TermType_COUNT:              return make_counted<count_term_t>(env, t);
+    case Term_TermType_UNION:              return make_counted<union_term_t>(env, t);
+    case Term_TermType_NTH:                return make_counted<nth_term_t>(env, t);
+    case Term_TermType_GROUPED_MAP_REDUCE: return make_counted<gmr_term_t>(env, t);
+    case Term_TermType_LIMIT:              return make_counted<limit_term_t>(env, t);
+    case Term_TermType_SKIP:               return make_counted<skip_term_t>(env, t);
+    case Term_TermType_GROUPBY:            return make_counted<groupby_term_t>(env, t);
+    case Term_TermType_INNER_JOIN:         return make_counted<inner_join_term_t>(env, t);
+    case Term_TermType_OUTER_JOIN:         return make_counted<outer_join_term_t>(env, t);
+    case Term_TermType_EQ_JOIN:            return make_counted<eq_join_term_t>(env, t);
+    case Term_TermType_ZIP:                return make_counted<zip_term_t>(env, t);
+    case Term_TermType_COERCE_TO:          return make_counted<coerce_term_t>(env, t);
+    case Term_TermType_TYPEOF:             return make_counted<typeof_term_t>(env, t);
+    case Term_TermType_UPDATE:             return make_counted<update_term_t>(env, t);
+    case Term_TermType_DELETE:             return make_counted<delete_term_t>(env, t);
+    case Term_TermType_REPLACE:            return make_counted<replace_term_t>(env, t);
+    case Term_TermType_INSERT:             return make_counted<insert_term_t>(env, t);
+    case Term_TermType_DB_CREATE:          return make_counted<db_create_term_t>(env, t);
+    case Term_TermType_DB_DROP:            return make_counted<db_drop_term_t>(env, t);
+    case Term_TermType_DB_LIST:            return make_counted<db_list_term_t>(env, t);
+    case Term_TermType_TABLE_CREATE:       return make_counted<table_create_term_t>(env, t);
+    case Term_TermType_TABLE_DROP:         return make_counted<table_drop_term_t>(env, t);
+    case Term_TermType_TABLE_LIST:         return make_counted<table_list_term_t>(env, t);
+    case Term_TermType_FUNCALL:            return make_counted<funcall_term_t>(env, t);
+    case Term_TermType_BRANCH:             return make_counted<branch_term_t>(env, t);
+    case Term_TermType_ANY:                return make_counted<any_term_t>(env, t);
+    case Term_TermType_ALL:                return make_counted<all_term_t>(env, t);
+    case Term_TermType_FOREACH:            return make_counted<foreach_term_t>(env, t);
+    case Term_TermType_FUNC:               return make_counted<func_term_t>(env, t);
+    case Term_TermType_ASC:                return make_counted<asc_term_t>(env, t);
+    case Term_TermType_DESC:               return make_counted<desc_term_t>(env, t);
     default: unreachable();
     }
     unreachable();
@@ -118,7 +118,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        term_t *root_term = 0;
+        counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
             term_walker_t term_walker(t); // fill backtraces

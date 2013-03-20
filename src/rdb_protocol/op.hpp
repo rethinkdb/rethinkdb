@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/err.hpp"
@@ -58,10 +59,10 @@ protected:
     counted_t<val_t> optarg(const std::string &key, counted_t<val_t> default_value);
 private:
     virtual bool is_deterministic_impl() const;
-    boost::ptr_vector<term_t> args;
+    std::vector<counted_t<term_t> > args;
 
     friend class make_obj_term_t; // needs special access to optargs
-    boost::ptr_map<const std::string, term_t> optargs;
+    std::map<std::string, counted_t<term_t> > optargs;
 };
 
 }  // namespace ql
