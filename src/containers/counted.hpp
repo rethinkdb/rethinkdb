@@ -116,6 +116,11 @@ private:
     T *p_;
 };
 
+template <class T, class... Args>
+counted_t<T> make_counted(Args... args) {
+    return counted_t<T>(new T(args...));
+}
+
 template <class> class single_threaded_shared_mixin_t;
 
 template <class T>
