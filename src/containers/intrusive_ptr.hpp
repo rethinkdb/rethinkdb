@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <utility>
+
 #include "errors.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
@@ -25,6 +27,19 @@ public:
         if (p_) { intrusive_ptr_add_ref(p_); }
     }
 
+    // TODO: Add noexcept on versions of compilers that support it.  noexcept is
+    // good to have because types like std::vectors use it to see whether to
+    // call the copy constructor or move constructor.
+    intrusive_ptr_t(intrusive_ptr_t &&movee) : p_(movee.p_) {
+        movee.p_ = NULL;
+    }
+
+    // TODO: Add noexcept on versions of compilers that support it.
+    template <class U>
+    intrusive_ptr_t(const intrusive_ptr_t<U> &&movee) : p_(movee.p_) {
+        movee.p_ = NULL;
+    }
+
     ~intrusive_ptr_t() {
         if (p_) { intrusive_ptr_release(p_); }
     }
@@ -33,6 +48,21 @@ public:
         T *tmp = p_;
         p_ = other.p_;
         other.p_ = tmp;
+    }
+
+    // TODO: Add noexcept on versions of compilers that support it.
+    intrusive_ptr_t &operator=(intrusive_ptr_t &&other) {
+        intrusive_ptr_t tmp(std::move(other));
+        swap(tmp);
+        return *this;
+    }
+
+    // TODO: Add noexcept on versions of compilers that support it.
+    template <class U>
+    intrusive_ptr_t &operator=(intrusive_ptr_t<U> &&other) {
+        intrusive_ptr_t tmp(std::move(other));
+        swap(tmp);
+        return *this;
     }
 
     intrusive_ptr_t &operator=(const intrusive_ptr_t &other) {
