@@ -42,6 +42,13 @@ public:
         return *this;
     }
 
+    template <class U>
+    void init(scoped_ptr_t<U> &&movee) {
+        rassert(ptr_ == NULL);
+
+        operator=(std::move(movee));
+    }
+
     // includes a sanity-check for first-time use.
     void init(T *value) {
         rassert(ptr_ == NULL);
