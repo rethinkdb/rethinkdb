@@ -1,9 +1,9 @@
 #ifndef RDB_PROTOCOL_TERM_HPP_
 #define RDB_PROTOCOL_TERM_HPP_
+
 #include <string>
 
-#include "utils.hpp"
-
+#include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
@@ -11,7 +11,6 @@
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/err.hpp"
-
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
@@ -37,7 +36,7 @@ public:
     val_t *new_val(const datum_t *d);
     val_t *new_val(datum_t *d, table_t *t); // shadow vvv
     val_t *new_val(const datum_t *d, table_t *t);
-    val_t *new_val(datum_stream_t *s);
+    val_t *new_val(scoped_ptr_t<datum_stream_t> &&s);
     val_t *new_val(table_t *t, datum_stream_t *s);
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);

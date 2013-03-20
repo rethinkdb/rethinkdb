@@ -267,7 +267,9 @@ val_t *term_t::new_val(const datum_t *d, table_t *t) {
     return env->new_val(d, t, this);
 }
 
-val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
+val_t *term_t::new_val(scoped_ptr_t<datum_stream_t> &&s) {
+    return env->add_ptr(new val_t(std::move(s), this, env));
+}
 val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
     return env->new_val(d, s, this);
 }

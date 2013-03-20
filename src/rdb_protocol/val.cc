@@ -188,18 +188,18 @@ val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_
     guarantee(table);
     guarantee(datum);
 }
-val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
+val_t::val_t(scoped_ptr_t<datum_stream_t> &&_sequence, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SEQUENCE),
-      table(0),
-      sequence(env->add_ptr(_sequence)),
-      datum(0),
-      func(0) {
+      table(NULL),
+      sequence(env->add_ptr(_sequence.release())),
+      datum(NULL),
+      func(NULL) {
     guarantee(sequence);
     // Some streams are really arrays in disguise.
     if ((datum = sequence->as_array())) {
-        sequence = 0;
+        sequence = NULL;
         type = type_t::DATUM;
     }
 }

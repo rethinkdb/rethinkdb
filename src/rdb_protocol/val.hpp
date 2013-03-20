@@ -106,7 +106,7 @@ public:
 
     val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
     val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
+    val_t(scoped_ptr_t<datum_stream_t> &&_sequence, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, datum_stream_t *_sequence,
           const term_t *_parent, env_t *_env);
