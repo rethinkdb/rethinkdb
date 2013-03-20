@@ -25,8 +25,8 @@ void runtime_check(DEBUG_VAR const char *test, DEBUG_VAR const char *file,
 }
 
 void runtime_sanity_check(bool test) {
-    lazy_backtrace_t bt;
     if (!test) {
+        lazy_backtrace_t bt;
         throw exc_t("SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
                     backtrace_t());
     }
