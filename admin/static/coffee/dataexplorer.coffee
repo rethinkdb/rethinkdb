@@ -587,6 +587,11 @@ module 'DataExplorerView', ->
         # Handle events on codemirror
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
+            if @ignored_next_keyup is true
+                if event?.type is 'keyup' and event?.which isnt 9
+                    @ignored_next_keyup = false
+                return true
+
             @prototype.focus_on_codemirror = true
 
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
@@ -621,6 +626,35 @@ module 'DataExplorerView', ->
                                 @show_suggestion()
                                 return true
                             else
+                                # We can retrieve the content of codemirror only on keyup events. The users may write "r." then hit "d" then "tab" If the events are triggered this way
+                                # keydown d - keydown tab - keyup d - keyup tab
+                                # We want to only show the suggestions for r.d
+                                if @written_suggestion is null
+                                    cached_query = @query_first_part+@current_element+@query_last_part
+                                else
+                                    cached_query = @query_first_part+@written_suggestion+@query_last_part
+                                if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
+                                    new_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
+                                    regex = @create_safe_regex new_element
+                                    new_suggestions = []
+                                    console.log '+++++'
+                                    new_highlighted_suggestion = -1
+                                    for suggestion, index in @current_suggestions
+                                        if index < @current_highlighted_suggestion
+                                            new_highlighted_suggestion = new_suggestions.length
+                                        if regex.test(suggestion) is true
+                                            new_suggestions.push suggestion
+                                    @current_suggestions = new_suggestions
+                                    @current_highlighted_suggestion = new_highlighted_suggestion
+                                    @.$('.suggestion_name_list').empty()
+                                    for suggestion, i in @current_suggestions
+                                        @.$('.suggestion_name_list').append @template_suggestion_name
+                                            id: i
+                                            suggestion: suggestion
+                                    @ignored_next_keyup = true
+                                    @current_element = new_element
+
+
                                 # Switch throught the suggestions
                                 if event.shiftKey
                                     @current_highlighted_suggestion--
@@ -774,6 +808,7 @@ module 'DataExplorerView', ->
 
             @current_suggestions = []
             @current_element = ''
+            @written_suggestion = null
             @cursor_for_auto_completion = @codemirror.getCursor()
 
             result =
@@ -1532,10 +1567,13 @@ module 'DataExplorerView', ->
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
+
             if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                 @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+                @written_suggestion = suggestion_to_write+')'
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+                @written_suggestion = suggestion_to_write
     
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
