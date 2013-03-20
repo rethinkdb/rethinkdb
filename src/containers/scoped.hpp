@@ -1,8 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_SCOPED_HPP_
 #define CONTAINERS_SCOPED_HPP_
 
 #include <string.h>
+
+#include <utility>
 
 #include "errors.hpp"
 
@@ -12,8 +14,29 @@ class scoped_ptr_t {
 public:
     scoped_ptr_t() : ptr_(NULL) { }
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
+    scoped_ptr_t(scoped_ptr_t &&movee) : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+    template <class U>
+    scoped_ptr_t(scoped_ptr_t<U> &&movee) : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+
     ~scoped_ptr_t() {
         reset();
+    }
+
+    scoped_ptr_t &operator=(scoped_ptr_t &&movee) {
+        scoped_ptr_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
+    }
+
+    template <class U>
+    scoped_ptr_t &operator=(scoped_ptr_t<U> &&movee) {
+        scoped_ptr_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
     }
 
     // includes a sanity-check for first-time use.
