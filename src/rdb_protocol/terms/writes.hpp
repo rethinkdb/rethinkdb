@@ -57,7 +57,7 @@ public:
         : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
 private:
 
-    void maybe_generate_key(table_t *tbl,
+    void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
                             counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->el(tbl->get_pkey(), NOTHROW)) {
@@ -72,7 +72,7 @@ private:
     }
 
     virtual val_t *eval_impl() {
-        table_t *t = arg(0)->as_table();
+        counted_t<table_t> t = arg(0)->as_table();
         val_t *upsert_val = optarg("upsert", 0);
         bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
@@ -138,11 +138,11 @@ private:
 
         val_t *v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<table_t *, counted_t<const datum_t> > tblrow = v0->as_single_selection();
+            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
         }
-        std::pair<table_t *, counted_t<datum_stream_t> > tblrows = v0->as_selection();
-        table_t *tbl = tblrows.first;
+        std::pair<counted_t<table_t> , counted_t<datum_stream_t> > tblrows = v0->as_selection();
+        counted_t<table_t> tbl = tblrows.first;
         counted_t<datum_stream_t> ds = tblrows.second;
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> d = ds->next()) {

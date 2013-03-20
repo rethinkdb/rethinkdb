@@ -97,7 +97,7 @@ private:
             }
             return new_val(counted_t<const datum_t>(out.release()));
         } else if (v->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            table_t *t = 0;
+            counted_t<table_t> t;
             if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
                 t = v->as_selection().first;
             }
@@ -119,7 +119,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         val_t *v = arg(0);
-        table_t *t = 0;
+        counted_t<table_t> t;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             t = v->as_selection().first;
         }

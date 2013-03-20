@@ -19,7 +19,7 @@ class stream_cache2_t;
 
 namespace ql {
 
-class table_t : public ptr_baggable_t, public pb_rcheckable_t {
+class table_t : public single_threaded_shared_mixin_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
             bool use_outdated, const pb_rcheckable_t *src);
@@ -104,19 +104,19 @@ public:
     const char *get_type_name() const;
 
     val_t(counted_t<const datum_t> _datum, const term_t *_parent, env_t *_env);
-    val_t(counted_t<const datum_t> _datum, table_t *_table, const term_t *_parent, env_t *_env);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent, env_t *_env);
     val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
+    val_t(counted_t<table_t> _table, const term_t *_parent, env_t *_env);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
           const term_t *_parent, env_t *_env);
     val_t(uuid_u _db, const term_t *_parent, env_t *_env);
     val_t(counted_t<func_t> _func, const term_t *_parent, env_t *_env);
 
     uuid_u as_db();
-    table_t *as_table();
-    std::pair<table_t *, counted_t<datum_stream_t> > as_selection();
+    counted_t<table_t> as_table();
+    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection();
     counted_t<datum_stream_t> as_seq();
-    std::pair<table_t *, counted_t<const datum_t> > as_single_selection();
+    std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
@@ -151,7 +151,7 @@ private:
 
     type_t type;
     uuid_u db;
-    table_t *table;
+    counted_t<table_t> table;
     counted_t<datum_stream_t> sequence;
     counted_t<const datum_t> datum;
     counted_t<func_t> func;

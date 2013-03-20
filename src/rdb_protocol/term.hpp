@@ -34,12 +34,12 @@ public:
     // Allocates a new value in the current environment.
     val_t *new_val(counted_t<datum_t> d); // shadow vvv // RSI
     val_t *new_val(counted_t<const datum_t> d);
-    val_t *new_val(counted_t<datum_t> d, table_t *t); // shadow vvv  // RSI
-    val_t *new_val(counted_t<const datum_t> d, table_t *t);
+    val_t *new_val(counted_t<datum_t> d, counted_t<table_t> t); // shadow vvv  // RSI
+    val_t *new_val(counted_t<const datum_t> d, counted_t<table_t> t);
     val_t *new_val(counted_t<datum_stream_t> s);
-    val_t *new_val(table_t *t, counted_t<datum_stream_t> s);
+    val_t *new_val(counted_t<table_t> t, counted_t<datum_stream_t> s);
     val_t *new_val(uuid_u db);
-    val_t *new_val(table_t *t);
+    val_t *new_val(counted_t<table_t> t);
     val_t *new_val(counted_t<func_t> f);
     val_t *new_val_bool(bool b);
 

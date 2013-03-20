@@ -53,7 +53,7 @@ private:
         val_t *v0 = arg(0), *v1 = arg(1);
         counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, counted_t<datum_stream_t> > ts = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
             return new_val(ts.first, ts.second->filter(f));
         } else {
             return new_val(v0->as_seq()->filter(f));
@@ -99,12 +99,12 @@ private:
     }
 
     virtual val_t *eval_impl() {
-        std::pair<table_t *, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
+        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
         val_t *lb = optarg("left_bound", 0);
         val_t *rb = optarg("right_bound", 0);
         if (!lb && !rb) return new_val(sel.first, sel.second);
 
-        table_t *tbl = sel.first;
+        counted_t<table_t> tbl = sel.first;
         const std::string &pk = tbl->get_pkey();
         counted_t<datum_stream_t> seq = sel.second;
 

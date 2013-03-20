@@ -81,11 +81,11 @@ private:
         lt_cmp_t lt_cmp(counted_t<const datum_t>(arr.release()));
         // We can't have datum_stream_t::sort because templates suck.
 
-        table_t *tbl = 0;
+        counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
         val_t *v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, counted_t<datum_stream_t> > ts = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
             tbl = ts.first;
             seq = ts.second;
         } else {

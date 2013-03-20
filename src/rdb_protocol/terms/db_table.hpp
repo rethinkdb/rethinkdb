@@ -371,7 +371,7 @@ private:
             db = arg(0)->as_db();
             name = arg(1)->as_str();
         }
-        return new_val(new table_t(env, db, name, use_outdated, this));
+        return new_val(make_counted<table_t>(env, db, name, use_outdated, this));
     }
     virtual const char *name() const { return "table"; }
 };
@@ -381,7 +381,7 @@ public:
     get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
+        counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
         counted_t<const datum_t> row = table->get_row(pkey);
         return new_val(row, table);

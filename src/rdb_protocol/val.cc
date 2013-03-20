@@ -173,11 +173,11 @@ val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent, env_t *_env
       func(0) {
     guarantee(datum);
 }
-val_t::val_t(counted_t<const datum_t> _datum, table_t *_table, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SINGLE_SELECTION),
-      table(env->add_ptr(_table)),
+      table(_table),
       sequence(0),
       datum(_datum),
       func(0) {
@@ -200,12 +200,12 @@ val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *
     }
 }
 
-val_t::val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
+val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
              const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SELECTION),
-      table(env->add_ptr(_table)),
+      table(_table),
       sequence(_sequence),
       datum(0),
       func(0) {
@@ -213,11 +213,11 @@ val_t::val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
     guarantee(sequence);
 }
 
-val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<table_t> _table, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::TABLE),
-      table(env->add_ptr(_table)),
+      table(_table),
       sequence(0),
       datum(0),
       func(0) {
@@ -254,7 +254,7 @@ counted_t<const datum_t> val_t::as_datum() {
     return datum;
 }
 
-table_t *val_t::as_table() {
+counted_t<table_t> val_t::as_table() {
     rcheck_literal_type(type_t::TABLE);
     return table;
 }
@@ -276,7 +276,7 @@ counted_t<datum_stream_t> val_t::as_seq() {
     return sequence;
 }
 
-std::pair<table_t *, counted_t<datum_stream_t> > val_t::as_selection() {
+std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection() {
 
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -284,7 +284,7 @@ std::pair<table_t *, counted_t<datum_stream_t> > val_t::as_selection() {
     return std::make_pair(table, as_seq());
 }
 
-std::pair<table_t *, counted_t<const datum_t> > val_t::as_single_selection() {
+std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum);
 }

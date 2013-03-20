@@ -261,22 +261,22 @@ val_t *term_t::new_val(counted_t<datum_t> d) {
 val_t *term_t::new_val(counted_t<const datum_t> d) {
     return env->add_ptr(new val_t(d, this, env));
 }
-val_t *term_t::new_val(counted_t<datum_t> d, table_t *t) {
+val_t *term_t::new_val(counted_t<datum_t> d, counted_t<table_t> t) {
     counted_t<const datum_t> d2(std::move(d));
     return new_val(d2, t);
 }
-val_t *term_t::new_val(counted_t<const datum_t> d, table_t *t) {
-    return env->add_ptr(new val_t(d, env->add_ptr(t), this, env));
+val_t *term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
+    return env->add_ptr(new val_t(d, t, this, env));
 }
 
 val_t *term_t::new_val(counted_t<datum_stream_t> s) {
     return env->add_ptr(new val_t(s, this, env));
 }
-val_t *term_t::new_val(table_t *d, counted_t<datum_stream_t> s) {
+val_t *term_t::new_val(counted_t<table_t> d, counted_t<datum_stream_t> s) {
     return env->add_ptr(new val_t(d, s, this, env));
 }
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
-val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
+val_t *term_t::new_val(counted_t<table_t> t) { return env->add_ptr(new val_t(t, this, env)); }
 val_t *term_t::new_val(counted_t<func_t> f) { return env->add_ptr(new val_t(f, this, env)); }
 val_t *term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
