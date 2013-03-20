@@ -138,18 +138,18 @@ private:
     friend void counted_t_release<T>(single_threaded_shared_mixin_t<T> *p);
     friend intptr_t counted_t_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
 
-    intptr_t refcount_;
+    mutable intptr_t refcount_;
     DISABLE_COPYING(single_threaded_shared_mixin_t);
 };
 
 template <class T>
-inline void counted_t_add_ref(single_threaded_shared_mixin_t<T> *p) {
+inline void counted_t_add_ref(const single_threaded_shared_mixin_t<T> *p) {
     p->refcount_ += 1;
     rassert(p->refcount_ > 0);
 }
 
 template <class T>
-inline void counted_t_release(single_threaded_shared_mixin_t<T> *p) {
+inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
@@ -161,7 +161,6 @@ template <class T>
 inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p) {
     return p->refcount_;
 }
-
 
 
 
