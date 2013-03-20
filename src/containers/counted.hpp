@@ -9,7 +9,7 @@
 
 #include "errors.hpp"
 
-// Yes, this is a clone of boost::counted_t.  This will probably
+// Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
 
 // Now it supports .unique(), and in order to use it, your type needs
@@ -120,7 +120,7 @@ private:
 };
 
 template <class T, class... Args>
-counted_t<T> make_counted(Args... args) {
+counted_t<T> make_counted(Args&&... args) {
     return counted_t<T>(new T(std::forward<Args>(args)...));
 }
 
