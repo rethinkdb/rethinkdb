@@ -12,6 +12,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/ptr_bag.hpp"
+#include "containers/intrusive_ptr.hpp"
 #include "extproc/pool.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/err.hpp"
@@ -22,15 +23,6 @@
 
 namespace ql {
 class term_t;
-
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
 
 class env_t : private home_thread_mixin_t {
 public:

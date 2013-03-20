@@ -6,6 +6,16 @@
 
 namespace ql {
 
+/* Checks that divisor is indeed a divisor of multiple. */
+template <class T>
+bool is_joined(const T &multiple, const T &divisor) {
+    T cpy = multiple;
+
+    semilattice_join(&cpy, divisor);
+    return cpy == multiple;
+}
+
+
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
