@@ -20,7 +20,7 @@ public:
         }
         guarantee(namestr && op);
     }
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         // I'm not sure what I was smoking when I wrote this.  I think I was
         // trying to avoid undue allocations or something.
         datum_t acc(datum_t::R_NULL);
@@ -73,7 +73,7 @@ class mod_term_t : public op_term_t {
 public:
     mod_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
         rcheck(i1, "Cannot take a number modulo 0.");

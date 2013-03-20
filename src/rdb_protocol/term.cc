@@ -158,7 +158,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         }
 
         try {
-            val_t *val = root_term->eval(false);
+            counted_t<val_t> val = root_term->eval(false);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
@@ -230,7 +230,7 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
-val_t *term_t::eval(bool _use_cached_val) {
+counted_t<val_t> term_t::eval(bool _use_cached_val) {
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
@@ -254,31 +254,37 @@ val_t *term_t::eval(bool _use_cached_val) {
     }
 }
 
-val_t *term_t::new_val(counted_t<datum_t> d) {
+counted_t<val_t> term_t::new_val(counted_t<datum_t> d) {
     counted_t<const datum_t> d2(std::move(d));
     return new_val(d2);
 }
-val_t *term_t::new_val(counted_t<const datum_t> d) {
-    return env->add_ptr(new val_t(d, this, env));
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
+    return make_counted<val_t>(d, this, env);
 }
-val_t *term_t::new_val(counted_t<datum_t> d, counted_t<table_t> t) {
+counted_t<val_t> term_t::new_val(counted_t<datum_t> d, counted_t<table_t> t) {
     counted_t<const datum_t> d2(std::move(d));
     return new_val(d2, t);
 }
-val_t *term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return env->add_ptr(new val_t(d, t, this, env));
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
+    return make_counted<val_t>(d, t, this, env);
 }
 
-val_t *term_t::new_val(counted_t<datum_stream_t> s) {
-    return env->add_ptr(new val_t(s, this, env));
+counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
+    return make_counted<val_t>(s, this, env);
 }
-val_t *term_t::new_val(counted_t<table_t> d, counted_t<datum_stream_t> s) {
-    return env->add_ptr(new val_t(d, s, this, env));
+counted_t<val_t> term_t::new_val(counted_t<table_t> d, counted_t<datum_stream_t> s) {
+    return make_counted<val_t>(d, s, this, env);
 }
-val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
-val_t *term_t::new_val(counted_t<table_t> t) { return env->add_ptr(new val_t(t, this, env)); }
-val_t *term_t::new_val(counted_t<func_t> f) { return env->add_ptr(new val_t(f, this, env)); }
-val_t *term_t::new_val_bool(bool b) {
+counted_t<val_t> term_t::new_val(uuid_u db) {
+    return env->new_val(db, this);
+}
+counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
+    return make_counted<val_t>(t, this, env);
+}
+counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
+    return make_counted<val_t>(f, this, env);
+}
+counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 

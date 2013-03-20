@@ -27,7 +27,7 @@ public:
 
     // stream -> atom
     virtual counted_t<const datum_t> count() = 0;
-    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f) = 0;
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f) = 0;
     virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r) = 0;
 
     // stream -> stream (always eager)
@@ -58,7 +58,7 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f);
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
     virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
 
     virtual counted_t<const datum_t> as_array();
@@ -112,7 +112,7 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(val_t *base_val, counted_t<func_t> f);
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
     virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
     virtual counted_t<const datum_t> next_impl();
     virtual counted_t<const datum_t> as_array() { return counted_t<const datum_t>(); } // cannot be converted implicitly

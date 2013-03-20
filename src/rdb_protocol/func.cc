@@ -72,7 +72,7 @@ func_t::func_t(env_t *env, const Term *_source)
     env->dump_scope(&scope);
 }
 
-val_t *func_t::call(const std::vector<counted_t<const datum_t> > &args) {
+counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) {
     try {
         if (js_parent != 0) {
             r_sanity_check(!body && !source && js_env);
@@ -104,18 +104,18 @@ val_t *func_t::call(const std::vector<counted_t<const datum_t> > &args) {
     }
 }
 
-val_t *func_t::call() {
+counted_t<val_t> func_t::call() {
     std::vector<counted_t<const datum_t> > args;
     return call(args);
 }
 
-val_t *func_t::call(counted_t<const datum_t> arg) {
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg) {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg);
     return call(args);
 }
 
-val_t *func_t::call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) {
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg1);
     args.push_back(arg2);
@@ -132,6 +132,21 @@ void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
 }
 bool func_t::is_deterministic() const {
     return body ? body->is_deterministic() : false;
+}
+
+// This JS evaluation resulted in an error
+counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
+    rfail_target(parent, "%s", err_val.c_str());
+    unreachable();
+}
+
+counted_t<val_t> js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+    return parent->new_val(make_counted<const datum_t>(json_val, env));
+}
+
+// This JS evaluation resulted in an id for a js function
+counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
+    return parent->new_val(make_counted<func_t>(env, id_val, parent));
 }
 
 wire_func_t::wire_func_t() { }
@@ -158,7 +173,7 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
 
 func_term_t::func_term_t(env_t *env, const Term *term)
     : term_t(env, term), func(env->new_func(term)) { }
-val_t *func_term_t::eval_impl() {
+counted_t<val_t> func_term_t::eval_impl() {
     return new_val(func);
 }
 bool func_term_t::is_deterministic_impl() const {
@@ -205,5 +220,7 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     bt_src->propagate(&twrap->t);
     return make_counted<func_t>(env, &twrap->t);
 }
+
+
 
 } // namespace ql

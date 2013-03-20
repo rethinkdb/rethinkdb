@@ -13,8 +13,8 @@ public:
     gmr_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(4), optargspec_t(gmr_optargs)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *baseval = optarg("base", 0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> baseval = optarg("base", counted_t<val_t>());
         counted_t<const datum_t> base = baseval ? baseval->as_datum() : counted_t<const datum_t>();
         counted_t<func_t> g = arg(1)->as_func();
         counted_t<func_t> m = arg(2)->as_func();

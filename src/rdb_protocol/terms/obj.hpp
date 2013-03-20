@@ -11,7 +11,7 @@ public:
     getattr_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_datum()->el(arg(1)->as_str()));
     }
     virtual const char *name() const { return "getattr"; }
@@ -22,7 +22,7 @@ public:
     contains_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
         bool contains = true;
         for (size_t i = 1; i < num_args(); ++i) {

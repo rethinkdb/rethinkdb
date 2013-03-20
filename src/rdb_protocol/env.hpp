@@ -29,7 +29,7 @@ public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
-    val_t *get_optarg(const std::string &key); // returns NULL if no entry
+    counted_t<val_t> get_optarg(const std::string &key); // returns NULL if no entry
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
@@ -83,15 +83,15 @@ public:
         return make_counted<func_t>(this, term);
     }
     template<class T>
-    val_t *new_val(T *ptr, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), parent, this));
+    counted_t<val_t> new_val(T *ptr, term_t *parent) {
+        return make_counted<val_t>(add_ptr(ptr), parent, this);
     }
     template<class T, class U>
-    val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent, this));
+    counted_t<val_t> new_val(T *ptr, U *ptr2, term_t *parent) {
+        return make_counted<val_t>(add_ptr(ptr), add_ptr(ptr2), parent, this);
     }
-    val_t *new_val(uuid_u db, term_t *parent) {
-        return add_ptr(new val_t(db, parent, this));
+    counted_t<val_t> new_val(uuid_u db, term_t *parent) {
+        return make_counted<val_t>(db, parent, this);
     }
     term_t *new_term(const Term *source) {
         return add_ptr(compile_term(this, source));

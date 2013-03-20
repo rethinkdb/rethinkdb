@@ -127,8 +127,8 @@ class coerce_term_t : public op_term_t {
 public:
     coerce_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *val = arg(0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> val = arg(0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -225,8 +225,8 @@ class typeof_term_t : public op_term_t {
 public:
     typeof_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *v0 = arg(0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v0 = arg(0);
         int t = v0->get_type().raw_type * MAX_TYPE;
         if (t == DATUM_TYPE) {
             t += v0->as_datum()->get_type();

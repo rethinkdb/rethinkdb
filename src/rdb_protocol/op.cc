@@ -30,16 +30,18 @@ op_term_t::op_term_t(env_t *env, const Term *term,
 op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
-val_t *op_term_t::arg(size_t i) {
+counted_t<val_t> op_term_t::arg(size_t i) {
     rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
     return args[i].eval(use_cached_val);
 }
 
-val_t *op_term_t::optarg(const std::string &key, val_t *def/*ault*/) {
+counted_t<val_t> op_term_t::optarg(const std::string &key, counted_t<val_t> default_value) {
     boost::ptr_map<const std::string, term_t>::iterator it = optargs.find(key);
-    if (it != optargs.end()) return it->second->eval(use_cached_val);
-    val_t *v = env->get_optarg(key);
-    return v ? v : def;
+    if (it != optargs.end()) {
+        return it->second->eval(use_cached_val);
+    }
+    counted_t<val_t> v = env->get_optarg(key);
+    return v ? v : default_value;
 }
 
 bool op_term_t::is_deterministic_impl() const {

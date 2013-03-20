@@ -37,7 +37,7 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
     return make_counted<const datum_t>(static_cast<double>(i));
 }
 
-counted_t<const datum_t> eager_datum_stream_t::reduce(val_t *base_val, counted_t<func_t> f) {
+counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {
     counted_t<const datum_t> base;
     base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
@@ -137,7 +137,7 @@ counted_t<const datum_t> lazy_datum_stream_t::count() {
     return counted_t<const datum_t>(d.release());
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(val_t *base_val, counted_t<func_t> f) {
+counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {
     run_terminal(reduce_wire_func_t(env, f));
     counted_t<const datum_t> out;
     if (base_val) {

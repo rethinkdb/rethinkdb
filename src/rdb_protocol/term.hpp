@@ -26,22 +26,22 @@ public:
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    val_t *eval(bool _use_cached_val);
+    counted_t<val_t> eval(bool _use_cached_val);
 
     // TODO: this templating/shadowing logic is terrible (I hate implicit
     // conversions) and doesn't save that much typing.  Rip it out.
 
     // Allocates a new value in the current environment.
-    val_t *new_val(counted_t<datum_t> d); // shadow vvv // RSI
-    val_t *new_val(counted_t<const datum_t> d);
-    val_t *new_val(counted_t<datum_t> d, counted_t<table_t> t); // shadow vvv  // RSI
-    val_t *new_val(counted_t<const datum_t> d, counted_t<table_t> t);
-    val_t *new_val(counted_t<datum_stream_t> s);
-    val_t *new_val(counted_t<table_t> t, counted_t<datum_stream_t> s);
-    val_t *new_val(uuid_u db);
-    val_t *new_val(counted_t<table_t> t);
-    val_t *new_val(counted_t<func_t> f);
-    val_t *new_val_bool(bool b);
+    counted_t<val_t> new_val(counted_t<datum_t> d); // shadow vvv // RSI
+    counted_t<val_t> new_val(counted_t<const datum_t> d);
+    counted_t<val_t> new_val(counted_t<datum_t> d, counted_t<table_t> t); // shadow vvv  // RSI
+    counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
+    counted_t<val_t> new_val(counted_t<datum_stream_t> s);
+    counted_t<val_t> new_val(counted_t<table_t> t, counted_t<datum_stream_t> s);
+    counted_t<val_t> new_val(uuid_u db);
+    counted_t<val_t> new_val(counted_t<table_t> t);
+    counted_t<val_t> new_val(counted_t<func_t> f);
+    counted_t<val_t> new_val_bool(bool b);
 
     virtual bool is_deterministic() const;
 
@@ -53,9 +53,9 @@ protected:
     bool use_cached_val;
     env_t *env;
 private:
-    virtual val_t *eval_impl() = 0;
+    virtual counted_t<val_t> eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
-    val_t *cached_val;
+    counted_t<val_t> cached_val;
 };
 
 term_t *compile_term(env_t *env, const Term *t);

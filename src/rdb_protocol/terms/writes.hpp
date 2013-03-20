@@ -71,15 +71,15 @@ private:
         }
     }
 
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
-        val_t *upsert_val = optarg("upsert", 0);
+        counted_t<val_t> upsert_val = optarg("upsert", counted_t<val_t>());
         bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
         bool done = false;
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         std::vector<std::string> generated_keys;
-        val_t *v1 = arg(1);
+        counted_t<val_t> v1 = arg(1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
@@ -128,15 +128,17 @@ public:
     replace_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
-        if (val_t *v = optarg("non_atomic", 0)) nondet_ok = v->as_bool();
+        if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
+            nondet_ok = v->as_bool();
+        }
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         rcheck((f->is_deterministic() || nondet_ok),
                "Could not prove function deterministic.  "
                "Maybe you want to use the non_atomic flag?");
 
-        val_t *v0 = arg(0);
+        counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
@@ -160,13 +162,13 @@ public:
     foreach_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         const char *fail_msg = "FOREACH expects one or more write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> row = ds->next()) {
-            val_t *v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
+            counted_t<val_t> v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

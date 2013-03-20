@@ -15,9 +15,9 @@ public:
     }
 private:
     virtual bool is_deterministic_impl() const { return true; }
-    virtual val_t *eval_impl() { return raw_val; }
+    virtual counted_t<val_t> eval_impl() { return raw_val; }
     virtual const char *name() const { return "datum"; }
-    val_t *raw_val;
+    counted_t<val_t> raw_val;
 };
 
 class make_array_term_t : public op_term_t {
@@ -25,7 +25,7 @@ public:
     make_array_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < num_args(); ++i) {
             acc->add(arg(i)->as_datum());
@@ -40,7 +40,7 @@ public:
     make_obj_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
         for (boost::ptr_map<const std::string, term_t>::iterator
                  it = optargs.begin(); it != optargs.end(); ++it) {

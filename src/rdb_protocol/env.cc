@@ -29,8 +29,10 @@ void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
 }
-val_t *env_t::get_optarg(const std::string &key){
-    if (!optargs.count(key)) return 0;
+counted_t<val_t> env_t::get_optarg(const std::string &key){
+    if (!optargs.count(key)) {
+        return counted_t<val_t>();
+    }
     return optargs[key].compile(this)->call();
 }
 const std::map<std::string, wire_func_t> &env_t::get_all_optargs() {

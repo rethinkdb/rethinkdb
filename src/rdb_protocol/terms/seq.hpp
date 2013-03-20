@@ -17,7 +17,7 @@ class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->count());
     }
     virtual const char *name() const { return "count"; }
@@ -27,7 +27,7 @@ class map_term_t : public op_term_t {
 public:
     map_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
     }
     virtual const char *name() const { return "map"; }
@@ -38,7 +38,7 @@ public:
     concatmap_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
     }
     virtual const char *name() const { return "concatmap"; }
@@ -49,8 +49,9 @@ public:
     filter_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)), src_term(term) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *v0 = arg(0), *v1 = arg(1);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v0 = arg(0);
+        counted_t<val_t> v1 = arg(1);
         counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
@@ -70,8 +71,8 @@ public:
     reduce_term_t(env_t *env, const Term *term) :
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
-    virtual val_t *eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", 0), arg(1)->as_func()));
+    virtual counted_t<val_t> eval_impl() {
+        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()), arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };
@@ -98,10 +99,10 @@ private:
         }
     }
 
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         std::pair<counted_t<table_t>, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
-        val_t *lb = optarg("left_bound", 0);
-        val_t *rb = optarg("right_bound", 0);
+        counted_t<val_t> lb = optarg("left_bound", counted_t<val_t>());
+        counted_t<val_t> rb = optarg("right_bound", counted_t<val_t>());
         if (!lb && !rb) return new_val(sel.first, sel.second);
 
         counted_t<table_t> tbl = sel.first;
@@ -132,7 +133,7 @@ public:
     union_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < num_args(); ++i) {
             streams.push_back(arg(i)->as_seq());
@@ -147,7 +148,7 @@ class zip_term_t : public op_term_t {
 public:
     zip_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->zip());
     }
     virtual const char *name() const { return "zip"; }

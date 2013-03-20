@@ -35,7 +35,7 @@ public:
 private:
 
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual val_t *eval_impl() { return real->eval(use_cached_val); }
+    virtual counted_t<val_t> eval_impl() { return real->eval(use_cached_val); }
     const Term *in;
     Term out;
 

@@ -23,7 +23,7 @@ class asc_term_t : public op_term_t {
 public:
     asc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "asc"; }
@@ -33,7 +33,7 @@ class desc_term_t : public op_term_t {
 public:
     desc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "desc"; }
@@ -68,7 +68,7 @@ private:
         counted_t<const datum_t> attrs;
     };
 
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             Term::TermType type = src_term->args(i).type();
@@ -83,7 +83,7 @@ private:
 
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
-        val_t *v0 = arg(0);
+        counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
             tbl = ts.first;
@@ -106,7 +106,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), this));
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         counted_t<const datum_t> last;

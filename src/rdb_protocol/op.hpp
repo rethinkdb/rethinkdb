@@ -53,9 +53,9 @@ public:
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    val_t *arg(size_t i); // returns argument `i`
+    counted_t<val_t> arg(size_t i); // returns argument `i`
     // Tries to get an optional argument, returns `def` if not found.
-    val_t *optarg(const std::string &key, val_t *def/*ault*/);
+    counted_t<val_t> optarg(const std::string &key, counted_t<val_t> default_value);
 private:
     virtual bool is_deterministic_impl() const;
     boost::ptr_vector<term_t> args;

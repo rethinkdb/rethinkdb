@@ -18,7 +18,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
 
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         std::string source = arg(0)->as_datum()->as_str();
 
         boost::shared_ptr<js::runner_t> js = env->get_js_runner();

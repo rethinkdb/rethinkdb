@@ -27,11 +27,11 @@ public:
                                              const pb_rcheckable_t *root);
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                                const pb_rcheckable_t *root);
-    val_t *call(const std::vector<counted_t<const datum_t> > &args);
+    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
     // Prefer these versions of call.
-    val_t *call();
-    val_t *call(counted_t<const datum_t> arg);
-    val_t *call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
+    counted_t<val_t> call();
+    counted_t<val_t> call(counted_t<const datum_t> arg);
+    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
     bool filter_call(env_t *env, counted_t<const datum_t> arg);
 
     void dump_scope(std::map<int64_t, Datum> *out) const;
@@ -55,27 +55,18 @@ private:
     js::id_t js_id;
 };
 
-class js_result_visitor_t : public boost::static_visitor<val_t *> {
+class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    typedef val_t *result_type;
-
     js_result_visitor_t(env_t *_env, term_t *_parent) : env(_env), parent(_parent) { }
 
     // This JS evaluation resulted in an error
-    result_type operator()(const std::string err_val) const {
-        rfail_target(parent, "%s", err_val.c_str());
-        unreachable();
-    }
+    counted_t<val_t> operator()(const std::string err_val) const;
 
     // This JS call resulted in a JSON value
-    result_type operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-        return parent->new_val(make_counted<const datum_t>(json_val, env));
-    }
+    counted_t<val_t> operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const;
 
     // This JS evaluation resulted in an id for a js function
-    result_type operator()(const id_t id_val) const {
-        return parent->new_val(make_counted<func_t>(env, id_val, parent));
-    }
+    counted_t<val_t> operator()(const id_t id_val) const;
 
 private:
     env_t *env;
@@ -183,7 +174,7 @@ public:
     func_term_t(env_t *env, const Term *term);
 private:
     virtual bool is_deterministic_impl() const;
-    virtual val_t *eval_impl();
+    virtual counted_t<val_t> eval_impl();
     virtual const char *name() const { return "func"; }
     counted_t<func_t> func;
 };

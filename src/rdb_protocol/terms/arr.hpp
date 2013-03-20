@@ -9,7 +9,7 @@ class append_term_t : public op_term_t {
 public:
     append_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
         arr->check_type(datum_t::R_ARRAY);
@@ -42,8 +42,8 @@ class nth_term_t : public op_term_t {
 public:
     nth_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *v = arg(0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(0);
         int32_t n = arg(1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> arr = v->as_datum();
@@ -75,8 +75,8 @@ public:
     slice_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *v = arg(0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(0);
         int32_t fake_l = arg(1)->as_int<int32_t>();
         int32_t fake_r = arg(2)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -117,8 +117,8 @@ class limit_term_t : public op_term_t {
 public:
     limit_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *v = arg(0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(0);
         counted_t<table_t> t;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             t = v->as_selection().first;
