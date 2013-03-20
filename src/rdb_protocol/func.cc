@@ -50,7 +50,7 @@ func_t::func_t(env_t *env, const Term *_source)
     guarantee(argptrs.size() == 0);
     argptrs.reserve(args.size()); // NECESSARY FOR POINTERS TO REMAIN VALID
     for (size_t i = 0; i < args.size(); ++i) {
-        argptrs.push_back(0);
+        argptrs.push_back(counted_t<const datum_t>());
         env->push_var(args[i], &argptrs[i]);
     }
     if (args.size() == 1 && env_t::var_allows_implicit(args[0])) {
@@ -72,7 +72,7 @@ func_t::func_t(env_t *env, const Term *_source)
     env->dump_scope(&scope);
 }
 
-val_t *func_t::call(const std::vector<const datum_t *> &args) {
+val_t *func_t::call(const std::vector<counted_t<const datum_t> > &args) {
     try {
         if (js_parent != 0) {
             r_sanity_check(!body && !source && js_env);
@@ -105,18 +105,18 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
 }
 
 val_t *func_t::call() {
-    std::vector<const datum_t *> args;
+    std::vector<counted_t<const datum_t> > args;
     return call(args);
 }
 
-val_t *func_t::call(const datum_t *arg) {
-    std::vector<const datum_t *> args;
+val_t *func_t::call(counted_t<const datum_t> arg) {
+    std::vector<counted_t<const datum_t> > args;
     args.push_back(arg);
     return call(args);
 }
 
-val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
-    std::vector<const datum_t *> args;
+val_t *func_t::call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) {
+    std::vector<counted_t<const datum_t> > args;
     args.push_back(arg1);
     args.push_back(arg2);
     return call(args);
@@ -124,7 +124,7 @@ val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
 
 void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
     r_sanity_check(body && source && !js_env && !js_parent);
-    for (std::map<int64_t, const datum_t **>::const_iterator
+    for (std::map<int64_t, counted_t<const datum_t> *>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
         if (!*it->second) continue;
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
@@ -165,8 +165,8 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-bool func_t::filter_call(env_t *env, const datum_t *arg) {
-    const datum_t *d = call(arg)->as_datum();
+bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg) {
+    counted_t<const datum_t> d = call(arg)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT) {
         func_t *f2 = new_filter_func(env, d, this);
         d = f2->call(arg)->as_datum();
@@ -176,16 +176,16 @@ bool func_t::filter_call(env_t *env, const datum_t *arg) {
           d->get_type_name());
 }
 
-func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
+func_t *func_t::new_filter_func(env_t *env, counted_t<const datum_t> obj,
                                 const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     int x = env->gensym();
     Term *t = pb::set_func(&twrap->t, x);
     pb::set(t, Term_TermType_ALL, 0, 0);
-    const std::map<std::string, const datum_t *> &obj_as_object = obj->as_object();
+    const std::map<std::string, counted_t<const datum_t> > &obj_as_object = obj->as_object();
     for (auto it = obj_as_object.begin(); it != obj_as_object.end(); ++it) {
         std::string key = it->first;
-        const datum_t *val = it->second;
+        counted_t<const datum_t> val = it->second;
 
         Term *arg = t->add_args();
         N2(EQ,
@@ -197,7 +197,7 @@ func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
 }
 
 
-func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
+func_t *func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                   const pb_rcheckable_t *bt_src) {
     env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
     Term *arg = &twrap->t;

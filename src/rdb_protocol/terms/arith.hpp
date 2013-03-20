@@ -23,12 +23,12 @@ public:
     virtual val_t *eval_impl() {
         // I'm not sure what I was smoking when I wrote this.  I think I was
         // trying to avoid undue allocations or something.
-        datum_t *acc = env->add_ptr(new datum_t(datum_t::R_NULL));
-        *acc = *arg(0)->as_datum();
+        datum_t acc(datum_t::R_NULL);
+        acc.copy_from(*arg(0)->as_datum());
         for (size_t i = 1; i < num_args(); ++i) {
-            *acc = (this->*op)(*acc, *arg(i)->as_datum());
+            acc = (this->*op)(acc, *arg(i)->as_datum());
         }
-        return new_val(acc);
+        return new_val(make_counted<const datum_t>(std::move(acc)));
     }
     virtual const char *name() const { return namestr; }
 private:
@@ -80,7 +80,7 @@ private:
         // Sam says this is a floating-point exception
         rcheck(!(i0 == INT64_MIN && i1 == -1),
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
-        return new_val(static_cast<double>(i0 % i1));
+        return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
     }
     virtual const char *name() const { return "mod"; }
 };

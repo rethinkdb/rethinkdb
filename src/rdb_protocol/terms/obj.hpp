@@ -23,12 +23,12 @@ public:
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *eval_impl() {
-        const datum_t *obj = arg(0)->as_datum();
+        counted_t<const datum_t> obj = arg(0)->as_datum();
         bool contains = true;
         for (size_t i = 1; i < num_args(); ++i) {
             contains = contains && obj->el(arg(i)->as_str(), NOTHROW);
         }
-        return new_val(new datum_t(datum_t::R_BOOL, contains));
+        return new_val(make_counted<const datum_t>(datum_t::R_BOOL, contains));
     }
     virtual const char *name() const { return "contains"; }
 };

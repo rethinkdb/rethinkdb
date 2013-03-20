@@ -50,6 +50,11 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
+protected:
+    void copy_from(const pb_rcheckable_t *other) {
+        bt_src = other->bt_src;
+    }
+
 private:
     const Backtrace *bt_src;
 };

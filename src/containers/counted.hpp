@@ -121,7 +121,7 @@ private:
 
 template <class T, class... Args>
 counted_t<T> make_counted(Args... args) {
-    return counted_t<T>(new T(args...));
+    return counted_t<T>(new T(std::forward<Args>(args)...));
 }
 
 template <class> class single_threaded_shared_mixin_t;
@@ -142,6 +142,11 @@ protected:
     counted_t<T> counted_from_this() {
         rassert(refcount_ > 0);
         return counted_t<T>(static_cast<T *>(this));
+    }
+
+    counted_t<const T> counted_from_this() const {
+        rassert(refcount_ > 0);
+        return counted_t<const T>(static_cast<const T *>(this));
     }
 
     ~single_threaded_shared_mixin_t() { }

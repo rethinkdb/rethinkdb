@@ -161,7 +161,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             val_t *val = root_term->eval(false);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
-                const datum_t *d = val->as_datum();
+                counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 stream_cache2->insert(q, token, env_ptr, val->as_seq());
@@ -254,17 +254,19 @@ val_t *term_t::eval(bool _use_cached_val) {
     }
 }
 
-val_t *term_t::new_val(datum_t *d) {
-    return new_val(const_cast<const datum_t *>(d));
+val_t *term_t::new_val(counted_t<datum_t> d) {
+    counted_t<const datum_t> d2(std::move(d));
+    return new_val(d2);
 }
-val_t *term_t::new_val(const datum_t *d) {
-    return env->new_val(d, this);
+val_t *term_t::new_val(counted_t<const datum_t> d) {
+    return env->add_ptr(new val_t(d, this, env));
 }
-val_t *term_t::new_val(datum_t *d, table_t *t) {
-    return new_val(const_cast<const datum_t *>(d), t);
+val_t *term_t::new_val(counted_t<datum_t> d, table_t *t) {
+    counted_t<const datum_t> d2(std::move(d));
+    return new_val(d2, t);
 }
-val_t *term_t::new_val(const datum_t *d, table_t *t) {
-    return env->new_val(d, t, this);
+val_t *term_t::new_val(counted_t<const datum_t> d, table_t *t) {
+    return env->add_ptr(new val_t(d, env->add_ptr(t), this, env));
 }
 
 val_t *term_t::new_val(counted_t<datum_stream_t> s) {
@@ -277,7 +279,7 @@ val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
 val_t *term_t::new_val_bool(bool b) {
-    return new_val(new datum_t(datum_t::R_BOOL, b));
+    return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 
 } //namespace ql

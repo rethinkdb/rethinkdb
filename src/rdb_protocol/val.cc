@@ -44,22 +44,17 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     pkey =  ns_metadata_it->second.get().primary_key.get();
 }
 
-datum_t *table_t::env_add_ptr(datum_t *d) {
-    return env->add_ptr(d);
-}
-
-const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                                   UNUSED bool _so_the_template_matches) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf,
+                                             UNUSED bool _so_the_template_matches) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
         orig = mwf2.compile(env)->call(orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
-            datum_t *resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            const datum_t *num_1 = env->add_ptr(new ql::datum_t(1.0));
-            bool b = resp->add("skipped", num_1);
+            scoped_ptr_t<datum_t> resp(new datum_t(datum_t::R_OBJECT));
+            bool b = resp->add("skipped", make_counted<datum_t>(1.0));
             r_sanity_check(!b);
-            return resp;
+            return counted_t<const datum_t>(resp.release());
         }
     }
     store_key_t store_key(orig->el(pk)->print_primary());
@@ -70,11 +65,11 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
     access->get_namespace_if()->write(
         write, &response, order_token_t::ignore, env->interruptor);
     Datum *d = boost::get<Datum>(&response.response);
-    return env->add_ptr(new datum_t(d, env));
+    return make_counted<datum_t>(d, env);
 }
 
 
-const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, func_t *f, bool nondet_ok) {
     if (f->is_deterministic()) {
         return do_replace(orig, map_wire_func_t(env, f));
     } else {
@@ -83,7 +78,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_o
     }
 }
 
-const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool upsert) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert) {
     Term t;
     int x = env->gensym();
     Term *arg = pb::set_func(&t, x);
@@ -97,13 +92,14 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
             }
 
     propagate(&t);
+    // RSI remove this static_cast.
     return do_replace(
         orig, map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL)));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
 
-const datum_t *table_t::get_row(const datum_t *pval) {
+counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     std::string pks = pval->print_primary();
     rdb_protocol_t::read_t read((rdb_protocol_t::point_read_t(store_key_t(pks))));
     rdb_protocol_t::read_response_t res;
@@ -116,7 +112,7 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
     r_sanity_check(p_res);
-    return env->add_ptr(new datum_t(p_res->data, env));
+    return make_counted<const datum_t>(p_res->data, env);
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream() {
@@ -167,23 +163,23 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(const datum_t *_datum, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::DATUM),
       table(0),
       sequence(0),
-      datum(env->add_ptr(_datum)),
+      datum(_datum),
       func(0) {
     guarantee(datum);
 }
-val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env)
+val_t::val_t(counted_t<const datum_t> _datum, table_t *_table, const term_t *_parent, env_t *_env)
     : pb_rcheckable_t(_parent),
       parent(_parent), env(_env),
       type(type_t::SINGLE_SELECTION),
       table(env->add_ptr(_table)),
       sequence(0),
-      datum(env->add_ptr(_datum)),
+      datum(_datum),
       func(0) {
     guarantee(table);
     guarantee(datum);
@@ -251,7 +247,7 @@ val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
 val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
 
-const datum_t *val_t::as_datum() {
+counted_t<const datum_t> val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
         rcheck_literal_type(type_t::DATUM);
     }
@@ -288,7 +284,7 @@ std::pair<table_t *, counted_t<datum_stream_t> > val_t::as_selection() {
     return std::make_pair(table, as_seq());
 }
 
-std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
+std::pair<table_t *, counted_t<const datum_t> > val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
     return std::make_pair(table, datum);
 }
@@ -321,7 +317,7 @@ uuid_u val_t::as_db() {
 
 bool val_t::as_bool() {
     try {
-        const datum_t *d = as_datum();
+        counted_t<const datum_t> d = as_datum();
         r_sanity_check(d);
         return d->as_bool();
     } catch (const datum_exc_t &e) {
@@ -331,7 +327,7 @@ bool val_t::as_bool() {
 }
 double val_t::as_num() {
     try {
-        const datum_t *d = as_datum();
+        counted_t<const datum_t> d = as_datum();
         r_sanity_check(d);
         return d->as_num();
     } catch (const datum_exc_t &e) {
@@ -341,7 +337,7 @@ double val_t::as_num() {
 }
 int64_t val_t::as_int() {
     try {
-        const datum_t *d = as_datum();
+        counted_t<const datum_t> d = as_datum();
         r_sanity_check(d);
         return d->as_int();
     } catch (const datum_exc_t &e) {
@@ -351,7 +347,7 @@ int64_t val_t::as_int() {
 }
 const std::string &val_t::as_str() {
     try {
-        const datum_t *d = as_datum();
+        counted_t<const datum_t> d = as_datum();
         r_sanity_check(d);
         return d->as_str();
     } catch (const datum_exc_t &e) {

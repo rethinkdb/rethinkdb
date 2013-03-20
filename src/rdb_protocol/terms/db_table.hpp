@@ -83,10 +83,9 @@ private:
     virtual std::string write_eval_impl() = 0;
     virtual val_t *eval_impl() {
         std::string op = write_eval_impl();
-        datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        const datum_t *num_1 = env->add_ptr(new datum_t(1.0));
-        UNUSED bool b = res->add(op, num_1);
-        return new_val(res);
+        scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+        UNUSED bool b = res->add(op, make_counted<const datum_t>(1.0));
+        return new_val(counted_t<const datum_t>(res.release()));
     }
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
@@ -303,7 +302,7 @@ public:
         meta_op_t(env, term, argspec_t(0)) { }
 private:
     virtual val_t *eval_impl() {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         std::vector<std::string> dbs;
         {
             rethreading_metadata_accessor_t meta(this);
@@ -316,9 +315,9 @@ private:
             }
         }
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr->add(env->add_ptr(new datum_t(*it)));
+            arr->add(make_counted<datum_t>(*it));
         }
-        return new_val(arr);
+        return new_val(counted_t<const datum_t>(arr.release()));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -329,7 +328,7 @@ public:
         meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         uuid_u db_id = arg(0)->as_db();
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
@@ -344,9 +343,9 @@ private:
             }
         }
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr->add(env->add_ptr(new datum_t(*it)));
+            arr->add(make_counted<const datum_t>(*it));
         }
-        return new_val(arr);
+        return new_val(counted_t<const datum_t>(arr.release()));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -383,8 +382,8 @@ public:
 private:
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
-        const datum_t *pkey = arg(1)->as_datum();
-        const datum_t *row = table->get_row(pkey);
+        counted_t<const datum_t> pkey = arg(1)->as_datum();
+        counted_t<const datum_t> row = table->get_row(pkey);
         return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }

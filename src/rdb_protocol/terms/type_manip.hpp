@@ -150,25 +150,25 @@ private:
 
         // DATUM -> *
         if (opaque_start_type.is_convertible(val_t::type_t::DATUM)) {
-            const datum_t *d = val->as_datum();
+            counted_t<const datum_t> d = val->as_datum();
             // DATUM -> DATUM
             if (supertype(end_type) == val_t::type_t::DATUM) {
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
-                    return new_val(new datum_t(d->print()));
+                    return new_val(make_counted<const datum_t>(d->print()));
                 }
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-                    const std::map<std::string, const datum_t *> &obj = d->as_object();
+                    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+                    const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        datum_t *pair = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-                        pair->add(env->add_ptr(new datum_t(it->first)));
+                        scoped_ptr_t<datum_t> pair(new datum_t(datum_t::R_ARRAY));
+                        pair->add(make_counted<const datum_t>(it->first));
                         pair->add(it->second);
-                        arr->add(pair);
+                        arr->add(counted_t<const datum_t>(pair.release()));
                     }
-                    return new_val(arr);
+                    return new_val(counted_t<const datum_t>(arr.release()));
                 }
 
             }
@@ -188,18 +188,20 @@ private:
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-                while (const datum_t *el = ds->next()) arr->add(el);
-                return new_val(arr);
+                scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+                while (counted_t<const datum_t> el = ds->next()) {
+                    arr->add(el);
+                }
+                return new_val(counted_t<const datum_t>(arr.release()));
             }
 
             // SEQUENCE -> OBJECT
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-                    while (const datum_t *pair = ds->next()) {
+                    scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
+                    while (counted_t<const datum_t> pair = ds->next()) {
                         std::string key = pair->el(0)->as_str();
-                        const datum_t *keyval = pair->el(1);
+                        counted_t<const datum_t> keyval = pair->el(1);
                         bool b = obj->add(key, keyval);
                         rcheck(!b, strprintf("Duplicate key %s in coerced object.  "
                                              "(got %s and %s as values)",
@@ -207,7 +209,7 @@ private:
                                              obj->el(key)->print().c_str(),
                                              keyval->print().c_str()));
                     }
-                    return new_val(obj);
+                    return new_val(counted_t<const datum_t>(obj.release()));
                 }
             }
         }
@@ -226,8 +228,10 @@ private:
     virtual val_t *eval_impl() {
         val_t *v0 = arg(0);
         int t = v0->get_type().raw_type * MAX_TYPE;
-        if (t == DATUM_TYPE) t += v0->as_datum()->get_type();
-        return new_val(get_name(t));
+        if (t == DATUM_TYPE) {
+            t += v0->as_datum()->get_type();
+        }
+        return new_val(make_counted<const datum_t>(get_name(t)));
     }
     virtual const char *name() const { return "typeof"; }
 };

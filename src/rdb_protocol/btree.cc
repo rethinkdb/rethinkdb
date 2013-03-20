@@ -162,8 +162,7 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out) THROWS_NOTHING {
-    const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
-    ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
+    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
@@ -171,22 +170,22 @@ void rdb_replace(btree_slice_t *slice,
             &slice->root_eviction_priority, &slice->stats);
 
         bool started_empty, ended_empty;
-        const ql::datum_t *old_val;
+        counted_t<const ql::datum_t> old_val;
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
+            old_val = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = ql_env->add_ptr(new ql::datum_t(old_val_json, ql_env));
+            old_val = make_counted<const ql::datum_t>(old_val_json, ql_env);
         }
         guarantee(old_val);
 
-        const ql::datum_t *new_val = f->compile(ql_env)->call(old_val)->as_datum();
+        counted_t<const ql::datum_t> new_val = f->compile(ql_env)->call(old_val)->as_datum();
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
@@ -208,23 +207,23 @@ void rdb_replace(btree_slice_t *slice,
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
-                conflict = resp->add("skipped", num_1);
+                conflict = resp->add("skipped", make_counted<const ql::datum_t>(1.0));
             } else {
-                conflict = resp->add("inserted", num_1);
+                conflict = resp->add("inserted", make_counted<const ql::datum_t>(1.0));
                 r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
         } else {
             if (ended_empty) {
-                conflict = resp->add("deleted", num_1);
+                conflict = resp->add("deleted", make_counted<const ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
             } else {
                 if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
                     if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged", num_1);
+                        conflict = resp->add("unchanged", make_counted<const ql::datum_t>(1.0));
                     } else {
-                        conflict = resp->add("replaced", num_1);
+                        conflict = resp->add("replaced", make_counted<const ql::datum_t>(1.0));
                         r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
                         kv_location_set(&kv_location, key, new_val->as_json(),
                                         slice, timestamp, txn);
@@ -241,8 +240,8 @@ void rdb_replace(btree_slice_t *slice,
         guarantee(!conflict); // message never added twice
     } catch (const ql::any_ql_exc_t &e) {
         std::string msg = e.what();
-        bool b = resp->add("errors", num_1)
-              || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
+        bool b = resp->add("errors", make_counted<const ql::datum_t>(1.0))
+            || resp->add("first_error", make_counted<const ql::datum_t>(msg));
         guarantee(!b);
     }
     resp->write_to_protobuf(response_out);
@@ -428,30 +427,12 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                // We use garbage collection during the reduction step, since
-                // most reductions throw away most of the allocate data.
-                ql::env_gc_checkpoint_t egct(ql_env);
-                int i = 0;
                 json_list_t::iterator jt;
                 for (jt = data.begin(); jt != data.end(); ++jt) {
                     boost::apply_visitor(query_language::terminal_visitor_t(
                                              *jt, ql_env, terminal->scopes,
                                              terminal->backtrace, &response->result),
                                          terminal->variant);
-                    // A reduce returns a `wire_datum_t` and a gmr returns a
-                    // `wire_datum_map_t`
-                    if (ql::wire_datum_t *wd
-                        = boost::get<ql::wire_datum_t>(&terminal->variant)) {
-                        egct.maybe_gc(wd->get());
-                    } else if (ql::wire_datum_map_t *wdm
-                               = boost::get<ql::wire_datum_map_t>(
-                                   &terminal->variant)) {
-                        // TODO: this is a hack because GCing a `wire_datum_map_t` is
-                        // expensive.  Need a better way to do this.
-                        int rounds = 10000 DEBUG_ONLY(/ 5000);
-                        if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
-                    }
-
                 }
                 return true;
             }

@@ -25,19 +25,18 @@ public:
             bool use_outdated, const pb_rcheckable_t *src);
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
-    const datum_t *get_row(const datum_t *pval);
-    datum_t *env_add_ptr(datum_t *d);
+    counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
 
     // A wrapper around `do_replace` that does error handling correctly.
     // TODO: Use a variadic template so we can get rid of
     // `_so_the_template_matches` above?
     template<class T>
-    const datum_t *replace(const datum_t *d, T t, bool b) {
+    counted_t<const datum_t> replace(counted_t<const datum_t> d, T t, bool b) {
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
             return do_replace(d, t, b);
         } catch (const any_ql_exc_t &e) {
-            datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
+            scoped_ptr_t<datum_t> datum(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
             // TODO why is this bool (which is marked as MUST USE not used?)
             // T0D0NE: the bool is true if there's a conflict when inserting the
@@ -46,16 +45,16 @@ public:
             // changes, you could store the bool and `r_sanity_check` that it's
             // false.
             UNUSED bool key_in_object =
-                datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1.0)));
-            return datum;
+                datum->add("first_error", make_counted<datum_t>(err))
+                || datum->add("errors", make_counted<datum_t>(1.0));
+            return counted_t<const datum_t>(datum.release());
         }
     }
 private:
-    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                             bool _so_the_template_matches = false);
-    const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf,
+                                        bool _so_the_template_matches = false);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, func_t *f, bool nondet_ok);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -104,8 +103,8 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
-    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
+    val_t(counted_t<const datum_t> _datum, const term_t *_parent, env_t *_env);
+    val_t(counted_t<const datum_t> _datum, table_t *_table, const term_t *_parent, env_t *_env);
     val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, const term_t *_parent, env_t *_env);
     val_t(table_t *_table, counted_t<datum_stream_t> _sequence,
@@ -117,11 +116,11 @@ public:
     table_t *as_table();
     std::pair<table_t *, counted_t<datum_stream_t> > as_selection();
     counted_t<datum_stream_t> as_seq();
-    std::pair<table_t *, const datum_t *> as_single_selection();
+    std::pair<table_t *, counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
-    const datum_t *as_datum(); // prefer the 4 below
+    counted_t<const datum_t> as_datum(); // prefer the 4 below
     bool as_bool();
     double as_num();
     template<class T>
@@ -154,7 +153,7 @@ private:
     uuid_u db;
     table_t *table;
     counted_t<datum_stream_t> sequence;
-    const datum_t *datum;
+    counted_t<const datum_t> datum;
     func_t *func;
 
     DISABLE_COPYING(val_t);

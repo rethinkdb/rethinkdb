@@ -13,7 +13,7 @@ public:
         datum_val = env->top_var(var, this);
     }
 private:
-    const datum_t **datum_val; // pointer to variable's slot in argument array
+    counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
     virtual val_t *eval_impl() {
         // debugf("VARTERM %p -> %p\n", datum_val, *datum_val);
         return new_val(*datum_val);
@@ -28,7 +28,7 @@ public:
         datum_val = env->top_implicit(this);
     }
 private:
-    const datum_t **datum_val;
+    counted_t<const datum_t> *datum_val;
     virtual val_t *eval_impl() {
         return new_val(*datum_val);
     }

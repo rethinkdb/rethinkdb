@@ -39,10 +39,10 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             ++chunk_size;
             entry->next_datum.reset();
         }
-        while (const datum_t *d = entry->stream->next()) {
+        while (counted_t<const datum_t> d = entry->stream->next()) {
             d->write_to_protobuf(res->add_response());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                if (const datum_t *next_d = entry->stream->next()) {
+                if (counted_t<const datum_t> next_d = entry->stream->next()) {
                     r_sanity_check(!entry->next_datum.has());
                     entry->next_datum.init(new Datum());
                     next_d->write_to_protobuf(entry->next_datum.get());

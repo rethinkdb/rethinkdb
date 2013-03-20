@@ -23,23 +23,23 @@ public:
     func_t(env_t *env, const Term *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static func_t *new_filter_func(env_t *env, const datum_t *obj,
+    static func_t *new_filter_func(env_t *env, counted_t<const datum_t> obj,
                                    const pb_rcheckable_t *root);
-    static func_t *new_identity_func(env_t *env, const datum_t *obj,
+    static func_t *new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                      const pb_rcheckable_t *root);
-    val_t *call(const std::vector<const datum_t *> &args);
+    val_t *call(const std::vector<counted_t<const datum_t> > &args);
     // Prefer these versions of call.
     val_t *call();
-    val_t *call(const datum_t *arg);
-    val_t *call(const datum_t *arg1, const datum_t *arg2);
-    bool filter_call(env_t *env, const datum_t *arg);
+    val_t *call(counted_t<const datum_t> arg);
+    val_t *call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
+    bool filter_call(env_t *env, counted_t<const datum_t> arg);
 
     void dump_scope(std::map<int64_t, Datum> *out) const;
     bool is_deterministic() const;
 
 private:
     // Pointers to this function's arguments.
-    std::vector<const datum_t *> argptrs;
+    std::vector<counted_t<const datum_t> > argptrs;
     term_t *body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
@@ -48,7 +48,7 @@ private:
     bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<int64_t, const datum_t **> scope;
+    std::map<int64_t, counted_t<const datum_t> *> scope;
 
     term_t *js_parent;
     env_t *js_env;
@@ -69,7 +69,7 @@ public:
 
     // This JS call resulted in a JSON value
     result_type operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-        return parent->new_val(new datum_t(json_val, env));
+        return parent->new_val(make_counted<const datum_t>(json_val, env));
     }
 
     // This JS evaluation resulted in an id for a js function

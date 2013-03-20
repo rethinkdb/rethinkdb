@@ -10,7 +10,7 @@ namespace ql {
 class datum_term_t : public term_t {
 public:
     datum_term_t(env_t *env, const Term *t)
-        : term_t(env, t), raw_val(new_val(new datum_t(&t->datum(), env))) {
+        : term_t(env, t), raw_val(new_val(make_counted<const datum_t>(&t->datum(), env))) {
         guarantee(raw_val);
     }
 private:
@@ -26,11 +26,11 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual val_t *eval_impl() {
-        datum_t *acc = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < num_args(); ++i) {
             acc->add(arg(i)->as_datum());
         }
-        return new_val(acc);
+        return new_val(counted_t<const datum_t>(acc.release()));
     }
     virtual const char *name() const { return "make_array"; }
 };
@@ -41,13 +41,13 @@ public:
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual val_t *eval_impl() {
-        datum_t *acc = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
         for (boost::ptr_map<const std::string, term_t>::iterator
                  it = optargs.begin(); it != optargs.end(); ++it) {
             bool dup = acc->add(it->first, it->second->eval(use_cached_val)->as_datum());
             rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
-        return new_val(acc);
+        return new_val(counted_t<const datum_t>(acc.release()));
     }
     virtual const char *name() const { return "make_obj"; }
 };

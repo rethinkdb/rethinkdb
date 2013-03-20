@@ -88,8 +88,12 @@ template<class U>
 void run(const datum_t &d, U arg) {
     d.write_to_protobuf(ql::pb::set_datum(arg));
 }
+// RSI
 template<class U>
-void run(const datum_t *d, U arg) { run(*d, arg); }
+void run(counted_t<const datum_t> &d, U arg) {
+    run(*d, arg);
+}
+
 template<class T, class U>
 void run(T t, U arg) { run(datum_t(t), arg); }
 } // namespace ndatum_impl

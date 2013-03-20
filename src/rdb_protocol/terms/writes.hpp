@@ -10,20 +10,26 @@
 
 namespace ql {
 
+// RSI env is unused in stats_merge and pure_merge.
+
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
-const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
-                           const datum_t *l, const datum_t *r,
-                           const rcheckable_t *caller) {
+counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string &key,
+                                     counted_t<const datum_t> l, counted_t<const datum_t> r,
+                                     const rcheckable_t *caller) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         //debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
         //       env->add_ptr(new datum_t(l->as_num() + r->as_num()))->print().c_str());
-        return env->add_ptr(new datum_t(l->as_num() + r->as_num()));
+        return make_counted<const datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < l->size(); ++i) arr->add(l->el(i));
-        for (size_t i = 0; i < r->size(); ++i) arr->add(r->el(i));
-        return arr;
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        for (size_t i = 0; i < l->size(); ++i) {
+            arr->add(l->el(i));
+        }
+        for (size_t i = 0; i < r->size(); ++i) {
+            arr->add(r->el(i));
+        }
+        return counted_t<const datum_t>(arr.release());
     }
 
     // Merging a string is left-preferential, which is just a no-op.
@@ -37,11 +43,11 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
 }
 
 // Use this merge if it should theoretically never be called.
-const datum_t *pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
-                          UNUSED const datum_t *l, UNUSED const datum_t *r,
-                          UNUSED const rcheckable_t *caller) {
+counted_t<const datum_t> pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
+                                    UNUSED counted_t<const datum_t> l, UNUSED counted_t<const datum_t> r,
+                                    UNUSED const rcheckable_t *caller) {
     r_sanity_check(false);
-    return 0;
+    return counted_t<const datum_t>();
 }
 
 static const char *const insert_optargs[] = {"upsert"};
@@ -53,14 +59,14 @@ private:
 
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
-                            const datum_t **datum_out) {
+                            counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->el(tbl->get_pkey(), NOTHROW)) {
             std::string key = uuid_to_str(generate_uuid());
-            const datum_t *keyd = env->add_ptr(new datum_t(key));
-            datum_t *d = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+            counted_t<const datum_t> keyd(new datum_t(key));
+            scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
             bool conflict = d->add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
-            *datum_out = (*datum_out)->merge(env, d, pure_merge);
+            *datum_out = (*datum_out)->merge(env, counted_t<const datum_t>(d.release()), pure_merge);
             generated_keys_out->push_back(key);
         }
     }
@@ -71,11 +77,11 @@ private:
         bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
         bool done = false;
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         std::vector<std::string> generated_keys;
         val_t *v1 = arg(1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
-            const datum_t *d = v1->as_datum();
+            counted_t<const datum_t> d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
@@ -90,7 +96,7 @@ private:
 
         if (!done) {
             counted_t<datum_stream_t> ds = v1->as_seq();
-            while (const datum_t *d = ds->next()) {
+            while (counted_t<const datum_t> d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
                 } catch (const any_ql_exc_t &) {
@@ -102,13 +108,13 @@ private:
         }
 
         if (generated_keys.size() > 0) {
-            datum_t *genkeys = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+            scoped_ptr_t<datum_t> genkeys(new datum_t(datum_t::R_ARRAY));
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys->add(env->add_ptr(new datum_t(generated_keys[i])));
+                genkeys->add(make_counted<const datum_t>(generated_keys[i]));
             }
-            datum_t *d = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = d->add("generated_keys", genkeys);
-            stats = stats->merge(env, d, pure_merge);
+            scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
+            UNUSED bool b = d->add("generated_keys", counted_t<const datum_t>(genkeys.release()));
+            stats = stats->merge(env, counted_t<const datum_t>(d.release()), pure_merge);
         }
 
         return new_val(stats);
@@ -132,14 +138,14 @@ private:
 
         val_t *v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<table_t *, const datum_t *> tblrow = v0->as_single_selection();
+            std::pair<table_t *, counted_t<const datum_t> > tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
         }
         std::pair<table_t *, counted_t<datum_stream_t> > tblrows = v0->as_selection();
         table_t *tbl = tblrows.first;
         counted_t<datum_stream_t> ds = tblrows.second;
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        while (const datum_t *d = ds->next()) {
+        counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
+        while (counted_t<const datum_t> d = ds->next()) {
             stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
         }
         return new_val(stats);
@@ -158,11 +164,11 @@ private:
         const char *fail_msg = "FOREACH expects one or more write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        while (const datum_t *row = ds->next()) {
+        counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
+        while (counted_t<const datum_t> row = ds->next()) {
             val_t *v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
             try {
-                const datum_t *d = v->as_datum();
+                counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {
                     stats = stats->merge(env, d, stats_merge);
                 } else {

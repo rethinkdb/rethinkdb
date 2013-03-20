@@ -42,11 +42,10 @@ public:
     }
 private:
     virtual val_t *eval_impl() {
-        const datum_t *lhs, *rhs;
-        lhs = arg(0)->as_datum();
+        counted_t<const datum_t> lhs = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            rhs = arg(i)->as_datum();
-            if (!(lhs->*pred)(*rhs)) {
+            counted_t<const datum_t> rhs = arg(i)->as_datum();
+            if (!(lhs.get()->*pred)(*rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
             lhs = rhs;

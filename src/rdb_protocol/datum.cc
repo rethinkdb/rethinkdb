@@ -11,6 +11,13 @@
 
 namespace ql {
 
+datum_t::datum_t(datum_t &&other)
+    : type(other.type), r_bool(std::move(other.r_bool)),
+      r_num(std::move(other.r_num)), r_str(std::move(other.r_str)),
+      r_array(std::move(other.r_array)), r_object(std::move(other.r_object)) {
+    other.type = datum_t::R_BOOL;
+}
+
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
@@ -20,9 +27,9 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
 }
 datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
 datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
-datum_t::datum_t(const std::vector<const datum_t *> &_array)
+datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
     : type(R_ARRAY), r_array(_array) { }
-datum_t::datum_t(const std::map<std::string, const datum_t *> &_object)
+datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT), r_object(_object) { }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -54,14 +61,14 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Array: {
         type = R_ARRAY;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(env->add_ptr(new datum_t(cJSON_GetArrayItem(json, i), env)));
+            add(make_counted<const datum_t>(cJSON_GetArrayItem(json, i), env));
         }
     } break;
     case cJSON_Object: {
         type = R_OBJECT;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool b = add(el->string, env->add_ptr(new datum_t(el, env)));
+            bool b = add(el->string, make_counted<const datum_t>(el, env));
             r_sanity_check(!b);
         }
     } break;
@@ -75,6 +82,31 @@ datum_t::datum_t(cJSON *json, env_t *env) {
 datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
     init_json(json->get(), env);
 }
+
+datum_t &datum_t::operator=(datum_t &&other) {
+    type = other.type;
+    other.type = R_NULL;
+
+    r_bool = other.r_bool;
+    r_num = other.r_num;
+    r_str = std::move(other.r_str);
+    r_array = std::move(other.r_array);
+    r_object = std::move(other.r_object);
+
+    return *this;
+}
+
+void datum_t::copy_from(const datum_t &other) {
+    type = other.type;
+
+    r_bool = other.r_bool;
+    r_num = other.r_num;
+    r_str = other.r_str;
+    r_array = other.r_array;
+    r_object = other.r_object;
+}
+
+
 
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
@@ -169,7 +201,7 @@ const std::string &datum_t::as_str() const {
     check_type(R_STR);
     return r_str;
 }
-const std::vector<const datum_t *> &datum_t::as_array() const {
+const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     check_type(R_ARRAY);
     return r_array;
 }
@@ -177,13 +209,13 @@ size_t datum_t::size() const {
     return as_array().size();
 }
 
-const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
+counted_t<const datum_t> datum_t::el(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) return as_array()[index];
     if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
-    return 0;
+    return counted_t<const datum_t>();
 }
 
-const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
+counted_t<const datum_t> datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
     auto it = as_object().find(key);
     if (it != as_object().end()) {
         return it->second;
@@ -191,10 +223,10 @@ const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) cons
     if (throw_bool == THROW) {
         rfail("No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
     }
-    return 0;
+    return counted_t<const datum_t>();
 }
 
-const std::map<std::string, const datum_t *> &datum_t::as_object() const {
+const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
     return r_object;
 }
@@ -214,7 +246,7 @@ cJSON *datum_t::as_raw_json() const {
     } break;
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<std::string, const datum_t *>::const_iterator
+        for (std::map<std::string, counted_t<const datum_t> >::const_iterator
                  it = as_object().begin(); it != as_object().end(); ++it) {
             obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
         }
@@ -240,19 +272,19 @@ scoped_ptr_t<datum_stream_t> datum_t::as_datum_stream(
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
-    case R_ARRAY: return make_scoped_ptr<array_datum_stream_t>(env, this, bt_src);
+    case R_ARRAY: return make_scoped_ptr<array_datum_stream_t>(env, this->counted_from_this(), bt_src);
     default: unreachable();
     }
     unreachable();
 };
 
-void datum_t::add(const datum_t *val) {
+void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val);
     r_array.push_back(val);
 }
 
-MUST_USE bool datum_t::add(const std::string &key, const datum_t *val,
+MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     r_sanity_check(val);
@@ -265,19 +297,19 @@ MUST_USE bool datum_t::delete_key(const std::string &key) {
     return r_object.erase(key);
 }
 
-const datum_t *datum_t::merge(const datum_t *rhs) const {
+counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
-    const std::map<std::string, const datum_t *> &rhs_obj = rhs->as_object();
+    const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         UNUSED bool b = d->add(it->first, it->second, CLOBBER);
     }
-    return d.release();
+    return counted_t<const datum_t>(d.release());
 }
-const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) const {
-    datum_t *d = env->add_ptr(new datum_t(as_object()));
-    const std::map<std::string, const datum_t *> &rhs_obj = rhs->as_object();
+counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs, merge_res_f f) const {
+    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (const datum_t *l = el(it->first, NOTHROW)) {
+        if (counted_t<const datum_t> l = el(it->first, NOTHROW)) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
@@ -285,7 +317,7 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
             r_sanity_check(!b);
         }
     }
-    return d;
+    return counted_t<const datum_t>(d.release());
 }
 
 template<class T>
@@ -295,14 +327,16 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
-    if (get_type() != rhs.get_type()) return derived_cmp(get_type(), rhs.get_type());
+    if (get_type() != rhs.get_type()) {
+        return derived_cmp(get_type(), rhs.get_type());
+    }
     switch (get_type()) {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
     case R_STR: return derived_cmp(as_str(), rhs.as_str());
     case R_ARRAY: {
-        const std::vector<const datum_t *>
+        const std::vector<counted_t<const datum_t> >
             &arr = as_array(),
             &rhs_arr = rhs.as_array();
         size_t i;
@@ -315,10 +349,10 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<std::string, const datum_t *> &obj = as_object();
-        const std::map<std::string, const datum_t *> &rhs_obj = rhs.as_object();
-        std::map<std::string, const datum_t *>::const_iterator it = obj.begin();
-        std::map<std::string, const datum_t *>::const_iterator it2 = rhs_obj.begin();
+        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+        const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs.as_object();
+        std::map<std::string, counted_t<const datum_t> >::const_iterator it = obj.begin();
+        std::map<std::string, counted_t<const datum_t> >::const_iterator it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
             int key_cmpval = derived_cmp(it->first, it2->first);
             if (key_cmpval) return key_cmpval;
@@ -362,7 +396,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
     case Datum_DatumType_R_ARRAY: {
         type = R_ARRAY;
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array.push_back(env->add_ptr(new datum_t(&d->r_array(i), env)));
+            r_array.push_back(make_counted<const datum_t>(&d->r_array(i), env));
         }
     } break;
     case Datum_DatumType_R_OBJECT: {
@@ -372,7 +406,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
             const std::string &key = ap->key();
             rcheck(r_object.count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            r_object[key] = env->add_ptr(new datum_t(&ap->val(), env));
+            r_object[key] = make_counted<const datum_t>(&ap->val(), env);
         }
     } break;
     default: unreachable();
@@ -405,7 +439,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
-        for (std::map<std::string, const datum_t *>::const_reverse_iterator
+        for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
                  it = r_object.rbegin(); it != r_object.rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
@@ -416,8 +450,8 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
-void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const {
-    if (callback(this, env)) {
+void datum_t::iter(bool (*callback)(counted_t<const datum_t> , env_t *), env_t *env) const {
+    if (callback(this->counted_from_this(), env)) {
         switch (get_type()) {
         case R_NULL: // fallthru
         case R_BOOL: // fallthru
@@ -436,21 +470,21 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
     }
 }
 
-const datum_t *wire_datum_t::get() const {
+counted_t<const datum_t> wire_datum_t::get() const {
     r_sanity_check(state == COMPILED);
     return ptr;
 }
-const datum_t *wire_datum_t::reset(const datum_t *ptr2) {
+counted_t<const datum_t> wire_datum_t::reset(counted_t<const datum_t> ptr2) {
     r_sanity_check(state == COMPILED);
-    const datum_t *tmp = ptr;
+    counted_t<const datum_t> tmp = ptr;
     ptr = ptr2;
     return tmp;
 }
 
-const datum_t *wire_datum_t::compile(env_t *env) {
+counted_t<const datum_t> wire_datum_t::compile(env_t *env) {
     if (state == COMPILED) return ptr;
     r_sanity_check(state != INVALID);
-    ptr = env->add_ptr(new datum_t(&ptr_pb, env));
+    ptr = make_counted<const datum_t>(&ptr_pb, env);
     ptr_pb = Datum();
     return ptr;
 }
@@ -458,22 +492,22 @@ void wire_datum_t::finalize() {
     if (state == JUST_READ) return;
     r_sanity_check(state == COMPILED);
     ptr->write_to_protobuf(&ptr_pb);
-    ptr = 0;
+    ptr.reset();
     state = READY_TO_WRITE;
 }
 
-bool wire_datum_map_t::has(const datum_t *key) {
+bool wire_datum_map_t::has(counted_t<const datum_t> key) {
     r_sanity_check(state == COMPILED);
     return map.count(key) > 0;
 }
 
-const datum_t *wire_datum_map_t::get(const datum_t *key) {
+counted_t<const datum_t> wire_datum_map_t::get(counted_t<const datum_t> key) {
     r_sanity_check(state == COMPILED);
     r_sanity_check(has(key));
     return map[key];
 }
 
-void wire_datum_map_t::set(const datum_t *key, const datum_t *val) {
+void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t> val) {
     r_sanity_check(state == COMPILED);
     map[key] = val;
 }
@@ -481,8 +515,8 @@ void wire_datum_map_t::set(const datum_t *key, const datum_t *val) {
 void wire_datum_map_t::compile(env_t *env) {
     if (state == COMPILED) return;
     while (!map_pb.empty()) {
-        map[env->add_ptr(new datum_t(&map_pb.back().first, env))] =
-            env->add_ptr(new datum_t(&map_pb.back().second, env));
+        map[make_counted<const datum_t>(&map_pb.back().first, env)] =
+            make_counted<const datum_t>(&map_pb.back().second, env);
         map_pb.pop_back();
     }
     state = COMPILED;
@@ -499,17 +533,17 @@ void wire_datum_map_t::finalize() {
     state = READY_TO_WRITE;
 }
 
-const datum_t *wire_datum_map_t::to_arr(env_t *env) const {
+counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     r_sanity_check(state == COMPILED);
-    datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
     for (auto it = map.begin(); it != map.end(); ++it) {
-        datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
         bool b1 = obj->add("group", it->first);
         bool b2 = obj->add("reduction", it->second);
         r_sanity_check(!b1 && !b2);
-        arr->add(obj);
+        arr->add(counted_t<datum_t>(obj.release()));
     }
-    return arr;
+    return counted_t<const datum_t>(arr.release());
 }
 
 } //namespace ql

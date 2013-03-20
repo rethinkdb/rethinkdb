@@ -19,22 +19,26 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
-    const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
 }
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
-    const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
-    while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
+    while (counted_t<const ql::datum_t> d = ds->next()) {
+        out->push_back(d->as_json());
+    }
 }
 
 void transform_visitor_t::operator()(ql::filter_wire_func_t &func/*NOLINT*/) const {
     ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
     ql::func_t *f = func.compile(ql_env);
-    const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-    if (f->filter_call(ql_env, arg)) out->push_back(arg->as_json());
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
+    if (f->filter_call(ql_env, arg)) {
+        out->push_back(arg->as_json());
+    }
 }
 
 terminal_initializer_visitor_t::terminal_initializer_visitor_t(
@@ -66,28 +70,28 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func/*NOLINT*/) const {
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
-    const ql::datum_t *el = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-    const ql::datum_t *el_group = func.compile_group(ql_env)->call(el)->as_datum();
-    const ql::datum_t *elm = ql_env->add_ptr(new ql::datum_t(json, ql_env));
-    const ql::datum_t *el_map = func.compile_map(ql_env)->call(elm)->as_datum();
+    counted_t<const ql::datum_t> el(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> el_group = func.compile_group(ql_env)->call(el)->as_datum();
+    counted_t<const ql::datum_t> elm(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> el_map = func.compile_map(ql_env)->call(elm)->as_datum();
 
     if (!obj->has(el_group)) {
         obj->set(el_group, el_map);
     } else {
-        const ql::datum_t *lhs = obj->get(el_group);
+        counted_t<const ql::datum_t> lhs = obj->get(el_group);
         obj->set(el_group, func.compile_reduce(ql_env)->call(lhs, el_map)->as_datum());
     }
 }
 
 void terminal_initializer_visitor_t::operator()(
     UNUSED const ql::count_wire_func_t &f) const {
-    *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0.0)));
+    *out = ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
 }
 
 void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
     // TODO: just pass an int around
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    d->reset(ql_env->add_ptr(new ql::datum_t(d->get()->as_int() + 1.0)));
+    d->reset(make_counted<ql::datum_t>(d->get()->as_int() + 1.0));
 }
 
 void terminal_initializer_visitor_t::operator()(
@@ -97,7 +101,7 @@ void terminal_initializer_visitor_t::operator()(
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func/*NOLINT*/) const {
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    const ql::datum_t *rhs = ql_env->add_ptr(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> rhs(new ql::datum_t(json, ql_env));
     if (d) {
         d->reset(func.compile(ql_env)->call(d->get(), rhs)->as_datum());
     } else {

@@ -43,31 +43,31 @@ private:
 
 public:
     // Bind a variable in the current scope.
-    void push_var(int var, const datum_t **val);
+    void push_var(int var, counted_t<const datum_t> *val);
     // Get the current binding of a variable in the current scope.
-    const datum_t **top_var(int var, const rcheckable_t *caller);
+    counted_t<const datum_t> *top_var(int var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.
     void pop_var(int var);
 
     // Dump the current scope.
-    void dump_scope(std::map<int64_t, const datum_t **> *out);
+    void dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
     void push_scope(std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 private:
-    std::map<int64_t, std::stack<const datum_t **> > vars;
-    std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
+    std::map<int64_t, std::stack<counted_t<const datum_t> *> > vars;
+    std::stack<std::vector<std::pair<int, counted_t<const datum_t> > > > scope_stack;
 
 public:
     // Implicit Variables (same interface as normal variables above).
-    void push_implicit(const datum_t **val);
-    const datum_t **top_implicit(const rcheckable_t *caller);
+    void push_implicit(counted_t<const datum_t> *val);
+    counted_t<const datum_t> *top_implicit(const rcheckable_t *caller);
     void pop_implicit();
 private:
     friend class implicit_binder_t;
     int implicit_depth;
-    std::stack<const datum_t **> implicit_var;
+    std::stack<counted_t<const datum_t> *> implicit_var;
 
     // Allocation Functions
 public:
@@ -112,12 +112,6 @@ private:
     bool some_bag_has(const ptr_baggable_t *p);
 
 private:
-    // `old_bag` and `new_bag` are so that `gc` can communicate with `gc_callback`.
-    ptr_bag_t *old_bag, *new_bag;
-    static bool gc_callback_trampoline(const datum_t *el, env_t *env);
-    bool gc_callback(const datum_t *el);
-    void gc(const datum_t *root);
-
     ptr_bag_t *current_bag(); // gets the top bag
     ptr_bag_t **current_bag_ptr();
     std::vector<ptr_bag_t *> bags;
@@ -208,9 +202,6 @@ public:
     env_checkpoint_t(env_t *_env, void (env_t::*_f)());
     ~env_checkpoint_t();
     void reset(void (env_t::*_f)());
-    // This will garbage-collect the checkpoint so that only `root` and data it
-    // points to remain.
-    void gc(const datum_t *root);
 private:
     env_t *env;
     void (env_t::*f)();
@@ -224,8 +215,7 @@ class env_gc_checkpoint_t {
 public:
     env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
     ~env_gc_checkpoint_t();
-    const datum_t *maybe_gc(const datum_t *root);
-    const datum_t *finalize(const datum_t *root);
+    counted_t<const datum_t> finalize(counted_t<const datum_t> root);
 private:
     bool finalized;
     env_t *env;

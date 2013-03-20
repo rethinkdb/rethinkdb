@@ -44,19 +44,19 @@ public:
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {
-        const datum_t *obj = arg(0)->as_datum();
+        counted_t<const datum_t> obj = arg(0)->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_OBJECT));
         for (size_t i = 1; i < num_args(); ++i) {
             const std::string &key = arg(i)->as_str();
-            const datum_t *el = obj->el(key);
+            counted_t<const datum_t> el = obj->el(key);
             if (el) {
                 bool conflict = out->add(key, el);
                 r_sanity_check(!conflict);
             }
         }
-        return new_val(out.release());
+        return new_val(counted_t<const datum_t>(out.release()));
     }
     virtual const char *name() const { return "pluck"; }
 };
@@ -67,7 +67,7 @@ public:
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {
-        const datum_t *obj = arg(0)->as_datum();
+        counted_t<const datum_t> obj = arg(0)->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         scoped_ptr_t<datum_t> out(new datum_t(obj->as_object()));
@@ -75,7 +75,7 @@ private:
             const std::string &key = arg(i)->as_str();
             UNUSED bool b = out->delete_key(key);
         }
-        return new_val(out.release());
+        return new_val(counted_t<const datum_t>(out.release()));
     }
     virtual const char *name() const { return "without"; }
 };
@@ -86,9 +86,9 @@ public:
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual val_t *obj_eval() {
-        const datum_t *d = arg(0)->as_datum();
+        counted_t<const datum_t> d = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            d = env->add_ptr(d->merge(arg(i)->as_datum()));
+            d = d->merge(arg(i)->as_datum());
         }
         return new_val(d);
     }

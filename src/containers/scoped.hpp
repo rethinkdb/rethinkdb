@@ -77,7 +77,10 @@ public:
         other.ptr_ = tmp;
     }
 
-
+    T &operator*() const { 
+        rassert(ptr_);
+        return *ptr_;
+    }
 
     T *get() const {
         rassert(ptr_);
@@ -102,7 +105,7 @@ private:
 
 template <class T, class... Args>
 scoped_ptr_t<T> make_scoped_ptr(Args... args) {
-    return scoped_ptr_t<T>(new T(args...));
+    return scoped_ptr_t<T>(new T(std::forward<Args>(args)...));
 }
 
 // Not really like boost::scoped_array.  A fascist array.

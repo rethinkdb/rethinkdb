@@ -85,7 +85,7 @@ public:
 private:
 
     static void set_cmp(Term *out, int varnum, const std::string &pk,
-                        Term::TermType cmp_fn, const datum_t *cmp_to) {
+                        Term::TermType cmp_fn, counted_t<const datum_t> cmp_to) {
         std::vector<Term *> cmp_args;
         pb::set(out, cmp_fn, &cmp_args, 2); {
             std::vector<Term *> ga_args;

@@ -15,7 +15,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         val_t *baseval = optarg("base", 0);
-        const datum_t *base = baseval ? baseval->as_datum() : 0;
+        counted_t<const datum_t> base = baseval ? baseval->as_datum() : counted_t<const datum_t>();
         func_t *g = arg(1)->as_func(), *m = arg(2)->as_func(), *r = arg(3)->as_func();
         return new_val(arg(0)->as_seq()->gmr(g, m, base, r));
     }
