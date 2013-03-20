@@ -385,10 +385,8 @@ class ProxyProcess(_Process):
         options = ["proxy",
                    "--log-file",  self.logfile_path,
                    "--port-offset",  str(self.port_offset),
-                   "--client-port",  str(self.local_cluster_port),
-                   "--http-port=0",
-                   "--cluster-port=0",
-                   "--driver-port=0"] + extra_options
+                   "--client-port",  str(self.local_cluster_port)
+                   ] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

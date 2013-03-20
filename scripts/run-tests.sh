@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PYTHONUNBUFFERED=true
+
 dir=run-test
 
 tests=${@:-all}
