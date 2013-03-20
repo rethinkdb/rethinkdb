@@ -229,7 +229,7 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-datum_stream_t *datum_t::as_datum_stream(
+scoped_ptr_t<datum_stream_t> datum_t::as_datum_stream(
     // BT_SRC should be a pointer to whatever part of the term tree we want the
     // resulting stream to be associated with (i.e. what part of the tree we
     // should highlight in the backtrace if that stream exhibits an error).
@@ -240,7 +240,7 @@ datum_stream_t *datum_t::as_datum_stream(
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
-    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, bt_src));
+    case R_ARRAY: return make_scoped_ptr<array_datum_stream_t>(env, this, bt_src);
     default: unreachable();
     }
     unreachable();

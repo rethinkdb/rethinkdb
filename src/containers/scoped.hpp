@@ -12,6 +12,9 @@
 template <class T>
 class scoped_ptr_t {
 public:
+    template <class U>
+    friend class scoped_ptr_t;
+
     scoped_ptr_t() : ptr_(NULL) { }
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
     scoped_ptr_t(scoped_ptr_t &&movee) : ptr_(movee.ptr_) {

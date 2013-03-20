@@ -268,9 +268,13 @@ datum_stream_t *val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         // passthru
     } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence) sequence = table->as_datum_stream();
+        if (!sequence) {
+            sequence = table->as_datum_stream();
+        }
     } else if (type.raw_type == type_t::DATUM) {
-        if (!sequence) sequence = datum->as_datum_stream(env, parent);
+        if (!sequence) {
+            sequence = env->add_ptr(datum->as_datum_stream(env, parent).release());
+        }
     } else {
         rcheck_literal_type(type_t::SEQUENCE);
     }
