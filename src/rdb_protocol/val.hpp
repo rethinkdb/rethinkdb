@@ -92,6 +92,9 @@ public:
         };
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
+
+        // RSI
+        raw_type_t get_raw_type() const { return raw_type; }
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
@@ -141,9 +144,16 @@ public:
         }
     }
 
-private:
+    // RSI This exposes a private thing.
+    const pb_rcheckable_t *get_parent() const { return parent; }
+
+    // RSI This exposes a private thing.
+    datum_stream_t *get_sequence() const { return sequence; }
+
+    // RSI make private.
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
+private:
     const term_t *parent;
     env_t *env;
 
@@ -156,6 +166,9 @@ private:
 
     DISABLE_COPYING(val_t);
 };
+
+datum_stream_t *as_datum_stream(val_t *value, env_t *env);
+
 
 }  //namespace ql
 

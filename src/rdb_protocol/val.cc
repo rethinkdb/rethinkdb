@@ -366,4 +366,18 @@ void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
                      type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
+datum_stream_t *as_datum_stream(val_t *value, env_t *env) {
+    const val_t::type_t::raw_type_t raw_type = value->get_type().get_raw_type();
+    if (raw_type == val_t::type_t::SEQUENCE || raw_type == val_t::type_t::SELECTION) {
+        return value->get_sequence();
+    } else if (raw_type == val_t::type_t::TABLE) {
+        return env->add_ptr(value->as_table()->as_datum_stream().release());
+    } else if (raw_type == val_t::type_t::DATUM) {
+        return env->add_ptr(value->as_datum()->as_datum_stream(env, value->get_parent()).release());
+    } else {
+        value->rcheck_literal_type(val_t::type_t::SEQUENCE);
+        unreachable();
+    }
+}
+
 } //namespace ql
