@@ -170,9 +170,11 @@ bool func_t::filter_call(const datum_t *arg) {
     if (d->get_type() == datum_t::R_OBJECT) {
         auto obj = d->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            const datum_t *elt = arg->el(it->first, NOTHROW);
             r_sanity_check(it->second != NULL);
-            if (elt == NULL || *elt != *it->second) {
+            const datum_t *elt = arg->el(it->first, NOTHROW);
+            if (elt == NULL) {
+                rfail("No attribute `%s` in object.", it->first.c_str());
+            } else if (*elt != *it->second) {
                 return false;
             }
         }
