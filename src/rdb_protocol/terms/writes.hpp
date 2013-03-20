@@ -20,7 +20,7 @@ counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         //debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
         //       env->add_ptr(new datum_t(l->as_num() + r->as_num()))->print().c_str());
-        return make_counted<const datum_t>(l->as_num() + r->as_num());
+        return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < l->size(); ++i) {
@@ -110,7 +110,7 @@ private:
         if (generated_keys.size() > 0) {
             scoped_ptr_t<datum_t> genkeys(new datum_t(datum_t::R_ARRAY));
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys->add(make_counted<const datum_t>(generated_keys[i]));
+                genkeys->add(make_counted<datum_t>(generated_keys[i]));
             }
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
             UNUSED bool b = d->add("generated_keys", counted_t<const datum_t>(genkeys.release()));

@@ -34,7 +34,7 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
         if (!next()) break;
         ++i;
     }
-    return make_counted<const datum_t>(static_cast<double>(i));
+    return make_counted<datum_t>(static_cast<double>(i));
 }
 
 counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {

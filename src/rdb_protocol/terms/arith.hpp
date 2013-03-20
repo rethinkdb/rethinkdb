@@ -28,7 +28,7 @@ public:
         for (size_t i = 1; i < num_args(); ++i) {
             acc = (this->*op)(acc, *arg(i)->as_datum());
         }
-        return new_val(make_counted<const datum_t>(std::move(acc)));
+        return new_val(make_counted<datum_t>(std::move(acc)));
     }
     virtual const char *name() const { return namestr; }
 private:
@@ -80,7 +80,7 @@ private:
         // Sam says this is a floating-point exception
         rcheck(!(i0 == INT64_MIN && i1 == -1),
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
-        return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
+        return new_val(make_counted<datum_t>(static_cast<double>(i0 % i1)));
     }
     virtual const char *name() const { return "mod"; }
 };

@@ -61,14 +61,14 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Array: {
         type = R_ARRAY;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(make_counted<const datum_t>(cJSON_GetArrayItem(json, i), env));
+            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i), env));
         }
     } break;
     case cJSON_Object: {
         type = R_OBJECT;
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool b = add(el->string, make_counted<const datum_t>(el, env));
+            bool b = add(el->string, make_counted<datum_t>(el, env));
             r_sanity_check(!b);
         }
     } break;
@@ -396,7 +396,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
     case Datum_DatumType_R_ARRAY: {
         type = R_ARRAY;
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array.push_back(make_counted<const datum_t>(&d->r_array(i), env));
+            r_array.push_back(make_counted<datum_t>(&d->r_array(i), env));
         }
     } break;
     case Datum_DatumType_R_OBJECT: {
@@ -406,7 +406,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
             const std::string &key = ap->key();
             rcheck(r_object.count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            r_object[key] = make_counted<const datum_t>(&ap->val(), env);
+            r_object[key] = make_counted<datum_t>(&ap->val(), env);
         }
     } break;
     default: unreachable();
@@ -484,7 +484,7 @@ counted_t<const datum_t> wire_datum_t::reset(counted_t<const datum_t> ptr2) {
 counted_t<const datum_t> wire_datum_t::compile(env_t *env) {
     if (state == COMPILED) return ptr;
     r_sanity_check(state != INVALID);
-    ptr = make_counted<const datum_t>(&ptr_pb, env);
+    ptr = make_counted<datum_t>(&ptr_pb, env);
     ptr_pb = Datum();
     return ptr;
 }
@@ -515,8 +515,8 @@ void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t
 void wire_datum_map_t::compile(env_t *env) {
     if (state == COMPILED) return;
     while (!map_pb.empty()) {
-        map[make_counted<const datum_t>(&map_pb.back().first, env)] =
-            make_counted<const datum_t>(&map_pb.back().second, env);
+        map[make_counted<datum_t>(&map_pb.back().first, env)] =
+            make_counted<datum_t>(&map_pb.back().second, env);
         map_pb.pop_back();
     }
     state = COMPILED;

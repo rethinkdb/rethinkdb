@@ -84,7 +84,7 @@ private:
     virtual counted_t<val_t> eval_impl() {
         std::string op = write_eval_impl();
         scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-        UNUSED bool b = res->add(op, make_counted<const datum_t>(1.0));
+        UNUSED bool b = res->add(op, make_counted<datum_t>(1.0));
         return new_val(counted_t<const datum_t>(res.release()));
     }
 protected:
@@ -343,7 +343,7 @@ private:
             }
         }
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr->add(make_counted<const datum_t>(*it));
+            arr->add(make_counted<datum_t>(*it));
         }
         return new_val(counted_t<const datum_t>(arr.release()));
     }

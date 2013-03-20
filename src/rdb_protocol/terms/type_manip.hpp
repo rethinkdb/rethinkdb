@@ -155,7 +155,7 @@ private:
             if (supertype(end_type) == val_t::type_t::DATUM) {
                 // DATUM -> STR
                 if (end_type == R_STR_TYPE) {
-                    return new_val(make_counted<const datum_t>(d->print()));
+                    return new_val(make_counted<datum_t>(d->print()));
                 }
 
                 // OBJECT -> ARRAY
@@ -164,7 +164,7 @@ private:
                     const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
                         scoped_ptr_t<datum_t> pair(new datum_t(datum_t::R_ARRAY));
-                        pair->add(make_counted<const datum_t>(it->first));
+                        pair->add(make_counted<datum_t>(it->first));
                         pair->add(it->second);
                         arr->add(counted_t<const datum_t>(pair.release()));
                     }
@@ -231,7 +231,7 @@ private:
         if (t == DATUM_TYPE) {
             t += v0->as_datum()->get_type();
         }
-        return new_val(make_counted<const datum_t>(get_name(t)));
+        return new_val(make_counted<datum_t>(get_name(t)));
     }
     virtual const char *name() const { return "typeof"; }
 };

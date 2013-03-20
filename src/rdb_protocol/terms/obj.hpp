@@ -28,7 +28,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             contains = contains && obj->el(arg(i)->as_str(), NOTHROW);
         }
-        return new_val(make_counted<const datum_t>(datum_t::R_BOOL, contains));
+        return new_val(make_counted<datum_t>(datum_t::R_BOOL, contains));
     }
     virtual const char *name() const { return "contains"; }
 };

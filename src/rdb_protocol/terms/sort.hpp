@@ -24,7 +24,7 @@ public:
     asc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
+        return new_val(make_counted<datum_t>("+" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -34,7 +34,7 @@ public:
     desc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
+        return new_val(make_counted<datum_t>("-" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -73,7 +73,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             Term::TermType type = src_term->args(i).type();
             if (type != Term::ASC && type != Term::DESC) {
-                arr->add(new_val(make_counted<const datum_t>("+" + arg(i)->as_str()))->as_datum());
+                arr->add(new_val(make_counted<datum_t>("+" + arg(i)->as_str()))->as_datum());
             } else {
                 arr->add(arg(i)->as_datum());
             }
