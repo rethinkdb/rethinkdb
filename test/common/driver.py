@@ -42,7 +42,10 @@ def find_rethinkdb_executable(mode = "debug"):
     return find_subpath("build/%s/rethinkdb" % mode)
 
 def get_namespace_host(namespace_port, processes):
-    return ("localhost", namespace_port + random.choice(processes).port_offset)
+    if namespace_port == 0:
+        return ("localhost", random.choice(processes).driver_port)
+    else:
+        return ("localhost", namespace_port + random.choice(processes).port_offset)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
@@ -270,11 +273,13 @@ class _Process(object):
                 log = file(self.logfile_path).read()
                 cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
                 http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
+                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)",log)
                 if cluster_ports == [] or http_ports == []:
                     time.sleep(1)
                 else:
                     self.cluster_port = int(cluster_ports[-1])
                     self.http_port = int(http_ports[-1])
+                    self.driver_port = int(driver_ports[-1])
                     break
             except IOError, e:
                 time.sleep(1)
