@@ -634,10 +634,9 @@ module 'DataExplorerView', ->
                                 else
                                     cached_query = @query_first_part+@written_suggestion+@query_last_part
                                 if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
-                                    new_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
-                                    regex = @create_safe_regex new_element
+                                    @current_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
+                                    regex = @create_safe_regex @current_element
                                     new_suggestions = []
-                                    console.log '+++++'
                                     new_highlighted_suggestion = -1
                                     for suggestion, index in @current_suggestions
                                         if index < @current_highlighted_suggestion
@@ -646,13 +645,15 @@ module 'DataExplorerView', ->
                                             new_suggestions.push suggestion
                                     @current_suggestions = new_suggestions
                                     @current_highlighted_suggestion = new_highlighted_suggestion
-                                    @.$('.suggestion_name_list').empty()
-                                    for suggestion, i in @current_suggestions
-                                        @.$('.suggestion_name_list').append @template_suggestion_name
-                                            id: i
-                                            suggestion: suggestion
-                                    @ignored_next_keyup = true
-                                    @current_element = new_element
+                                    if @current_suggestions.length > 0
+                                        @.$('.suggestion_name_list').empty()
+                                        for suggestion, i in @current_suggestions
+                                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                                id: i
+                                                suggestion: suggestion
+                                        @ignored_next_keyup = true
+                                    else
+                                        @hide_suggestion_and_description()
 
 
                                 # Switch throught the suggestions
