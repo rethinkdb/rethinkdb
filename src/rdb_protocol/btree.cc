@@ -153,16 +153,16 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
 // just a different function passed to this function).
-void do_a_replace_with_promise(btree_slice_t *slice,
-                               repli_timestamp_t timestamp,
-                               transaction_t *txn,
-                               superblock_t *superblock,
-                               const std::string &primary_key,
-                               const store_key_t &key,
-                               ql::map_wire_func_t *f,
-                               ql::env_t *ql_env,
-                               promise_t<superblock_t *> *superblock_promise_or_null,
-                               Datum *response_out) THROWS_NOTHING {
+void rdb_replace_and_return_superblock(btree_slice_t *slice,
+                                       repli_timestamp_t timestamp,
+                                       transaction_t *txn,
+                                       superblock_t *superblock,
+                                       const std::string &primary_key,
+                                       const store_key_t &key,
+                                       ql::map_wire_func_t *f,
+                                       ql::env_t *ql_env,
+                                       promise_t<superblock_t *> *superblock_promise_or_null,
+                                       Datum *response_out) THROWS_NOTHING {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -258,7 +258,8 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out) THROWS_NOTHING {
-    do_a_replace_with_promise(slice, timestamp, txn, superblock, primary_key, key, f, ql_env, NULL, response_out);
+    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, primary_key,
+                                      key, f, ql_env, NULL, response_out);
 }
 
 void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
@@ -271,8 +272,8 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out) {
     ql::map_wire_func_t f = replace->f;
-    do_a_replace_with_promise(slice, timestamp, txn, superblock, replace->primary_key,
-                              replace->key, &f, ql_env, superblock_promise_or_null, response_out);
+    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, replace->primary_key,
+                                      replace->key, &f, ql_env, superblock_promise_or_null, response_out);
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
