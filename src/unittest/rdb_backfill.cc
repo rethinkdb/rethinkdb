@@ -140,6 +140,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
                                scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                                rdb_protocol_t::context_t *ctx,
                                order_source_t *order_source) {
+    recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<rdb_protocol_t> replier(initial_listener->get(), cluster->get_mailbox_manager(), branch_history_manager);

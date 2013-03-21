@@ -71,6 +71,7 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 }
 
 void run_sindex_post_construction() {
+    recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
     scoped_ptr_t<io_backender_t> io_backender;
