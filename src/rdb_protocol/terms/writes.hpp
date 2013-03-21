@@ -97,9 +97,9 @@ private:
                     break;
                 }
 
-                for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
+                for (auto datum_it = datums.begin(); datum_it != datums.end(); ++datum_it) {
                     try {
-                        maybe_generate_key(t, &generated_keys, &*datum);
+                        maybe_generate_key(t, &generated_keys, &*datum_it);
                     } catch (const any_ql_exc_t &) {
                         // We just ignore it, the same error will be handled in `replace`.
                         // TODO: that solution sucks.
@@ -107,8 +107,8 @@ private:
                 }
 
                 std::vector<const datum_t *> results = t->batch_replace(datums, datums, upsert);
-                for (auto result = results.begin(); result != results.end(); ++result) {
-                    stats = stats->merge(env, *result, stats_merge);
+                for (auto result_it = results.begin(); result_it != results.end(); ++result_it) {
+                    stats = stats->merge(env, *result_it, stats_merge);
                 }
             }
         }
