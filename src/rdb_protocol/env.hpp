@@ -149,6 +149,9 @@ public:
         signal_t *_interruptor,
         uuid_u _this_machine,
         const std::map<std::string, wire_func_t> &_optargs);
+
+    explicit env_t(signal_t *);
+
     ~env_t();
 
     extproc::pool_t *pool;      // for running external JS jobs

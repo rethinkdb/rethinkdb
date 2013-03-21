@@ -5,9 +5,10 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
-#include "extproc/spawner.hpp"
 #include "extproc/pool.hpp"
+#include "extproc/spawner.hpp"
 #include "memcached/protocol.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -16,6 +17,8 @@
 #include "serializer/translator.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
+
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 namespace {
@@ -145,16 +148,11 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     query_language::backtrace_t b;
     {
         /* Create a secondary index. */
-        Mapping m;
-        *m.mutable_arg() = "row";
-        m.mutable_body()->set_type(Term::CALL);
-        *m.mutable_body()->mutable_call() = Term::Call();
-        m.mutable_body()->mutable_call()->mutable_builtin()->set_type(Builtin::GETATTR);
-        *m.mutable_body()->mutable_call()->mutable_builtin()->mutable_attr() = "sid";
+        Term mapping;
+        Term *arg = ql::pb::set_func(&mapping, 1);
+        N2(GETATTR, NVAR(1), NDATUM("sid"));
 
-        Term *arg = m.mutable_body()->mutable_call()->add_args();
-        arg->set_type(Term::VAR);
-        *arg->mutable_var() = "row";
+        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
         rdb_protocol_t::write_response_t response;

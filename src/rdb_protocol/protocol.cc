@@ -638,7 +638,7 @@ struct w_unshard_visitor : public boost::static_visitor<void> {
         *response_out = responses[0];
     }
 
-    void operator()(const point_modify_t &) const {
+    void operator()(const point_replace_t &) const {
         guarantee(count == 1);
         *response_out = responses[0];
     }
@@ -652,7 +652,7 @@ struct w_unshard_visitor : public boost::static_visitor<void> {
     }
 
 private:
-    const write_response_t *responses; 
+    const write_response_t *responses;
     size_t count;
     write_response_t *response_out;
     context_t *ctx;
@@ -670,7 +670,7 @@ store_t::store_t(serializer_t *serializer,
                  context_t *_ctx,
                  io_backender_t *io,
                  const base_path_t &base_path) :
-    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target, 
+    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 { }
@@ -797,7 +797,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         // TODO: modify surrounding code so we can dump this const_cast.
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
 
-        rdb_modification_report_t mod_report(m.key);
+        rdb_modification_report_t mod_report(r.key);
         rdb_replace(btree, timestamp, txn, superblock,
                     r.primary_key, r.key, f, &ql_env, res,
                     &mod_report);

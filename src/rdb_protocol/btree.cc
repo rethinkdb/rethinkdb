@@ -609,8 +609,8 @@ void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         rdb_modification_report_t *modification,
         transaction_t *txn,
-        auto_drainer_t::lock_t) {
-    Mapping mapping;
+        auto_drainer_t::lock_t drainer_lock) {
+    ql::map_wire_func_t mapping;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
@@ -620,19 +620,20 @@ void rdb_update_single_sindex(
     //tables etc. but we don't have a nice way to disallow those things so
     //for now we pass null and it will segfault if an illegal sindex
     //mapping is passed.
-    query_language::runtime_environment_t *local_env = NULL;
-    query_language::scopes_t scopes;
-    query_language::backtrace_t backtrace;
+    ql::env_t env(drainer_lock.get_drain_signal());
 
     superblock_t *super_block = sindex->super_block.get();
 
     if (modification->deleted) {
         promise_t<superblock_t *> return_superblock_local;
         {
-            boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-                    local_env, scopes, backtrace, modification->deleted);
 
-            store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
+            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
+
+            const ql::datum_t *index =
+                mapping.compile(&env)->call(deleted)->as_datum();
+
+            store_key_t sindex_key(index->print_secondary(modification->primary_key));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
@@ -649,10 +650,12 @@ void rdb_update_single_sindex(
     }
 
     if (modification->added) {
-        boost::shared_ptr<scoped_cJSON_t> index = eval_mapping(mapping,
-                local_env, scopes, backtrace, modification->added);
+        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
 
-        store_key_t sindex_key(cJSON_print_secondary(index->get(), modification->primary_key, backtrace));
+        const ql::datum_t *index =
+            mapping.compile(&env)->call(added)->as_datum();
+
+        store_key_t sindex_key(index->print_secondary(modification->primary_key));
 
         keyvalue_location_t<rdb_value_t> kv_location;
 

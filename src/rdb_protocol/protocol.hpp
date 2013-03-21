@@ -275,9 +275,11 @@ struct rdb_protocol_t {
 
         rget_read_t(const region_t &_sindex_region,
                     uuid_u _sindex,
-                    const rdb_protocol_details::transform_t &_transform)
-            : region(region_t::universe()), sindex(_sindex), 
-              sindex_region(_sindex_region), transform(_transform) { }
+                    const rdb_protocol_details::transform_t &_transform,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(region_t::universe()), sindex(_sindex),
+              sindex_region(_sindex_region),
+              transform(_transform), optargs(_optargs) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
@@ -441,12 +443,12 @@ struct rdb_protocol_t {
     class sindex_create_t {
     public:
         sindex_create_t() { }
-        sindex_create_t(uuid_u _id, const Mapping &_mapping)
+        sindex_create_t(uuid_u _id, const ql::map_wire_func_t &_mapping)
             : id(_id), mapping(_mapping), region(region_t::universe())
         { }
 
         uuid_u id;
-        Mapping mapping;
+        ql::map_wire_func_t mapping;
         region_t region;
 
         RDB_DECLARE_ME_SERIALIZABLE;

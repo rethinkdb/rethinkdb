@@ -9,13 +9,16 @@
 #include "arch/io/disk.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
+
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace unittest {
 
@@ -113,16 +116,11 @@ void run_sindex_post_construction() {
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                 1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
-        Mapping m;
-        *m.mutable_arg() = "row";
-        m.mutable_body()->set_type(Term::CALL);
-        *m.mutable_body()->mutable_call() = Term::Call();
-        m.mutable_body()->mutable_call()->mutable_builtin()->set_type(Builtin::GETATTR);
-        *m.mutable_body()->mutable_call()->mutable_builtin()->mutable_attr() = "sid";
+        Term mapping;
+        Term *arg = ql::pb::set_func(&mapping, 1);
+        N2(GETATTR, NVAR(1), NDATUM("sid"));
 
-        Term *arg = m.mutable_body()->mutable_call()->add_args();
-        arg->set_type(Term::VAR);
-        *arg->mutable_var() = "row";
+        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
 
         write_message_t wm;
         wm << m;
