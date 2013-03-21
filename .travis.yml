@@ -1,5 +1,17 @@
+# Environment
 language: cpp
 compiler:
   - gcc
   - clang
+
+# Install build dependencies
+before_script:
+  - sudo npm install -g less@1.3.0
+
+# Build script
 script: ./configure && make
+
+# Only use these branches
+branches:
+  only:
+    - master
