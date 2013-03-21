@@ -9,6 +9,7 @@ Bug fix update:
 * JS driver: added useOutdated to r.table() (#502)
 * RDB protocol performance fix in release mode.
 * Performance fix when using filter with object shortcut syntax.
+
 ---
 
 # Release 1.4 (Some Like It Hot) #
