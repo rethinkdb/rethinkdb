@@ -8,6 +8,7 @@ compiler:
 before_script:
   - sudo apt-get install npm
   - sudo npm install -g less@1.3.0
+  - sudo npm install -g coffee-script@1.4.0
 
 # Build script
 script: ./configure && make
