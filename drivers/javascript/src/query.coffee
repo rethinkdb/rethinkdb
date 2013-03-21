@@ -21,7 +21,7 @@ rethinkdb.error = ar (errstr) -> new UserError {}, errstr
 
 rethinkdb.row = new ImplicitVar {}
 
-rethinkdb.table = ar (tblName) -> new Table {}, tblName
+rethinkdb.table = aropt (tblName, opts) -> new Table opts, tblName
 
 rethinkdb.db = ar (dbName) -> new Db {}, dbName
 

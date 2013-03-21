@@ -10,15 +10,6 @@ const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } }
 
 namespace node {
 
-void print(const node_t *node) {
-    if (!is_internal(node)) {
-        // We need a value sizer to call the leaf::print function.
-        // TODO: Take a sizer.
-    } else {
-        internal_node::print(reinterpret_cast<const internal_node_t *>(node));
-    }
-}
-
 bool is_underfull(value_sizer_t<void> *sizer, const node_t *node) {
     if (node->magic == sizer->btree_leaf_magic()) {
         return leaf::is_underfull(sizer, reinterpret_cast<const leaf_node_t *>(node));
