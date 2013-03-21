@@ -1,3 +1,16 @@
+# Release 1.4.1 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Python driver fix for TCP streams (#495)
+* Web UI fix that reduces the number of AJAX requests (#481)
+* JS driver: added useOutdated to r.table() (#502)
+* RDB protocol performance fix in release mode.
+* Performance fix when using filter with object shortcut syntax.
+---
+
 # Release 1.4 (Some Like It Hot) #
 
 ## Changes ##
