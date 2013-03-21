@@ -691,8 +691,6 @@ module 'DataExplorerView', ->
                                     @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                     return true
                         else if @extra_suggestions? and @extra_suggestions.length > 0 and @start_body is @start_body
-                            console.log @extra_suggestion
-
                             # Trim suggestion
                             if @extra_suggestion?.body?[0]?.type is 'string'
                                 # Remove quotes around the table/db name
@@ -712,22 +710,14 @@ module 'DataExplorerView', ->
                                 if @extra_suggestion.body?[0]?.name.length?
                                     start_search += @extra_suggestion.body[0].name.length
 
-                                end_body = -1
-                                end_body_single_quote = query.indexOf "'", start_search
-                                end_body_double_quote = query.indexOf "'", start_search
-                                end_body_parenthesis = query.indexOf ')', start_search
-                                if end_body is -1
-                                    end_body = end_body_single_quote
-                                if end_body is -1 or end_body_double_quote < end_body
-                                    end_body = end_body_double_quote
-                                if end_body is -1 or end_body_parenthesis < end_body
-                                    end_body = end_body_parenthesis
-
-                                if end_body is -1
-                                    @query_last_part = ''
-                                else
+                                # Define @query_first_part and @query_last_part
+                                # Note that ) is not a valid character for a db/table name
+                                end_body = query.indexOf ')', start_search
+                                @query_last_part = ''
+                                if end_body isnt -1
                                     @query_last_part = query.slice end_body
                                 @query_first_part = query.slice 0, @extra_suggestion.start_body
+
                                 if event.shiftKey is true
                                     @current_highlighted_extra_suggestion--
                                 else
@@ -738,16 +728,21 @@ module 'DataExplorerView', ->
                                 else if @current_highlighted_extra_suggestion < -1
                                     @current_highlighted_extra_suggestion = @extra_suggestions.length-1
 
-
-                                console.log @query_first_part
-                                console.log @query_last_part
-                                console.log @current_extra_suggestion
-
-                                console.log @current_extra_suggestion
+                                suggestion = ''
                                 if @current_highlighted_extra_suggestion is -1
-                                    suggestion = if @current_extra_suggestion? then @current_extra_suggestion else '' 
+                                    if @current_extra_suggestion?
+                                        #TODO use a regex
+                                        if @current_extra_suggestion[0] is '"'
+                                            suggestion = @current_extra_suggestion+"'"
+                                        else if @current_extra_suggestion[0] is "'"
+                                            suggestion = @current_extra_suggestion+"'"
                                 else
-                                    suggestion = "'"+@extra_suggestions[@current_highlighted_extra_suggestion]+"'"
+                                    # TODO get string delimiter
+                                    string_delimiter = "'"
+                                    if string_delimiter is ''
+                                        suggestion = "'"+@extra_suggestions[@current_highlighted_extra_suggestion]+"'"
+                                    else
+                                        suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
                                 
                                 @write_suggestion
                                     suggestion_to_write: suggestion
@@ -1676,17 +1671,19 @@ module 'DataExplorerView', ->
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
 
+            ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
             if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                 @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
                 @written_suggestion = suggestion_to_write+')'
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
                 @written_suggestion = suggestion_to_write
-    
+                if suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'"
+                    ch--
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
                 line: @cursor_for_auto_completion.line
-                ch: @cursor_for_auto_completion.ch+suggestion_to_write.length
+                ch:ch
 
         # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
