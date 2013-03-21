@@ -2,7 +2,6 @@
 language: cpp
 compiler:
   - gcc
-  - clang
 
 # Install build dependencies
 before_script:
@@ -12,7 +11,7 @@ before_script:
   - sudo npm install -g handlebars@1.0.10
 
 # Build script
-script: ./configure && make
+script: ./configure && make -j
 
 # Only use these branches
 branches:
