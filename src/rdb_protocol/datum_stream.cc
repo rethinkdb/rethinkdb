@@ -20,7 +20,15 @@ datum_stream_t *datum_stream_t::zip() {
 const datum_t *datum_stream_t::next() {
     env->throw_if_interruptor_pulsed();
     try {
-        return next_impl();
+        // We loop until we get a value.
+        for (;;) {
+            const datum_t *ret = NULL;
+            const batch_info_t res = next_impl(&ret);
+            if (ret != NULL || res == END_OF_STREAM) {
+                return ret;
+            }
+        }
+
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
         unreachable();
@@ -30,20 +38,31 @@ const datum_t *datum_stream_t::next() {
 std::vector<const datum_t *> datum_stream_t::next_batch() {
     env->throw_if_interruptor_pulsed();
     try {
-        return next_batch_impl();
+        std::vector<const datum_t *> batch;
+        for (;;) {
+            const datum_t *datum = NULL;
+            const batch_info_t res = next_impl(&datum);
+            if (datum != NULL) {
+                batch.push_back(datum);
+            }
+            if (res == LAST_OF_BATCH || res == END_OF_STREAM) {
+                return batch;
+            }
+        }
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
         unreachable();
     }
 }
 
-std::vector<const datum_t *> datum_stream_t::next_batch_impl() {
-    std::vector<const datum_t *> ret;
-    const datum_t *value = next_impl();
-    if (value != NULL) {
-        ret.push_back(value);
+datum_stream_t::batch_info_t datum_stream_t::next_with_batch_info(const datum_t **datum_out) {
+    env->throw_if_interruptor_pulsed();
+    try {
+        return next_impl(datum_out);
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
     }
-    return ret;
 }
 
 
@@ -207,10 +226,16 @@ const datum_t *lazy_datum_stream_t::gmr(
     return egct.finalize(map.to_arr(env));
 }
 
-const datum_t *lazy_datum_stream_t::next_impl() {
+datum_stream_t::batch_info_t lazy_datum_stream_t::next_impl(const datum_t **datum_out) {
+    // RSI: Apparently json streams support batching.
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    if (!json.get()) return 0;
-    return env->add_ptr(new datum_t(json, env));
+    if (json) {
+        *datum_out = env->add_ptr(new datum_t(json, env));
+        return LAST_OF_BATCH;
+    } else {
+        *datum_out = NULL;
+        return END_OF_STREAM;
+    }
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -218,130 +243,78 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
                                            const pb_rcheckable_t *backtrace_source)
     : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
 
-const datum_t *array_datum_stream_t::next_impl() {
-    const size_t old_index = index;
-    const datum_t *ret = arr->el(old_index, NOTHROW);
-    if (ret) { ++index; }
-    return ret;
-}
-
-std::vector<const datum_t *> array_datum_stream_t::next_batch_impl() {
-    std::vector<const datum_t *> ret;
-    for (;;) {
-        if (ret.size() == 100) {
-            break;
-        }
-
-        const datum_t *value = next_impl();
-        if (value == NULL) {
-            break;
-        }
-
-        ret.push_back(value);
+datum_stream_t::batch_info_t array_datum_stream_t::next_impl(const datum_t **datum_out) {
+    const datum_t *datum = arr->el(index, NOTHROW);
+    if (datum == NULL) {
+        *datum_out = datum;
+        return END_OF_STREAM;
+    } else {
+        *datum_out = datum;
+        ++index;
+        return index % datum_stream_t::MAX_BATCH_SIZE == 0 ? LAST_OF_BATCH : MID_BATCH;
     }
-
-    return ret;
 }
 
 // MAP_DATUM_STREAM_T
-const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg = source->next();
-    return arg == NULL ? NULL : f->call(arg)->as_datum();
-}
-
-std::vector<const datum_t *> map_datum_stream_t::next_batch_impl() {
-    const std::vector<const datum_t *> datums = source->next_batch();
-    std::vector<const datum_t *> ret;
-    ret.reserve(datums.size());
-    for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
-        ret.push_back(f->call(*datum)->as_datum());
+datum_stream_t::batch_info_t map_datum_stream_t::next_impl(const datum_t **datum_out) {
+    const datum_t *arg = NULL;
+    const batch_info_t res = source->next_with_batch_info(&arg);
+    if (arg == NULL) {
+        *datum_out = NULL;
+    } else {
+        *datum_out = f->call(arg)->as_datum();
     }
-    return ret;
+    return res;
+
 }
 
 // FILTER_DATUM_STREAM_T
-const datum_t *filter_datum_stream_t::next_impl() {
+datum_stream_t::batch_info_t filter_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (;;) {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
 
-        const datum_t *arg = source->next();
-        if (arg == NULL) {
-            return NULL;
-        }
-        env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
-        if (f->filter_call(env, arg)) {
-            outer_checkpoint.reset(&env_t::merge_checkpoint);
-            return arg;
-        }
-    }
-}
-
-std::vector<const datum_t *> filter_datum_stream_t::next_batch_impl() {
-    for (;;) {
-        env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
-
-        // RSI: How do we free the memory of the values that get filtered away
-        // here?  If any values survive the filtering, all of these are under
-        // the same checkpoint.
-        std::vector<const datum_t *> unfiltered = source->next_batch();
-
-        if (unfiltered.empty()) {
-            return unfiltered;
-        }
+        const datum_t *arg = NULL;
+        const batch_info_t res = source->next_with_batch_info(&arg);
 
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
 
-        std::vector<const datum_t *> filtered;
-        for (auto it = unfiltered.begin(); it != unfiltered.end(); ++it) {
-            if (f->filter_call(env, *it)) {
-                filtered.push_back(*it);
+        if (arg != NULL) {
+            if (f->filter_call(env, arg)) {
+                outer_checkpoint.reset(&env_t::merge_checkpoint);
+                *datum_out = arg;
+                return res;
             }
         }
 
-        if (!filtered.empty()) {
-            outer_checkpoint.reset(&env_t::merge_checkpoint);
-            return filtered;
+        if (res != MID_BATCH) {
+            *datum_out = NULL;
+            return res;
         }
     }
 }
 
 // CONCATMAP_DATUM_STREAM_T
-const datum_t *concatmap_datum_stream_t::next_impl() {
+datum_stream_t::batch_info_t concatmap_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (;;) {
         if (subsource == NULL) {
             const datum_t *arg = source->next();
             if (arg == NULL) {
-                return NULL;
-            }
-            subsource = f->call(arg)->as_seq();
-        }
-        if (const datum_t *retval = subsource->next()) {
-            return retval;
-        }
-        subsource = NULL;
-    }
-}
-
-std::vector<const datum_t *> concatmap_datum_stream_t::next_batch_impl() {
-    for (;;) {
-        if (subsource == NULL) {
-            const datum_t *arg = source->next();
-            if (arg == NULL) {
-                return std::vector<const datum_t *>();
+                *datum_out = NULL;
+                return END_OF_STREAM;
             }
             subsource = f->call(arg)->as_seq();
         }
 
-        std::vector<const datum_t *> batch = subsource->next_batch();
-        if (!batch.empty()) {
-            return batch;
+        const datum_t *retval = NULL;
+        const datum_stream_t::batch_info_t res = subsource->next_with_batch_info(&retval);
+        if (res != END_OF_STREAM) {
+            *datum_out = retval;
+            return res;
         }
+
         subsource = NULL;
     }
 }
-
-
-
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _right,
@@ -349,88 +322,68 @@ slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _ri
     : eager_datum_stream_t(_env, _source), env(_env), index(0),
       left(_left), right(_right), source(_source) { }
 
-const datum_t *slice_datum_stream_t::next_impl() {
+datum_stream_t::batch_info_t slice_datum_stream_t::next_impl(const datum_t **datum_out) {
     if (left > right || index > right) {
-        return NULL;
+        *datum_out = NULL;
+        return END_OF_STREAM;
     }
 
-    while (index++ < left) {
+    while (index < left) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        source->next();
-    }
-    return source->next();
-}
-
-std::vector<const datum_t *> slice_datum_stream_t::next_batch_impl() {
-    if (left > right || index > right) {
-        return std::vector<const datum_t *>();
-    }
-
-    // RSI: We get more elements than necessary.  Wouldn't it be nice if we
-    // could ask for a size-limited batch?
-    std::vector<const datum_t *> batch = source->next_batch();
-
-    // We have to add 1 because we use closed intervals for some insane reason.
-    if (batch.size() > right + 1 - index) {
-        // RSI: If we truncate the batch, we leak the datums on the right side of the batch.
-        batch.resize(right + 1 - index);
+        const datum_t *discard = NULL;
+        const datum_stream_t::batch_info_t res = source->next_with_batch_info(&discard);
+        if (res == END_OF_STREAM) {
+            *datum_out = NULL;
+            return END_OF_STREAM;
+        }
+        if (discard != NULL) {
+            ++index;
+        }
     }
 
-    index += batch.size();
-    return batch;
+    const datum_t *datum = NULL;
+    const datum_stream_t::batch_info_t res = source->next_with_batch_info(&datum);
+    if (datum != NULL) {
+        ++index;
+    }
+    *datum_out = datum;
+    return res;
 }
 
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_source)
     : eager_datum_stream_t(_env, _source), env(_env), source(_source) { }
 
-const datum_t *zip_datum_stream_t::next_impl() {
-    const datum_t *datum = source->next();
-    if (datum == NULL) {
-        return NULL;
-    }
-    const datum_t *left = datum->el("left", NOTHROW);
-    const datum_t *right = datum->el("right", NOTHROW);
-    rcheck(left != NULL, "ZIP can only be called on the result of a join.");
-    return right != NULL ? env->add_ptr(left->merge(right)) : left;
-}
+datum_stream_t::batch_info_t zip_datum_stream_t::next_impl(const datum_t **datum_out) {
+    const datum_t *datum = NULL;
+    const datum_stream_t::batch_info_t res = source->next_with_batch_info(&datum);
 
-std::vector<const datum_t *> zip_datum_stream_t::next_batch_impl() {
-    std::vector<const datum_t *> datums = source->next_batch();
-
-    for (auto it = datums.begin(); it != datums.end(); ++it) {
-        const datum_t *datum = *it;
+    if (datum != NULL) {
         const datum_t *left = datum->el("left", NOTHROW);
         const datum_t *right = datum->el("right", NOTHROW);
         rcheck(left != NULL, "ZIP can only be called on the result of a join.");
-        *it = right != NULL ? env->add_ptr(left->merge(right)) : left;
+        datum = right != NULL ? env->add_ptr(left->merge(right)) : left;
     }
 
-    return datums;
+    *datum_out = datum;
+    return res;
 }
 
 
 // UNION_DATUM_STREAM_T
-const datum_t *union_datum_stream_t::next_impl() {
+datum_stream_t::batch_info_t union_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (; streams_index < streams.size(); ++streams_index) {
-        if (const datum_t *d = streams[streams_index]->next()) {
-            return d;
+        const datum_t *datum = NULL;
+        const datum_stream_t::batch_info_t res = streams[streams_index]->next_with_batch_info(&datum);
+        if (res != END_OF_STREAM) {
+            *datum_out = datum;
+            return res;
         }
     }
-    return NULL;
-};
 
-std::vector<const datum_t *> union_datum_stream_t::next_batch_impl() {
-    for (; streams_index < streams.size(); ++streams_index) {
-        std::vector<const datum_t *> batch = streams[streams_index]->next_batch();
-        if (!batch.empty()) {
-            return batch;
-        }
-    }
-    return std::vector<const datum_t *>();
+    *datum_out = NULL;
+    return END_OF_STREAM;
 }
-
-
 
 
 } // namespace ql

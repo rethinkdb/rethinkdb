@@ -48,14 +48,37 @@ public:
     static const int MAX_BATCH_SIZE = 100;
 
 protected:
+    // next_with_batch_info needs to be public, but nobody can use it that can't
+    // see this protected return value type.
+    enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
+
+public:
+    // Calls next_impl, but handles exceptions.  Used by next_impl
+    // implementations for streams that manipulate other streams.
+    MUST_USE batch_info_t next_with_batch_info(const datum_t **datum_out);
+
+protected:
     env_t *env;
 
 private:
-    virtual const datum_t *next_impl() = 0;
-
-    // The default implementation just returns a vector with one element (or
-    // zero elements, if the end of stream has been reached).
-    virtual std::vector<const datum_t *> next_batch_impl();
+    // next_impl will do one of the following things:
+    //   - return END_OF_STREAM and assign NULL to *datum_out.
+    //   - return MID_BATCH and assign NULL to *datum_out -- try calling next_impl again!
+    //   - return MID_BATCH and assign a non-null to *datum_out.
+    //   - return LAST_OF_BATCH and assign NULL to *datum_out -- try calling next_impl again?
+    //   - return LAST_OF_BATCH and assign a non-null to *datum_out.
+    //
+    // It's the caller's job to handle these situations appropriately.
+    // Fortunately, the only callers are the next() and next_batch() methods in
+    // this class.
+    //
+    // This is relatively complicated because we want to report whether a given
+    // datum was the last of its "batch," but we don't want lookahead logic in
+    // filter_datum_stream_t.  The interface could be slightly simpler --
+    // there's no technical need for MID_BATCH to ever be accompanied by a NULL
+    // value -- but it's easier to treat that as a valid case than to assert
+    // everywhere that it hasn't happened.
+    virtual batch_info_t next_impl(const datum_t **datum_out) = 0;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -82,8 +105,7 @@ public:
     }
 
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     func_t *f;
     datum_stream_t *source;
@@ -97,8 +119,7 @@ public:
     }
 
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     func_t *f;
     datum_stream_t *source;
@@ -111,8 +132,7 @@ public:
         guarantee(f != NULL && source != NULL);
     }
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     func_t *f;
     datum_stream_t *source;
@@ -132,9 +152,10 @@ public:
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
-    virtual const datum_t *next_impl();
     virtual const datum_t *as_array() { return NULL; } // cannot be converted implicitly
 private:
+    virtual batch_info_t next_impl(const datum_t **datum_out);
+
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
@@ -156,8 +177,7 @@ public:
     array_datum_stream_t(env_t *env, const datum_t *_arr, const pb_rcheckable_t *bt_src);
 
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     size_t index;
     const datum_t *arr;
@@ -167,8 +187,7 @@ class slice_datum_stream_t : public eager_datum_stream_t {
 public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *source);
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     env_t *env;
     size_t index, left, right;
@@ -180,8 +199,7 @@ public:
     zip_datum_stream_t(env_t *env, datum_stream_t *source);
 
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     env_t *env;
     datum_stream_t *source;
@@ -200,14 +218,18 @@ public:
           src(_src), data_index(-1), is_arr_(false) {
         guarantee(src);
     }
-    virtual const datum_t *next_impl() {
+    virtual batch_info_t next_impl(const datum_t **datum_out) {
         maybe_load_data();
         r_sanity_check(data_index >= 0);
         if (data_index >= static_cast<int>(data.size())) {
             //            ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
-            return NULL;
+            *datum_out = NULL;
+            return END_OF_STREAM;
+        } else {
+            *datum_out = data[data_index];
+            ++data_index;
+            return data_index % MAX_BATCH_SIZE == 0 ? LAST_OF_BATCH : MID_BATCH;
         }
-        return data[data_index++];
     }
 private:
     virtual const datum_t *as_array() {
@@ -254,8 +276,7 @@ public:
                          const pb_rcheckable_t *bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
 private:
-    virtual const datum_t *next_impl();
-    virtual std::vector<const datum_t *> next_batch_impl();
+    virtual batch_info_t next_impl(const datum_t **datum_out);
 
     std::vector<datum_stream_t *> streams;
     size_t streams_index;
