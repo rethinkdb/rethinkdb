@@ -422,6 +422,67 @@ module 'DataExplorerView', ->
                                         suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
                                     @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                     return true
+                        else if @extra_suggestions? and @extra_suggestions.length > 0 and @start_body is @start_body
+                            #Define the cursor for auto completion
+                            #Err it's a pain -_-
+                            #@cursor_for_auto_completion = @start_body
+                            console.log @extra_suggestion
+                            # Trim suggestion
+                            if @extra_suggestion?.body?[0]?.type is 'string'
+                                # Remove quotes around the table/db name
+                                current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
+                                regex = @create_safe_regex current_name
+                                new_extra_suggestions = []
+                                for suggestion in @extra_suggestions
+                                    if regex.test(suggestion) is true
+                                        new_extra_suggestions.push suggestion
+                                @extra_suggestions = new_extra_suggestions
+
+                            if @extra_suggestions.length > 0 # If there are still some valid suggestions
+                                query = @codemirror.getValue()
+
+                                # We did not parse what is after the cursor, so let's take a look
+                                start_search = @extra_suggestion.start_body
+                                if @extra_suggestion.body?[0]?.name.length?
+                                    start_search += @extra_suggestion.body[0].name.length
+
+                                end_body = -1
+                                end_body_single_quote = query.indexOf "'", start_search
+                                end_body_double_quote = query.indexOf "'", start_search
+                                end_body_parenthesis = query.indexOf ')', start_search
+                                if end_body is -1
+                                    end_body = end_body_single_quote
+                                if end_body is -1 or end_body_double_quote < end_body
+                                    end_body = end_body_double_quote
+                                if end_body is -1 or end_body_parenthesis < end_body
+                                    end_body = end_body_parenthesis
+
+                                if end_body is -1
+                                    @query_last_part = ''
+                                else
+                                    @query_last_part = query.slice end_body
+                                @query_first_part = query.slice 0, @extra_suggestion.start_body
+                                if event.shiftKey is true
+                                    @current_highlighted_extra_suggestion--
+                                else
+                                    @current_highlighted_extra_suggestion++
+                                    
+                                if @current_highlighted_extra_suggestion >= @extra_suggestions.length
+                                    @current_highlighted_extra_suggestion = -1
+                                else if @current_highlighted_extra_suggestion < -1
+                                    @current_highlighted_extra_suggestion = @extra_suggestions.length-1
+
+                                console.log @current_extra_suggestion
+                                if @current_highlighted_extra_suggestion is -1
+                                    suggestion = if @current_extra_suggestion? then @current_extra_suggestion else '' 
+                                else
+                                    suggestion = "'"+@extra_suggestions[@current_highlighted_extra_suggestion]+"'"
+                                
+                                @write_suggestion
+                                    suggestion_to_write: suggestion
+                                @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+
+
                 # If the user hit enter and (Ctrl or Shift)
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
@@ -531,6 +592,7 @@ module 'DataExplorerView', ->
                 return true
 
             @current_highlighted_suggestion = -1
+            @current_highlighted_extra_suggestion = -1
             @.$('.suggestion_name_list').empty()
 
             # Codemirror return a position given by line/char.
@@ -554,13 +616,15 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
             @query_last_part = query_after_cursor
 
-            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
+            # Initialize @current_element, which tracks what the user typed before they hit T@AB (to auto-complete).
             # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
             @current_element = ''
+            @current_db_table = ''
 
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
+            window.stack = stack
 
             result =
                 status: null
@@ -1159,6 +1223,12 @@ module 'DataExplorerView', ->
                             else
                                 result.suggestions = null
                                 result.description = element.name
+                                @extra_suggestion =
+                                    start_body: element.position + element.name.length
+                                    body: element.body
+                                if element.body?[0]?.name?.length?
+                                    @cursor_for_auto_completion.ch -= element.body[0].name.length
+                                    @current_extra_suggestion = element.body[0].name
                                 result.status = 'done'
                         else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return' or 'element.type' is 'array'
                             # element.type === 'object' is impossible I think with the current implementation of extract_data_from_query
@@ -1172,6 +1242,12 @@ module 'DataExplorerView', ->
                                 # We just opened a new function, so let's just show the description
                                 result.suggestions = null
                                 result.description = element.name # That means we are going to describe the function named element.name
+                                @extra_suggestion =
+                                    start_body: element.position + element.name.length
+                                    body: element.body
+                                if element.body?[0]?.name?.length?
+                                    @cursor_for_auto_completion.ch -= element.body[0].name.length
+                                    @current_extra_suggestion = element.body[0].name
                                 result.status = 'done'
                                 break
                             else
@@ -1200,6 +1276,12 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_description'
                     if element.type is 'function'
                         result.description = element.name
+                        @extra_suggestion =
+                            start_body: element.position + element.name.length
+                            body: element.body
+                        if element.body?[0]?.name?.length?
+                            @cursor_for_auto_completion.ch -= element.body[0].name.length
+                            @current_extra_suggestion = element.body[0].name
                         result.suggestions = null
                         result.status = 'done'
                     else
@@ -1207,6 +1289,12 @@ module 'DataExplorerView', ->
                 if result.status is 'break_and_look_for_description'
                     if element.type is 'function' and element.complete is false and element.name.indexOf('(') isnt -1
                         result.description = element.name
+                        @extra_suggestion =
+                            start_body: element.position + element.name.length
+                            body: element.body
+                        if element.body?[0]?.name?.length?
+                            @cursor_for_auto_completion.ch -= element.body[0].name.length
+                            @current_extra_suggestion = element.body[0].name
                         result.suggestions = null
                         result.status = 'done'
                     else
@@ -1359,14 +1447,15 @@ module 'DataExplorerView', ->
                     data =
                         no_database: true
                 else
+                    databases_available = _.map(databases.models, (database) -> return database.get('name'))
                     data =
                         no_database: false
-                        databases_available: _.map(databases.models, (database) -> return database.get('name'))
+                        databases_available: databases_available
                 description.description = @databases_suggestions_template(data)+description.description
+                @extra_suggestions= databases_available
             else if fn is 'table('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
-
                 description = _.extend {}, @descriptions[fn]
                 if database_used.error is false
                     namespaces_available = []
@@ -1384,8 +1473,11 @@ module 'DataExplorerView', ->
                         error: database_used.error
 
                 description.description = @namespaces_suggestions_template(data) + description.description
+
+                @extra_suggestions= namespaces_available
             else
                 description = @descriptions[fn]
+                @extra_suggestions= null
             return description
 
         # We could create a new stack with @extract_data_from_query, but that would be a more expensive for not that much
