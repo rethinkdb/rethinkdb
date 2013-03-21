@@ -29,12 +29,6 @@ home thread. */
 template <class value_t> class watchable_t;
 template <class value_t> class watchable_freeze_t;
 
-enum run_until_satisfied_result_t {
-    SATISFIED,
-    RUN_AGAIN,
-    ABORT
-};
-
 template <class value_t>
 class watchable_subscription_t {
 public:

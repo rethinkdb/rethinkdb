@@ -25,8 +25,10 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-void run_generic_global_startup_behavior();
+class Term;
+void pb_print(Term *t);
 
+void run_generic_global_startup_behavior();
 
 struct const_charslice {
     const char *beg, *end;
@@ -406,5 +408,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #endif
 
 #define NULLPTR (static_cast<void *>(0))
+
+#define DBLPRI "%.20g"
 
 #endif // UTILS_HPP_

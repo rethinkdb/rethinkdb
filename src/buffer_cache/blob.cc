@@ -532,7 +532,6 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
 
     } else {
         buf_lock_t lock;
-        //        debugf("preprocess levels = %d, index = %d\n", levels, index);
         helper->preprocess(txn, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
@@ -558,18 +557,15 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
     // for loops don't trace the same subtree twice.
     int highest_i = -1;
 
-    //    debugf("at levels=%d, old_lo=%d, old_hi=%d, new_lo=%d, new_hi=%d\n", levels, old_lo, old_hi, new_lo, new_hi);
     if (new_offset / leafsize < old_offset / leafsize) {
         // See comment [1] below.
         for (int i = new_lo; i <= old_lo && i < new_hi; ++i) {
-            //            debugf("calling traverse_index (lo) levels=%d, i=%d, %ld %ld %ld %ld\n", levels, i, old_offset, old_size, new_offset, new_size);
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
             highest_i = i;
         }
     }
     if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
         for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
-            //            debugf("calling traverse_index (hi) levels=%d, i=%d, %ld %ld %ld %ld\n", levels, i, old_offset, old_size, new_offset, new_size);
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
         }
     }

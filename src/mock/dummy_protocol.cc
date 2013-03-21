@@ -367,13 +367,6 @@ void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_p
     buf->appendf(")");
 }
 
-void debugf_metainfo(DEBUG_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
-    printf_buffer_t<2048> buf;
-    print_metainfo(&buf, m);
-    debugf("%s: %s\n", msg, buf.c_str());
-}
-
-
 void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                       const metainfo_t& new_metainfo,
                                       const dummy_protocol_t::write_t &write,

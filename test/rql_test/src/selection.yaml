@@ -1,0 +1,241 @@
+desc: Tests that manipulation data in tables
+tests:
+
+    # Set up some data
+    - cd: r.db('test').table_create('test1')
+      ot: ({'created':1})
+      def: tbl = r.db('test').table('test1')
+
+    - cd: r.db('test').table_create('test2')
+      ot: ({'created':1})
+      def: tbl2 = r.db('test').table('test2')
+
+    - cd: r.db('test').table_create('test3')
+      ot: ({'created':1})
+      def: tbl3 = r.db('test').table('test3')
+
+    - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
+      js: |
+        tbl.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4});
+            }
+            return res;
+        }())
+      rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
+      ot: ({'inserted':100})
+
+    - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
+      js: |
+        tbl2.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'b':i%4});
+            }
+            return res;
+        }())
+      rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'inserted':100})
+    
+    # Table type
+    - cd: tbl.type_of()
+      ot: "'TABLE'"
+
+    # Missing db case
+    - cd: r.db('missing').table('bar')
+      ot: err("RqlRuntimeError", 'Database `missing` does not exist.', [0])
+
+    # Missing table case
+    - cd: r.db('test').table('missing')
+      ot: err("RqlRuntimeError", 'Table `missing` does not exist.', [0])
+
+    # make sure we can insert and query json docs with arbitrary unicode attrs
+    - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
+      py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
+      rb: tbl3.insert({:id => 'Здравствуй', :value => 'Земля!'})
+      ot: ({'inserted':1})
+
+    # make sure we can query json docs by arbitrary unicode attrs
+    - js:
+        cd: tbl3.get('Здравствуй')
+        ot: ({'id':'Здравствуй','value':'Земля!'})
+      py:
+        cd: tbl3.get(u'Здравствуй')
+        ot: ({u'id':u'Здравствуй',u'value':u'Земля!'})
+      rb:
+        cd: tbl3.get('Здравствуй')
+        ot: ({:id=>'Здравствуй',:value=>'Земля!'})
+      
+    - js:
+        cd: tbl3.filter({'value':'Земля!'})
+        ot: "[{'id':'Здравствуй','value':'Земля!'}]"
+      py:
+        cd: tbl3.filter({'value':u'Земля!'})
+        ot: "[{u'id':u'Здравствуй',u'value':u'Земля!'}]"
+      rb:
+        cd: tbl3.filter({:value=>'Земля!'})
+        ot: "[{:id=>'Здравствуй',:value=>'Земля!'}]"
+        
+
+    # db and table name validation
+    - cd: r.db('%')
+      ot: err("RqlRuntimeError", 'Database name `%` invalid (Use A-Za-z0-9_ only).', [0])
+    
+    - cd: r.db('test').table('%')
+      ot: err("RqlRuntimeError", 'Table name `%` invalid (Use A-Za-z0-9_ only).', [0])
+
+    # Access a table from default db
+    - cd: r.table('test1').count()
+      ot: 100
+
+    # Access a table using the `use_outdated` flag
+    - py:
+        - r.table('test1', use_outdated=True).count()
+        - r.db('test').table('test1', use_outdated=True).count()
+      js:
+        - r.table('test1', {useOutdated:true}).count()
+        - r.db('test').table('test1', {useOutdated:true}).count()
+      rb:
+        - r.table('test1', {:use_outdated => true}).count()
+        - r.db('test').table('test1', {:use_outdated => true}).count()
+      ot: 100
+
+    - cd: tbl.get(20).count()
+      py: [] # Handled by native Python error
+      ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])
+      
+    # Get a document that exists
+    - cd: tbl.get(20)
+      ot: ({'id':20,'a':0})
+      
+    # Get a document that doesn't exist
+    - cd: tbl.get(2000)
+      ot: (null)
+      
+    # Make sure get only takes one arg (since we used to be able to pass id)
+    - cd: tbl.get()
+      py: [] # Handled by native Python error
+      rb: []
+      ot: err("RqlDriverError", 'Expected 1 argument(s) but found 0.', [1])
+     
+    - cd: tbl.get(10, 20)
+      py: [] # Handled by native Python error
+      rb: []
+      ot: err("RqlDriverError", 'Expected 1 argument(s) but found 2.', [1])
+      
+    # Create a table with a non-id primary key
+    - py: r.db('test').table_create('testpkey', primary_key='foo')
+      js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
+      rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
+      ot: ({'created':1})
+      def: tblpkey = r.db('test').table('testpkey')
+
+    - cd: tblpkey.insert({'foo':10,'a':10})
+      ot: ({'inserted':1})
+      
+    # get for table where id isn't a primary key
+    - cd: tblpkey.get(10)
+      ot: ({'foo':10,'a':10})
+    
+    # Between
+    - cd: tbl.between(20,29).count()
+      ot: 10
+    - cd: tbl.between(-10,9).count() 
+      ot: 10
+    - cd: tbl.between(80,2000).count()
+      ot: 20
+    - cd: tbl.between(-2000, 2000).count()
+      ot: 100
+    
+    # Between shouldn't work on arrays
+    - cd: r.expr([1, 2, 3]).between(-1, 2)
+      ot: err('RqlRuntimeError', 'Expected type SELECTION but found DATUM.', [0])
+
+    # test between on open intervals
+    - cd: tbl.between(null, 2).count()
+      ot: 3
+      
+    - cd: tbl.between(2, null).count()
+      ot: 98
+      
+    - js: tbl.between(2).count()
+      cd: []
+      ot: err('RqlDriverError', 'Expected 2 argument(s) but found 1.', '[]')
+      
+    # test between table where id isn't a primary key
+    - cd: tblpkey.between(9, 11).count()
+      ot: 1
+
+    - cd: tblpkey.between(11, 12).count()
+      ot: 0
+
+    # Filter
+    - py: tbl.filter(lambda row:row['a'] > 2).count()
+      js: tbl.filter(function(row) { return row('a').gt(2); }).count()
+      rb: tbl.filter{ |row| row[:a] > 2 }.count
+      ot: 25
+      
+    # test not returning a boolean
+    - py: "tbl.filter(lambda row: 1).count()"
+      js: tbl.filter(function(row) { return 1; }).count()
+      rb: tbl.filter{ |row| 1 }.count
+      ot: err("RqlRuntimeError", 'FILTER must be passed either an OBJECT or a predicate (got NUMBER).', [0])
+
+    # test seq.filter.filter (chaining and r.row(s))
+    - py: r.expr([1, 2, 3, 4, 5]).filter(r.row > 2).filter(r.row > 3)
+      js: r.expr([1, 2, 3, 4, 5]).filter(r.row.gt(2)).filter(r.row.gt(3))
+      rb: r.expr([1, 2, 3, 4, 5]).filter{|x| x > 2}.filter{|x| x > 3}
+      ot: [4, 5]
+    
+    # test nesting (and r.rows(s))
+    - def: nested=r.expr([[1, 2], [3, 4], [5, 6]])
+      
+    - py: "nested.filter(lambda x: x.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(function (y) { return y.ge(4); }).count().gt(0) })
+      rb: nested.filter{ |x| x.filter{ |y| y >= 4}.count > 0 }
+      ot: ([[3, 4], [5, 6]])
+      
+    - py: "nested.filter(r.row.filter(lambda y: y >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(function(y) { return y.ge(4) }).count().gt(0))
+      rb: []
+      ot: ([[3, 4], [5, 6]])
+    
+    - py: "nested.filter(lambda x: x.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(function (x) { return x.filter(r.row.ge(4)).count().gt(0) })
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
+    
+    - py: "r.expr([[1, 2], [3, 4], [5, 6]]).filter(r.row.filter(r.row >= 4).count() > 0)"
+      js: nested.filter(r.row.filter(r.row.ge(4)).count().gt(0))
+      rb: []
+      ot: err("RqlCompileError", 'Cannot use r.row in nested queries.  Use functions instead.', [0])
+    
+    # test static value syntax for filter (make sure r.row in it works)
+    - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1,'b':2})
+      ot: [{'a':1,'b':2,'c':3}]
+    
+    - cd: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':1})
+      ot: [{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]
+      
+    # test static value syntax for filter with r.row
+    - py: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row['b']})
+      js: r.expr([{'a':1,'b':1,'c':3},{'a':1,'b':2,'c':3}]).filter({'a':r.row('b')})
+      rb: []
+      ot: [{'a':1,'b':1,'c':3}]
+
+    # test filtering for things by a missing attribute
+    - cd: r.expr([{'a':1}]).filter({'b':1})
+      ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
+    
+    # what the heck, let's see what happens
+    - py: r.expr(5) + tbl
+      js: r.expr(5).add(tbl)
+      rb: r 5 + tbl
+      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [0])
+    
+    # Clean up
+    - cd: r.db('test').table_list().for_each(r.db('test').table_drop(r.row))
+      rb: r.db('test').table_list().for_each{ |row| r.db('test').table_drop(row) }
+      ot: ({'dropped':4})
+

@@ -1,4 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef CLUSTERING_ADMINISTRATION_MAIN_OPTIONS_HPP_
+#define CLUSTERING_ADMINISTRATION_MAIN_OPTIONS_HPP_
 
 #include <map>
 #include <stdexcept>
@@ -251,3 +253,4 @@ std::string format_help(const std::vector<help_section_t> &help);
 
 }  // namespace options
 
+#endif  // CLUSTERING_ADMINISTRATION_MAIN_OPTIONS_HPP_

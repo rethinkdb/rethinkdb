@@ -6,7 +6,7 @@
 
 #include "btree/keys.hpp"
 #include "http/json.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/bt.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "utils.hpp"
 

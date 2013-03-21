@@ -100,8 +100,6 @@ inline bool is_leaf(const node_t *node) {
     return !is_internal(node);
 }
 
-void print(const node_t *node);
-
 bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 
 bool is_underfull(value_sizer_t<void> *sizer, const node_t *node);

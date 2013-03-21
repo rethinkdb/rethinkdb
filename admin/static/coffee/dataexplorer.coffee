@@ -12,6 +12,7 @@ module 'DataExplorerView', ->
         databases_suggestions_template: Handlebars.templates['dataexplorer-databases_suggestions-template']
         namespaces_suggestions_template: Handlebars.templates['dataexplorer-namespaces_suggestions-template']
         reason_dataexplorer_broken_template: Handlebars.templates['dataexplorer-reason_broken-template']
+        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # Constants
         limit: 40 # How many results we display per page // Final for now
@@ -101,6 +102,7 @@ module 'DataExplorerView', ->
             @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
+        # TODO update the set of ignored commands for 1.4
         ignored_commands:
             'connect': true
             'close': true
@@ -109,6 +111,7 @@ module 'DataExplorerView', ->
             'runp': true
             'next': true
             'collect': true
+            'run': true
 
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
@@ -158,19 +161,24 @@ module 'DataExplorerView', ->
 
         # Save the query in the history
         # The size of the history is infinite per session. But we will just save @size_history queries in localStorage
-        save_query: (query) =>
+        save_query: (args) =>
+            query = args.query
+            broken_query = args.broken_query
             # Remove empty lines
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
-            if query[query.length-1] is '\n' or query[query.length-1] is '\r'
-                query = query.slice 0, query.length-1
+            query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
             if window.localStorage?
-                if @history.length is 0 or @history[@history.length-1] isnt query and @regex.white.test(query) is false
-                    @history.push query
+                if @history.length is 0 or @history[@history.length-1].query isnt query and @regex.white.test(query) is false
+                    @history.push
+                        query: query
+                        broken_query: broken_query
                     if @history.length>@size_history
                         window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
                     else
                         window.localStorage.rethinkdb_history = JSON.stringify @history
-                    @history_view.add_query query
+                    @history_view.add_query
+                        query: query
+                        broken_query: broken_query
 
         clear_history: =>
             @history.length = 0
@@ -244,6 +252,9 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
+
+            @id_execution = 0
+
             @render()
 
         handle_mousemove: (event) =>
@@ -371,6 +382,7 @@ module 'DataExplorerView', ->
             # Look for special commands
             if event?.which?
                 if event.which is 27 # ESC
+                    event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
                 else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
@@ -542,7 +554,10 @@ module 'DataExplorerView', ->
                         query_after_cursor += query_lines[i]
             @query_last_part = query_after_cursor
 
-            @current_element = '' # Initialize @current_element. We need it for tabs (when the user loop over ALL suggestions)
+            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
+            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
+            @current_element = ''
+
             stack = @extract_data_from_query
                 query: query_before_cursor
                 position: 0
@@ -585,7 +600,8 @@ module 'DataExplorerView', ->
             else
                 @hide_suggestion_and_description()
 
-            if event?.which is 9
+            if event?.which is 9 # Catch tab
+                # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
                 if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
@@ -597,6 +613,7 @@ module 'DataExplorerView', ->
         # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
+            loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
             method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
@@ -662,7 +679,7 @@ module 'DataExplorerView', ->
                     continue
 
                 if is_parsing_string is true
-                    if char is string_delimiter and query[i-1] isnt '\\' # query[i-1] is defined since we start the loop with is_parsing = false and we need at least to go through one character to toggle its value
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
                         is_parsing_string = false # Else we just keep parsing the string
                         if element.type is 'string'
                             element.name = query.slice start, i+1
@@ -701,7 +718,7 @@ module 'DataExplorerView', ->
                                 start += result_white[0].length
                                 continue
 
-                            # Check for anonymouse function
+                            # Check for anonymous function
                             result_regex = @regex.anonymous.exec query.slice i
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
@@ -716,7 +733,17 @@ module 'DataExplorerView', ->
                                 body_start = i+result_regex[0].length
                                 stack_stop_char = ['{']
                                 continue
-                            
+
+                            # Check for a for loop 
+                            result_regex = @regex.loop.exec query.slice i
+                            if result_regex isnt null
+                                element.type = 'loop'
+                                element.context = context
+                                to_skip = result_regex[0].length
+                                body_start = i+result_regex[0].length
+                                stack_stop_char = ['{']
+                                continue
+                                                       
                             # Check for return
                             result_regex = @regex.return.exec query.slice i
                             if result_regex isnt null
@@ -845,7 +872,11 @@ module 'DataExplorerView', ->
                                 continue
                         #else # if element.start isnt i
                         # We caught the white spaces, so there is nothing to do here
-
+                        else
+                            if char is ';'
+                                # We just encountered a semi colon. We have an unknown element
+                                # So We just got a random javascript statement, let's just ignore it
+                                start = i+1
                     else # element.type isnt null
                         # Catch separator like for groupedMapReduce
                         result_regex = @regex.comma.exec(query.slice(i))
@@ -884,6 +915,23 @@ module 'DataExplorerView', ->
                                         start = i+1
                                 #else the written query is broken here. The user forgot to close something?
                                 #TODO Default behavior? Wait for Brackets/Ace to see how we handle errors
+                        else if element.type is 'loop'
+                            if char of @stop_char.opening
+                                stack_stop_char.push char
+                            else if char of @stop_char.closing
+                                if stack_stop_char[stack_stop_char.length-1] is @stop_char.closing[char]
+                                    stack_stop_char.pop()
+                                    if stack_stop_char.length is 0
+                                        element.body = @extract_data_from_query
+                                            query: query.slice body_start, i
+                                            context: element.context
+                                            position: position+body_start
+                                        element.complete = true
+                                        stack.push element
+                                        element =
+                                            type: null
+                                            context: context
+                                        start = i+1
                         # Catch for function
                         else if element.type is 'function'
                             if char of @stop_char.opening
@@ -1007,6 +1055,11 @@ module 'DataExplorerView', ->
                         context: element.context
                         position: position+start+element.name.length
                 else if element.type is 'anonymous_function'
+                    element.body = @extract_data_from_query
+                        query: query.slice body_start
+                        context: element.context
+                        position: position+body_start
+                else if element.type is 'loop'
                     element.body = @extract_data_from_query
                         query: query.slice body_start
                         context: element.context
@@ -1186,62 +1239,6 @@ module 'DataExplorerView', ->
             for char in @unsafe_to_safe_regexstr
                 str = str.replace char[0], char[1]
             return new RegExp('^('+str+')', 'i')
-
-
-        # Return the first unmatched closing parenthesis/square bracket/curly bracket
-        # TODO use and show errors once we'll have decided how to handle errors. Brackets/ace may do it themselves.
-        # TODO Check if a key is used more than once in an object
-        ###
-        get_errors_from_query: (query) =>
-            is_string = false
-            char_used = ''
-
-            stack = [] # Stack of opening parenthesis/square brackets/curly brackets
-            for char, i in query
-                if is_string is false
-                    if char is '"' or char is '\''
-                        is_string = true
-                        char_used = char
-                        position_string = i
-                    else if char is '('
-                        stack.push char
-                    else if char is ')'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                    else if char is '['
-                        stack.push char
-                    else if char is ']'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                     else if char is '{'
-                        stack.push char
-                    else if char is '}'
-                        if stack.pop() isnt char
-                            return {
-                                error: true
-                                char: char
-                                position: i
-                            }
-                else
-                    if char is char_used and query[i-1] isnt '\\' # It's safe to get query[i-1] because is_string cannot be true for the first char
-                        is_string = false
-            if is_string is true
-                return {
-                    error: true
-                    char: char_used
-                    position: i
-                }
-            else
-                return null
-        ###
 
         # Show suggestion and determine where to put the box
         show_suggestion: =>
@@ -1442,132 +1439,23 @@ module 'DataExplorerView', ->
                     error: true
                 }
 
-        # Callback used by the cursor when the user hit 'more results'
-        callback_query: (data) =>
-            # If we get a run time error
-            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                @.$('.loading_query_img').css 'display', 'none'
-                @.results_view.render_error(@query, data)
-                return false
-            
-            # if it's a valid result and we have not reach the maximum of results displayed
-            # A valid result can be null, so we don't use the coffescript's existential operator
-            if data isnt undefined and  @current_results.length < @limit
-                @current_results.push data
-                return true
-            else
-                # Else we are going to display what we have
-                @.$('.loading_query_img').css 'display', 'none'
-
-                # Save the last executed query and the last displayed results
-                @saved_data.query = @query
-                @saved_data.results = @current_results
-                
-                @saved_data.metadata =
-                    limit_value: @current_results.length
-                    skip_value: @skip_value
-                    execution_time: new Date() - @start_time
-                    query: @query
-                    has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-                @results_view.render_result
-                    results: @current_results # The first parameter null is the query because we don't want to display it.
-                    metadata: @saved_data.metadata
-
-                if data isnt undefined #there is nore data
-                    @skip_value += @current_results.length
-                    @current_results = []
-                    @current_results.push data
-                return false
-
         # Function triggered when the user click on 'more results'
         show_more_results: (event) =>
+            event.preventDefault()
+            @skip_value += @current_results.length
             try
-                event.preventDefault()
+                @current_results = []
                 @start_time = new Date()
-                @saved_data.cursor.next(@callback_query)
+
+                @id_execution++
+                get_result_callback = @generate_get_result_callback @id_execution
+                @saved_data.cursor.next get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
                 @results_view.render_error(@query, err)
 
-        # Callback for the query executed
-        callback_multiple_queries: (data) =>
-            # Check if the data sent by the server is an error
-            if data instanceof rethinkdb.errors.RuntimeError or data instanceof rethinkdb.errors.BadQuery or data instanceof rethinkdb.errors.ClientError or data instanceof rethinkdb.errors.ClientError
-                @.$('.loading_query_img').css 'display', 'none'
-                @.results_view.render_error(@query, data)
-                return false
-
-            # Look for the next query
-            @current_query_index++
-
-            # If we are dealing with the last query
-            if @current_query_index >= @queries.length
-                # If we get a run time error
-                if data instanceof rethinkdb.errors.RuntimeError
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @.results_view.render_error(@query, data)
-                    return false
-                
-                # if it's a valid result and we have not reach the maximum of results displayed
-                if data isnt undefined and  @current_results.length < @limit
-                    @current_results.push data
-                    return true
-                else
-                    # Else we are going to display what we have
-                    @.$('.loading_query_img').css 'display', 'none'
-
-                    # Save the last executed query and the last displayed results
-                    @saved_data.query = @query
-                    @saved_data.results = @current_results
-                    @saved_data.metadata =
-                        limit_value: @current_results.length
-                        skip_value: @skip_value
-                        execution_time: new Date() - @start_time
-                        query: @query
-                        has_more_data: (true if data?) # if data is undefined, it means that there is no more data
-
-                    @results_view.render_result
-                        results: @current_results # The first parameter is null ( = query, so we don't display it)
-                        metadata: @saved_data.metadata
-
-                    if data isnt undefined #there is nore data
-                        @skip_value += @current_results.length
-                        @current_results = []
-                        @current_results.push data
-
-                    # Successful query, let's save it in the history
-                    @save_query @raw_query
-
-                    return false
-            else #  Else if it's not the last query, we just execute the next query
-                try
-                    #For safety only.
-                    if @cursor?.close?
-                        @cursor.close()
-
-                    @current_results = []
-                    @skip_value = 0
-
-                    @cursor = eval(@queries[@current_query_index])
-                    @saved_data.cursor = @cursor # Saving the cursor so the user can call more results later
-                    @cursor.next(@callback_multiple_queries)
-                catch err
-                    @.$('.loading_query_img').css 'display', 'none'
-                    @results_view.render_error(@query, err)
-            return false
-
-        # Function that execute the query
-        # Current behavior for user
-        # - User execute q1
-        # - User execute q2 (we stop listening to q1)
-        # - User retrieve results for q2
-        #
-        # In case of multiple queries
-        # - User execute q1_1, q1_2
-        # - User execute q2
-        # - We don't execute q1_3
-        # - User retrieve results for q2
+        # Function that execute the queries in a synchronous way.
         execute_query: =>
             # The user just executed a query, so we reset cursor_timed_out to false
             @saved_data.cursor_timed_out = false
@@ -1579,113 +1467,317 @@ module 'DataExplorerView', ->
             @raw_query = @codemirror.getValue()
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
-            # Display the loading gif
-            @.$('.loading_query_img').css 'display', 'block'
-
             # Execute the query
             try
+                # Separate queries
+                @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
+                @index = 0 # index of the query currently being executed
+
+                @raw_queries = @separate_queries @raw_query # We first split raw_queries
                 @queries = @separate_queries @query
-                @start_time = new Date()
 
-                @current_results = []
-                @skip_value = 0
-                @current_query_index = 0
-
-                if @cursor?.close? # So if a old query was running, we won't listen to it.
-                    @cursor.close()
-
-                @cursor = eval(@queries[@current_query_index])
-                # Save the last cursor to fetch more results later
-                @saved_data.cursor = @cursor
-                @cursor.next(@callback_multiple_queries)
+                if @queries.length is 0
+                    error = @query_error_template
+                        no_query: true
+                    @results_view.render_error(null, error)
+                else
+                    @.$('.loading_query_img').show()
+                    @execute_portion()
 
             catch err
-                @.$('.loading_query_img').css 'display', 'none'
+                @.$('.loading_query_img').hide()
                 @results_view.render_error(@query, err)
+                @save_query
+                    query: @raw_query
+                    broken_query: true
 
-        # Replace new lines with \n so the query is not splitted.
-        replace_new_lines_in_query: (query) ->
-            is_string = false
-            char_used = ''
-            i = 0
-            while i < query.length
-                if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] isnt '\\'
-                            active_string = query.slice(start_string, i)
-                            count_replace = active_string.match(/\n/g)?.length
-                            query = query.slice(0, start_string) + active_string.replace(/\n/g, '\\n') + query.slice(i)
-                            is_string = false
-                            if count_replace?
-                                i += count_replace
-                else if is_string is false
-                    if query[i] is '\'' or query[i] is '"'
-                        is_string = true
-                        start_string = i
-                        char_used = query[i]
-                i++
-            return query
+        # A portion is one query of the whole input.
+        execute_portion: =>
+            @saved_data.cursor = null
+            while @queries[@index]?
+                @driver_handler.reset_count()
 
-        # Separate the queries so we can execute them in a synchronous order. We use .run()\s*; to separate queries (and we make sure that the separator is not in a string)
-        separate_queries: (query) =>
-            start = 0
-            count_dot = 0
+                full_query = @non_rethinkdb_query
+                full_query += @queries[@index]
 
-            is_string = false
-            char_used = ''
-            queries = []
+                try
+                    rdb_query = @evaluate(full_query)
+                catch err
+                    @.$('.loading_query_img').hide()
+                    @results_view.render_error(@raw_queries[@index], err)
+                    @save_query
+                        query: @raw_query
+                        broken_query: true
+                    return false
 
-            # Again because of strings, we cannot know use a pretty regex
-            is_parsing_function = false # Track if we are parsing a function (between a dot and a opening parenthesis)
-            is_parsing_args = false # Track if we are parsing the arguments of a function so we can match for .run( ) but not for .ru n()
-            last_function = '' # The last function used with its arguments 
-            for i in [0..query.length-1]
-                if is_string is false
-                    if is_inline_comment is true
-                        if query[i] is '\n' or query[i] is '\r'
-                            is_inline_comment = false
-                    else if is_comment
-                        if query[i] is '*' or query[i] is '/'
-                            is_comment = false
-                    else
-                        if (query[i] is '"' or query[i] is '\'')
-                            is_string = true
-                            char_used = query[i]
-                        else if query[i] is ';'
-                            if last_function is 'run()' # If the last function is run(), we have one query
-                                queries.push query.slice start, i
-                                start = i+1
-                        else if query[i] is '/'
-                            if query[i+1] is '/'
-                                is_inline_comment = true
-                            else if query[i+1] is '*'
-                                is_comment = true
+                @index++
 
-                        # Keep track of the last function used
-                        if query[i] is '.' # New function detected, let's reset last_function and switch on is_parsing_function
-                            last_function = ''
-                            is_parsing_function = true
-                        else if is_parsing_function is true
-                            if is_parsing_args is false or /\s/.test(query[i]) is false # If we are parsing arguments, we are not interested in white space
-                                last_function += query[i]
+                if rdb_query instanceof TermBase
+                    @skip_value = 0
+                    @start_time = new Date()
+                    @current_results = []
 
-                            if query[i] is '(' # We are going to parse arguments now
-                                is_parsing_args = true
-                            else if query[i] is ')' # End of the function
-                                is_parsing_function = false
-                                is_parsing_args = false
+                    @id_execution++ # Update the id_execution and use it to tag the callbacks
+                    rdb_global_callback = @generate_rdb_global_callback @id_execution
+                    rdb_query.private_run @driver_handler.connection, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    return true
+                else if rdb_query instanceof DataExplorerView.DriverHandler
+                    # Nothing to do
+                    return true
+                else
+                    @non_rethinkdb_query += @queries[@index-1]
+                    if @index is @queries.length
+                        @.$('.loading_query_img').hide()
+                        error = @query_error_template
+                            last_non_query: true
+                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @save_query
+                            query: @raw_query
+                            broken_query: true
 
+        
+        # Create a callback for when a query returns
+        # We tag the callback to make sure that we display the results only of the last query executed by the user
+        generate_rdb_global_callback: (id_execution) =>
+            rdb_global_callback = (error, cursor) =>
+                if @id_execution is id_execution # We execute the query only if it is the last one
+                    get_result_callback = @generate_get_result_callback id_execution
 
-                else if is_string is true
-                    if query[i] is char_used
-                        if query[i-1]? and query[i-1] is '\\'
-                            continue
+                    if error?
+                        @.$('.loading_query_img').hide()
+                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @save_query
+                            query: @raw_query
+                            broken_query: true
+
+                        return false
+                    
+                    if @index is @queries.length # @index was incremented in execute_portion
+                        if cursor?
+                            @saved_data.cursor = @cursor
+
+                        if cursor?.hasNext?
+                            @cursor = cursor
+                            if cursor.hasNext() is true
+                                @cursor.next get_result_callback
+                            else
+                                get_result_callback() # Display results
                         else
-                            is_string = false
+                            @.$('.loading_query_img').hide()
 
-            last_query = query.slice start, query.length
-            if /^\s*$/.test(last_query) is false
-                queries.push query.slice start, query.length
+                            # Save the last executed query and the last displayed results
+                            @current_results = cursor
+
+                            @saved_data.query = @query
+                            @saved_data.results = @current_results
+                            @saved_data.metadata =
+                                limit_value: @current_results.length
+                                skip_value: @skip_value
+                                execution_time: new Date() - @start_time
+                                query: @query
+                                has_more_data: false
+
+                            @results_view.render_result
+                                results: @current_results # The first parameter is null ( = query, so we don't display it)
+                                metadata: @saved_data.metadata
+
+                            # Successful query, let's save it in the history
+                            @save_query
+                                query: @raw_query
+                                broken_query: false
+                    else
+                        @execute_portion()
+
+            return rdb_global_callback
+
+        # Create a callback used in cursor.next()
+        # We tag the callback to make sure that we display the results only of the last query executed by the user
+        generate_get_result_callback: (id_execution) =>
+            get_result_callback = (error, data) =>
+                if @id_execution is id_execution
+                    if error?
+                        @results_view.render_error(@query, error)
+                        return false
+
+                    if data isnt undefined
+                        @current_results.push data
+                        if @current_results.length < @limit and @cursor.hasNext() is true
+                            @cursor.next get_result_callback
+                            return true
+
+                    @.$('.loading_query_img').hide()
+
+                    # if data is undefined or @current_results.length is @limit
+                    @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
+                    @saved_data.query = @query
+                    @saved_data.results = @current_results
+                    @saved_data.metadata =
+                        limit_value: @current_results.length
+                        skip_value: @skip_value
+                        execution_time: new Date() - @start_time
+                        query: @query
+                        has_more_data: @cursor.hasNext()
+
+                    @results_view.render_result
+                        results: @current_results # The first parameter is null ( = query, so we don't display it)
+                        metadata: @saved_data.metadata
+
+                    # Successful query, let's save it in the history
+                    @save_query
+                        query: @raw_query
+                        broken_query: false
+                else
+                    @execute_portion()
+
+        get_result_callback: (error, data) =>
+            if error?
+                @results_view.render_error(@query, error)
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+                return false
+
+            if data isnt undefined
+                @current_results.push data
+                if @current_results.length < @limit and @cursor.hasNext() is true
+                    @cursor.next @get_result_callback
+                    return true
+
+            # if data is undefined or @current_results.length is @limit
+            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
+            @saved_data.query = @query
+            @saved_data.results = @current_results
+            @saved_data.metadata =
+                limit_value: @current_results.length
+                skip_value: @skip_value
+                execution_time: new Date() - @start_time
+                query: @query
+                has_more_data: @cursor.hasNext()
+
+            @results_view.render_result
+                results: @current_results # The first parameter is null ( = query, so we don't display it)
+                metadata: @saved_data.metadata
+
+            # Successful query, let's save it in the history
+            @save_query
+                query: @raw_query
+                broken_query: false
+
+            return get_result_callback
+
+        # Evaluate the query
+        # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
+        evaluate: (query) =>
+            "use strict"
+            return eval(query)
+
+        # In a string \n becomes \\\\n, outside a string we just remove \n, so
+        #   r
+        #   .expr('hello
+        #   world')
+        # becomes
+        #   r.expr('hello\nworld')
+        replace_new_lines_in_query: (query) ->
+            is_parsing_string = false
+            start = 0
+
+            result_query = ''
+            for char, i in query
+                if to_skip > 0
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
+                        result_query += query.slice(start, i+1).replace(/\n/g, '\\\\n')
+                        start = i+1
+                        is_parsing_string = false
+                        continue
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"'
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        continue
+            if is_parsing_string
+                result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+            else
+                result_query += query.slice(start, i).replace(/\n/g, '')
+
+            return result_query
+
+        # Split input in queries. We use semi colon, pay attention to string, brackets and comments
+        separate_queries: (query) =>
+            queries = []
+            is_parsing_string = false
+            stack = []
+            start = 0
+            
+            position =
+                char: 0
+                line: 1
+
+            for char, i in query
+                if char is '\n'
+                    position.line++
+                    position.char = 0
+                else
+                    position.char++
+
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\'
+                        is_parsing_string = false
+                        continue
+                else # if element.is_parsing_string is false
+                    if char is '\'' or char is '"'
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        continue
+                    
+
+                    if char of @stop_char.opening
+                        stack.push char
+                    else if char of @stop_char.closing
+                        if stack[stack.length-1] isnt @stop_char.closing[char]
+                            throw @query_error_template
+                                syntax_error: true
+                                bracket: char
+                                line: position.line
+                                position: position.char
+                        else
+                            stack.pop()
+                    else if char is ';' and stack.length is 0
+                        queries.push query.slice start, i+1
+                        start = i+1
+
+            if start < query.length-1
+                last_query = query.slice start
+                if @regex.white.test(last_query) is false
+                    queries.push last_query
+
             return queries
 
         # Clear the input
@@ -1694,7 +1786,9 @@ module 'DataExplorerView', ->
             @codemirror.focus()
 
         # Called if the driver could connect
-        success_on_connect: =>
+        success_on_connect: (connection) =>
+            @connection = connection
+
             @results_view.cursor_timed_out()
             if @reconnecting is true
                 @.$('#user-alert-space').hide()
@@ -1842,8 +1936,7 @@ module 'DataExplorerView', ->
         render_error: (query, err) =>
             @.$el.html @error_template
                 query: query
-                error: err.toString()
-                forgot_run: (err.type? and err.type is 'undefined_method' and err['arguments']?[0]? and err['arguments'][0] is 'next') # Check if next is undefined, in which case the user probably forgot to append .run()
+                error: err.toString().replace(/^(\s*)/, '')
             return @
 
         json_to_tree: (result) =>
@@ -2100,6 +2193,7 @@ module 'DataExplorerView', ->
         render_result: (args) =>
             if args?.results?
                 @results = args.results
+                @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
@@ -2133,7 +2227,13 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
                     previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    @.$('.table_view').html @json_to_table @results
+                    if Object.prototype.toString.call(@results) is '[object Array]'
+                        @.$('.table_view').html @json_to_table @results
+                    else
+                        if not @results_array?
+                            @results_array = []
+                            @results_array.push @results
+                        @.$('.table_view').html @json_to_table @results_array
                     @$('.results').hide()
                     @$('.table_view_container').show()
                     @.$('.link_to_table_view').addClass 'active'
@@ -2160,9 +2260,9 @@ module 'DataExplorerView', ->
                     extra_size_table = @$('.json_table_container').width()-@$('.json_table').width()
                     if extra_size_table > 0 # The table doesn't take the full width
                         expandable_columns = []
-                        for index in [0..@last_keys.length-2] # We skip the column record
+                        for index in [0..@last_keys.length-1] # We skip the column record
                             real_size = 0
-                            @$('.col-'+index).children().children().each((i, bloc) ->
+                            @$('.col-'+index).children().children().children().each((i, bloc) ->
                                 $bloc = $(bloc)
                                 if real_size<$bloc.width()
                                     real_size = $bloc.width()
@@ -2323,7 +2423,8 @@ module 'DataExplorerView', ->
             else
                 for query, i in @history
                     @$('.history_list').append @dataexplorer_query_li_template
-                        query: query
+                        query: query.query
+                        broken_query: query.broken_query
                         id: i
                         num: i+1
             @delegateEvents()
@@ -2332,14 +2433,17 @@ module 'DataExplorerView', ->
         load_query: (event) =>
             id = @$(event.target).data().id
             # Set + save codemirror
-            @container.codemirror.setValue @history[parseInt(id)]
-            @container.saved_data.current_query = @history[parseInt(id)]
+            @container.codemirror.setValue @history[parseInt(id)].query
+            @container.saved_data.current_query = @history[parseInt(id)].query
 
-        add_query: (query) =>
+        add_query: (args) =>
+            query = args.query
+            broken_query = args.broken_query
             that = @
             is_at_bottom = @$('.history_list').height() is @$('.nano > .content').scrollTop()+@$('.nano').height()
             @$('.history_list').append @dataexplorer_query_li_template
                 query: query
+                broken_query: broken_query
                 id: @history.length-1
                 num: @history.length
             if @state is 'visible'
@@ -2378,7 +2482,7 @@ module 'DataExplorerView', ->
             that = @
             if @state is 'visible'
                 @state = 'hidden'
-                @desactivate_overflow()
+                @deactivate_overflow()
                 @$('.nano').animate
                     height: 0
                     , 200
@@ -2417,7 +2521,7 @@ module 'DataExplorerView', ->
                 @$('.nano_border').show() # In case the user trigger hide/show really fast
                 @$('.nano').nanoScroller({preventPageScrolling: true})
             else
-                @desactivate_overflow()
+                @deactivate_overflow()
                 duration = Math.max 150, size
                 duration = Math.min duration, 250
                 @$('.nano').stop(true, true).animate
@@ -2435,14 +2539,16 @@ module 'DataExplorerView', ->
                                 , 300
 
         # The 3 secrets of French cuisine is butter, butter and butter
-        # We desactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
-        desactivate_overflow: =>
+        # We deactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
+        deactivate_overflow: =>
             if $(window).height() >= $(document).height()
                 $('body').css 'overflow', 'hidden'
 
     class @DriverHandler
         # I don't want that thing in window
         constructor: (args) ->
+            that = @
+
             @container = args.container
             @on_success = args.on_success
             @on_fail = args.on_fail
@@ -2459,9 +2565,24 @@ module 'DataExplorerView', ->
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
 
+            @hack_driver()
             @connect()
+        
+        reset_count: =>
+            @count = 0
+            @done = 0
+
+        # Hack the driver, remove .run() and private_run()
+        hack_driver: =>
+            if not TermBase.prototype.private_run?
+                that = @
+                TermBase.prototype.private_run = TermBase.prototype.run
+                TermBase.prototype.run = ->
+                    throw that.container.query_error_template
+                        found_run: true
 
         connect: =>
+            that = @
             # Whether we are going to reconnect or not, the cursor might have timed out.
             @container.saved_data.cursor_timed_out = true
             if @timeout?
@@ -2473,10 +2594,17 @@ module 'DataExplorerView', ->
                         @connection.close()
                     catch err
                         # Nothing bad here, let's just not pollute the console
-
-            @connection = r.connect @server, @on_success, @on_fail
-            @container.results_view.cursor_timed_out()
-            @timeout = setTimeout @connect, 5*60*1000
+            try
+                r.connect @server, (err, connection) ->
+                    if err?
+                        that.on_fail()
+                    else
+                        that.connection = connection
+                        that.on_success(connection)
+                @container.results_view.cursor_timed_out()
+                @timeout = setTimeout @connect, 5*60*1000
+            catch err
+                @on_fail()
     
         postpone_reconnection: =>
             clearTimeout @timeout

@@ -1,0 +1,71 @@
+desc: Tests meta queries for creating and deleting tables
+tests:
+
+    - def: db = r.db('test')
+
+    - cd: db.table_list()
+      ot: []
+
+    # Table create
+    - cd: db.table_create('a')
+      ot: ({'created':1})
+
+    - cd: db.table_list()
+      ot: ['a']
+
+    - cd: db.table_create('b')
+      ot: ({'created':1})
+
+    - cd: db.table_list()
+      ot: bag(['a', 'b'])
+
+    # Table drop
+    - cd: db.table_drop('a')
+      ot: ({'dropped':1})
+
+    - cd: db.table_list()
+      ot: ['b']
+
+    - cd: db.table_drop('b')
+      ot: ({'dropped':1})
+
+    - cd: db.table_list()
+      ot: []
+
+    # Table errors
+    - cd: db.table_create('foo')
+      ot: ({'created':1})
+
+    - cd: db.table_create('foo')
+      ot: err('RqlRuntimeError', 'Table `foo` already exists.', [0])
+
+    - cd: db.table_drop('foo')
+      ot: ({'dropped':1})
+
+    - cd: db.table_drop('foo')
+      ot: err('RqlRuntimeError', 'Table `foo` does not exist.', [0])
+
+    - cd: db.table_create('nonsense', 'foo')
+      py: [] # In python, 'foo' becomes the primary key
+      ot:
+        cd: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
+        rb: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
+
+    - js: db.table_create('nonsense', {'foo':'bar'})
+      py: db.table_create('nonsense', foo='bar')
+      rb: db.table_create('nonsense', :foo => 'bar')
+      ot:
+        rb: err('RqlCompileError', "Unrecognized optional argument `foo`.", [])
+        js: err('RqlCompileError', 'Unrecognized optional argument `foo`.', [])
+        py: err('TypeError', "table_create() got an unexpected keyword argument 'foo'", [])
+
+    - js: db.table_create('nonsense1', {'datacenter':'bar'})
+      py: db.table_create('nonsense1', datacenter='bar')
+      rb: db.table_create('nonsense1', :datacenter => 'bar')
+      ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
+
+    - js: db.table_create('nonsense2', {'cacheSize':'bar'})
+      py: db.table_create('nonsense2', cache_size='bar')
+      rb: db.table_create('nonsense2', :cache_size => 'bar')
+      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+

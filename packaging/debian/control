@@ -34,7 +34,7 @@ Architecture: ifelse(SOURCEBUILD, 1,`i386 amd64', `CURRENT_ARCH')
 Pre-Depends: adduser (>= 3.40)
 Depends: ifelse(LEGACY_PACKAGE, 1,
   `libc6 (>= 2.5), libstdc++6 (>= 4.4), libgcc1',
-  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1')`'dnl
+  `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libprotobuf7')`'dnl
 ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)

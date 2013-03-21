@@ -93,10 +93,6 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
             return -1;
         }
 
-        if (block_id > 0) {
-            debugf("serializer_file_write_stream_t: writing block id %" PRIi64 "\n", block_id);
-        }
-
         buf_lock_t block;
         buf_lock_t *b = &z;
         if (block_id > 0) {

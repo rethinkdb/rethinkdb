@@ -24,7 +24,6 @@ struct lock_request_t : public thread_message_t,
 
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
-    //    debugf("rwi_lock_t::lock (access = %d)\n", access);
     if (try_lock(access, false)) {
         return true;
     } else {
@@ -92,7 +91,6 @@ bool rwi_lock_t::locked() {
 }
 
 bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
-    //    debugf("rwi_lock_t::try_lock (access = %d, state = %d)\n", access, state);
     bool res = false;
     switch (access) {
         case rwi_read_sync:

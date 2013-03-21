@@ -106,14 +106,14 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
 
 else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
-  RT_CXXFLAGS += -Wused-but-marked-unused -Wunused-macros -Wundef -Wvla -Wshadow
+  RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
 
 else ifeq ($(COMPILER), GCC)
@@ -283,20 +283,21 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
-PROTO_SOURCES := $(shell find $(SOURCE_DIR) -name '*.proto')
-PROTO_HEADERS := $(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOURCES))
-PROTO_CODE := $(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
-PROTO_NAMES += $(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
-PROTO_OBJS := $(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+QL2_PROTO_NAMES := rdb_protocol/ql2 rdb_protocol/ql2_extensions
+QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
+QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
+QL2_PROTO_CODE := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.cc)
+QL2_PROTO_OBJS := $(foreach _,$(QL2_PROTO_NAMES),$(OBJ_DIR)/$_.pb.o)
+
 PROTOCFLAGS_CXX := --proto_path=$(SOURCE_DIR)
 
 NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS := $(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS := $(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
+SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
 
-SERVER_NOMAIN_OBJS := $(PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -324,9 +325,9 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
-.SECONDARY: $(PROTO_HEADERS) $(PROTO_CODE)
-$(PROTO_HEADERS) $(PROTO_CODE): $(PROTO_DIR)/.protocppgen
-$(PROTO_DIR)/.protocppgen: $(PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
+.SECONDARY: $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
+$(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE): $(PROTO_DIR)/.protocppgen2
+$(PROTO_DIR)/.protocppgen2: $(QL2_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
 	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
 	touch $@
@@ -372,16 +373,15 @@ $(TOP)/src/clean:
 	$P RM $(BUILD_DIR)
 	rm -rf $(BUILD_DIR)
 
-$(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(PROTO_HEADERS)
+$(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(PROTO_OBJS)
-	mkdir -p $(dir $(DEP_DIR)/$*)
-	$(RT_CXX) $(RT_CXXFLAGS) -MM -MP -MQ $@ -MQ $(DEP_DIR)/$*.d $< > $(DEP_DIR)/$*.d
-	mkdir -p $(dir $@)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROTO_OBJS)
+	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC $< -o $@
-	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
+	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \
+	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
 
 -include $(DEPS)
