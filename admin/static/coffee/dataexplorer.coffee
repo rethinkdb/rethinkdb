@@ -609,6 +609,11 @@ module 'DataExplorerView', ->
                     return true
                 else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
                     if event.type is 'keydown'
+                        if @current_highlighted_suggestion > -1
+                            event.preventDefault()
+                            @handle_keypress()
+                            return true
+
                         previous_char = @get_previous_char()
                         if previous_char of @matching_opening_bracket
                             next_char = @get_next_char()
