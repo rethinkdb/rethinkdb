@@ -33,17 +33,17 @@ commands: (list<object>)
     description: (string)
 
     # Overridable by languages
-    name: (string) | :tag:
-    body: (string) | ''
-    dont_need_parenthesis: (bool) | false
-    parent: (string)
-    returns: (string)
+    name: (string|object) | :tag:
+    body: (string|object) | ''
+    dont_need_parenthesis: (bool|object) | false
+    parent: (string|object)
+    returns: (string|object)
 
     examples: (list<object>)
-        code: (string)
-        description: (string)
-        can_try: (bool) | false
-        dataset: (string) | ''
+        code: (string|object)
+        description: (string|object)
+        can_try: (bool|object) | false
+        dataset: (string|object) | null
 
     # Language specific overrides of the above if specified
     py|js|rb: (object)

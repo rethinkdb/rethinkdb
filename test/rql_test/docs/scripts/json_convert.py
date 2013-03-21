@@ -40,49 +40,62 @@ for section in sections:
     commands_for_this_section = []
     for command in commands:
         if command['section'] == section['tag']:
+            def or_default(attr, default):
+                if attr in command:
+                    return command[attr]
+                else:
+                    return default
 
             out_command = {
-                'tag':command['tag'],
-                'description':command['description'],
-                'parent':command['parent'],
-                'returns':command['returns'],
+                'tag':or_default('tag', ''),
+                'description':or_default('description', ''),
+                'parent':or_default('parent', ''),
+                'returns':or_default('returns', ''),
                 'langs': {}
             }
 
             for lang in ['py', 'js', 'rb']:
+                def or_override(obj, attr, default):
+                    if not attr in obj:
+                        # Use default
+                        return default
+                    else:
+                        prop = obj[attr]
+                        if not isinstance(prop, dict):
+                            # Use given prop value
+                            return prop
+                        elif lang in prop:
+                            # Use language specific override
+                            return prop[lang]
+                        else:
+                            return default
+
                 out_lang = {
-                    'name':command['tag'],
-                    'body':'',
-                    'dont_need_parenthesis':False,
+                    'name':or_override(command, 'name', command['tag']),
+                    'body':or_override(command, 'body', ''),
+                    'dont_need_parenthesis':or_override(command, 'dont_need_parenthesis', False),
                     'examples': []
                 }
 
-                if 'name' in command:
-                    out_lang['name'] = command['name']
-                if 'body' in command:
-                    out_lang['body'] = command['body']
-                if 'dont_need_parenthesis' in command:
-                    out_lang['dont_need_parenthesis'] = command['dont_need_parenthesis']
-
                 out_examples = []
-                for example in command['examples']:
-                    out_example = {
-                        'code':example['code'],
-                        'can_try': False,
-                        'dataset': '',
-                        'description':example['description']
-                    }
+                if 'examples' in command:
+                    for example in command['examples']:
+                        out_example = {
+                            'code':or_override(example, 'code', ''),
+                            'can_try':or_override(example, 'can_try', False),
+                            'dataset':or_override(example, 'dataset', None),
+                            'description':or_override(example, 'description', '')
+                        }
 
-                    if 'can_try' in example:
-                        out_example['can_try'] = example['can_try']
-                    if 'dataset' in example:
-                        out_example['dataset'] = example['dataset']
-
-                    out_examples.append(out_example)
+                        out_examples.append(out_example)
 
                 # Now process individual language overrides 
                 if lang in command:
-                    for override in command[lang]:
+                    override = command[lang]
+
+                    if override == False:
+                        out_lang = {'examples':[]}
+                    else:
                         if 'name' in override:
                             out_lang['name'] = override['name']
                         if 'body' in override:
@@ -90,15 +103,16 @@ for section in sections:
                         if 'dont_need_parenthesis' in override:
                             out_lang['dont_need_parenthesis'] = override['dont_need_parenthesis']
 
-                        for example_num, example_override in override['examples'].iteritems():
-                            if 'code' in example_override:
-                                out_examples[int(example_num)]['code'] = example_override['code']
-                            if 'can_try' in example_override:
-                                out_examples[int(example_num)]['can_try'] = example_override['can_try']
-                            if 'dataset' in example_override:
-                                out_examples[int(example_num)]['dataset'] = example_override['dataset']
-                            if 'description' in example_override:
-                                out_examples[int(example_num)]['description'] = example_override['description']
+                        if 'examples' in override:
+                            for example_num, example_override in override['examples'].iteritems():
+                                if 'code' in example_override:
+                                    out_examples[int(example_num)]['code'] = example_override['code']
+                                if 'can_try' in example_override:
+                                    out_examples[int(example_num)]['can_try'] = example_override['can_try']
+                                if 'dataset' in example_override:
+                                    out_examples[int(example_num)]['dataset'] = example_override['dataset']
+                                if 'description' in example_override:
+                                    out_examples[int(example_num)]['description'] = example_override['description']
 
                 out_lang['examples'].extend(out_examples)
                 out_command['langs'][lang] = out_lang

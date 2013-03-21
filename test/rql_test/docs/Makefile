@@ -2,7 +2,7 @@
 JSON_SRC=~/rethinkdb/admin/static/js/reql_docs.json
 YAML_OUT=docs.yaml
 YAML_DIR=src
-JSON_OUT=docs.json
+JSON_OUT=~/rethinkdb-www/_site/assets/js/reql_docs.json
 
 YAML_FILES=$(shell find $(YAML_DIR) -name '*.yaml')
 
