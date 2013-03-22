@@ -51,6 +51,10 @@ public:
             return datum;
         }
     }
+
+    const datum_t *sindex_create(const std::string &name, func_t *index_func);
+    const datum_t *sindex_drop(const std::string &name);
+    const datum_t *sindex_list();
 private:
     const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
                              bool _so_the_template_matches = false);

@@ -48,6 +48,36 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
+const datum_t *table_t::sindex_create(const std::string &, func_t *index_func) {
+    uuid_u id = generate_uuid();
+    map_wire_func_t wire_func(env, index_func);
+    rdb_protocol_t::write_t write(
+            rdb_protocol_t::sindex_create_t(id, wire_func));
+
+    rdb_protocol_t::write_response_t response;
+    access->get_namespace_if()->write(
+        write, &response, order_token_t::ignore, env->interruptor);
+
+    return env->add_ptr(new datum_t(uuid_to_str(id)));
+}
+
+const datum_t *table_t::sindex_drop(const std::string &name) {
+    uuid_u id = str_to_uuid(name);
+
+    rdb_protocol_t::write_t write((
+            rdb_protocol_t::sindex_drop_t(id)));
+
+    rdb_protocol_t::write_response_t response;
+    access->get_namespace_if()->write(
+        write, &response, order_token_t::ignore, env->interruptor);
+
+    return env->add_ptr(new datum_t(datum_t::R_OBJECT));
+}
+
+const datum_t *table_t::sindex_list() {
+    return env->add_ptr(new datum_t(datum_t::R_ARRAY));
+}
+
 const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
                                    UNUSED bool _so_the_template_matches) {
     const std::string &pk = get_pkey();

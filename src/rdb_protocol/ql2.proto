@@ -317,6 +317,14 @@ message Term {
         // Lists all the tables in a particular database.
         TABLE_LIST   = 62; // Database -> ARRAY
 
+        // * Secondary indexes OPs
+        // Creates a new secondary index with a particular name and definition.
+        SINDEX_CREATE = 75; // Table, STRING, Function(1) -> OBJECT
+        // Drops a table with a particular name.
+        SINDEX_DROP   = 76; // Table, STRING -> OBJECT
+        // Lists all secondary indexes on a particular table.
+        SINDEX_LIST   = 77; // Table -> ARRAY
+
         // * Control Operators
         // Calls a function on data
         FUNCALL  = 64; // Function(*), DATUM... -> DATUM

@@ -11,16 +11,17 @@
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
 #include "rdb_protocol/terms/gmr.hpp"
+#include "rdb_protocol/terms/js.hpp"
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/rewrites.hpp"
 #include "rdb_protocol/terms/seq.hpp"
+#include "rdb_protocol/terms/sindex.hpp"
 #include "rdb_protocol/terms/sort.hpp"
 #include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
 #include "rdb_protocol/terms/writes.hpp"
-#include "rdb_protocol/terms/js.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -89,6 +90,9 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
     case Term_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
     case Term_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
+    case Term_TermType_SINDEX_CREATE:      return new sindex_create_term_t(env, t);
+    case Term_TermType_SINDEX_DROP:        return new sindex_drop_term_t(env, t);
+    case Term_TermType_SINDEX_LIST:        return new sindex_list_term_t(env, t);
     case Term_TermType_FUNCALL:            return new funcall_term_t(env, t);
     case Term_TermType_BRANCH:             return new branch_term_t(env, t);
     case Term_TermType_ANY:                return new any_term_t(env, t);
