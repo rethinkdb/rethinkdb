@@ -19,8 +19,10 @@ for root, dirs, file_names in os.walk(src_dir):
     for file_name in file_names:
         docs = yaml.load(file(os.path.join(root, file_name)))
 
-        sections.extend(docs['sections'])
-        commands.extend(docs['commands'])
+        if 'sections' in docs:
+            sections.extend(docs['sections'])
+        if 'commands' in docs:
+            commands.extend(docs['commands'])
 
 ## Convert the input format to the output format
 # This involves several steps
