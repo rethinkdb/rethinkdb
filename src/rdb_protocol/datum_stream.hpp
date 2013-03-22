@@ -47,12 +47,6 @@ public:
 
     static const int MAX_BATCH_SIZE = 100;
 
-protected:
-    // next_with_batch_info needs to be public, but nobody can use it that can't
-    // see this protected return value type.
-    enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
-
-public:
     // Calls next_impl, but handles exceptions.  Used by next_impl
     // implementations for streams that manipulate other streams.
     MUST_USE batch_info_t next_with_batch_info(const datum_t **datum_out);

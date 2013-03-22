@@ -53,7 +53,7 @@ in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) 
     }
 }
 
-json_stream_t::batch_info_t in_memory_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+batch_info_t in_memory_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
     if (data.empty()) {
         *out = boost::shared_ptr<scoped_cJSON_t>();
         return END_OF_STREAM;
@@ -72,7 +72,7 @@ transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
     ql_env(_ql_env),
     transform(tr) { }
 
-json_stream_t::batch_info_t transform_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+batch_info_t transform_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
     while (data.empty()) {
         boost::shared_ptr<scoped_cJSON_t> input;
         const batch_info_t res = stream->next_impl(&input);
@@ -145,7 +145,7 @@ batched_rget_stream_t::batched_rget_stream_t(
       table_scan_backtrace()
 { }
 
-json_stream_t::batch_info_t batched_rget_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+batch_info_t batched_rget_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
     started = true;
     if (data.empty()) {
         if (finished) {
@@ -263,7 +263,7 @@ union_stream_t::union_stream_t(const stream_list_t &_streams)
     : streams(_streams), hd(streams.begin())
 { }
 
-json_stream_t::batch_info_t union_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+batch_info_t union_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
     while (hd != streams.end()) {
         boost::shared_ptr<scoped_cJSON_t> json;
         const batch_info_t res = (*hd)->next_impl(&json);

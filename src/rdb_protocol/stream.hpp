@@ -20,6 +20,8 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
+enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
+
 namespace ql { class env_t; }
 namespace query_language {
 
@@ -28,8 +30,6 @@ typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
-    enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
-
     json_stream_t() { }
     boost::shared_ptr<scoped_cJSON_t> next(); //MAY THROW    // RSI is anybody using this?  Should they be?
 

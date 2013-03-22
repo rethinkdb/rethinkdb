@@ -55,7 +55,7 @@ std::vector<const datum_t *> datum_stream_t::next_batch() {
     }
 }
 
-datum_stream_t::batch_info_t datum_stream_t::next_with_batch_info(const datum_t **datum_out) {
+batch_info_t datum_stream_t::next_with_batch_info(const datum_t **datum_out) {
     env->throw_if_interruptor_pulsed();
     try {
         return next_impl(datum_out);
@@ -226,16 +226,12 @@ const datum_t *lazy_datum_stream_t::gmr(
     return egct.finalize(map.to_arr(env));
 }
 
-datum_stream_t::batch_info_t lazy_datum_stream_t::next_impl(const datum_t **datum_out) {
-    // RSI: Apparently json streams support batching.
-    boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    if (json) {
-        *datum_out = env->add_ptr(new datum_t(json, env));
-        return LAST_OF_BATCH;
-    } else {
-        *datum_out = NULL;
-        return END_OF_STREAM;
-    }
+batch_info_t lazy_datum_stream_t::next_impl(const datum_t **datum_out) {
+    boost::shared_ptr<scoped_cJSON_t> json;
+    const batch_info_t res = json_stream->next_impl(&json);
+
+    *datum_out = json ? env->add_ptr(new datum_t(json, env)) : NULL;
+    return res;
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -243,7 +239,7 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
                                            const pb_rcheckable_t *backtrace_source)
     : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
 
-datum_stream_t::batch_info_t array_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t array_datum_stream_t::next_impl(const datum_t **datum_out) {
     const datum_t *datum = arr->el(index, NOTHROW);
     if (datum == NULL) {
         *datum_out = datum;
@@ -256,7 +252,7 @@ datum_stream_t::batch_info_t array_datum_stream_t::next_impl(const datum_t **dat
 }
 
 // MAP_DATUM_STREAM_T
-datum_stream_t::batch_info_t map_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t map_datum_stream_t::next_impl(const datum_t **datum_out) {
     const datum_t *arg = NULL;
     const batch_info_t res = source->next_with_batch_info(&arg);
     if (arg == NULL) {
@@ -269,7 +265,7 @@ datum_stream_t::batch_info_t map_datum_stream_t::next_impl(const datum_t **datum
 }
 
 // FILTER_DATUM_STREAM_T
-datum_stream_t::batch_info_t filter_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t filter_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (;;) {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
 
@@ -294,7 +290,7 @@ datum_stream_t::batch_info_t filter_datum_stream_t::next_impl(const datum_t **da
 }
 
 // CONCATMAP_DATUM_STREAM_T
-datum_stream_t::batch_info_t concatmap_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t concatmap_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (;;) {
         if (subsource == NULL) {
             const datum_t *arg = source->next();
@@ -306,7 +302,7 @@ datum_stream_t::batch_info_t concatmap_datum_stream_t::next_impl(const datum_t *
         }
 
         const datum_t *retval = NULL;
-        const datum_stream_t::batch_info_t res = subsource->next_with_batch_info(&retval);
+        const batch_info_t res = subsource->next_with_batch_info(&retval);
         if (res != END_OF_STREAM) {
             *datum_out = retval;
             return res;
@@ -322,7 +318,7 @@ slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _ri
     : eager_datum_stream_t(_env, _source), env(_env), index(0),
       left(_left), right(_right), source(_source) { }
 
-datum_stream_t::batch_info_t slice_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t slice_datum_stream_t::next_impl(const datum_t **datum_out) {
     if (left > right || index > right) {
         *datum_out = NULL;
         return END_OF_STREAM;
@@ -331,7 +327,7 @@ datum_stream_t::batch_info_t slice_datum_stream_t::next_impl(const datum_t **dat
     while (index < left) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
         const datum_t *discard = NULL;
-        const datum_stream_t::batch_info_t res = source->next_with_batch_info(&discard);
+        const batch_info_t res = source->next_with_batch_info(&discard);
         if (res == END_OF_STREAM) {
             *datum_out = NULL;
             return END_OF_STREAM;
@@ -342,7 +338,7 @@ datum_stream_t::batch_info_t slice_datum_stream_t::next_impl(const datum_t **dat
     }
 
     const datum_t *datum = NULL;
-    const datum_stream_t::batch_info_t res = source->next_with_batch_info(&datum);
+    const batch_info_t res = source->next_with_batch_info(&datum);
     if (datum != NULL) {
         ++index;
     }
@@ -354,9 +350,9 @@ datum_stream_t::batch_info_t slice_datum_stream_t::next_impl(const datum_t **dat
 zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_source)
     : eager_datum_stream_t(_env, _source), env(_env), source(_source) { }
 
-datum_stream_t::batch_info_t zip_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t zip_datum_stream_t::next_impl(const datum_t **datum_out) {
     const datum_t *datum = NULL;
-    const datum_stream_t::batch_info_t res = source->next_with_batch_info(&datum);
+    const batch_info_t res = source->next_with_batch_info(&datum);
 
     if (datum != NULL) {
         const datum_t *left = datum->el("left", NOTHROW);
@@ -371,10 +367,10 @@ datum_stream_t::batch_info_t zip_datum_stream_t::next_impl(const datum_t **datum
 
 
 // UNION_DATUM_STREAM_T
-datum_stream_t::batch_info_t union_datum_stream_t::next_impl(const datum_t **datum_out) {
+batch_info_t union_datum_stream_t::next_impl(const datum_t **datum_out) {
     for (; streams_index < streams.size(); ++streams_index) {
         const datum_t *datum = NULL;
-        const datum_stream_t::batch_info_t res = streams[streams_index]->next_with_batch_info(&datum);
+        const batch_info_t res = streams[streams_index]->next_with_batch_info(&datum);
         if (res != END_OF_STREAM) {
             *datum_out = datum;
             return res;
