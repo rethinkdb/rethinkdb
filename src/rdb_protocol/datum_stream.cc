@@ -63,8 +63,9 @@ const datum_t *eager_datum_stream_t::gmr(
             map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
-            int rounds = 10000 DEBUG_ONLY(/ 5000);
-            if (!(++i%rounds)) egct.maybe_gc(map.to_arr(env));
+            if (++i % WIRE_DATUM_MAP_GC_ROUNDS == 0) {
+                egct.maybe_gc(map.to_arr(env));
+            }
         }
     }
     return egct.finalize(map.to_arr(env));

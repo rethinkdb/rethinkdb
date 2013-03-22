@@ -172,6 +172,13 @@ private:
     enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
 };
 
+#ifndef NDEBUG
+static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
+#else
+static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
+#endif // NDEBUG
+
+
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
 // README.md for more info.
