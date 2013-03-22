@@ -45,9 +45,7 @@ public:
 
     virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { }
 
-    static const int RECOMMENDED_BATCH_SIZE = 100;  // RSI duplication
 private:
-
     DISABLE_COPYING(json_stream_t);
 };
 
@@ -72,7 +70,6 @@ public:
 
 private:
     json_list_t data;
-    size_t index;
 };
 
 class transform_stream_t : public json_stream_t {

@@ -45,7 +45,7 @@ std::vector<const datum_t *> datum_stream_t::next_batch() {
             if (datum != NULL) {
                 batch.push_back(datum);
             }
-            if (res == LAST_OF_BATCH || res == END_OF_STREAM) {
+            if (res == LAST_OF_BATCH || res == END_OF_STREAM || batch.size() == MAX_BATCH_SIZE) {
                 return batch;
             }
         }
@@ -247,7 +247,7 @@ batch_info_t array_datum_stream_t::next_impl(const datum_t **datum_out) {
     } else {
         *datum_out = datum;
         ++index;
-        return index % datum_stream_t::MAX_BATCH_SIZE == 0 ? LAST_OF_BATCH : MID_BATCH;
+        return index == arr->size() ? LAST_OF_BATCH : MID_BATCH;
     }
 }
 

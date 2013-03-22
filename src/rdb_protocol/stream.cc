@@ -41,13 +41,13 @@ result_t json_stream_t::apply_terminal(
     return res;
 }
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) : index(0) {
+in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) {
     while (cJSON *json = it.next()) {
         data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
     }
 }
 
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) : index(0) {
+in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
     while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
         data.push_back(json);
     }
@@ -60,8 +60,7 @@ batch_info_t in_memory_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *ou
     } else {
         *out = data.front();
         data.pop_front();
-        ++index;
-        return index % json_stream_t::RECOMMENDED_BATCH_SIZE == 0 ? LAST_OF_BATCH : MID_BATCH;
+        return data.empty() ? LAST_OF_BATCH : MID_BATCH;
     }
 }
 

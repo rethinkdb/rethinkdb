@@ -45,7 +45,7 @@ public:
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<const datum_t *> next_batch();
 
-    static const int MAX_BATCH_SIZE = 100;
+    static const size_t MAX_BATCH_SIZE = 100;
 
     // Calls next_impl, but handles exceptions.  Used by next_impl
     // implementations for streams that manipulate other streams.
@@ -222,7 +222,7 @@ public:
         } else {
             *datum_out = data[data_index];
             ++data_index;
-            return data_index % MAX_BATCH_SIZE == 0 ? LAST_OF_BATCH : MID_BATCH;
+            return data_index == static_cast<int>(data.size()) ? LAST_OF_BATCH : MID_BATCH;
         }
     }
 private:
