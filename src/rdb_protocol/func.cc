@@ -183,7 +183,7 @@ bool func_term_t::is_deterministic_impl() const {
 bool func_t::filter_call(counted_t<const datum_t> arg) {
     counted_t<const datum_t> d = call(arg)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT) {
-        const std::map<const std::string, counted_t<const datum_t> > &obj = d->as_object();
+        const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second != NULL);
             counted_t<const datum_t> elt = arg->el(it->first, NOTHROW);
