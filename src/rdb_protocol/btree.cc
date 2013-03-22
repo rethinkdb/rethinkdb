@@ -609,7 +609,7 @@ void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         rdb_modification_report_t *modification,
         transaction_t *txn,
-        auto_drainer_t::lock_t drainer_lock) {
+        auto_drainer_t::lock_t) {
     ql::map_wire_func_t mapping;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
@@ -620,7 +620,8 @@ void rdb_update_single_sindex(
     //tables etc. but we don't have a nice way to disallow those things so
     //for now we pass null and it will segfault if an illegal sindex
     //mapping is passed.
-    ql::env_t env(drainer_lock.get_drain_signal());
+    cond_t non_interruptor;
+    ql::env_t env(&non_interruptor);
 
     superblock_t *super_block = sindex->super_block.get();
 
