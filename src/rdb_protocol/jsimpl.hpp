@@ -19,6 +19,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "containers/archive/boost_types.hpp"
+#include "extproc/job.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -31,7 +32,8 @@ class job_control_t;
 namespace js {
 
 // Returns an empty pointer on error.
-boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg);
+boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value,
+                                         std::string *errmsg);
 
 // Should never error.
 v8::Handle<v8::Value> fromJSON(const cJSON &json);
@@ -82,35 +84,25 @@ struct context_t {
     v8::Context::Scope scope;
 };
 
-// Results we get back from tasks, generally "success or error" variants
-typedef boost::variant<id_t, std::string> id_result_t;
-typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_result_t;
+// Tasks: jobs we run on the JS worker, within an env_t
+class task_t :
+    private extproc::job_t
+{
+    friend class runner_t;
 
-// Visitors to extract values from results.
-struct id_visitor_t {
-    typedef id_t result_type;
-    explicit id_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
-    std::string *errmsg_;
-    id_t operator()(const id_t &id) {
-        guarantee(id != INVALID_ID);
-        return id;
-    }
-    id_t operator()(const std::string &msg) {
-        *errmsg_ = msg;
-        return INVALID_ID;
+  public:
+    virtual void run(env_t *env) = 0;
+
+    void run_job(extproc::job_control_t *control, void *extra) {
+        env_t *env = static_cast<env_t *>(extra);
+        guarantee(control == env->control());
+        context_t cx(env);
+        run(env);
     }
 };
 
-struct json_visitor_t {
-    typedef boost::shared_ptr<scoped_cJSON_t> result_type;
-    explicit json_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
-    std::string *errmsg_;
-    result_type operator()(const result_type &r) { return r; }
-    result_type operator()(const std::string &msg) {
-        *errmsg_ = msg;
-        return result_type();
-    }
-};
+template <class instance_t>
+struct auto_task_t : extproc::auto_job_t<instance_t, task_t> {};
 
 } // namespace js
 

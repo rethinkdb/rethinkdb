@@ -7,6 +7,11 @@
 
 # This file is included by both Makefile and by mk/main.mk
 
+# Don't run ./configure when --always-make or -B is passed to make
+ifeq (B,$(patsubst %B,B,$(patsubst B%,B,$(firstword $(MAKEFLAGS)))))
+  NO_CONFIGURE := 1
+endif
+
 ##### Settings local to this repository
 
 CUSTOM ?= $(TOP)/custom.mk

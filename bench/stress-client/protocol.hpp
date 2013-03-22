@@ -58,7 +58,6 @@ public:
 #define MAX_HOST 255
 
 enum protocol_enum_t {
-    protocol_rethinkdb,
     protocol_sockmemcached,
 #ifdef USE_MYSQL
     protocol_mysql,
@@ -70,14 +69,12 @@ enum protocol_enum_t {
 };
 
 struct server_t {
-    server_t() : protocol(protocol_rethinkdb) {
-        strcpy(host, "localhost:28015");
+    server_t() : protocol(protocol_sockmemcached) {
+        strcpy(host, "localhost:11211");
     }
 
     protocol_enum_t parse_protocol(const char *name) {
-        if (strcmp(name, "rethinkdb") == 0) {
-            return protocol_rethinkdb;
-        } else if (strcmp(name, "sockmemcached") == 0) {
+        if (strcmp(name, "sockmemcached") == 0) {
             return protocol_sockmemcached;
 #ifdef USE_MYSQL
         } else if (strcmp(name, "mysql") == 0) {
@@ -105,15 +102,13 @@ struct server_t {
             protocol = parse_protocol(str);
         } else {
             _host = str;
-            protocol = protocol_rethinkdb;
+            protocol = protocol_sockmemcached;
         }
         strncpy(host, _host, MAX_HOST);
     }
 
     void print_protocol() {
-        if (protocol == protocol_rethinkdb) {
-            printf("rethinkdb");
-        } else if (protocol == protocol_sockmemcached) {
+        if (protocol == protocol_sockmemcached) {
             printf("sockmemcached");
 #ifdef USE_MYSQL
         } else if (protocol == protocol_mysql) {

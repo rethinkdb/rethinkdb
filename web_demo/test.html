@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script src="build/rethinkdb-web-demo.js"></script>
+    </head>
+    <body>
+        <script>
+            var print = function() { console.log.apply(console, arguments); }
+
+            var r = rethinkdb;
+            r.embeddedConnect(function(err, c) {
+                console.log("connected");
+                r(1).run(c, print);
+                r(1).add(2).run(c, print);
+                r([1,2,3]).map(function(a) { return a.mul(2); }).run(c, print);
+            })
+        </script>
+    </body>

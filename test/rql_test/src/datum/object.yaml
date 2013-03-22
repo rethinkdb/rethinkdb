@@ -1,0 +1,46 @@
+desc: Tests conversion to and from the RQL object type
+tests:
+    - py: r.expr({})
+      js: ['r({})', 'r.expr({})']
+      rb: r({})
+      ot: ({})
+    - py:
+        cd: r.expr({'a':1})
+        ot: "{'a':1}"
+      js:
+        cd: r({a:1})
+        ot: "({a:1})"
+      rb:
+        cd: "r({'a'=>1})"
+        ot: "{'a'=>1}"
+    - py:
+        cd: "r.expr({'a':1, 'b':'two', 'c':True})"
+        ot: "{'a':1, 'b':'two', 'c':True}"
+      js:
+        cd: "r({a: 1, b: 'two', c: true})"
+        ot: "({a: 1, b: 'two', c: true})"
+      rb:
+        cd: "r({'a' => 1, 'b' => 'two', 'c' => true})"
+        ot: "{'a' => 1, 'b' => 'two', 'c' => true}"
+
+    # Nested expressions
+    - cd: r.expr({'a':r.expr(1)})
+      ot: ({'a':1})
+
+    - cd: r.expr({'a':{'b':[{'c':2}, 'a', 4]}})
+      ot: ({'a':{'b':[{'c':2}, 'a', 4]}})
+
+    - cd: r.expr({'a':1}).type_of()
+      ot: "'OBJECT'"
+      
+    # test coercions
+    - cd: r.expr({'a':1}).coerce_to('string')
+      rb: [] # The ruby test driver can't parse the expected value
+      ot: ('{\n\t"a":\t1\n}')
+      
+    - cd: r.expr({'a':1}).coerce_to('object')
+      ot: ({'a':1})
+      
+    - cd: r.expr({'a':1}).coerce_to('array')
+      ot: [['a',1]]
+      

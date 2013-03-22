@@ -119,7 +119,7 @@ do
     get "$conf" rungroup || rungroup=rethinkdb
     set -- "$@" --group "$rungroup"
 
-    set -- "$@" -- --config-file="$rtdbconffile"
+    set -- "$@" -- --config-file "$rtdbconffile"
 
     # If no pid file is specified, assign one and make sure the parent folder has the correct permissions
     if ! get "$conf" pid-file rtdbpidfile; then

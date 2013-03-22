@@ -82,15 +82,8 @@ public:
     explicit key_splitpoint_comparer_t(const std::vector<hash_region_t<key_range_t> > *vec) : vec_(vec) { }
 
     int compare(int i, int j) {
-        // debugf("compare %d %d\n", i, j);
-
         const store_key_t *ival = double_key_lookup(i, *vec_);
         const store_key_t *jval = double_key_lookup(j, *vec_);
-
-        // debugf_print("ihash", *double_lookup(i, *vec_));
-        // debugf_print("jhash", *double_lookup(j, *vec_));
-        // debugf_print("ival", ival);
-        // debugf_print("jval", jval);
 
         int ret;
         if (ival == NULL) {
@@ -107,7 +100,6 @@ public:
             }
         }
 
-        // debugf("compare returned %d\n", ret);
         return ret;
     }
 
@@ -123,11 +115,7 @@ public:
     explicit splitpoint_less_t(const std::vector<hash_region_t<key_range_t> > *vec) : comparer_(vec) { }
 
     bool operator()(int i, int j) {
-        bool ret = comparer_.compare(i, j) < 0;
-        // debugf("less %d %d -> %d\n", i, j, int(ret));
-        // debugf_print("i", *double_lookup(i, *comparer_.vec_));
-        // debugf_print("j", *double_lookup(j, *comparer_.vec_));
-        return ret;
+        return comparer_.compare(i, j) < 0;
     }
 
 private:
@@ -169,63 +157,12 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     std::vector<int>::iterator hash_beg = hash_splitpoints.begin();
     std::sort(hash_beg, hash_splitpoints.end(), hash_less);
 
-#ifdef REGION_JOIN_DEBUG
-    for (size_t i = 0; i < hash_splitpoints.size(); ++i) {
-        debugf("pre-unique hash_splitpoints[%zu] = %d\n", i, hash_splitpoints[i]);
-        uint64_t k = double_hash_lookup(hash_splitpoints[i], vec);
-        debugf_print("key", k);
-    }
-#endif  // REGION_JOIN_DEBUG
-
     std::vector<int>::iterator hash_end = std::unique(hash_beg, hash_splitpoints.end(), hash_eq);
 
     std::vector<int>::iterator key_beg = key_splitpoints.begin();
     std::sort(key_beg, key_splitpoints.end(), key_less);
 
-#ifdef REGION_JOIN_DEBUG
-    for (size_t i = 0; i < key_splitpoints.size(); ++i) {
-        debugf("pre-unique key_splitpoints[%d] = %d\n", i, key_splitpoints[i]);
-        const store_key_t *k = double_key_lookup(key_splitpoints[i], vec);
-        if (k != NULL) {
-            debugf_print("key", *k);
-        } else {
-            debugf("key: (null)\n");
-        }
-    }
-#endif // REGION_JOIN_DEBUG
-
-
     std::vector<int>::iterator key_end = std::unique(key_beg, key_splitpoints.end(), key_eq);
-
-#ifdef REGION_JOIN_DEBUG
-    for (int i = 0; i < hash_end - hash_beg; ++i) {
-        debugf("hash_splitpoints[%d] = %d\n", i, *(hash_beg + i));
-        uint64_t k = double_hash_lookup(*(hash_beg + i), vec);
-        debugf("key: %zx\n", k);
-    }
-
-    for (int i = 0; i < key_end - key_beg; ++i) {
-        debugf("key_splitpoints[%d] = %d\n", i, *(key_beg + i));
-        const store_key_t *k = double_key_lookup(*(key_beg + i), vec);
-        if (k != NULL) {
-            debugf_print("key", *k);
-        } else {
-            debugf("key: (null)\n");
-        }
-
-    }
-    for (ssize_t i = key_end - key_beg; i < static_cast<ssize_t>(key_splitpoints.size()); ++i) {
-        debugf("post-end key_splitpoints[%d] = %d\n", i, *(key_beg + i));
-        const store_key_t *k = double_key_lookup(*(key_beg + i), vec);
-        if (k != NULL) {
-            debugf_print("key", *k);
-        } else {
-            debugf("key: (null)\n");
-        }
-
-    }
-#endif  // REGION_JOIN_DEBUG
-
 
     // TODO: Finish implementing this function.
     int granular_height = hash_end - hash_beg - 1;
@@ -236,9 +173,6 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
                   "vec size = %zu, vec[0].beg = %" PRIu64 ", vec[0].end = %" PRIu64 ", vec[0].inner.is_empty() = %d",
                   vec.size(), vec.empty() ? 0 : vec[0].beg, vec.empty() ? 0 : vec[0].end, vec.empty() ? 0 : vec[0].inner.is_empty());
         *out = hash_region_t<key_range_t>();
-#ifdef REGION_JOIN_DEBUG
-        debugf_print("region_join no granular dimensions", vec);
-#endif
         return REGION_JOIN_OK;
     }
 
@@ -255,23 +189,12 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
         std::vector<int>::iterator left_pos = std::lower_bound(key_beg, key_end, 2 * i, key_less);
         std::vector<int>::iterator right_pos = std::lower_bound(left_pos, key_end, 2 * i + 1, key_less);
 
-#ifdef REGION_JOIN_DEBUG
-        debugf("beg_pos = %zd, end_pos = %zd / left_pos = %zd, right_pos = %zd\n", beg_pos - hash_beg, end_pos - hash_beg, left_pos - key_beg, right_pos - key_beg);
-#endif
-
         for (std::vector<int>::iterator it = beg_pos; it < end_pos; ++it) {
             for (std::vector<int>::iterator jt = left_pos; jt < right_pos; ++jt) {
                 int x = jt - key_beg;
                 int y = it - hash_beg;
                 int ix = y * granular_width + x;
-#ifdef REGION_JOIN_DEBUG
-                debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, covered[ix]);
-#endif
                 if (covered[ix]) {
-#ifdef REGION_JOIN_DEBUG
-                    debugf_print("region_join bad join, double-coverage", vec);
-                    debugf("double coverage at (%d,%d)\n", x, y);
-#endif
                     return REGION_JOIN_BAD_JOIN;
                 }
                 covered[ix] = true;
@@ -281,9 +204,6 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     }
 
     if (num_covered < granular_width * granular_height) {
-#ifdef REGION_JOIN_DEBUG
-        debugf_print("region_join bad region, lack of coverage", vec);
-#endif
         return REGION_JOIN_BAD_REGION;
     }
 
@@ -295,14 +215,8 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     rassert(out_left != NULL);
 
     if (out_right != NULL) {
-#ifdef REGION_JOIN_DEBUG
-        debugf_print("region_join OK, out_right not null", vec);
-#endif
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::open, *out_right));
     } else {
-#ifdef REGION_JOIN_DEBUG
-        debugf_print("region_join OK, out_right is null", vec);
-#endif
         *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::none, store_key_t()));
     }
 

@@ -37,20 +37,13 @@ void run_timeout_test(js::runner_t *runner) {
     // TODO(rntz): there must be a better way to do this.
     const std::string longloop = "for (var x = 0; x < 4e8; x++) {}";
 
-    std::string errmsg;
-    id_t id = runner->compile(std::vector<std::string>(), longloop, &errmsg);
-    ASSERT_NE(js::INVALID_ID, id);
 
     // Now, the timeout test.
     js::runner_t::req_config_t config;
     config.timeout_ms = 20;
 
     try {
-        runner->call(id,
-                     boost::shared_ptr<scoped_cJSON_t>(),
-                     std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
-                     &errmsg,
-                     &config);
+        runner->eval(longloop, &config);
         FAIL() << "didn't time out";
     } catch (interrupted_exc_t) {}
 

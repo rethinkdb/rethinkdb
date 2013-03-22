@@ -597,6 +597,13 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
+void get_ignored_options(std::vector<options::option_t> *options_out) {
+    options_out->push_back(options::option_t(options::names_t("--runuser"),
+                                             options::OPTIONAL));
+    options_out->push_back(options::option_t(options::names_t("--rungroup"),
+                                             options::OPTIONAL));
+}
+
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value) {
     size_t colon_loc = value.find_first_of(':');
@@ -825,6 +832,7 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
+    get_ignored_options(options_out);
 }
 
 io_backend_t get_io_backend_option(const std::map<std::string, options::values_t> &opts) {
@@ -1029,7 +1037,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
@@ -1139,7 +1147,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);;
+        const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. An import process needs to connect to something!\n"

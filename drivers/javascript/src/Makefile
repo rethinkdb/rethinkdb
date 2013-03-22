@@ -1,0 +1,2 @@
+TOP := ../../..
+include $(TOP)/Makefile

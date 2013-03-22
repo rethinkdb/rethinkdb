@@ -16,7 +16,9 @@ public:
     deletable_t() : t(T()) { }
     explicit deletable_t(const T &_t) : t(_t) { }
 
-    bool is_deleted() const { return !t; }
+    bool is_deleted() const {
+        return !t;
+    }
     void mark_deleted() {
         t = boost::optional<T>();
     }

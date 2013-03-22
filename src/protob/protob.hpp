@@ -11,6 +11,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -130,7 +131,7 @@ private:
 
 template<class request_t, class response_t, class context_t>
 const int32_t protob_server_t<request_t, response_t, context_t>::magic_number
-    = 0xaf61ba35;
+    = 0x3f61ba36;
 
 //TODO figure out how to do 0 copy serialization with this.
 

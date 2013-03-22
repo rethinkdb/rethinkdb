@@ -154,6 +154,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/fonts/opensans-semibolditalic-webfont.ttf");
     white_list.insert("/fonts/opensans-semibolditalic-webfont.woff");
     white_list.insert("/fonts/stylesheet.css");
+    white_list.insert("/images/warning-icon.png");
     white_list.insert("/images/fullscreen_16x16.png");
     white_list.insert("/images/trash_stroke_16x16.png");
     white_list.insert("/images/book_alt_16x16.png");

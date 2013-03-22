@@ -169,7 +169,7 @@ std::map<std::string, values_t> do_parse_command_line(
         if (option->no_parameter) {
             // Push an empty parameter value -- in particular, this makes our
             // duplicate checking work.
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>{ })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>())));
             res.first->second.values.push_back("");
         } else {
             if (i == argc) {
@@ -183,7 +183,7 @@ std::map<std::string, values_t> do_parse_command_line(
                 throw missing_parameter_error_t(source, option_name);
             }
 
-            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>{ })));
+            auto res = names_by_values.insert(std::make_pair(official_name, values_t(source, std::vector<std::string>())));
             res.first->second.values.push_back(option_parameter);
         }
     }
@@ -237,7 +237,7 @@ void verify_option_counts(const std::vector<option_t> &options,
 std::vector<std::string> split_by_lines(const std::string &s) {
     std::vector<std::string> ret;
     auto it = s.begin();
-    const auto end = s.end();
+    auto const end = s.end();
 
     while (it != end) {
         auto jt = it;
@@ -282,14 +282,14 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
             stripped_line.resize(stripped_line.size() - 1);
         }
 
-        const auto config_name_beg = std::find_if(stripped_line.begin(), stripped_line.end(), is_not_space);
+        auto const config_name_beg = std::find_if(stripped_line.begin(), stripped_line.end(), is_not_space);
 
         if (config_name_beg == stripped_line.end()) {
             // all-whitespace (or comment) line
             continue;
         }
 
-        const auto config_name_end = std::find_if(config_name_beg, stripped_line.end(), is_space_or_equal_sign);
+        auto const config_name_end = std::find_if(config_name_beg, stripped_line.end(), is_space_or_equal_sign);
         if (config_name_beg == config_name_end) {
             throw file_parse_error_t(source,
                                      strprintf("Config file %s: parse error at line %zu",
@@ -297,7 +297,7 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
                                                it - lines.begin()));
         }
 
-        const auto expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
+        auto const expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
         if (expected_equal_sign == stripped_line.end() || *expected_equal_sign != '=') {
             throw file_parse_error_t(source,
                                      strprintf("Config file %s: parse error at line %zu",
@@ -305,7 +305,7 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
                                                it - lines.begin()));
         }
 
-        const auto beginning_of_value = std::find_if(expected_equal_sign + 1, stripped_line.end(), is_not_space);
+        auto const beginning_of_value = std::find_if(expected_equal_sign + 1, stripped_line.end(), is_not_space);
 
         const std::string name(config_name_beg, config_name_end);
         const std::string value(beginning_of_value, stripped_line.end());
@@ -320,7 +320,7 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
                                                filepath.c_str(), it - lines.begin(), name.c_str()));
         }
 
-        auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>{ })));
+        auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
         res.first->second.values.push_back(value);
     }
 
@@ -331,7 +331,7 @@ std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
     std::vector<std::string> ret;
 
     auto it = s.begin();
-    const auto end = s.end();
+    auto const end = s.end();
 
     for (;;) {
         // We need to begin a new line.
@@ -341,7 +341,7 @@ std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
         }
 
         // Find an end of this line that we _could_ truncate to.
-        const auto window = end - it <= static_cast<ssize_t>(width) ? end : it + width;
+        auto const window = end - it <= static_cast<ssize_t>(width) ? end : it + width;
         auto jt = window;
         if (jt != end) {
             while (it < jt && !isspace(*jt)) {

@@ -44,7 +44,6 @@ bool is_mergable(block_size_t block_size, const internal_node_t *node, const int
 bool is_singleton(const internal_node_t *node);
 
 void validate(block_size_t block_size, const internal_node_t *node);
-void print(const internal_node_t *node);
 
 size_t pair_size(const btree_internal_pair *pair);
 const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);

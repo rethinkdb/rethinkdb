@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script src="/rqljs/build/rqljs-web.js"></script>
+        <script src="/drivers/javascript2/build/rethinkdb.js"></script>
+    </head>
+    <body>
+        <script>
+            var r = rethinkdb;
+            r.connect(rqlJS, function(err, c) {
+                if(err) throw err
+                r(1).run(c, print)
+                r(2).add(2).run(c, print)
+                r([1,2,3]).map(function(a) { return a.mul(2); }).run(c, print)
+            });
+        </script>
+    </body>
+</html>
