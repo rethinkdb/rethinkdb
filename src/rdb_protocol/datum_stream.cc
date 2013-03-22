@@ -279,7 +279,7 @@ datum_stream_t::batch_info_t filter_datum_stream_t::next_impl(const datum_t **da
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
 
         if (arg != NULL) {
-            if (f->filter_call(env, arg)) {
+            if (f->filter_call(arg)) {
                 outer_checkpoint.reset(&env_t::merge_checkpoint);
                 *datum_out = arg;
                 return res;
