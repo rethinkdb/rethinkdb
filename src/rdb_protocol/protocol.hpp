@@ -17,15 +17,15 @@
 #include "btree/btree_store.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/cond_var.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "extproc/pool.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/query_language.pb.h"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
 #include "utils.hpp"
@@ -40,6 +40,8 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
+
+namespace extproc { class pool_group_t; }
 
 using query_language::scopes_t;
 using query_language::backtrace_t;
@@ -58,25 +60,8 @@ enum point_delete_result_t {
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
 
-namespace point_modify_ns {
-enum result_t { MODIFIED, INSERTED, SKIPPED, DELETED, NOP, ERROR };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(result_t, int8_t, MODIFIED, ERROR);
-enum op_t { UPDATE, MUTATE };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(op_t, int8_t, UPDATE, MUTATE);
-static inline std::string op_name(op_t op) {
-    if (op == UPDATE) return "update";
-    if (op == MUTATE) return "mutate";
-    unreachable();
-}
-}
-
-RDB_DECLARE_SERIALIZABLE(Builtin_Range);
-RDB_DECLARE_SERIALIZABLE(Builtin_Filter);
-RDB_DECLARE_SERIALIZABLE(Builtin_ConcatMap);
-RDB_DECLARE_SERIALIZABLE(Builtin_GroupedMapReduce);
-RDB_DECLARE_SERIALIZABLE(Mapping);
-RDB_DECLARE_SERIALIZABLE(Reduction);
-RDB_DECLARE_SERIALIZABLE(WriteQuery_ForEach);
+RDB_DECLARE_SERIALIZABLE(Term);
+RDB_DECLARE_SERIALIZABLE(Datum);
 
 namespace rdb_protocol_details {
 
@@ -96,8 +81,9 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
-
-typedef boost::variant<Builtin_Filter, Mapping, Builtin_ConcatMap, Builtin_Range>  transform_variant_t;
+typedef boost::variant<ql::map_wire_func_t,
+                       ql::filter_wire_func_t,
+                       ql::concatmap_wire_func_t> transform_variant_t;
 
 struct transform_atom_t {
     transform_atom_t() { }
@@ -113,15 +99,9 @@ RDB_DECLARE_SERIALIZABLE(transform_atom_t);
 
 typedef std::list<transform_atom_t> transform_t;
 
-/* There's no protocol buffer for Length (because there's not data associated
- * with it but to make things work with the variant we create a nice empty
- * class. */
-
-struct Length { };
-
-RDB_DECLARE_SERIALIZABLE(Length);
-
-typedef boost::variant<Builtin_GroupedMapReduce, Reduction, Length, WriteQuery_ForEach> terminal_variant_t;
+typedef boost::variant<ql::gmr_wire_func_t,
+                       ql::count_wire_func_t,
+                       ql::reduce_wire_func_t> terminal_variant_t;
 
 struct terminal_t {
     terminal_t() { }
@@ -195,7 +175,25 @@ struct rdb_protocol_t {
         };
 
 
-        typedef boost::variant<stream_t, groups_t, atom_t, length_t, inserted_t, runtime_exc_t> result_t;
+        typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > vec_t;
+        class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+        typedef boost::variant<
+
+            stream_t,
+            groups_t,
+            atom_t,
+            length_t,
+            inserted_t,
+            runtime_exc_t,
+            ql::exc_t,
+            ql::wire_datum_t,
+            std::vector<ql::wire_datum_t>,
+            ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
+            std::vector<ql::wire_datum_map_t>,
+            empty_t,
+            vec_t
+
+            > result_t;
 
         key_range_t key_range;
         result_t result;
@@ -255,26 +253,30 @@ struct rdb_protocol_t {
             : region(_region) { }
 
         rget_read_t(const region_t &_region,
-                    const rdb_protocol_details::transform_t &_transform)
-            : region(_region), transform(_transform)
+                    const rdb_protocol_details::transform_t &_transform,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), transform(_transform), optargs(_optargs)
         { }
 
         rget_read_t(const region_t &_region,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
-            : region(_region), terminal(_terminal)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), terminal(_terminal), optargs(_optargs)
         { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal)
+                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
+                    const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(_region), transform(_transform),
-              terminal(_terminal)
+              terminal(_terminal), optargs(_optargs)
         { }
 
         region_t region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
+        std::map<std::string, ql::wire_func_t> optargs;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -338,46 +340,36 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    struct point_modify_response_t {
-        point_modify_ns::result_t result;
-        query_language::runtime_exc_t exc;
-        point_modify_response_t() { }
-        explicit point_modify_response_t(point_modify_ns::result_t _result) : result(_result) {
-            guarantee(result != point_modify_ns::ERROR);
-        }
-        explicit point_modify_response_t(const query_language::runtime_exc_t &_exc)
-            : result(point_modify_ns::ERROR), exc(_exc) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
+    typedef Datum point_replace_response_t;
 
     struct write_response_t {
-        boost::variant<point_write_response_t, point_modify_response_t, point_delete_response_t> response;
+        boost::variant<point_write_response_t,
+                       point_delete_response_t,
+                       point_replace_response_t> response;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : response(w.response) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
-        explicit write_response_t(const point_modify_response_t& m) : response(m) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
+        explicit write_response_t(const Datum& d) : response(d) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class point_modify_t {
+    class point_replace_t {
     public:
-        point_modify_t() { }
-        point_modify_t(const std::string &_primary_key, const store_key_t &_key, const point_modify_ns::op_t &_op,
-                       const query_language::scopes_t &_scopes, const backtrace_t &_backtrace, const Mapping &_mapping)
-            : primary_key(_primary_key), key(_key), op(_op), scopes(_scopes), backtrace(_backtrace), mapping(_mapping) { }
+        point_replace_t() { }
+        point_replace_t(const std::string &_primary_key, const store_key_t &_key,
+                        const ql::map_wire_func_t &_f,
+                        const std::map<std::string, ql::wire_func_t> &_optargs)
+            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs) { }
 
         std::string primary_key;
         store_key_t key;
-        point_modify_ns::op_t op;
-        query_language::scopes_t scopes;
-        backtrace_t backtrace;
-        Mapping mapping;
+        ql::map_wire_func_t f;
+        std::map<std::string, ql::wire_func_t> optargs;
 
-        RDB_DECLARE_ME_SERIALIZABLE;
+        RDB_MAKE_ME_SERIALIZABLE_4(primary_key, key, f, optargs);
     };
 
     class point_write_t {
@@ -405,7 +397,7 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t, point_delete_t, point_modify_t> write;
+        boost::variant<point_write_t, point_delete_t, point_replace_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
@@ -415,7 +407,7 @@ struct rdb_protocol_t {
         write_t(const write_t& w) : write(w.write) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const point_modify_t &m) : write(m) { }
+        explicit write_t(const point_replace_t &r) : write(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

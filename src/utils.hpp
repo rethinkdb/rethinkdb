@@ -25,8 +25,10 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-void run_generic_global_startup_behavior();
+class Term;
+void pb_print(Term *t);
 
+void run_generic_global_startup_behavior();
 
 struct const_charslice {
     const char *beg, *end;
@@ -140,7 +142,7 @@ void debugf_print(const char *msg, const T& obj) {
 
 class debugf_in_dtor_t {
 public:
-    explicit debugf_in_dtor_t(const char *msg, ...);
+    explicit debugf_in_dtor_t(const char *msg, ...) __attribute__((format (printf, 2, 3)));
     ~debugf_in_dtor_t();
 private:
     std::string message;
@@ -175,8 +177,8 @@ uint64_t strtou64_strict(const char *string, const char **end, int base);
 MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
 MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
-std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-std::string vstrprintf(const char *format, va_list ap);
+std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
+std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
 
 
 // formatted time:
@@ -286,7 +288,8 @@ bool notf(bool x);
 bool hex_to_int(char c, int *out);
 char int_to_hex(int i);
 
-std::string read_file(const char *path);
+std::string blocking_read_file(const char *path);
+bool blocking_read_file(const char *path, std::string *contents_out);
 
 struct path_t {
     std::vector<std::string> nodes;
@@ -383,6 +386,11 @@ private:
 
 
 
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
+
+
+
 #define STR(x) #x
 #define MSTR(x) STR(x) // Stringify a macro
 #if defined __clang__
@@ -400,5 +408,7 @@ private:
 #endif
 
 #define NULLPTR (static_cast<void *>(0))
+
+#define DBLPRI "%.20g"
 
 #endif // UTILS_HPP_

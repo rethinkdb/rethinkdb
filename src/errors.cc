@@ -75,7 +75,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 }
 
 const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_t buflen) {
-#if _GNU_SOURCE
+#ifdef _GNU_SOURCE
     return strerror_r(errsv, buf, buflen);
 #else
     // The result is either 0 or ERANGE (if the buffer is too small) or EINVAL (if the error number
@@ -181,16 +181,16 @@ __attribute__((noreturn)) void mcheck_abortfunc(enum mcheck_status mstatus) {
 
 void mcheck_init(void) {
 #ifdef MCHECK_PEDANTIC
-    debugf("*** MCHECK_PEDANTIC INITIALIZING ***\n");
+    logINF("*** MCHECK_PEDANTIC INITIALIZING ***\n");
     mcheck_pedantic(mcheck_abortfunc);
 #else
-    debugf("*** MCHECK INITIALIZING ***\n");
+    logINF("*** MCHECK INITIALIZING ***\n");
     mcheck(mcheck_abortfunc);
 #endif  // MCHECK_PEDANTIC
 }
 
 void mcheck_all(void) {
-    debugf("*** MCHECK_CHECK_ALL ***\n");
+    logINF("*** MCHECK_CHECK_ALL ***\n");
     mcheck_check_all();
 }
 #endif  // MCHECK

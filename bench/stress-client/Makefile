@@ -1,9 +1,9 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 .PHONY: build
 UNAME := $(shell uname)
-LIBS = -lpthread -ldl -lprotobuf
+LIBS = -lpthread -ldl
 # Do not include main.cc or python_interface.cc in SRC
-SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c protocols/query_language.pb.cc
+SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp) $(wildcard *.h) $(wildcard */*.h)
 
 MYSQL ?= 0
@@ -38,17 +38,10 @@ CXX = g++
 CC = gcc
 CFLAGS = -fPIC
 CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE) -I . $(DEFINES) -fPIC -g # -O3
-PROTO_DIR = ../../src/rdb_protocol
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 build: $(EXEC_NAME) $(SO_NAME)
-
-proto_files:
-	protoc -I $(PROTO_DIR) --cpp_out=protocols $(PROTO_DIR)/query_language.proto
-
-# we need this because of the way Make builds the dependency tree ahead of time
-protocols/query_language.pb.cc: proto_files
 
 %.o: %.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -56,7 +49,7 @@ protocols/query_language.pb.cc: proto_files
 %.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(EXEC_NAME): proto_files $(OBJ) main.o $(HEADERS) Makefile
+$(EXEC_NAME): $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm $(TLIB) $(LIBS)
 
 $(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h Makefile
@@ -71,5 +64,3 @@ clean:
 	rm -f */*.o
 	rm -f $(EXEC_NAME)
 	rm -f $(SO_NAME)
-	rm -f protocols/query_language.pb.cc
-	rm -f protocols/query_language.pb.h

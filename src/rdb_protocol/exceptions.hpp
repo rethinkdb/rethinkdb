@@ -5,7 +5,7 @@
 #include <string>
 
 #include "utils.hpp"
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/bt.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace query_language {

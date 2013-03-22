@@ -1,7 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/import.hpp"
-
-// TODO: Which of these headers, other than rdb_protocol/query_language.hpp, contains rdb_protocol_t stuff?
 
 #include "arch/io/network.hpp"
 #include "clustering/administration/admin_tracker.hpp"
@@ -12,6 +10,7 @@
 #include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/proc_stats.hpp"
@@ -19,7 +18,7 @@
 #include "clustering/administration/main/ports.hpp"
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
-#include "rdb_protocol/query_language.hpp"
+#include "rdb_protocol/wait_for_readiness.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/connectivity/heartbeat.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -56,7 +55,7 @@ bool find_server_peer_in_directory(const std::map<peer_id_t, cluster_directory_m
     return false;
 }
 
-bool run_json_import(extproc::spawner_t::info_t *spawner_info,
+bool run_json_import(extproc::spawner_info_t *spawner_info,
                      peer_address_set_t joins,
                      const std::set<ip_address_t> &local_addresses,
                      int ports_port,

@@ -308,7 +308,7 @@ module 'LogView', ->
                             else
                                 if json_data[group][namespace_id] is null
                                     msg += @log_delete_something_template
-                                        type: 'namespace'
+                                        type: 'table'
                                         id: namespace_id
                                 else
                                     attributes = []
@@ -498,11 +498,11 @@ module 'LogView', ->
                         for namespace_id of json_data[group]
                             if json_data[group][namespace_id] is null
                                 msg += @log_delete_something_template
-                                    type: 'namespace'
+                                    type: 'table'
                                     id: namespace_id
                             else if namespace_id is 'new'
                                 msg += @log_new_something_small_template
-                                    type: 'namespace'
+                                    type: 'table'
                             else
                                 attributes = []
                                 for attribute of json_data[group][namespace_id]

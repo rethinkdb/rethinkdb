@@ -122,7 +122,7 @@ public:
         if (succeeded) {
             do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         } else {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb));
+            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb, a2->get_errno(), static_cast<int64_t>(a2->get_offset()), static_cast<int64_t>(a2->get_count())));
         }
         delete a2;
     }
@@ -257,13 +257,6 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_acco
 
 void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
-
-#ifdef DEBUG_DUMP_WRITES
-    debugf("--- WRITE BEGIN ---\n");
-    debugf("%s", format_backtrace().c_str());
-    print_hd(buf, offset, length);
-    debugf("---- WRITE END ----\n\n");
-#endif
 
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,

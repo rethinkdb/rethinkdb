@@ -135,14 +135,17 @@ class socket_stream_t :
     bool wait_for_read(signal_t *interruptor);
     bool wait_for_write(signal_t *interruptor);
 
-    virtual void on_event(int events); // for linux_callback_t
-
     // Member fields
-  protected:
+    // For subclasses to override on_event behavior.  Is evaluated as the first
+    // thing done in on_event.
+    virtual void do_on_event(int events);
+
     scoped_fd_t fd_;
     scoped_ptr_t<fd_watcher_t> fd_watcher_;
 
   private:
+    void on_event(int events); // for linux_callback_t
+
     DISABLE_COPYING(socket_stream_t);
 };
 

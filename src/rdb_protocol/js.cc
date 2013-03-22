@@ -1,37 +1,45 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
-#include <stdint.h>             // for UINT32_MAX
+#include <stdint.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "containers/scoped.hpp"
+#include "extproc/job.hpp"
+#include "extproc/pool.hpp"
 #include "rdb_protocol/jsimpl.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "utils.hpp"
 
 namespace js {
+
+// The actual job that runs all this stuff.
+class runner_job_t : public extproc::auto_job_t<runner_job_t> {
+public:
+    runner_job_t() {}
+    virtual void run_job(extproc::job_control_t *control, UNUSED void *extra) {
+        // The reason we have env_t is to use it here.
+        env_t(control).run();
+    }
+
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+
 
 const id_t MIN_ID = 1;
 // TODO: This is not the max id.  MAX_ID - 1 is the max id.
 const id_t MAX_ID = UINT32_MAX;
 
-// ---------- utility functions ----------
 static void append_caught_error(std::string *errmsg, const v8::TryCatch &try_catch) {
     if (!try_catch.HasCaught()) return;
 
-    v8::HandleScope handle_scope;
-    v8::Handle<v8::String> msg = try_catch.Message()->Get();
-
-    int len = msg->Utf8Length();
-    scoped_array_t<char> buf(len);
-    int written = msg->WriteUtf8(buf.data(), len);
-    guarantee(len == written);
-
-    errmsg->append(":\n");
-    errmsg->append(buf.data(), len);
+    v8::String::Utf8Value exception(try_catch.Exception());
+    const char *message = *exception;
+    guarantee(message);
+    errmsg->append(message, strlen(message));
 }
 
-// ---------- scoped_id_t ----------
 scoped_id_t::~scoped_id_t() {
     if (!empty()) reset();
 }
@@ -45,12 +53,11 @@ void scoped_id_t::reset(id_t id) {
 }
 
 
-// ---------- env_t ----------
 runner_t::req_config_t::req_config_t()
     : timeout_ms(0)
 {}
 
-env_t::env_t(extproc::job_t::control_t *control)
+env_t::env_t(extproc::job_control_t *control)
     : control_(control),
       should_quit_(false),
       next_id_(MIN_ID)
@@ -100,8 +107,8 @@ void env_t::forget(id_t id) {
 }
 
 
-// ---------- runner_t ----------
-runner_t::runner_t() : running_task_(false) { }
+runner_t::runner_t()
+    : job_handle_(new extproc::job_handle_t), running_task_(false) { }
 
 const runner_t::req_config_t *runner_t::default_req_config() {
     static req_config_t config;
@@ -118,14 +125,13 @@ runner_t::~runner_t() {
     if (connected()) finish();
 }
 
+bool runner_t::connected() { return job_handle_->connected(); }
+
+
 void runner_t::begin(extproc::pool_t *pool) {
     // TODO(rntz): might eventually want to handle external process failure
-    int res = extproc::job_handle_t::begin(pool, job_t());
+    int res = job_handle_->begin(pool, runner_job_t());
     guarantee(0 == res);
-}
-
-void runner_t::interrupt() {
-    extproc::job_handle_t::interrupt();
 }
 
 struct quit_task_t : auto_task_t<quit_task_t> {
@@ -136,17 +142,12 @@ struct quit_task_t : auto_task_t<quit_task_t> {
 void runner_t::finish() {
     guarantee(connected());
     run_task_t(this, default_req_config(), quit_task_t());
-    extproc::job_handle_t::release();
-}
-
-// ----- runner_t::job_t -----
-void runner_t::job_t::run_job(control_t *control, UNUSED void *extra) {
-    // The reason we have env_t is to use it here.
-    env_t(control).run();
+    job_handle_->release();
 }
 
 // ----- runner_t::run_task_t -----
-runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config, const task_t &task)
+runner_t::run_task_t::run_task_t(runner_t *runner, const req_config_t *config,
+                                 const task_t &task)
     : runner_(runner)
 {
     guarantee(!runner_->running_task_);
@@ -167,16 +168,14 @@ runner_t::run_task_t::~run_task_t() {
 }
 
 int64_t runner_t::run_task_t::read(void *p, int64_t n) {
-    return runner_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->read_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 int64_t runner_t::run_task_t::write(const void *p, int64_t n) {
-    return runner_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
+    return runner_->job_handle_->write_interruptible(p, n, timer_.has() ? timer_.get() : NULL);
 }
 
 
-// ---------- tasks ----------
-// ----- release_id() -----
 struct release_task_t : auto_task_t<release_task_t> {
     release_task_t() {}
     explicit release_task_t(id_t id) : id_(id) {}
@@ -197,224 +196,110 @@ void runner_t::release_id(id_t id) {
     used_ids_.erase(it);
 }
 
-// ----- compile() -----
-struct compile_task_t : auto_task_t<compile_task_t> {
-    compile_task_t() {}
-    compile_task_t(const std::vector<std::string> &args, const std::string &src)
-        : args_(args), src_(src) {}
+// ----- eval() -----
+struct eval_task_t : auto_task_t<eval_task_t> {
+    eval_task_t() {}
+    explicit eval_task_t(const std::string &src) : src_(src) {}
 
-    std::vector<std::string> args_;
     std::string src_;
-    RDB_MAKE_ME_SERIALIZABLE_2(args_, src_);
-
-    /**
-     * Works with utf-8 input strings though only chars 0-127 can be escaped.
-     * escp_chars is an array of chars (only values 0-127) to escape in str.
-     */ 
-    static void escape_string(const std::string &src,
-                              const char *escp_chrs, const char *replacements, size_t n_escp_chrs,
-                              std::string *out) {
-        for (size_t src_i = 0; src_i < src.length(); ++src_i) {
-            unsigned char cur_byte = src[src_i];
-
-            // ASCII control character to be escaped with a hex string
-            if (cur_byte < 32) {
-                const char *xdigits = "0123456789abcdef";
-                out->push_back('\\');
-                out->push_back('x');
-                out->push_back(xdigits[cur_byte / 16]);
-                out->push_back(xdigits[cur_byte % 16]);
-                continue;
-            }
-            
-            if (cur_byte < 128) { // We may need to escape this char
-
-                // Is this one of our escape chars?
-                int escape_me = -1;
-                for (size_t i = 0; i < n_escp_chrs; i++) {
-                    if (escp_chrs[i] == cur_byte) {
-                        escape_me = i;
-                        break;
-                    }
-                }
-
-                if (escape_me >= 0) {
-
-                    // Place escaping char first
-                    out->push_back('\\');
-
-                    // So that the replacement will be the one copied over
-                    cur_byte = replacements[escape_me];
-                }
-            } // else cur_byte > 127 and this is a higher order unicode character
-
-            // Finally, copy over the char
-            out->push_back(cur_byte);
-        }
-    }
-
-    // Turn src_ into an escaped JavaScript string. Since I can't actually find a good library
-    // function for this (why?) I'm going to stop wasting time looking and do it myself.
-    static std::string escapeJS(const std::string &src) {
-        static const char *js_escp_chrs = "\\\"'\n\t"; // slash, double quote, single quote, newline, and tab
-        static const char *js_replacements  = "\\\"'nt";   // slash, double quote, single quote, n, and t
-        guarantee(strlen(js_escp_chrs) == strlen(js_replacements));
-
-        std::string out;
-        out.reserve(src.length() * 2);
-        escape_string(src, js_escp_chrs, js_replacements, strlen(js_escp_chrs), &out);
-        return out;
-    }
-
-    void mkFuncSrc(scoped_array_t<char> *buf) {
-        static const char
-            *beg = "(function(",
-            *med = "){ return eval(\"",
-            *end = "\")})";
-        static const ssize_t
-            begsz = strlen(beg),
-            medsz = strlen(med),
-            endsz = strlen(end);
-
-        size_t nargs = args_.size();
-
-        std::string escaped = escapeJS(src_);
-
-        ssize_t size = begsz + medsz + endsz + escaped.length();
-        for (size_t i = 0; i < nargs; ++i) {
-            // + (i > 0) accounts for the preceding comma on extra arguments
-            // beyond the first
-            size += args_[i].size() + (i > 0);
-        }
-
-        buf->init(size);
-
-        char *p = buf->data();
-        memcpy(p, beg, begsz);
-        p += begsz;
-
-        for (size_t i = 0; i < nargs; ++i) {
-            if (i != 0) {
-                *p++ = ',';
-            }
-            const std::string &s = args_[i];
-            memcpy(p, s.data(), s.size());
-            p += s.size();
-        }
-
-        memcpy(p, med, medsz);
-        p += medsz;
-
-        memcpy(p, escaped.data(), escaped.length());
-
-        p += escaped.length();
-
-        memcpy(p, end, endsz);
-        guarantee(p - buf->data() == size - endsz,
-                "\np - buf->data() = %td\nsize = %zd\nendsz = %zd",
-                p - buf->data(),
-                size,
-                endsz);
-    }
-
-    v8::Handle<v8::Function> mkFunc(std::string *errmsg) {
-        v8::Handle<v8::Function> result; // initially empty
-
-        // Compile & run script to get a function.
-        scoped_array_t<char> srcbuf;
-        mkFuncSrc(&srcbuf);
-        // TODO(rntz): use an "external resource" to avoid copy?
-        v8::Handle<v8::String> src = v8::String::New(srcbuf.data(), srcbuf.size());
-
-        v8::TryCatch try_catch;
-
-        v8::Handle<v8::Script> script = v8::Script::Compile(src);
-        if (script.IsEmpty()) {
-            *errmsg = "compiling function definition failed";
-            append_caught_error(errmsg, try_catch);
-            return result;
-        }
-
-        v8::Handle<v8::Value> funcv = script->Run();
-        if (funcv.IsEmpty()) {
-            *errmsg = "evaluating function definition failed";
-            append_caught_error(errmsg, try_catch);
-            return result;
-        }
-        if (!funcv->IsFunction()) {
-            *errmsg = "evaluating function definition did not produce function";
-            return result;
-        }
-        result = v8::Handle<v8::Function>::Cast(funcv);
-        guarantee(!result.IsEmpty());
-        return result;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(src_);
 
     void run(env_t *env) {
-        id_result_t result("");
+        js_result_t result("");
         std::string *errmsg = boost::get<std::string>(&result);
 
         v8::HandleScope handle_scope;
-        // Evaluate the function definition.
-        v8::Handle<v8::Function> func = mkFunc(errmsg);
-        if (!func.IsEmpty()) {
-            result = env->rememberValue(func);
+
+        // TODO(rntz): use an "external resource" to avoid copy?
+        v8::Handle<v8::String> src = v8::String::New(src_.data(), src_.size());
+
+        // This constructor registers itself with v8 so that any errors generated
+        // within v8 will be available within this object.
+        v8::TryCatch try_catch;
+
+        // Firstly, compilation may fail (because of say a syntax error)
+        v8::Handle<v8::Script> script = v8::Script::Compile(src);
+        if (script.IsEmpty()) {
+
+            // Get the error out of the TryCatch object
+            append_caught_error(errmsg, try_catch);
+
+        } else {
+
+            // Secondly, evaluation may fail because of an exception generated
+            // by the code
+            v8::Handle<v8::Value> result_val = script->Run();
+            if (result_val.IsEmpty()) {
+
+                // Get the error from the TryCatch object
+                append_caught_error(errmsg, try_catch);
+
+            } else {
+
+                // Scripts that evaluate to functions become RQL Func terms that
+                // can be passed to map, filter, reduce, etc.
+                if (result_val->IsFunction()) {
+
+                    v8::Handle<v8::Function> func
+                        = v8::Handle<v8::Function>::Cast(result_val);
+                    result = env->rememberValue(func);
+
+                } else {
+                    guarantee(!result_val.IsEmpty());
+
+                    // JSONify result.
+                    boost::shared_ptr<scoped_cJSON_t> json = toJSON(result_val, errmsg);
+                    if (json) {
+                        result = json;
+                    }
+                }
+            }
         }
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };
 
-id_t runner_t::compile(
-    const std::vector<std::string> &args,
+js_result_t runner_t::eval(
     const std::string &source,
-    std::string *errmsg,
     const req_config_t *config)
 {
-    id_result_t result;
+    js_result_t result;
 
     {
-        run_task_t run(this, config, compile_task_t(args, source));
+        run_task_t run(this, config, eval_task_t(source));
         int res = deserialize(&run, &result);
         guarantee(ARCHIVE_SUCCESS == res);
     }
 
-    id_visitor_t v(errmsg);
-    //TODO: shouldn't we do something if the visitor returns INVALID_ID?
-    id_t id = boost::apply_visitor(v, result);
-    note_id(id);
-    return id;
-}
-
-// ----- call() -----
-struct call_task_t : auto_task_t<call_task_t> {
-    call_task_t() {}
-    call_task_t(id_t id,
-                boost::shared_ptr<scoped_cJSON_t> obj,
-                const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
-        : func_id_(id), args_(args)
-    {
-        if (NULL != obj.get()) {
-            obj_ = obj;
-            guarantee(obj->type() == cJSON_Object);
-        }
+    // We need to "note" any function id generated by this eval
+    id_t *any_id = boost::get<id_t>(&result);
+    if (any_id) {
+        note_id(*any_id);
     }
 
+    return result;
+}
+
+struct call_task_t : auto_task_t<call_task_t> {
+    call_task_t() {}
+    call_task_t(id_t id, const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args)
+        : func_id_(id), args_(args)
+    { }
+
     id_t func_id_;
-    boost::optional<boost::shared_ptr<scoped_cJSON_t> > obj_;
     std::vector<boost::shared_ptr<scoped_cJSON_t> > args_;
-    RDB_MAKE_ME_SERIALIZABLE_3(func_id_, obj_, args_);
+    RDB_MAKE_ME_SERIALIZABLE_2(func_id_, args_);
 
     v8::Handle<v8::Value> eval(v8::Handle<v8::Function> func, std::string *errmsg) {
         v8::TryCatch try_catch;
         v8::HandleScope scope;
 
         // Construct receiver object.
-        v8::Handle<v8::Object> obj = obj_ ? fromJSON(*obj_.get()->get())->ToObject()
-                                          : v8::Object::New();
+        v8::Handle<v8::Object> obj = v8::Object::New();
         guarantee(!obj.IsEmpty());
 
         // Construct arguments.
@@ -429,7 +314,6 @@ struct call_task_t : auto_task_t<call_task_t> {
         // Call function with environment as its receiver.
         v8::Handle<v8::Value> result = func->Call(obj, nargs, handles.data());
         if (result.IsEmpty()) {
-            *errmsg = "calling function failed";
             append_caught_error(errmsg, try_catch);
         }
         return scope.Close(result);
@@ -437,47 +321,52 @@ struct call_task_t : auto_task_t<call_task_t> {
 
     void run(env_t *env) {
         // TODO(rntz): This is very similar to compile_task_t::run(). Refactor?
-        json_result_t result("");
+        js_result_t result("");
         std::string *errmsg = boost::get<std::string>(&result);
 
         v8::HandleScope handle_scope;
-        v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
+        v8::Handle<v8::Function> func
+            = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
         guarantee(!func.IsEmpty());
 
         v8::Handle<v8::Value> value = eval(func, errmsg);
         if (!value.IsEmpty()) {
-            // JSONify result.
-            boost::shared_ptr<scoped_cJSON_t> json = toJSON(value, errmsg);
-            if (json) {
-                result = json;
+
+            if (value->IsFunction()) {
+                v8::Handle<v8::Function> sub_func
+                    = v8::Handle<v8::Function>::Cast(value);
+                result = env->rememberValue(sub_func);
+            } else {
+
+                // JSONify result.
+                boost::shared_ptr<scoped_cJSON_t> json = toJSON(value, errmsg);
+                if (json) {
+                    result = json;
+                }
             }
         }
 
         write_message_t msg;
         msg << result;
-        int sendres = send_write_message(env->control(), &msg);
+        int sendres = send_write_message(&env->control()->unix_socket, &msg);
         guarantee(0 == sendres);
     }
 };
 
-boost::shared_ptr<scoped_cJSON_t> runner_t::call(
+js_result_t runner_t::call(
     id_t func_id,
-    boost::shared_ptr<scoped_cJSON_t> object,
     const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
-    std::string *errmsg,
     const req_config_t *config)
 {
-    json_result_t result;
-    guarantee(!object || object->type() == cJSON_Object);
+    js_result_t result;
 
     {
-        run_task_t run(this, config, call_task_t(func_id, object, args));
+        run_task_t run(this, config, call_task_t(func_id, args));
         int res = deserialize(&run, &result);
         guarantee(ARCHIVE_SUCCESS == res);
     }
 
-    json_visitor_t v(errmsg);
-    return boost::apply_visitor(v, result);
+    return result;
 }
 
 } // namespace js

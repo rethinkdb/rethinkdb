@@ -295,9 +295,10 @@ for op, inv_replacement in [('==', 'NE'), ('!=', 'EQ'),
 # _IncludeState.CheckNextIncludeOrder().
 _C_SYS_HEADER = 1
 _CPP_SYS_HEADER = 2
-_LIKELY_MY_HEADER = 3
-_POSSIBLE_MY_HEADER = 4
-_OTHER_HEADER = 5
+_BOOST_HEADER = 3
+_LIKELY_MY_HEADER = 4
+_POSSIBLE_MY_HEADER = 5
+_OTHER_HEADER = 6
 _ERRORS_HPP_HEADER = 88
 
 
@@ -393,11 +394,13 @@ class _IncludeState(dict):
   _MY_H_SECTION = 1
   _C_SECTION = 2
   _CPP_SECTION = 3
-  _OTHER_H_SECTION = 4
+  _BOOST_SECTION = 4
+  _OTHER_H_SECTION = 5
 
   _TYPE_NAMES = {
       _C_SYS_HEADER: 'C system header',
       _CPP_SYS_HEADER: 'C++ system header',
+      _BOOST_HEADER: 'Boost header',
       _LIKELY_MY_HEADER: 'header this file implements',
       _POSSIBLE_MY_HEADER: 'header this file may implement',
       _OTHER_HEADER: 'other header',
@@ -408,6 +411,7 @@ class _IncludeState(dict):
       _MY_H_SECTION: 'a header this file implements',
       _C_SECTION: 'C system header',
       _CPP_SECTION: 'C++ system header',
+      _BOOST_SECTION: 'Boost header',
       _OTHER_H_SECTION: 'other header',
       }
 
@@ -496,11 +500,16 @@ class _IncludeState(dict):
       # errors.hpp can appear before boost headers, so we allow it in
       # the cpp section.
       if self._section <= self._CPP_SECTION:
-        self._section = self._CPP_SECTION
+        self._section = self._BOOST_SECTION
       elif self._section <= self._MY_H_SECTION:
         self._section = self._MY_H_SECTION
       else:
         self._section = self._OTHER_H_SECTION
+    elif header_type == _BOOST_HEADER:
+      # We require an _ERRORS_HPP_HEADER to put us in the boost section.
+      if self._section != self._BOOST_SECTION:
+        self._last_header = ''
+        return error_message
     else:
       assert header_type == _OTHER_HEADER
       self._section = self._OTHER_H_SECTION
@@ -2379,10 +2388,13 @@ def _ClassifyInclude(fileinfo, include, is_system):
   # This is a list of all standard c++ header files, except
   # those already checked for above.
   is_stl_h = include in _STL_HEADERS
-  is_cpp_h = is_stl_h or include in _CPP_HEADERS or include.startswith('boost/')
+  is_boost_h = include.startswith('boost/')
+  is_cpp_h = is_stl_h or include in _CPP_HEADERS
 
   if is_system:
-    if is_cpp_h:
+    if is_boost_h:
+      return _BOOST_HEADER
+    elif is_cpp_h:
       return _CPP_SYS_HEADER
     else:
       return _C_SYS_HEADER
@@ -2470,7 +2482,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
           _ClassifyInclude(fileinfo, include, is_system))
       if error_message:
         error(filename, linenum, 'build/include_order', 4,
-              '%s. Should be: %s.h, c system, c++ system, other.' %
+              '%s. Should be: %s.h, c system, c++ system, [errors.hpp, boost,] other.' %
               (error_message, fileinfo.BaseName()))
       if not include_state.IsInAlphabeticalOrder(include):
         error(filename, linenum, 'build/include_alpha', 4,

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ACTIVITY_LOGGER_HPP_
 #define ACTIVITY_LOGGER_HPP_
 
@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "errors.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "backtrace.hpp"
@@ -56,16 +57,17 @@ private:
     DISABLE_COPYING(fake_activity_logger_t);
 };
 
-#define debugf_log(log, args...) {                                      \
-    std::string _debugf_log = strprintf(args);                          \
-    (log).add(_debugf_log);                                             \
-    debugf("%s\n", _debugf_log.c_str());                                \
-}
-#define debugf_log_bt(log, args...) {               \
-    std::string _debugf_log = strprintf(args);      \
-    (log).add(_debugf_log, true);                   \
-    debugf("%s\n", _debugf_log.c_str());            \
-}
-
+#define debugf_log(log, args...) do {                                   \
+        activity_logger_t *_logptr = &(log);                            \
+        std::string _debugf_log = strprintf(args);                      \
+        _logptr->add(_debugf_log);                                      \
+        debugf("%p[%zu]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
+    } while (0)
+#define debugf_log_bt(log, args...) do {                                \
+        activity_logger_t *_logptr = &(log);                            \
+        std::string _debugf_log = strprintf(args);                      \
+        _logptr->add(_debugf_log, true);                                \
+        debugf("%p[%zu]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
+    } while (0)
 
 #endif /* ACTIVITY_LOGGER_HPP_ */

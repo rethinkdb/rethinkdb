@@ -66,7 +66,7 @@ class ls_block_token_pointee_t {
     ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset);
 
     log_serializer_t *serializer_;
-    int64_t ref_count_;
+    intptr_t ref_count_;
 
     void do_destroy();
 
@@ -141,18 +141,18 @@ struct scs_block_token_t {
     template <class T>
     friend void intrusive_ptr_release(scs_block_token_t<T> *p);
 private:
-    int ref_count_;
+    intptr_t ref_count_;
 };
 
 template <class inner_serializer_t>
 void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    UNUSED const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
 template <class inner_serializer_t>
 void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
-    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
         delete p;

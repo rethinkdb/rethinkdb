@@ -1,3 +1,0 @@
-Python RethinkDB driver.
-
-Refer to docs for [driver installation instrucstion](http://www.rethinkdb.com/docs/guides/drivers/) and the [Python ReQL command reference](http://www.rethinkdb.com/api/#py)

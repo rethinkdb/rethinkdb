@@ -4,7 +4,6 @@
 
 #include <algorithm>
 
-#include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -50,18 +49,11 @@ public:
     block_id_t get_block_id() const;
     const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
-    void *get_data_major_write();
-    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(void *dest, const void *src, const size_t n);
-    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(void *dest, const void *src, const size_t n);
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
-    patch_counter_t get_next_patch_counter();
+    void *get_data_write();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 
     bool is_acquired() const;
-    void ensure_flush();
     bool is_deleted() const;
     repli_timestamp_t get_recency() const;
 
@@ -110,7 +102,6 @@ private:
     friend class mock_buf_lock_t;
     friend class mock_cache_t;
     access_t access;
-    int n_bufs;
     repli_timestamp_t recency_timestamp;
     auto_drainer_t::lock_t keepalive;
 };
@@ -129,8 +120,8 @@ public:
     typedef mock_transaction_t transaction_type;
     typedef mock_cache_account_t cache_account_type;
 
-    static void create(serializer_t *serializer, mirrored_cache_static_config_t *static_config);
-    mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
+    static void create(serializer_t *serializer);
+    mock_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *parent);
     ~mock_cache_t();
 
     block_size_t get_block_size();

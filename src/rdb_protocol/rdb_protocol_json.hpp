@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/bt.hpp"
 #include "http/json.hpp"
 
 /* This file is for storing a few extensions to json that are useful for
@@ -23,7 +23,7 @@ public:
     shared_scoped_less_t() { }
     explicit shared_scoped_less_t(const backtrace_t &bt) : backtrace(bt) { }
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
-                      const boost::shared_ptr<scoped_cJSON_t> &b) {
+                    const boost::shared_ptr<scoped_cJSON_t> &b) {
         return json_cmp(a->get(), b->get()) < 0;
     }
 private:

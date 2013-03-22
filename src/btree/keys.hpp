@@ -12,6 +12,11 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
 struct btree_key_t {
@@ -22,9 +27,6 @@ struct btree_key_t {
     }
     bool fits(int space) const {
         return space > 0 && space > size;
-    }
-    void print() const {
-        debugf("%*.*s\n", size, size, contents);
     }
 };
 
@@ -67,14 +69,6 @@ public:
 
     void assign(const btree_key_t *key) {
         assign(key->size, key->contents);
-    }
-
-    void print() const {
-        printf("%*.*s", size(), size(), contents());
-    }
-
-    void debug_print() const {
-        debugf("%*.*s\n", size(), size(), contents());
     }
 
     static store_key_t min() {
@@ -268,5 +262,9 @@ bool operator>=(const key_range_t::right_bound_t &a, const key_range_t::right_bo
 bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
+#pragma GCC diagnostic pop
+#endif
 
 #endif // BTREE_KEYS_HPP_

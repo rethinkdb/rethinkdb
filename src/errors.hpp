@@ -1,10 +1,16 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
+
+// Boost 1.53.0 would not build on OS X (using Apple's Clang 4.0, which is based
+// off of clang 3.1svn).  See https://github.com/rethinkdb/rethinkdb/issues/377
+#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
+#error "BOOST_NO_CXX11_RVALUE_REFERENCES should have been defined by the Makefile."
+#endif
 
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
@@ -204,5 +210,11 @@ release mode. */
 #define THROWS_ONLY(...) throw (__VA_ARGS__)
 #endif
 
+// This is a workaround for old versions of boost causing a compilation error
+#include <boost/version.hpp> // NOLINT(build/include_order)
+#if (BOOST_VERSION >= 104200) && (BOOST_VERSION <= 104399)
+#include <boost/config.hpp> // NOLINT(build/include_order)
+#undef BOOST_HAS_RVALUE_REFS
+#endif
 
 #endif /* ERRORS_HPP_ */

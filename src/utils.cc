@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
 #include "utils.hpp"
 
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -11,7 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/resource.h>
 
 #ifdef __MACH__
@@ -22,6 +25,7 @@
 #include <valgrind/memcheck.h>
 #endif
 
+#include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
 #include "arch/runtime/runtime.hpp"
@@ -30,6 +34,8 @@
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
+#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2_extensions.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
@@ -589,22 +595,50 @@ char int_to_hex(int x) {
     }
 }
 
-std::string read_file(const char *path) {
-    std::string s;
-    FILE *fp = fopen(path, "rb");
-    char buffer[4096];
-    int count;
-    do {
-        count = fread(buffer, 1, sizeof(buffer), fp);
-        s.append(buffer, buffer + count);
-    } while (count == sizeof(buffer));
+bool blocking_read_file(const char *path, std::string *contents_out) {
+    scoped_fd_t fd;
 
-    rassert(feof(fp));
+    {
+        int res;
+        do {
+            res = open(path, O_RDONLY);
+        } while (res == -1 && errno == EINTR);
 
-    fclose(fp);
+        if (res == -1) {
+            return false;
+        }
+        fd.reset(res);
+    }
 
-    return s;
+    std::string ret;
+
+    char buf[4096];
+    for (;;) {
+        ssize_t res;
+        do {
+            res = read(fd.get(), buf, sizeof(buf));
+        } while (res == -1 && errno == EINTR);
+
+        if (res == -1) {
+            return false;
+        }
+
+        if (res == 0) {
+            *contents_out = ret;
+            return true;
+        }
+
+        ret.append(buf, buf + res);
+    }
 }
+
+std::string blocking_read_file(const char *path) {
+    std::string ret;
+    bool success = blocking_read_file(path, &ret);
+    guarantee(success);
+    return ret;
+}
+
 
 static const char * unix_path_separator = "/";
 
@@ -666,6 +700,18 @@ int get_num_db_threads() {
 }
 
 
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = static_cast<const uint8_t *>(p);
+    const uint8_t *range8 = static_cast<const uint8_t *>(range_start);
+    return range8 <= p8 && p8 < range8 + size_in_bytes;
+}
+
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = static_cast<const uint8_t *>(p);
+    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
+        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+}
+
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these
 // cases:
@@ -674,3 +720,7 @@ int get_num_db_threads() {
 // * RETHINKDB_VERSION=1.2
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
+
+void pb_print(DEBUG_VAR Term *t) {
+    debugf("%s\n", t->DebugString().c_str());
+}

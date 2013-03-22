@@ -110,8 +110,8 @@ struct btree_traversal_helper_t {
     virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null,
-                                int *population_change_out,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+                                signal_t *interruptor,
+                                int *population_change_out) THROWS_ONLY(interrupted_exc_t) = 0;
 
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
@@ -136,9 +136,7 @@ void btree_parallel_traversal(transaction_t *txn,
 
 class parallel_traversal_progress_t : public traversal_progress_t {
 public:
-    parallel_traversal_progress_t()
-        : height(-1), print_counter(0)
-    { }
+    parallel_traversal_progress_t() : height(-1) { }
 
     enum action_t {
         LEARN,
@@ -162,8 +160,6 @@ private:
     std::vector<int> released; //How many nodes at each level we've released
 
     int height; //The height we've learned the tree has. Or -1 if we're still unsure;
-
-    int print_counter;
 
     DISABLE_COPYING(parallel_traversal_progress_t);
 };
