@@ -258,32 +258,4 @@ void batched_rget_stream_t::read_more() {
     }
 }
 
-union_stream_t::union_stream_t(const stream_list_t &_streams)
-    : streams(_streams), hd(streams.begin())
-{ }
-
-batch_info_t union_stream_t::next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
-    while (hd != streams.end()) {
-        boost::shared_ptr<scoped_cJSON_t> json;
-        const batch_info_t res = (*hd)->next_impl(&json);
-        if (res != END_OF_STREAM) {
-            *out = json;
-            return res;
-        } else {
-            ++hd;
-        }
-    }
-    *out = boost::shared_ptr<scoped_cJSON_t>();
-    return END_OF_STREAM;
-}
-
-boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
-    for (stream_list_t::iterator it  = streams.begin();
-                                 it != streams.end();
-                                 ++it) {
-        *it = (*it)->add_transformation(t, ql_env, scopes, backtrace);
-    }
-    return shared_from_this();
-}
-
 } //namespace query_language
