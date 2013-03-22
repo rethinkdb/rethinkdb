@@ -28,8 +28,13 @@ typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
+    enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
+
     json_stream_t() { }
-    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0; //MAY THROW
+    boost::shared_ptr<scoped_cJSON_t> next(); //MAY THROW    // RSI is anybody using this?  Should they be?
+
+    virtual batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *json_out) = 0;  // MAY THROW
+
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
                                     ql::env_t *ql_env,
@@ -40,7 +45,9 @@ public:
 
     virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { }
 
+    static const int RECOMMENDED_BATCH_SIZE = 100;  // RSI duplication
 private:
+
     DISABLE_COPYING(json_stream_t);
 };
 
@@ -59,19 +66,20 @@ public:
         }
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next();
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
 
     /* Use default implementation of `add_transformation()` and `apply_terminal()` */
 
 private:
     json_list_t data;
+    size_t index;
 };
 
 class transform_stream_t : public json_stream_t {
 public:
     transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
 
-    boost::shared_ptr<scoped_cJSON_t> next();
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
 
 private:
@@ -79,6 +87,8 @@ private:
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     json_list_t data;
+    batch_info_t data_end_batch_info;  // Is set when data is not empty, is specifically used
+                                       // when last element of data is removed.
 };
 
 class batched_rget_stream_t : public json_stream_t {
@@ -92,7 +102,7 @@ public:
                           const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated);
 
-    boost::shared_ptr<scoped_cJSON_t> next();
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
@@ -131,7 +141,7 @@ public:
 
     explicit union_stream_t(const stream_list_t &_streams);
 
-    boost::shared_ptr<scoped_cJSON_t> next();
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
 
@@ -150,10 +160,22 @@ public:
         : stream(_stream), seen(_c)
     { }
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+        for (;;) {
+            boost::shared_ptr<scoped_cJSON_t> json;
+            const batch_info_t res = stream->next_impl(&json);
+
+            if (!json) {
+                *out = boost::shared_ptr<scoped_cJSON_t>();
+                return res;
+            }
+
             if (seen.insert(json).second) { // was this not already present?
-                return json;
+                *out = json;
+                return res;
+            } else if (res == LAST_OF_BATCH) {
+                *out = boost::shared_ptr<scoped_cJSON_t>();
+                return LAST_OF_BATCH;
             }
         }
         return boost::shared_ptr<scoped_cJSON_t>();
@@ -175,16 +197,35 @@ public:
         stop -= start;
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        while (start) {
-            start--;
-            stream->next();
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+        while (start != 0) {
+            boost::shared_ptr<scoped_cJSON_t> discard;
+            const batch_info_t res = stream->next_impl(&discard);
+
+            if (res == END_OF_STREAM) {
+                *out = boost::shared_ptr<scoped_cJSON_t>();
+                return END_OF_STREAM;
+            }
+
+            if (discard) {
+                --start;
+            }
         }
+
         if (unbounded || stop != 0) {
-            stop--;
-            return stream->next();
+            boost::shared_ptr<scoped_cJSON_t> json;
+            const batch_info_t res = stream->next_impl(&json);
+
+            if (json) {
+                --stop;
+            }
+
+            *out = json;
+            return res;
         }
-        return boost::shared_ptr<scoped_cJSON_t>();
+
+        *out = boost::shared_ptr<scoped_cJSON_t>();
+        return END_OF_STREAM;
     }
 
 private:
@@ -202,8 +243,9 @@ public:
         guarantee(offset >= 0);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
-        return stream->next();
+    // RSI: Shouldn't this be skipping things?
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
+        return stream->next_impl(out);
     }
 
 private:
@@ -218,13 +260,19 @@ public:
         : stream(_stream), range(_range), attrname(_attrname), backtrace(_backtrace)
     { }
 
-    boost::shared_ptr<scoped_cJSON_t> next() {
+    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out) {
         // TODO: ***use an index***
         // TODO: more error handling
         // TODO reevaluate this when we better understand what we're doing for ordering
-        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            guarantee(json);
-            guarantee(json->get());
+        for (;;) {
+            boost::shared_ptr<scoped_cJSON_t> json;
+            const batch_info_t res = stream->next_impl(&json);
+
+            if (!json) {
+                *out = boost::shared_ptr<scoped_cJSON_t>();
+                return res;
+            }
+
             if (json->type() != cJSON_Object) {
                 throw runtime_exc_t(strprintf("Got non-object in RANGE query: %s.", json->Print().c_str()), backtrace);
             }
@@ -234,10 +282,14 @@ public:
             } else if (val.type() != cJSON_Number && val.type() != cJSON_String) {
                 throw runtime_exc_t(strprintf("Primary key must be a number or string, not %s.", val.Print().c_str()), backtrace);
             } else if (range.contains_key(store_key_t(cJSON_print_primary(val.get(), backtrace)))) {
-                return json;
+                *out = json;
+                return res;
+            } else if (res == LAST_OF_BATCH) {
+                // Can't skip LAST_OF_BATCH markers.
+                *out = boost::shared_ptr<scoped_cJSON_t>();
+                return LAST_OF_BATCH;
             }
         }
-        return boost::shared_ptr<scoped_cJSON_t>();
     }
 
 private:
