@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
 #include "errors.hpp"
@@ -41,15 +41,15 @@ void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address
         if (it != ips->begin()) buf->appendf(", ");
         debug_print(buf, *it);
     }
-    buf->appendf("], port=%" PRIu16 "}", address.port.as_uint16());
+    buf->appendf("], port=%d}", address.port);
 }
 
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
                                      const std::set<ip_address_t> &local_addresses,
-                                     portno_t port,
+                                     int port,
                                      message_handler_t *mh,
-                                     portno_t client_port,
+                                     int client_port,
                                      heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t) :
     parent(p),
     message_handler(mh),
@@ -94,7 +94,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
 connectivity_cluster_t::run_t::~run_t() { }
 
-portno_t connectivity_cluster_t::run_t::get_port() {
+int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
 }
 

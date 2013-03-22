@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/main/import.hpp"
 
 // TODO: Which of these headers, other than rdb_protocol/query_language.hpp, contains rdb_protocol_t stuff?
@@ -59,8 +59,8 @@ bool find_server_peer_in_directory(const std::map<peer_id_t, cluster_directory_m
 bool run_json_import(extproc::spawner_t::info_t *spawner_info,
                      peer_address_set_t joins,
                      const std::set<ip_address_t> &local_addresses,
-                     portno_t ports_port,
-                     portno_t ports_client_port,
+                     int ports_port,
+                     int ports_client_port,
                      json_import_target_t target,
                      json_importer_t *importer,
                      signal_t *stop_cond) {
@@ -123,12 +123,12 @@ bool run_json_import(extproc::spawner_t::info_t *spawner_info,
                                                            ports_client_port,
                                                            &heartbeat_manager);
 
-    if (ports_port == portno_t::zero()) {
+    if (0 == ports_port) {
         ports_port = connectivity_cluster_run.get_port();
     } else {
         guarantee(ports_port == connectivity_cluster_run.get_port());
     }
-    logINF("Listening for intracluster traffic on port %" PRIu16 ".\n", ports_port.as_uint16());
+    logINF("Listening for intracluster traffic on port %d.\n", ports_port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
@@ -247,7 +247,7 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
         *do_update = true;
         namespace_id = generate_uuid();
         *change.get()->namespaces[namespace_id].get_mutable() =
-            new_namespace<rdb_protocol_t>(sync_machine_id, db_id, dc_id, table_name, primary_key_in, portno_t(port_defaults::reql_port), GIGABYTE);
+            new_namespace<rdb_protocol_t>(sync_machine_id, db_id, dc_id, table_name, primary_key_in, port_defaults::reql_port, GIGABYTE);
     } else {
         printf("Error searching for namespace.\n");
     }

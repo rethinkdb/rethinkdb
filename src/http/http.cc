@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
 #include <exception>
@@ -180,7 +180,7 @@ http_res_t http_error_res(const std::string &content, http_status_code_t rescode
 }
 
 http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
-                             portno_t port,
+                             int port,
                              http_app_t *_application) :
     application(_application) {
     try {
@@ -190,7 +190,7 @@ http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
     }
 }
 
-portno_t http_server_t::get_port() const {
+int http_server_t::get_port() const {
     return tcp_listener->get_port();
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_AUTO_DRAINER_HPP_
 #define CONCURRENCY_AUTO_DRAINER_HPP_
 
@@ -61,7 +61,7 @@ private:
     class toy_tcp_server_t {
 
     public:
-        toy_tcp_server_t(portno_t port) :
+        toy_tcp_server_t(int port) :
             listener(port,
                 boost::bind(&toy_tcp_server_t::serve,
                     this,

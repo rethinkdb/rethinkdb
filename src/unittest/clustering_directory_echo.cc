@@ -14,7 +14,7 @@ namespace {
 template<class metadata_t>
 class directory_echo_cluster_t {
 public:
-    directory_echo_cluster_t(const metadata_t &initial, portno_t port) :
+    directory_echo_cluster_t(const metadata_t &initial, int port) :
         connectivity_cluster(),
         message_multiplexer(&connectivity_cluster),
         heartbeat_manager_client(&message_multiplexer, 'H'),
@@ -33,7 +33,7 @@ public:
                                  get_unittest_addresses(),
                                  port,
                                  &message_multiplexer_run,
-                                 portno_t::zero(),
+                                 0,
                                  &heartbeat_manager),
         echo_mirror(&mailbox_manager, directory_read_manager.get_root_view())
         { }
@@ -58,9 +58,8 @@ public:
 }   /* anonymous namespace */
 
 void run_directory_echo_test() {
-    portno_t port = randport();
-    directory_echo_cluster_t<std::string> cluster1("hello", port);
-    directory_echo_cluster_t<std::string> cluster2("world", port.with_offset(1));
+    int port = randport();
+    directory_echo_cluster_t<std::string> cluster1("hello", port), cluster2("world", port+1);
     cluster1.connectivity_cluster_run.join(cluster2.connectivity_cluster.get_peer_address(cluster2.connectivity_cluster.get_me()));
 
     directory_echo_version_t version;

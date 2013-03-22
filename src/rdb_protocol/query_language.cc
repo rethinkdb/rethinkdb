@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_language.hpp"
 
 #include <cmath>
@@ -1020,7 +1020,7 @@ void execute_meta(MetaQuery *m, runtime_environment_t *env, Response *res, const
         // The port here is a legacy from memcached days when each table was accessed through a different port.
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, table_name,
-                                          primary_key, portno_t(port_defaults::reql_port), cache_size);
+                                          primary_key, port_defaults::reql_port, cache_size);
         {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
             change.get()->namespaces.insert(std::make_pair(namespace_id, make_deletable(ns)));

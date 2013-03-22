@@ -1,9 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/archive/tcp_conn_stream.hpp"
 
 #include "arch/io/network.hpp"
 
-tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, portno_t port, signal_t *interruptor, portno_t local_port)
+tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port)
     : conn_(new tcp_conn_t(host, port, interruptor, local_port)) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
@@ -64,7 +64,7 @@ bool tcp_conn_stream_t::is_write_open() {
 }
 
 
-keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, portno_t port, signal_t *interruptor, portno_t local_port) :
+keepalive_tcp_conn_stream_t::keepalive_tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) :
     tcp_conn_stream_t(host, port, interruptor, local_port),
     keepalive_callback(NULL) { }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 #define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
@@ -26,7 +26,7 @@ private:
 class dummy_protocol_parser_t {
 public:
     dummy_protocol_parser_t(const std::set<ip_address_t> &local_addresses,
-                            portno_t port,
+                            int port,
                             namespace_repo_t<dummy_protocol_t> *ns_repo,
                             const namespace_id_t &ns_id,
                             perfmon_collection_t *) :

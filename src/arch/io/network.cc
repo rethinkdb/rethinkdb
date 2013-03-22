@@ -27,7 +27,7 @@
 
 /* Network connection object */
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, portno_t port, signal_t *interruptor, portno_t local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
         write_perfmon(NULL),
         sock(socket(AF_INET, SOCK_STREAM, 0)),
         event_watcher(new linux_event_watcher_t(sock.get(), this)),
@@ -39,21 +39,21 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, portno_t port, sign
         drainer(new auto_drainer_t) {
 
     struct sockaddr_in addr;
-    if (local_port != portno_t::zero()) {
+    if (local_port != 0) {
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
             logWRN("Failed to set socket reuse to true: %s", errno_string(errno).c_str());
         addr.sin_family = AF_INET;
-        addr.sin_port = htons(local_port.as_uint16());
+        addr.sin_port = htons(local_port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(addr.sin_zero, sizeof(addr.sin_zero));
         if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logWRN("Failed to bind to local port %" PRIu16 ": %s", local_port.as_uint16(), errno_string(errno).c_str());
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(errno).c_str());
     }
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port.as_uint16());
+    addr.sin_port = htons(port);
     addr.sin_addr = host.get_addr();
     bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
@@ -576,7 +576,7 @@ void linux_tcp_conn_descriptor_t::make_overcomplicated(linux_tcp_conn_t **tcp_co
 /* Network listener object */
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
-        const std::set<ip_address_t> &bind_addresses, portno_t _port,
+        const std::set<ip_address_t> &bind_addresses, int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &cb) :
     callback(cb),
     local_addresses(bind_addresses),
@@ -597,7 +597,7 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     if (!bound && !bind_sockets()) {
-        logERR("Could not bind to port %" PRIu16, port.as_uint16());
+        logERR("Could not bind to port %d", port);
         return false;
     }
 
@@ -624,7 +624,7 @@ bool linux_nonthrowing_tcp_listener_t::is_bound() const {
     return bound;
 }
 
-portno_t linux_nonthrowing_tcp_listener_t::get_port() const {
+int linux_nonthrowing_tcp_listener_t::get_port() const {
     return port;
 }
 
@@ -661,9 +661,9 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
-    if (port == portno_t::zero()) {
+    if (port == 0) {
         // It may take multiple attempts to get all the sockets onto the same port
-        portno_t port_out = portno_t::zero();
+        int port_out = 0;
         for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
             bound = bind_sockets_internal(&port_out);
         }
@@ -678,14 +678,14 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
     return bound;
 }
 
-bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(portno_t *port_out) {
+bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
     init_sockets();
     bool result = true;
 
     sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port.as_uint16());
+    serv_addr.sin_port = htons(port);
 
     rassert(local_addresses.size() == static_cast<size_t>(socks.size()));
     ssize_t i = 0;
@@ -700,20 +700,18 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(portno_t *port_out)
                 result = false;
                 break;
             } else {
-                crash("Could not bind socket at localhost:%" PRIu16 " - %s\n", port.as_uint16(), errno_string(errno).c_str());
+                crash("Could not bind socket at localhost:%i - %s\n", port, errno_string(errno).c_str());
             }
         }
 
-        // TODO: What the fuck?  Why would we test if the output variable already has a value?  This is insane.
-
         // If we were told to let the kernel assign the port, figure out what was assigned
-        if (*port_out == portno_t::zero()) {
+        if (*port_out == 0) {
             rassert(i == 0); // This should only happen on the first loop
             struct sockaddr_in sa;
             socklen_t sa_len(sizeof(sa));
             int res2 = getsockname(socks[i].get(), (struct sockaddr*)&sa, &sa_len);
             guarantee_err(res2 != -1, "Could not determine socket local port number");
-            *port_out = portno_t(ntohs(sa.sin_port));
+            *port_out = ntohs(sa.sin_port);
 
             // Apply to the structure we're binding with, so all sockets have the same local port
             serv_addr.sin_port = sa.sin_port;
@@ -817,7 +815,7 @@ void linux_nonthrowing_tcp_listener_t::on_event(int) {
 
 void noop_fun(UNUSED const scoped_ptr_t<linux_tcp_conn_descriptor_t>& arg) { }
 
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, portno_t port) :
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int port) :
     listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, noop_fun))
 {
     if (!listener->bind_sockets()) {
@@ -825,11 +823,11 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(const std::set<ip_address_t> 
     }
 }
 
-portno_t linux_tcp_bound_socket_t::get_port() const {
+int linux_tcp_bound_socket_t::get_port() const {
     return listener->get_port();
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, portno_t port,
+linux_tcp_listener_t::linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(new linux_nonthrowing_tcp_listener_t(bind_addresses, port, callback))
 {
@@ -849,18 +847,18 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     }
 }
 
-portno_t linux_tcp_listener_t::get_port() const {
+int linux_tcp_listener_t::get_port() const {
     return listener->get_port();
 }
 
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(
     const std::set<ip_address_t> &bind_addresses,
-    portno_t port,
+    int port,
     const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback) :
         listener(bind_addresses, port, callback)
 { }
 
-portno_t linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
+int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
     return listener.get_port();
 }
 
@@ -877,9 +875,9 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
         for (int retry_interval = 1;
              !bound;
              retry_interval = std::min(10, retry_interval + 2)) {
-            logINF("Will retry binding to port %" PRIu16 " in %d seconds.\n",
-                   listener.get_port().as_uint16(),
-                   retry_interval);
+            logINF("Will retry binding to port %d in %d seconds.\n",
+                    listener.get_port(),
+                    retry_interval);
             nap(retry_interval * 1000, lock.get_drain_signal());
             bound = listener.begin_listening();
         }

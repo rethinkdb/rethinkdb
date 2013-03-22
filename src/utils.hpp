@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
@@ -337,22 +337,23 @@ T valgrind_undefined(T value) {
 class portno_t {
 public:
     // Unimplemented constructors to snag attempts to pass things other than uint16_t.
-    portno_t() : portno_(valgrind_undefined<uint16_t>(0)) { }
-    explicit portno_t(int portno) = delete;
-    explicit portno_t(int16_t portno) = delete;
-
-    static portno_t zero() { return portno_t(static_cast<uint16_t>(0)); }
+    explicit portno_t(int portno);
+    explicit portno_t(int16_t portno);
 
     explicit portno_t(const uint16_t portno) : portno_(portno) { }
 
     uint16_t as_uint16() const { return portno_; }
 
-    portno_t with_offset(int port_offset) const;
-
-    uint16_t as_uint16_with_offset(int port_offset) const;
-
-    bool operator==(const portno_t other) const { return portno_ == other.portno_; }
-    bool operator!=(const portno_t other) const { return !(*this == other); }
+    uint16_t as_uint16_with_offset(const int port_offset) const {
+        rassert(port_offset >= 0);
+        if (portno_ == 0) {
+            return 0;
+        } else {
+            int ret = portno_ + port_offset;
+            guarantee(ret < 0x10000);
+            return ret;
+        }
+    }
 
 private:
     uint16_t portno_;

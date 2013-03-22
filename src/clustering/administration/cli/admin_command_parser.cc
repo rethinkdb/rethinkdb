@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
@@ -454,7 +454,7 @@ void admin_command_parser_t::do_usage(bool console) {
     do_usage_internal(helps, options, header_string, console);
 }
 
-admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, portno_t client_port, signal_t *_interruptor) :
+admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, int client_port, signal_t *_interruptor) :
     join_peer(peer_string),
     joins_param(joins),
     client_port_param(client_port),

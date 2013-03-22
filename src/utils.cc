@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
@@ -22,7 +22,6 @@
 #include <valgrind/memcheck.h>
 #endif
 
-#include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
 #include "arch/runtime/runtime.hpp"
@@ -664,21 +663,6 @@ std::string errno_string(int errsv) {
 // clients that expect the acceptor to work faster.
 int get_num_db_threads() {
     return get_num_threads() - 1;
-}
-
-portno_t portno_t::with_offset(const int port_offset) const {
-    return portno_t(as_uint16_with_offset(port_offset));
-}
-
-uint16_t portno_t::as_uint16_with_offset(const int port_offset) const {
-    rassert(port_offset >= 0);
-    if (portno_ == 0) {
-        return 0;
-    } else {
-        int ret = portno_ + port_offset;
-        guarantee(ret < 0x10000);
-        return ret;
-    }
 }
 
 

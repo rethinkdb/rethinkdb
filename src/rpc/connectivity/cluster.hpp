@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
@@ -28,14 +28,14 @@ template <class> class function;
 
 class peer_address_t {
 public:
-    peer_address_t(const std::set<ip_address_t> &_ips, portno_t p) : port(p), ips(_ips) { }
-    peer_address_t() : port(portno_t::zero()) { } // For deserialization
+    peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
+    peer_address_t() : port(0) { } // For deserialization
     ip_address_t primary_ip() const {
         guarantee(ips.begin() != ips.end());
         return *ips.begin();
     }
     const std::set<ip_address_t> *all_ips() const { return &ips; }
-    portno_t port;
+    int port;
 
     // Two addresses are considered equal if all of their IPs match
     bool operator==(const peer_address_t &a) const {
@@ -103,9 +103,9 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
               const std::set<ip_address_t> &local_addresses,
-              portno_t port,
+              int port,
               message_handler_t *message_handler,
-              portno_t client_port,
+              int client_port,
               heartbeat_manager_t *_heartbeat_manager) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
@@ -114,7 +114,7 @@ public:
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
         void join(peer_address_t) THROWS_NOTHING;
-        portno_t get_port();
+        int get_port();
 
     private:
         friend class connectivity_cluster_t;
@@ -241,8 +241,8 @@ public:
         mutex_t new_connection_mutex;
 
         scoped_ptr_t<tcp_bound_socket_t> cluster_listener_socket;
-        portno_t cluster_listener_port;
-        portno_t cluster_client_port;
+        int cluster_listener_port;
+        int cluster_client_port;
 
         variable_setter_t register_us_with_parent;
 

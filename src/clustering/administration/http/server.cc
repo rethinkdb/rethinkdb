@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/cyanide.hpp"
@@ -34,7 +34,7 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, clust
 
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         const std::set<ip_address_t> &local_addresses,
-        portno_t port,
+        int port,
         mailbox_manager_t *mbox_manager,
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
@@ -258,6 +258,6 @@ administrative_http_server_manager_t::~administrative_http_server_manager_t() {
     the `.hpp` file. */
 }
 
-portno_t administrative_http_server_manager_t::get_port() const {
+int administrative_http_server_manager_t::get_port() const {
     return server->get_port();
 }

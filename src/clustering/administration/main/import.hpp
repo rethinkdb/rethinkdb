@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_IMPORT_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_IMPORT_HPP_
 
@@ -25,8 +25,8 @@ struct json_import_target_t {
 bool run_json_import(extproc::spawner_t::info_t *spawner_info,
                      peer_address_set_t peers,
                      const std::set<ip_address_t> &local_addresses,
-                     portno_t ports_port,
-                     portno_t ports_client_port,
+                     int ports_port,
+                     int ports_client_port,
                      json_import_target_t import_args,
                      json_importer_t *importer,
                      signal_t *stop_cond);

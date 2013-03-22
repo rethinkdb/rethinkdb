@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef HTTP_JSON_JSON_ADAPTER_HPP_
 #define HTTP_JSON_JSON_ADAPTER_HPP_
 
@@ -414,15 +414,10 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(int *);
 cJSON *render_as_json(int *);
 void apply_json_to(cJSON *, int *);
 
-// ctx-less JSON adapter for uint16_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint16_t *);
-cJSON *render_as_json(const uint16_t *);
-void apply_json_to(cJSON *, uint16_t *);
-
-// ctx-less JSON adapter for uint32_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(uint32_t *);
-cJSON *render_as_json(const uint32_t *);
-void apply_json_to(cJSON *, uint32_t *);
+// ctx-less JSON adapter for unsigned int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *);
+cJSON *render_as_json(unsigned int *);
+void apply_json_to(cJSON *, unsigned int *);
 
 // ctx-less JSON adapter for unsigned long long
 json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long long *);  // NOLINT(runtime/int)
@@ -448,11 +443,6 @@ void apply_json_to(cJSON *, long *);  // NOLINT(runtime/int)
 json_adapter_if_t::json_adapter_map_t get_json_subfields(bool *);
 cJSON *render_as_json(bool *);
 void apply_json_to(cJSON *, bool *);
-
-// ctx-less JSON adapter for portno_t
-json_adapter_if_t::json_adapter_map_t get_json_subfields(portno_t *);
-cJSON *render_as_json(const portno_t *);
-void apply_json_to(cJSON *, portno_t *);
 
 // ctx-less JSON adapter for uuid_u
 json_adapter_if_t::json_adapter_map_t get_json_subfields(uuid_u *);

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 
@@ -109,11 +109,7 @@ std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region
 }
 
 std::string admin_value_to_string(int value) {
-    return strprintf("%d", value);
-}
-
-std::string admin_value_to_string(portno_t port) {
-    return strprintf("%" PRIu16, port.as_uint16());
+    return strprintf("%i", value);
 }
 
 std::string admin_value_to_string(const uuid_u& uuid) {
@@ -250,7 +246,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
     }
 }
 
-admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, portno_t client_port, signal_t *interruptor) :
+admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int client_port, signal_t *interruptor) :
     local_issue_tracker(),
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
@@ -280,7 +276,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, port
     directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, ip_address_t::get_local_addresses(std::set<ip_address_t>(), false), portno_t::zero(), &message_multiplexer_run, client_port, &heartbeat_manager),
+    connectivity_cluster_run(&connectivity_cluster, ip_address_t::get_local_addresses(std::set<ip_address_t>(), false), 0, &message_multiplexer_run, client_port, &heartbeat_manager),
     admin_tracker(semilattice_metadata, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
@@ -1922,6 +1918,9 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
     database_id_t database = str_to_uuid(database_info->path[1]);
     datacenter_id_t primary = nil_uuid();
     namespace_id_t new_id;
+    std::string protocol;
+    std::string primary_key;
+    uint64_t port;
 
     // If primary is specified, use it and verify its validity
     if (data.params.find("primary") != data.params.end()) {
@@ -1940,16 +1939,12 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary = str_to_uuid(datacenter_info->path[1]);
     }
 
-    std::string protocol;
-
     // TODO: fix this once multiple protocols are supported again
     if (data.params.find("protocol") != data.params.end()) {
         protocol = guarantee_param_0(data.params, "protocol");
     } else {
         protocol = "rdb";
     }
-
-    std::string primary_key;
 
     // Get the primary key
     if (data.params.find("primary-key") != data.params.end()) {
@@ -1962,27 +1957,23 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
         primary_key = "id";
     }
 
-    portno_t portno;
-
     // Make sure port is valid if required, or not specified if not needed
     if (protocol == "memcached") {
         if (data.params.find("port") == data.params.end()) {
             throw admin_parse_exc_t("port is required for the memcached protocol");
         }
         std::string port_str = guarantee_param_0(data.params, "port");
-        uint64_t port;
         if (!strtou64_strict(port_str, 10, &port)) {
             throw admin_parse_exc_t("port is not a number");
         }
-        if (port >= 0x10000) {
+        if (port > 65536) {
             throw admin_parse_exc_t("port is too large: " + port_str);
         }
-        portno = portno_t(static_cast<uint16_t>(port));
     } else {
         if (data.params.find("port") != data.params.end()) {
             throw admin_parse_exc_t("port is only vald for the memcached protocol");
         }
-        portno = portno_t::zero();
+        port = 0;
     }
 
     if (database_info->path[0] != "databases") {
@@ -1991,14 +1982,14 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
     if (protocol == "rdb") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        new_id = do_admin_create_table_internal(name, portno, primary, primary_key, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
     } else if (protocol == "memcached") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        new_id = do_admin_create_table_internal(name, portno, primary, primary_key, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
 #ifndef NO_DUMMY
     } else if (protocol == "dummy") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        new_id = do_admin_create_table_internal(name, portno, primary, primary_key, database, change.get());
+        new_id = do_admin_create_table_internal(name, port, primary, primary_key, database, change.get());
 #endif
     } else {
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
@@ -2011,7 +2002,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 // TODO: This is mostly redundant with the new_namespace function?  Or just outdated?
 template <class protocol_t>
 namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_string_t& name,
-                                                                    portno_t port,
+                                                                    int port,
                                                                     const datacenter_id_t& primary,
                                                                     const std::string& primary_key,
                                                                     const database_id_t& database,

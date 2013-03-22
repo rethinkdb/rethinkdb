@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
@@ -17,7 +17,7 @@
 
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::set<ip_address_t> &local_addresses,
-                                                                   portno_t port,
+                                                                   int port,
                                                                    boost::function<response_t(request_t *, context_t *)> _f,
                                                                    response_t (*_on_unparsable_query)(request_t *, std::string),
     protob_server_callback_mode_t _cb_mode)
@@ -44,7 +44,7 @@ template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::~protob_server_t() { }
 
 template <class request_t, class response_t, class context_t>
-portno_t protob_server_t<request_t, response_t, context_t>::get_port() const {
+int protob_server_t<request_t, response_t, context_t>::get_port() const {
     return tcp_listener->get_port();
 }
 

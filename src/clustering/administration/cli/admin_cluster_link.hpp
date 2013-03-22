@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 
@@ -45,7 +45,7 @@ public:
 
 class admin_cluster_link_t {
 public:
-    admin_cluster_link_t(const peer_address_set_t &joins, portno_t client_port, signal_t *interruptor);
+    admin_cluster_link_t(const peer_address_set_t &joins, int client_port, signal_t *interruptor);
     ~admin_cluster_link_t();
 
     // A way for the parser to do completions and parsing verification
@@ -153,7 +153,7 @@ private:
 
     template <class protocol_t>
     namespace_id_t do_admin_create_table_internal(const name_string_t& name,
-                                                  portno_t port,
+                                                  int port,
                                                   const datacenter_id_t& primary,
                                                   const std::string& primary_key,
                                                   const database_id_t& database,

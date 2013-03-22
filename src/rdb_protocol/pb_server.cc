@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
 
 #include "errors.hpp"
@@ -10,7 +10,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 query_server_t::query_server_t(const std::set<ip_address_t> &local_addresses,
-                               portno_t port,
+                               int port,
                                rdb_protocol_t::context_t *_ctx) :
     server(local_addresses, port, boost::bind(&query_server_t::handle, this, _1, _2),
            &on_unparsable_query, INLINE),
@@ -21,7 +21,7 @@ http_app_t *query_server_t::get_http_app() {
     return &server;
 }
 
-portno_t query_server_t::get_port() const {
+int query_server_t::get_port() const {
     return server.get_port();
 }
 

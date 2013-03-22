@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_NETWORK_HPP_
 #define ARCH_IO_NETWORK_HPP_
 
@@ -56,7 +56,7 @@ public:
     };
 
     // NB. interruptor cannot be NULL.
-    linux_tcp_conn_t(const ip_address_t &host, portno_t port, signal_t *interruptor, portno_t local_port = portno_t::zero()) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
 
@@ -344,14 +344,14 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
-    linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, portno_t _port,
+    linux_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int _port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
     ~linux_nonthrowing_tcp_listener_t();
 
     MUST_USE bool begin_listening();
     bool is_bound() const;
-    portno_t get_port() const;
+    int get_port() const;
 
 protected:
     friend class linux_tcp_listener_t;
@@ -365,7 +365,7 @@ protected:
 private:
     static const uint32_t MAX_BIND_ATTEMPTS = 20;
     void init_sockets();
-    bool bind_sockets_internal(portno_t *port_out);
+    bool bind_sockets_internal(int *port_out);
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
@@ -383,7 +383,7 @@ private:
     std::set<ip_address_t> local_addresses;
 
     // The port we're asked to bind to
-    portno_t port;
+    int port;
 
     // Inidicates successful binding to a port
     bool bound;
@@ -403,8 +403,8 @@ private:
 /* Used by the old style tcp listener */
 class linux_tcp_bound_socket_t {
 public:
-    linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, portno_t _port);
-    portno_t get_port() const;
+    linux_tcp_bound_socket_t(const std::set<ip_address_t> &bind_addresses, int _port);
+    int get_port() const;
 private:
     friend class linux_tcp_listener_t;
 
@@ -416,10 +416,10 @@ class linux_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
-    linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, portno_t port,
+    linux_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
 
-    portno_t get_port() const;
+    int get_port() const;
 
 private:
     scoped_ptr_t<linux_nonthrowing_tcp_listener_t> listener;
@@ -428,12 +428,12 @@ private:
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
 class linux_repeated_nonthrowing_tcp_listener_t {
 public:
-    linux_repeated_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, portno_t port,
+    linux_repeated_nonthrowing_tcp_listener_t(const std::set<ip_address_t> &bind_addresses, int port,
         const boost::function<void(scoped_ptr_t<linux_tcp_conn_descriptor_t>&)> &callback);
     void begin_repeated_listening_attempts();
 
     signal_t *get_bound_signal();
-    portno_t get_port() const;
+    int get_port() const;
 
 private:
     void retry_loop(auto_drainer_t::lock_t lock);

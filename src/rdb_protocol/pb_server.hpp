@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PB_SERVER_HPP_
 #define RDB_PROTOCOL_PB_SERVER_HPP_
 
@@ -17,11 +17,11 @@
 
 class query_server_t {
 public:
-    query_server_t(const std::set<ip_address_t> &local_addresses, portno_t port, rdb_protocol_t::context_t *_ctx);
+    query_server_t(const std::set<ip_address_t> &local_addresses, int port, rdb_protocol_t::context_t *_ctx);
 
     http_app_t *get_http_app();
 
-    portno_t get_port() const;
+    int get_port() const;
 
     struct context_t {
         context_t() : interruptor(0) { }

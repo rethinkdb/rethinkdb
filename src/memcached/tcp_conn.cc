@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "memcached/tcp_conn.hpp"
 
 #include "errors.hpp"
@@ -97,7 +97,7 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 
 
 memcache_listener_t::memcache_listener_t(const std::set<ip_address_t> &local_addresses,
-                                         portno_t _port,
+                                         int _port,
                                          namespace_repo_t<memcached_protocol_t> *_ns_repo,
                                          uuid_u _namespace_id,
                                          perfmon_collection_t *_parent)
