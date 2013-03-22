@@ -24,7 +24,7 @@ with RethinkDBTestServers(4, server_build=server_build) as servers:
     num_rows = randint(1111, 2222)
 
     print "Inserting %d rows" % num_rows
-    tbl.insert([{'id':i} for i in xrange(0, num_rows)]).run(c)
+    tbl.insert([{'id':i, 'nums':range(0, 500)} for i in xrange(0, num_rows)]).run(c)
     print "Done\n"
 
     if not lang or lang is 'py':

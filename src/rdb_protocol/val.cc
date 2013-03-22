@@ -6,6 +6,8 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term.hpp"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 // Most of this logic is copy-pasted from the old query language.
@@ -88,17 +90,15 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));
     } else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
            N1(ERROR, NDATUM("Duplicate primary key.")))
-#pragma GCC diagnostic pop
             }
 
     propagate(&t);
-    return do_replace(orig, map_wire_func_t(t, nullptr));
+    return do_replace(
+        orig, map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL)));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

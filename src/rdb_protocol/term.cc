@@ -22,6 +22,8 @@
 #include "rdb_protocol/terms/writes.hpp"
 #include "rdb_protocol/terms/js.hpp"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 // #define INSTRUMENT 1
@@ -132,10 +134,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             }
             env_wrapper_t<Term> *ewt = env->add_ptr(new env_wrapper_t<Term>());
             Term *arg = &ewt->t;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
+
             N1(DB, NDATUM("test"));
-#pragma GCC diagnostic pop
+
             term_walker_t(arg, t_bt); // duplicate toplevel backtrace
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely

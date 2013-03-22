@@ -120,6 +120,7 @@ module 'NamespaceView', ->
 
         destroy: =>
             namespaces.off 'remove', @check_if_still_exists
+            @model.clear_timeout()
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()

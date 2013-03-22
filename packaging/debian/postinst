@@ -19,6 +19,9 @@ case "$1" in
   configure|abort-upgrade|abort-remove|abort-deconfigure)
     # update-alternatives is idempotent (in the sense described in the Debian Policy Manual: Package maintainer scripts and installation procedure)
     # prerm script could delete the link in case of abort-*, so we need to recreate it again.
+  if [ "$1" = "configure" ]; then
+    adduser --system --quiet --group --no-create-home rethinkdb || true
+  fi
   if [ UPDATE_ALTERNATIVES = 1 ] ;
   then
     update-alternatives \
@@ -32,10 +35,6 @@ case "$1" in
   if [ "`find /etc/rethinkdb/instances.d -maxdepth 1 -type f -name '*.conf'`" = "" ]; then
     echo The RethinkDB startup service is installed but disabled. To enable it,
     echo follow the instructions in the guide located at http://www.rethinkdb.com/docs/guides/startup/
-  fi
-
-  if [ "$1" = "configure" ]; then
-    adduser --system --quiet --group --no-create-home rethinkdb || true
   fi
   ;;
 

@@ -2,16 +2,15 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
     Term *arg = &ewt->t;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
-#pragma GCC diagnostic pop
     term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
     optargs[key] = wire_func_t(*arg, 0);
     return false;

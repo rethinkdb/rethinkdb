@@ -46,13 +46,5 @@ version_map_t vmap_max(const version_map_t& x, const version_map_t &y) {
     return res;
 }
 
-void print_version_map(const version_map_t &vm) {
-    debugf("Version map:\n");
-    for (version_map_t::const_iterator it  = vm.begin();
-                                       it != vm.end();
-                                       ++it) {
-        debugf("%s -> %d\n", uuid_to_str(it->first).c_str(), it->second);
-    }
-}
 } //namespace vclock_details
 

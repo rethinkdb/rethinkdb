@@ -66,6 +66,13 @@ configure () {
     var DEB_ARCH $(echo "${GCC_ARCH_REDUCED:-}" | sed -e 's/^x86_64$$/amd64/g')
     check_cxx
     require "Precompiled web assets"
+    if [[ -z "$enable_precompiled_web" ]]; then
+        if test -d precompiled/web; then
+            enable_precompiled_web=true
+        else
+            enable_precompiled_web=false
+        fi
+    fi
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
     if ! $enable_precompiled_web; then
         for bin in $web_assets_deps; do
@@ -154,7 +161,7 @@ read_args () {
     arg_localstatedir=
     with_tcmalloc=true
     enable_drivers=true
-    enable_precompiled_web=false
+    enable_precompiled_web=
 
     while [[ $# -ne 0 ]]; do
         arg=${1#*=}
@@ -176,7 +183,7 @@ read_args () {
             --config) $has_arg; config=$arg ;;
             --continue) $no_arg; exit_on_error=false ;;
             --allow-fetch) $no_arg; allow_fetch=true ;;
-            --force-fetch) $has_arg
+            --fetch) $has_arg
                 allow_fetch=true
                 if [[ "$arg" = "all" ]]; then
                     fetch_list="$support_deps"
@@ -253,7 +260,7 @@ Usage: $0 [arguments]
   <var>=<val>             Set the value of a variable
                             CXXFLAGS  C++ compiler arguments
                             LDFLAGS   C++ linker arguments
-  --force-fetch <dep>     Force fetching <dep>.
+  --fetch <dep>           Force fetching <dep>.
   <DEP>=<path>            Library or executable path. <dep> can be
 EOF
     for dep in $all_deps; do
@@ -551,7 +558,7 @@ lookup () {
 # check_bin <name>
 # Check for a binary
 check_bin () {
-    require_dep $bin
+    require_dep $1
     if $allow_fetch && contains "$fetch_list" $1; then
         fetch_bin $1
         return
