@@ -1,6 +1,8 @@
 [RethinkDB](http://www.rethinkdb.com)
 =================
 
+[![Build Status](https://travis-ci.org/[rethinkdb]/[rethinkdb].png?branch=next)](https://travis-ci.org/[rethinkdb]/[rethinkdb])
+
 RethinkDB is an open-source distributed database. It has an intuitive
 query language, automatically parallelized queries, and simple
 administration.
