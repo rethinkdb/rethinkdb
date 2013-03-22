@@ -475,6 +475,28 @@ public:
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
+class result_finalizer_visitor_t : public boost::static_visitor<void> {
+public:
+    void operator()(const rget_read_response_t::stream_t &) const { }
+    void operator()(const rget_read_response_t::groups_t &) const { }
+    void operator()(const rget_read_response_t::atom_t &) const { }
+    void operator()(const rget_read_response_t::length_t &) const { }
+    void operator()(const rget_read_response_t::inserted_t &) const { }
+    void operator()(const query_language::runtime_exc_t &) const { }
+    void operator()(const ql::exc_t &) const { }
+    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+    void operator()(const rget_read_response_t::empty_t &) const { }
+    void operator()(const rget_read_response_t::vec_t &) const { }
+
+    void operator()(ql::wire_datum_t &d) const {
+        d.finalize();
+    }
+    void operator()(ql::wire_datum_map_t &dm) const {
+        dm.finalize();
+    }
+};
+
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
                     ql::env_t *ql_env,
@@ -490,13 +512,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
         response->truncated = false;
     }
 
-    //TODO: change this whole file so that this isn't necessary.
-    if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
-        d->finalize();
-    } else if (ql::wire_datum_map_t *dm =
-               boost::get<ql::wire_datum_map_t>(&response->result)) {
-        dm->finalize();
-    }
+    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
