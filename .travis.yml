@@ -11,7 +11,7 @@ before_script:
   - sudo npm install -g handlebars@1.0.10
 
 # Build script
-script: ./configure && make unit -j 2
+script: ./configure && make DEBUG=1 unit -j 2
 
 # Only use these branches (for now)
 branches:
