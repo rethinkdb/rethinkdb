@@ -31,7 +31,7 @@ typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
-    boost::shared_ptr<scoped_cJSON_t> next(); //MAY THROW    // RSI is anybody using this?  Should they be?
+    boost::shared_ptr<scoped_cJSON_t> next(); //MAY THROW   // calls next_impl.
 
     virtual batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *json_out) = 0;  // MAY THROW
 
