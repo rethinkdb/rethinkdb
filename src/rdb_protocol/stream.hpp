@@ -33,7 +33,7 @@ public:
     json_stream_t() { }
     boost::shared_ptr<scoped_cJSON_t> next(); //MAY THROW   // calls next_impl.
 
-    virtual batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *json_out) = 0;  // MAY THROW
+    virtual batch_info_t next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *json_out) = 0;  // MAY THROW
 
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
@@ -64,7 +64,7 @@ public:
         }
     }
 
-    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
+    batch_info_t next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out);
 
     /* Use default implementation of `add_transformation()` and `apply_terminal()` */
 
@@ -76,7 +76,7 @@ class transform_stream_t : public json_stream_t {
 public:
     transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
 
-    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
+    batch_info_t next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out);
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
 
 private:
@@ -99,7 +99,7 @@ public:
                           const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated);
 
-    batch_info_t next_impl(boost::shared_ptr<scoped_cJSON_t> *out);
+    batch_info_t next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out);
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
