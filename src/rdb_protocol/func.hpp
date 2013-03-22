@@ -23,16 +23,15 @@ public:
     func_t(env_t *env, const Term *_source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static counted_t<func_t> new_filter_func(env_t *env, counted_t<const datum_t> obj,
-                                             const pb_rcheckable_t *root);
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                                const pb_rcheckable_t *root);
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
+
     // Prefer these versions of call.
     counted_t<val_t> call();
     counted_t<val_t> call(counted_t<const datum_t> arg);
     counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
-    bool filter_call(env_t *env, counted_t<const datum_t> arg);
+    bool filter_call(counted_t<const datum_t> arg);
 
     void dump_scope(std::map<int64_t, Datum> *out) const;
     bool is_deterministic() const;
