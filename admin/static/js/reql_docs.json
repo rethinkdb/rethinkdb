@@ -1323,7 +1323,7 @@
         },
         {
           "tag": "zip",
-          "description": "Used to 'zip' up the result of a join by merging the 'left' and 'right' fields of each member of the sequence.",
+          "description": "Used to 'zip' up the result of a join by merging the 'right' fields into 'left' fields of each member of the sequence.",
           "parent": "sequence",
           "returns": "sequence",
           "langs": {
@@ -1513,7 +1513,7 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes:",
+                  "description": "Here in conjunction with orderBy we choose to ignore the first 10 most successful heroes:",
                   "code": "r.table('marvel').orderBy('successMetric').skip(10).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
@@ -1525,7 +1525,7 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjunction with order_by we choose to ignore the most successful heroes:",
+                  "description": "Here in conjunction with order_by we choose to ignore the first 10 most successful heroes:",
                   "code": "r.table('marvel').order_by('successMetric').skip(10).run(conn)"
                 }
               ]
@@ -1535,7 +1535,7 @@
               "body": "n",
               "examples" : [
                 {
-                  "description": "Here in conjunction with orderBy we choose to ignore the most successful heroes:",
+                  "description": "Here in conjunction with orderBy we choose to ignore the first 10 most successful heroes:",
                   "code": "r.table('marvel').order_by(:success_metric).skip(10).run(conn)"
                 }
               ]
@@ -1733,7 +1733,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel').map(function(hero) {\n return hero('monstersKilled')).add(hero('superVillainsVanquished'))\n}).reduce(function(acc, val) {\n return acc.add(val)\n}, 0).run(conn)",
+                  "code": "r.table('marvel').map(r.row('monstersKilled')).reduce(function(acc, val) {\n return acc.add(val)\n}, 0).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -1745,7 +1745,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel')\n .map(lambda hero: hero['monstersKilled'] + hero['superVillainsVanquished'])\n .reduce(lambda acc, val: acc + val, 0).run(conn)"
+                  "code": "r.table('marvel').map(r.row[:monsters_killed])\n .reduce(lambda acc, val: acc + val, 0).run(conn)"
                 }
               ]
             },
@@ -1755,7 +1755,7 @@
               "examples" : [
                 {
                   "description": "How many enemies have our heroes defeated?",
-                  "code": "r.table('marvel').map {|hero|\n  hero[:monsters_killed] + hero[:super_villains_vanquished]\n}.reduce(0) {|acc, val|\n  acc + val\n}.run(conn)"
+                  "code": "r.table('marvel').map {|hero| hero['monstersKilled']}.reduce(0) {|acc, val|\n  acc + val\n}.run(conn)"
                 }
               ]
             }
@@ -1854,7 +1854,7 @@
               "examples" : [
                 {
                   "description": "It's only fair that heroes be compared against their weight class:",
-                  "code": "r.table('marvel').groupedMapReduce(\n  function(hero) { return hero('weightClass')},  # grouping\n  function(hero) { return hero.pluck('name', 'strength')},  # mapping\n  function(acc, hero) {  # reduction\n    return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n  },\n  {name:'none', strength:0} # reduction base\n).run(conn)",
+                  "code": "r.table('marvel').groupedMapReduce(\n  function(hero) { return hero('weightClass')},  // grouping\n  function(hero) { return hero.pluck('name', 'strength')},  // mapping\n  function(acc, hero) {  // reduction\n    return r.branch(acc('strength').lt(hero('strength')), hero, acc)\n  },\n  {name:'none', strength:0} // reduction base\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -2086,6 +2086,12 @@
                   "code": "r.expr([1, 2, 3]).map(r.row.add(1)).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
+                },
+                {
+                  "description": "For nested queries functions should be used instead of r.row:",
+                  "code": "r.table('users').filter(function(doc) {\n    return doc('name').eq(r.table('prizes').get('winner'))\n}).run(conn)",
+                  "can_try": true,
+                  "dataset": "marvel"
                 }
               ]
             },
@@ -2106,6 +2112,10 @@
                 {
                   "description": "Add 1 to every element of an array:",
                   "code": "r.expr([1, 2, 3]).map(r.row + 1).run(conn)"
+                },
+                {
+                  "description": "For nested queries functions should be used instead of r.row:",
+                  "code": "r.table('users').filter(lambda doc: doc['name'] == r.table('prizes').get('winner'))\n .run(conn)"
                 }
               ]
             }
@@ -3057,8 +3067,8 @@
               "body": "test, trueBranch, falseBranch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n r.table('marvel').get('Thor'),\n function(ironman, thor) {\n  return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)\n}).run(conn)",
+                  "description": "Hero or Superhero?",
+                  "code": "r.table('marvel').map(r.branch(r.row('victories').gt(100),\n    r.row('name').add(' is a superhero'),\n    r.row('name').add(' is a hero'))\n).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
@@ -3069,8 +3079,8 @@
               "body": "test, true_branch, false_branch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'),\n  r.table('marvel').get('Thor'),\n  lambda ironman, thor: r.branch(ironman['manliness'] > thor['manliness'],\n                                  ironman,\n                                  thor)\n).run(conn)"
+                  "description": "Hero or Superhero?",
+                  "code": "r.table('marvel').map(r.branch(r.row['victories'] > 100,\n    r.row['name'] + ' is a superhero',\n    r.row['name'] + ' is a hero')\n).run(conn)"
                 }
               ]
             },
@@ -3079,8 +3089,8 @@
               "body": "test, true_branch, false_branch",
               "examples" : [
                 {
-                  "description": "Return the manlier of two heroes:",
-                  "code": "r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {\n  r.branch(ironman[:manliness] > thor[:manliness], ironman thor)\n}.run(conn)"
+                  "description": "Hero or Superhero?",
+                  "code": "r.table('marvel').map { |row|  r.branch(row[:victories] > 100,\n    row[:name] + ' is a superhero',\n    row[:name] + ' is a hero')\n}.run(conn)"
                 }
               ]
             }
@@ -3098,7 +3108,7 @@
               "examples" : [
                 {
                   "description": "Now that our heroes have defeated their villains, we can safely remove them from the villain table:",
-                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villains').get(hero('villainDefeated')).del()\n}).run(conn)",
+                  "code": "r.table('marvel').forEach(function(hero) {\n return r.table('villains').get(hero('villainDefeated')).delete()\n}).run(conn)",
                   "can_try": true,
                   "dataset": "marvel"
                 }
