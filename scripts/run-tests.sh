@@ -24,6 +24,7 @@ for path in $dir/tests/*.param; do
         echo $test: $cmd
         ( mkdir $dir-$test
           cd $dir-$test
+          echo "$cmd" > test.cmd
           /usr/bin/time --output test.time bash -c "$cmd" > >(tee test.out) 2> >(tee test.err)
           echo $? > test.code
           cd ..
