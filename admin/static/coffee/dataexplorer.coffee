@@ -693,14 +693,17 @@ module 'DataExplorerView', ->
                         else if @extra_suggestions? and @extra_suggestions.length > 0 and @start_body is @start_body
                             # Trim suggestion
                             if @extra_suggestion?.body?[0]?.type is 'string'
-                                # Remove quotes around the table/db name
-                                current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
-                                regex = @create_safe_regex current_name
-                                new_extra_suggestions = []
-                                for suggestion in @extra_suggestions
-                                    if regex.test(suggestion) is true
-                                        new_extra_suggestions.push suggestion
-                                @extra_suggestions = new_extra_suggestions
+                                if @extra_suggestion.body[0].complete is true
+                                    @extra_suggestions = []
+                                else
+                                    # Remove quotes around the table/db name
+                                    current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
+                                    regex = @create_safe_regex current_name
+                                    new_extra_suggestions = []
+                                    for suggestion in @extra_suggestions
+                                        if regex.test(suggestion) is true
+                                            new_extra_suggestions.push suggestion
+                                    @extra_suggestions = new_extra_suggestions
 
                             if @extra_suggestions.length > 0 # If there are still some valid suggestions
                                 query = @codemirror.getValue()
@@ -717,6 +720,11 @@ module 'DataExplorerView', ->
                                 if end_body isnt -1
                                     @query_last_part = query.slice end_body
                                 @query_first_part = query.slice 0, @extra_suggestion.start_body
+                                lines = @query_first_part.split('\n')
+                                # Because we may have slice before @cursor_for_auto_completion, we re-define it
+                                @cursor_for_auto_completion =
+                                    line: lines.length-1
+                                    ch: lines[lines.length-1].length
 
                                 if event.shiftKey is true
                                     @current_highlighted_extra_suggestion--
@@ -731,18 +739,18 @@ module 'DataExplorerView', ->
                                 suggestion = ''
                                 if @current_highlighted_extra_suggestion is -1
                                     if @current_extra_suggestion?
-                                        #TODO use a regex
-                                        if @current_extra_suggestion[0] is '"'
+                                        if /^\s*'/.test(@current_extra_suggestion) is true
                                             suggestion = @current_extra_suggestion+"'"
-                                        else if @current_extra_suggestion[0] is "'"
-                                            suggestion = @current_extra_suggestion+"'"
+                                        else if /^\s*"/.test(@current_extra_suggestion) is true
+                                            suggestion = @current_extra_suggestion+'"'
                                 else
-                                    # TODO get string delimiter
-                                    string_delimiter = "'"
-                                    if string_delimiter is ''
-                                        suggestion = "'"+@extra_suggestions[@current_highlighted_extra_suggestion]+"'"
+                                    if /^\s*'/.test(@current_extra_suggestion) is true
+                                        string_delimiter = "'"
+                                    else if /^\s*"/.test(@current_extra_suggestion) is true
+                                        string_delimiter = '"'
                                     else
-                                        suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
+                                        string_delimiter = "'"
+                                    suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
                                 
                                 @write_suggestion
                                     suggestion_to_write: suggestion
@@ -1710,9 +1718,10 @@ module 'DataExplorerView', ->
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
             if @options?.can_extend? and @options?.can_extend is false
+                @extra_suggestions= null
                 return @descriptions[fn]
 
-            if fn is 'db('
+            if fn is 'db(' or fn is 'dbDrop('
                 description = _.extend {}, @descriptions[fn]
                 if databases.length is 0
                     data =
@@ -1724,7 +1733,7 @@ module 'DataExplorerView', ->
                         databases_available: databases_available
                 description.description = @databases_suggestions_template(data)+description.description
                 @extra_suggestions= databases_available
-            else if fn is 'table('
+            else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
                 description = _.extend {}, @descriptions[fn]
