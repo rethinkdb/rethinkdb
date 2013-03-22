@@ -79,6 +79,15 @@ for section in sections:
                     'examples': []
                 }
 
+                if 'is_operator' in command:
+                    out_lang['is_operator'] = command['is_operator']
+                if 'is_selector' in command:
+                    out_lang['is_selector'] = command['is_selector']
+                if 'name1' in command:
+                    out_lang['name1'] = command['name1']
+                if 'name2' in command:
+                    out_lang['name2'] = command['name2']
+
                 out_examples = []
                 if 'examples' in command:
                     for example in command['examples']:
@@ -91,7 +100,7 @@ for section in sections:
 
                         out_examples.append(out_example)
 
-                # Now process individual language overrides 
+                # Now process individual language overrides
                 if lang in command:
                     override = command[lang]
 

@@ -1,0 +1,256 @@
+sections:
+  - tag: control
+    name: Control Structures
+    description: These commands provide basic control structures for the composition of complex queries.
+
+commands:
+  - tag: do
+    section: control
+    description: Evaluate the <code>inExpr</code> in the context of one or more value
+      bindings.
+
+    body: arg, [args*, ]inExpr
+    parent: r
+    returns: json
+
+    examples:
+      - description: The object(s) passed to do() can be bound to name(s). The
+          last argument is the expression to evaluate in the context of the bindings.
+        code:
+          js: |-
+            r.do(r.table('marvel').get('IronMan'),
+                 function (ironman) { return ironman('name'); }
+            ).run(conn)
+          py: |-
+            r.do(r.table('marvel').get('IronMan'),
+                 lambda ironman: ironman['name']).run(conn)
+          rb: r.do(r.table('marvel').get('IronMan')) { |ironman| ironman[:name] }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: branch
+    section: control
+    description: Evaluate one of two control paths based on the value of an expression.
+
+    body:
+      js: test, trueBranch, falseBranch
+      py: test, true_branch, false_branch
+      rb: test, true_branch, false_branch
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Return the manlier of two heroes:'
+        code:
+          js: |-
+            r.do(r.table('marvel').get('IronMan'),
+             r.table('marvel').get('Thor'),
+             function(ironman, thor) {
+              return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)
+            }).run(conn)
+          py: |-
+            r.do(r.table('marvel').get('IronMan'),
+              r.table('marvel').get('Thor'),
+              lambda ironman, thor: r.branch(ironman['manliness'] > thor['manliness'],
+                                              ironman,
+                                              thor)
+            ).run(conn)
+          rb: |-
+            r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {
+              r.branch(ironman[:manliness] > thor[:manliness], ironman thor)
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: foreach
+    section: control
+    description: Loop over a sequence, evaluating the given write query for each element.
+
+    body:
+      js: queryFunction
+      py: query_function
+      rb: query_function
+    parent: r
+    returns: query
+
+    examples:
+      - description: Now that our heroes have defeated their villains, we can safely
+          remove them from the villain table.
+        code:
+          js: |-
+            r.table('marvel').forEach(function(hero) {
+             return r.table('villains').get(hero('villainDefeated')).del()
+            }).run(conn)
+          py: |-
+            r.table('marvel').for_each(
+                lambda hero: r.table('villains').get(hero['villainDefeated']).delete()
+            ).run(conn)
+          rb: |-
+            r.table('marvel').for_each {|hero|
+              r.table('villains').get(hero[:villain_defeated]).delete
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: error
+    section: control
+    description: Throw a runtime error.
+
+    body: message
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Iron Man can''t possibly have lost a battle:'
+        code:
+          js: |-
+            r.table('marvel').get('IronMan').do(function(ironman) {
+             return r.branch(ironman('victories').lt(ironman('battles')),
+              r.error('impossible code path'),
+              ironman
+            )).run(conn)
+          py: |-
+            r.table('marvel').get('IronMan').do(
+              lambda ironman: r.branch(ironman['victories'] < ironman['battles'],
+                                        r.error('impossible code path'),
+                                        ironman)
+            ).run(conn)
+          rb: |-
+            r.table('marvel').get('IronMan').do {
+              r.branch(ironman[:victories] < ironman[:battles],
+                r.error('impossible code path'),
+                ironman)
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: expr
+    section: control
+    description: Construct a RQL JSON object from a native object.
+
+    body: obj
+    parent: r
+    returns: json
+
+    examples:
+      - description: Objects wrapped with expr can then be manipulated by RQL API functions.
+        code:
+          js: r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn)
+          py: r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(conn)
+          rb: r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
+
+      - description:
+          js: In JavaScript, you can also do this with just r.
+          rb: In Ruby, you can also do this with just r.
+        code:
+          js: "r({a: 'b'}).merge({b: [1,2,3]}).run(conn)"
+          rb: r({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
+
+    py:
+      examples:
+        1: {}
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+
+  - tag: js
+    section: control
+    description: Create a javascript expression.
+
+    body: jsstring
+    parent: r
+    returns: js
+
+    examples:
+      - description: Concatenate two strings using Javascript'
+        code: r.js("''str1'' + ''str2''").run(conn)
+      - description: Select all documents where the 'magazines' field is greater
+          than 5 by running Javascript on the server.
+        code: |-
+          r.table('marvel').filter(r.js('(function (row) { return row.magazines > 5; })'))
+           .run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+
+  - tag: coerce_to
+    section: control
+    description: Converts a value of one type into another. Supported conversions are
+      NUMBER -> STRING, SELECTION -> ARRAY, OBJECT -> ARRAY.
+
+    body: typename
+    parent: json
+    returns: json
+
+    examples:
+      - description: Convert a table to an array.
+        code: r.table('marvel').coerce_to('array').run(conn)
+      - description: Convert an array of pairs into an object.
+        code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+      - description: Convert a number to a string.
+        code: r.expr(1).coerce_to('string').run(conn)
+
+    js:
+      name: coerceTo
+      examples:
+        0:
+          code: r.table('marvel').coerceTo('array').run(conn)
+          can_try: true
+          dataset: marvel
+        1:
+          code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+          can_try: true
+          dataset: marvel
+        2:
+          code: r.expr(1).coerceTo('string').run(conn)
+          can_try: true
+          dataset: marvel
+
+  - tag: type_of
+    section: control
+    description: Gets the type of a value.
+
+    body: value
+    parent: json
+    returns: string
+
+    examples:
+      - description: Get the type of a string.
+        code: r.expr("foo").type_of().run(conn)
+
+    js:
+      name: typeOf
+      examples:
+        0:
+          code: r.expr("foo").typeOf().run(conn)
+          can_try: true
+          dataset: marvel
+
