@@ -13,11 +13,8 @@ before_script:
 # Build script
 script: ./configure && make DEBUG=1 unit -j 2
 
-# Only use these branches (for now)
-branches:
-  only:
-    - travis
-
-# Notify the IRC channel
+# Notify only on change
 notifications:
-  irc: "irc.freenode.org#rethinkdb"
+  email:
+    on_success: change
+    on_failure: change
