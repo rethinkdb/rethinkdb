@@ -241,10 +241,14 @@ slice_datum_stream_t::slice_datum_stream_t(
     env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
     : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (l > r || ind > r) return 0;
+    if (l > r || ind > r) {
+        return NULL;
+    }
     while (ind++ < l) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        src->next();
+        if (!src->next()) {
+            return NULL;
+        }
     }
     return src->next();
 }
