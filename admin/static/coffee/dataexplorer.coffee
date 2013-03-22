@@ -736,6 +736,7 @@ module 'DataExplorerView', ->
                                 else if @current_highlighted_extra_suggestion < -1
                                     @current_highlighted_extra_suggestion = @extra_suggestions.length-1
 
+                                # Create the next suggestion
                                 suggestion = ''
                                 if @current_highlighted_extra_suggestion is -1
                                     if @current_extra_suggestion?
@@ -1494,6 +1495,7 @@ module 'DataExplorerView', ->
                             else
                                 result.suggestions = null
                                 result.description = element.name
+                                #Define the current argument we have. It's the suggestion whose index is -1
                                 @extra_suggestion =
                                     start_body: element.position + element.name.length
                                     body: element.body
@@ -1732,7 +1734,7 @@ module 'DataExplorerView', ->
                         no_database: false
                         databases_available: databases_available
                 description.description = @databases_suggestions_template(data)+description.description
-                @extra_suggestions= databases_available
+                @extra_suggestions= databases_available # @extra_suggestions store the suggestions for arguments. So far they are just for db(), dbDrop(), table(), tableDrop()
             else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
