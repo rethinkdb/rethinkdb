@@ -95,6 +95,18 @@ lazy_datum_stream_t::lazy_datum_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
                       env->get_all_optargs(), use_outdated))
 { }
+
+lazy_datum_stream_t::lazy_datum_stream_t(
+    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    const datum_t *pval, uuid_u sindex_id,
+    const pb_rcheckable_t *bt_src)
+    : datum_stream_t(env, bt_src),
+      json_stream(new query_language::batched_rget_stream_t(
+                      *ns_access, env->interruptor,
+                      rdb_protocol_t::sindex_key_range(store_key_t(pval->print_primary())), sindex_id,
+                      env->get_all_optargs(), use_outdated))
+{ }
+
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {
     *this = *src;

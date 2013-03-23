@@ -206,7 +206,8 @@ message Term {
         TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
         // Gets a single element from a table by its primary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
-                    // Table, STRING -> NULL            | Table, NUMBER -> NULL
+                    // Table, STRING -> NULL            | Table, NUMBER -> NULL |
+                    // Table, STRING, STRING -> StreamSelection | Table, NUMBER, STRING -> StreamSelection |
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL

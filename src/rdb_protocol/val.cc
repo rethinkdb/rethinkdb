@@ -149,6 +149,12 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
+datum_stream_t *table_t::get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt) {
+    return env->add_ptr(
+            new lazy_datum_stream_t(env, use_outdated, access.get(),
+                                    pval, sindex_id, bt));
+}
+
 datum_stream_t *table_t::as_datum_stream() {
     return env->add_ptr(
         new lazy_datum_stream_t(env, use_outdated, access.get(), this));

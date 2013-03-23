@@ -272,7 +272,7 @@ val_t *term_t::new_val(const datum_t *d, table_t *t) {
 }
 
 val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
-val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
+val_t *term_t::new_val(datum_stream_t *s, table_t *d) {
     return env->new_val(d, s, this);
 }
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
