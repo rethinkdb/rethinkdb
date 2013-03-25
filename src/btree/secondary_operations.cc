@@ -2,6 +2,8 @@
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/vector_stream.hpp"
+#include "protocol_api.hpp"
 
 void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out) {
     const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());

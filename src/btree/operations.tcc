@@ -7,8 +7,6 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
-#include "protocol_api.hpp" //for region_map_t relocate to secondary operations
-#include "containers/archive/vector_stream.hpp" //relocate to secondary operations
 
 // TODO: consider B#/B* trees to improve space efficiency
 
