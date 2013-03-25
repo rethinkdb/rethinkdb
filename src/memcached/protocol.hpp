@@ -177,7 +177,6 @@ public:
 
         void protocol_write(const write_t &write,
                             write_response_t *response,
-                            cond_t *disk_ack_signal,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             transaction_t *txn,
