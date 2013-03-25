@@ -25,8 +25,6 @@ namespace unittest {
 void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
-        if (i % 100 == 0) { debugf("Insert %d\n", i); }
-
         cond_t dummy_interuptor;
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;

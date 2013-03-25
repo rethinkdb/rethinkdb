@@ -200,7 +200,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     }
 }
 
-TEST(RDBProtocolBackfill, DISABLED_Backfill) {
+TEST(RDBProtocolBackfill, Backfill) {
      run_in_thread_pool_with_broadcaster(&run_partial_backfill_test);
 }
 
