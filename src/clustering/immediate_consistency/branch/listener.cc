@@ -534,7 +534,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 #endif
 
         // Perform the operation
-        cond_t non_interruptor;
         typename protocol_t::write_response_t response;
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
