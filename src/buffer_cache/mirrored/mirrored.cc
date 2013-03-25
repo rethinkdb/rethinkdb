@@ -914,29 +914,6 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
-/* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, DEBUG_VAR bool dont_assert_about_shutting_down) :
-    cache(_cache),
-    expected_change_count(0),
-    access(_access),
-    recency_timestamp(repli_timestamp_t::distant_past),
-    snapshot_version(mc_inner_buf_t::faux_version_id),
-    snapshotted(false),
-    cache_account(NULL),
-    num_buf_locks_acquired(0),
-    is_writeback_transaction(false) {
-    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
-    rassert(access == rwi_read || access == rwi_read_sync);
-
-    // No write throttle acq.
-
-    cache->assert_thread();
-    rassert(dont_assert_about_shutting_down || !cache->shutting_down);
-    cache->num_live_non_writeback_transactions++;
-    cache->writeback.begin_transaction(this);
-    cache->stats->pm_transactions_active.begin(&start_time);
-}
-
 mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
     cache(_cache),
     expected_change_count(0),
