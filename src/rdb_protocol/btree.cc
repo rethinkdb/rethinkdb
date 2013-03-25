@@ -610,6 +610,11 @@ void rdb_update_single_sindex(
         rdb_modification_report_t *modification,
         transaction_t *txn,
         auto_drainer_t::lock_t) {
+    //Note if you get this error it's likely that you've passed in a default
+    //constructed mod_report. Don't do that mod reports should always be passed
+    //to a function as an output parameter before they're passed to this
+    //function.
+    guarantee(modification->primary_key.size() != 0);
     ql::map_wire_func_t mapping;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
