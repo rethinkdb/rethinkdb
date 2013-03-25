@@ -147,7 +147,7 @@ void post_construct_and_drain_queue(
         /* Drain the queue. */
 
         int previous_size = mod_queue->size();
-        while (true) {
+        while (!lock.get_drain_signal()->is_pulsed()) {
             write_token_pair_t token_pair;
             store->new_write_token_pair(&token_pair);
 
@@ -205,7 +205,7 @@ void post_construct_and_drain_queue(
                 break;
             }
         }
-    catch (const interrupted_exc_t &) {
+    } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
         // indeterminate state and will be cleaned up at a later point.
     }
