@@ -315,7 +315,6 @@ public:
                                      superblock_t *superblock,
                                      write_token_pair_t *token_pair) = 0;
 
-//private: >.<
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
