@@ -13,7 +13,7 @@ class TermBase
 
     run: (conn, cb) ->
         useOutdated = undefined
-        if typeof(conn) is 'object' and not (conn instanceof Connection)
+        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
             useOutdated = !!conn.useOutdated
             for own key of conn
                 unless key in ['connection', 'useOutdated']
@@ -81,7 +81,7 @@ class RDBVal extends TermBase
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
     groupBy: (attrs..., collector = null) ->
-        arg_count = attrs.length + (collector && 1 || 0)
+        arg_count = attrs.length + (if collector? then 1 else 0)
         if collector == null
             throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
         new GroupBy {}, @, attrs, collector

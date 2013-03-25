@@ -59,7 +59,7 @@ class Cursor
                     cb = @_cbQueue.shift()
 
                     # Did we just empty the chunk?
-                    if not chunk[0]?
+                    if chunk[0] is undefined
                         # We're done with this chunk, discard it
                         @_chunks.shift()
 
