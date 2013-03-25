@@ -228,9 +228,9 @@ const datum_t *filter_datum_stream_t::next_impl() {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
         if (!(arg = src->next())) return 0;
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
-        if (f->filter_call(env, arg)) {
-                outer_checkpoint.reset(&env_t::merge_checkpoint);
-                break;
+        if (f->filter_call(arg)) {
+            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            break;
         }
     }
     return arg;

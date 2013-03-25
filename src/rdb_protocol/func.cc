@@ -165,37 +165,27 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-bool func_t::filter_call(env_t *env, const datum_t *arg) {
+bool func_t::filter_call(const datum_t *arg) {
     const datum_t *d = call(arg)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT) {
-        func_t *f2 = new_filter_func(env, d, this);
-        d = f2->call(arg)->as_datum();
+        const std::map<const std::string, const datum_t *> &obj = d->as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            r_sanity_check(it->second != NULL);
+            const datum_t *elt = arg->el(it->first, NOTHROW);
+            if (elt == NULL) {
+                rfail("No attribute `%s` in object.", it->first.c_str());
+            } else if (*elt != *it->second) {
+                return false;
+            }
+        }
+        return true;
+    } else if (d->get_type() == datum_t::R_BOOL) {
+        return d->as_bool();
+    } else {
+        rfail("FILTER must be passed either an OBJECT or a predicate (got %s).",
+              d->get_type_name());
     }
-    if (d->get_type() == datum_t::R_BOOL) return d->as_bool();
-    rfail("FILTER must be passed either an OBJECT or a predicate (got %s).",
-          d->get_type_name());
 }
-
-func_t *func_t::new_filter_func(env_t *env, const datum_t *obj,
-                                const pb_rcheckable_t *bt_src) {
-    env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
-    int x = env->gensym();
-    Term *t = pb::set_func(&twrap->t, x);
-    pb::set(t, Term_TermType_ALL, 0, 0);
-    for (std::map<const std::string, const datum_t *>::const_iterator
-             it = obj->as_object().begin(); it != obj->as_object().end(); ++it) {
-        std::string key = it->first;
-        const datum_t *val = it->second;
-
-        Term *arg = t->add_args();
-        N2(EQ,
-           N2(GETATTR, pb::set_var(arg, x), pb::set_str(arg, key)),
-           val->write_to_protobuf(pb::set_datum(arg)));
-    }
-    bt_src->propagate(&twrap->t);
-    return env->add_ptr(new func_t(env, &twrap->t));
-}
-
 
 func_t *func_t::new_identity_func(env_t *env, const datum_t *obj,
                                   const pb_rcheckable_t *bt_src) {
