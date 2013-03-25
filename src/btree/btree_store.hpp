@@ -21,13 +21,6 @@
 
 struct rdb_protocol_t;
 template <class T> class btree_store_t;
-namespace unittest {
-// A forward decleration of this is needed so that it can be friended and the
-// unit test can access the private API of btree_store_t.
-void run_sindex_btree_store_api_test();
-void run_sindex_post_construction();
-void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store);
-} //namespace unittest
 
 class btree_slice_t;
 class io_backender_t;
