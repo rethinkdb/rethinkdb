@@ -101,7 +101,7 @@ void bring_sindexes_up_to_date(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t)
+    THROWS_NOTHING
 {
     /* We register our modification queue here. An important point about
      * correctness here: we've held the superblock this whole time and will
