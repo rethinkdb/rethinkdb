@@ -1,0 +1,40 @@
+commands:
+  - tag: branch
+    section: control
+    description: Evaluate one of two control paths based on the value of an expression.
+
+    body:
+      js: test, trueBranch, falseBranch
+      py: test, true_branch, false_branch
+      rb: test, true_branch, false_branch
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Return the manlier of two heroes:'
+        code:
+          js: |-
+            r.do(r.table('marvel').get('IronMan'),
+             r.table('marvel').get('Thor'),
+             function(ironman, thor) {
+              return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)
+            }).run(conn)
+          py: |-
+            r.do(r.table('marvel').get('IronMan'),
+              r.table('marvel').get('Thor'),
+              lambda ironman, thor: r.branch(ironman['manliness'] > thor['manliness'],
+                                              ironman,
+                                              thor)
+            ).run(conn)
+          rb: |-
+            r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {
+              r.branch(ironman[:manliness] > thor[:manliness], ironman thor)
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+
