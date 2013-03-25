@@ -625,8 +625,8 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-struct w_unshard_visitor : public boost::static_visitor<void> {
-    w_unshard_visitor(const write_response_t *_responses, size_t _count,
+struct w_unshard_visitor_t : public boost::static_visitor<void> {
+    w_unshard_visitor_t(const write_response_t *_responses, size_t _count,
                       write_response_t *_response_out,
                       context_t *_ctx)
         : responses(_responses), count(_count),
@@ -664,7 +664,7 @@ private:
 };
 
 void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    boost::apply_visitor(w_unshard_visitor(responses, count, response, ctx), write);
+    boost::apply_visitor(w_unshard_visitor_t(responses, count, response, ctx), write);
 }
 
 store_t::store_t(serializer_t *serializer,
