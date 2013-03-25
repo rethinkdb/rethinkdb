@@ -124,7 +124,7 @@ class Connection
     use: ar (db) ->
         @db = new Db {}, db
 
-    _start: (term, cb, use_outdated=false) ->
+    _start: (term, cb, useOutdated) ->
         unless @open then throw new RqlDriverError "Connection is closed."
 
         # Assign token
@@ -144,10 +144,10 @@ class Connection
             pair.setVal(@db.build())
             query.addGlobalOptargs(pair)
 
-        if use_outdated
+        if useOutdated?
             pair = new Query.AssocPair()
             pair.setKey('use_outdated')
-            pair.setVal((new DatumTerm true).build())
+            pair.setVal((new DatumTerm (!!useOutdated)).build())
             query.addGlobalOptargs(pair)
 
         # Save callback
