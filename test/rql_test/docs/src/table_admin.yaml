@@ -2,6 +2,7 @@ sections:
   - tag: table_admin
     name: Manipulating tables
     description: These commands allow table manipulation.
+    order: 2
 
 commands:
   - tag: table_create

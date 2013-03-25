@@ -2,6 +2,7 @@ sections:
   - tag: operators
     name: Math and logic
     description: These commands provide basic mathematical and logical operators.
+    order: 10
 
 commands:
   - tag: add

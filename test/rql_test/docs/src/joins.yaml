@@ -3,6 +3,7 @@ sections:
       name: Joins
       description: These commands allow the combination of multiple sequences into a single
         sequence
+      order: 5
 
 commands:
   - tag: inner

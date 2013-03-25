@@ -36,6 +36,7 @@ for section in sections:
         'name':section['name'],
         'tag':section['tag'],
         'description':section['description'],
+        'order': section['order'] if 'order' in section else 999,
         'commands':[]
     }
 
@@ -138,6 +139,8 @@ for section in sections:
 
     out_section['commands'].extend(commands_for_this_section)
     out_obj['sections'].append(out_section)
+
+out_obj['sections'].sort(key=lambda section: section['order'])
 
 # Serialize and write the output
 out_file = file(dest_file, 'w')

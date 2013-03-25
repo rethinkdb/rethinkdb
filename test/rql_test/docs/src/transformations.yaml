@@ -2,6 +2,7 @@ sections:
   - tag: transformations
     name: Transformations
     description: These commands are used to transform data in a sequence.
+    order: 6
 
 commands:
   - tag: map

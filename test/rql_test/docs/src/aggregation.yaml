@@ -2,6 +2,7 @@ sections:
   - tag: aggregation
     name: Aggregation
     description: These commands are used to compute smaller values from large sequences.
+    order: 7
 
 commands:
   - tag: reduce

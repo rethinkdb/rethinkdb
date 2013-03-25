@@ -2,6 +2,7 @@ sections:
   - tag: reductions
     name: Reductions
     description: These standard reduction objects are to be used in conjunction with group_by.
+    order: 8
 
 commands:
   - tag: count

@@ -2,6 +2,7 @@ sections:
   - tag: db_admin
     name: Manipulating databases
     description: These commands allow database manipulation.
+    order: 1
 
 commands:
   - tag: db_create
