@@ -690,7 +690,7 @@ module 'DataExplorerView', ->
                                         suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
                                     @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                     return true
-                        else if @extra_suggestions? and @extra_suggestions.length > 0 and @start_body is @start_body
+                        else if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
                             # Trim suggestion
                             if @extra_suggestion?.body?[0]?.type is 'string'
                                 if @extra_suggestion.body[0].complete is true
@@ -1717,7 +1717,7 @@ module 'DataExplorerView', ->
                     data =
                         no_database: true
                 else
-                    databases_available = _.map(databases.models, (database) -> return database.get('name'))
+                    databases_available = databases.models.map (database) -> return database.get('name')
                     data =
                         no_database: false
                         databases_available: databases_available
