@@ -1,8 +1,26 @@
 import ql2_pb2 as p
 import types
 import sys
+from threading import Lock
 from errors import *
 from net import Connection
+
+# This is both an external function and one used extensively
+# internally to convert coerce python values to RQL types
+def expr(val):
+    '''
+        Convert a Python primitive into a RQL primitive value
+    '''
+    if isinstance(val, RqlQuery):
+        return val
+    elif isinstance(val, list):
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        return MakeObj(**val)
+    elif callable(val):
+        return Func(val)
+    else:
+        return Datum(val)
 
 class RqlQuery(object):
 
@@ -23,7 +41,7 @@ class RqlQuery(object):
                 c = Connection.repl_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
-            
+
         return c._start(self, **global_opt_args)
 
     def __str__(self):
@@ -675,6 +693,7 @@ def func_wrap(val):
 
 class Func(RqlQuery):
     tt = p.Term.FUNC
+    lock = Lock()
     nextVarId = 1
 
     def __init__(self, lmbd):
@@ -683,7 +702,9 @@ class Func(RqlQuery):
         for i in xrange(lmbd.func_code.co_argcount):
             vrs.append(Var(Func.nextVarId))
             vrids.append(Func.nextVarId)
+            Func.lock.acquire()
             Func.nextVarId += 1
+            Func.lock.release()
 
         self.vrs = vrs
         self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
@@ -699,5 +720,3 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
-
-from query import expr

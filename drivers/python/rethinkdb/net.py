@@ -150,6 +150,11 @@ class Connection(object):
         response = p.Response()
         response.ParseFromString(response_buf)
 
+        # Check that this is the response we were expecting
+        if response.token != query.token:
+            # This response is corrupted or not intended for us.
+            raise RqlDriverError("Unexpected response received.")
+
         # Error responses
         if response.type is p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
