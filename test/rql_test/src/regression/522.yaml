@@ -1,4 +1,4 @@
-desc: Sanity Check Fails, with r.table() expression inside a map (#453)
+desc: Skip after orderby causes use-after-free (#522)
 tests:
 
   - cd: r.db('test').table_create('522')
