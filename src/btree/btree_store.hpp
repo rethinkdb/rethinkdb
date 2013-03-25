@@ -122,8 +122,6 @@ public:
             const write_message_t& value,
             mutex_t::acq_t *acq);
 
-//private: >.<
-
 void acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
