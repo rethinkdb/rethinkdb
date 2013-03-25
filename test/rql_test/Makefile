@@ -30,7 +30,7 @@ py_connect: connections/connection.py
 
 js_connect: connections/connection.js
 	BUILD=$(BUILD) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
-	    _mocha -R nyan connections/connection.js
+	    _mocha connections/connection.js
 
 cursor:
 	python connections/cursor_test.py $(BUILD)
