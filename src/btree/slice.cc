@@ -11,8 +11,11 @@
 
 void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
 
+    // SAMRSI: Should we wait on this signal?  Pass it in as a parameter?
+    cond_t disk_ack_signal;
+
     /* Initialize the btree superblock and the delete queue */
-    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore, &disk_ack_signal);
 
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 

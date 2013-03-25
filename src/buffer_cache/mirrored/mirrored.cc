@@ -880,7 +880,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, cond_t *disk_ack_signal)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -890,6 +890,12 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false) {
+
+    // SAMRSI: Store this and pulse this later.
+    if (disk_ack_signal != NULL) {
+        disk_ack_signal->pulse();
+    }
+
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
     coro_fifo_acq_t write_throttle_acq;

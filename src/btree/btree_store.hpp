@@ -149,6 +149,7 @@ private:
             access_t access,
             repli_timestamp_t timestamp,
             int expected_change_count,
+            cond_t *disk_ack_signal,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,

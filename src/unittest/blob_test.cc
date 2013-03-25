@@ -180,7 +180,7 @@ private:
         UNUSED block_size_t block_size = cache->get_block_size();
 
         order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"));
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"), NULL);
 
         blob_tracker_t tk(251);
 
@@ -215,7 +215,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("small_value_boundary_test"));
+                          order_source.check_in("small_value_boundary_test"), NULL);
 
         blob_tracker_t tk(251);
 
@@ -271,7 +271,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4080_prepend_4081_test"));
+                          order_source.check_in("special_4080_prepend_4081_test"), NULL);
 
         blob_tracker_t tk(251);
 
@@ -289,7 +289,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4161600_prepend_12484801_test"));
+                          order_source.check_in("special_4161600_prepend_12484801_test"), NULL);
 
         blob_tracker_t tk(251);
 
@@ -311,7 +311,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("general_journey_test"));
+                          order_source.check_in("general_journey_test"), NULL);
         blob_tracker_t tk(251);
 
         char v = 'A';
