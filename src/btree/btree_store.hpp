@@ -100,6 +100,7 @@ protected:
 
     virtual void protocol_write(const typename protocol_t::write_t &write,
                                 typename protocol_t::write_response_t *response,
+                                cond_t *disk_ack_signal,
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 transaction_t *txn,

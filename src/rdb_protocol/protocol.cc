@@ -638,6 +638,7 @@ private:
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
+                             cond_t *disk_ack_signal,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
@@ -645,6 +646,9 @@ void store_t::protocol_write(const write_t &write,
                              signal_t *interruptor) {
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
+
+    // SAMRSI: Pass this further down.
+    disk_ack_signal->pulse();
 }
 
 namespace {

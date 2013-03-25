@@ -91,10 +91,7 @@ void btree_store_t<protocol_t>::write(
     acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, token, &txn, &superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
-    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), interruptor);
-
-    // SAMRSI: Do disk acks properly.
-    disk_ack_signal->pulse();
+    protocol_write(write, response, disk_ack_signal, timestamp, btree.get(), txn.get(), superblock.get(), interruptor);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
