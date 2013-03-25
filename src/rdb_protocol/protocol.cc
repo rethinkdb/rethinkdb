@@ -627,10 +627,9 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
 
 struct w_unshard_visitor_t : public boost::static_visitor<void> {
     w_unshard_visitor_t(const write_response_t *_responses, size_t _count,
-                      write_response_t *_response_out,
-                      context_t *_ctx)
+                      write_response_t *_response_out)
         : responses(_responses), count(_count),
-          response_out(_response_out), ctx(_ctx)
+          response_out(_response_out)
     { }
 
     void operator()(const point_write_t &) const {
@@ -660,11 +659,10 @@ private:
     const write_response_t *responses;
     size_t count;
     write_response_t *response_out;
-    context_t *ctx;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    boost::apply_visitor(w_unshard_visitor_t(responses, count, response, ctx), write);
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *) const THROWS_NOTHING {
+    boost::apply_visitor(w_unshard_visitor_t(responses, count, response), write);
 }
 
 store_t::store_t(serializer_t *serializer,
