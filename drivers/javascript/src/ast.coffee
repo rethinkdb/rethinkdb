@@ -124,7 +124,7 @@ class DatumTerm extends RDBVal
         term.setDatum datum
         return term
 
-    @deconstruct: (datum) ->
+    deconstruct: (datum) ->
         switch datum.getType()
             when Datum.DatumType.R_NULL
                 null
@@ -135,11 +135,11 @@ class DatumTerm extends RDBVal
             when Datum.DatumType.R_STR
                 datum.getRStr()
             when Datum.DatumType.R_ARRAY
-                DatumTerm.deconstruct dt for dt in datum.rArrayArray()
+                DatumTerm::deconstruct dt for dt in datum.rArrayArray()
             when Datum.DatumType.R_OBJECT
                 obj = {}
                 for pair in datum.rObjectArray()
-                    obj[pair.getKey()] = DatumTerm.deconstruct pair.getVal()
+                    obj[pair.getKey()] = DatumTerm::deconstruct pair.getVal()
                 obj
 
 translateOptargs = (optargs) ->
