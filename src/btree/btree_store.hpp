@@ -138,8 +138,6 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-public: // <--- so this is some bullshit right here
-
     void add_sindex(
         write_token_pair_t *token_pair,
         uuid_u id,
