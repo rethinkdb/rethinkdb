@@ -1,0 +1,14 @@
+desc: Sanity Check Fails, with r.table() expression inside a map (#453)
+tests:
+
+  - cd: r.db('test').table_create('522')
+    def: tbl = r.db('test').table('522')
+
+  - cd: tbl.insert([{'id':0}, {'id':1}, {'id':2}])
+
+  - js: tbl.orderBy('id').skip(1)
+    py: tbl.order_by('id').skip(1)
+    rb: tbl.order_by('id').skip(1)
+    ot: [{'id':1}, {'id':2}]
+
+  - cd: r.db('test').table_drop('522')
