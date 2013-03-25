@@ -15,7 +15,3 @@ std::string cJSON_print_primary(cJSON *json, const query_language::backtrace_t &
     }
     return s;
 }
-
-std::string cJSON_print_secondary(cJSON *secondary_key, const store_key_t &primary_key, const query_language::backtrace_t &backtrace) {
-    return cJSON_print_primary(secondary_key, backtrace) + std::string(1, '\0') + key_to_unescaped_str(primary_key);
-}

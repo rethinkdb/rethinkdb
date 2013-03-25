@@ -12,8 +12,6 @@
 
 std::string cJSON_print_primary(cJSON *json, const query_language::backtrace_t &backtrace);
 
-std::string cJSON_print_secondary(cJSON *secondary_key, const store_key_t &primary_key, const query_language::backtrace_t &backtrace);
-
 #ifndef NDEBUG
 #define guarantee_debug_throw_release(cond, backtrace) guarantee(cond)
 #else
