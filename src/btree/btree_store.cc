@@ -895,9 +895,6 @@ void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_p
     new_write_token(&(token_pair_out->main_write_token));
 }
 
-template <class protocol_t>
-void new_sindex_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
-
 #include "memcached/protocol.hpp"
 template class btree_store_t<memcached_protocol_t>;
 
