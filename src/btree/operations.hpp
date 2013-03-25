@@ -135,7 +135,7 @@ public:
           stats(NULL) { }
 
     ~keyvalue_location_t() {
-        if (pass_back_superblock && superblock) {
+        if (pass_back_superblock != NULL && superblock) {
             pass_back_superblock->pulse(superblock);
         }
     }
