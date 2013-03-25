@@ -164,11 +164,12 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
         superblock_t *superblock, buf_lock_t *sindex_block, parallel_traversal_progress_t *p,
         signal_t *interruptor)
 THROWS_ONLY(interrupted_exc_t) {
+    //Start things off easy with a coro assertion.
+    rassert(coro_t::self());
+
     std::map<uuid_u, secondary_index_t> sindexes;
     get_secondary_indexes(txn, sindex_block, &sindexes);
     callback->on_sindexes(sindexes, interruptor);
-
-    rassert(coro_t::self());
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;
