@@ -465,16 +465,21 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
+    cond_t disk_ack_signal;
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
+        &disk_ack_signal,
         qe.transition_timestamp,
         qe.order_token,
         &write_token,
         interruptor);
+
+    // SAMRSI: Is this how we want to wait?
+    wait_interruptible(&disk_ack_signal, interruptor);
 }
 
 template <class protocol_t>
@@ -535,11 +540,13 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
         // Perform the operation
         typename protocol_t::write_response_t response;
+        cond_t disk_ack_signal;
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
                     write,
                     &response,
+                    &disk_ack_signal,
                     transition_timestamp,
                     order_token,
                     &write_token,
@@ -550,7 +557,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
 
-        // TODO(acks) Actually support disk acks properly.
+        wait_interruptible(&disk_ack_signal, keepalive.get_drain_signal());
         send(mailbox_manager_, disk_ack_addr);
 
     } catch (const interrupted_exc_t &) {

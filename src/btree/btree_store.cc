@@ -77,6 +77,7 @@ void btree_store_t<protocol_t>::write(
         const metainfo_t& new_metainfo,
         const typename protocol_t::write_t &write,
         typename protocol_t::write_response_t *response,
+        cond_t *disk_ack_signal,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -91,6 +92,9 @@ void btree_store_t<protocol_t>::write(
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
     protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), interruptor);
+
+    // SAMRSI: Do disk acks properly.
+    disk_ack_signal->pulse();
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

@@ -350,6 +350,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       const metainfo_t& new_metainfo,
                                       const dummy_protocol_t::write_t &write,
                                       dummy_protocol_t::write_response_t *response,
+                                      cond_t *disk_ack_signal,
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
                                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -382,7 +383,12 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 
         metainfo.update(new_metainfo);
     }
-    if (rng.randint(2) == 0) nap(rng.randint(10));
+    if (rng.randint(2) == 0) {
+        nap(rng.randint(10));
+    }
+
+    // SAMRSI: Support delayed pulsing of the disk ack signal.
+    disk_ack_signal->pulse();
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,

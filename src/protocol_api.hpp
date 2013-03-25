@@ -360,6 +360,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
+            cond_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -510,6 +511,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
+            cond_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -519,7 +521,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, disk_ack_signal, timestamp, order_token, token, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
