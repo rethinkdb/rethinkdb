@@ -353,7 +353,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
                                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                                      const signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
