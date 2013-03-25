@@ -43,7 +43,7 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
 
 block_id_t real_superblock_t::get_sindex_block_id() const {
     rassert(sb_buf_.is_acquired());
-    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
 }
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
