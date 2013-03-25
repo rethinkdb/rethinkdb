@@ -144,11 +144,11 @@ private:
 
 class slice_datum_stream_t : public eager_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src);
+    slice_datum_stream_t(env_t *_env, size_t _left, size_t _right, datum_stream_t *_src);
     virtual const datum_t *next_impl();
 private:
     env_t *env;
-    size_t ind, l, r;
+    size_t ind, left, right;
     datum_stream_t *src;
 };
 
