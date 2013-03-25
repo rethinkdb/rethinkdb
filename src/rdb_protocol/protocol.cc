@@ -583,24 +583,18 @@ struct write_visitor_t : public boost::static_visitor<void> {
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_replace(btree, timestamp, txn, superblock,
                     r.primary_key, r.key, f, &ql_env, res);
-        // SAMRSI: Pass down.
-        disk_ack_signal->pulse();
     }
 
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
         point_write_response_t &res = boost::get<point_write_response_t>(response->response);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res);
-        // SAMRSI: Pass down.
-        disk_ack_signal->pulse();
     }
 
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
         point_delete_response_t &res = boost::get<point_delete_response_t>(response->response);
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res);
-        // SAMRSI: Pass down.
-        disk_ack_signal->pulse();
     }
 
     write_visitor_t(btree_slice_t *_btree,
@@ -609,14 +603,12 @@ struct write_visitor_t : public boost::static_visitor<void> {
                     repli_timestamp_t _timestamp,
                     rdb_protocol_t::context_t *ctx,
                     write_response_t *_response,
-                    cond_t *_disk_ack_signal,
                     signal_t *_interruptor) :
         btree(_btree),
         txn(_txn),
         response(_response),
         superblock(_superblock),
         timestamp(_timestamp),
-        disk_ack_signal(_disk_ack_signal),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
         ql_env(ctx->pool_group,
                ctx->ns_repo,
@@ -638,7 +630,6 @@ private:
     write_response_t *response;
     superblock_t *superblock;
     repli_timestamp_t timestamp;
-    cond_t *disk_ack_signal;
     wait_any_t interruptor;
     ql::env_t ql_env;
 };
@@ -653,8 +644,11 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
                              superblock_t *superblock,
                              signal_t *interruptor) {
-    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, disk_ack_signal, interruptor);
+    write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
+
+    // SAMRSI: Pass this further down.
+    disk_ack_signal->pulse();
 }
 
 namespace {
