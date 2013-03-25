@@ -122,21 +122,21 @@ public:
             const write_message_t& value,
             mutex_t::acq_t *acq);
 
-void acquire_sindex_block_for_read(
-        read_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        block_id_t sindex_block_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+    void acquire_sindex_block_for_read(
+            read_token_pair_t *token_pair,
+            transaction_t *txn,
+            scoped_ptr_t<buf_lock_t> *sindex_block_out,
+            block_id_t sindex_block_id,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
-void acquire_sindex_block_for_write(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        block_id_t sindex_block_id,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
+    void acquire_sindex_block_for_write(
+            write_token_pair_t *token_pair,
+            transaction_t *txn,
+            scoped_ptr_t<buf_lock_t> *sindex_block_out,
+            block_id_t sindex_block_id,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 public: // <--- so this is some bullshit right here
 
