@@ -89,8 +89,6 @@ protected:
 
 // Keep this part below synced up with buffer_cache.hpp.
 
-#ifndef MOCK_CACHE_CHECK
-
 class mc_cache_t;
 class mc_buf_lock_t;
 class mc_transaction_t;
@@ -118,37 +116,5 @@ typedef mc_cache_account_t cache_account_t;
 
 #endif  // !defined(VALGRIND) && !defined(NDEBUG)
 
-#else
-
-class mock_cache_t;
-class mock_cache_account_t;
-
-#if !defined(VALGRIND)
-
-template <class inner_cache_type> class scc_cache_t;
-template <class inner_cache_type> class scc_buf_lock_t;
-template <class inner_cache_type> class scc_transaction_t;
-
-typedef scc_cache_t<mock_cache_t> cache_t;
-typedef scc_buf_lock_t<mock_cache_t> buf_lock_t;
-typedef scc_transaction_t<mock_cache_t> transaction_t;
-typedef mock_cache_account_t cache_account_t;
-
-#else  // !defined(VALGRIND)
-
-class mock_buf_lock_t;
-class mock_transaction_t;
-class mock_cache_account_t;
-
-typedef mock_cache_t cache_t;
-typedef mock_buf_lock_t buf_lock_t;
-typedef mock_transaction_t transaction_t;
-typedef mock_cache_account_t cache_account_t;
-
-#endif  // !defined(VALGRIND)
-
-#endif // MOCK_CACHE_CHECK
-
-// Don't put anything down here, put it above the line labeled "BLAH".
 
 #endif /* BUFFER_CACHE_TYPES_HPP_ */
