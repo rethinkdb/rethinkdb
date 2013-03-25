@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef BTREE_SECONDARY_OPERATIONS_HPP
-#define BTREE_SECONDARY_OPERATIONS_HPP
+#ifndef BTREE_SECONDARY_OPERATIONS_HPP_
+#define BTREE_SECONDARY_OPERATIONS_HPP_
 
 #include <vector>
 
