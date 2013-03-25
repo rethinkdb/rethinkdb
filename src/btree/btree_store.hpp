@@ -108,8 +108,6 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    //TODO make this function take the sindex block it helps to enforce sane
-    //locking
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
 
     void register_sindex_queue(
