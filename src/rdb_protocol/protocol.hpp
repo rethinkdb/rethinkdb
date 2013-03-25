@@ -490,7 +490,7 @@ struct rdb_protocol_t {
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
-                            const signal_t *interruptor);
+                            signal_t *interruptor);
 
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,

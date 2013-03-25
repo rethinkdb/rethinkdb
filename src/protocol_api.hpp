@@ -363,7 +363,7 @@ public:
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            const signal_t *interruptor)
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Expresses the changes that have happened since `start_point` as a
@@ -513,7 +513,7 @@ public:
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            const signal_t *interruptor)
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));

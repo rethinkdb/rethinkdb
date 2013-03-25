@@ -603,7 +603,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
                     repli_timestamp_t _timestamp,
                     rdb_protocol_t::context_t *ctx,
                     write_response_t *_response,
-                    const signal_t *_interruptor) :
+                    signal_t *_interruptor) :
         btree(_btree),
         txn(_txn),
         response(_response),
@@ -642,7 +642,7 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              superblock_t *superblock,
-                             const signal_t *interruptor) {
+                             signal_t *interruptor) {
     write_visitor_t v(btree, txn, superblock, timestamp.to_repli_timestamp(), ctx, response, interruptor);
     boost::apply_visitor(v, write.write);
 }

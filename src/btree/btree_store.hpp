@@ -64,7 +64,7 @@ public:
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            const signal_t *interruptor)
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     bool send_backfill(
@@ -103,7 +103,7 @@ protected:
                                 btree_slice_t *btree,
                                 transaction_t *txn,
                                 superblock_t *superblock,
-                                const signal_t *interruptor) = 0;
+                                signal_t *interruptor) = 0;
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
@@ -151,7 +151,7 @@ private:
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
-            const signal_t *interruptor)
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void check_and_update_metainfo(
