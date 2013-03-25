@@ -94,7 +94,7 @@ void post_construct_and_drain_queue(
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
-    THROWS_ONLY(interrupted_exc_t);
+    THROWS_NOTHING;
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
@@ -139,70 +139,75 @@ void post_construct_and_drain_queue(
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
-    THROWS_ONLY(interrupted_exc_t)
+    THROWS_NOTHING
 {
-    post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
+    try {
+        post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
 
-    /* Drain the queue. */
+        /* Drain the queue. */
 
-    int previous_size = mod_queue->size();
-    while (true) {
-        write_token_pair_t token_pair;
-        store->new_write_token_pair(&token_pair);
+        int previous_size = mod_queue->size();
+        while (true) {
+            write_token_pair_t token_pair;
+            store->new_write_token_pair(&token_pair);
 
-        scoped_ptr_t<transaction_t> queue_txn;
-        scoped_ptr_t<real_superblock_t> queue_superblock;
+            scoped_ptr_t<transaction_t> queue_txn;
+            scoped_ptr_t<real_superblock_t> queue_superblock;
 
-        store->acquire_superblock_for_write(
-            rwi_write,
-            repli_timestamp_t::distant_past,
-            2,
-            &token_pair.main_write_token,
-            &queue_txn,
-            &queue_superblock,
-            lock.get_drain_signal());
+            store->acquire_superblock_for_write(
+                rwi_write,
+                repli_timestamp_t::distant_past,
+                2,
+                &token_pair.main_write_token,
+                &queue_txn,
+                &queue_superblock,
+                lock.get_drain_signal());
 
-        scoped_ptr_t<buf_lock_t> queue_sindex_block;
-        store->acquire_sindex_block_for_write(
-            &token_pair,
-            queue_txn.get(),
-            &queue_sindex_block,
-            queue_superblock->get_sindex_block_id(),
-            lock.get_drain_signal());
-
-        sindex_access_vector_t sindexes;
-        store->acquire_sindex_superblocks_for_write(
-                sindexes_to_bring_up_to_date,
-                queue_sindex_block.get(),
+            scoped_ptr_t<buf_lock_t> queue_sindex_block;
+            store->acquire_sindex_block_for_write(
+                &token_pair,
                 queue_txn.get(),
-                &sindexes);
+                &queue_sindex_block,
+                queue_superblock->get_sindex_block_id(),
+                lock.get_drain_signal());
 
-        mutex_t::acq_t acq;
-        store->lock_sindex_queue(queue_sindex_block.get(), &acq);
+            sindex_access_vector_t sindexes;
+            store->acquire_sindex_superblocks_for_write(
+                    sindexes_to_bring_up_to_date,
+                    queue_sindex_block.get(),
+                    queue_txn.get(),
+                    &sindexes);
 
-        while (mod_queue->size() >= previous_size &&
-               mod_queue->size() > 0) {
-            std::vector<char> data_vec;
-            mod_queue->pop(&data_vec);
-            vector_read_stream_t read_stream(&data_vec);
+            mutex_t::acq_t acq;
+            store->lock_sindex_queue(queue_sindex_block.get(), &acq);
 
-            rdb_modification_report_t mod_report;
-            int ser_res = deserialize(&read_stream, &mod_report);
-            guarantee_err(ser_res == 0, "corruption in disk-backed queue");
+            while (mod_queue->size() >= previous_size &&
+                   mod_queue->size() > 0) {
+                std::vector<char> data_vec;
+                mod_queue->pop(&data_vec);
+                vector_read_stream_t read_stream(&data_vec);
 
-            rdb_update_sindexes(sindexes, &mod_report, queue_txn.get());
-        }
+                rdb_modification_report_t mod_report;
+                int ser_res = deserialize(&read_stream, &mod_report);
+                guarantee_err(ser_res == 0, "corruption in disk-backed queue");
 
-        previous_size = mod_queue->size();
-
-        if (mod_queue->size() == 0) {
-            for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
-                    it != sindexes_to_bring_up_to_date.end(); ++it) {
-                    store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
+                rdb_update_sindexes(sindexes, &mod_report, queue_txn.get());
             }
-            store->deregister_sindex_queue(mod_queue.get(), &acq);
-            break;
+
+            previous_size = mod_queue->size();
+
+            if (mod_queue->size() == 0) {
+                for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
+                        it != sindexes_to_bring_up_to_date.end(); ++it) {
+                        store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
+                }
+                store->deregister_sindex_queue(mod_queue.get(), &acq);
+                break;
+            }
         }
+    catch (const interrupted_exc_t &) {
+        // We were interrupted so we just exit. Sindex post construct is in an
+        // indeterminate state and will be cleaned up at a later point.
     }
 }
 
