@@ -2,8 +2,10 @@ commands:
   - tag: coerce_to
     section: control
     order: 6
-    description: Converts a value of one type into another. Supported conversions are
-      NUMBER -> STRING, SELECTION -> ARRAY, OBJECT -> ARRAY.
+    description: |
+      Converts a value of one type into another. <br /><br />
+      You can convert: a selection, sequence, or object into an ARRAY, 
+      an array of pairs into an OBJECT, and any DATUM into a STRING.
 
     body: typename
     parent: json

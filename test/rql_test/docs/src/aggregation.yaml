@@ -21,21 +21,15 @@ commands:
       - description: How many enemies have our heroes defeated?
         code:
           js: |-
-            r.table('marvel').map(function(hero) {
-             return hero('monstersKilled')).add(hero('superVillainsVanquished'))
-            }).reduce(function(acc, val) {
-             return acc.add(val)
+            r.table('marvel').map(r.row('monstersKilled')).reduce(function(acc, val) {
+                return acc.add(val)
             }, 0).run(conn)
           py: |-
-            r.table('marvel')
-             .map(lambda hero: hero['monstersKilled'] + hero['superVillainsVanquished'])
+            r.table('marvel').map(r.row[:monsters_killed])
              .reduce(lambda acc, val: acc + val, 0).run(conn)
           rb: |-
-            r.table('marvel').map {|hero|
-              hero[:monsters_killed] + hero[:super_villains_vanquished]
-            }.reduce(0) {|acc, val|
-              acc + val
-            }.run(conn)
+            r.table('marvel').map {|hero| hero['monstersKilled']}
+             .reduce(0) {|acc, val| acc + val }.run(conn)
 
     js:
       examples:
@@ -106,12 +100,12 @@ commands:
         code:
           js: |-
             r.table('marvel').groupedMapReduce(
-              function(hero) { return hero('weightClass')},  # grouping
-              function(hero) { return hero.pluck('name', 'strength')},  # mapping
-              function(acc, hero) {  # reduction
+              function(hero) { return hero('weightClass')},  // grouping
+              function(hero) { return hero.pluck('name', 'strength')},  // mapping
+              function(acc, hero) {  // reduction
                 return r.branch(acc('strength').lt(hero('strength')), hero, acc)
               },
-              {name:'none', strength:0} # reduction base
+              {name:'none', strength:0} // reduction base
             ).run(conn)
           py: |-
             r.table('marvel').grouped_map_reduce(
@@ -138,9 +132,9 @@ commands:
   - tag: group_by
     section: aggregation
     description: Groups elements by the values of the given attributes and then applies
-      the given reduction. Though similar to grouped map reduce, groupby takes a standardized
-      object for specifying the reduction. Can be used with a number of predefined
-      common reductions.
+      the given reduction. Though similar to <code>grouped_map_reduce</code>, 
+      groupby takes a standardized object for specifying the reduction. 
+      Can be used with a number of predefined common reductions.
 
     body: attr1[, attr2...], reduction_object
     parent: sequence

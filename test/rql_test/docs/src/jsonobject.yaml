@@ -26,6 +26,15 @@ commands:
         code:
           js: r.expr([1, 2, 3]).map(r.row.add(1)).run(conn)
           py: r.expr([1, 2, 3]).map(r.row + 1).run(conn)
+      - description: For nested queries functions should be used instead of r.row.
+        code:
+          js: |-
+            r.table('users').filter(function(doc) {
+                return doc('name').eq(r.table('prizes').get('winner'))
+            }).run(conn)
+          py: |-
+            r.table('users').filter(lambda doc: doc['name'] == r.table('prizes').get('winner'))
+             .run(conn)
 
     rb: false
 

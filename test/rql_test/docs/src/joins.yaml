@@ -123,8 +123,8 @@ commands:
 
   - tag: zip
     section: joins
-    description: Used to 'zip' up the result of a join by merging the 'left' and 'right'
-      fields of each member of the sequence.
+    description: Used to 'zip' up the result of a join by merging the 'right' fields into 
+      'left' fields of each member of the sequence.
 
     parent: sequence
     returns: sequence
