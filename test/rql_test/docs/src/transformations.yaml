@@ -74,8 +74,8 @@ commands:
 
   - tag: order_by
     section: transformations
-    description: Sort the sequence by document values of the given key(s).<br /><br
-      /><code>order by</code> defaults to ascending ordering. To explicitly specify
+    description: Sort the sequence by document values of the given key(s).<br /><br />
+      <code>order by</code> defaults to ascending ordering. To explicitly specify
       the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.
 
     body: key1, [key2...]
@@ -120,7 +120,7 @@ commands:
     returns: sequence
 
     examples:
-      - description: Here in conjunction with orderBy we choose to ignore the most
+      - description: Here in conjunction with `order_by` we choose to ignore the most
             successful heroes.
         code:
           js: r.table('marvel').orderBy('successMetric').skip(10).run(conn)

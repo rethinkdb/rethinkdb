@@ -15,21 +15,19 @@ commands:
       - description: 'Return the manlier of two heroes:'
         code:
           js: |-
-            r.do(r.table('marvel').get('IronMan'),
-             r.table('marvel').get('Thor'),
-             function(ironman, thor) {
-              return r.branch(ironman('manliness').gt(thor('manliness')), ironman, thor)
-            }).run(conn)
+            r.table('marvel').map(r.branch(r.row('victories').gt(100),
+                r.row('name').add(' is a superhero'),
+                r.row('name').add(' is a hero'))
+            ).run(conn)
           py: |-
-            r.do(r.table('marvel').get('IronMan'),
-              r.table('marvel').get('Thor'),
-              lambda ironman, thor: r.branch(ironman['manliness'] > thor['manliness'],
-                                              ironman,
-                                              thor)
+            r.table('marvel').map(r.branch(r.row['victories'] > 100,
+                r.row['name'] + ' is a superhero',
+                r.row['name'] + ' is a hero')
             ).run(conn)
           rb: |-
-            r.do(r.table('marvel').get('IronMan'), r.table('marvel').get('Thor')) {
-              r.branch(ironman[:manliness] > thor[:manliness], ironman thor)
+            r.table('marvel').map { |row|  r.branch(row[:victories] > 100,
+                row[:name] + ' is a superhero',
+                row[:name] + ' is a hero')
             }.run(conn)
 
     js:
