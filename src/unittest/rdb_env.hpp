@@ -23,8 +23,13 @@
 
 namespace unittest {
 
+// These classes are used to provide a mock environment for running reql queries
+
 class mock_namespace_repo_t;
 
+// The mock namespace interface handles all read and write calls, using a simple in-
+//  memory map of store_key_t to scoped_cJSON_t.  The get_data function allows a test to
+//  read or modify the dataset to prepare for a query or to check that changes were made.
 class mock_namespace_interface_t : public namespace_interface_t<rdb_protocol_t> {
 private:
     std::map<store_key_t, scoped_cJSON_t*> data;
@@ -115,17 +120,31 @@ private:
     const std::string error_string;
 };
 
+// Because of how internal objects are meant to be instantiated, the proper order of
+//  instantiation is to create a test_rdb_env_t at the top-level of the test (before
+//  entering the thread pool), then to call make_env() on the object once inside the
+//  thread pool.  From there, the instance can provide a pointer to the rdb_env_t.
+// At the moment, this mocks everything except the directory (which is a huge bitch to
+//  do, but you're welcome to try), so metaqueries will not work, but everything else
+//  should be good.  That is, you can specify databases and tables, but you can't create
+//  or destroy them using reql in this environment.  As such, you should create any
+//  necessary databases and tables BEFORE creating the instance_t by using the
+//  add_table and add_database functions.
 class test_rdb_env_t {
 public:
     test_rdb_env_t();
     ~test_rdb_env_t();
 
-    namespace_id_t add_metadata_table(const std::string &table_name,
-                                      const uuid_u &db_id,
-                                      const std::string &primary_key,
-                                      const std::set<std::map<std::string, std::string> > &initial_data =
-                                          std::set<std::map<std::string, std::string> >());
-    database_id_t add_metadata_database(const std::string &db_name);
+    // The initial_data parameter allows a test to provide a starting dataset.  At the moment,
+    //  it just takes a set of maps of strings to strings, which will be converted into a set
+    //  of JSON structures.  This means that the JSON values will only be strings, but if a
+    //  test needs different properties in their objects, this call should be modified.
+    namespace_id_t add_table(const std::string &table_name,
+                             const uuid_u &db_id,
+                             const std::string &primary_key,
+                             const std::set<std::map<std::string, std::string> > &initial_data =
+                                 std::set<std::map<std::string, std::string> >());
+    database_id_t add_database(const std::string &db_name);
 
     class instance_t {
     public:
@@ -158,6 +177,9 @@ private:
     uuid_u machine_id;
     boost::shared_ptr<js::runner_t> js_runner;
     cluster_semilattice_metadata_t metadata;
+
+    // Initial data for tables are stored here until the instance_t is constructed, at
+    //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.
     std::map<namespace_id_t, std::map<store_key_t, scoped_cJSON_t*>*> initial_datas;
 };
 
