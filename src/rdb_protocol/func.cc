@@ -55,7 +55,9 @@ func_t::func_t(env_t *env, const Term *_source)
     if (args.size() == 1 && env_t::var_allows_implicit(args[0])) {
         env->push_implicit(&argptrs[0]);
     }
-    if (args.size()) guarantee(env->top_var(args[0], this) == &argptrs[0]);
+    if (args.size() != 0) {
+        guarantee(env->top_var(args[0], this) == &argptrs[0]);
+    }
 
     const Term *body_source = &t->args(1);
     body = env->new_term(body_source);
