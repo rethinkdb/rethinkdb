@@ -204,7 +204,7 @@ message Term {
         DB    = 14; // STRING -> Database
         // Returns a reference to a table.
         TABLE = 15; // Database, STRING, {use_outdated:BOOL} -> Table | STRING, {use_outdated:BOOL} -> Table
-        // Gets a single element from a table by its primary key.
+        // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
                     // Table, STRING, STRING -> StreamSelection | Table, NUMBER, STRING -> StreamSelection |

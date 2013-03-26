@@ -37,7 +37,7 @@ public:
     test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
             store(serializer.get(), temp_file.name().permanent_path(), GIGABYTE,
-                    true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t("/")) {
+                    true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
