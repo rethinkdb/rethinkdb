@@ -971,14 +971,18 @@ mc_transaction_t::~mc_transaction_t() {
         cache->on_transaction_commit(this);
         sync_callback.wait();
 
-        disk_ack_signal->pulse();
+        if (disk_ack_signal != NULL) {
+            disk_ack_signal->pulse();
+        }
 
     } else {
         // SAMRSI: Maybe pass disk_ack_signal through here, instead of lying.  Figure out what
         // the protocol is here.
         cache->on_transaction_commit(this);
 
-        disk_ack_signal->pulse();
+        if (disk_ack_signal != NULL) {
+            disk_ack_signal->pulse();
+        }
     }
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
