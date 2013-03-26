@@ -123,10 +123,6 @@ private:
 
     // These are used on the json streams.  They're in the class instead of
     // being locally allocated because it makes debugging easier.
-    rdb_protocol_details::transform_variant_t trans;
-    rdb_protocol_details::terminal_variant_t terminal;
-    query_language::scopes_t _s;
-    query_language::backtrace_t _b;
 
     template<class T>
     void run_terminal(T t); // only used in datum_stream.cc
