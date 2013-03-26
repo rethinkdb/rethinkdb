@@ -23,7 +23,6 @@ class writeback_t : private timer_callback_t {
 public:
     writeback_t(
         mc_cache_t *cache,
-        bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
         unsigned int max_dirty_blocks,
@@ -62,7 +61,7 @@ public:
         However, due to a peculiarity of how snapshots interact with the deletion of blocks
         and the writeback process (as of 11/20/2012), new blocks can sometimes be assigned a block id
         for which a local_buf_t still exists. In that case, the local_buf_t has to be reset ot its initial
-        configuration. This process is currently triggered by mc_inner_buf_t::allocate(). */ 
+        configuration. This process is currently triggered by mc_inner_buf_t::allocate(). */
         void reset();
 
         void set_dirty(bool _dirty = true);
@@ -83,7 +82,6 @@ public:
 
     /* User-controlled settings. */
 
-    const bool wait_for_flush;
     const unsigned int flush_waiting_threshold;
     const unsigned int max_concurrent_flushes;
     const unsigned int max_dirty_blocks;
@@ -137,8 +135,9 @@ private:
     // If something requests a sync but a sync is already in progress, then
     // start_next_sync_immediately is set so that a new sync operation is started as soon as the
     // old one finishes. Note that start_next_sync_immediately being true is not equivalent to
-    // sync_callbacks being nonempty, because when wait_for_flush is set, transactions will sit
-    // patiently in sync_callbacks without setting start_next_sync_immediately.
+    // sync_callbacks being nonempty, because when non-null disk_ack_signals are passed,
+    // transactions will sit patiently in sync_callbacks without setting
+    // start_next_sync_immediately.
     bool start_next_sync_immediately;
 
     // List of bufs that are currenty dirty

@@ -1098,7 +1098,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         this),
     writeback(
         this,
-        dynamic_config.wait_for_flush,
         dynamic_config.flush_timer_ms,
         dynamic_config.flush_dirty_size / _serializer->get_block_size().ser_value(),
         dynamic_config.max_dirty_size / _serializer->get_block_size().ser_value(),

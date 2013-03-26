@@ -267,7 +267,8 @@ void persistent_file_t::construct_serializer_and_cache(const bool create, serial
         cache_t::create(serializer.get());
     }
 
-    cache_dynamic_config.wait_for_flush = true;         // flush to disk immediately on change
+    // SAMRSI: We turned wait_for_flush off.  We need to make sure to pass non-null
+    // disk_ack_signals everywhere in this, to make sure that we do in fact wait for flush.
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;

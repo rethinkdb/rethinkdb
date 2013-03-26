@@ -18,14 +18,12 @@
 
 writeback_t::writeback_t(
         mc_cache_t *_cache,
-        bool _wait_for_flush,
         unsigned int _flush_timer_ms,
         unsigned int _flush_threshold,
         unsigned int _max_dirty_blocks,
         unsigned int _flush_waiting_threshold,
         unsigned int _max_concurrent_flushes
         ) :
-    wait_for_flush(_wait_for_flush),
     flush_waiting_threshold(_flush_waiting_threshold),
     max_concurrent_flushes(_max_concurrent_flushes),
     max_dirty_blocks(_max_dirty_blocks),

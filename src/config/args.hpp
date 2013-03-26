@@ -104,13 +104,13 @@
 // How many milliseconds to allow changes to sit in memory before flushing to disk
 #define DEFAULT_FLUSH_TIMER_MS                    1000
 
-// flush_waiting_threshold is the maximal number of transactions which can wait
-// for a sync before a flush gets triggered on any single slice. As transactions only wait for
-// sync with wait_for_flush enabled, this option plays a role only then.
+// flush_waiting_threshold is the maximal number of transactions which can wait for a sync
+// before a flush gets triggered on any single slice. As transactions only wait for sync when
+// passed non-null disk_ack_signals, this option plays a role only then.
 #define DEFAULT_FLUSH_WAITING_THRESHOLD           8
 
-// If wait_for_flush is true, concurrent flushing can be used to reduce the latency
-// of each single flush. max_concurrent_flushes controls how many flushes can be active
+// If non-null disk_ack_signals are present, concurrent flushing can be used to reduce the
+// latency of each single flush. max_concurrent_flushes controls how many flushes can be active
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 

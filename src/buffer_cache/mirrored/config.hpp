@@ -14,7 +14,6 @@ struct mirrored_cache_config_t {
     mirrored_cache_config_t() {
         max_size = 8 * MEGABYTE; // This should be overwritten
             // at a place where more information about the system and use of the cache is available.
-        wait_for_flush = false;
         flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
         max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
         flush_dirty_size = 0;
@@ -26,10 +25,6 @@ struct mirrored_cache_config_t {
 
     // Max amount of memory that will be used for the cache, in bytes.
     int64_t max_size;
-
-    // If wait_for_flush is true, then write operations will not return until after the data is
-    // safely sitting on the disk.
-    bool wait_for_flush;
 
     // flush_timer_ms is how long (in milliseconds) the cache will allow modified data to sit in
     // memory before flushing it to disk. If it is NEVER_FLUSH, then data will be allowed to sit in
@@ -44,14 +39,14 @@ struct mirrored_cache_config_t {
     // should be much less than max_dirty_size. It's in bytes.
     int64_t flush_dirty_size;
 
-    // flush_waiting_threshold is the maximal number of transactions which can wait
-    // for a sync before a flush gets triggered on any single slice. As transactions only wait for
-    // sync with wait_for_flush enabled, this option plays a role only then.
+    // flush_waiting_threshold is the maximal number of transactions which can wait for a sync
+    // before a flush gets triggered on any single slice. As transactions only wait for sync
+    // when a non-NULL disk_ack_signal is passed, this option plays a role only then.
     int flush_waiting_threshold;
 
-    // If wait_for_flush is true, concurrent flushing can be used to reduce the latency
-    // of each single flush. max_concurrent_flushes controls how many flushes can be active
-    // on a specific slice at any given time.
+    // If a non-NULL disk_ack_signal is passed, concurrent flushing can be used to reduce the
+    // latency of each single flush. max_concurrent_flushes controls how many flushes can be
+    // active on a specific slice at any given time.
     int max_concurrent_flushes;
 
     // per-cache priorities used for i/o accounts
@@ -62,7 +57,6 @@ struct mirrored_cache_config_t {
 
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         msg << max_size;
-        msg << wait_for_flush;
         msg << flush_timer_ms;
         msg << max_dirty_size;
         msg << flush_dirty_size;
@@ -75,8 +69,6 @@ struct mirrored_cache_config_t {
     archive_result_t rdb_deserialize(read_stream_t *s) {
         archive_result_t res = ARCHIVE_SUCCESS;
         res = deserialize(s, &max_size);
-        if (res) { return res; }
-        res = deserialize(s, &wait_for_flush);
         if (res) { return res; }
         res = deserialize(s, &flush_timer_ms);
         if (res) { return res; }
