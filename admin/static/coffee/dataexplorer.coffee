@@ -750,10 +750,12 @@ module 'DataExplorerView', ->
                                     else if /^\s*"/.test(@current_extra_suggestion) is true
                                         string_delimiter = '"'
                                     else
+                                        move_outside = true
                                         string_delimiter = "'"
                                     suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
                                 
                                 @write_suggestion
+                                    move_outside: move_outside
                                     suggestion_to_write: suggestion
                                 @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
 
@@ -1668,6 +1670,7 @@ module 'DataExplorerView', ->
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
+            move_outside = args.move_outside is true # So default value is false
 
             ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
             if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
@@ -1676,7 +1679,7 @@ module 'DataExplorerView', ->
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
                 @written_suggestion = suggestion_to_write
-                if suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'"
+                if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
                     ch--
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
