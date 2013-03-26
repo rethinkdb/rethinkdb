@@ -93,8 +93,8 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")))
-            }
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
 
     propagate(&t);
     return do_replace(
