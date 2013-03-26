@@ -805,9 +805,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
                     r.primary_key, r.key, f, &ql_env, res,
                     &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, &mod_report, txn);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const point_write_t &w) {
@@ -817,9 +815,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock, &res, &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, &mod_report, txn);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const point_delete_t &d) {
@@ -829,9 +825,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, txn, superblock, &res, &mod_report);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_all_sindex_superblocks_for_write(sindex_block_id, token_pair, txn, &sindexes, &interruptor);
-        rdb_update_sindexes(sindexes, &mod_report, txn);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -916,13 +910,14 @@ void update_sindexes(rdb_modification_report_t *mod_report) {
 
     mutex_t::acq_t acq;
     store->lock_sindex_queue(sindex_block.get(), &acq);
-    
+
     write_message_t wm;
     wm << *mod_report;
     store->sindex_queue_push(wm, &acq);
 
     sindex_access_vector_t sindexes;
-    store->acquire_all_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+    store->aquire_post_constructed_sindex_superblocks_for_write(
+            sindex_block.get(), txn, &sindexes);
     rdb_update_sindexes(sindexes, mod_report, txn);
 }
     btree_slice_t *btree;
