@@ -961,26 +961,17 @@ mc_transaction_t::~mc_transaction_t() {
     if (access == rwi_write && disk_ack_signal != NULL) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        sync_callback_t sync_callback;
-
-        if (cache->writeback.sync_patiently(&sync_callback)) {
-            sync_callback.pulse();
-        }
-
-        cache->on_transaction_commit(this);
-        sync_callback.wait();
-
-        disk_ack_signal->pulse();
-
-    } else {
-        // SAMRSI: Maybe pass disk_ack_signal through here, instead of lying.  Figure out what
-        // the protocol is here.
-        cache->on_transaction_commit(this);
-
-        // SAMRSI: Can we assert that read-only transactions don't have a disk_ack_signal?  Maybe add separate constructor.
-        if (disk_ack_signal != NULL) {
+        if (cache->writeback.sync_patiently(disk_ack_signal)) {
             disk_ack_signal->pulse();
         }
+
+        cache->on_transaction_commit(this);
+
+        // SAMRSI: Make sure that everybody waits on its disk_ack_signal after the txn destructs.
+    } else {
+        guarantee(disk_ack_signal == NULL, "Somebody passed a sync callback with a read transaction.");
+
+        cache->on_transaction_commit(this);
     }
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
