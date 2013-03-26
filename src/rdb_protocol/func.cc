@@ -171,7 +171,7 @@ bool func_t::filter_call(const datum_t *arg) {
         const std::map<const std::string, const datum_t *> &obj = d->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second != NULL);
-            const datum_t *elt = arg->el(it->first, NOTHROW);
+            const datum_t *elt = arg->get(it->first, NOTHROW);
             if (elt == NULL) {
                 rfail("No attribute `%s` in object.", it->first.c_str());
             } else if (*elt != *it->second) {

@@ -177,13 +177,13 @@ size_t datum_t::size() const {
     return as_array().size();
 }
 
-const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
+const datum_t *datum_t::get(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) return as_array()[index];
     if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
     return 0;
 }
 
-const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
+const datum_t *datum_t::get(const std::string &key, throw_bool_t throw_bool) const {
     std::map<const std::string, const datum_t *>::const_iterator
         it = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -281,7 +281,7 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
     const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (const datum_t *l = el(it->first, NOTHROW)) {
+        if (const datum_t *l = get(it->first, NOTHROW)) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
@@ -430,7 +430,7 @@ void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const
         case R_NUM:  // fallthru
         case R_STR:  break;
         case R_ARRAY: {
-            for (size_t i = 0; i < as_array().size(); ++i) el(i)->iter(callback, env);
+            for (size_t i = 0; i < as_array().size(); ++i) get(i)->iter(callback, env);
         } break;
         case R_OBJECT: {
             for (std::map<const std::string, const datum_t *>::const_iterator

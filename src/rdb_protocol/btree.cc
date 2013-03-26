@@ -192,7 +192,7 @@ void rdb_replace(btree_slice_t *slice,
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
             rcheck_target(
-                new_val, new_val->el(primary_key, ql::NOTHROW),
+                new_val, new_val->get(primary_key, ql::NOTHROW),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
         } else {
@@ -211,7 +211,7 @@ void rdb_replace(btree_slice_t *slice,
                 conflict = resp->add("skipped", num_1);
             } else {
                 conflict = resp->add("inserted", num_1);
-                r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
+                r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                 kv_location_set(&kv_location, key, new_val->as_json(),
                                 slice, timestamp, txn);
             }
@@ -220,12 +220,12 @@ void rdb_replace(btree_slice_t *slice,
                 conflict = resp->add("deleted", num_1);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
             } else {
-                if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
+                if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
                     if (*old_val == *new_val) {
                         conflict = resp->add("unchanged", num_1);
                     } else {
                         conflict = resp->add("replaced", num_1);
-                        r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
+                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                         kv_location_set(&kv_location, key, new_val->as_json(),
                                         slice, timestamp, txn);
                     }

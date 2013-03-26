@@ -198,7 +198,7 @@ private:
                    strprintf("Can only sort at most %zu elements.",
                              sort_el_limit));
             for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->el(i));
+                data.push_back(arr->get(i));
             }
         } else {
             is_arr_ = false;

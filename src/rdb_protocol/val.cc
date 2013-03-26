@@ -62,7 +62,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
             return resp;
         }
     }
-    store_key_t store_key(orig->el(pk)->print_primary());
+    store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(pk, store_key, mwf, env->get_all_optargs()));
 

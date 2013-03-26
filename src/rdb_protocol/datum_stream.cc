@@ -177,8 +177,8 @@ const datum_t *lazy_datum_stream_t::gmr(
         rhs->compile(env);
         const datum_t *rhs_arr = rhs->to_arr(env);
         for (size_t f = 0; f < rhs_arr->size(); ++f) {
-            const datum_t *key = rhs_arr->el(f)->el("group");
-            const datum_t *val = rhs_arr->el(f)->el("reduction");
+            const datum_t *key = rhs_arr->get(f)->get("group");
+            const datum_t *val = rhs_arr->get(f)->get("reduction");
             if (!map.has(key)) {
                 map.set(key, d ? r->call(d, val)->as_datum() : val);
             } else {
@@ -201,7 +201,7 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
     : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
-    return arr->el(index++, NOTHROW);
+    return arr->get(index++, NOTHROW);
 }
 
 // MAP_DATUM_STREAM_T
@@ -256,8 +256,8 @@ zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
 const datum_t *zip_datum_stream_t::next_impl() {
     const datum_t *d = src->next();
     if (!d) return 0;
-    const datum_t *l = d->el("left", NOTHROW);
-    const datum_t *r = d->el("right", NOTHROW);
+    const datum_t *l = d->get("left", NOTHROW);
+    const datum_t *r = d->get("right", NOTHROW);
     rcheck(l, "ZIP can only be called on the result of a join.");
     return r ? env->add_ptr(l->merge(r)) : l;
 }

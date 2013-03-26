@@ -201,13 +201,13 @@ private:
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     datum_t *obj = env->add_ptr(new datum_t(datum_t::R_OBJECT));
                     while (const datum_t *pair = ds->next()) {
-                        std::string key = pair->el(0)->as_str();
-                        const datum_t *keyval = pair->el(1);
+                        std::string key = pair->get(0)->as_str();
+                        const datum_t *keyval = pair->get(1);
                         bool b = obj->add(key, keyval);
                         rcheck(!b, strprintf("Duplicate key %s in coerced object.  "
                                              "(got %s and %s as values)",
                                              key.c_str(),
-                                             obj->el(key)->print().c_str(),
+                                             obj->get(key)->print().c_str(),
                                              keyval->print().c_str()));
                     }
                     return new_val(obj);

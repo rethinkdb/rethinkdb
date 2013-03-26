@@ -82,9 +82,9 @@ public:
     void add(const datum_t *val); // add to an array
     size_t size() const;
     // Access an element of an array.
-    const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
+    const datum_t *get(size_t index, throw_bool_t throw_bool = THROW) const;
 
-    // Use of `el` is preferred to `as_object` when possible.
+    // Use of `get` is preferred to `as_object` when possible.
     const std::map<const std::string, const datum_t *> &as_object() const;
     // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, const datum_t *val,
@@ -92,7 +92,7 @@ public:
     // Returns true if key was in object.
     MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
-    const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
+    const datum_t *get(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
     typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,
                                           const datum_t *l, const datum_t *r,

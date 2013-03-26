@@ -21,8 +21,8 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
         return env->add_ptr(new datum_t(l->as_num() + r->as_num()));
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < l->size(); ++i) arr->add(l->el(i));
-        for (size_t i = 0; i < r->size(); ++i) arr->add(r->el(i));
+        for (size_t i = 0; i < l->size(); ++i) arr->add(l->get(i));
+        for (size_t i = 0; i < r->size(); ++i) arr->add(r->get(i));
         return arr;
     }
 
@@ -54,7 +54,7 @@ private:
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
                             const datum_t **datum_out) {
-        if (!(*datum_out)->el(tbl->get_pkey(), NOTHROW)) {
+        if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW)) {
             std::string key = uuid_to_str(generate_uuid());
             const datum_t *keyd = env->add_ptr(new datum_t(key));
             datum_t *d = env->add_ptr(new datum_t(datum_t::R_OBJECT));
@@ -167,7 +167,7 @@ private:
                     stats = stats->merge(env, d, stats_merge);
                 } else {
                     for (size_t i = 0; i < d->size(); ++i) {
-                        stats = stats->merge(env, d->el(i), stats_merge);
+                        stats = stats->merge(env, d->get(i), stats_merge);
                     }
                 }
             } catch (const exc_t &e) {
