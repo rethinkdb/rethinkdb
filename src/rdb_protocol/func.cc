@@ -74,7 +74,7 @@ func_t::func_t(env_t *env, const Term *_source)
 
 val_t *func_t::call(const std::vector<const datum_t *> &args) {
     try {
-        if (js_parent != 0) {
+        if (js_parent != NULL) {
             r_sanity_check(!body && !source && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
