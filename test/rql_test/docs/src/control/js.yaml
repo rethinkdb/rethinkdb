@@ -10,7 +10,7 @@ commands:
 
     examples:
       - description: Concatenate two strings using Javascript'
-        code: r.js("''str1'' + ''str2''").run(conn)
+        code: r.js("'str1' + 'str2'").run(conn)
       - description: Select all documents where the 'magazines' field is greater
           than 5 by running Javascript on the server.
         code: |-

@@ -45,6 +45,16 @@ commands:
           py: conn = r.connect(db='heroes')
           rb: conn = r.connect('localhost', 28015, 'heroes')
 
+    py:
+      examples:
+        0:
+          description: Opens a connection using the default host and port but specifying the default database.
+
+    rb:
+      examples:
+        0:
+          description: Opens a connection to localhost:28015 with 'heroes' as the default database.
+
   - tag: repl
     section: module
     description: |
@@ -59,8 +69,12 @@ commands:
             Set the default connection in REPL, and call `run()`
             without specifying the connection.
         code:
-          py: r.connect().repl()
-          rb: r.connect().repl
+          py: |
+            r.connect().repl()
+            r.table('users').run()
+          rb: |
+            r.connect().repl
+            r.table('users').run
 
     js: false
 
@@ -137,7 +151,9 @@ commands:
       - description: |
           If you are OK with potentially out of date data from all the tables involved
           in this query and want potentially faster reads, pass a flag allowing
-          out of date data in an options object.
+          out of date data in an options object. 
+          Settings for individual tables will supercede this global setting 
+          for all tables in the query.
         code:
           js: |
             r.table('marvel').run({connection:conn, useOutdated:true},
