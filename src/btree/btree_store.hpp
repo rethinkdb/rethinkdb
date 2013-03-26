@@ -273,8 +273,6 @@ public:
         return &(secondary_index_slices.at(id));
     }
 
-//protected: >.<
-    // Functions to be implemented by derived (protocol-specific) store_t classes
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,

@@ -1083,7 +1083,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
                                write_token_pair_t *_token_pair,
                                signal_t *_interruptor) :
       store(_store), btree(_btree), txn(_txn), superblock(_superblock),
-      token_pair(_token_pair), interruptor(_interruptor) { }
+      token_pair(_token_pair), interruptor(_interruptor),
+      sindex_block_id(superblock->get_sindex_block_id()) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
@@ -1091,8 +1092,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    txn, superblock, &response, &mod_report);
 
-        token_pair->sindex_write_token.reset();
-        //TODO this doesn't update the secondary index and it needs to.
+        update_sindexes(&mod_report);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
@@ -1112,8 +1112,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
                 txn, superblock, &response,
                 &mod_report);
 
-        token_pair->sindex_write_token.reset();
-        //TODO this doesn't update the secondary index and it needs to.
+        update_sindexes(&mod_report);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
@@ -1149,12 +1148,32 @@ private:
         const region_t& delete_range;
     };
 
+    void update_sindexes(rdb_modification_report_t *mod_report) const {
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        store->acquire_sindex_block_for_write(
+            token_pair, txn, &sindex_block,
+            sindex_block_id, interruptor);
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(sindex_block.get(), &acq);
+
+        write_message_t wm;
+        wm << *mod_report;
+        store->sindex_queue_push(wm, &acq);
+
+        sindex_access_vector_t sindexes;
+        store->aquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block.get(), txn, &sindexes);
+        rdb_update_sindexes(sindexes, mod_report, txn);
+    }
+
     btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
     write_token_pair_t *token_pair;
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
+    block_id_t sindex_block_id;
 };
 
 }   /* anonymous namespace */
