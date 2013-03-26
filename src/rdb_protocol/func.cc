@@ -47,16 +47,14 @@ func_t::func_t(env_t *env, const Term *_source)
         rfail("CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
-    guarantee(argptrs.size() == 0);
-    argptrs.reserve(args.size()); // NECESSARY FOR POINTERS TO REMAIN VALID
+    argptrs.init(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        argptrs.push_back(0);
+        argptrs[i] = 0;
         env->push_var(args[i], &argptrs[i]);
     }
     if (args.size() == 1 && env_t::var_allows_implicit(args[0])) {
         env->push_implicit(&argptrs[0]);
     }
-
     if (args.size()) guarantee(env->top_var(args[0], this) == &argptrs[0]);
 
     const Term *body_source = &t->args(1);
@@ -88,10 +86,11 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
             return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
         } else {
             r_sanity_check(body && source && !js_env);
-            rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
-                   strprintf("Expected %zu argument(s) but found %zu.",
+            rcheck(args.size() == static_cast<size_t>(argptrs.size())
+                   || argptrs.size() == 0,
+                   strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
-            for (size_t i = 0; i < argptrs.size(); ++i) {
+            for (ssize_t i = 0; i < argptrs.size(); ++i) {
                 r_sanity_check(args[i]);
                 argptrs[i] = args[i];
             }

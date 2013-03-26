@@ -37,7 +37,7 @@ public:
 
 private:
     // Pointers to this function's arguments.
-    std::vector<const datum_t *> argptrs;
+    scoped_array_t<const datum_t *> argptrs;
     term_t *body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
