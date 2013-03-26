@@ -16,7 +16,7 @@ location set the `JSON_OUT` make variable.
 $ make JSON_OUT=~/rethinkdb-www/_site/assets/js/rql_docs.json
 ```
 
-## Hot to edit the documentation
+## How to edit the documentation
 
 New sections can be added in any file. Simply add a top level property called
 `sections` and give a list of new section objects.
