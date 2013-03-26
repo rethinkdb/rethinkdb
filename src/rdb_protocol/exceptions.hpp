@@ -51,6 +51,7 @@ public:
     runtime_exc_t(const std::string &_what, const backtrace_t &bt)
         : message(_what), backtrace(bt)
     { }
+    ~runtime_exc_t() throw () { }
 
     const char *what() const throw() {
         return message.c_str();

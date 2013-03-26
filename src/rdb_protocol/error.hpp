@@ -173,8 +173,7 @@ class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    template<class T>
-    exc_t(const std::string &_exc_msg, const T *bt_src)
+    exc_t(const std::string &_exc_msg, const Backtrace *bt_src)
         : exc_msg(_exc_msg) {
         if (bt_src) set_backtrace(bt_src);
     }
