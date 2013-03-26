@@ -119,7 +119,29 @@ public:
     // Iterate through an object or array with a callback.  (The callback
     // returns whether or not to continue iterating.)  Used for e.g. garbage
     // collection.
-    void iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const;
+    template<class callable_t>
+    void iter(callable_t callback) const {
+        if (callback(this)) {
+            switch (get_type()) {
+            case R_NULL: // fallthru
+            case R_BOOL: // fallthru
+            case R_NUM:  // fallthru
+            case R_STR:  break;
+            case R_ARRAY: {
+                for (size_t i = 0; i < as_array().size(); ++i) {
+                    get(i)->iter(callback);
+                }
+            } break;
+            case R_OBJECT: {
+                for (std::map<const std::string, const datum_t *>::const_iterator
+                         it = as_object().begin(); it != as_object().end(); ++it) {
+                    it->second->iter(callback);
+                }
+            } break;
+            default: unreachable();
+            }
+        }
+    }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {

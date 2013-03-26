@@ -422,27 +422,6 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
-void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const {
-    if (callback(this, env)) {
-        switch (get_type()) {
-        case R_NULL: // fallthru
-        case R_BOOL: // fallthru
-        case R_NUM:  // fallthru
-        case R_STR:  break;
-        case R_ARRAY: {
-            for (size_t i = 0; i < as_array().size(); ++i) get(i)->iter(callback, env);
-        } break;
-        case R_OBJECT: {
-            for (std::map<const std::string, const datum_t *>::const_iterator
-                     it = as_object().begin(); it != as_object().end(); ++it) {
-                it->second->iter(callback, env);
-            }
-        } break;
-        default: unreachable();
-        }
-    }
-}
-
 const datum_t *wire_datum_t::get() const {
     r_sanity_check(state == COMPILED);
     return ptr;

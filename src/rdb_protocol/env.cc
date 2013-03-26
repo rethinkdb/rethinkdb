@@ -80,9 +80,6 @@ void env_t::discard_checkpoint() {
     bags.pop_back();
 }
 
-bool env_t::gc_callback_trampoline(const datum_t *el, env_t *env) {
-    return env->gc_callback(el);
-}
 bool env_t::gc_callback(const datum_t *el) {
     if (old_bag->has(el)) {
         old_bag->yield_to(new_bag, el);
@@ -98,7 +95,7 @@ void env_t::gc(const datum_t *root) {
     // debugf("GC {\n");
     // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
     // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
-    root->iter(gc_callback_trampoline, this);
+    root->iter(gc_callback_caller_t(this));
     // debugf(" --- \n");
     // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
     // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
@@ -177,7 +174,7 @@ void env_checkpoint_t::gc(const datum_t *root) {
 const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024);
 #else
 const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF =
-    sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16));
+    sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16;
 #endif // NDEBUG
 const int env_gc_checkpoint_t::DEFAULT_GEN2_SIZE_MULTIPLIER = 8;
 

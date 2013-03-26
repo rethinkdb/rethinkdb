@@ -122,7 +122,13 @@ private:
 private:
     // `old_bag` and `new_bag` are so that `gc` can communicate with `gc_callback`.
     ptr_bag_t *old_bag, *new_bag;
-    static bool gc_callback_trampoline(const datum_t *el, env_t *env);
+    class gc_callback_caller_t {
+    public:
+        gc_callback_caller_t(env_t *_env) : env(_env) { }
+        bool operator()(const datum_t *el) { return env->gc_callback(el); }
+    private:
+        env_t *env;
+    };
     bool gc_callback(const datum_t *el);
     void gc(const datum_t *root);
 
