@@ -4,21 +4,10 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 
-
-bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out) {
-    if (disk_expectation <= cache_expectation) {
-        out->disk_expectation_ = disk_expectation;
-        out->cache_expectation_ = cache_expectation;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, disk_expectation_, cache_expectation_);
+RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
-    return disk_expectation_ == other.disk_expectation_ && cache_expectation_ == other.cache_expectation_;
+    return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
@@ -35,10 +24,12 @@ cJSON *render_as_json(const ack_expectation_t *target) {
     uint32_t memory = target->cache_expectation();
     return render_as_json(&memory);
 }
+
+// TODO: encode hard durability boolean
 void apply_json_to(cJSON *change, ack_expectation_t *target) {
     uint32_t memory = target->cache_expectation() /* TODO(acks) sophisticated */;
     apply_json_to(change, &memory);
-    *target = ack_expectation_t(memory);
+    *target = ack_expectation_t(memory, true);
 }
 
 
