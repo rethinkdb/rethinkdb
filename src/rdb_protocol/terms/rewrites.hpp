@@ -217,24 +217,26 @@ public:
 private:
     static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
+        const Term *left = &in->args(0);
+        const Term *left_attr = &in->args(1);
+        const Term *right = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
         Term *arg = out;
-        // `l`.concat_map { |row|
-        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, row);
-           // r.funcall(lambda { |v|
+        // `left`.concat_map { |row|
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
+           // right.funcall(lambda { |v|
            N2(FUNCALL, arg = pb::set_func(arg, v);
-              // r.branch(
+              // right.branch(
               N3(BRANCH,
-                 // r.ne(v, nil),
+                 // right.ne(v, nil),
                  N2(NE, NVAR(v), NDATUM(datum_t::R_NULL)),
                  // [{:left => row, :right => v}],
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
                  // []),
                  N0(MAKE_ARRAY)),
-              // `r`.get(l[`lattr`]))}
-              N2(GET, *arg = *r, N2(GETATTR, NVAR(row), *arg = *lattr))));
+              // `right`.get(left[`left_attr`]))}
+              N2(GET, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr))));
     }
     virtual const char *name() const { return "inner_join"; }
 };
