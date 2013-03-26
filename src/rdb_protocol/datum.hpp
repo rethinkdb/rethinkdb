@@ -161,16 +161,18 @@ private:
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);
-// A `wire_datum_t` is necessary to serialize data over the wire.  See README.md
-// for more info.
+// A `wire_datum_t` is necessary to serialize data over the wire.
 class wire_datum_t {
 public:
     wire_datum_t() : ptr(0), state(INVALID) { }
     explicit wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
     const datum_t *get() const;
     const datum_t *reset(const datum_t *ptr2);
+    // Return a datum allocated in `env`.
     const datum_t *compile(env_t *env);
 
+    // Prepare ourselves for serialization over the wire (this is a performance
+    // optimizaiton that we need on the shards).
     void finalize();
 private:
     const datum_t *ptr;
