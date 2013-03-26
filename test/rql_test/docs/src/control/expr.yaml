@@ -1,6 +1,7 @@
 commands:
   - tag: expr
     section: control
+    order: 4
     description: Construct a RQL JSON object from a native object.
 
     body: obj

@@ -1,6 +1,7 @@
 commands:
   - tag: branch
     section: control
+    order: 1
     description: Evaluate one of two control paths based on the value of an expression.
 
     body:

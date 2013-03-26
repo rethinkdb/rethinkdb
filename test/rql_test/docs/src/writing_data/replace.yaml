@@ -1,6 +1,7 @@
 commands:
   - tag: replace
     section: writing_data
+    order: 2
     description: |
       Replace documents in a table. Accepts a JSON document or a RQL expression,
       and replaces the original document with the new one. The new document must have

@@ -1,6 +1,7 @@
 commands:
   - tag: foreach
     section: control
+    order: 2
     description: Loop over a sequence, evaluating the given write query for each element.
 
     body:

@@ -41,7 +41,7 @@ for section in sections:
     }
 
     commands_for_this_section = []
-    for command in commands:
+    for i,command in enumerate(commands):
         if command['section'] == section['tag']:
             def or_default(attr, default):
                 if attr in command:
@@ -54,6 +54,7 @@ for section in sections:
                 'description':or_default('description', ''),
                 'parent':or_default('parent', ''),
                 'returns':or_default('returns', ''),
+                'order':or_default('order', i),
                 'langs': {}
             }
 
@@ -138,6 +139,7 @@ for section in sections:
             commands_for_this_section.append(out_command)
 
     out_section['commands'].extend(commands_for_this_section)
+    out_section['commands'].sort(key=lambda command: command['order'])
     out_obj['sections'].append(out_section)
 
 out_obj['sections'].sort(key=lambda section: section['order'])

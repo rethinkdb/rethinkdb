@@ -1,6 +1,7 @@
 commands:
   - tag: error
     section: control
+    order: 3
     description: Throw a runtime error.
 
     body: message

@@ -1,6 +1,7 @@
 commands:
   - tag: update
     section: writing_data
+    order: 1
     description: |
       Update JSON documents in a table. Accepts a JSON document, a RQL
       expression, or a combination of the two.<br /><br />Update returns an object

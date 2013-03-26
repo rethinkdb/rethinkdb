@@ -1,6 +1,7 @@
 commands:
   - tag: js
     section: control
+    order: 5
     description: Create a javascript expression.
 
     body: jsstring

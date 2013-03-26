@@ -1,6 +1,7 @@
 commands:
   - tag: coerce_to
     section: control
+    order: 6
     description: Converts a value of one type into another. Supported conversions are
       NUMBER -> STRING, SELECTION -> ARRAY, OBJECT -> ARRAY.
 

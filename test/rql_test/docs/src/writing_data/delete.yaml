@@ -1,6 +1,7 @@
 commands:
   - tag: delete
     section: writing_data
+    order: 3
     description: |
       Delete one or more documents from a table.<br /><br />Delete returns
       an object that contains one or more of:<ul><li><code>deleted</code> - the number

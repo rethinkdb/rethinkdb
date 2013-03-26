@@ -1,6 +1,7 @@
 commands:
   - tag: do
     section: control
+    order: 0
     description: Evaluate the <code>inExpr</code> in the context of one or more value
       bindings.
 
