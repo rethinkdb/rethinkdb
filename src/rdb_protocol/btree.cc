@@ -161,7 +161,7 @@ void rdb_replace(btree_slice_t *slice,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response_out) THROWS_NOTHING {
+                 Datum *response_out) {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
