@@ -14,7 +14,7 @@
 #include "containers/ptr_bag.hpp"
 #include "extproc/pool.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"

@@ -7,7 +7,7 @@
 #include <boost/variant/static_visitor.hpp>
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/js.hpp"
 
 namespace ql {

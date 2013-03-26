@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
 namespace ql {

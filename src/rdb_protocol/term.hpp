@@ -10,7 +10,7 @@
 #include "containers/ptr_bag.hpp"
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/ql2.pb.h"

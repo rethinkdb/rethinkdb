@@ -1,4 +1,4 @@
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 #include "backtrace.hpp"
 #include "rdb_protocol/term_walker.hpp"

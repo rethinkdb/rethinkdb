@@ -5,7 +5,7 @@
 #include <string>
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 

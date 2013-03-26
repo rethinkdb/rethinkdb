@@ -2,7 +2,7 @@
 #define RDB_PROTOCOL_TERMS_ARR_HPP_
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 class append_term_t : public op_term_t {
