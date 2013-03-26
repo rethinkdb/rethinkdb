@@ -116,11 +116,8 @@ private:
     signal_t *interruptor;
     key_range_t range;
     boost::optional<uuid_u> sindex_id;
-    int batch_size;
 
     json_list_t data;
-    // See the TODO(jdoliner) above.
-    // int index;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
