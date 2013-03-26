@@ -881,7 +881,7 @@ void mc_buf_lock_t::release() {
  */
 
 // SAMRSI: Check that nothing indiscriminantly passes a non-null disk_ack_signal.
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, cond_t *_disk_ack_signal)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, sync_callback_t *_disk_ack_signal)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -961,11 +961,8 @@ mc_transaction_t::~mc_transaction_t() {
     if (access == rwi_write && disk_ack_signal != NULL) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        struct : public writeback_t::sync_callback_t, public cond_t {
-            void on_sync() { pulse(); }
-        } sync_callback;
+        sync_callback_t sync_callback;
 
-        // SAMRSI: We don't really want sync_patiently, we want sync ASAP.
         if (cache->writeback.sync_patiently(&sync_callback)) {
             sync_callback.pulse();
         }
@@ -1158,10 +1155,10 @@ mc_cache_t::~mc_cache_t() {
             num_live_writeback_transactions, num_live_non_writeback_transactions);
 
     /* Perform a final sync */
-    struct : public writeback_t::sync_callback_t, public cond_t {
-        void on_sync() { pulse(); }
-    } sync_cb;
-    if (!writeback.sync(&sync_cb)) sync_cb.wait();
+    sync_callback_t sync_cb;
+    if (!writeback.sync(&sync_cb)) {
+        sync_cb.wait();
+    }
 
     /* Delete all the buffers */
     while (evictable_t *buf = page_repl.get_first_buf()) {

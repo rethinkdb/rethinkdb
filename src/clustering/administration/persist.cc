@@ -75,7 +75,7 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const seriali
     construct_serializer_and_cache(true, &file_opener, perfmon_parent);
 
     // SAMRSI: Pass this disk_ack_signal as a parameter?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     {
         transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("persistent_file_t"), &disk_ack_signal);
@@ -125,7 +125,7 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
     // SAMRSI: Pass this disk_ack_signal from outside?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     {
         transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("update_metadata"), &disk_ack_signal);
@@ -213,7 +213,7 @@ public:
 private:
     void flush(UNUSED signal_t *interruptor) {
         // SAMRSI: Pass in disk_ack_signal from outside?
-        cond_t disk_ack_signal;
+        sync_callback_t disk_ack_signal;
 
         {
             transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("flush"), &disk_ack_signal);

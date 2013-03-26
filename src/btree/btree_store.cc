@@ -76,7 +76,7 @@ void btree_store_t<protocol_t>::write(
         const metainfo_t& new_metainfo,
         const typename protocol_t::write_t &write,
         typename protocol_t::write_response_t *response,
-        cond_t *disk_ack_signal,
+        sync_callback_t *disk_ack_signal,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -127,7 +127,7 @@ void btree_store_t<protocol_t>::receive_backfill(
     assert_thread();
 
     // SAMRSI: Shall disk_ack_signal be passed as a parameter?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -148,7 +148,7 @@ void btree_store_t<protocol_t>::reset_data(
     assert_thread();
 
     // SAMRSI: This should be a parameter?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -266,7 +266,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     assert_thread();
 
     // SAMRSI: Should this be passed as a parameter?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -327,7 +327,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         access_t access,
         repli_timestamp_t timestamp,
         int expected_change_count,
-        cond_t *disk_ack_signal,
+        sync_callback_t *disk_ack_signal,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,

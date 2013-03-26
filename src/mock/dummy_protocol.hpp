@@ -136,7 +136,7 @@ public:
                    const metainfo_t& new_metainfo,
                    const dummy_protocol_t::write_t &write,
                    dummy_protocol_t::write_response_t *response,
-                   cond_t *disk_ack_signal,
+                   sync_callback_t *disk_ack_signal,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
                    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,

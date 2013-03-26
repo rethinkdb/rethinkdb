@@ -72,7 +72,7 @@ public:
         store->new_write_token(&write_token);
 
         // SAMRSI: Get disk_ack_signal from the parameter list?
-        cond_t disk_ack_signal;
+        sync_callback_t disk_ack_signal;
         store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),

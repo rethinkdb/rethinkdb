@@ -474,7 +474,7 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
 void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp,
                                            order_token_t token, cache_snapshotted_t snapshotted,
                                            cache_account_t *cache_account,
-                                           cond_t *disk_ack_signal,
+                                           sync_callback_t *disk_ack_signal,
                                            scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                            scoped_ptr_t<transaction_t> *txn_out) {
     slice->assert_thread();
@@ -495,7 +495,7 @@ void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access
 
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
-                                  cond_t *disk_ack_signal,
+                                  sync_callback_t *disk_ack_signal,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out) {
     get_btree_superblock_and_txn_internal(slice, access, expected_change_count, tstamp, token, CACHE_SNAPSHOTTED_NO, NULL, disk_ack_signal, got_superblock_out, txn_out);

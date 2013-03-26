@@ -5,7 +5,15 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "concurrency/cond_var.hpp"
 #include "serializer/types.hpp"
+
+struct sync_callback_t : public cond_t, public intrusive_list_node_t<sync_callback_t> {
+    void on_sync() {
+        pulse();
+    }
+};
+
 
 enum buffer_cache_order_mode_t {
     buffer_cache_order_mode_check,

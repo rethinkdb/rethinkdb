@@ -43,7 +43,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     // SAMRSI: Should we push the disk_ack_signal up?  Should we wait on this signal?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     //first we need a transaction
     transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("push"), &disk_ack_signal);
@@ -86,7 +86,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     // SAMRSI: Should we push the disk_ack_signal up?  Should we wait on this signal?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     char buffer[MAX_REF_SIZE];
     transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("pop"), &disk_ack_signal);

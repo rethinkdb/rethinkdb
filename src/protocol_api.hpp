@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -360,7 +361,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            cond_t *disk_ack_signal,
+            sync_callback_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
@@ -511,7 +512,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            cond_t *disk_ack_signal,
+            sync_callback_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,

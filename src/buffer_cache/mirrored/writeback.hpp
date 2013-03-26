@@ -7,6 +7,7 @@
 
 #include "arch/timer.hpp"
 #include "buffer_cache/mirrored/flush_time_randomizer.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
@@ -29,11 +30,6 @@ public:
         unsigned int flush_waiting_threshold,
         unsigned int max_concurrent_flushes);
     virtual ~writeback_t();
-
-    struct sync_callback_t : public intrusive_list_node_t<sync_callback_t> {
-        virtual ~sync_callback_t() {}
-        virtual void on_sync() = 0;
-    };
 
     /* Forces a writeback to happen soon. If there is nothing to write, return 'true'; otherwise,
     returns 'false' and calls 'callback' as soon as the next writeback cycle is over. */

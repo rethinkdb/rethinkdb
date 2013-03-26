@@ -225,7 +225,7 @@ class mc_transaction_t :
     friend class writeback_t;
 
 public:
-    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, cond_t *disk_ack_signal);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, sync_callback_t *disk_ack_signal);
     // SAMRSI: Should the writeback constructor also take a disk_ack_signal?
     mc_transaction_t(mc_cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
@@ -267,7 +267,7 @@ private:
 
     const bool is_writeback_transaction;
 
-    cond_t *const disk_ack_signal;
+    sync_callback_t *const disk_ack_signal;
 
     DISABLE_COPYING(mc_transaction_t);
 };

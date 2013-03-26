@@ -72,7 +72,7 @@ void run_metainfo_test() {
 
         order_token_t otok = order_source.check_in("metainfo unittest");
 
-        cond_t disk_ack_signal;
+        sync_callback_t disk_ack_signal;
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;

@@ -96,7 +96,7 @@ scc_buf_lock_t<inner_cache_t>::~scc_buf_lock_t() {
 /* Transaction */
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *_cache, access_t _access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token, cond_t *disk_ack_signal) :
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *_cache, access_t _access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token, sync_callback_t *disk_ack_signal) :
     cache(_cache),
     order_token(_order_token),
     snapshotted(false),

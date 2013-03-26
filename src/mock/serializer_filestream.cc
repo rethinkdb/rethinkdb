@@ -64,7 +64,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
 
     // SAMRSI: Pass the disk_ack_signal as a parameter?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     {
         transaction_t txn(cache_.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token_t::ignore, &disk_ack_signal);
@@ -91,7 +91,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     // SAMRSI: Construct a disk_ack_signal here?  As a parameter?  (No, we can't.)  Wait on the
     // signal?  Construct and wait on the disk ack signal as configured by a boolean parameter
     // to the serializer_file_write_stream constructor?
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
 
     transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, &disk_ack_signal);
     // Hold the size block during writes, to lock out other writers.

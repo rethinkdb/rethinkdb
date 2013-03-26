@@ -465,7 +465,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
-    cond_t disk_ack_signal;
+    sync_callback_t disk_ack_signal;
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
@@ -540,7 +540,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
         // Perform the operation
         typename protocol_t::write_response_t response;
-        cond_t disk_ack_signal;
+        sync_callback_t disk_ack_signal;
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
