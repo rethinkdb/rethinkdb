@@ -60,7 +60,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
     try {
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
-        if (client_magic_number != magic_number) {
+        if (client_magic_number != context_t::magic_number) {
             const char *msg = "ERROR: This is the rdb protocol port! (bad magic number)\n";
             conn->write(msg, strlen(msg), &ct_keepalive);
             conn->shutdown_write();
