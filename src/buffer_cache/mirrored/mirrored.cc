@@ -880,6 +880,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
+// SAMRSI: Check that nothing indiscriminantly passes a non-null disk_ack_signal.
 mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, cond_t *_disk_ack_signal)
     : cache(_cache),
       expected_change_count(_expected_change_count),
@@ -890,8 +891,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      disk_ack_signal(_disk_ack_signal),
-      wait_for_flush(cache->writeback.wait_for_flush) {
+      disk_ack_signal(_disk_ack_signal) {
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -921,8 +921,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true),
-    disk_ack_signal(NULL), /* SAMRSI: This should be NULL? */
-    wait_for_flush(_cache->writeback.wait_for_flush) {
+    disk_ack_signal(NULL) /* SAMRSI: This should be NULL? */ {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -959,13 +958,14 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
-    if (access == rwi_write && wait_for_flush) {
+    if (access == rwi_write && disk_ack_signal != NULL) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
         struct : public writeback_t::sync_callback_t, public cond_t {
             void on_sync() { pulse(); }
         } sync_callback;
 
+        // SAMRSI: We don't really want sync_patiently, we want sync ASAP.
         if (cache->writeback.sync_patiently(&sync_callback)) {
             sync_callback.pulse();
         }
@@ -973,15 +973,14 @@ mc_transaction_t::~mc_transaction_t() {
         cache->on_transaction_commit(this);
         sync_callback.wait();
 
-        if (disk_ack_signal != NULL) {
-            disk_ack_signal->pulse();
-        }
+        disk_ack_signal->pulse();
 
     } else {
         // SAMRSI: Maybe pass disk_ack_signal through here, instead of lying.  Figure out what
         // the protocol is here.
         cache->on_transaction_commit(this);
 
+        // SAMRSI: Can we assert that read-only transactions don't have a disk_ack_signal?  Maybe add separate constructor.
         if (disk_ack_signal != NULL) {
             disk_ack_signal->pulse();
         }

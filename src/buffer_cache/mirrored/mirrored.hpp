@@ -269,8 +269,6 @@ private:
 
     cond_t *const disk_ack_signal;
 
-    const bool wait_for_flush;
-
     DISABLE_COPYING(mc_transaction_t);
 };
 
