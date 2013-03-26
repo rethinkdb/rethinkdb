@@ -32,7 +32,7 @@ private:
     virtual val_t *eval_impl() {
         return new_val(*datum_val);
     }
-    virtual const char *name() const { return "var"; }
+    virtual const char *name() const { return "implicit_var"; }
 };
 
 
