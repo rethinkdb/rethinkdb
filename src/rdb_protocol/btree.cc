@@ -464,8 +464,8 @@ public:
             } else {
                 // We use garbage collection during the reduction step, since
                 // most reductions throw away most of the allocate data.
-                ql::env_gc_checkpoint_t egct(ql_env);
-                result_gc_visitor_t result_gc_visitor(ql_env, &egct);
+                ql::env_gc_checkpoint_t gc_checkpoint(ql_env);
+                result_gc_visitor_t result_gc_visitor(ql_env, &gc_checkpoint);
                 json_list_t::iterator jt;
                 for (jt = data.begin(); jt != data.end(); ++jt) {
                     boost::apply_visitor(query_language::terminal_visitor_t(

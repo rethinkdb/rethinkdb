@@ -42,17 +42,17 @@ const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
 
-    env_gc_checkpoint_t egct(env);
+    env_gc_checkpoint_t gc_checkpoint(env);
     while (const datum_t *rhs = next()){
-        base = egct.maybe_gc(f->call(base, rhs)->as_datum());
+        base = gc_checkpoint.maybe_gc(f->call(base, rhs)->as_datum());
     }
-    return egct.finalize(base);
+    return gc_checkpoint.finalize(base);
 }
 
 const datum_t *eager_datum_stream_t::gmr(
     func_t *g, func_t *m, const datum_t *d, func_t *r) {
     int i = 0;
-    env_gc_checkpoint_t egct(env);
+    env_gc_checkpoint_t gc_checkpoint(env);
     wire_datum_map_t map;
     while (const datum_t *el = next()) {
         const datum_t *el_group = g->call(el)->as_datum();
@@ -64,11 +64,11 @@ const datum_t *eager_datum_stream_t::gmr(
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
             if (++i % WIRE_DATUM_MAP_GC_ROUNDS == 0) {
-                egct.maybe_gc(map.to_arr(env));
+                gc_checkpoint.maybe_gc(map.to_arr(env));
             }
         }
     }
-    return egct.finalize(map.to_arr(env));
+    return gc_checkpoint.finalize(map.to_arr(env));
 }
 
 datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
@@ -171,7 +171,7 @@ const datum_t *lazy_datum_stream_t::gmr(
     r_sanity_check(dms);
     wire_datum_map_t map;
 
-    env_gc_checkpoint_t egct(env);
+    env_gc_checkpoint_t gc_checkpoint(env);
     for (size_t i = 0; i < dms->size(); ++i) {
         wire_datum_map_t *rhs = &((*dms)[i]);
         rhs->compile(env);
@@ -186,7 +186,7 @@ const datum_t *lazy_datum_stream_t::gmr(
             }
         }
     }
-    return egct.finalize(map.to_arr(env));
+    return gc_checkpoint.finalize(map.to_arr(env));
 }
 
 const datum_t *lazy_datum_stream_t::next_impl() {
