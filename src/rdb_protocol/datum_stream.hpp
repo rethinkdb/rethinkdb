@@ -125,8 +125,7 @@ private:
     // being locally allocated because it makes debugging easier.
 
     template<class T>
-    void run_terminal(T t); // only used in datum_stream.cc
-    std::vector<const datum_t *> shard_data; // used by run_terminal
+    void run_terminal(T t, std::vector<const datum_t *> *shard_data_out);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {

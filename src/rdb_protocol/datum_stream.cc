@@ -126,7 +126,8 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
 template<class T>
-void lazy_datum_stream_t::run_terminal(T t) {
+void lazy_datum_stream_t::run_terminal(
+    T t, std::vector<const datum_t *> *shard_data_out) {
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
             rdb_protocol_details::terminal_variant_t(t),
@@ -134,14 +135,15 @@ void lazy_datum_stream_t::run_terminal(T t) {
     std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);
     r_sanity_check(data);
     for (size_t i = 0; i < data->size(); ++i) {
-        shard_data.push_back((*data)[i].compile(env));
+        shard_data_out->push_back((*data)[i].compile(env));
     }
 }
 
 const datum_t *lazy_datum_stream_t::count() {
     datum_t *d = env->add_ptr(new datum_t(0.0));
     env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-    run_terminal(count_wire_func_t());
+    std::vector<const datum_t *> shard_data;
+    run_terminal(count_wire_func_t(), &shard_data);
     for (size_t i = 0; i < shard_data.size(); ++i) {
         *d = datum_t(d->as_num() + shard_data[i]->as_int());
     }
@@ -149,7 +151,8 @@ const datum_t *lazy_datum_stream_t::count() {
 }
 
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    run_terminal(reduce_wire_func_t(env, f));
+    std::vector<const datum_t *> shard_data;
+    run_terminal(reduce_wire_func_t(env, f), &shard_data);
     const datum_t *out;
     if (base_val) {
         out = base_val->as_datum();
