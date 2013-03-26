@@ -301,8 +301,20 @@ struct rdb_protocol_t {
               terminal(_terminal), optargs(_optargs)
         { }
 
+        /* This region is in the primary indexe's keyspace. */
         region_t region;
+
+        /* `sindex` and `sindex_region` are both non null if the instance
+        represents a sindex read (notice all sindex reads are range reads).
+        And both null if the instance represents a normal rget. Notice that
+        even if they are set and the instance represents a sindex read `region`
+        is still used due to sharding. */
+
+        /* The sindex from which we're reading. */
         boost::optional<uuid_u> sindex;
+
+        /* The region of that sindex we're reading use `sindex_key_range` to
+        read a single key. */
         boost::optional<region_t> sindex_region;
 
         rdb_protocol_details::transform_t transform;
