@@ -149,7 +149,6 @@ private:
     // Push a frame onto the back of the backtrace.
     void push_back(frame_t f) {
         r_sanity_check(f.is_valid());
-        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
         frames.push_back(f);
     }
     template<class T>

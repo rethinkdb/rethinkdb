@@ -29,7 +29,6 @@ public:
         for (int i = 0; i < in->optargs_size(); ++i) {
             *out.add_optargs() = in->optargs(i);
         }
-        //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real.init(compile_term(env, &out));
     }
 private:
@@ -80,7 +79,6 @@ private:
               N2(CONTAINS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
-        // debugf("%s\n", arg->DebugString().c_str());
     }
     static void map_fn(env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {

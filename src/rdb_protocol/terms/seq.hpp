@@ -119,7 +119,6 @@ private:
         }
 
         guarantee(filter_func.has());
-        //debugf("%s\n", filter_func->DebugString().c_str());
         return new_val(tbl, seq->filter(env->new_func(filter_func.get())));
     }
     virtual const char *name() const { return "between"; }

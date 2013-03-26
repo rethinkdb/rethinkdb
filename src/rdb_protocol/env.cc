@@ -92,14 +92,7 @@ void env_t::gc(const datum_t *root) {
     old_bag = current_bag();
     scoped_ptr_t<ptr_bag_t> _new_bag(new ptr_bag_t);
     new_bag = _new_bag.get();
-    // debugf("GC {\n");
-    // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
-    // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
     root->iter(gc_callback_caller_t(this));
-    // debugf(" --- \n");
-    // debugf("  old_bag: %s\n", old_bag->print_debug().c_str());
-    // debugf("  new_bag: %s\n", new_bag->print_debug().c_str());
-    // debugf("}\n");
     *current_bag_ptr() = _new_bag.release();
     delete old_bag;
 }
@@ -111,18 +104,14 @@ ptr_bag_t **env_t::current_bag_ptr() {
 }
 
 void env_t::push_var(int var, const datum_t **val) {
-    // debugf("%p VAR push %d -> %p\n", this, var, val);
     vars[var].push(val);
 }
 const datum_t **env_t::top_var(int var, const rcheckable_t *caller) {
-    // if (vars[var].empty()) debugf("%p VAR top %d -> FAILED\n", this, var);
     rcheck_target(caller, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
-    // debugf("%p VAR top %d -> %p\n", this, var, vars[var].top());
     return vars[var].top();
 }
 void env_t::pop_var(int var) {
-    // debugf("%p VAR pop %d (%p)\n", this, var, vars[var].top());
     vars[var].pop();
 }
 void env_t::dump_scope(std::map<int64_t, const datum_t **> *out) {
@@ -142,7 +131,6 @@ void env_t::push_scope(std::map<int64_t, Datum> *in) {
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        // debugf("%p -> %p\n",
         //        &scope_stack.top()[i].second,
         //        scope_stack.top()[i].second);
         push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
