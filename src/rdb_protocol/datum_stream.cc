@@ -30,7 +30,7 @@ const datum_t *datum_stream_t::next() {
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
-        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         if (!next()) break;
         ++i;
     }
@@ -140,7 +140,7 @@ void lazy_datum_stream_t::run_terminal(T t) {
 
 const datum_t *lazy_datum_stream_t::count() {
     datum_t *d = env->add_ptr(new datum_t(0.0));
-    env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+    env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
     run_terminal(count_wire_func_t());
     for (size_t i = 0; i < shard_data.size(); ++i) {
         *d = datum_t(d->as_num() + shard_data[i]->as_int());
@@ -230,11 +230,11 @@ const datum_t *concatmap_datum_stream_t::next_impl() {
 const datum_t *filter_datum_stream_t::next_impl() {
     const datum_t *arg = 0;
     for (;;) {
-        env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
+        env_checkpoint_t outer_checkpoint(env, env_checkpoint_t::DISCARD);
         if (!(arg = src->next())) return 0;
-        env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
+        env_checkpoint_t inner_checkpoint(env, env_checkpoint_t::DISCARD);
         if (f->filter_call(arg)) {
-            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            outer_checkpoint.reset(env_checkpoint_t::MERGE);
             break;
         }
     }
@@ -248,7 +248,7 @@ slice_datum_stream_t::slice_datum_stream_t(
 const datum_t *slice_datum_stream_t::next_impl() {
     if (l > r || ind > r) return 0;
     while (ind++ < l) {
-        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         src->next();
     }
     return src->next();

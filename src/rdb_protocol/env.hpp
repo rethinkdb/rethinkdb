@@ -219,15 +219,16 @@ private:
 // with `reset`.
 class env_checkpoint_t {
 public:
-    env_checkpoint_t(env_t *_env, void (env_t::*_f)());
+    enum destructor_op_t { MERGE, DISCARD };
+    env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op);
     ~env_checkpoint_t();
-    void reset(void (env_t::*_f)());
+    void reset(destructor_op_t new_destructor_op);
     // This will garbage-collect the checkpoint so that only `root` and data it
     // points to remain.
     void gc(const datum_t *root);
 private:
     env_t *env;
-    void (env_t::*f)();
+    destructor_op_t destructor_op;
 };
 
 // This is a checkpoint (as above) that also does shitty generational garbage

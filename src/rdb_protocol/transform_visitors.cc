@@ -18,20 +18,20 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func/*NOLINT*/) const {
-    ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+    ql::env_checkpoint_t(ql_env, ql::env_checkpoint_t::DISCARD);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
 }
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func/*NOLINT*/) const {
-    ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+    ql::env_checkpoint_t(ql_env, ql::env_checkpoint_t::DISCARD);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     ql::datum_stream_t *ds = func.compile(ql_env)->call(arg)->as_seq();
     while (const ql::datum_t *d = ds->next()) out->push_back(d->as_json());
 }
 
 void transform_visitor_t::operator()(ql::filter_wire_func_t &func/*NOLINT*/) const {
-    ql::env_checkpoint_t(ql_env, &ql::env_t::discard_checkpoint);
+    ql::env_checkpoint_t(ql_env, ql::env_checkpoint_t::DISCARD);
     ql::func_t *f = func.compile(ql_env);
     const ql::datum_t *arg = ql_env->add_ptr(new ql::datum_t(json, ql_env));
     if (f->filter_call(arg)) {

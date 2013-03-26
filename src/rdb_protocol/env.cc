@@ -157,13 +157,23 @@ void env_t::pop_scope() {
     // pointer too early.
 }
 
-env_checkpoint_t::env_checkpoint_t(env_t *_env, void (env_t::*_f)())
-    : env(_env) , f(_f) {
+env_checkpoint_t::env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op)
+    : env(_env), destructor_op(_destructor_op) {
     env->checkpoint();
 }
-env_checkpoint_t::~env_checkpoint_t() { (env->*f)(); }
-void env_checkpoint_t::reset(void (env_t::*_f)()) {
-    f = _f;
+env_checkpoint_t::~env_checkpoint_t() {
+    switch (destructor_op) {
+    case MERGE: {
+        env->merge_checkpoint();
+    } break;
+    case DISCARD: {
+        env->discard_checkpoint();
+    } break;
+    default: unreachable();
+    }
+}
+void env_checkpoint_t::reset(destructor_op_t new_destructor_op) {
+    destructor_op = new_destructor_op;
 }
 void env_checkpoint_t::gc(const datum_t *root) {
     env->gc(root);
