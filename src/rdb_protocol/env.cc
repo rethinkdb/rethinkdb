@@ -197,12 +197,14 @@ env_gc_checkpoint_t::~env_gc_checkpoint_t() {
     }
 }
 const datum_t *env_gc_checkpoint_t::maybe_gc(const datum_t *root) {
-    if (env->current_bag()->mem_estimate() > gen1) {
+    if (env->current_bag()->get_mem_estimate() > gen1) {
         env->gc(root);
         env->merge_checkpoint();
-        if (env->current_bag()->mem_estimate() > gen2) {
+        if (env->current_bag()->get_mem_estimate() > gen2) {
             env->gc(root);
-            if (env->current_bag()->mem_estimate() > (gen2 * 2 / 3)) gen2 *= 4;
+            if (env->current_bag()->get_mem_estimate() > (gen2 * 2 / 3)) {
+                gen2 *= 4;
+            }
         }
         env->checkpoint();
     }
