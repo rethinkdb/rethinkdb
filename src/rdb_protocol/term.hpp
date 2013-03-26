@@ -27,7 +27,7 @@ public:
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    val_t *eval(bool _use_cached_val);
+    val_t *eval();
 
     // TODO: this templating/shadowing logic is terrible (I hate implicit
     // conversions) and doesn't save that much typing.  Rip it out.
@@ -52,16 +52,10 @@ public:
     virtual bool is_deterministic() const;
 
 protected:
-    // `use_cached_val` once had a reason to exist (as did the corresponding
-    // argument to `eval`), but it has since disappeared (people are required
-    // not to evaluate a term twice unless they want to execute it twice).  This
-    // should go away in a future refactor.
-    bool use_cached_val;
     env_t *env;
 private:
     virtual val_t *eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
-    val_t *cached_val;
 };
 
 term_t *compile_term(env_t *env, const Term *t);

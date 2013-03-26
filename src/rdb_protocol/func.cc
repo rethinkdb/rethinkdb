@@ -94,8 +94,7 @@ val_t *func_t::call(const std::vector<const datum_t *> &args) {
                 r_sanity_check(args[i]);
                 argptrs[i] = args[i];
             }
-            return body->eval(false);
-            //                ^^^^^ don't use cached value
+            return body->eval();
         }
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());

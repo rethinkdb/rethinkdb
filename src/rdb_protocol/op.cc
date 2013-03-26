@@ -32,12 +32,12 @@ op_term_t::~op_term_t() { }
 size_t op_term_t::num_args() const { return args.size(); }
 val_t *op_term_t::arg(size_t i) {
     rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
-    return args[i].eval(use_cached_val);
+    return args[i].eval();
 }
 
 val_t *op_term_t::optarg(const std::string &key, val_t *def/*ault*/) {
     boost::ptr_map<const std::string, term_t>::iterator it = optargs.find(key);
-    if (it != optargs.end()) return it->second->eval(use_cached_val);
+    if (it != optargs.end()) return it->second->eval();
     val_t *v = env->get_optarg(key);
     return v ? v : def;
 }

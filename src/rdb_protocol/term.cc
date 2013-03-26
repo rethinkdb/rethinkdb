@@ -158,7 +158,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         }
 
         try {
-            val_t *val = root_term->eval(false);
+            val_t *val = root_term->eval();
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 const datum_t *d = val->as_datum();
@@ -200,8 +200,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *src)
-    : pb_rcheckable_t(src), use_cached_val(false), env(_env), cached_val(0) {
+term_t::term_t(env_t *_env, const Term *src) : pb_rcheckable_t(src), env(_env) {
     guarantee(env);
 }
 term_t::~term_t() { }
@@ -230,23 +229,22 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
-val_t *term_t::eval(bool _use_cached_val) {
+val_t *term_t::eval() {
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     try {
-        use_cached_val = _use_cached_val;
         try {
-            if (!cached_val || !use_cached_val) cached_val = eval_impl();
+            val_t *ret = eval_impl();
+            DEC_DEPTH;
+            DBG("%s returned %s\n", name(), cached_val->print().c_str());
+            return ret;
         } catch (const datum_exc_t &e) {
+            DEC_DEPTH;
             DBG("%s THREW\n", name());
             rfail("%s", e.what());
         }
-
-        DEC_DEPTH;
-        DBG("%s returned %s\n", name(), cached_val->print().c_str());
-        return cached_val;
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
