@@ -1,6 +1,34 @@
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
+argspec_t::argspec_t(int n) : min(n), max(n) { }
+argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
+std::string argspec_t::print() {
+    if (min == max) {
+        return strprintf("%d argument(s)", min);
+    } else if (max == -1) {
+        return strprintf("%d or more argument(s)", min);
+    } else {
+        return strprintf("between %d and %d arguments", min, max);
+    }
+}
+bool argspec_t::contains(int n) const {
+    return min <= n && (max < 0 || n <= max);
+}
+
+optargspec_t optargspec_t::make_object() {
+    return optargspec_t(-1, 0);
+}
+bool optargspec_t::is_make_object() const {
+    return num_legal_args < 0;
+}
+bool optargspec_t::contains(const std::string &key) const {
+    r_sanity_check(!is_make_object());
+    for (int i = 0; i < num_legal_args; ++i) if (key == legal_args[i]) return true;
+    return false;
+}
+
+
 op_term_t::op_term_t(env_t *env, const Term *term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(env, term) {
