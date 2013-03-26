@@ -146,21 +146,21 @@ public:
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *l = &in->args(0);
-        const Term *r = &in->args(1);
-        const Term *f = &in->args(2);
+        const Term *left = &in->args(0);
+        const Term *right = &in->args(1);
+        const Term *func = &in->args(2);
         int n = env->gensym();
         int m = env->gensym();
 
         Term *arg = out;
-        // `l`.concatmap { |n|
-        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, n);
-           // `r`.concatmap { |m|
-           N2(CONCATMAP, *arg = *r, arg = pb::set_func(arg, m);
+        // `left`.concatmap { |n|
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, n);
+           // `right`.concatmap { |m|
+           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, m);
               // r.branch(
               N3(BRANCH,
-                 // r.funcall(`f`, n, m),
-                 N3(FUNCALL, *arg = *f, NVAR(n), NVAR(m)),
+                 // r.funcall(`func`, n, m),
+                 N3(FUNCALL, *arg = *func, NVAR(n), NVAR(m)),
                  // [{:left => n, :right => m}],
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                  // [])}}
