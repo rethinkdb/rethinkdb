@@ -50,25 +50,25 @@ const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
 }
 
 const datum_t *eager_datum_stream_t::gmr(
-    func_t *g, func_t *m, const datum_t *d, func_t *r) {
+    func_t *group, func_t *map, const datum_t *base, func_t *reduce) {
     int i = 0;
     env_gc_checkpoint_t gc_checkpoint(env);
-    wire_datum_map_t map;
+    wire_datum_map_t wd_map;
     while (const datum_t *el = next()) {
-        const datum_t *el_group = g->call(el)->as_datum();
-        const datum_t *el_map = m->call(el)->as_datum();
-        if (!map.has(el_group)) {
-            map.set(el_group, d ? r->call(d, el_map)->as_datum() : el_map);
+        const datum_t *el_group = group->call(el)->as_datum();
+        const datum_t *el_map = map->call(el)->as_datum();
+        if (!wd_map.has(el_group)) {
+            wd_map.set(el_group, base ? reduce->call(base, el_map)->as_datum() : el_map);
         } else {
-            map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
+            wd_map.set(el_group, reduce->call(wd_map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
             if (++i % WIRE_DATUM_MAP_GC_ROUNDS == 0) {
-                gc_checkpoint.maybe_gc(map.to_arr(env));
+                gc_checkpoint.maybe_gc(wd_map.to_arr(env));
             }
         }
     }
-    return gc_checkpoint.finalize(map.to_arr(env));
+    return gc_checkpoint.finalize(wd_map.to_arr(env));
 }
 
 datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
