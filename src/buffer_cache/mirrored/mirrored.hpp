@@ -267,6 +267,8 @@ private:
 
     const bool is_writeback_transaction;
 
+    cond_t *const disk_ack_signal;
+
     DISABLE_COPYING(mc_transaction_t);
 };
 

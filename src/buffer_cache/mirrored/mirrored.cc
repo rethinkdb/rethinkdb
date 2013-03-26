@@ -880,7 +880,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, cond_t *disk_ack_signal)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, cond_t *_disk_ack_signal)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -889,12 +889,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       snapshotted(false),
       cache_account(NULL),
       num_buf_locks_acquired(0),
-      is_writeback_transaction(false) {
-
-    // SAMRSI: Store this and pulse this later.
-    if (disk_ack_signal != NULL) {
-        disk_ack_signal->pulse();
-    }
+      is_writeback_transaction(false),
+      disk_ack_signal(_disk_ack_signal) {
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -923,7 +919,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     snapshotted(false),
     cache_account(NULL),
     num_buf_locks_acquired(0),
-    is_writeback_transaction(true) {
+    is_writeback_transaction(true),
+    disk_ack_signal(NULL) /* SAMRSI: This should be NULL? */ {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -974,9 +971,14 @@ mc_transaction_t::~mc_transaction_t() {
         cache->on_transaction_commit(this);
         sync_callback.wait();
 
+        disk_ack_signal->pulse();
+
     } else {
+        // SAMRSI: Maybe pass disk_ack_signal through here, instead of lying.  Figure out what
+        // the protocol is here.
         cache->on_transaction_commit(this);
 
+        disk_ack_signal->pulse();
     }
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
