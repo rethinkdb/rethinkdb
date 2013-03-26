@@ -71,6 +71,7 @@ public:
     void do_admin_merge_shard(const admin_command_parser_t::command_data_t& data);
     void do_admin_set_name(const admin_command_parser_t::command_data_t& data);
     void do_admin_set_acks(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_durability(const admin_command_parser_t::command_data_t& data);
     void do_admin_set_replicas(const admin_command_parser_t::command_data_t& data);
     void do_admin_set_primary(const admin_command_parser_t::command_data_t& data);
     void do_admin_unset_primary(const admin_command_parser_t::command_data_t& data);
@@ -129,8 +130,12 @@ private:
 
     template <class protocol_t>
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
-                                    ack_expectation_t ack_expectation,
+                                    uint32_t num_acks,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
+    template <class protocol_t>
+    void do_admin_set_durability_internal(bool hard_durability,
+                                          namespace_semilattice_metadata_t<protocol_t> *ns);
+
     template <class map_type>
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
                                         const datacenter_id_t& dc_id,
