@@ -890,7 +890,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      disk_ack_signal(_disk_ack_signal) {
+      disk_ack_signal(_disk_ack_signal),
+      wait_for_flush(cache->writeback.wait_for_flush) {
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -920,7 +921,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true),
-    disk_ack_signal(NULL) /* SAMRSI: This should be NULL? */ {
+    disk_ack_signal(NULL), /* SAMRSI: This should be NULL? */
+    wait_for_flush(_cache->writeback.wait_for_flush) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -957,7 +959,7 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
-    if (access == rwi_write && cache->writeback.wait_for_flush) {
+    if (access == rwi_write && wait_for_flush) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
         struct : public writeback_t::sync_callback_t, public cond_t {
