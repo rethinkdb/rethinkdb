@@ -63,8 +63,7 @@ struct btree_statblock_t {
 };
 
 struct btree_sindex_block_t {
-    //TODO This could maybe be a bit bigger? not sure how much of a block we actually get these days.
-    static const int SINDEX_BLOB_MAXREFLEN = 4000;
+    static const int SINDEX_BLOB_MAXREFLEN = 4080;
 
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 };
