@@ -106,7 +106,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
-    } catch (const any_ql_exc_t &e) {
+    } catch (const base_exc_t &e) {
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
         return;
     }

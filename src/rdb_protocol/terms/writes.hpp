@@ -79,7 +79,7 @@ private:
             if (d->get_type() == datum_t::R_OBJECT) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (const any_ql_exc_t &) {
+                } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
@@ -93,7 +93,7 @@ private:
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (const any_ql_exc_t &) {
+                } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }

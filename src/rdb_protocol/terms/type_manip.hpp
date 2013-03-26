@@ -183,7 +183,7 @@ private:
             datum_stream_t *ds;
             try {
                 ds = val->as_seq();
-            } catch (const any_ql_exc_t &e) {
+            } catch (const base_exc_t &e) {
 
                 rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
