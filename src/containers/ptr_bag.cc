@@ -5,7 +5,12 @@
 #ifdef PTR_BAG_LOG
 #include "activity_logger.hpp"
 static activity_logger_t ptr_bag_log;
-#define pblog(...) debugf_log(ptr_bag_log, __VA_ARGS__)
+#define pblog(args...) do { \
+        activity_logger_t *_logptr = &(ptr_bag_log);                            \
+        std::string _debugf_log = strprintf(args);                              \
+        _logptr->add(_debugf_log);                                              \
+        debugf("%p[%zu]: %s\n", _logptr, _logptr->size(), _debugf_log.c_str()); \
+    } while (0)
 #else
 #define pblog(...)
 #endif // PTR_BAG_LOG
