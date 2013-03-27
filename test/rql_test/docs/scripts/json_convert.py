@@ -124,14 +124,17 @@ for section in sections:
 
                         if 'examples' in override:
                             for example_num, example_override in override['examples'].iteritems():
-                                if 'code' in example_override:
-                                    out_examples[int(example_num)]['code'] = example_override['code']
-                                if 'can_try' in example_override:
-                                    out_examples[int(example_num)]['can_try'] = example_override['can_try']
-                                if 'dataset' in example_override:
-                                    out_examples[int(example_num)]['dataset'] = example_override['dataset']
-                                if 'description' in example_override:
-                                    out_examples[int(example_num)]['description'] = example_override['description']
+                                if len(example_override) == 0:
+                                    del out_examples[int(example_num)]
+                                else:
+                                    if 'code' in example_override:
+                                        out_examples[int(example_num)]['code'] = example_override['code']
+                                    if 'can_try' in example_override:
+                                        out_examples[int(example_num)]['can_try'] = example_override['can_try']
+                                    if 'dataset' in example_override:
+                                        out_examples[int(example_num)]['dataset'] = example_override['dataset']
+                                    if 'description' in example_override:
+                                        out_examples[int(example_num)]['description'] = example_override['description']
 
                 out_lang['examples'].extend(out_examples)
                 out_command['langs'][lang] = out_lang
