@@ -314,7 +314,6 @@ datum_stream_t *val_t::as_seq() {
 }
 
 std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
-
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
     }

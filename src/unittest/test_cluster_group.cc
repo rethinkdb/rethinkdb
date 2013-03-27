@@ -25,6 +25,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 #include "rpc/directory/read_manager.tcc"
 #include "rpc/directory/write_manager.tcc"
@@ -83,41 +84,6 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
     }
     return true;
 }
-
-/* This is a cluster that is useful for reactor testing... but doesn't actually
- * have a reactor due to the annoyance of needing the peer ids to create a
- * correct blueprint. */
-template<class protocol_t>
-class reactor_test_cluster_t {
-public:
-    explicit reactor_test_cluster_t(int port);
-    ~reactor_test_cluster_t();
-
-    peer_id_t get_me();
-
-    connectivity_cluster_t connectivity_cluster;
-    message_multiplexer_t message_multiplexer;
-
-    message_multiplexer_t::client_t heartbeat_manager_client;
-    heartbeat_manager_t heartbeat_manager;
-    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
-
-    message_multiplexer_t::client_t mailbox_manager_client;
-    mailbox_manager_t mailbox_manager;
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
-
-    watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
-    message_multiplexer_t::client_t directory_manager_client;
-    directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
-    directory_write_manager_t<test_cluster_directory_t<protocol_t> > directory_write_manager;
-    message_multiplexer_t::client_t::run_t directory_manager_client_run;
-
-    message_multiplexer_t::run_t message_multiplexer_run;
-    connectivity_cluster_t::run_t connectivity_cluster_run;
-
-    in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
-};
-
 
 template<class protocol_t>
 class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
@@ -377,6 +343,7 @@ void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const s
 
 
 template class test_cluster_group_t<mock::dummy_protocol_t>;
+template class reactor_test_cluster_t<rdb_protocol_t>;
 
 }  // namespace unittest
 

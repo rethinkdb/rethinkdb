@@ -87,7 +87,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
                 if (*requested_machine_id == machine_id) {
-                    scoped_cJSON_t machine_json = scoped_cJSON_t(get_metadata_json(&metadata, it, req.resource.end()));
+                    scoped_cJSON_t machine_json(get_metadata_json(&metadata, it, req.resource.end()));
                     return http_json_res(machine_json.get());
                 }
             }
