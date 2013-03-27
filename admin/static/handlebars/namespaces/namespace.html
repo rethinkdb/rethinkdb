@@ -41,17 +41,17 @@
             <p class="availability"><span class="big">{{humanize_namespace_reachability reachability}}</span></p>
         </div>
         <div class="stat-row">
+            {{#if total_keys_available}}
+            <p class="documents"><span class="big">About {{total_keys}} </span>documents</p>
+            {{else}}
+            <p class="documents"><span class="big">N/A </span>documents</p>
+            {{/if}}
+        </div>
+        <div class="stat-row">
             <p class="masters"><span class="big">{{nashards}}/{{nshards}} </span> masters reachable</p>
         </div>
         <div class="stat-row">
             <p class="replicas"><span class="big">{{nareplicas}}/{{nreplicas}} </span> replicas reachable</p>
-        </div>
-        <div class="stat-row">
-            {{#if total_keys_available}}
-            <p class="documents"><span class="big">~{{total_keys}} </span>documents</p>
-            {{else}}
-            <p class="documents"><span class="big">N/A </span>documents</p>
-            {{/if}}
         </div>
     </div>
 </script>

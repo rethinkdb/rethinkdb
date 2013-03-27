@@ -1571,7 +1571,7 @@ module 'DataExplorerView', ->
                             @saved_data.query = @query
                             @saved_data.results = @current_results
                             @saved_data.metadata =
-                                limit_value: @current_results.length
+                                limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                                 skip_value: @skip_value
                                 execution_time: new Date() - @start_time
                                 query: @query
@@ -1612,7 +1612,7 @@ module 'DataExplorerView', ->
                     @saved_data.query = @query
                     @saved_data.results = @current_results
                     @saved_data.metadata =
-                        limit_value: @current_results.length
+                        limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
@@ -2191,7 +2191,7 @@ module 'DataExplorerView', ->
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (args) =>
-            if args?.results?
+            if args? and args.results isnt undefined
                 @results = args.results
                 @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             if args?.metadata?
@@ -2210,13 +2210,20 @@ module 'DataExplorerView', ->
                         minutes = Math.floor(args.metadata.execution_time/(60*1000))
                         @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
+            num_results = @metadata.skip_value
+            if @metadata.has_more_data isnt true
+                if @results?.length?
+                    num_results += @results.length
+                else # @results can be a single value or null
+                    num_results += 1
+
             @.$el.html @template _.extend @metadata,
                 show_query_warning: args?.show_query_warning
                 show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
-                no_results: @metadata.has_more_data isnt true and @results.length is 0 and @metadata.skip_value is 0
-                num_results: ((@metadata.skip_value+@results.length) if @metadata.has_more_data isnt true)
+                no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
+                num_results: num_results
 
             switch @view
                 when 'tree'
