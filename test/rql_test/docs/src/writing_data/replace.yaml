@@ -29,8 +29,10 @@ commands:
             ).run(conn)
           py: |
             r.table('marvel').get('superman')
-            .replace({ 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
-          rb: r.table('marvel').get('superman').replace(:non_atomic, {:id => 'superman', :age => 30}).run(conn)
+             .replace({ 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
+          rb: |
+            r.table('marvel').get('superman')
+             .replace(:non_atomic, {:id => 'superman', :age => 30}).run(conn)
 
     js:
       examples:
