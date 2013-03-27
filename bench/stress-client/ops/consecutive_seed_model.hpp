@@ -13,7 +13,7 @@ consecutive_seed_model_t::insert_chooser_t or consecutive_seed_model_t::delete_c
 to use as their seed_chooser_t. */
 
 struct consecutive_seed_model_t : public existence_watcher_t, public existence_tracker_t {
-
+    virtual ~consecutive_seed_model_t() { }
     consecutive_seed_model_t() : min_seed(0), max_seed(0) { }
 
 public:
