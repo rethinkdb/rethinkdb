@@ -229,7 +229,7 @@ const datum_t *lazy_datum_stream_t::gmr(
 
 batch_info_t lazy_datum_stream_t::next_impl(const datum_t **datum_out) {
     boost::shared_ptr<scoped_cJSON_t> json;
-    const batch_info_t res = json_stream->next_impl(&json);
+    const batch_info_t res = json_stream->next_with_batch_info(&json);
 
     *datum_out = json ? env->add_ptr(new datum_t(json, env)) : NULL;
     return res;
