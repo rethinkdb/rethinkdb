@@ -190,10 +190,10 @@ test_rdb_env_t::~test_rdb_env_t() {
     }
 }
 
-namespace_id_t test_rdb_env_t::add_metadata_table(const std::string &table_name,
-                                                  const uuid_u &db_id,
-                                                  const std::string &primary_key,
-                                                  const std::set<std::map<std::string, std::string> > &initial_data) {
+namespace_id_t test_rdb_env_t::add_table(const std::string &table_name,
+                                         const uuid_u &db_id,
+                                         const std::string &primary_key,
+                                         const std::set<std::map<std::string, std::string> > &initial_data) {
     name_string_t table_name_string;
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
     if (!table_name_string.assign_value(table_name)) throw invalid_name_exc_t(table_name);
@@ -227,7 +227,7 @@ namespace_id_t test_rdb_env_t::add_metadata_table(const std::string &table_name,
     return namespace_id;
 }
 
-database_id_t test_rdb_env_t::add_metadata_database(const std::string &db_name) {
+database_id_t test_rdb_env_t::add_database(const std::string &db_name) {
     name_string_t db_name_string;
     database_semilattice_metadata_t db;
     if (!db_name_string.assign_value(db_name)) throw invalid_name_exc_t(db_name);
