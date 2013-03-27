@@ -1140,7 +1140,9 @@ int main_rethinkdb_import(int argc, char *argv[]) {
     get_rethinkdb_import_options(&help, &options);
 
     try {
+        debugf("About to parse with import options.\n");
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
+        debugf("Done parsing with import options.\n");
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_import();
@@ -1155,8 +1157,6 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-
-        std::set<ip_address_t> local_addresses = get_local_addresses(all_options(opts, "--bind"));
 
 #ifndef NDEBUG
         int client_port = get_single_int(opts, "--client-port");
@@ -1214,6 +1214,9 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         target.datacenter_name = datacenter_name;
         target.table_name = table_name;
         target.primary_key = primary_key;
+
+        // Don't bind to any local addresses -- don't listen for any incoming connections.
+        const std::set<ip_address_t> local_addresses;
 
         const int num_workers = get_cpu_count();
         bool result;
