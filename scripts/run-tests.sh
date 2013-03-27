@@ -140,7 +140,7 @@ if $list_only; then
 fi
 
 # Run the tests
-trap "echo Aborting tests; sleep 2" INT
+trap "echo Aborting tests; sleep 2; exit" INT
 for item in "${list[@]}"; do
     varg=
     $verbose && varg='-v'
