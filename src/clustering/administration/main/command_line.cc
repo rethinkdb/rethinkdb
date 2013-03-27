@@ -1124,8 +1124,6 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
 
-        std::set<ip_address_t> local_addresses = get_local_addresses(all_options(opts, "--bind"));
-
 #ifndef NDEBUG
         int client_port = get_single_int(opts, "--client-port");
 #else
@@ -1182,6 +1180,9 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         target.datacenter_name = datacenter_name;
         target.table_name = table_name;
         target.primary_key = primary_key;
+
+        // Don't bind to any local addresses -- don't listen for any incoming connections.
+        const std::set<ip_address_t> local_addresses;
 
         const int num_workers = get_cpu_count();
         bool result;
