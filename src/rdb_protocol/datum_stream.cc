@@ -18,6 +18,7 @@ datum_stream_t *datum_stream_t::zip() {
 }
 
 const datum_t *datum_stream_t::next() {
+    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is a hook for unit tests to change things mid-query
     env->throw_if_interruptor_pulsed();
     try {
         // We loop until we get a value.

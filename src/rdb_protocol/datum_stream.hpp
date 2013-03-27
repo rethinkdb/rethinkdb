@@ -211,9 +211,9 @@ public:
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
           src(_src), data_index(-1), is_arr_(false) {
         guarantee(src);
+        load_data();
     }
     virtual batch_info_t next_impl(const datum_t **datum_out) {
-        maybe_load_data();
         r_sanity_check(data_index >= 0);
         if (data_index >= static_cast<int>(data.size())) {
             //            ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
@@ -230,10 +230,9 @@ private:
         return is_arr() ? eager_datum_stream_t::as_array() : NULL;
     }
     bool is_arr() {
-        maybe_load_data();
         return is_arr_;
     }
-    void maybe_load_data() {
+    void load_data() {
         if (data_index != -1) return;
         data_index = 0;
         if (const datum_t *arr = src->as_array()) {

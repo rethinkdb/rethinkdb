@@ -58,7 +58,7 @@ public:
         return s;
     }
 
-    virtual signal_t *get_initial_ready_signal() { return 0; }
+    virtual signal_t *get_initial_ready_signal() { return NULL; }
 
 protected:
     virtual ~namespace_interface_t() { }
