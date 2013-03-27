@@ -115,6 +115,8 @@ for section in sections:
                             out_lang['body'] = override['body']
                         if 'dont_need_parenthesis' in override:
                             out_lang['dont_need_parenthesis'] = override['dont_need_parenthesis']
+                        if 'is_operator' in override:
+                            out_lang['is_operator'] = override['is_operator']
                         if 'is_selector' in override:
                             out_lang['is_selector'] = override['is_selector']
                         if 'name1' in override:
