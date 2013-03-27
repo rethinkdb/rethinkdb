@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "backfill_progress.hpp"
+#include "btree/btree_store.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
@@ -69,6 +70,8 @@ private:
     DISABLE_COPYING(value_sizer_t<rdb_value_t>);
 };
 
+struct rdb_modification_report_t;
+
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
@@ -81,11 +84,13 @@ void rdb_replace(btree_slice_t *slice,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response_out) THROWS_NOTHING;
+                 Datum *response_out,
+                 rdb_modification_report_t *mod_report_out) THROWS_NOTHING;
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response);
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             rdb_modification_report_t *mod_report);
 
 
 class rdb_backfill_callback_t {
@@ -93,6 +98,7 @@ public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };
@@ -101,11 +107,19 @@ protected:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
         transaction_t *txn, superblock_t *superblock,
+        buf_lock_t *sindex_block,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
 
-void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock, point_delete_response_t *response);
+void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
+        timestamp, transaction_t *txn, superblock_t *superblock,
+        point_delete_response_t *response,
+        rdb_modification_report_t *mod_report);
+
+class rdb_value_deleter_t : public value_deleter_t {
+    void delete_value(transaction_t *_txn, void *_value);
+};
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
@@ -128,5 +142,29 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
                           transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);
+
+/* Secondary Indexes */
+
+struct rdb_modification_report_t {
+    rdb_modification_report_t() { }
+    rdb_modification_report_t(const store_key_t &_primary_key)
+        : primary_key(_primary_key) { }
+
+    store_key_t primary_key;
+    boost::shared_ptr<scoped_cJSON_t> deleted;
+    boost::shared_ptr<scoped_cJSON_t> added;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+                         rdb_modification_report_t *modification,
+                         transaction_t *txn);
+
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

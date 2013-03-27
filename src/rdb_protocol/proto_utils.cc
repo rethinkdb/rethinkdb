@@ -15,4 +15,3 @@ std::string cJSON_print_primary(cJSON *json, const query_language::backtrace_t &
     }
     return s;
 }
-

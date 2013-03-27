@@ -26,6 +26,7 @@ public:
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
+    datum_stream_t *get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt);
     datum_t *env_add_ptr(datum_t *d);
 
     // A wrapper around `do_replace` that does error handling correctly.
@@ -51,6 +52,10 @@ public:
             return datum;
         }
     }
+
+    const datum_t *sindex_create(const std::string &name, func_t *index_func);
+    const datum_t *sindex_drop(const std::string &name);
+    const datum_t *sindex_list();
 private:
     const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
                              bool _so_the_template_matches = false);

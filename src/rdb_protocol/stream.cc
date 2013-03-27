@@ -98,16 +98,6 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
     return shared_from_this();
 }
 
-// batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-//                                              signal_t *_interruptor, key_range_t _range,
-//                                              const backtrace_t &_table_scan_backtrace,
-//                                              bool _use_outdated)
-//     : ns_access(_ns_access), interruptor(_interruptor),
-//       range(_range),
-//       finished(false), started(false), use_outdated(_use_outdated),
-//       table_scan_backtrace(_table_scan_backtrace)
-// { }
-
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor, key_range_t _range,
@@ -115,6 +105,16 @@ batched_rget_stream_t::batched_rget_stream_t(
     bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
       range(_range),
+      finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
+      table_scan_backtrace()
+{ }
+
+batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                      signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
+                      const std::map<std::string, ql::wire_func_t> &_optargs,
+                      bool _use_outdated)
+    : ns_access(_ns_access), interruptor(_interruptor),
+      range(_range), sindex_id(_sindex_id),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       table_scan_backtrace()
 { }
@@ -148,9 +148,7 @@ result_t batched_rget_stream_t::apply_terminal(
     UNUSED ql::env_t *ql_env,
     const scopes_t &scopes,
     const backtrace_t &per_op_backtrace) {
-    rdb_protocol_t::region_t region(range);
-    rdb_protocol_t::rget_read_t rget_read(region);
-    rget_read.transform = transform;
+    rdb_protocol_t::rget_read_t rget_read = get_rget();
     rget_read.terminal = rdb_protocol_details::terminal_t(t, scopes, per_op_backtrace);
     rdb_protocol_t::read_t read(rget_read);
     try {
@@ -182,10 +180,16 @@ result_t batched_rget_stream_t::apply_terminal(
     }
 }
 
+rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
+    if (!sindex_id) {
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range), transform, optargs);
+    } else {
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range), *sindex_id, transform, optargs);
+    }
+}
+
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(
-        rdb_protocol_t::region_t(range), transform, optargs);
-    rdb_protocol_t::read_t read(rget_read);
+    rdb_protocol_t::read_t read(get_rget());
     try {
         guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
