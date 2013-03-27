@@ -58,7 +58,7 @@ void env_t::pop_implicit() {
     implicit_var.pop();
 }
 
-size_t env_t::num_checkpoints() {
+size_t env_t::num_checkpoints() const {
     return bags.size()-1;
 }
 bool env_t::some_bag_has(const ptr_baggable_t *p) {
@@ -160,6 +160,16 @@ void env_t::pop_scope() {
     // pointer too early.
 }
 
+void env_t::set_eval_callback(eval_callback_t *callback) {
+    eval_callback = callback;
+}
+
+void env_t::do_eval_callback() {
+    if (eval_callback != NULL) {
+        eval_callback->eval_callback();
+    }
+}
+
 env_checkpoint_t::env_checkpoint_t(env_t *_env, void (env_t::*_f)())
     : env(_env) , f(_f) {
     env->checkpoint();
@@ -244,7 +254,7 @@ void env_t::join_and_wait_to_propagate(
 
 env_t::env_t(
     extproc::pool_group_t *_pool_group,
-    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
     _namespaces_semilattice_metadata,
@@ -268,6 +278,7 @@ env_t::env_t(
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
     js_runner(_js_runner),
+    DEBUG_ONLY(eval_callback(NULL),)
     interruptor(_interruptor),
     this_machine(_this_machine) {
 

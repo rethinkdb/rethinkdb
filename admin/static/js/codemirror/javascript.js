@@ -350,7 +350,8 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
       else if (type == "stat" || type == "form") return lexical.indented + indentUnit;
       else if (lexical.info == "switch" && !closing)
         return lexical.indented + (/^(?:case|default)\b/.test(textAfter) ? indentUnit : 2 * indentUnit);
-      else if (lexical.align) return lexical.column + (closing ? 0 : 1);
+      //else if (lexical.align) return lexical.column + (closing ? 0 : 1);
+      else if (lexical.align) return lexical.indented + indentUnit;
       else return lexical.indented + (closing ? 0 : indentUnit);
     },
 
