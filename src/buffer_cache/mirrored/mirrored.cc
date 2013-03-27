@@ -911,6 +911,39 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
+// For read transactions.
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED order_token_t order_token /* used only by the scc transaction */)
+    : cache(_cache),
+      expected_change_count(0),
+      access(_access),
+      recency_timestamp(repli_timestamp_t::distant_past),
+      snapshot_version(mc_inner_buf_t::faux_version_id),
+      snapshotted(false),
+      cache_account(NULL),
+      num_buf_locks_acquired(0),
+      is_writeback_transaction(false),
+      disk_ack_signal(_disk_ack_signal) {
+
+    guarantee(is_read_mode(access));
+
+    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
+
+    coro_fifo_acq_t write_throttle_acq;
+
+    if (is_write_mode(access)) {
+        write_throttle_acq.enter(&cache->co_begin_coro_fifo());
+    }
+
+    rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
+    cache->assert_thread();
+    rassert(!cache->shutting_down);
+    rassert(access == rwi_write || expected_change_count == 0);
+    cache->num_live_non_writeback_transactions++;
+    cache->writeback.begin_transaction(this);
+
+    cache->stats->pm_transactions_active.begin(&start_time);
+}
+
 mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
     cache(_cache),
     expected_change_count(0),
