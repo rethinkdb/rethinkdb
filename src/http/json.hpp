@@ -28,6 +28,8 @@ class scoped_cJSON_t {
 private:
     cJSON *val;
 
+    DISABLE_COPYING(scoped_cJSON_t);
+
 public:
     scoped_cJSON_t() : val(NULL) { }
     explicit scoped_cJSON_t(cJSON *v);

@@ -18,6 +18,7 @@ datum_stream_t *datum_stream_t::zip() {
 }
 
 const datum_t *datum_stream_t::next() {
+    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is a hook for unit tests to change things mid-query
     env->throw_if_interruptor_pulsed();
     try {
         return next_impl();
@@ -238,13 +239,18 @@ const datum_t *filter_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+    env_t *_env, size_t _left, size_t _right, datum_stream_t *_src)
+    : eager_datum_stream_t(_env, _src), env(_env), ind(0),
+      left(_left), right(_right), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (l > r || ind > r) return 0;
-    while (ind++ < l) {
+    if (left > right || ind > right) {
+        return NULL;
+    }
+    while (ind++ < left) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        src->next();
+        if (!src->next()) {
+            return NULL;
+        }
     }
     return src->next();
 }

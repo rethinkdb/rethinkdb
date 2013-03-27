@@ -231,6 +231,7 @@ bool term_t::is_deterministic() const {
 }
 
 val_t *term_t::eval(bool _use_cached_val) {
+    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is basically a hook for unit tests to change things mid-query
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
