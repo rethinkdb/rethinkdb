@@ -1140,9 +1140,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
     get_rethinkdb_import_options(&help, &options);
 
     try {
-        debugf("About to parse with import options.\n");
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
-        debugf("Done parsing with import options.\n");
 
         if (exists_option(opts, "--help")) {
             help_rethinkdb_import();
