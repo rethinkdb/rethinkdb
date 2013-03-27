@@ -32,7 +32,7 @@ def unblock_path(source_port, dest_port):
 def find_subpath(subpath):
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
     if "RETHINKDB" in os.environ:
-        paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
+        paths = [os.path.join(os.environ["RETHINKDB"], subpath)]
     for path in paths:
         if os.path.exists(path):
             return path

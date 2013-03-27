@@ -4,38 +4,44 @@
 # The directory you probably want is "rethinkdb/test/full_test"
 # One file will be created for each test in the selected output directory (default is cwd)
 
-import os, traceback, optparse
+import os, traceback, optparse, itertools
 
 parser = optparse.OptionParser()
 parser.add_option("--test-dir", action="store", dest = "test_dir")
 parser.add_option("--output-dir", action="store", dest="output_dir")
 parser.set_defaults(output_dir = ".")
+parser.add_option("--rethinkdb-root", action="store", dest="rethinkdb_root")
+parser.set_defaults(rethinkdb_root = "..")
 (options, args) = parser.parse_args()
 assert not args
 
 if options.test_dir is None:
     parser.error("You must specify --test-dir");
 
-tests_as_list = [ ]
+tests = { }
 
-def generate_test(test_command, repeat, inputs):
-    # repeat and dependencies are controlled by jenkins, so these values are not used
-    tests_as_list.append(test_command.replace("$RETHINKDB", ".."))
+def generate_test(base_name):
+    def gen(test_command, name):
+        full_name = base_name + '-' + name
+        if tests.has_key(full_name):
+            for i in itertools.count():
+                new_name = full_name + '-' + str(i)
+                if not tests.has_key(new_name):
+                    break
+            full_name = new_name
+        tests[full_name] = test_command.replace("$RETHINKDB", options.rethinkdb_root)
+    return gen
 
 for (dirpath, dirname, filenames) in os.walk(options.test_dir):
     for filename in filenames:
+        base_name = filename.split('.')[0]
         full_path = os.path.join(dirpath, filename)
         print "Reading specification file %r" % full_path
-        try:
-            execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test})
-        except Exception, e:
-            traceback.print_exc()
+        execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test(base_name)})
 
-tests_as_list.sort()
-
-for number, test_command in enumerate(tests_as_list):
-    f = open("%s/test_%i.param" % (options.output_dir, number), 'w')
+for name, test_command in tests.items():
+    f = open("%s/%s.param" % (options.output_dir, name), 'w')
     f.write("TEST_COMMAND=%s\n" % test_command)
-    f.write("TEST_ID=%i" % number)
+    f.write("TEST_ID=%s" % name)
     f.close()
 
