@@ -161,6 +161,7 @@ void env_t::pop_scope() {
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
+    BREAKPOINT;
     eval_callback = callback;
 }
 
@@ -287,12 +288,13 @@ env_t::env_t(
 
 }
 
-env_t::env_t(signal_t *_interruptor) 
+env_t::env_t(signal_t *_interruptor)
   : next_gensym_val(-2),
     implicit_depth(0),
     pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
+    DEBUG_ONLY(eval_callback(NULL),)
     interruptor(_interruptor)
 {
     bags.push_back(new ptr_bag_t());
