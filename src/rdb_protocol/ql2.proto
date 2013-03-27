@@ -5,8 +5,11 @@
 // Process: First send the magic number for the version of the protobuf you're
 // targetting (in the [Version] enum).  This should **NOT** be sent as a
 // protobuf; just send the little-endian 32-bit integer over the wire raw.
-// Next, send [Query] protobufs and wait for [Response] protobufs with the same
-// token.  You can see an example exchange below in **EXAMPLE**.
+// Next, construct a [Query] protobuf and serialize it to a binary blob.  Send
+// the blob's size to the server encoded as a little-endian 32-bit integer,
+// followed by the blob itself.  You will recieve a [Response] protobuf back
+// preceded by its own size, once again encoded as a little-endian 32-bit
+// integer.  You can see an example exchange below in **EXAMPLE**.
 
 // A query consists of a [Term] to evaluate and a unique-per-connection
 // [token].
