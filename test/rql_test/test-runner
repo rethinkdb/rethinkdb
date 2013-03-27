@@ -178,7 +178,7 @@ class TestGroup:
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
-    # Tests may specify generic test strings valid for
+    # Tests may specify generic test strings valid for 
     # all languages or language specific versions
     def get_code(self, obj, lang, index):
 
@@ -186,7 +186,7 @@ class TestGroup:
 
             # Try language specific version first
             if lang in obj:
-
+                
                 lang_specific = obj[lang]
 
                 # lang_specific may be a dict giving a code attribute
@@ -201,7 +201,7 @@ class TestGroup:
 
             else:
                 code = None
-
+                
         else:
 
             # obj itself is the code
@@ -252,10 +252,10 @@ class TestBuilder:
 
         tests = []
         for root, dirs, files in walk(self.root):
-
+        
             # Find the nested group location from the root
             path = root.split('/')[1:]
-
+            
             # Parse and insert the yaml structures
             for name in filter(lambda name: name.endswith('.yaml'), files):
                 test_group = yaml.load(open(root+'/'+name))
@@ -312,14 +312,6 @@ def run(build, lang=None):
 
 def build_test_scripts(shard):
     TestBuilder('src', shard)
-
-def run_docs_tests(build, lang=None):
-    with RethinkDBTestServers(4, server_build=build) as servers:
-        call(['python', 'docs/build/test.py', "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
-        servers.restart()
-        call(['node', 'docs/build/test.js', "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
-        servers.restart()
-        call(['ruby', 'docs/build/test.rb', "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
 
 test_filter = os.getenv("RQL_TEST") or ".*"
 
