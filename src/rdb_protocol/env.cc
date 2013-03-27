@@ -161,7 +161,6 @@ void env_t::pop_scope() {
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
-    BREAKPOINT;
     eval_callback = callback;
 }
 
