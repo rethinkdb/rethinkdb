@@ -471,48 +471,48 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
     got_superblock_out->init(tmp_sb.release());
 }
 
-void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp,
-                                           order_token_t token, cache_snapshotted_t snapshotted,
-                                           cache_account_t *cache_account,
-                                           sync_callback_t *disk_ack_signal,
-                                           scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                           scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-
-    order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
-
-    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp, pre_begin_txn_token, disk_ack_signal);
-    txn_out->init(txn);
-
-    txn->set_account(cache_account);
-
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        txn->snapshot();
-    }
-
-    get_btree_superblock(txn, access, got_superblock_out);
-}
-
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
                                   sync_callback_t *disk_ack_signal,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out) {
-    get_btree_superblock_and_txn_internal(slice, access, expected_change_count, tstamp, token, CACHE_SNAPSHOTTED_NO, NULL, disk_ack_signal, got_superblock_out, txn_out);
+    slice->assert_thread();
+
+    const order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
+    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp,
+                                           pre_begin_txn_token, disk_ack_signal);
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, access, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<transaction_t> *txn_out) {
-    // SAMRSI: Don't pass NULL for disk_ack_signal, refactor transaction_t constructor.
-    get_btree_superblock_and_txn_internal(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, CACHE_SNAPSHOTTED_YES, slice->get_backfill_account(), NULL, got_superblock_out, txn_out);
+    slice->assert_thread();
+    transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
+                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+    txn->set_account(slice->get_backfill_account());
+
+    txn->snapshot();
+
+    get_btree_superblock(txn, rwi_read_sync, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<transaction_t> *txn_out) {
+    slice->assert_thread();
     rassert(is_read_mode(access));
-    // SAMRSI: Don't pass NULL for disk_ack_signal, refactor transaction_t constructor.
-    get_btree_superblock_and_txn_internal(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, NULL, NULL, got_superblock_out, txn_out);
+    transaction_t *txn = new transaction_t(slice->cache(), access,
+                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
+        txn->snapshot();
+    }
+
+    get_btree_superblock(txn, access, got_superblock_out);
 }

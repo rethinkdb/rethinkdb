@@ -89,6 +89,7 @@ class scc_transaction_t :
 {
 public:
     scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token, sync_callback_t *disk_ack_signal);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t order_token);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
