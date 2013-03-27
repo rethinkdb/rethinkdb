@@ -41,6 +41,8 @@ js_cursor:
 py_cursor:
 	python connections/cursor_test.py $(BUILD) py
 
+docs_test:
+	./test-runner run_docs_tests \"$(BUILD)\"
 
 connect: js_connect py_connect
 
