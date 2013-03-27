@@ -922,7 +922,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      disk_ack_signal(_disk_ack_signal) {
+      disk_ack_signal(NULL) {
 
     guarantee(is_read_mode(access));
 
