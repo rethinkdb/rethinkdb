@@ -125,6 +125,8 @@ void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std:
         void on_done() {
             pulse();
         }
+        // SAMRSI: What to do upon disk ack?
+        void on_disk_ack(peer_id_t) { }
     } write_callback;
     cond_t non_interruptor;
     broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);

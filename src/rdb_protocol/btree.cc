@@ -717,6 +717,7 @@ public:
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
+                NULL,  // SAMRSI: Pass disk ack signal?
                 &token_pair.main_write_token,
                 &wtxn,
                 &superblock,

@@ -158,6 +158,7 @@ void post_construct_and_drain_queue(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
+                NULL,  // SAMRSI: Pass a disk ack signal?
                 &token_pair.main_write_token,
                 &queue_txn,
                 &queue_superblock,
