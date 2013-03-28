@@ -4,6 +4,7 @@
   /* Set height, width, borders, and global font properties here */
   font-family: monospace;
   height: 70px;
+  margin: 0px 0px 7px 0px;
 }
 .CodeMirror-scroll {
   /* Set scrolling behaviour here */
