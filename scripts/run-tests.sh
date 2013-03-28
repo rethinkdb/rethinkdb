@@ -1,5 +1,7 @@
 #!/bin/bash
 
+start_time=$(date +%s)
+
 # Tell python to flush stdout on every write
 export PYTHONUNBUFFERED=true
 
@@ -11,10 +13,11 @@ verbose=false
 single_test=
 parallel_tasks=1
 repeats=1
+xml_report=
 
 # Print usage
 usage () {
-    echo "$0 [-l] [-f <filter>] [-o <output_dir>] [-h] [-v] [-j <tasks>] [-r <repeats>] [-s <test_name> -- <command>]"
+    echo "$0 [-l] [-f <filter>] [-o <output_dir>] [-h] [-v] [-j <tasks>] [-r <repeats>] [-x <output_file>] [-s <test_name> -- <command>]"
     echo "Run the integration tests for rethinkdb"
     echo "   -l  List tests"
     echo "   -f  Filter tests (eg: 'split-workloads-*' or '*python*')"
@@ -24,10 +27,11 @@ usage () {
     echo "   -s  Run the given command as a test"
     echo "   -j  Run tests in parallel"
     echo "   -r  Repeat each test"
+    echo "   -x  Generate an xml report"
 }
 
 # Parse the command line options
-while getopts ":lf:o:hvs:j:r:" opt; do
+while getopts ":lf:o:hvs:j:r:x:" opt; do
     case $opt in
         l) list_only=true ;;
         f) tests="$tests $OPTARG" ;;
@@ -37,6 +41,7 @@ while getopts ":lf:o:hvs:j:r:" opt; do
         s) single_test=$OPTARG ;;
         j) parallel_tasks=$OPTARG ;;
         r) repeats=$OPTARG ;;
+        x) xml_report=$OPTARG ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -60,18 +65,18 @@ run_single_test () {
     test=$1
     index=$2
     cmd=$3
-    echo "Running $test ($index)"
+    echo "Run  $test ($index)"
     (
         cd "$dir/$test"
         mkdir files-$index
-        /usr/bin/time --output test.time bash -c "cd files-$index; $cmd" > test.out 2> test.err
+        /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
         exit_code=$?
-        echo $exit_code >> test.code
+        echo $exit_code >> return-code-$index
         if [[ $exit_code = 0 ]]; then
-            echo "        $test ($index)  Ok"
+            echo "Ok   $test ($index)"
         else
-            echo "        $test ($index)  Failed"
-            $verbose && tail -n 3 test.err
+            echo "Fail $test ($index)"
+            $verbose && tail -n 3 stderr-$index
         fi
         exit $exit_code
     )
@@ -89,10 +94,17 @@ if [[ -n "$*" ]]; then
     exit 1
 fi
 
+# Use a tmp directory when none is needed
+if $list_only; then
+    list_dir=`mktemp -t -d run-tests.XXXXXXXX`
+else
+    test -d "$dir" && echo "Error: the folder '$dir' already exists" && exit 1
+    list_dir=$dir/.tests
+    mkdir -p "$list_dir"
+fi
+
 # List all the tests
-test -d "$dir" && echo "Error: the folder '$dir' already exists" && exit 1
-mkdir -p $dir/tests
-"$root"/scripts/generate_test_param_files.py --test-dir $root/test/full_test/ --output-dir $dir/tests --rethinkdb-root "$root" >/dev/null || exit 1
+"$root"/scripts/generate_test_param_files.py --test-dir $root/test/full_test/ --output-dir $list_dir --rethinkdb-root "$root" >/dev/null || exit 1
 
 # Check if a test passes the filter
 is_selected () {
@@ -115,7 +127,7 @@ total=0
 list=()
 
 # List all the tests
-for path in $dir/tests/*.param; do
+for path in $list_dir/*.param; do
     test=`basename $path .param | sed s/_/-/`
     if ! is_selected "$test"; then
         continue
@@ -131,11 +143,12 @@ for path in $dir/tests/*.param; do
     fi
     total=$[ total + repeats ]
     mkdir "$dir/$test"
-    echo "$cmd" > "$dir/$test/test.cmd"
+    echo "$cmd" > "$dir/$test/command_line"
     list+=("$test^$cmd")
 done
 
 if $list_only; then
+    rm -rf "$list_dir"
     exit
 fi
 
@@ -150,12 +163,21 @@ for item in "${list[@]}"; do
 done | xargs -d '\n' -n 1 --max-procs=$parallel_tasks -I@ bash -c @
 trap - INT
 
+# Write the XML output file
+if [[ -n "$xml_report" ]]; then
+    echo TODO: no XML report yet
+fi
+
 # Collect the results
-passed=$(cat "$dir/"*/test.code 2>/dev/null | grep '^0$' | wc -l)
+passed=$(cat "$dir/"*/return-code-* 2>/dev/null | grep '^0$' | wc -l)
+
+end_time=$(date +%s)
+duration=$[end_time - start_time]
+duration_str=$[duration/60]'m'$[duration%60]'s'
 
 if [[ $passed = $total ]]; then
-    echo Passed all $total tests.
+    echo Passed all $total tests in $duration_str.
 else
-    echo Failed $[total - passed] of $total tests.
+    echo Failed $[total - passed] of $total tests in $duration_str.
     exit 1
 fi
