@@ -11,7 +11,7 @@ commands:
     examples:
       - description: Objects wrapped with expr can then be manipulated by RQL API functions.
         code:
-          js: r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn)
+          js: r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn, callback)
           py: r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(conn)
           rb: r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
 
@@ -19,7 +19,7 @@ commands:
           js: In JavaScript, you can also do this with just r.
           rb: In Ruby, you can also do this with just r.
         code:
-          js: "r({a: 'b'}).merge({b: [1,2,3]}).run(conn)"
+          js: "r({a: 'b'}).merge({b: [1,2,3]}).run(conn, callback)"
           rb: r({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
 
     py:

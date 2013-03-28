@@ -29,7 +29,7 @@ commands:
           js: |-
            r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {
              return marvelRow('strength').lt(dcRow('strength'))
-            }).run(conn)
+            }).run(conn, callback)
           py: "r.table('marvel').inner_join(r.table('dc'),
                  lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)"
           rb: |-
@@ -64,7 +64,7 @@ commands:
           js: |-
             r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {
              return marvelRow('strength').lt(dcRow('strength'))
-            }).run(conn)
+            }).run(conn, callback)
           py: |-
             r.table('marvel').outer_join(r.table('dc'),
               lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
@@ -92,7 +92,7 @@ commands:
     examples:
       - description: Let our heroes join forces to battle evil!
         code:
-          js: r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(conn)
+          js: r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(conn, callback)
           py: r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)
           rb: r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run(conn)
       - description: The above query is equivalent to this inner join but runs
@@ -101,10 +101,10 @@ commands:
           js: |-
             r.table('marvel').innerJoin(r.table('dc'), function(left, right) {
               return left('main_dc_collaborator').eq(right('hero_name'));
-            }).run(conn)
+            }).run(conn, callback)
           py: |-
             r.table('marvel').inner_join(r.table('dc'),
-              lambda left, right: left['main_dc_collaborator'] == right['hero_name'])).run(conn)
+              lambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)
           rb: |-
             r.table('marvel').inner_join(r.table('dc')) {|left, right|
              left[:main_dc_collaborator].eq(right[:hero_name])
@@ -133,9 +133,9 @@ commands:
       - description: "'zips up' the sequence by merging the left and right fields
           produced by a join."
         code:
-          js: joinResult.zip().run(conn)
-          py: join_result.zip().run(conn)
-          rb: joinresult.zip.run(conn)
+          js: r.table('t1').eqJoin('t2', 'id').zip().run(conn, callback)
+          py: r.table('t1').eq_join('t2', 'id').zip().run(conn)
+          rb: r.table(:t1).eq_join(:t2, :id).zip.run(conn)
 
     rb:
       dont_need_parenthesis: true

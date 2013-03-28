@@ -18,7 +18,7 @@ commands:
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.
         code:
-          js: "r.table('marvel').get('superman').replace({ id: 'superman', age: 30 }).run(conn)"
+          js: "r.table('marvel').get('superman').replace({ id: 'superman', age: 30 }).run(conn, callback)"
           py: "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)"
           rb: r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run(conn)
       - description: Allow the server to run non-atomic operations.
@@ -26,10 +26,10 @@ commands:
           js: |
             r.table('marvel').get('superman').replace({ id: 'superman', age: r.js('30') },
               { 'nonAtomic': true }
-            ).run(conn)
+            ).run(conn, callback)
           py: |
-            r.table('marvel').get('superman')
-             .replace({ 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
+            r.table('marvel').get('superman').replace(
+                { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
           rb: |
             r.table('marvel').get('superman')
              .replace(:non_atomic, {:id => 'superman', :age => 30}).run(conn)

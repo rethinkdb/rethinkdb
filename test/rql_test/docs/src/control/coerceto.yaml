@@ -23,15 +23,15 @@ commands:
       name: coerceTo
       examples:
         0:
-          code: r.table('marvel').coerceTo('array').run(conn)
+          code: r.table('marvel').coerceTo('array').run(conn, callback)
           can_try: true
           dataset: marvel
         1:
-          code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+          code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerceTo('object').run(conn, callback)
           can_try: true
           dataset: marvel
         2:
-          code: r.expr(1).coerceTo('string').run(conn)
+          code: r.expr(1).coerceTo('string').run(conn, callback)
           can_try: true
           dataset: marvel
 

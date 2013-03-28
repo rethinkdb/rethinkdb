@@ -33,11 +33,11 @@ commands:
       name: tableCreate
       examples:
         0:
-          code: r.db('test').tableCreate('dc-universe').run(conn),
+          code: r.db('test').tableCreate('dc-universe').run(conn, callback)
           can_try: true
           dataset: marvel
         1:
-          code: r.db('test').tableCreate('dc-universe', {primaryKey:'name'}).run(conn)
+          code: r.db('test').tableCreate('dc-universe', {primaryKey:'name'}).run(conn, callback)
           can_try: true
           dataset: marvel
 
@@ -61,7 +61,7 @@ commands:
       body: tableName
       examples:
         0:
-          code: r.db('test').tableDrop('dc-universe').run(conn)
+          code: r.db('test').tableDrop('dc-universe').run(conn, callback)
           can_try: true
           dataset: marvel
 
@@ -80,6 +80,6 @@ commands:
       name: tableList
       examples:
         0:
-          code: r.db('test').tableList().run(conn)
+          code: r.db('test').tableList().run(conn, callback)
           can_try: true
           dataset: marvel

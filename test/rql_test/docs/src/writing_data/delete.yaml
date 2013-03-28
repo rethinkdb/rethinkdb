@@ -13,17 +13,18 @@ commands:
 
     examples:
       - description: Delete superman from the database.
-        code: r.table('marvel').get('superman').delete().run(conn)
+        code:
+          js: r.table('marvel').get('superman').delete().run(conn, callback)
+          py: r.table('marvel').get('superman').delete().run(conn)
+          rb: r.table('marvel').get('superman').delete.run(conn)
       - description: Delete every document from the table 'marvel'.
-        code: r.table('marvel').delete().run(conn)
+        code:
+          py: r.table('marvel').delete().run(conn, callback)
+          py: r.table('marvel').delete().run(conn)
+          rb: r.table('marvel').delete.run(conn)
 
     rb:
       dont_need_parenthesis: true
-      examples:
-        0:
-          code: r.table('marvel').get('superman').delete.run(conn)
-        1:
-          code: r.table('marvel').delete.run(conn)
 
     js:
       examples:

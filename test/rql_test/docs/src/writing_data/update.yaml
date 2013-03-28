@@ -19,13 +19,13 @@ commands:
           Update Superman's age to 30. If attribute 'age' doesn't
           exist, adds it to the document.
         code:
-          js: "r.table('marvel').get('superman').update({ age: 30 }).run(conn)"
+          js: "r.table('marvel').get('superman').update({ age: 30 }).run(conn, callback)"
           py: "r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)"
           rb: r.table('marvel').get('superman').update{ {:age => 30} }.run(conn)
       - description: |
           Increment every superhero's age. If age doesn't exist, throws an error.
         code:
-          js: "r.table('marvel').update({ age: r.row('age').add(1) }).run(conn)"
+          js: "r.table('marvel').update({ age: r.row('age').add(1) }).run(conn, callback)"
           py: "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run(conn)"
           rb: r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run(conn)
       - description: Allow the server to run non-atomic operations.
@@ -34,10 +34,10 @@ commands:
             r.table('marvel').update(
               { age: r.row('age').add(r.js('1')) },
               {'nonAtomic':true}
-            ).run(conn)
+            ).run(conn, callback)
           py: |
-            r.table('marvel').update(lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True)
-            .run(conn)
+            r.table('marvel').update(
+                lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
           rb: |
             r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}}
             .run(conn)

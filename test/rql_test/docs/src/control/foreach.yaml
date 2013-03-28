@@ -17,8 +17,8 @@ commands:
         code:
           js: |-
             r.table('marvel').forEach(function(hero) {
-             return r.table('villains').get(hero('villainDefeated')).del()
-            }).run(conn)
+             return r.table('villains').get(hero('villainDefeated')).delete()
+            }).run(conn, callback)
           py: |-
             r.table('marvel').for_each(
                 lambda hero: r.table('villains').get(hero['villainDefeated']).delete()

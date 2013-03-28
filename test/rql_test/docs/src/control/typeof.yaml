@@ -16,6 +16,6 @@ commands:
       name: typeOf
       examples:
         0:
-          code: r.expr("foo").typeOf().run(conn)
+          code: r.expr("foo").typeOf().run(conn, callback)
           can_try: true
           dataset: marvel

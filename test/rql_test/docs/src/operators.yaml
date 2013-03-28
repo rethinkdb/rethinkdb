@@ -18,12 +18,12 @@ commands:
     examples:
       - description: It's as easy as 2 + 2 = 4.
         code:
-          js: r.expr(2).add(2).run(conn)
+          js: r.expr(2).add(2).run(conn, callback)
           py: (r.expr(2) + 2).run(conn)
           rb: (r(2) + 2).run(conn)
       - description: Strings can be concatenated too.
         code:
-          js: r.expr("foo").add("bar").run(conn)
+          js: r.expr("foo").add("bar").run(conn, callback)
           py: (r.expr("foo") + "bar").run(conn)
           rb: (r("foo") + "bar").run(conn)
 
@@ -51,7 +51,7 @@ commands:
     examples:
       - description: It's as easy as 2 - 2 = 0.
         code:
-          js: r.expr(2).sub(2).run(conn)
+          js: r.expr(2).sub(2).run(conn, callback)
           py: (r.expr(2) - 2).run(conn)
           rb: (r(2) - 2).run(conn)
 
@@ -76,7 +76,7 @@ commands:
     examples:
       - description: It's as easy as 2 * 2 = 4.
         code:
-          js: r.expr(2).mul(2).run(conn)
+          js: r.expr(2).mul(2).run(conn, callback)
           py: (r.expr(2) * 2).run(conn)
           rb: (r(2) * 2).run(conn)
 
@@ -101,7 +101,7 @@ commands:
     examples:
       - description: It's as easy as 2 / 2 = 1.
         code:
-          js: r.expr(2).div(2).run(conn)
+          js: r.expr(2).div(2).run(conn, callback)
           py: (r.expr(2) / 2).run(conn)
           rb: (r(2) / 2).run(conn)
 
@@ -126,7 +126,7 @@ commands:
     examples:
       - description: It's as easy as 2 % 2 = 0.
         code:
-          js: r.expr(2).mod(2).run(conn)
+          js: r.expr(2).mod(2).run(conn, callback)
           py: (r.expr(2) % 2).run(conn)
           rb: (r(2) % 2).run(conn)
 
@@ -151,8 +151,8 @@ commands:
     examples:
       - description: True and false anded is false?
         code:
-          js: r.expr(true).and(false).run(conn)
-          py: (r.expr(true) & false).run(conn)
+          js: r.expr(true).and(false).run(conn, callback)
+          py: (r.expr(True) & False).run(conn)
           rb: (r(true) & false).run(conn)
 
     js:
@@ -177,8 +177,8 @@ commands:
     examples:
       - description: True or false ored is true?
         code:
-          js: r.expr(true).or(false).run(conn)
-          py: (r.expr(true) | false).run(conn)
+          js: r.expr(true).or(false).run(conn, callback)
+          py: (r.expr(True) | False).run(conn)
           rb: (r(true) | false).run(conn)
 
     js:
@@ -201,7 +201,7 @@ commands:
     examples:
       - description: Does 2 equal 2?
         code:
-          js: r.expr(2).eq(2).run(conn)
+          js: r.expr(2).eq(2).run(conn, callback)
           py: (r.expr(2) == 2).run(conn)
           rb: (r(2).eq 2).run(conn)
 
@@ -227,7 +227,7 @@ commands:
     examples:
       - description: Does 2 not equal 2?
         code:
-          js: r.expr(2).ne(2).run(conn)
+          js: r.expr(2).ne(2).run(conn, callback)
           py: (r.expr(2) != 2).run(conn)
           rb: (r(2).ne 2).run(conn)
 
@@ -255,7 +255,7 @@ commands:
     examples:
       - description: Is 2 greater than 2?
         code:
-          js: r.expr(2).gt(2).run(conn)
+          js: r.expr(2).gt(2).run(conn, callback)
           py: (r.expr(2) > 2).run(conn)
           rb: (r(2) > 2).run(conn)
 
@@ -280,7 +280,7 @@ commands:
     examples:
       - description: Is 2 greater than or equal to 2?
         code:
-          js: r.expr(2).ge(2).run(conn)
+          js: r.expr(2).ge(2).run(conn, callback)
           py: (r.expr(2) >= 2).run(conn)
           rb: (r(2) >= 2).run(conn)
 
@@ -305,7 +305,7 @@ commands:
     examples:
       - description: Is 2 less than 2?
         code:
-          js: r.expr(2).lt(2).run(conn)
+          js: r.expr(2).lt(2).run(conn, callback)
           py: (r.expr(2) < 2).run(conn)
           rb: (r(2) < 2).run(conn)
 
@@ -330,7 +330,7 @@ commands:
     examples:
       - description: Is 2 less than or equal to 2?
         code:
-          js: r.expr(2).le(2).run(conn)
+          js: r.expr(2).le(2).run(conn, callback)
           py: (r.expr(2) <= 2).run(conn)
           rb: (r(2) <= 2).run(conn)
 
@@ -353,8 +353,8 @@ commands:
     examples:
       - description: Not true is false.
         code:
-          js: r.expr(true).not().run(conn)
-          py: (~r.expr(true)).run(conn)
+          js: r.expr(true).not().run(conn, callback)
+          py: (~r.expr(True)).run(conn)
           rb: r(true).not.run(conn)
 
     rb:

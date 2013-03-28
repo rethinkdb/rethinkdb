@@ -18,7 +18,7 @@ commands:
             r.table('marvel').map(r.branch(r.row('victories').gt(100),
                 r.row('name').add(' is a superhero'),
                 r.row('name').add(' is a hero'))
-            ).run(conn)
+            ).run(conn, callback)
           py: |-
             r.table('marvel').map(r.branch(r.row['victories'] > 100,
                 r.row['name'] + ' is a superhero',

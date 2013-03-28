@@ -15,6 +15,7 @@ commands:
 
     examples:
       - description: Setup your top level namespace.
+        validate: false
         code:
           js: var r = require('rethinkdb');
           py: import rethinkdb as r
@@ -38,6 +39,7 @@ commands:
 
     examples:
       - description: Opens a new connection to the database.
+        validate: false
         code:
           js: |
             r.connect({host:'localhost', port:28015, db:'marvel'},
@@ -68,6 +70,7 @@ commands:
       - description: |
             Set the default connection in REPL, and call `run()`
             without specifying the connection.
+        validate: false
         code:
           py: |
             r.connect().repl()
@@ -88,8 +91,9 @@ commands:
     returns: null
 
     examples:
-      - code: conn.close()
-        description: Close an open connection.
+      - description: Close an open connection.
+        validate: false
+        code: conn.close()
 
     rb:
       examples:
@@ -107,6 +111,7 @@ commands:
 
     examples:
       - description: Cancel outstanding requests/queries that are no longer needed.
+        validate: false
         code:
           js: conn.reconnect(function(err, conn) { ... })
           py: conn.reconnect()
@@ -142,24 +147,26 @@ commands:
       - description: |
           Call run on the connection with a query to execute the query.
           The callback will get a cursor from which results may be retrieved.
+        validate: false
         code:
-          js: r.table('marvel').run(conn, function (err, cursor) { ... });
+          js: r.table('marvel').run(conn, function(err, cur) { cur.each(console.log); })
           py: |
             for doc in r.table('marvel').run(conn):
               print doc
           rb: r.table('marvel').run(conn).each{|x| p x}
       - description: |
-          If you are OK with potentially out of date data from all the tables involved
-          in this query and want potentially faster reads, pass a flag allowing
-          out of date data in an options object. 
-          Settings for individual tables will supercede this global setting 
-          for all tables in the query.
+          If you are OK with potentially out of date data from all the tables
+          involved in this query and want potentially faster reads, pass a flag
+          allowing out of date data in an options object.  Settings for
+          individual tables will supercede this global setting for all tables
+          in the query.
+        validate: false
         code:
           js: |
             r.table('marvel').run({connection:conn, useOutdated:true},
                                   function (err, cursor) { ... });
-          py: r.table('marvel').run(use_outdated=True)
-          rb: r.table('marvel').run({:use_outdated => true})
+          py: r.table('marvel').run(conn, use_outdated=True)
+          rb: r.table('marvel').run({:connection => conn, :use_outdated => true})
 
   - tag: next
     section: module

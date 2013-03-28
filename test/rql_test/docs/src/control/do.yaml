@@ -16,7 +16,7 @@ commands:
           js: |-
             r.do(r.table('marvel').get('IronMan'),
                  function (ironman) { return ironman('name'); }
-            ).run(conn)
+            ).run(conn, callback)
           py: |-
             r.do(r.table('marvel').get('IronMan'),
                  lambda ironman: ironman['name']).run(conn)

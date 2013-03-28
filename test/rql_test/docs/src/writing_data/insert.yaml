@@ -24,10 +24,10 @@ commands:
         code:
           js: |
             r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
-            .run(conn)
+            .run(conn, callback)
           py: |
-            r.table('marvel').insert({ 'superhero': 'Iron Man', 'superpower':'Arc Reactor' })
-             .run(conn)
+            r.table('marvel').insert(
+                { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)
           rb: |
             r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'})
             .run(conn)
@@ -37,7 +37,7 @@ commands:
             r.table('marvel').insert([
               { superhero: 'Wolverine', superpower: 'Adamantium' },
               { superhero: 'Spiderman', superpower: 'spidy sense' }
-            ]).run(conn)
+            ]).run(conn, callback)
           py: |
             r.table('marvel').insert([
               { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },
@@ -54,11 +54,11 @@ commands:
             r.table('marvel').insert(
               { superhero: 'Iron Man', superpower: 'Arc Reactor' },
               {upsert: true}
-            ).run(conn)
+            ).run(conn, callback)
           py: |
             r.table('marvel').insert(
               { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },
-              upsert=true
+              upsert=True
             ).run(conn)
           rb: |
             r.table('marvel').insert(

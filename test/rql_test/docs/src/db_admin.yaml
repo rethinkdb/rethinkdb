@@ -26,7 +26,7 @@ commands:
       body: dbName
       examples:
         0:
-          code: r.dbCreate('superheroes').run(conn)
+          code: r.dbCreate('superheroes').run(conn, callback)
           can_try: true
           dataset: marvel
 
@@ -51,7 +51,7 @@ commands:
       body: dbName
       examples:
         0:
-          code: r.dbDrop('superheroes').run(conn)
+          code: r.dbDrop('superheroes').run(conn, callback)
           can_try: true
           dataset: marvel
 
@@ -65,7 +65,7 @@ commands:
     examples:
       - description: List all databases.
         code:
-          js: r.dbList().run(conn)
+          js: r.dbList().run(conn, callback)
           py: r.db_list().run(conn)
           rb: r.db_list.run(conn)
 
