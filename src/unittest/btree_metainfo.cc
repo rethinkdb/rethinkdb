@@ -63,7 +63,7 @@ void run_metainfo_test() {
     std::map<std::string, std::string> mirror;
     mirror[""] = "";
 
-    btree_slice_t btree(&cache, &get_global_perfmon_collection());
+    btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
 
     order_source_t order_source;
 

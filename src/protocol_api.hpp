@@ -74,6 +74,10 @@ private:
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
+    
+    /* I got the ypedefs like a std::map. */
+    typedef typename protocol_t::region_t key_type;
+    typedef value_t mapped_type;
 
     region_map_t() THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));
@@ -305,6 +309,23 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
+/* [read,write]_token_pair_t provide an exit_[read,write]_t for both the main
+ * btree and the secondary btrees both require seperate synchronization because
+ * you frequently need to update the secondary btrees based on something that
+ * was done in the primary and our locking structure doesn't give us an easy
+ * way to make sure that entities acquire the secondary block in the same order
+ * they acquire the primary. This could in theory be acquired as 2 seperate
+ * objects but this would be twice as much typing and runs the risk that people
+ * pass one exit read in to a function that accesses the other. */
+struct read_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
+};
+
+struct write_token_pair_t {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
+};
+
+
 template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {
 public:
@@ -320,6 +341,9 @@ public:
 
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
+
+    virtual void new_read_token_pair(read_token_pair_t *token_pair_out) = 0;
+    virtual void new_write_token_pair(write_token_pair_t *token_pair_out) = 0;
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
@@ -347,9 +371,10 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
+
 
     /* Performs a write.
     [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
@@ -364,7 +389,7 @@ public:
             sync_callback_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -379,7 +404,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -391,7 +416,7 @@ public:
     */
     virtual void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -402,7 +427,7 @@ public:
     virtual void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -474,6 +499,16 @@ public:
         store_view->new_write_token(token_out);
     }
 
+    void new_read_token_pair(read_token_pair_t *token_pair_out) {
+        home_thread_mixin_t::assert_thread();
+        store_view->new_read_token_pair(token_pair_out);
+    }
+
+    void new_write_token_pair(write_token_pair_t *token_pair_out) {
+        home_thread_mixin_t::assert_thread();
+        store_view->new_write_token_pair(token_pair_out);
+    }
+
     void do_get_metainfo(order_token_t order_token,
                          object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
@@ -498,13 +533,13 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token_pair, interruptor);
     }
 
     void write(
@@ -515,14 +550,14 @@ public:
             sync_callback_t *disk_ack_signal,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, disk_ack_signal, timestamp, order_token, token, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, disk_ack_signal, timestamp, order_token, token_pair, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
@@ -531,35 +566,35 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *p,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-        return store_view->send_backfill(start_point, send_backfill_cb, p, token, interruptor);
+        return store_view->send_backfill(start_point, send_backfill_cb, p, token_pair, interruptor);
     }
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
-        store_view->receive_backfill(chunk, token, interruptor);
+        store_view->receive_backfill(chunk, token_pair, interruptor);
     }
 
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, token, interruptor);
+        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor);
     }
 
 private:

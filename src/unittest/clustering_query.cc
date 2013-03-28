@@ -40,7 +40,7 @@ static void run_read_write_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,
@@ -130,7 +130,7 @@ static void run_broadcaster_problem_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(),
                                                 &branch_history_manager,

@@ -179,6 +179,7 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
     }
 
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(char);          // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed char);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned short);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(signed short);  // NOLINT(runtime/int)

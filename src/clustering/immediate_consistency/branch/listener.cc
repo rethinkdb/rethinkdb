@@ -447,7 +447,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_pair_t write_token_pair;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -455,7 +455,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs_->new_write_token(&write_token);
+        svs_->new_write_token_pair(&write_token_pair);
     }
 
 #ifndef NDEBUG
@@ -475,7 +475,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         &disk_ack_signal,
         qe.transition_timestamp,
         qe.order_token,
-        &write_token,
+        &write_token_pair,
         interruptor);
 
     // SAMRSI: Is this how we want to wait?
@@ -512,7 +512,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        write_token_pair_t write_token_pair;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -525,7 +525,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-            svs_->new_write_token(&write_token);
+            svs_->new_write_token_pair(&write_token_pair);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -549,7 +549,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
                     &disk_ack_signal,
                     transition_timestamp,
                     order_token,
-                    &write_token,
+                    &write_token_pair,
                     keepalive.get_drain_signal());
 
         /* Release the semaphore before sending the response, because the
@@ -591,7 +591,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        read_token_pair_t read_token_pair;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -604,7 +604,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
 
             guarantee(current_timestamp_ == expected_timestamp);
 
-            svs_->new_read_token(&read_token);
+            svs_->new_read_token_pair(&read_token_pair);
         }
 
 #ifndef NDEBUG
@@ -619,7 +619,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             read,
             &response,
             order_token,
-            &read_token,
+            &read_token_pair,
             keepalive.get_drain_signal());
 
         send(mailbox_manager_, ack_addr, response);

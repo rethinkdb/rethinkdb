@@ -53,6 +53,7 @@ void memcached_backfill(btree_slice_t *slice,
                         backfill_callback_t *callback,
                         transaction_t *txn,
                         superblock_t *superblock,
+                        buf_lock_t *sindex_block,
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

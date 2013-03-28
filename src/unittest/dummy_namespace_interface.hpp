@@ -29,22 +29,22 @@ public:
               DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-        store->new_read_token(&read_token);
+        read_token_pair_t token_pair;
+        store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
         equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &read_token, interruptor);
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token_pair, interruptor);
     }
 
     void read_outdated(const typename protocol_t::read_t &read,
                        typename protocol_t::read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-        store->new_read_token(&read_token);
+        read_token_pair_t token_pair;
+        store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
@@ -53,7 +53,7 @@ public:
 
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
                            bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
-                           &read_token,
+                           &token_pair,
                            interruptor);
     }
 
@@ -68,15 +68,15 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-        store->new_write_token(&write_token);
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
 
         // SAMRSI: Get disk_ack_signal from the parameter list?
         sync_callback_t disk_ack_signal;
         store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, &disk_ack_signal, transition_timestamp, order_token, &write_token, &non_interruptor);
+            write, response, &disk_ack_signal, transition_timestamp, order_token, &token_pair, &non_interruptor);
 
         disk_ack_signal.wait();
     }
@@ -138,8 +138,9 @@ public:
         typename protocol_t::region_t region;
     };
 
-    explicit dummy_sharder_t(std::vector<shard_t> _shards)
-        : shards(_shards) { }
+    explicit dummy_sharder_t(std::vector<shard_t> _shards,
+                             typename protocol_t::context_t *_ctx)
+        : shards(_shards), ctx(_ctx) { }
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -154,8 +155,7 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        read.unshard(responses.data(), responses.size(), response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, ctx);
     }
 
     void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
@@ -171,8 +171,7 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        read.unshard(responses.data(), responses.size(), response, &ctx);
+        read.unshard(responses.data(), responses.size(), response, ctx);
     }
 
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
@@ -189,12 +188,12 @@ public:
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
         }
-        typename protocol_t::context_t ctx;
-        write.unshard(responses.data(), responses.size(), response, &ctx);
+        write.unshard(responses.data(), responses.size(), response, ctx);
     }
 
 private:
     std::vector<shard_t> shards;
+    typename protocol_t::context_t *ctx;
 };
 
 template<class protocol_t>
@@ -202,7 +201,11 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, store_view_t<protocol_t> **stores, order_source_t *order_source) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t>
+            shards, store_view_t<protocol_t> **stores, order_source_t
+            *order_source, typename protocol_t::context_t *_ctx) 
+        : ctx(_ctx)
+    {
         /* Make sure shards are non-overlapping and stuff */
         {
             typename protocol_t::region_t join;
@@ -252,7 +255,7 @@ public:
             shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
         }
 
-        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db));
+        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db, ctx));
     }
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
@@ -271,6 +274,7 @@ private:
     boost::ptr_vector<dummy_performer_t<protocol_t> > performers;
     boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
     scoped_ptr_t<dummy_sharder_t<protocol_t> > sharder;
+    typename protocol_t::context_t *ctx;
 };
 
 }   /* namespace unittest */

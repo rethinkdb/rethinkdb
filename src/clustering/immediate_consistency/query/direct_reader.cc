@@ -2,6 +2,7 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 #include "protocol_api.hpp"
+#include "btree/btree_store.hpp"
 
 template <class protocol_t>
 direct_reader_t<protocol_t>::direct_reader_t(
@@ -33,8 +34,8 @@ void direct_reader_t<protocol_t>::perform_read(
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont,
         auto_drainer_t::lock_t keepalive) {
     try {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
-        svs->new_read_token(&read_token);
+        read_token_pair_t token_pair;
+        svs->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
         trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
@@ -46,7 +47,7 @@ void direct_reader_t<protocol_t>::perform_read(
                   read,
                   &response,
                   order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
-                  &read_token,
+                  &token_pair,
                   keepalive.get_drain_signal());
 
         send(mailbox_manager, cont, response);
