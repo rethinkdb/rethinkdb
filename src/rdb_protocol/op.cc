@@ -16,16 +16,25 @@ bool argspec_t::contains(int n) const {
     return min <= n && (max < 0 || n <= max);
 }
 
+optargspec_t::optargspec_t(bool _is_make_object_val)
+    : is_make_object_val(_is_make_object_val) { }
+
+void optargspec_t::init(int num_args, const char *const *args) {
+    is_make_object_val = false;
+    for (int i = 0; i < num_args; ++i) {
+        legal_args.insert(args[i]);
+    }
+}
+
 optargspec_t optargspec_t::make_object() {
-    return optargspec_t(-1, 0);
+    return optargspec_t(true);
 }
 bool optargspec_t::is_make_object() const {
-    return num_legal_args < 0;
+    return is_make_object_val;
 }
 bool optargspec_t::contains(const std::string &key) const {
     r_sanity_check(!is_make_object());
-    for (int i = 0; i < num_legal_args; ++i) if (key == legal_args[i]) return true;
-    return false;
+    return legal_args.count(key) != 0;
 }
 
 
