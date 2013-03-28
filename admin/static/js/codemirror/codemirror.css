@@ -190,7 +190,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 .CodeMirror-wrap pre {
   word-wrap: break-word;
   white-space: pre-wrap;
-  word-break: normal;
+  word-break: break-all;
 }
 .CodeMirror-linebackground {
   position: absolute;
