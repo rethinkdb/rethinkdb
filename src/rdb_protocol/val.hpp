@@ -59,11 +59,6 @@ private:
 
     std::vector<const datum_t *> batch_replace(const std::vector<datum_func_pair_t> &replacements);
 
-    struct datum_datum_pair_t {
-        const datum_t *original_value;
-        const datum_t *replacement_value;
-    };
-
     const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
