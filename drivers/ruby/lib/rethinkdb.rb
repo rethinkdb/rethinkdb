@@ -3,9 +3,9 @@ require 'rubygems'
 require 'ql2.pb.rb'
 
 if 2**63 != 9223372036854775808
-  puts "WARNING: Ruby believes 2**63 = #{2**63} rather than 9223372036854775808!"
-  puts "Consider upgrading your verison of Ruby."
-  puts "Hot-patching ruby_protobuf to compensate..."
+  $stderr.puts "WARNING: Ruby believes 2**63 = #{2**63} rather than 9223372036854775808!"
+  $stderr.puts "Consider upgrading your verison of Ruby."
+  $stderr.puts "Hot-patching ruby_protobuf to compensate..."
   rethinkdb_verbose, $VERBOSE = $VERBOSE, nil
   module Protobuf
     module Field
