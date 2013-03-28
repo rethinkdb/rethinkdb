@@ -8,7 +8,7 @@ export PYTHONUNBUFFERED=true
 # Default value for the options
 list_only=false
 tests=
-dir=test_results
+dir=
 verbose=false
 single_test=
 parallel_tasks=1
@@ -65,7 +65,7 @@ run_single_test () {
     test=$1
     index=$2
     cmd=$3
-    echo "Run  $test ($index)"
+    $verbose && echo "Run  $test ($index)"
     (
         cd "$dir/$test"
         mkdir files-$index
@@ -94,11 +94,18 @@ if [[ -n "$*" ]]; then
     exit 1
 fi
 
+# Make sure the output directory does not already exist
+if [[ -z "$dir" ]]; then
+    dir=test_results
+    test -d "$dir" && dir="`mktemp -d "$dir.XXXXX"`"
+else
+    test -d "$dir" && echo "Error: the folder '$dir' already exists" && exit 1
+fi
+
 # Use a tmp directory when none is needed
 if $list_only; then
     list_dir=`mktemp -t -d run-tests.XXXXXXXX`
 else
-    test -d "$dir" && echo "Error: the folder '$dir' already exists" && exit 1
     list_dir=$dir/.tests
     mkdir -p "$list_dir"
 fi
@@ -132,7 +139,7 @@ for path in $list_dir/*.param; do
     if ! is_selected "$test"; then
         continue
     fi
-    cmd=`cat $path | grep ^TEST_COMMAND | sed 's/^TEST_COMMAND=//' | sed 's/=/ /g'`
+    cmd=`cat $path | grep ^TEST_COMMAND | sed 's/^TEST_COMMAND=//'`
     if $list_only; then
         if $verbose; then
             echo $test: $cmd
@@ -153,6 +160,7 @@ if $list_only; then
 fi
 
 # Run the tests
+echo "Storing test output into '$dir'"
 trap "echo Aborting tests; sleep 2; exit" INT
 for item in "${list[@]}"; do
     varg=
@@ -179,5 +187,6 @@ if [[ $passed = $total ]]; then
     echo Passed all $total tests in $duration_str.
 else
     echo Failed $[total - passed] of $total tests in $duration_str.
+    echo "Stored the output of the tests in '$dir'"
     exit 1
 fi
