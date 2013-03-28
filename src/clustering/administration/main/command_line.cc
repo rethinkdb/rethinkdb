@@ -202,12 +202,26 @@ public:
     boost::optional<std::string> config_file;
 };
 
+// Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
+// option exists.
+bool exists_option(const std::map<std::string, options::values_t> &opts, const std::string &name) {
+    auto it = opts.find(name);
+    return it != opts.end() && !it->second.values.empty();
+}
+
 serializer_filepath_t metadata_file(const base_path_t& dirpath) {
     return serializer_filepath_t(dirpath, "metadata");
 }
 
-std::string get_logfilepath(const base_path_t& dirpath) {
-    return dirpath.path() + "/log_file";
+void initialize_logfile(const std::map<std::string, options::values_t> &opts,
+                               const base_path_t& dirpath) {
+    std::string filename;
+    if (exists_option(opts, "--log-file")) {
+        filename = get_single_option(opts, "--log-file");
+    } else {
+        filename = dirpath.path() + "/log_file";
+    }
+    install_fallback_log_writer(filename);
 }
 
 bool check_existence(const base_path_t& base_path) {
@@ -325,13 +339,6 @@ int get_single_int(const std::map<std::string, options::values_t> &opts, const s
     }
     throw std::runtime_error(strprintf("Option '%s' (with value '%s') not a valid integer",
                                        name.c_str(), value.c_str()));
-}
-
-// Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
-// option exists.
-bool exists_option(const std::map<std::string, options::values_t> &opts, const std::string &name) {
-    auto it = opts.find(name);
-    return it != opts.end() && !it->second.values.empty();
 }
 
 int offseted_port(const int port, const int port_offset) {
@@ -591,6 +598,15 @@ options::help_section_t get_machine_options(std::vector<options::option_t> *opti
     return help;
 }
 
+options::help_section_t get_log_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Log options");
+    options_out->push_back(options::option_t(options::names_t("--log-file"),
+                                             options::OPTIONAL));
+    help.add("--log-file file", "specify the file to log to, defaults to 'log_file'");
+    return help;
+}
+
+
 options::help_section_t get_file_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("File path options");
     options_out->push_back(options::option_t(options::names_t("--directory", "-d"),
@@ -746,6 +762,7 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
     get_disk_options(help_out, options_out);
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -759,6 +776,7 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -769,14 +787,7 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
-
-    options::help_section_t help("Log options");
-    options_out->push_back(options::option_t(options::names_t("--log-file"),
-                                             options::OPTIONAL,
-                                             "log_file"));
-    help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
-    help_out->push_back(help);
-
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -854,6 +865,7 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -962,8 +974,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         recreate_temporary_directory(base_path);
 
-        const std::string logfilepath = get_logfilepath(base_path);
-        install_fallback_log_writer(logfilepath);
+        initialize_logfile(opts, base_path);
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
@@ -1057,8 +1068,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         recreate_temporary_directory(base_path);
 
         base_path.make_absolute();
-        std::string logfilepath = get_logfilepath(base_path);
-        install_fallback_log_writer(logfilepath);
+        initialize_logfile(opts, base_path);
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
@@ -1152,8 +1162,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         set_user_group(opts);
 
-        const std::string logfilepath = get_single_option(opts, "--log-file");
-        install_fallback_log_writer(logfilepath);
+        // Default to putting the log file in the current working directory
+        base_path_t base_path(".");
+        initialize_logfile(opts, base_path);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -1370,8 +1381,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         recreate_temporary_directory(base_path);
 
         base_path.make_absolute();
-        const std::string logfilepath = get_logfilepath(base_path);
-        install_fallback_log_writer(logfilepath);
+        initialize_logfile(opts, base_path);
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
