@@ -46,7 +46,10 @@ std::vector<const datum_t *> datum_stream_t::next_batch() {
             if (datum != NULL) {
                 batch.push_back(datum);
             }
-            if (res == LAST_OF_BATCH || res == END_OF_STREAM || batch.size() == MAX_BATCH_SIZE) {
+            if (res == END_OF_STREAM || batch.size() == MAX_BATCH_SIZE) {
+                return batch;
+            }
+            if (res == LAST_OF_BATCH && !batch.empty()) {
                 return batch;
             }
         }
