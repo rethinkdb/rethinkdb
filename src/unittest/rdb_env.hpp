@@ -103,7 +103,7 @@ private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
 
     struct mock_namespace_cache_entry_t {
-        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) : 
+        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
             mock_ns_if(ns_repo) { }
         namespace_cache_entry_t entry;
         mock_namespace_interface_t mock_ns_if;
