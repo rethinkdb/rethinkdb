@@ -287,6 +287,18 @@ env_t::env_t(
 
 }
 
+env_t::env_t(signal_t *_interruptor)
+  : next_gensym_val(-2),
+    implicit_depth(0),
+    pool(NULL),
+    ns_repo(NULL),
+    directory_read_manager(NULL),
+    DEBUG_ONLY(eval_callback(NULL),)
+    interruptor(_interruptor)
+{
+    bags.push_back(new ptr_bag_t());
+}
+
 env_t::~env_t() {
     guarantee(bags.size() == 1);
     delete bags[0];

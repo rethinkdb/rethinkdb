@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
-#include <ftw.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,37 +28,6 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-
-int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
-    int res = ::remove(path);
-    guarantee_err(res == 0, "remove syscall failed");
-    return 0;
-}
-
-void delete_all(const char *path) {
-    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
-    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
-    // and closing directories extra times if it needs to go deeper than that).
-    const int max_openfd = 128;
-    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
-}
-
-std::string temporary_directory_path(const base_path_t& base_path) {
-    return base_path.path() + "/tmp";
-}
-
-void recreate_temporary_directory(const base_path_t& base_path) {
-    const std::string path = temporary_directory_path(base_path);
-
-    delete_all(path.c_str());
-
-    int res;
-    do {
-        res = mkdir(path.c_str(), 0755);
-    } while (res == -1 && errno == EINTR);
-    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
-}
 
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
@@ -1156,8 +1124,6 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         }
 
 
-        std::set<ip_address_t> local_addresses = get_local_addresses(all_options(opts, "--bind"));
-
 #ifndef NDEBUG
         int client_port = get_single_int(opts, "--client-port");
 #else
@@ -1214,6 +1180,9 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         target.datacenter_name = datacenter_name;
         target.table_name = table_name;
         target.primary_key = primary_key;
+
+        // Don't bind to any local addresses -- don't listen for any incoming connections.
+        const std::set<ip_address_t> local_addresses;
 
         const int num_workers = get_cpu_count();
         bool result;
