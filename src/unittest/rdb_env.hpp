@@ -19,7 +19,9 @@
 #include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include <stdexcept>
+#include <set>
 #include <map>
+#include <string>
 
 namespace unittest {
 
@@ -61,8 +63,8 @@ private:
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const rdb_protocol_t::point_read_t &get);
-        void operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
-        void operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
 
         read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
 
@@ -72,8 +74,10 @@ private:
 
     struct write_visitor_t : public boost::static_visitor<void> {
         void operator()(const rdb_protocol_t::point_replace_t &r);
-        void operator()(UNUSED const rdb_protocol_t::point_write_t &w);
-        void operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s);
 
         write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, rdb_protocol_t::write_response_t *_response);
 
@@ -142,8 +146,7 @@ public:
     namespace_id_t add_table(const std::string &table_name,
                              const uuid_u &db_id,
                              const std::string &primary_key,
-                             const std::set<std::map<std::string, std::string> > &initial_data =
-                                 std::set<std::map<std::string, std::string> >());
+                             const std::set<std::map<std::string, std::string> > &initial_data);
     database_id_t add_database(const std::string &db_name);
 
     class instance_t {

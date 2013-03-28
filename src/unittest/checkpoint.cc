@@ -184,7 +184,7 @@ void checkpoint_all_test(test_rdb_env_t *test_env) {
             ASSERT_EQ(alloc_tracker, expected_allocs);
             checkpoint_do_stuff(&checkpoint_merge, &alloc_tracker, &checkpoint_data, env_instance->get(), &checkpoint);
 
-            for (size_t i = 0; i < 3; ++i) {
+            for (size_t j = 0; j < 3; ++j) {
                 int subcheckpoint_type = randint(2);
                 int subcheckpoint_data = 0;
                 ql::env_checkpoint_t subcheckpoint(env_instance->get(), subcheckpoint_type == 0 ?

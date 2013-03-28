@@ -206,7 +206,7 @@ TEST(RdbInterrupt, InsertOp) {
     {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id");
+        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, true, "key");
         unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, &insert_proto, &eval_count,
                                                  &verify_callback));
@@ -214,7 +214,7 @@ TEST(RdbInterrupt, InsertOp) {
     for (uint64_t i = 0; i <= eval_count; ++i) {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
-        namespace_id_t ns_id = test_env.add_table("table", db_id, "id");
+        namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, false, "key");
         unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, &insert_proto, i, 
                                                  &verify_callback));
