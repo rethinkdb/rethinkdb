@@ -224,7 +224,11 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             // Verify that all specified addresses are valid ip addresses
             struct in_addr addr;
             if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
-                set_filter.insert(ip_address_t(addr));
+                if (addr.s_addr == INADDR_ANY) {
+                    all = true;
+                } else {
+                    set_filter.insert(ip_address_t(addr));
+                }
             } else {
                 throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
             }
@@ -617,7 +621,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
