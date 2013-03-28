@@ -76,7 +76,7 @@ run_single_test () {
             echo "Ok   $test ($index)"
         else
             echo "Fail $test ($index)"
-            $verbose && tail -n 3 stderr-$index
+           ( tail -n 5 stdout-$index; tail -n 5 stderr-$index ) | tail -n 5 | sed 's/^/  | /'
         fi
         exit $exit_code
     )
@@ -96,8 +96,7 @@ fi
 
 # Make sure the output directory does not already exist
 if [[ -z "$dir" ]]; then
-    dir=test_results
-    test -d "$dir" && dir="`mktemp -d "$dir.XXXXX"`"
+    dir="`mktemp -d "test_results.XXXXX"`"
 else
     test -d "$dir" && echo "Error: the folder '$dir' already exists" && exit 1
 fi
@@ -173,7 +172,9 @@ trap - INT
 
 # Write the XML output file
 if [[ -n "$xml_report" ]]; then
-    echo TODO: no XML report yet
+    # TODO
+    echo Error: XML reports not implemented
+    exit 1
 fi
 
 # Collect the results
