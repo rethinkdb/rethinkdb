@@ -606,7 +606,7 @@ options::help_section_t get_web_options(std::vector<options::option_t> *options_
     options::help_section_t help("Web options");
     options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
                                              options::OPTIONAL));
-    // No help for --web-static-directory.
+    help.add("--web-static-directory directory", "the directory containing web resources for the http interface");
     options_out->push_back(options::option_t(options::names_t("--http-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::http_port)));
