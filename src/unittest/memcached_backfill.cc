@@ -34,7 +34,7 @@ void run_with_broadcaster(
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<memcached_protocol_t> initial_store(io_backender.get(), &order_source);
+    test_store_t<memcached_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<memcached_protocol_t::context_t *>(NULL));
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<memcached_protocol_t> > broadcaster(
@@ -46,7 +46,6 @@ void run_with_broadcaster(
             &order_source,
             &interruptor));
 
-    // TODO: visit a psychiatrist
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > >(boost::optional<broadcaster_business_card_t<memcached_protocol_t> >(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t<memcached_protocol_t> > initial_listener(
@@ -139,7 +138,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<memcached_protocol_t> store2(io_backender, order_source);
+    test_store_t<memcached_protocol_t> store2(io_backender, order_source, static_cast<memcached_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         base_path_t("."),

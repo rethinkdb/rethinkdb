@@ -8,6 +8,7 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/ptr_bag.hpp"
 #include "http/json.hpp"
@@ -70,6 +71,7 @@ public:
     const char *get_type_name() const;
     std::string print() const;
     std::string print_primary() const;
+    std::string print_secondary(const store_key_t &key) const;
     void check_type(type_t desired) const;
 
     bool as_bool() const;

@@ -379,13 +379,19 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2, 3)) { }
 private:
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
         const datum_t *pkey = arg(1)->as_datum();
-        const datum_t *row = table->get_row(pkey);
-        return new_val(row, table);
+        if (num_args() == 3) {
+            uuid_u sindex_id = str_to_uuid(arg(2)->as_datum()->as_str());
+            datum_stream_t *sequence = table->get_sindex_rows(pkey, sindex_id, this);
+            return new_val(sequence, table);
+        } else {
+            const datum_t *row = table->get_row(pkey);
+            return new_val(row, table);
+        }
     }
     virtual const char *name() const { return "get"; }
 };

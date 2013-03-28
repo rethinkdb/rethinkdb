@@ -89,6 +89,18 @@ tests:
     - cd: r.table('test1').count()
       ot: 100
 
+    # Access a table using the `use_outdated` flag
+    - py:
+        - r.table('test1', use_outdated=True).count()
+        - r.db('test').table('test1', use_outdated=True).count()
+      js:
+        - r.table('test1', {useOutdated:true}).count()
+        - r.db('test').table('test1', {useOutdated:true}).count()
+      rb:
+        - r.table('test1', {:use_outdated => true}).count()
+        - r.db('test').table('test1', {:use_outdated => true}).count()
+      ot: 100
+
     - cd: tbl.get(20).count()
       py: [] # Handled by native Python error
       ot: err("RqlRuntimeError", 'Expected type SEQUENCE but found SINGLE_SELECTION.', [0])

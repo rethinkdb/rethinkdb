@@ -13,7 +13,7 @@
 
 
 
-void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
+void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   uuid_u namespace_id,
                                   signal_t *interruptor,
                                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
@@ -45,7 +45,7 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
                 if (nsi->second.is_deleted()) throw interrupted_exc_t();
             }
 
-            namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
+            base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
             ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);

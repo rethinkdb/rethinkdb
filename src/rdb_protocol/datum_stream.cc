@@ -18,6 +18,7 @@ datum_stream_t *datum_stream_t::zip() {
 }
 
 const datum_t *datum_stream_t::next() {
+    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is a hook for unit tests to change things mid-query
     env->throw_if_interruptor_pulsed();
     try {
         return next_impl();
@@ -95,6 +96,18 @@ lazy_datum_stream_t::lazy_datum_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
                       env->get_all_optargs(), use_outdated))
 { }
+
+lazy_datum_stream_t::lazy_datum_stream_t(
+    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    const datum_t *pval, const uuid_u &sindex_id,
+    const pb_rcheckable_t *bt_src)
+    : datum_stream_t(env, bt_src),
+      json_stream(new query_language::batched_rget_stream_t(
+                      *ns_access, env->interruptor,
+                      rdb_protocol_t::sindex_key_range(store_key_t(pval->print_primary())), sindex_id,
+                      env->get_all_optargs(), use_outdated))
+{ }
+
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->env, src) {
     *this = *src;
@@ -228,9 +241,9 @@ const datum_t *filter_datum_stream_t::next_impl() {
         env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
         if (!(arg = src->next())) return 0;
         env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
-        if (f->filter_call(env, arg)) {
-                outer_checkpoint.reset(&env_t::merge_checkpoint);
-                break;
+        if (f->filter_call(arg)) {
+            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            break;
         }
     }
     return arg;
@@ -238,13 +251,18 @@ const datum_t *filter_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+    env_t *_env, size_t _left, size_t _right, datum_stream_t *_src)
+    : eager_datum_stream_t(_env, _src), env(_env), ind(0),
+      left(_left), right(_right), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (l > r || ind > r) return 0;
-    while (ind++ < l) {
+    if (left > right || ind > right) {
+        return NULL;
+    }
+    while (ind++ < left) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        src->next();
+        if (!src->next()) {
+            return NULL;
+        }
     }
     return src->next();
 }

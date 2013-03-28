@@ -139,6 +139,10 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
+std::string datum_t::print_secondary(const store_key_t &primary_key) const {
+    return print_primary() + std::string(1, '\0') + key_to_unescaped_str(primary_key);
+}
+
 void datum_t::check_type(type_t desired) const {
     rcheck(get_type() == desired,
            strprintf("Expected type %s but found %s.",

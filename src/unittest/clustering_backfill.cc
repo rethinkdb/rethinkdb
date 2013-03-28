@@ -76,8 +76,8 @@ void run_backfill_test() {
             timestamp = ts.timestamp_after();
 
             cond_t non_interruptor;
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
-            backfiller_store.new_write_token(&token);
+            write_token_pair_t token_pair;
+            backfiller_store.new_write_token_pair(&token_pair);
 
 #ifndef NDEBUG
             equality_metainfo_checker_callback_t<dummy_protocol_t>
@@ -93,7 +93,7 @@ void run_backfill_test() {
                 ),
                 w, &response, ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
-                &token,
+                &token_pair,
                 &non_interruptor);
         }
     }
