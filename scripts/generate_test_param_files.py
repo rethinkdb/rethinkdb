@@ -33,6 +33,7 @@ def generate_test(base_name):
     return gen
 
 for (dirpath, dirname, filenames) in os.walk(options.test_dir):
+    filenames = [f for f in filenames if f.split('.')[-1] == 'test']
     for filename in filenames:
         base_name = filename.split('.')[0]
         full_path = os.path.join(dirpath, filename)
