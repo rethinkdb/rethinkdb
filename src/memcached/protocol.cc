@@ -442,8 +442,14 @@ store_t::store_t(serializer_t *serializer,
                  int64_t cache_size,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
-                 context_t *ctx) :
-    btree_store_t<memcached_protocol_t>(serializer, perfmon_name, cache_size, create, parent_perfmon_collection, ctx) { }
+                 context_t *ctx,
+                 io_backender_t *io,
+                 const base_path_t &base_path) 
+    : btree_store_t<memcached_protocol_t>(
+            serializer, perfmon_name, cache_size, 
+            create, parent_perfmon_collection, ctx, io,
+            base_path) 
+{ }
 
 store_t::~store_t() {
     assert_thread();
@@ -505,7 +511,11 @@ void store_t::protocol_read(const read_t &read,
                             btree_slice_t *btree,
                             transaction_t *txn,
                             superblock_t *superblock,
+                            read_token_pair_t *token_pair,
                             UNUSED signal_t *interruptor) {
+    /* Memcached doesn't have any secondary structures so right now we just
+     * immediately destroy the token so that no one has to wait. */
+    token_pair->sindex_read_token.reset();
     read_visitor_t v(btree, txn, superblock, read.effective_time);
     *response = boost::apply_visitor(v, read.query);
 }
@@ -566,7 +576,12 @@ void store_t::protocol_write(const write_t &write,
                              btree_slice_t *btree,
                              transaction_t *txn,
                              scoped_ptr_t<superblock_t> *superblock,
+                             write_token_pair_t *token_pair,
                              UNUSED signal_t *interruptor) {
+    /* Memcached doesn't have any secondary structures so right now we just
+     * immediately destroy the token so that no one has to wait. */
+    token_pair->sindex_write_token.reset();
+
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
     write_visitor_t v(btree, txn, superblock->get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);
@@ -603,14 +618,14 @@ private:
 };
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress,
+        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, memcached_protocol_t::backfill_progress_t *progress,
         signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owner(p);
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
-        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p, interruptor);
+        memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
     } catch (interrupted_exc_t) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
         */
@@ -621,6 +636,7 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
+                                     buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      backfill_progress_t *progress,
@@ -636,7 +652,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
         pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback, txn, &refcount_wrapper, progress, interruptor));
+                                         btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
 
         /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
         normally anyway. So now we have to check manually. */
@@ -695,6 +711,7 @@ private:
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
                                         superblock_t *superblock,
+                                        write_token_pair_t *,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);
@@ -723,7 +740,8 @@ private:
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
-                                  superblock_t *superblock) {
+                                  superblock_t *superblock,
+                                  write_token_pair_t *) {
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
     memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }

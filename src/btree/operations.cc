@@ -7,6 +7,7 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/vector_stream.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
@@ -36,6 +37,19 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
     sb_data->stat_block = new_stat_block;
+}
+
+block_id_t real_superblock_t::get_sindex_block_id() const {
+    rassert(sb_buf_.is_acquired());
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+}
+
+void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
+    rassert(sb_buf_.is_acquired());
+
+    rassert(sb_buf_.is_acquired());
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    sb_data->sindex_block = new_sindex_block;
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {

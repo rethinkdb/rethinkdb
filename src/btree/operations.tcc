@@ -6,6 +6,7 @@
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "concurrency/promise.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 

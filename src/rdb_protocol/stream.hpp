@@ -90,8 +90,15 @@ private:
 
 class batched_rget_stream_t : public json_stream_t {
 public:
+    /* Primary key rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
                           signal_t *_interruptor, key_range_t _range,
+                          const std::map<std::string, ql::wire_func_t> &_optargs,
+                          bool _use_outdated);
+
+    /* Sindex rget. */
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                          signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
                           const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated);
 
@@ -108,19 +115,16 @@ public:
     };
 
 private:
+    rdb_protocol_t::rget_read_t get_rget();
     void read_more();
 
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
     key_range_t range;
-    // TODO(jdoliner) What were batch_size and index doing being unused?  Does this type actually do
-    // batching?  (This code might be removed in the ql-refactor branch, so it might not matter.)
-    // int batch_size;
+    boost::optional<uuid_u> sindex_id;
 
     json_list_t data;
-    // See the TODO(jdoliner) above.
-    // int index;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
