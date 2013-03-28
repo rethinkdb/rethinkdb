@@ -18,6 +18,9 @@ module 'DataExplorerView', ->
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         size_history: 100
+        
+        max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
+        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -309,12 +312,12 @@ module 'DataExplorerView', ->
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
                     name: 'javascript'
-                    json: true
                 onKeyEvent: @handle_keypress
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
                 tabSize: 2
+
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
@@ -518,6 +521,11 @@ module 'DataExplorerView', ->
 
             if event?.which isnt 9 # has to be before create_suggestion()
                 @cursor_for_auto_completion = @codemirror.getCursor()
+
+            # The expensive operations are coming. If the query is too long, we just don't parse the query
+            if @codemirror.getValue().length > @max_size_query
+                return false
+
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false
@@ -570,11 +578,12 @@ module 'DataExplorerView', ->
                 
             # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
+
             if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
-                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor)
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
                 if result_last_char_is_white isnt null
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
@@ -654,11 +663,11 @@ module 'DataExplorerView', ->
                 else
                     return ''
 
-
         # We build a stack of the query.
         # Chained functions are in the same array, arguments/inner queries are in a nested array
         # element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object', 'array_entry', 'object_key' 'array']
         extract_data_from_query: (args) =>
+            size_stack = args.size_stack
             query = args.query
             context = if args.context? then DataUtils.deep_copy(args.context) else {}
             position = args.position
@@ -685,6 +694,9 @@ module 'DataExplorerView', ->
                             element.name = query.slice start, i+1
                             element.complete = true
                             stack.push element
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -752,6 +764,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = result_regex[0].length-1
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -806,6 +821,9 @@ module 'DataExplorerView', ->
                                         element.type = 'var'
                                         element.name = result_regex[0].slice(0, position_opening_parenthesis)
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: 'function'
                                             name: '('
@@ -830,6 +848,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = element.name.length-1+new_start-i
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -846,6 +867,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -863,6 +887,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -887,6 +914,9 @@ module 'DataExplorerView', ->
                                 complete: true
                                 name: query.slice i, result_regex[0].length
                                 position: position+i
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -904,11 +934,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -923,11 +959,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -941,11 +983,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice start+element.name.length, i
                                             context: element.context
                                             position: position+start+element.name.length
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -964,15 +1012,19 @@ module 'DataExplorerView', ->
                                     if stack_stop_char.length is 0
                                         # We just reach a }, it's the end of the object
                                         if element.next_key?
+                                            body = @extract_data_from_query
+                                                size_stack: size_stack
+                                                query: query.slice element.current_value_start, i
+                                                context: element.context
+                                                position: position+element.current_value_start
+                                            if body is null
+                                                return null
                                             new_element =
                                                 type: 'object_key'
                                                 key: element.next_key
                                                 key_complete: true
                                                 complete: false
-                                                body: @extract_data_from_query
-                                                    query: query.slice element.current_value_start, i
-                                                    context: element.context
-                                                    position: position+element.current_value_start
+                                                body: body
                                             element.body[element.body.length-1] = new_element
                                         element.next_key = null # No more next_key
                                         element.complete = true
@@ -981,6 +1033,9 @@ module 'DataExplorerView', ->
                                         # TODO show error once brackets/ace will be used
 
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -995,6 +1050,9 @@ module 'DataExplorerView', ->
                                         key_complete: true
                                     if element.body.length is 0
                                         element.body.push new_element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                     else
                                         element.body[element.body.length-1] = new_element
                                     element.next_key = query.slice element.current_key_start, i
@@ -1002,14 +1060,18 @@ module 'DataExplorerView', ->
                             else
                                 result_regex = @regex.comma.exec query.slice i
                                 if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of a value
+                                    body = @extract_data_from_query
+                                        size_stack: size_stack
+                                        query: query.slice element.current_value_start, i
+                                        context: element.context
+                                        position: element.current_value_start
+                                    if body is null
+                                        return null
                                     new_element =
                                         type: 'object_key'
                                         key:  element.next_key
                                         key_complete: true
-                                        body: @extract_data_from_query
-                                            query: query.slice element.current_value_start, i
-                                            context: element.context
-                                            position: element.current_value_start
+                                        body: body
                                     element.body[element.body.length-1] = new_element
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
@@ -1023,27 +1085,41 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         # We just reach a ], it's the end of the object
+                                        body = @extract_data_from_query
+                                            size_stack: size_stack
+                                            query: query.slice entry_start, i
+                                            context: element.context
+                                            position: position+entry_start
+                                        if body is null
+                                            return null
                                         new_element =
                                             type: 'array_entry'
                                             complete: true
-                                            body: @extract_data_from_query
-                                                query: query.slice entry_start, i
-                                                context: element.context
-                                                position: position+entry_start
+                                            body: body
                                         if new_element.body.length > 0
                                             element.body.push new_element
+                                            size_stack++
+                                            if size_stack > @max_size_stack
+                                                return null
                                         continue
 
                             if stack_stop_char.length is 1 and char is ','
+                                body = @extract_data_from_query
+                                    size_stack: size_stack
+                                    query: query.slice entry_start, i
+                                    context: element.context
+                                    position: position+entry_start
+                                if body is null
+                                    return null
                                 new_element =
                                     type: 'array_entry'
                                     complete: true
-                                    body: @extract_data_from_query
-                                        query: query.slice entry_start, i
-                                        context: element.context
-                                        position: position+entry_start
+                                    body: body
                                 if new_element.body.length > 0
                                     element.body.push new_element
+                                    size_stack++
+                                    if size_stack > @max_size_stack
+                                        return null
                                 entry_start = i+1
 
             # We just reached the end, let's try to find the type of the incomplete element
@@ -1051,19 +1127,28 @@ module 'DataExplorerView', ->
                 element.complete = false
                 if element.type is 'function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice start+element.name.length
                         context: element.context
                         position: position+start+element.name.length
+                    if element.body is null
+                        return null
                 else if element.type is 'anonymous_function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'loop'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'string'
                     element.name = query.slice start
                 else if element.type is 'object'
@@ -1074,30 +1159,47 @@ module 'DataExplorerView', ->
                             key_complete: false
                             complete: false
                         element.body.push new_element # They key was not defined, so we add a new element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                         element.next_key = query.slice element.current_key_start
                     else
+                        body = @extract_data_from_query
+                            size_stack: size_stack
+                            query: query.slice element.current_value_start
+                            context: element.context
+                            position: position+element.current_value_start
+                        if body is null
+                            return null
                         new_element =
                             type: 'object_key'
                             key: element.next_key
                             key_complete: true
                             complete: false
-                            body: @extract_data_from_query
-                                query: query.slice element.current_value_start
-                                context: element.context
-                                position: position+element.current_value_start
+                            body: body
                         element.body[element.body.length-1] = new_element
                         element.next_key = null # No more next_key
                 else if element.type is 'array'
+                    body = @extract_data_from_query
+                        size_stack: size_stack
+                        query: query.slice entry_start
+                        context: element.context
+                        position: position+entry_start
+                    if body is null
+                        return null
                     new_element =
                         type: 'array_entry'
                         complete: false
-                        body: @extract_data_from_query
-                            query: query.slice entry_start
-                            context: element.context
-                            position: position+entry_start
+                        body: body
                     if new_element.body.length > 0
                         element.body.push new_element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             else if start isnt i
                 if query.slice(start) of element.context
                     element.name = query.slice start
@@ -1118,6 +1220,9 @@ module 'DataExplorerView', ->
                     element.position = position+start
                     element.complete = false
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             return stack
 
         # Decide if we have to show a suggestion or a description
