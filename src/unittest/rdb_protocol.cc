@@ -332,5 +332,53 @@ TEST(RDBProtocol, OverSizedKeys) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test);
 }
 
+void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
+    uuid_u sindex_id = generate_uuid();
+    query_language::backtrace_t b;
+    {
+        /* Create a secondary index. */
+        Term mapping;
+        Term *arg = ql::pb::set_func(&mapping, 1);
+        N2(GETATTR, NVAR(1), NDATUM("sid"));
+
+        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
+
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (!boost::get<rdb_protocol_t::sindex_create_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
+    store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
+    ASSERT_TRUE(data->get());
+    {
+        /* Insert a piece of data (it will be indexed using the secondary
+         * index). */
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data));
+        rdb_protocol_t::write_response_t response;
+
+        cond_t interruptor;
+        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
+
+        if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+            ADD_FAILURE() << "got wrong type of result back";
+        }
+    }
+
+    //TODO we're not sure if data which is missing an attribute should be put
+    //in the sindex or not right now. We should either be checking that the
+    //value is in the sindex right now or be checking that it isn't.
+}
+
+TEST(RDBProtocol, MissingAttr) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test);
+}
+
 }   /* namespace unittest */
 
