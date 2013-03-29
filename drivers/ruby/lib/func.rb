@@ -103,7 +103,6 @@ module RethinkDB
       args = a.dup
       base_offset_front = (@body ? 0 : 1)
       base_offset_back = args.size - (b ? 1 : 2)
-      PP.pp [base_offset_front, base_offset_back]
       if base_offset_front == base_offset_back
         args << {:base => args.delete_at(base_offset_front)}
       end
