@@ -540,6 +540,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
         // Perform the operation
         typename protocol_t::write_response_t response;
+
         sync_callback_t disk_ack_signal;
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),

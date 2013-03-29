@@ -41,7 +41,12 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     sync_callback_t disk_ack_signal;
 
     //first we need a transaction
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("push"), &disk_ack_signal);
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      2,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("push"),
+                      &disk_ack_signal);
 
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(&txn);
@@ -85,7 +90,12 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     sync_callback_t disk_ack_signal;
 
     char buffer[MAX_REF_SIZE];
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("pop"), &disk_ack_signal);
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      2,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("pop"),
+                      &disk_ack_signal);
 
     scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
     queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_write());
