@@ -34,7 +34,7 @@ usage () {
 while getopts ":lf:o:hvs:j:r:x:" opt; do
     case $opt in
         l) list_only=true ;;
-        f) tests="$tests $OPTARG" ;;
+        f) tests="$tests $(printf %q "$OPTARG")" ;;
         o) dir=$OPTARG ;;
         h) usage; exit ;;
         v) verbose=true ;;
@@ -119,6 +119,7 @@ is_selected () {
     fi
     test="$1"
     for pattern in $tests; do
+        pattern=`eval "echo $pattern"`
         if [[ "" = "${test%%$pattern}" ]]; then
             return 0
         fi
@@ -159,7 +160,7 @@ if $list_only; then
 fi
 
 # Run the tests
-echo "Storing test output into '$dir'"
+echo "Running tests (tasks: $parallel_tasks, repeats: $repeats, output dir: $dir)"
 trap "echo Aborting tests; sleep 2; exit" INT
 for item in "${list[@]}"; do
     varg=
