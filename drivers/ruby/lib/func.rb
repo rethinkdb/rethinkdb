@@ -100,8 +100,12 @@ module RethinkDB
     end
 
     def reduce(*a, &b)
-      a = a[1..-2] + [{:base => a[-1]}] if a.size + (@body ? 1 : 0) == 2
-      super(*a, &b)
+      args = a.dup
+      offset = (@body ? 1 : 0)
+      if args.size + offset >= 2
+        args << {:base => args.delete_at(1-offset)}
+      end
+      super(*args, &b)
     end
 
     def grouped_map_reduce(*a, &b)
