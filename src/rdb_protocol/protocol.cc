@@ -910,7 +910,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 c.id,
                 stream.vector(),
                 txn,
-                superblock->get(),  // SAMRSI: Not passing the scoped pointer is probably wrong.
+                superblock->get(),
                 &sindex_block,
                 &interruptor);
 
@@ -929,7 +929,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                 token_pair,
                 d.id,
                 txn,
-                superblock->get(),  // SAMRSI: Not passing the scoped pointer is possibly wrong.
+                superblock->get(),
                 &sizer,
                 &deleter,
                 &interruptor);
