@@ -74,21 +74,37 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const seriali
     filepath_file_opener_t file_opener(filename, io_backender);
     construct_serializer_and_cache(true, &file_opener, perfmon_parent);
 
-    // SAMRSI: Pass this disk_ack_signal as a parameter?
     sync_callback_t disk_ack_signal;
 
     {
-        transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("persistent_file_t"), &disk_ack_signal);
+        transaction_t txn(cache.get(),
+                          rwi_write,
+                          1,
+                          repli_timestamp_t::distant_past,
+                          cache_order_source.check_in("persistent_file_t"),
+                          &disk_ack_signal);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
 
         bzero(sb, cache->get_block_size().value());
         sb->magic = metadata_superblock_t::expected_magic;
         sb->machine_id = machine_id;
-        write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, initial_metadata);
-        write_blob(&txn, sb->dummy_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<mock::dummy_protocol_t>());
-        write_blob(&txn, sb->memcached_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<memcached_protocol_t>());
-        write_blob(&txn, sb->rdb_branch_history_blob, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, branch_history_t<rdb_protocol_t>());
+        write_blob(&txn,
+                   sb->metadata_blob,
+                   metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
+                   initial_metadata);
+        write_blob(&txn,
+                   sb->dummy_branch_history_blob,
+                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+                   branch_history_t<mock::dummy_protocol_t>());
+        write_blob(&txn,
+                   sb->memcached_branch_history_blob,
+                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+                   branch_history_t<memcached_protocol_t>());
+        write_blob(&txn,
+                   sb->rdb_branch_history_blob,
+                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+                   branch_history_t<rdb_protocol_t>());
 
         construct_branch_history_managers(true);
 
@@ -106,16 +122,18 @@ persistent_file_t::~persistent_file_t() {
 }
 
 machine_id_t persistent_file_t::read_machine_id() {
-    // SAMRSI: Call different constructor instead of passing NULL disk_ack_signal?
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, cache_order_source.check_in("read_machine_id"), NULL);
+    transaction_t txn(cache.get(),
+                      rwi_read,
+                      cache_order_source.check_in("read_machine_id"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     return sb->machine_id;
 }
 
 cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
-    // SAMRSI: Call different constructor instead of passing NULL disk_ack_signal?
-    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, cache_order_source.check_in("read_metadata"), NULL);
+    transaction_t txn(cache.get(),
+                      rwi_read,
+                      cache_order_source.check_in("read_metadata"));
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
     const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
     cluster_semilattice_metadata_t metadata;
@@ -124,11 +142,15 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 }
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    // SAMRSI: Pass this disk_ack_signal from outside?
     sync_callback_t disk_ack_signal;
 
     {
-        transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, cache_order_source.check_in("update_metadata"), &disk_ack_signal);
+        transaction_t txn(cache.get(),
+                          rwi_write,
+                          1,
+                          repli_timestamp_t::distant_past,
+                          cache_order_source.check_in("update_metadata"),
+                          &disk_ack_signal);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
         write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
@@ -146,8 +168,7 @@ public:
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
-            // SAMRSI: Use different constructor instead of passing NULL disk_ack_signal?
-            transaction_t txn(parent->cache.get(), rwi_read, 0, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("persistent_branch_history_manager_t"), NULL);
+            transaction_t txn(parent->cache.get(), rwi_read, parent->cache_order_source.check_in("persistent_branch_history_manager_t"));
             buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
             const metadata_superblock_t *sb = static_cast<const metadata_superblock_t *>(superblock.get_data_read());
             read_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, &bh);
@@ -212,11 +233,15 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        // SAMRSI: Pass in disk_ack_signal from outside?
         sync_callback_t disk_ack_signal;
 
         {
-            transaction_t txn(parent->cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, parent->cache_order_source.check_in("flush"), &disk_ack_signal);
+            transaction_t txn(parent->cache.get(),
+                              rwi_write,
+                              1,
+                              repli_timestamp_t::distant_past,
+                              parent->cache_order_source.check_in("flush"),
+                              &disk_ack_signal);
             buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
             metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
             write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
@@ -267,8 +292,6 @@ void persistent_file_t::construct_serializer_and_cache(const bool create, serial
         cache_t::create(serializer.get());
     }
 
-    // SAMRSI: We turned wait_for_flush off.  We need to make sure to pass non-null
-    // disk_ack_signals everywhere in this, to make sure that we do in fact wait for flush.
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
