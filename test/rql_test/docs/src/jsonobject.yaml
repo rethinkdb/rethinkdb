@@ -70,7 +70,9 @@ commands:
         0:
           can_try: true
           dataset: marvel
-          code: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn, callback)
+          code: |
+            r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower')
+             .run(conn, callback)
         1:
           can_try: true
           dataset: marvel
@@ -187,7 +189,9 @@ commands:
     examples:
       - description: Which heroes are married?
         code:
-          js: r.table('marvel').filter(function(hero) {return hero.contains('spouse')}).run(conn, callback)
+          js: |
+            r.table('marvel').filter(function(hero) {return hero.contains('spouse')})
+             .run(conn, callback)
           py: "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
           rb: r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)
 

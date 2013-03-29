@@ -27,7 +27,9 @@ commands:
           can_try: true
           dataset: marvel
         1:
-          code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerceTo('object').run(conn, callback)
+          code: | 
+            r.expr([['name', 'Ironman'], ['victories', 2000]]).coerceTo('object')
+             .run(conn, callback)
           can_try: true
           dataset: marvel
         2:

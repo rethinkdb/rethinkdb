@@ -18,7 +18,9 @@ commands:
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.
         code:
-          js: "r.table('marvel').get('superman').replace({ id: 'superman', age: 30 }).run(conn, callback)"
+          js: |
+            r.table('marvel').get('superman').replace({ id: 'superman', age: 30 })
+             .run(conn, callback)
           py: "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)"
           rb: r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run(conn)
       - description: Allow the server to run non-atomic operations.

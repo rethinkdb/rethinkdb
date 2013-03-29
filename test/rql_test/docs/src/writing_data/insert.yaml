@@ -24,13 +24,13 @@ commands:
         code:
           js: |
             r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
-            .run(conn, callback)
+             .run(conn, callback)
           py: |
             r.table('marvel').insert(
                 { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)
           rb: |
             r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'})
-            .run(conn)
+             .run(conn)
       - description: Insert multiple rows into a table named 'marvel'.
         code:
           js: |

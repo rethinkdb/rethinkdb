@@ -40,7 +40,7 @@ commands:
                 lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
           rb: |
             r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}}
-            .run(conn)
+             .run(conn)
 
     js:
       examples:
