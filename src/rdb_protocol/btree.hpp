@@ -75,6 +75,7 @@ private:
     DISABLE_COPYING(value_sizer_t<rdb_value_t>);
 };
 
+struct rdb_modification_info_t;
 struct rdb_modification_report_t;
 
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
@@ -90,7 +91,7 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out,
-                 rdb_modification_report_t *mod_report_out) THROWS_NOTHING;
+                 rdb_modification_info_t *mod_info) THROWS_NOTHING;
 
 void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
@@ -99,7 +100,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
-             rdb_modification_report_t *mod_report);
+             rdb_modification_info_t *mod_info);
 
 class rdb_backfill_callback_t {
 public:
@@ -123,7 +124,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         timestamp, transaction_t *txn, superblock_t *superblock,
         point_delete_response_t *response,
-        rdb_modification_report_t *mod_report);
+        rdb_modification_info_t *mod_info);
 
 class rdb_value_deleter_t : public value_deleter_t {
     void delete_value(transaction_t *_txn, void *_value);
@@ -153,22 +154,26 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 
 /* Secondary Indexes */
 
-// SAMRSI: rdb_modification_report_t seems to be partially constructed and modified in place
-// later, which is bad.
-struct rdb_modification_report_t {
-    rdb_modification_report_t() { }
-    rdb_modification_report_t(const store_key_t &_primary_key)
-        : primary_key(_primary_key) { }
-
-    store_key_t primary_key;
+struct rdb_modification_info_t {
     boost::shared_ptr<scoped_cJSON_t> deleted;
     boost::shared_ptr<scoped_cJSON_t> added;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+struct rdb_modification_report_t {
+    rdb_modification_report_t() { }
+    rdb_modification_report_t(const store_key_t &_primary_key)
+        : primary_key(_primary_key) { }
+
+    store_key_t primary_key;
+    rdb_modification_info_t info;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         rdb_modification_report_t *modification,
+                         const rdb_modification_report_t *modification,
                          transaction_t *txn);
 
 void post_construct_secondary_indexes(

@@ -862,7 +862,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(r.key);
         rdb_replace(btree, timestamp, txn, superblock->get(),
                     r.primary_key, r.key, f, &ql_env, res,
-                    &mod_report);
+                    &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -879,7 +879,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report);
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -889,7 +889,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t *res = boost::get<point_delete_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(d.key);
-        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report);
+        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -968,7 +968,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
-    void update_sindexes(rdb_modification_report_t *mod_report) {
+    void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &interruptor);
@@ -1141,9 +1141,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   txn, superblock, &response, &mod_report);
+                   txn, superblock, &response, &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -1159,11 +1159,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(bf_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
                 txn, superblock, &response,
-                &mod_report);
+                &mod_report.info);
 
         update_sindexes(&mod_report);
     }

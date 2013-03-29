@@ -186,12 +186,12 @@ void run_sindex_btree_store_api_test() {
                     scoped_cJSON_t(cJSON_CreateNumber(1)));
 
             rdb_protocol_t::point_write_response_t response;
-            rdb_modification_report_t mod_report;
+            rdb_modification_info_t mod_info;
 
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
-                    &mod_report);
+                    &mod_info);
         }
 
         {

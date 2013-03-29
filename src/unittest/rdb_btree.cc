@@ -41,7 +41,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_set(pk, boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report);
+                superblock.get(), &response, &mod_report.info);
 
         {
             scoped_ptr_t<buf_lock_t> sindex_block;

@@ -164,7 +164,7 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                                        ql::env_t *ql_env,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
-                                       rdb_modification_report_t *mod_report) THROWS_NOTHING {
+                                       rdb_modification_info_t *mod_info) THROWS_NOTHING {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -218,13 +218,13 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
                                 slice, timestamp, txn);
-                mod_report->added = new_val_as_json;
+                mod_info->added = new_val_as_json;
             }
         } else {
             if (ended_empty) {
                 conflict = resp->add("deleted", num_1);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
-                mod_report->deleted = old_val->as_json();
+                mod_info->deleted = old_val->as_json();
             } else {
                 if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
                     if (*old_val == *new_val) {
@@ -236,8 +236,8 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                             = new_val->as_json();
                         kv_location_set(&kv_location, key, new_val_as_json,
                                         slice, timestamp, txn);
-                        mod_report->added = new_val_as_json;
-                        mod_report->deleted = old_val->as_json();
+                        mod_info->added = new_val_as_json;
+                        mod_info->deleted = old_val->as_json();
                     }
                 } else {
                     rfail_target(
@@ -267,12 +267,12 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out,
-                 rdb_modification_report_t *mod_report) THROWS_NOTHING {
+                 rdb_modification_info_t *mod_info) THROWS_NOTHING {
     rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, primary_key,
-                                      key, f, ql_env, NULL, response_out, mod_report);
+                                      key, f, ql_env, NULL, response_out, mod_info);
 }
 
-void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
+void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                        const point_replace_t *replace,
                                        btree_slice_t *slice,
                                        repli_timestamp_t timestamp,
@@ -282,11 +282,11 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t /*lock*/,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out) {
     ql::map_wire_func_t f = replace->f;
-    // SAMRSI: What to do with this modification report?
-    rdb_modification_report_t mod_report;
+    // SAMRSI: What to do with this modification info?
+    rdb_modification_info_t mod_info;
     rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, replace->primary_key,
                                       replace->key, &f, ql_env, superblock_promise_or_null, response_out,
-                                      &mod_report);
+                                      &mod_info);
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -323,7 +323,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
-             rdb_modification_report_t *mod_report) {
+             rdb_modification_info_t *mod_info) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
                                      &slice->root_eviction_priority, &slice->stats);
@@ -331,10 +331,10 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_report->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted = get_data(kv_location.value.get(), txn);
     }
 
-    mod_report->added = data;
+    mod_info->added = data;
 
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, data, slice, timestamp, txn);
@@ -389,14 +389,14 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp, transaction_t *txn,
                 superblock_t *superblock, point_delete_response_t *response,
-                rdb_modification_report_t *mod_report) {
+                rdb_modification_info_t *mod_info) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
     if (exists) {
-        mod_report->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted = get_data(kv_location.value.get(), txn);
     }
 
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
@@ -613,17 +613,10 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     }
 }
 
-namespace {
-enum rdb_modification_has_value_t {
-    HAS_VALUE,
-    HAS_NO_VALUE
-};
+static const int8_t HAS_VALUE = 0;
+static const int8_t HAS_NO_VALUE = 1;
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rdb_modification_has_value_t, int8_t, HAS_VALUE, HAS_NO_VALUE);
-} //anonymous namespace
-
-void rdb_modification_report_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    msg << primary_key;
+void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
     if (!deleted.get()) {
         msg << HAS_NO_VALUE;
     } else {
@@ -639,13 +632,10 @@ void rdb_modification_report_t::rdb_serialize(write_message_t &msg /* NOLINT */)
     }
 }
 
-archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
+archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res;
 
-    res = deserialize(s, &primary_key);
-    if (res) { return res; }
-
-    rdb_modification_has_value_t has_value;
+    int8_t has_value;
     res = deserialize(s, &has_value);
     if (res) { return res; }
 
@@ -665,19 +655,22 @@ archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
     return ARCHIVE_SUCCESS;
 }
 
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 /* A target for pmap. Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
-        rdb_modification_report_t *modification,
+        const rdb_modification_report_t *modification,
         transaction_t *txn,
         auto_drainer_t::lock_t) {
-    //Note if you get this error it's likely that you've passed in a default
-    //constructed mod_report. Don't do that mod reports should always be passed
-    //to a function as an output parameter before they're passed to this
-    //function.
+    // Note if you get this error it's likely that you've passed in a default
+    // constructed mod_report. Don't do that.  Mod reports should always be passed
+    // to a function as an output parameter before they're passed to this
+    // function.
     guarantee(modification->primary_key.size() != 0);
+
     ql::map_wire_func_t mapping;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
@@ -693,11 +686,11 @@ void rdb_update_single_sindex(
 
     superblock_t *super_block = sindex->super_block.get();
 
-    if (modification->deleted) {
+    if (modification->info.deleted) {
         promise_t<superblock_t *> return_superblock_local;
         {
 
-            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
+            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->info.deleted, &env));
 
             const ql::datum_t *index =
                 mapping.compile(&env)->call(deleted)->as_datum();
@@ -718,8 +711,8 @@ void rdb_update_single_sindex(
         super_block = return_superblock_local.wait();
     }
 
-    if (modification->added) {
-        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
+    if (modification->info.added) {
+        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->info.added, &env));
 
         const ql::datum_t *index =
             mapping.compile(&env)->call(added)->as_datum();
@@ -735,12 +728,12 @@ void rdb_update_single_sindex(
                 &dummy);
 
         kv_location_set(&kv_location, sindex_key,
-                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
+                        modification->info.added, sindex->btree, repli_timestamp_t::distant_past, txn);
     }
 }
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-        rdb_modification_report_t *modification,
+        const rdb_modification_report_t *modification,
         transaction_t *txn) {
     auto_drainer_t drainer;
 
@@ -813,7 +806,7 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-            mod_report.added = get_data(rdb_value, txn);
+            mod_report.info.added = get_data(rdb_value, txn);
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }
