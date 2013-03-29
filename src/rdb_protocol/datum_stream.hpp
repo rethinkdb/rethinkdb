@@ -112,10 +112,13 @@ public:
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *base, func_t *r);
     virtual const datum_t *next_impl();
     virtual const datum_t *as_array() { return 0; } // cannot be converted implicitly
 private:
+    typedef rdb_protocol_t::rget_read_response_t::result_t rdb_result_t;
+    typedef rdb_protocol_t::rget_read_response_t::empty_t rdb_empty_t;
+
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
@@ -125,7 +128,7 @@ private:
     // being locally allocated because it makes debugging easier.
 
     template<class T>
-    void run_terminal(T t, std::vector<const datum_t *> *shard_data_out);
+    rdb_result_t run_terminal(T t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {

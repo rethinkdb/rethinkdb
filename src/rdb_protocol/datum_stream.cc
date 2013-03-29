@@ -126,74 +126,64 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
 template<class T>
-void lazy_datum_stream_t::run_terminal(
-    T t, std::vector<const datum_t *> *shard_data_out) {
-    rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(
-            rdb_protocol_details::terminal_variant_t(t),
-            env, query_language::scopes_t(), query_language::backtrace_t());
-    std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);
-    r_sanity_check(data);
-    for (size_t i = 0; i < data->size(); ++i) {
-        shard_data_out->push_back((*data)[i].compile(env));
-    }
+lazy_datum_stream_t::rdb_result_t lazy_datum_stream_t::run_terminal(T t) {
+    return json_stream->apply_terminal(
+        rdb_protocol_details::terminal_variant_t(t),
+        env, query_language::scopes_t(), query_language::backtrace_t());
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    datum_t *d = env->add_ptr(new datum_t(0.0));
-    env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-    std::vector<const datum_t *> shard_data;
-    run_terminal(count_wire_func_t(), &shard_data);
-    for (size_t i = 0; i < shard_data.size(); ++i) {
-        *d = datum_t(d->as_num() + shard_data[i]->as_int());
-    }
-    return d;
+    rdb_result_t res = run_terminal(count_wire_func_t());
+    auto wire_datum = boost::get<wire_datum_t>(&res);
+    r_sanity_check(wire_datum);
+    return wire_datum->compile(env);
 }
 
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    std::vector<const datum_t *> shard_data;
-    run_terminal(reduce_wire_func_t(env, f), &shard_data);
-    const datum_t *out;
-    if (base_val) {
-        out = base_val->as_datum();
+    rdb_result_t res =
+        run_terminal(reduce_wire_func_t(env, f));
+
+    if (auto wire_datum = boost::get<wire_datum_t>(&res)) {
+        const datum_t *datum = wire_datum->compile(env);
+        if (base_val) {
+            return f->call(base_val->as_datum(), datum)->as_datum();
+        } else {
+            return datum;
+        }
     } else {
-        rcheck(shard_data.size() > 0,
-               "Cannot reduce over an empty stream with no base.");
-        out = shard_data[0];
+        r_sanity_check(boost::get<rdb_empty_t>(&res));
+        if (base_val) {
+            return base_val->as_datum();
+        } else {
+            rfail("Cannot reduce over an empty stream with no base.");
+        }
     }
-    for (size_t i = !base_val; i < shard_data.size(); ++i) {
-        out = f->call(out, shard_data[i])->as_datum();
-    }
-    return out;
 }
 
 const datum_t *lazy_datum_stream_t::gmr(
-    func_t *g, func_t *m, const datum_t *d, func_t *r) {
+    func_t *g, func_t *m, const datum_t *base, func_t *r) {
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
             rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r)),
             env, query_language::scopes_t(), query_language::backtrace_t());
-    typedef std::vector<wire_datum_map_t> wire_datum_maps_t;
-    wire_datum_maps_t *dms = boost::get<wire_datum_maps_t>(&res);
-    r_sanity_check(dms);
-    wire_datum_map_t map;
-
+    wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
+    r_sanity_check(dm);
     env_gc_checkpoint_t gc_checkpoint(env);
-    for (size_t i = 0; i < dms->size(); ++i) {
-        wire_datum_map_t *rhs = &((*dms)[i]);
-        rhs->compile(env);
-        const datum_t *rhs_arr = rhs->to_arr(env);
-        for (size_t f = 0; f < rhs_arr->size(); ++f) {
-            const datum_t *key = rhs_arr->get(f)->get("group");
-            const datum_t *val = rhs_arr->get(f)->get("reduction");
-            if (!map.has(key)) {
-                map.set(key, d ? r->call(d, val)->as_datum() : val);
-            } else {
-                map.set(key, r->call(map.get(key), val)->as_datum());
-            }
+    dm->compile(env);
+    const datum_t *dm_arr = dm->to_arr(env);
+    if (!base) {
+        return gc_checkpoint.finalize(dm_arr);
+    } else {
+        wire_datum_map_t map;
+
+        for (size_t f = 0; f < dm_arr->size(); ++f) {
+            const datum_t *key = dm_arr->get(f)->get("group");
+            const datum_t *val = dm_arr->get(f)->get("reduction");
+            r_sanity_check(!map.has(key));
+            map.set(key, r->call(base, val)->as_datum());
         }
+        return gc_checkpoint.finalize(map.to_arr(env));
     }
-    return gc_checkpoint.finalize(map.to_arr(env));
 }
 
 const datum_t *lazy_datum_stream_t::next_impl() {
