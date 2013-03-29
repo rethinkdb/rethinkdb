@@ -138,13 +138,29 @@ void btree_store_t<protocol_t>::receive_backfill(
     // SAMRSI: Shall disk_ack_signal be passed as a parameter?
     sync_callback_t disk_ack_signal;
 
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    const int expected_change_count = 1; // FIXME: this is probably not correct
+    {
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    acquire_superblock_for_write(rwi_write, chunk.get_btree_repli_timestamp(), expected_change_count, &disk_ack_signal, &token_pair->main_write_token, &txn, &superblock, interruptor);
+        acquire_superblock_for_write(rwi_write,
+                                     chunk.get_btree_repli_timestamp(),
+                                     expected_change_count,
+                                     &disk_ack_signal,
+                                     &token_pair->main_write_token,
+                                     &txn,
+                                     &superblock,
+                                     interruptor);
 
-    protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), token_pair, interruptor, chunk);
+        protocol_receive_backfill(btree.get(),
+                                  txn.get(),
+                                  superblock.get(),
+                                  token_pair,
+                                  interruptor,
+                                  chunk);
+    }
+
+    disk_ack_signal.wait();
 }
 
 template <class protocol_t>
@@ -159,23 +175,38 @@ void btree_store_t<protocol_t>::reset_data(
     // SAMRSI: This should be a parameter?
     sync_callback_t disk_ack_signal;
 
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
+    {
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
 
-    // We're passing 2 for the expected_change_count based on the
-    // reasoning that we're probably going to touch a leaf-node-sized
-    // range of keys and that it won't be aligned right on a leaf node
-    // boundary.
-    // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
-    // entire databases.
-    const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, expected_change_count, &disk_ack_signal, &token_pair->main_write_token, &txn, &superblock, interruptor);
+        // We're passing 2 for the expected_change_count based on the
+        // reasoning that we're probably going to touch a leaf-node-sized
+        // range of keys and that it won't be aligned right on a leaf node
+        // boundary.
+        // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
+        // entire databases.
+        const int expected_change_count = 2;
+        acquire_superblock_for_write(rwi_write,
+                                     repli_timestamp_t::invalid,
+                                     expected_change_count,
+                                     &disk_ack_signal,
+                                     &token_pair->main_write_token,
+                                     &txn,
+                                     &superblock,
+                                     interruptor);
 
-    region_map_t<protocol_t, binary_blob_t> old_metainfo;
-    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
+        region_map_t<protocol_t, binary_blob_t> old_metainfo;
+        get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
+        update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get(), token_pair);
+        protocol_reset_data(subregion,
+                            btree.get(),
+                            txn.get(),
+                            superblock.get(),
+                            token_pair);
+    }
+
+    disk_ack_signal.wait();
 }
 
 template <class protocol_t>
@@ -795,13 +826,24 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     // SAMRSI: Should this be passed as a parameter?
     sync_callback_t disk_ack_signal;
 
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, 1, &disk_ack_signal, token, &txn, &superblock, interruptor);
+    {
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        acquire_superblock_for_write(rwi_write,
+                                     repli_timestamp_t::invalid,
+                                     1,
+                                     &disk_ack_signal,
+                                     token,
+                                     &txn,
+                                     &superblock,
+                                     interruptor);
 
-    region_map_t<protocol_t, binary_blob_t> old_metainfo;
-    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
+        region_map_t<protocol_t, binary_blob_t> old_metainfo;
+        get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
+        update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
+    }
+
+    disk_ack_signal.wait();
 }
 
 template <class protocol_t>
