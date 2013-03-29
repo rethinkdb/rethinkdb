@@ -7,7 +7,7 @@ export PYTHONUNBUFFERED=true
 
 # Default value for the options
 list_only=false
-tests=
+test_filter=
 dir=
 verbose=false
 single_test=
@@ -36,7 +36,7 @@ usage () {
 while getopts ":lf:o:hvs:j:r:x:d:" opt; do
     case $opt in
         l) list_only=true ;;
-        f) tests="$tests $(printf %q "$OPTARG")" ;;
+        f) test_filter="$test_filter $(printf %q "$OPTARG")" ;;
         o) dir=$OPTARG ;;
         h) usage; exit ;;
         v) verbose=true ;;
@@ -124,6 +124,21 @@ fi
 
 # List all the tests
 "$root"/scripts/generate_test_param_files.py --test-dir $root/test/full_test/ --output-dir $list_dir --rethinkdb-root "$root" >/dev/null || exit 1
+
+# Update the filter with filter groups
+raw_test_filter=
+
+add_test_filter () {
+    filter=$1
+    include=$2
+    if [[ "${filter:0:1}" = '-' ]]; then
+        add_test_filter 
+    fi
+}
+
+for pattern in $test_filter; do
+    add_test_filter "$pattern" false
+done
 
 # Check if a test passes the filter
 is_selected () {
