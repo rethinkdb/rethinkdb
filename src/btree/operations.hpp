@@ -71,58 +71,6 @@ private:
     buf_lock_t sb_buf_;
 };
 
-/* This is for nested btrees, where the "superblock" is really more like a super value.
- It provides an in-memory superblock replacement.
-
- Note for use for nested btrees: If you want to nest a tree into some super value,
- you would probably have a block_id_t nested_root value in the super value. Then,
- before accessing the nested tree, you can construct a virtual_superblock_t
- based on the nested_root value. Once write operations to the nested btree have
- finished, you should check whether the root_block_id has been changed,
- and if it has, use get_root_block_id() to update the nested_root value in the
- super block.
- */
-class virtual_superblock_t : public superblock_t {
-public:
-    explicit virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
-
-    void release() { }
-    block_id_t get_root_block_id() const {
-        return root_block_id_;
-    }
-    void set_root_block_id(const block_id_t new_root_block) {
-        root_block_id_ = new_root_block;
-    }
-
-    block_id_t get_stat_block_id() const {
-        crash("Not implemented\n");
-    }
-
-    void set_stat_block_id(block_id_t) {
-        crash("Not implemented\n");
-    }
-
-    block_id_t get_sindex_block_id() const {
-        crash("Not implemented\n");
-    }
-
-    void set_sindex_block_id(block_id_t) {
-        crash("Not implemented\n");
-    }
-
-    void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
-        // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
-    }
-
-    eviction_priority_t get_eviction_priority() {
-        // TODO Again, actually support the setting and getting of eviction priority in a virtual superblock.
-        return FAKE_EVICTION_PRIORITY;
-    }
-
-private:
-    block_id_t root_block_id_;
-};
-
 class btree_stats_t;
 
 template <class Value>
