@@ -1,4 +1,4 @@
-desc: Skip after orderby causes use-after-free (#522)
+desc: r.js inside reduce crashes server (#545)
 tests:
 
   - cd: r.db('test').table_create('545')
@@ -10,5 +10,10 @@ tests:
     py: tbl.reduce(r.js("(function(x,y){return 1;})"))
     rb: tbl.reduce(r.js("(function(x,y){return 1;})"))
     ot: 1
+
+  - js: tbl.reduce(r.js("(function(x,y){return {id:x[\"id\"] + y[\"id\"]};})"))
+    py: tbl.reduce(r.js("(function(x,y){return {id:x[\"id\"] + y[\"id\"]};})"))
+    rb: tbl.reduce(r.js("(function(x,y){return {id:x[\"id\"] + y[\"id\"]};})"))
+    ot: ({id:3})
 
   - cd: r.db('test').table_drop('545')
