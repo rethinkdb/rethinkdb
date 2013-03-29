@@ -14,24 +14,26 @@ single_test=
 parallel_tasks=1
 repeats=1
 xml_report=
+run_dir=
+run_elsewhere=false
 
 # Print usage
 usage () {
-    echo "$0 [-l] [-f <filter>] [-o <output_dir>] [-h] [-v] [-j <tasks>] [-r <repeats>] [-x <output_file>] [-s <test_name> -- <command>]"
     echo "Run the integration tests for rethinkdb"
-    echo "   -l  List tests"
-    echo "   -f  Filter tests (eg: 'split-workloads-*' or '*python*')"
-    echo "   -o  Set output folder"
-    echo "   -h  This help"
-    echo "   -v  More verbose"
-    echo "   -s  Run the given command as a test"
-    echo "   -j  Run tests in parallel"
-    echo "   -r  Repeat each test"
-    echo "   -x  Generate an xml report"
+    echo "usage: $0 [..]"
+    echo "   -l              List tests"
+    echo "   -f <filter>     Filter tests (eg: 'split-workloads-*' or '*python*')"
+    echo "   -o <output_dir> Set output folder (default: test_results.XXXXX)"
+    echo "   -h              This help"
+    echo "   -v              More verbose"
+    echo "   -j <tasks>      Run tests in parallel"
+    echo "   -r <repeats>    Repeat each test"
+    echo "   -d <run_dir>    Run the tests in a different folder (eg: /dev/shm)"
+    # echo "   -x  Generate an xml report"
 }
 
 # Parse the command line options
-while getopts ":lf:o:hvs:j:r:x:" opt; do
+while getopts ":lf:o:hvs:j:r:x:d:" opt; do
     case $opt in
         l) list_only=true ;;
         f) tests="$tests $(printf %q "$OPTARG")" ;;
@@ -42,6 +44,7 @@ while getopts ":lf:o:hvs:j:r:x:" opt; do
         j) parallel_tasks=$OPTARG ;;
         r) repeats=$OPTARG ;;
         x) xml_report=$OPTARG ;;
+        d) run_dir=$OPTARG ; run_elsewhere=true ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -68,10 +71,20 @@ run_single_test () {
     $verbose && echo "Run  $test ($index)"
     (
         cd "$dir/$test"
-        mkdir files-$index
-        /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
-        exit_code=$?
-        echo $exit_code >> return-code-$index
+        if $run_elsewhere; then
+          if ! elsewhere=$(mktemp -d "$run_dir/$test.$index.XXXXX"); then
+              echo "Error: unable to create temporary directory in $run_dir"
+              exit 1
+          fi
+          trap "rm -rf $(printf %q $elsewhere)" EXIT
+        fi
+        ( $run_elsewhere && cd "$elsewhere"
+          mkdir files-$index
+          /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+          echo $? >> return-code-$index
+        )
+        $run_elsewhere && mv "$elsewhere/"* .
+        exit_code=$(cat return-code-$index)
         if [[ $exit_code = 0 ]]; then
             echo "Ok   $test ($index)"
         else
@@ -160,13 +173,17 @@ if $list_only; then
 fi
 
 # Run the tests
-echo "Running tests (tasks: $parallel_tasks, repeats: $repeats, output dir: $dir)"
+run_dir_msg=
+$run_elsewhere && run_dir_msg=", run dir: $run_dir"
+echo "Running tests (tasks: $parallel_tasks, repeats: $repeats, output dir: $dir$run_dir_msg)"
 trap "echo Aborting tests; sleep 2; exit" INT
 for item in "${list[@]}"; do
     varg=
     $verbose && varg='-v'
+    elsewhere_args=
+    $run_elsewhere && elsewhere_args="-d $(printf %q "$run_dir")"
     for i in `seq $repeats`; do
-        echo "$0 $varg -o $(printf %q "$dir") -r $i -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
+        echo "$0 $varg $elsewhere_args -o $(printf %q "$dir") -r $i -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
     done
 done | xargs -d '\n' -n 1 --max-procs=$parallel_tasks -I@ bash -c @
 trap - INT
