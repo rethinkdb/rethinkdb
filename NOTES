@@ -9,6 +9,7 @@ Bug fix update:
 * JS driver: added useOutdated to r.table() (#502)
 * RDB protocol performance fix in release mode.
 * Performance fix when using filter with object shortcut syntax.
+* Do not abort when the `runuser` or `rungroup` options are present (#512)
 
 ---
 
