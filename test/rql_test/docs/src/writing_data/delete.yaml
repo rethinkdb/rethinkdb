@@ -19,7 +19,7 @@ commands:
           rb: r.table('marvel').get('superman').delete.run(conn)
       - description: Delete every document from the table 'marvel'.
         code:
-          py: r.table('marvel').delete().run(conn, callback)
+          js: r.table('marvel').delete().run(conn, callback)
           py: r.table('marvel').delete().run(conn)
           rb: r.table('marvel').delete.run(conn)
 
