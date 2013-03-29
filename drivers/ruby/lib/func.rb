@@ -101,9 +101,11 @@ module RethinkDB
 
     def reduce(*a, &b)
       args = a.dup
-      offset = (@body ? 1 : 0)
-      if args.size + offset >= 2
-        args << {:base => args.delete_at(1-offset)}
+      base_offset_front = (@body ? 0 : 1)
+      base_offset_back = args.size - (b ? 1 : 2)
+      PP.pp [base_offset_front, base_offset_back]
+      if base_offset_front == base_offset_back
+        args << {:base => args.delete_at(base_offset_front)}
       end
       super(*args, &b)
     end
