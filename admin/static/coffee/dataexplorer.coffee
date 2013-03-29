@@ -315,7 +315,7 @@ module 'DataExplorerView', ->
                 lineWrapping: true
                 matchBrackets: true
                 tabSize: 2
-                #smartIndent: false # Indent a new line as the previous one
+
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
