@@ -511,15 +511,17 @@ funcWrap = (val) ->
 
 class Func extends RDBOp
     tt: Term.TermType.FUNC
+    nextVarId: 1
 
     constructor: (optargs, func) ->
         args = []
         argNums = []
         i = 0
         while i < func.length
-            argNums.push i
-            args.push new Var {}, i
-            i++
+            argNums.push Func.nextVarId
+            args.push new Var {}, Func.nextVarId
+            Func.nextVarId++
+
         body = func(args...)
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
