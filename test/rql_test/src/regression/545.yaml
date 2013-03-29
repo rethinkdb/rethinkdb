@@ -1,0 +1,14 @@
+desc: Skip after orderby causes use-after-free (#522)
+tests:
+
+  - cd: r.db('test').table_create('545')
+    def: tbl = r.db('test').table('545')
+
+  - cd: tbl.insert([{'id':0}, {'id':1}, {'id':2}])
+
+  - js: tbl.reduce(r.js("(function(x,y){return 1;})"))
+    py: tbl.reduce(r.js("(function(x,y){return 1;})"))
+    rb: tbl.reduce(r.js("(function(x,y){return 1;})"))
+    ot: 1
+
+  - cd: r.db('test').table_drop('545')
