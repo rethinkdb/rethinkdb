@@ -258,7 +258,7 @@ message Term {
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, !STRING... -> Sequence
+        ORDERBY   = 41; // Sequence, (STRING|ASC|DESC)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence.
