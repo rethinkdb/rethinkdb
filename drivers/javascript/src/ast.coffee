@@ -521,6 +521,7 @@ class Func extends RDBOp
             argNums.push Func.nextVarId
             args.push new Var {}, Func.nextVarId
             Func.nextVarId++
+            i++
 
         body = func(args...)
         argsArr = new MakeArray({}, argNums...)
