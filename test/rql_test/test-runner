@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-from yaml import load
+import yaml
+import json
 from os import walk
 from sys import argv, stdout
 import types
@@ -257,7 +258,7 @@ class TestBuilder:
             
             # Parse and insert the yaml structures
             for name in filter(lambda name: name.endswith('.yaml'), files):
-                test_group = load(open(root+'/'+name))
+                test_group = yaml.load(open(root+'/'+name))
                 leaf = name.partition('.')[0]
                 tests.append(TestGroup(path+[leaf], test_group, self.shard))
 

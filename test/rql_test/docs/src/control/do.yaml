@@ -1,0 +1,31 @@
+commands:
+  - tag: do
+    section: control
+    order: 0
+    description: Evaluate the <code>inExpr</code> in the context of one or more value
+      bindings.
+
+    body: arg, [args*, ]inExpr
+    parent: r
+    returns: json
+
+    examples:
+      - description: The object(s) passed to do() can be bound to name(s). The
+          last argument is the expression to evaluate in the context of the bindings.
+        code:
+          js: |-
+            r.do(r.table('marvel').get('IronMan'),
+                 function (ironman) { return ironman('name'); }
+            ).run(conn, callback)
+          py: |-
+            r.do(r.table('marvel').get('IronMan'),
+                 lambda ironman: ironman['name']).run(conn)
+          rb: r.do(r.table('marvel').get('IronMan')) { |ironman| ironman[:name] }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+
