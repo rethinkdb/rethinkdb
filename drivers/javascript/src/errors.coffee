@@ -7,7 +7,6 @@ class RqlDriverError extends Error
         @name = @constructor.name
         @msg = msg
         @message = msg
-        @stack = console.trace()
 
 class RqlServerError extends Error
     constructor: (msg, term, frames) ->
