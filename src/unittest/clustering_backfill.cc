@@ -98,7 +98,6 @@ void run_backfill_test() {
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,
                 &non_interruptor);
-            disk_ack_signal.wait();
         }
     }
 

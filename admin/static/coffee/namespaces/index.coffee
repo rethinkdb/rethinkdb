@@ -403,7 +403,6 @@ module 'NamespaceView', ->
                         input_error = true
                         template_error.namespace_exists = true
                         break
-
             # Need a database
             if not formdata.database? or formdata.database is ''
                 input_error = true
@@ -442,6 +441,7 @@ module 'NamespaceView', ->
                         ack_expectations: ack
                         cache_size: (parseInt(formdata.cache_size)*1024*1024 if formdata.cache_size isnt '')
                         primary_key: (formdata.primary_key if formdata.primary_key isnt '')
+                        #write_disk: if formdata.write_disk is 'yes' then true else false
                         )
                     success: @on_success
                     error: @on_error

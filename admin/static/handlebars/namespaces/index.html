@@ -93,6 +93,16 @@ You need to create a database before creating a table.
             <input class="xlarge" name="primary_key" size="30" type="text" placeholder="id"/>
             <label for="name">Cache size in MB</label>
             <input class="xlarge" name="cache_size" size="30" type="text" placeholder="1024"/>
+            <label for="name">Acknowledge writes only when written on disk</label>
+            <div class="toggle-primary">
+                <div class="switch">
+                    <input type="radio" class="switch-input" name="write_disk" value="yes" id="write_disk_yes" checked>
+                    <label for="write_disk_yes" class="switch-label switch-label-off">Yes</label>
+                    <input type="radio" class="switch-input" name="write_disk" value="no" id="write_disk_no">
+                    <label for="write_disk_no" class="switch-label switch-label-on">No</label>
+                    <span class="switch-selection"></span>
+                </div>
+            </div>
         </div>
     </form>
 </script>

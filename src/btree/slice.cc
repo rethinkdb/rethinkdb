@@ -13,12 +13,16 @@
 
 void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
     sync_callback_t disk_ack_signal;
-    {
-        /* Initialize the btree superblock and the delete queue */
-        transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore, &disk_ack_signal);
-        create(cache, SUPERBLOCK_ID, &txn, metainfo_key, metainfo_value);
-    }
-    disk_ack_signal.wait();
+
+    /* Initialize the btree superblock and the delete queue */
+    transaction_t txn(cache,
+                      rwi_write,
+                      1,
+                      repli_timestamp_t::distant_past,
+                      order_token_t::ignore,
+                      &disk_ack_signal);
+
+    create(cache, SUPERBLOCK_ID, &txn, metainfo_key, metainfo_value);
 }
 
 void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,

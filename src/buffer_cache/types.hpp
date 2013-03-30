@@ -9,6 +9,10 @@
 #include "serializer/types.hpp"
 
 struct sync_callback_t : public cond_t, public intrusive_list_node_t<sync_callback_t> {
+    ~sync_callback_t() {
+        wait();
+    }
+
     void on_sync() {
         pulse();
     }

@@ -76,42 +76,38 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const seriali
 
     sync_callback_t disk_ack_signal;
 
-    {
-        transaction_t txn(cache.get(),
-                          rwi_write,
-                          1,
-                          repli_timestamp_t::distant_past,
-                          cache_order_source.check_in("persistent_file_t"),
-                          &disk_ack_signal);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-        metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      1,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("persistent_file_t"),
+                      &disk_ack_signal);
+    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
+    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
 
-        bzero(sb, cache->get_block_size().value());
-        sb->magic = metadata_superblock_t::expected_magic;
-        sb->machine_id = machine_id;
-        write_blob(&txn,
-                   sb->metadata_blob,
-                   metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
-                   initial_metadata);
-        write_blob(&txn,
-                   sb->dummy_branch_history_blob,
-                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-                   branch_history_t<mock::dummy_protocol_t>());
-        write_blob(&txn,
-                   sb->memcached_branch_history_blob,
-                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-                   branch_history_t<memcached_protocol_t>());
-        write_blob(&txn,
-                   sb->rdb_branch_history_blob,
-                   metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
-                   branch_history_t<rdb_protocol_t>());
+    bzero(sb, cache->get_block_size().value());
+    sb->magic = metadata_superblock_t::expected_magic;
+    sb->machine_id = machine_id;
+    write_blob(&txn,
+               sb->metadata_blob,
+               metadata_superblock_t::METADATA_BLOB_MAXREFLEN,
+               initial_metadata);
+    write_blob(&txn,
+               sb->dummy_branch_history_blob,
+               metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+               branch_history_t<mock::dummy_protocol_t>());
+    write_blob(&txn,
+               sb->memcached_branch_history_blob,
+               metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+               branch_history_t<memcached_protocol_t>());
+    write_blob(&txn,
+               sb->rdb_branch_history_blob,
+               metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN,
+               branch_history_t<rdb_protocol_t>());
 
-        construct_branch_history_managers(true);
+    construct_branch_history_managers(true);
 
-        file_opener.move_serializer_file_to_permanent_location();
-    }
-
-    disk_ack_signal.wait();
+    file_opener.move_serializer_file_to_permanent_location();
 }
 
 persistent_file_t::~persistent_file_t() {
@@ -144,19 +140,15 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
     sync_callback_t disk_ack_signal;
 
-    {
-        transaction_t txn(cache.get(),
-                          rwi_write,
-                          1,
-                          repli_timestamp_t::distant_past,
-                          cache_order_source.check_in("update_metadata"),
-                          &disk_ack_signal);
-        buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-        metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
-        write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
-    }
-
-    disk_ack_signal.wait();
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      1,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("update_metadata"),
+                      &disk_ack_signal);
+    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
+    metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
+    write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
 }
 
 template <class protocol_t>
@@ -235,19 +227,15 @@ private:
     void flush(UNUSED signal_t *interruptor) {
         sync_callback_t disk_ack_signal;
 
-        {
-            transaction_t txn(parent->cache.get(),
-                              rwi_write,
-                              1,
-                              repli_timestamp_t::distant_past,
-                              parent->cache_order_source.check_in("flush"),
-                              &disk_ack_signal);
-            buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
-            metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
-            write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
-        }
-
-        disk_ack_signal.wait();
+        transaction_t txn(parent->cache.get(),
+                          rwi_write,
+                          1,
+                          repli_timestamp_t::distant_past,
+                          parent->cache_order_source.check_in("flush"),
+                          &disk_ack_signal);
+        buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
+        metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
+        write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);
     }
 
     persistent_file_t *parent;
