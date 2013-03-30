@@ -104,4 +104,8 @@ $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 
+$(WEB_ASSETS_BUILD_DIR)/js/rql_docs.json: $(WEB_ASSETS_BUILD_DIR)/js
+	$P make -C $(TOP)/test/rql_test/docs/
+	$(EXTERN_MAKE) -C $(TOP)/test/rql_test/docs/ JSON_OUT=$<
+
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
