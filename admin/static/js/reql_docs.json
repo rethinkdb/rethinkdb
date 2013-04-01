@@ -976,7 +976,7 @@
           "tag": "table",
           "description": "Select all documents in a table. This command can be chained with other commands to do further processing on the data.",
           "parent": "db",
-          "returns": "selection",
+          "returns": "table",
           "langs": {
             "js": {
               "name": "table",
