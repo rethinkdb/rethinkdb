@@ -141,10 +141,9 @@ class Namespace extends Backbone.Model
                 keys_set = 0
                 for serializer_id of _s.serializers
                     serializer = _s.serializers[serializer_id]
-                    if serializer.btree?
-
-                        keys_read = parseFloat(serializer.btree.keys_read)
-                        keys_set = parseFloat(serializer.btree.keys_set)
+                    if serializer['btree-primary']?
+                        keys_read = parseFloat(serializer['btree-primary'].keys_read)
+                        keys_set = parseFloat(serializer['btree-primary'].keys_set)
                         if not isNaN(keys_read)
                             __s.keys_read += keys_read
                         if not isNaN(keys_set)

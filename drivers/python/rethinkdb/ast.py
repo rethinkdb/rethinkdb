@@ -23,7 +23,7 @@ class RqlQuery(object):
                 c = Connection.repl_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
-            
+
         return c._start(self, **global_opt_args)
 
     def __str__(self):

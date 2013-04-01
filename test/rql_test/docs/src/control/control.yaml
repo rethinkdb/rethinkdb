@@ -1,0 +1,5 @@
+sections:
+  - tag: control
+    name: Control Structures
+    description: These commands provide basic control structures for the composition of complex queries.
+    order: 11
