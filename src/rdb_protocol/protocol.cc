@@ -234,7 +234,8 @@ public:
     unshard_visitor_t(const read_response_t *_responses,
                       size_t _count,
                       read_response_t *_response_out,
-                      rdb_protocol_t::context_t *ctx)
+                      rdb_protocol_t::context_t *ctx,
+                      signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
           ql_env(ctx->pool_group,
                  ctx->ns_repo,
@@ -245,7 +246,7 @@ public:
                  ctx->semilattice_metadata,
                  NULL,
                  boost::make_shared<js::runner_t>(),
-                 &interruptor,
+                 interruptor,
                  ctx->machine_id,
                  std::map<std::string, ql::wire_func_t>()
                 )
@@ -465,12 +466,13 @@ private:
     const read_response_t *responses;
     size_t count;
     read_response_t *response_out;
-    cond_t interruptor;
     ql::env_t ql_env;
 };
 
-void read_t::unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING {
-    unshard_visitor_t v(responses, count, response, ctx);
+void read_t::unshard(read_response_t *responses, size_t count, read_response_t
+        *response, context_t *ctx, signal_t *interruptor) const
+THROWS_ONLY(interrupted_exc_t) {
+    unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
 }
 
@@ -534,7 +536,7 @@ write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx, signal_t *) const THROWS_NOTHING {
     guarantee(count == 1);
     *response = responses[0];
 }
