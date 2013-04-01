@@ -511,7 +511,7 @@ funcWrap = (val) ->
 
 class Func extends RDBOp
     tt: Term.TermType.FUNC
-    nextVarId: 1
+    @nextVarId: 0
 
     constructor: (optargs, func) ->
         args = []
