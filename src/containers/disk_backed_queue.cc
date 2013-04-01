@@ -10,11 +10,6 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
                                                            const serializer_filepath_t& filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID) {
-    /* We're going to register for writes, however those writes won't be able
-     * to find their way in to the btree until we're done backfilling. Thus we
-     * need to set up a serializer and cache for them to go in to. */
-    //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
-
     filepath_file_opener_t file_opener(filename, io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
@@ -80,6 +75,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
 }
 
 void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
+    guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
     char buffer[MAX_REF_SIZE];

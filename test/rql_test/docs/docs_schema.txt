@@ -1,0 +1,60 @@
+JSON schema (and output format)
+
+sections: (list<object>)
+    name: (string)
+    tag: (string)
+    description: (string)
+    commands: (list<object>)
+        tag: (string)
+        description: (string)
+        parent: (string)
+        returns: (string)
+        langs: (object)
+            js|py|rb: (object)
+                name: (string)
+                body: (string)
+                dont_need_parenthesis: (bool)
+                examples: (list<object>)
+                    code: (string)
+                    can_try: (bool)
+                    dataset: (string)
+                    description: (string)
+
+new YAML schema (input format)
+
+sections: (list<object>)
+    name: (string)
+    tag: (string)
+    description: (string)
+
+commands: (list<object>)
+    tag: (string)
+    section: (string) # keys a section tag
+    description: (string)
+
+    # Overridable by languages
+    name: (string|object) | :tag:
+    body: (string|object) | ''
+    dont_need_parenthesis: (bool|object) | false
+    parent: (string|object)
+    returns: (string|object)
+
+    examples: (list<object>)
+        code: (string|object)
+        description: (string|object)
+        can_try: (bool|object) | false
+        dataset: (string|object) | null
+
+    # Language specific overrides of the above if specified
+    py|js|rb: (object)
+        name: (string)
+        body: (string)
+        dont_need_parenthesis: (bool)
+
+        # Override pieces of specific examples given above
+        examples: (object)
+            0|1|2...: (object)
+                code: (string)
+                can_try: (bool)
+                dataset: (string)
+                description: (string)

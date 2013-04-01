@@ -13,6 +13,7 @@
 #include <map>
 #include "protocol.hpp"
 #include <queue>
+#include <unistd.h>
 
 #define MAX_MC_KEY_SIZE 250
 

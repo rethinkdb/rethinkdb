@@ -6,12 +6,15 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include "containers/scoped.hpp"
-#include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/promise.hpp"
+#include "containers/archive/stl_types.hpp"
+#include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
+#include "utils.hpp"
 
 class btree_slice_t;
 
@@ -30,6 +33,9 @@ public:
 
     virtual block_id_t get_stat_block_id() const = 0;
     virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
+
+    virtual block_id_t get_sindex_block_id() const = 0;
+    virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
@@ -52,6 +58,9 @@ public:
 
     block_id_t get_stat_block_id() const;
     void set_stat_block_id(block_id_t new_stat_block);
+
+    block_id_t get_sindex_block_id() const;
+    void set_sindex_block_id(block_id_t new_block_id);
 
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
@@ -91,6 +100,14 @@ public:
         crash("Not implemented\n");
     }
 
+    block_id_t get_sindex_block_id() const {
+        crash("Not implemented\n");
+    }
+
+    void set_sindex_block_id(block_id_t) {
+        crash("Not implemented\n");
+    }
+
     void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
         // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
     }
@@ -107,11 +124,25 @@ private:
 class btree_stats_t;
 
 template <class Value>
+class key_modification_callback_t;
+
+template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
+    keyvalue_location_t()
+        : superblock(NULL), pass_back_superblock(NULL),
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
+          stats(NULL) { }
+
+    ~keyvalue_location_t() {
+        if (pass_back_superblock != NULL && superblock != NULL) {
+            pass_back_superblock->pulse(superblock);
+        }
+    }
 
     superblock_t *superblock;
+
+    promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;
@@ -229,6 +260,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
 
+// Metainfo functions
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
