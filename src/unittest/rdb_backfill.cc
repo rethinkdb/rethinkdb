@@ -115,10 +115,15 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(
+boost::shared_ptr<scoped_cJSON_t> generate_document(const std::string &value) {
+    //This is a kind of hacky way to add an object to a map but I'm not sure
+    //anyone really cares.
+    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(
                 cJSON_Parse(strprintf("{\"id\" : %s}", value.c_str()).c_str())));
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key), data, true));
+}
+
+void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key), generate_document(value), true));
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -201,7 +206,7 @@ void run_backfill_test(io_backender_t *io_backender,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.get() != NULL);
-        EXPECT_EQ(query_language::json_cmp(scoped_cJSON_t(cJSON_Parse(it->second.c_str())).get(), get_result.data->get()), 0);
+        EXPECT_EQ(query_language::json_cmp(generate_document(it->second)->get(), get_result.data->get()), 0);
     }
 }
 
@@ -294,15 +299,17 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(it->first), sindex_id));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
         rdb_protocol_t::read_response_t response;
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
-        rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
-        EXPECT_TRUE(get_result.data.get() != NULL);
-        EXPECT_EQ(query_language::json_cmp(scoped_cJSON_t(cJSON_Parse(it->second.c_str())).get(), get_result.data->get()), 0);
+        rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
+        auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
+        guarantee(result_stream);
+        EXPECT_EQ(result_stream->size(), 1u);
+        EXPECT_EQ(query_language::json_cmp(generate_document(it->second)->get(), result_stream->at(0).second->get()), 0);
     }
 }
 
