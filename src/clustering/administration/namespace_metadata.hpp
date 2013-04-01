@@ -41,23 +41,27 @@ typedef uuid_u namespace_id_t;
 
 class ack_expectation_t {
 public:
-    ack_expectation_t() : disk_expectation_(0), cache_expectation_(0) { }
+    ack_expectation_t() : expectation_(0), hard_durability_(true) { }
 
-    explicit ack_expectation_t(uint32_t expectations)
-        : disk_expectation_(expectations), cache_expectation_(expectations) { }
+    explicit ack_expectation_t(uint32_t expectation, bool hard_durability) :
+        expectation_(expectation),
+        hard_durability_(hard_durability) { }
 
-    static bool make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out);
+    static bool make(uint32_t expectation, bool hard_durability, ack_expectation_t *out);
 
-    uint32_t disk_expectation() const { return disk_expectation_; }
-    uint32_t cache_expectation() const { return cache_expectation_; }
+    uint32_t disk_expectation() const { return hard_durability_ ? expectation_ : 0; }
+    uint32_t cache_expectation() const { return expectation_; }
+    bool is_hardly_durable() const { return hard_durability_; }
 
     RDB_DECLARE_ME_SERIALIZABLE;
 
     bool operator==(ack_expectation_t other) const;
 
 private:
-    uint32_t disk_expectation_;
-    uint32_t cache_expectation_;
+    friend json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
+
+    uint32_t expectation_;
+    bool hard_durability_;
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x);
@@ -124,7 +128,7 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.port               = make_vclock(port, machine);
 
     std::map<uuid_u, ack_expectation_t> ack_expectations;
-    ack_expectations[datacenter] = ack_expectation_t(1);
+    ack_expectations[datacenter] = ack_expectation_t(1, true);
     ns.ack_expectations = make_vclock(ack_expectations, machine);
 
     nonoverlapping_regions_t<protocol_t> shards;
@@ -152,7 +156,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, bl
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
-cJSON *render_as_json(const ack_expectation_t *target);
+cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 void on_subfield_change(ack_expectation_t *target);
 

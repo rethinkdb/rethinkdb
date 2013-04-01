@@ -738,7 +738,7 @@ public:
                     &sindexes);
         }
 
-        const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
         const btree_key_t *key;
@@ -750,7 +750,7 @@ public:
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
             mod_report.added = get_data(rdb_value, txn);
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());

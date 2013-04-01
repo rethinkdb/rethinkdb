@@ -2028,7 +2028,8 @@ namespace_id_t admin_cluster_link_t::do_admin_create_table_internal(const name_s
     obj->shards.get_mutable() = shards;
     obj->shards.upgrade_version(change_request_id);
 
-    obj->ack_expectations.get_mutable()[primary] = ack_expectation_t(1);
+    // Default to hard durability with 1 ack
+    obj->ack_expectations.get_mutable()[primary] = ack_expectation_t(1, true);
     obj->ack_expectations.upgrade_version(change_request_id);
 
     /* It's important to initialize this because otherwise it will be
@@ -2346,6 +2347,18 @@ uint32_t guarantee_uint32(const std::map<std::string, std::vector<std::string> >
     return number;
 }
 
+template <class protocol_t>
+namespace_semilattice_metadata_t<protocol_t>* get_namespace_from_metadata(typename cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> >::change_t &change,
+                                                                          const uuid_u &ns_id) {
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_id);
+    if (i == change.get()->namespaces.end()) {
+        throw admin_parse_exc_t("unexpected error, table not found");
+    } else if (i->second.is_deleted()) {
+        throw admin_cluster_exc_t("unexpected error, table has been deleted");
+    }
+    return i->second.get_mutable();
+}
+
 void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::command_data_t& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -2353,13 +2366,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
     metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
     datacenter_id_t dc_id = nil_uuid();
 
-    const uint32_t disk_acks = guarantee_uint32(data.params, "disk-acks");
-    const uint32_t cache_acks = guarantee_uint32(data.params, "cache-acks");
-
-    ack_expectation_t ack_expectation;
-    if (!ack_expectation_t::make(disk_acks, cache_acks, &ack_expectation)) {
-        throw admin_parse_exc_t("disk-acks must not be greater than cache-acks");
-    }
+    const uint32_t num_acks = guarantee_uint32(data.params, "num-acks");
 
     if (data.params.count("datacenter") != 0) {
         metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
@@ -2371,33 +2378,15 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.rdb_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<rdb_protocol_t>(change, ns_info->uuid));
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.dummy_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<mock::dummy_protocol_t>(change, ns_info->uuid));
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_info->uuid);
-        if (i == cluster_metadata.memcached_namespaces->namespaces.end()) {
-            throw admin_parse_exc_t("unexpected error, table not found");
-        } else if (i->second.is_deleted()) {
-            throw admin_cluster_exc_t("unexpected error, table has been deleted");
-        }
-        do_admin_set_acks_internal(dc_id, ack_expectation, i->second.get_mutable());
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<memcached_protocol_t>(change, ns_info->uuid));
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
@@ -2407,7 +2396,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& datacenter, ack_expectation_t ack_expectation, namespace_semilattice_metadata_t<protocol_t> *ns) {
+void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& datacenter, uint32_t num_acks, namespace_semilattice_metadata_t<protocol_t> *ns) {
     if (ns->primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("the specified table's primary datacenter is in conflict, run 'help resolve' for more information");
     }
@@ -2422,21 +2411,29 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
 
     // Make sure the selected datacenter is assigned to the namespace and that the number of replicas is less than or equal to the number of acks
     const std::map<datacenter_id_t, int32_t> replica_affinities = ns->replica_affinities.get();
-    std::map<datacenter_id_t, int32_t>::const_iterator i = replica_affinities.find(datacenter);
+    std::map<datacenter_id_t, int32_t>::const_iterator replica_it = replica_affinities.find(datacenter);
     bool is_primary = (datacenter == ns->primary_datacenter.get());
     int replicas = (is_primary ? 1 : 0);
-    if (i == replica_affinities.end() || i->second == 0) {
+    if (replica_it == replica_affinities.end() || replica_it->second == 0) {
         if (!is_primary) {
             throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given table");
         }
     }
 
-    if (i != replica_affinities.end()) {
-        replicas += i->second;
+    if (replica_it != replica_affinities.end()) {
+        replicas += replica_it->second;
+    }
+
+    // Figure out the existing durability for the namespace (since it should be the same for all items in ack_expectations)
+    bool hard_durability = true;
+    const std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns->ack_expectations.get();
+    if (ack_expectations.begin() != ack_expectations.end()) {
+        hard_durability = ack_expectations.begin()->second.is_hardly_durable();
     }
 
     // We don't bother checking ack_expectation.disk_expectation() because it must be no greater
     // than cache_expectation.
+    ack_expectation_t ack_expectation(num_acks, hard_durability);
     if (ack_expectation.cache_expectation() > static_cast<uint32_t>(replicas)) {
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
@@ -2447,6 +2444,48 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
     } else {
         ns->ack_expectations.get_mutable()[datacenter] = ack_expectation;
     }
+    ns->ack_expectations.upgrade_version(change_request_id);
+}
+
+void admin_cluster_link_t::do_admin_set_durability(const admin_command_parser_t::command_data_t& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "table")));
+
+    bool hard = (data.params.count("hard") == 1);
+    if (hard == (data.params.count("soft") == 1)) {
+        throw admin_parse_exc_t("exactly one of '--soft' or '--hard' must be specified");
+    }
+
+    if (ns_info->path[0] == "rdb_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<rdb_protocol_t>(change, ns_info->uuid));
+    } else if (ns_info->path[0] == "dummy_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<mock::dummy_protocol_t>(change, ns_info->uuid));
+    } else if (ns_info->path[0] == "memcached_namespaces") {
+        cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<memcached_protocol_t>(change, ns_info->uuid));
+    } else {
+        throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
+    }
+
+    do_metadata_update(&cluster_metadata, &change_request, false);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::do_admin_set_durability_internal(bool hard_durability, namespace_semilattice_metadata_t<protocol_t> *ns) {
+    if (ns->ack_expectations.in_conflict()) {
+        throw admin_cluster_exc_t("the specified table's ack expectations are in conflict, run 'help resolve' for more information");
+    }
+
+    std::map<datacenter_id_t, ack_expectation_t> &ack_expectations = ns->ack_expectations.get_mutable();
+    for (auto it = ack_expectations.begin(); it != ack_expectations.end(); ++it) {
+        ack_expectation_t new_expectations(it->second.cache_expectation(), hard_durability);
+        it->second = new_expectations;
+    }
+
     ns->ack_expectations.upgrade_version(change_request_id);
 }
 
@@ -2796,6 +2835,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             delta.push_back("name");
             delta.push_back("replicas");
             delta.push_back("acks");
+            delta.push_back("durability");
             table.push_back(delta);
         }
 
@@ -2823,10 +2863,12 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 ack_expectation_t acks;
                 if (ack_it != ack_expectations.end()) {
                     acks = ack_it->second;
+                    delta.push_back(strprintf("%" PRIu32, acks.cache_expectation()));
+                    delta.push_back(acks.is_hardly_durable() ? "hard" : "soft");
+                } else {
+                    delta.push_back("0");
+                    delta.push_back("-");
                 }
-                delta.push_back(strprintf("%" PRIu32 " disk %" PRIu32 " cache",
-                                          acks.disk_expectation(),
-                                          acks.cache_expectation()));
 
                 if (replicas != 0 || acks.cache_expectation() != 0) {
                     table.push_back(delta);
@@ -2849,14 +2891,13 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             delta.push_back(strprintf("%d", replicas));
 
             std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
-
-            ack_expectation_t acks;
             if (ack_it != ack_expectations.end()) {
-                acks = ack_it->second;
+                delta.push_back(strprintf("%" PRIu32, ack_it->second.cache_expectation()));
+                delta.push_back(ack_it->second.is_hardly_durable() ? "hard" : "soft");
+            } else {
+                delta.push_back("0");
+                delta.push_back("-");
             }
-            delta.push_back(strprintf("%" PRIu32 " disk %" PRIu32 " cache",
-                                      acks.disk_expectation(),
-                                      acks.cache_expectation()));
 
             table.push_back(delta);
         }
