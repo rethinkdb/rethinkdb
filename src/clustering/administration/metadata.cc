@@ -16,20 +16,18 @@ void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
 }
 
 // json adapter concept for ack_expectation_t
-// TODO(acks) sophisticated, use both fields
-json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["expectation"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint32_t>(&target->expectation_));
+    res["hard_durability"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool>(&target->hard_durability_));
+    return res;
 }
-cJSON *render_as_json(const ack_expectation_t *target) {
-    uint32_t memory = target->cache_expectation();
-    return render_as_json(&memory);
+cJSON *render_as_json(ack_expectation_t *target) {
+    return render_as_directory(target);
 }
 
-// TODO: encode hard durability boolean
 void apply_json_to(cJSON *change, ack_expectation_t *target) {
-    uint32_t memory = target->cache_expectation() /* TODO(acks) sophisticated */;
-    apply_json_to(change, &memory);
-    *target = ack_expectation_t(memory, true);
+    apply_as_directory(change, target);
 }
 
 

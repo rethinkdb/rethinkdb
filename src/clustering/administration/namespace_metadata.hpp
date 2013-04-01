@@ -58,6 +58,8 @@ public:
     bool operator==(ack_expectation_t other) const;
 
 private:
+    friend json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
+
     uint32_t expectation_;
     bool hard_durability_;
 };
@@ -154,7 +156,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, bl
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
-cJSON *render_as_json(const ack_expectation_t *target);
+cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
 void on_subfield_change(ack_expectation_t *target);
 
