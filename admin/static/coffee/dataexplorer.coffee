@@ -18,6 +18,9 @@ module 'DataExplorerView', ->
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         size_history: 100
+        
+        max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
+        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -309,12 +312,12 @@ module 'DataExplorerView', ->
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
                     name: 'javascript'
-                    json: true
                 onKeyEvent: @handle_keypress
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
                 tabSize: 2
+
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
@@ -367,9 +370,230 @@ module 'DataExplorerView', ->
         handle_click: (event) =>
             @handle_keypress null, event
 
+        # Pair ', ", {, [, (
+        # Return true if we want code mirror to ignore the key event
+        pair_char: (event, stack) =>
+            if event?.which?
+                # If there is a selection and the user hit a quote, we wrap the seleciton in quotes
+                if @codemirror.getSelection() isnt '' and event.type is 'keypress' # This is madness. If we look for keydown, shift+right arrow match a single quote...
+                    char_to_insert = String.fromCharCode event.which
+                    if char_to_insert? and char_to_insert is '"' or char_to_insert is "'"
+                        @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
+                        event.preventDefault()
+                        return true
+                    return true
+
+                if event.which is 8 # Backspace
+                    if event.type isnt 'keydown'
+                        return true
+                    previous_char = @get_previous_char()
+                    if previous_char is null
+                        return true
+                    # If the user remove the opening bracket and the next char is the closing bracket, we delete both
+                    if previous_char of @matching_opening_bracket
+                        next_char = @get_next_char()
+                        if next_char is @matching_opening_bracket[previous_char]
+                            num_not_closed_bracket = @count_not_closed_brackets previous_char
+                            if num_not_closed_bracket <= 0
+                                @remove_next()
+                                return true
+                    # If the user remove the first quote of an empty string, we remove both quotes
+                    else if previous_char is '"' or previous_char is "'"
+                        next_char = @get_next_char()
+                        if next_char is previous_char and @get_previous_char(2) isnt '\\'
+                            num_quote = @count_char char_to_insert
+                            if num_quote%2 is 0
+                                @remove_next()
+                                return true
+                    return true
+
+                char_to_insert = String.fromCharCode event.which
+                if char_to_insert?
+                    if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
+                        return true
+
+                    if char_to_insert is '"' or char_to_insert is "'"
+                        num_quote = @count_char char_to_insert
+                        next_char = @get_next_char()
+                        if next_char is char_to_insert # Next char is a single quote
+                            if num_quote%2 is 0
+                                if @last_element_type_if_incomplete(stack) is 'string' # We are at the end of a string and the user just wrote a quote 
+                                    @move_cursor 1
+                                    event.preventDefault()
+                                    return true
+                                else
+                                    # We are at the begining of a string, so let's just add one quote
+                                    return true
+                            else
+                                # Let's add the closing/opening quote missing
+                                return true
+                        else
+                            if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes. 
+                                # Let's keep a number of quote even, so we add one extra quote
+                                if @last_element_type_if_incomplete(stack) isnt 'string'
+                                    @insert_next char_to_insert
+                                else # We add a quote inside a string, probably something like that 'He doesn|\'t'
+                                    return true
+                            else # Else we'll just insert one quote
+                                return true
+                    else if @last_element_type_if_incomplete(stack) isnt 'string'
+                        next_char = @get_next_char()
+
+                        if char_to_insert of @matching_opening_bracket
+                            num_not_closed_bracket = @count_not_closed_brackets char_to_insert
+                            if num_not_closed_bracket >= 0 # We insert a closing bracket only if it help having a balanced number of opened/closed brackets
+                                @insert_next @matching_opening_bracket[char_to_insert]
+                                return true
+                            return true
+                        else if char_to_insert of @matching_closing_bracket
+                            opening_char = @matching_closing_bracket[char_to_insert]
+                            num_not_closed_bracket = @count_not_closed_brackets opening_char
+                            if next_char is char_to_insert
+                                if num_not_closed_bracket <= 0 # g(f(...|) In this case we add a closing parenthesis. Same behavior as in Ace
+                                    @move_cursor 1
+                                    event.preventDefault()
+                                return true
+            return false
+
+        get_next_char: =>
+            cursor_end = @codemirror.getCursor()
+            cursor_end.ch++
+            return @codemirror.getRange @codemirror.getCursor(), cursor_end
+
+        get_previous_char: (less_value) =>
+            cursor_start = @codemirror.getCursor()
+            cursor_end = @codemirror.getCursor()
+            if less_value?
+                cursor_start.ch -= less_value
+                cursor_end.ch -= (less_value-1)
+            else
+                cursor_start.ch--
+            if cursor_start.ch < 0
+                return null
+            return @codemirror.getRange cursor_start, cursor_end
+
+
+        # Insert str after the cursor in codemirror
+        insert_next: (str) =>
+            @codemirror.replaceRange str, @codemirror.getCursor()
+            @move_cursor -1
+
+        remove_next: =>
+            end_cursor = @codemirror.getCursor()
+            end_cursor.ch++
+            @codemirror.replaceRange '', @codemirror.getCursor(), end_cursor
+
+        # Move cursor of move_value
+        # A negative value move the cursor to the left
+        move_cursor: (move_value) =>
+            cursor = @codemirror.getCursor()
+            cursor.ch += move_value
+            if cursor.ch < 0
+                cursor.ch = 0
+            @codemirror.setCursor cursor
+
+
+        # Count how many time char_to_count appeared ignoring strings and comments
+        count_char: (char_to_count) =>
+            query = @codemirror.getValue()
+
+            is_parsing_string = false
+            to_skip = 0
+            result = 0
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
+                        is_parsing_string = false # Else we just keep parsing the string
+                        if char is char_to_count
+                            result++
+                else # if element.is_parsing_string is false
+                    if char is char_to_count
+                        result++
+
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+                    
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
+                        continue
+
+            return result
+
+        matching_opening_bracket:
+            '(': ')'
+            '{': '}'
+            '[': ']'
+        matching_closing_bracket:
+            ')': '('
+            '}': '{'
+            ']': '['
+
+
+        # opening_char has to be in @matching_bracket
+        # Count how many time opening_char has been opened but not closed
+        # A result < 0 means that the closing char has been found more often than the opening one
+        count_not_closed_brackets: (opening_char) =>
+            query = @codemirror.getValue()
+
+            is_parsing_string = false
+            to_skip = 0
+            result = 0
+
+            for char, i in query
+                if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
+                    to_skip--
+                    continue
+
+                if is_parsing_string is true
+                    if char is string_delimiter and query[i-1]? and query[i-1] isnt '\\' # We were in a string. If we see string_delimiter and that the previous character isn't a backslash, we just reached the end of the string.
+                        is_parsing_string = false # Else we just keep parsing the string
+                else # if element.is_parsing_string is false
+                    if char is opening_char
+                        result++
+                    else if char is @matching_opening_bracket[opening_char]
+                        result--
+
+                    if char is '\'' or char is '"' # So we get a string here
+                        is_parsing_string = true
+                        string_delimiter = char
+                        continue
+                    
+                    result_inline_comment = @regex.inline_comment.exec query.slice i
+                    if result_inline_comment?
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
+                        continue
+                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                    if result_multiple_line_comment?
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
+                        continue
+
+            return result
+
+
         # Handle events on codemirror
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
+            if @ignored_next_keyup is true
+                if event?.type is 'keyup' and event?.which isnt 9
+                    @ignored_next_keyup = false
+                return true
+
             @prototype.focus_on_codemirror = true
 
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
@@ -385,6 +609,22 @@ module 'DataExplorerView', ->
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
+                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
+                    if event.type is 'keydown'
+                        if @current_highlighted_suggestion > -1
+                            event.preventDefault()
+                            @handle_keypress()
+                            return true
+
+                        previous_char = @get_previous_char()
+                        if previous_char of @matching_opening_bracket
+                            next_char = @get_next_char()
+                            if @matching_opening_bracket[previous_char] is next_char
+                                cursor = @codemirror.getCursor()
+                                @insert_next '\n'
+                                @codemirror.indentLine cursor.line+1, 'smart'
+                                @codemirror.setCursor cursor
+                                return false
                 else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
                     event.preventDefault()
                     if event.type is 'keydown'
@@ -393,6 +633,36 @@ module 'DataExplorerView', ->
                                 @show_suggestion()
                                 return true
                             else
+                                # We can retrieve the content of codemirror only on keyup events. The users may write "r." then hit "d" then "tab" If the events are triggered this way
+                                # keydown d - keydown tab - keyup d - keyup tab
+                                # We want to only show the suggestions for r.d
+                                if @written_suggestion is null
+                                    cached_query = @query_first_part+@current_element+@query_last_part
+                                else
+                                    cached_query = @query_first_part+@written_suggestion+@query_last_part
+                                if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
+                                    @current_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
+                                    regex = @create_safe_regex @current_element
+                                    new_suggestions = []
+                                    new_highlighted_suggestion = -1
+                                    for suggestion, index in @current_suggestions
+                                        if index < @current_highlighted_suggestion
+                                            new_highlighted_suggestion = new_suggestions.length
+                                        if regex.test(suggestion) is true
+                                            new_suggestions.push suggestion
+                                    @current_suggestions = new_suggestions
+                                    @current_highlighted_suggestion = new_highlighted_suggestion
+                                    if @current_suggestions.length > 0
+                                        @.$('.suggestion_name_list').empty()
+                                        for suggestion, i in @current_suggestions
+                                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                                id: i
+                                                suggestion: suggestion
+                                        @ignored_next_keyup = true
+                                    else
+                                        @hide_suggestion_and_description()
+
+
                                 # Switch throught the suggestions
                                 if event.shiftKey
                                     @current_highlighted_suggestion--
@@ -422,6 +692,76 @@ module 'DataExplorerView', ->
                                         suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
                                     @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                     return true
+                        else if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
+                            # Trim suggestion
+                            if @extra_suggestion?.body?[0]?.type is 'string'
+                                if @extra_suggestion.body[0].complete is true
+                                    @extra_suggestions = []
+                                else
+                                    # Remove quotes around the table/db name
+                                    current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
+                                    regex = @create_safe_regex current_name
+                                    new_extra_suggestions = []
+                                    for suggestion in @extra_suggestions
+                                        if regex.test(suggestion) is true
+                                            new_extra_suggestions.push suggestion
+                                    @extra_suggestions = new_extra_suggestions
+
+                            if @extra_suggestions.length > 0 # If there are still some valid suggestions
+                                query = @codemirror.getValue()
+
+                                # We did not parse what is after the cursor, so let's take a look
+                                start_search = @extra_suggestion.start_body
+                                if @extra_suggestion.body?[0]?.name.length?
+                                    start_search += @extra_suggestion.body[0].name.length
+
+                                # Define @query_first_part and @query_last_part
+                                # Note that ) is not a valid character for a db/table name
+                                end_body = query.indexOf ')', start_search
+                                @query_last_part = ''
+                                if end_body isnt -1
+                                    @query_last_part = query.slice end_body
+                                @query_first_part = query.slice 0, @extra_suggestion.start_body
+                                lines = @query_first_part.split('\n')
+                                # Because we may have slice before @cursor_for_auto_completion, we re-define it
+                                @cursor_for_auto_completion =
+                                    line: lines.length-1
+                                    ch: lines[lines.length-1].length
+
+                                if event.shiftKey is true
+                                    @current_highlighted_extra_suggestion--
+                                else
+                                    @current_highlighted_extra_suggestion++
+                                    
+                                if @current_highlighted_extra_suggestion >= @extra_suggestions.length
+                                    @current_highlighted_extra_suggestion = -1
+                                else if @current_highlighted_extra_suggestion < -1
+                                    @current_highlighted_extra_suggestion = @extra_suggestions.length-1
+
+                                # Create the next suggestion
+                                suggestion = ''
+                                if @current_highlighted_extra_suggestion is -1
+                                    if @current_extra_suggestion?
+                                        if /^\s*'/.test(@current_extra_suggestion) is true
+                                            suggestion = @current_extra_suggestion+"'"
+                                        else if /^\s*"/.test(@current_extra_suggestion) is true
+                                            suggestion = @current_extra_suggestion+'"'
+                                else
+                                    if /^\s*'/.test(@current_extra_suggestion) is true
+                                        string_delimiter = "'"
+                                    else if /^\s*"/.test(@current_extra_suggestion) is true
+                                        string_delimiter = '"'
+                                    else
+                                        move_outside = true
+                                        string_delimiter = "'"
+                                    suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
+                                
+                                @write_suggestion
+                                    move_outside: move_outside
+                                    suggestion_to_write: suggestion
+                                @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+
+
                 # If the user hit enter and (Ctrl or Shift)
                 else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
@@ -456,13 +796,13 @@ module 'DataExplorerView', ->
                 else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
                     if @history_displayed_id < @history.length
                         @history_displayed_id++
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                 else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                     else if @history_displayed_id is 1
@@ -471,31 +811,15 @@ module 'DataExplorerView', ->
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                     event.preventDefault()
                     return true
-
-            # If a selection is active, we just catch shift+enter
-            if @codemirror.getSelection() isnt ''
-                @hide_suggestion_and_description()
-                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
-                    @hide_suggestion_and_description()
-                    if event.type isnt 'keydown'
-                        return true
-                    @execute_query()
-                    return true # We do not replace the selection with a new line
-                # If the user select something and end somehwere with suggestion
-                if event?.type isnt 'mouseup'
-                    return false
-                else
-                    return true
-
             # If there is a hilighted suggestion, we want to catch enter
             if @$('.suggestion_name_li_hl').length > 0
                 if event?.which is 13
@@ -516,8 +840,26 @@ module 'DataExplorerView', ->
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
 
-            if event?.which isnt 9 # has to be before create_suggestion()
-                @cursor_for_auto_completion = @codemirror.getCursor()
+            # The expensive operations are coming. If the query is too long, we just don't parse the query
+            if @codemirror.getValue().length > @max_size_query
+                return false
+
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+            query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
+
+            # Compute the structure of the query written by the user.
+            # We compute it earlier than before because @pair_char also listen on keydown and needs stack
+            stack = @extract_data_from_query
+                size_stack: 0
+                query: query_before_cursor
+                position: 0
+
+            if stack is null # Stack is null if the query was too big for us to parse
+                @ignore_tab_keyup = false
+                @hide_suggestion_and_description()
+                return false
+            @pair_char(event, stack) # Pair brackets/quotes
+
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false
@@ -531,36 +873,32 @@ module 'DataExplorerView', ->
                 return true
 
             @current_highlighted_suggestion = -1
+            @current_highlighted_extra_suggestion = -1
             @.$('.suggestion_name_list').empty()
 
-            # Codemirror return a position given by line/char.
-            # We need to retrieve the lines first
-            query_lines = @codemirror.getValue().split '\n'
-            # Then let's get query before the cursor
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-
-            # Get query after the cursor
-            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
-            if query_lines.length > @codemirror.getCursor().line+1
-                query_after_cursor += '\n'
-                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
-                    if i isnt query_lines.length-1
-                        query_after_cursor += query_lines[i] + '\n'
-                    else
-                        query_after_cursor += query_lines[i]
+            # Valid step, let's save the data
             @query_last_part = query_after_cursor
 
-            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
-            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
-            @current_element = ''
+            # If a selection is active, we just catch shift+enter
+            if @codemirror.getSelection() isnt ''
+                @hide_suggestion_and_description()
+                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
+                    @hide_suggestion_and_description()
+                    if event.type isnt 'keydown'
+                        return true
+                    @execute_query()
+                    return true # We do not replace the selection with a new line
+                # If the user select something and end somehwere with suggestion
+                if event?.type isnt 'mouseup'
+                    return false
+                else
+                    return true
 
-            stack = @extract_data_from_query
-                query: query_before_cursor
-                position: 0
+            @current_suggestions = []
+            @current_element = ''
+            @current_extra_suggestion = ''
+            @written_suggestion = null
+            @cursor_for_auto_completion = @codemirror.getCursor()
 
             result =
                 status: null
@@ -570,11 +908,12 @@ module 'DataExplorerView', ->
                 
             # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
+
             if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
-                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor)
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
                 if result_last_char_is_white isnt null
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
@@ -585,7 +924,6 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 result: result
 
-            @current_suggestions = []
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
                     @current_suggestions.push suggestion
@@ -602,7 +940,7 @@ module 'DataExplorerView', ->
 
             if event?.which is 9 # Catch tab
                 # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
-                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
+                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
                     return false
@@ -632,9 +970,9 @@ module 'DataExplorerView', ->
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
             opening:
-                '(': true
-                '{': true
-                '[': true
+                '(': ')'
+                '{': '}'
+                '[': ']'
             closing:
                 ')': '(' # Match the opening character
                 '}': '{'
@@ -654,11 +992,11 @@ module 'DataExplorerView', ->
                 else
                     return ''
 
-
         # We build a stack of the query.
         # Chained functions are in the same array, arguments/inner queries are in a nested array
         # element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object', 'array_entry', 'object_key' 'array']
         extract_data_from_query: (args) =>
+            size_stack = args.size_stack
             query = args.query
             context = if args.context? then DataUtils.deep_copy(args.context) else {}
             position = args.position
@@ -685,6 +1023,9 @@ module 'DataExplorerView', ->
                             element.name = query.slice start, i+1
                             element.complete = true
                             stack.push element
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -752,6 +1093,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = result_regex[0].length-1
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -806,6 +1150,9 @@ module 'DataExplorerView', ->
                                         element.type = 'var'
                                         element.name = result_regex[0].slice(0, position_opening_parenthesis)
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: 'function'
                                             name: '('
@@ -830,6 +1177,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = element.name.length-1+new_start-i
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -846,6 +1196,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -863,6 +1216,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -887,6 +1243,9 @@ module 'DataExplorerView', ->
                                 complete: true
                                 name: query.slice i, result_regex[0].length
                                 position: position+i
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -904,11 +1263,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -923,11 +1288,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -941,11 +1312,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice start+element.name.length, i
                                             context: element.context
                                             position: position+start+element.name.length
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -964,15 +1341,19 @@ module 'DataExplorerView', ->
                                     if stack_stop_char.length is 0
                                         # We just reach a }, it's the end of the object
                                         if element.next_key?
+                                            body = @extract_data_from_query
+                                                size_stack: size_stack
+                                                query: query.slice element.current_value_start, i
+                                                context: element.context
+                                                position: position+element.current_value_start
+                                            if body is null
+                                                return null
                                             new_element =
                                                 type: 'object_key'
                                                 key: element.next_key
                                                 key_complete: true
                                                 complete: false
-                                                body: @extract_data_from_query
-                                                    query: query.slice element.current_value_start, i
-                                                    context: element.context
-                                                    position: position+element.current_value_start
+                                                body: body
                                             element.body[element.body.length-1] = new_element
                                         element.next_key = null # No more next_key
                                         element.complete = true
@@ -981,6 +1362,9 @@ module 'DataExplorerView', ->
                                         # TODO show error once brackets/ace will be used
 
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -995,6 +1379,9 @@ module 'DataExplorerView', ->
                                         key_complete: true
                                     if element.body.length is 0
                                         element.body.push new_element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                     else
                                         element.body[element.body.length-1] = new_element
                                     element.next_key = query.slice element.current_key_start, i
@@ -1002,14 +1389,18 @@ module 'DataExplorerView', ->
                             else
                                 result_regex = @regex.comma.exec query.slice i
                                 if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of a value
+                                    body = @extract_data_from_query
+                                        size_stack: size_stack
+                                        query: query.slice element.current_value_start, i
+                                        context: element.context
+                                        position: element.current_value_start
+                                    if body is null
+                                        return null
                                     new_element =
                                         type: 'object_key'
                                         key:  element.next_key
                                         key_complete: true
-                                        body: @extract_data_from_query
-                                            query: query.slice element.current_value_start, i
-                                            context: element.context
-                                            position: element.current_value_start
+                                        body: body
                                     element.body[element.body.length-1] = new_element
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
@@ -1023,27 +1414,41 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         # We just reach a ], it's the end of the object
+                                        body = @extract_data_from_query
+                                            size_stack: size_stack
+                                            query: query.slice entry_start, i
+                                            context: element.context
+                                            position: position+entry_start
+                                        if body is null
+                                            return null
                                         new_element =
                                             type: 'array_entry'
                                             complete: true
-                                            body: @extract_data_from_query
-                                                query: query.slice entry_start, i
-                                                context: element.context
-                                                position: position+entry_start
+                                            body: body
                                         if new_element.body.length > 0
                                             element.body.push new_element
+                                            size_stack++
+                                            if size_stack > @max_size_stack
+                                                return null
                                         continue
 
                             if stack_stop_char.length is 1 and char is ','
+                                body = @extract_data_from_query
+                                    size_stack: size_stack
+                                    query: query.slice entry_start, i
+                                    context: element.context
+                                    position: position+entry_start
+                                if body is null
+                                    return null
                                 new_element =
                                     type: 'array_entry'
                                     complete: true
-                                    body: @extract_data_from_query
-                                        query: query.slice entry_start, i
-                                        context: element.context
-                                        position: position+entry_start
+                                    body: body
                                 if new_element.body.length > 0
                                     element.body.push new_element
+                                    size_stack++
+                                    if size_stack > @max_size_stack
+                                        return null
                                 entry_start = i+1
 
             # We just reached the end, let's try to find the type of the incomplete element
@@ -1051,19 +1456,28 @@ module 'DataExplorerView', ->
                 element.complete = false
                 if element.type is 'function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice start+element.name.length
                         context: element.context
                         position: position+start+element.name.length
+                    if element.body is null
+                        return null
                 else if element.type is 'anonymous_function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'loop'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'string'
                     element.name = query.slice start
                 else if element.type is 'object'
@@ -1074,30 +1488,47 @@ module 'DataExplorerView', ->
                             key_complete: false
                             complete: false
                         element.body.push new_element # They key was not defined, so we add a new element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                         element.next_key = query.slice element.current_key_start
                     else
+                        body = @extract_data_from_query
+                            size_stack: size_stack
+                            query: query.slice element.current_value_start
+                            context: element.context
+                            position: position+element.current_value_start
+                        if body is null
+                            return null
                         new_element =
                             type: 'object_key'
                             key: element.next_key
                             key_complete: true
                             complete: false
-                            body: @extract_data_from_query
-                                query: query.slice element.current_value_start
-                                context: element.context
-                                position: position+element.current_value_start
+                            body: body
                         element.body[element.body.length-1] = new_element
                         element.next_key = null # No more next_key
                 else if element.type is 'array'
+                    body = @extract_data_from_query
+                        size_stack: size_stack
+                        query: query.slice entry_start
+                        context: element.context
+                        position: position+entry_start
+                    if body is null
+                        return null
                     new_element =
                         type: 'array_entry'
                         complete: false
-                        body: @extract_data_from_query
-                            query: query.slice entry_start
-                            context: element.context
-                            position: position+entry_start
+                        body: body
                     if new_element.body.length > 0
                         element.body.push new_element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             else if start isnt i
                 if query.slice(start) of element.context
                     element.name = query.slice start
@@ -1118,6 +1549,9 @@ module 'DataExplorerView', ->
                     element.position = position+start
                     element.complete = false
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             return stack
 
         # Decide if we have to show a suggestion or a description
@@ -1159,6 +1593,13 @@ module 'DataExplorerView', ->
                             else
                                 result.suggestions = null
                                 result.description = element.name
+                                #Define the current argument we have. It's the suggestion whose index is -1
+                                @extra_suggestion =
+                                    start_body: element.position + element.name.length
+                                    body: element.body
+                                if element.body?[0]?.name?.length?
+                                    @cursor_for_auto_completion.ch -= element.body[0].name.length
+                                    @current_extra_suggestion = element.body[0].name
                                 result.status = 'done'
                         else if element.type is 'anonymous_function' or element.type is 'separator' or element.type is 'object' or element.type is 'object_key' or element.type is 'return' or 'element.type' is 'array'
                             # element.type === 'object' is impossible I think with the current implementation of extract_data_from_query
@@ -1172,6 +1613,12 @@ module 'DataExplorerView', ->
                                 # We just opened a new function, so let's just show the description
                                 result.suggestions = null
                                 result.description = element.name # That means we are going to describe the function named element.name
+                                @extra_suggestion =
+                                    start_body: element.position + element.name.length
+                                    body: element.body
+                                if element.body?[0]?.name?.length?
+                                    @cursor_for_auto_completion.ch -= element.body[0].name.length
+                                    @current_extra_suggestion = element.body[0].name
                                 result.status = 'done'
                                 break
                             else
@@ -1200,6 +1647,12 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_description'
                     if element.type is 'function'
                         result.description = element.name
+                        @extra_suggestion =
+                            start_body: element.position + element.name.length
+                            body: element.body
+                        if element.body?[0]?.name?.length?
+                            @cursor_for_auto_completion.ch -= element.body[0].name.length
+                            @current_extra_suggestion = element.body[0].name
                         result.suggestions = null
                         result.status = 'done'
                     else
@@ -1207,6 +1660,12 @@ module 'DataExplorerView', ->
                 if result.status is 'break_and_look_for_description'
                     if element.type is 'function' and element.complete is false and element.name.indexOf('(') isnt -1
                         result.description = element.name
+                        @extra_suggestion =
+                            start_body: element.position + element.name.length
+                            body: element.body
+                        if element.body?[0]?.name?.length?
+                            @cursor_for_auto_completion.ch -= element.body[0].name.length
+                            @current_extra_suggestion = element.body[0].name
                         result.suggestions = null
                         result.status = 'done'
                     else
@@ -1319,12 +1778,21 @@ module 'DataExplorerView', ->
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
-            @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
-    
+            move_outside = args.move_outside is true # So default value is false
+
+            ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
+            if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
+                @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+                @written_suggestion = suggestion_to_write+')'
+            else
+                @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+                @written_suggestion = suggestion_to_write
+                if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
+                    ch--
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
                 line: @cursor_for_auto_completion.line
-                ch: @cursor_for_auto_completion.ch+suggestion_to_write.length
+                ch:ch
 
         # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
@@ -1351,22 +1819,24 @@ module 'DataExplorerView', ->
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
             if @options?.can_extend? and @options?.can_extend is false
+                @extra_suggestions= null
                 return @descriptions[fn]
 
-            if fn is 'db('
+            if fn is 'db(' or fn is 'dbDrop('
                 description = _.extend {}, @descriptions[fn]
                 if databases.length is 0
                     data =
                         no_database: true
                 else
+                    databases_available = databases.models.map (database) -> return database.get('name')
                     data =
                         no_database: false
-                        databases_available: _.map(databases.models, (database) -> return database.get('name'))
+                        databases_available: databases_available
                 description.description = @databases_suggestions_template(data)+description.description
-            else if fn is 'table('
+                @extra_suggestions= databases_available # @extra_suggestions store the suggestions for arguments. So far they are just for db(), dbDrop(), table(), tableDrop()
+            else if fn is 'table(' or fn is 'tableDrop('
                 # Look for the argument of the previous db()
                 database_used = @extract_database_used()
-
                 description = _.extend {}, @descriptions[fn]
                 if database_used.error is false
                     namespaces_available = []
@@ -1384,19 +1854,17 @@ module 'DataExplorerView', ->
                         error: database_used.error
 
                 description.description = @namespaces_suggestions_template(data) + description.description
+
+                @extra_suggestions= namespaces_available
             else
                 description = @descriptions[fn]
+                @extra_suggestions= null
             return description
 
         # We could create a new stack with @extract_data_from_query, but that would be a more expensive for not that much
         # We can not use the previous stack too since autocompletion doesn't validate the query until you hit enter (or another key than tab)
         extract_database_used: =>
-            query_lines = @codemirror.getValue().split '\n'
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
@@ -1571,7 +2039,7 @@ module 'DataExplorerView', ->
                             @saved_data.query = @query
                             @saved_data.results = @current_results
                             @saved_data.metadata =
-                                limit_value: @current_results.length
+                                limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                                 skip_value: @skip_value
                                 execution_time: new Date() - @start_time
                                 query: @query
@@ -1612,7 +2080,7 @@ module 'DataExplorerView', ->
                     @saved_data.query = @query
                     @saved_data.results = @current_results
                     @saved_data.metadata =
-                        limit_value: @current_results.length
+                        limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
@@ -2191,7 +2659,7 @@ module 'DataExplorerView', ->
         default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (args) =>
-            if args?.results?
+            if args? and args.results isnt undefined
                 @results = args.results
                 @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             if args?.metadata?
@@ -2210,13 +2678,20 @@ module 'DataExplorerView', ->
                         minutes = Math.floor(args.metadata.execution_time/(60*1000))
                         @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
 
+            num_results = @metadata.skip_value
+            if @metadata.has_more_data isnt true
+                if @results?.length?
+                    num_results += @results.length
+                else # @results can be a single value or null
+                    num_results += 1
+
             @.$el.html @template _.extend @metadata,
                 show_query_warning: args?.show_query_warning
                 show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
                 cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
-                no_results: @metadata.has_more_data isnt true and @results.length is 0 and @metadata.skip_value is 0
-                num_results: ((@metadata.skip_value+@results.length) if @metadata.has_more_data isnt true)
+                no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
+                num_results: num_results
 
             switch @view
                 when 'tree'
