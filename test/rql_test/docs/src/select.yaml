@@ -36,7 +36,7 @@ commands:
       py: name[, use_outdated=False]
       rb: name[, opts]
     parent: db
-    returns: selection
+    returns: table
 
     examples:
       - description: Return all documents in the table 'marvel' of the default database.
