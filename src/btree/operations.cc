@@ -7,6 +7,7 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/vector_stream.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
@@ -36,6 +37,19 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
     sb_data->stat_block = new_stat_block;
+}
+
+block_id_t real_superblock_t::get_sindex_block_id() const {
+    rassert(sb_buf_.is_acquired());
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+}
+
+void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
+    rassert(sb_buf_.is_acquired());
+
+    rassert(sb_buf_.is_acquired());
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    sb_data->sindex_block = new_sindex_block;
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
@@ -292,7 +306,6 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
-    sb->release(); //XXX it's a little bit weird that we release this from here.
 }
 
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
@@ -310,7 +323,6 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
         temp_lock.set_eviction_priority(stat_block_eviction_priority);
     }
 }
-
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {

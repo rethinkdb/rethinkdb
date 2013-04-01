@@ -1,0 +1,39 @@
+commands:
+  - tag: branch
+    section: control
+    order: 1
+    description: Evaluate one of two control paths based on the value of an expression.
+
+    body:
+      js: test, trueBranch, falseBranch
+      py: test, true_branch, false_branch
+      rb: test, true_branch, false_branch
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Return the manlier of two heroes:'
+        code:
+          js: |-
+            r.table('marvel').map(r.branch(r.row('victories').gt(100),
+                r.row('name').add(' is a superhero'),
+                r.row('name').add(' is a hero'))
+            ).run(conn, callback)
+          py: |-
+            r.table('marvel').map(r.branch(r.row['victories'] > 100,
+                r.row['name'] + ' is a superhero',
+                r.row['name'] + ' is a hero')
+            ).run(conn)
+          rb: |-
+            r.table('marvel').map { |row|  r.branch(row[:victories] > 100,
+                row[:name] + ' is a superhero',
+                row[:name] + ' is a hero')
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+

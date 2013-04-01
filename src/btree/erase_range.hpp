@@ -47,4 +47,8 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                const btree_key_t *right_inclusive_or_null,
                                transaction_t *txn, superblock_t *superblock);
 
+void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
+               value_deleter_t *deleter, transaction_t *txn,
+               superblock_t *superblock);
+
 #endif  // BTREE_ERASE_RANGE_HPP_

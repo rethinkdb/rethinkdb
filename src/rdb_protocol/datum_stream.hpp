@@ -106,6 +106,10 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         const pb_rcheckable_t *bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const datum_t *pval, const uuid_u &sindex_id,
+                        const pb_rcheckable_t *bt_src);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
@@ -144,11 +148,11 @@ private:
 
 class slice_datum_stream_t : public eager_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, datum_stream_t *_src);
+    slice_datum_stream_t(env_t *_env, size_t _left, size_t _right, datum_stream_t *_src);
     virtual const datum_t *next_impl();
 private:
     env_t *env;
-    size_t ind, l, r;
+    size_t ind, left, right;
     datum_stream_t *src;
 };
 
@@ -173,12 +177,12 @@ public:
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
           src(_src), data_index(-1), is_arr_(false) {
         guarantee(src);
+        load_data();
     }
     virtual const datum_t *next_impl() {
-        maybe_load_data();
         r_sanity_check(data_index >= 0);
         if (data_index >= static_cast<int>(data.size())) return 0;
-        //                ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
+        //                ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
         return data[data_index++];
     }
 private:
@@ -186,10 +190,9 @@ private:
         return is_arr() ? eager_datum_stream_t::as_array() : 0;
     }
     bool is_arr() {
-        maybe_load_data();
         return is_arr_;
     }
-    void maybe_load_data() {
+    void load_data() {
         if (data_index != -1) return;
         data_index = 0;
         if (const datum_t *arr = src->as_array()) {

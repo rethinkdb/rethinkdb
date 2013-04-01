@@ -1,0 +1,36 @@
+commands:
+  - tag: delete
+    section: writing_data
+    order: 3
+    description: |
+      Delete one or more documents from a table.<br /><br />Delete returns
+      an object that contains one or more of:<ul><li><code>deleted</code> - the number
+      of documents that were deleted;</li><li><code>skipped</code> - the number of
+      documents from the selection that were not deleted.</li></ul>
+
+    parent: selection
+    returns: query
+
+    examples:
+      - description: Delete superman from the database.
+        code:
+          js: r.table('marvel').get('superman').delete().run(conn, callback)
+          py: r.table('marvel').get('superman').delete().run(conn)
+          rb: r.table('marvel').get('superman').delete.run(conn)
+      - description: Delete every document from the table 'marvel'.
+        code:
+          js: r.table('marvel').delete().run(conn, callback)
+          py: r.table('marvel').delete().run(conn)
+          rb: r.table('marvel').delete.run(conn)
+
+    rb:
+      dont_need_parenthesis: true
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel

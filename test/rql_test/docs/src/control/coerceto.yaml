@@ -1,0 +1,40 @@
+commands:
+  - tag: coerce_to
+    section: control
+    order: 6
+    description: |
+      Converts a value of one type into another. <br /><br />
+      You can convert: a selection, sequence, or object into an ARRAY, 
+      an array of pairs into an OBJECT, and any DATUM into a STRING.
+
+    body: typename
+    parent: json
+    returns: json
+
+    examples:
+      - description: Convert a table to an array.
+        code: r.table('marvel').coerce_to('array').run(conn)
+      - description: Convert an array of pairs into an object.
+        code: r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+      - description: Convert a number to a string.
+        code: r.expr(1).coerce_to('string').run(conn)
+
+    js:
+      name: coerceTo
+      examples:
+        0:
+          code: r.table('marvel').coerceTo('array').run(conn, callback)
+          can_try: true
+          dataset: marvel
+        1:
+          code: | 
+            r.expr([['name', 'Ironman'], ['victories', 2000]]).coerceTo('object')
+             .run(conn, callback)
+          can_try: true
+          dataset: marvel
+        2:
+          code: r.expr(1).coerceTo('string').run(conn, callback)
+          can_try: true
+          dataset: marvel
+
+

@@ -2,7 +2,7 @@
 
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
-WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js
+WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
 BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 # coffee script can't handle dependencies.
@@ -31,6 +31,8 @@ JS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/js
 FONTS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/images
 FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
+
+HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
 
 .PHONY: $(TOP)/admin/all
 $(TOP)/admin/all: web-assets
@@ -65,7 +67,7 @@ $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_AS
 	$P CP
 	cp -pRP $< $@
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
@@ -101,5 +103,9 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(WEB_ASSETS_BUILD_DIR)/js
+	$P make -C $(TOP)/test/rql_test/docs/
+	$(EXTERN_MAKE) -C $(TOP)/test/rql_test/docs/ JSON_OUT=$(abspath $@)
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1

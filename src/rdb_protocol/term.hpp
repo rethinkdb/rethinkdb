@@ -38,7 +38,7 @@ public:
     val_t *new_val(datum_t *d, table_t *t); // shadow vvv
     val_t *new_val(const datum_t *d, table_t *t);
     val_t *new_val(datum_stream_t *s);
-    val_t *new_val(table_t *t, datum_stream_t *s);
+    val_t *new_val(datum_stream_t *s, table_t *t);
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
@@ -51,6 +51,7 @@ public:
 
     virtual bool is_deterministic() const;
 
+    const Term *get_src() const;
 protected:
     // `use_cached_val` once had a reason to exist (as did the corresponding
     // argument to `eval`), but it has since disappeared (people are required
@@ -58,9 +59,12 @@ protected:
     // should go away in a future refactor.
     bool use_cached_val;
     env_t *env;
+
 private:
     virtual val_t *eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
+
+    const Term *src;
     val_t *cached_val;
 };
 

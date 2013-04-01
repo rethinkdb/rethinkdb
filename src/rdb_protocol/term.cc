@@ -11,16 +11,17 @@
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
 #include "rdb_protocol/terms/gmr.hpp"
+#include "rdb_protocol/terms/js.hpp"
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/rewrites.hpp"
 #include "rdb_protocol/terms/seq.hpp"
+#include "rdb_protocol/terms/sindex.hpp"
 #include "rdb_protocol/terms/sort.hpp"
 #include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
 #include "rdb_protocol/terms/writes.hpp"
-#include "rdb_protocol/terms/js.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -89,6 +90,9 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
     case Term_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
     case Term_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
+    case Term_TermType_SINDEX_CREATE:      return new sindex_create_term_t(env, t);
+    case Term_TermType_SINDEX_DROP:        return new sindex_drop_term_t(env, t);
+    case Term_TermType_SINDEX_LIST:        return new sindex_list_term_t(env, t);
     case Term_TermType_FUNCALL:            return new funcall_term_t(env, t);
     case Term_TermType_BRANCH:             return new branch_term_t(env, t);
     case Term_TermType_ANY:                return new any_term_t(env, t);
@@ -200,8 +204,8 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *src)
-    : pb_rcheckable_t(src), use_cached_val(false), env(_env), cached_val(0) {
+term_t::term_t(env_t *_env, const Term *_src)
+    : pb_rcheckable_t(_src), use_cached_val(false), env(_env), src(_src), cached_val(0) {
     guarantee(env);
 }
 term_t::~term_t() { }
@@ -230,7 +234,12 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
+const Term *term_t::get_src() const {
+    return src;
+}
+
 val_t *term_t::eval(bool _use_cached_val) {
+    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is basically a hook for unit tests to change things mid-query
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
@@ -268,7 +277,7 @@ val_t *term_t::new_val(const datum_t *d, table_t *t) {
 }
 
 val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
-val_t *term_t::new_val(table_t *d, datum_stream_t *s) {
+val_t *term_t::new_val(datum_stream_t *s, table_t *d) {
     return env->new_val(d, s, this);
 }
 val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
