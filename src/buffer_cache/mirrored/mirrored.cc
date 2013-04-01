@@ -881,7 +881,6 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-// SAMRSI: Check that nothing indiscriminantly passes a non-null disk_ack_signal.
 mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, sync_callback_t *_disk_ack_signal)
     : cache(_cache),
       expected_change_count(_expected_change_count),
@@ -1000,8 +999,6 @@ mc_transaction_t::~mc_transaction_t() {
         }
 
         cache->on_transaction_commit(this);
-
-        // SAMRSI: Make sure that everybody waits on its disk_ack_signal after the txn destructs.
     } else {
         guarantee(disk_ack_signal == NULL, "Somebody passed a sync callback with a read transaction.");
 
