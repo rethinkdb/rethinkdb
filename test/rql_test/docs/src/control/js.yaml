@@ -1,0 +1,31 @@
+commands:
+  - tag: js
+    section: control
+    order: 5
+    description: Create a javascript expression.
+
+    body: jsstring
+    parent: r
+    returns: js
+
+    examples:
+      - description: Concatenate two strings using Javascript'
+        code: r.js("'str1' + 'str2'").run(conn)
+      - description: Select all documents where the 'magazines' field is greater
+          than 5 by running Javascript on the server.
+        code: |-
+          r.table('marvel').filter(
+            r.js('(function (row) { return row.magazines > 5; })')).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.js("'str1' + 'str2'").run(conn, callback)
+        1:
+          can_try: true
+          dataset: marvel
+          code: |-
+            r.table('marvel').filter(
+              r.js('(function (row) { return row.magazines > 5; })')).run(conn, callback)
