@@ -42,7 +42,7 @@ commands:
              .replace(function(doc) {return doc.merge({is_fav: true})})
              .run(conn, callback)
           py: |
-            r.table('heroes').filter(r.row('universe') == 'marvel').replace(
+            r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
                 lambda hero: hero.merge({'is_fav': True})).run(conn)
           rb: |
             r.table('heroes').filter { |hero| hero[:universe] == 'marvel' }
