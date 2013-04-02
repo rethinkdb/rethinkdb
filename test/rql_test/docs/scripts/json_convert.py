@@ -149,6 +149,9 @@ for section in sections:
 
 out_obj['sections'].sort(key=lambda section: section['order'])
 
+# And add header information
+out_obj = dict(json.load(open("header.json", "r")).items() + out_obj.items())
+
 # Serialize and write the output
 out_file = file(dest_file, 'w')
 json.dump(out_obj, out_file)

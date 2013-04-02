@@ -135,6 +135,7 @@ public:
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
+    unsigned int num_blocks();
 
     coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
 
