@@ -61,7 +61,9 @@ commands:
     section: module
     description: |
       Set the default connection to make REPL use easier. Allows calling
-      <code>run()</code> without specifying a connection.
+      <code>run()</code> without specifying a connection. <br/><br />
+      Connection objects are not thread safe and <code>repl</code> connections
+      should not be used in multi-threaded environments.
 
     parent: connection
     returns: null
