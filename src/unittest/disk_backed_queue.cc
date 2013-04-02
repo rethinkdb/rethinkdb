@@ -29,14 +29,14 @@ void run_many_ints_test() {
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
-        queue.push(i);
+        queue.push(NULL /* disk ack signal */, i);
         ref_queue.push(i);
     }
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
         EXPECT_FALSE(queue.empty());
         int x;
-        queue.pop(&x);
+        queue.pop(NULL /* disk ack signal */, &x);
         EXPECT_EQ(ref_queue.front(), x);
         ref_queue.pop();
     }
@@ -59,14 +59,14 @@ void run_big_values_test() {
     std::string val;
     val.resize(MEGABYTE, 'a');
     for (int i = 0; i < NUM_BIG_ELTS_IN_QUEUE; ++i) {
-        queue.push(val);
+        queue.push(NULL /* disk ack signal */, val);
         ref_queue.push(val);
     }
 
     for (int i = 0; i < NUM_BIG_ELTS_IN_QUEUE; ++i) {
         EXPECT_FALSE(queue.empty());
         std::string x;
-        queue.pop(&x);
+        queue.pop(NULL /* disk ack signal */, &x);
         EXPECT_EQ(ref_queue.front(), x);
         ref_queue.pop();
     }

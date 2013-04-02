@@ -242,7 +242,9 @@ void btree_store_t<protocol_t>::sindex_queue_push(
 
     for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin(); 
             it != sindex_queues.end(); ++it) {
-        (*it)->push(value);
+        // SAMRSI: Is this where we want the sync callback?  No.
+        sync_callback_t disk_ack_signal;
+        (*it)->push(&disk_ack_signal, value);
     }
 }
 
@@ -810,7 +812,6 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // SAMRSI: Should this be passed as a parameter?
     sync_callback_t disk_ack_signal;
 
     scoped_ptr_t<transaction_t> txn;

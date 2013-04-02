@@ -185,7 +185,11 @@ void post_construct_and_drain_queue(
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
                 std::vector<char> data_vec;
-                mod_queue->pop(&data_vec);
+                {
+                    // SAMRSI: What to do with this disk ack signal?
+                    sync_callback_t disk_ack_signal;
+                    mod_queue->pop(&disk_ack_signal, &data_vec);
+                }
                 vector_read_stream_t read_stream(&data_vec);
 
                 rdb_modification_report_t mod_report;

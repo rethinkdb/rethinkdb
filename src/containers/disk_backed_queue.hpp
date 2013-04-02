@@ -32,10 +32,10 @@ public:
     ~internal_disk_backed_queue_t();
 
     // TODO: order_token_t::ignore.  This should take an order token and store it.
-    void push(const write_message_t& value);
+    void push(sync_callback_t *disk_ack_signal, const write_message_t &value);
 
     // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
-    void pop(std::vector<char> *buf_out);
+    void pop(sync_callback_t *disk_ack_signal, std::vector<char> *buf_out);
 
     bool empty();
 
@@ -64,16 +64,19 @@ public:
     disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent)
         : internal_(io_backender, filename, stats_parent) { }
 
-    void push(const T &t) {
+    void push(sync_callback_t *disk_ack_signal, const T &t) {
+        // TODO: There's an unnecessary copying of data here (which would require a
+        // serialization_size overloaded function to be implemented in order to eliminate).
         write_message_t wm;
         wm << t;
-        internal_.push(wm);
+        internal_.push(disk_ack_signal, wm);
     }
 
-    void pop(T *out) {
+    void pop(sync_callback_t *disk_ack_signal, T *out) {
+        // TODO: There's an unnecessary copying of data here.
         std::vector<char> data_vec;
 
-        internal_.pop(&data_vec);
+        internal_.pop(disk_ack_signal, &data_vec);
 
         vector_read_stream_t read_stream(&data_vec);
         int res = deserialize(&read_stream, out);
