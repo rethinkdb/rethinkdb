@@ -1,0 +1,5 @@
+# Main tests 
+generate_test(
+    "$RETHINKDB/test/webui/launcher.py static.coffee",
+    name = "static"
+    )
