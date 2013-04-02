@@ -84,7 +84,11 @@ run_single_test () {
         fi
         ( $run_elsewhere && cd "$elsewhere"
           mkdir files-$index
-          /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+          if $verbose; then
+              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > >(tee stdout-$index) 2> >(tee stderr-$index)
+          else
+              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+          fi
           echo $? >> return-code-$index
         )
         $run_elsewhere && mv "$elsewhere/"* .
@@ -93,7 +97,7 @@ run_single_test () {
             echo "Ok   $test ($index)"
         else
             echo "Fail $test ($index)"
-           ( tail -n 5 stdout-$index; tail -n 5 stderr-$index ) | tail -n 5 | sed 's/^/  | /'
+            ( tail -n 5 stdout-$index; tail -n 5 stderr-$index ) | tail -n 5 | sed 's/^/  | /'
         fi
         exit $exit_code
     )
@@ -137,14 +141,6 @@ filter_tests () {
         if [[ "${filter:0:2}" = '\!' ]]; then
             negate=$[!negate]
             filter=${filter:2}
-        fi
-        if [[ "$filter" = "all" ]]; then
-            if [[ $negate = 0 ]]; then
-                selected_tests="$all_tests"
-            else
-                selected_tests=
-            fi
-            continue
         fi
         group="$root/test/full_test/$filter.group"
         if [[ -f "$group" ]]; then
