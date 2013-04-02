@@ -4,8 +4,7 @@ commands:
     order: 7
     description: Gets the type of a value.
 
-    body: value
-    parent: json
+    parent: value
     returns: string
 
     examples:

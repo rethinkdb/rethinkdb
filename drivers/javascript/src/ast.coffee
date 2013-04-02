@@ -256,6 +256,9 @@ class Table extends RDBOp
 
     get: ar (key) -> new Get {}, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
+    sindexCreate: ar (name, defun) -> new SIndexCreate {}, @, name, funcWrap(defun)
+    sindexDrop: ar (name) -> new SIndexDrop {}, @, name
+    sindexList: ar () -> new SIndexList {}, @
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
@@ -466,6 +469,18 @@ class TableDrop extends RDBOp
 class TableList extends RDBOp
     tt: Term.TermType.TABLE_LIST
     mt: 'tableList'
+
+class SIndexCreate extends RDBOp
+    tt: Term.TermType.SINDEX_CREATE
+    mt: 'sindexCreate'
+
+class SIndexDrop extends RDBOp
+    tt: Term.TermType.SINDEX_DROP
+    mt: 'sindexDrop'
+
+class SIndexList extends RDBOp
+    tt: Term.TermType.SINDEX_LIST
+    mt: 'sindexList'
 
 class FunCall extends RDBOp
     tt: Term.TermType.FUNCALL
