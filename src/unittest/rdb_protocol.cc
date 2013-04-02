@@ -328,7 +328,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
 }
 
-TEST(RDBProtocol, OverSizedKeys) {
+TEST(RDBProtocol, DISABLED_OverSizedKeys) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test);
 }
 
@@ -376,7 +376,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     //value is in the sindex right now or be checking that it isn't.
 }
 
-TEST(RDBProtocol, MissingAttr) {
+TEST(RDBProtocol, DISABLED_MissingAttr) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test);
 }
 
