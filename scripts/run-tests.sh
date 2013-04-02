@@ -22,7 +22,7 @@ usage () {
     echo "Run the integration tests for rethinkdb"
     echo "usage: $0 [..]"
     echo "   -l              List tests"
-    echo "   -f <filter>     Filter tests (eg: 'split-workloads-*' or '*python*')"
+    echo "   -f <filter>     Filter tests (eg: 'split-workloads-*', '*python*', 'all' or '!long')"
     echo "   -o <output_dir> Set output folder (default: test_results.XXXXX)"
     echo "   -h              This help"
     echo "   -v              More verbose"
@@ -48,6 +48,10 @@ while getopts ":lf:o:hvs:j:r:x:d:" opt; do
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
+
+if [[ -z "$test_filter" ]]; then
+    test_filter=default
+fi
 
 # Remove parsed arguments from $*
 shift $[OPTIND-1]
@@ -123,22 +127,60 @@ else
 fi
 
 # List all the tests
-"$root"/scripts/generate_test_param_files.py --test-dir $root/test/full_test/ --output-dir $list_dir --rethinkdb-root "$root" >/dev/null || exit 1
-
-# Update the filter with filter groups
-raw_test_filter=
-
-add_test_filter () {
-    filter=$1
-    include=$2
-    if [[ "${filter:0:1}" = '-' ]]; then
-        add_test_filter 
-    fi
+"$root"/scripts/generate_test_param_files.py --test-dir "$root/test/full_test/" --output-dir $list_dir --rethinkdb-root "$root" >/dev/null || exit 1
+all_tests="$(for f in "$list_dir"/*.param; do basename "$f" .param; done)"
+filter_tests () {
+    local negate=$1
+    local filters=$2
+    local selected_tests=$3
+    for filter in $filters; do
+        if [[ "${filter:0:2}" = '\!' ]]; then
+            negate=$[!negate]
+            filter=${filter:2}
+        fi
+        if [[ "$filter" = "all" ]]; then
+            if [[ $negate = 0 ]]; then
+                selected_tests="$all_tests"
+            else
+                selected_tests=
+            fi
+            continue
+        fi
+        group="$root/test/full_test/$filter.group"
+        if [[ -f "$group" ]]; then
+            group_filters=$(cat "$group" | while read -r line; do printf "%q " "$line"; done)
+            selected_tests=$(filter_tests $negate "$group_filters" "$selected_tests")
+            continue
+        fi
+        if [[ $negate = 1 ]] || echo "$filter" | grep -q '[*]'; then
+            eval filter=$filter
+            if [[ $negate = 0 ]]; then
+                selected_tests=$(
+                    for t in $all_tests; do
+                        if [[ "${t##$filter}" = "" ]]; then
+                            echo $t
+                        fi
+                    done )
+            else
+                selected_tests=$(
+                    for t in $selected_tests; do
+                        if [[ "${t##$filter}" != "" ]]; then
+                            echo $t
+                        fi
+                    done )
+            fi
+            continue
+        fi
+        if [[ -e "$list_dir/$filter.param" ]]; then
+            selected_tests="$selected_tests $filter"
+            continue
+        fi
+        echo "Error: Non-existing test '$filter'" >&2
+        exit 1
+    done
+    echo "$selected_tests"
 }
-
-for pattern in $test_filter; do
-    add_test_filter "$pattern" false
-done
+selected_tests=$(filter_tests 0 "$test_filter" "")
 
 # Check if a test passes the filter
 is_selected () {
@@ -161,16 +203,24 @@ total=0
 # List of tests to run
 list=()
 
+list_groups () {
+    groups=
+    for group in "$root"/test/full_test/*.group; do
+        name=$(basename "$group" .group)
+        if filter_tests 0 "$name" "" | grep -q '^'"$1"'$'; then
+            groups="$groups $name"
+        fi
+    done
+    echo $groups
+}
+
 # List all the tests
-for path in $list_dir/*.param; do
-    test=`basename $path .param | sed s/_/-/`
-    if ! is_selected "$test"; then
-        continue
-    fi
+for test in $selected_tests; do
+    path="$list_dir/$test.param"
     cmd=`cat $path | grep ^TEST_COMMAND | sed 's/^TEST_COMMAND=//'`
     if $list_only; then
         if $verbose; then
-            echo $test: $cmd
+            echo $test "("$(list_groups "$test")")": $cmd
         else
             echo $test
         fi
