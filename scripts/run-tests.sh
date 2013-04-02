@@ -69,7 +69,8 @@ run_single_test () {
     (
         cd "$dir/$test"
         mkdir files-$index
-        /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+        /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd"
+        #> stdout-$index 2> stderr-$index
         exit_code=$?
         echo $exit_code >> return-code-$index
         if [[ $exit_code = 0 ]]; then
