@@ -851,6 +851,8 @@ void store_t::protocol_read(const read_t &read,
     boost::apply_visitor(v, read.read);
 }
 
+// RSISAM: Ask Joe how secondary index updates are done in the proper order.  (Also demand better commenting of this in the code.)
+
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
