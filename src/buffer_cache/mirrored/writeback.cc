@@ -61,38 +61,37 @@ void writeback_t::local_buf_t::reset() {
 }
 
 
-bool writeback_t::sync(sync_callback_t *callback) {
+void writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
     // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
     // by previous flushes are also on disk. If these are still running, we must initiate a new flush
     // even if there are no dirty blocks to make sure that the callbacks get called only
     // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
-    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0)
-        return true;
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0) {
+        callback->pulse();
+        return;
+    }
 
-    if (callback)
+    if (callback) {
         sync_callbacks.push_back(callback);
+    }
 
     if (!writeback_in_progress && active_flushes < max_concurrent_flushes) {
         /* Start the writeback process immediately */
         start_concurrent_flush();
-        return false;
     } else {
         /* There is a writeback currently in progress, but sync() has been called, so there is
-        more data that needs to be flushed that didn't become part of the current sync. So we
-        start another sync right after this one. */
+           more data that needs to be flushed that didn't become part of the current sync. So we
+           start another sync right after this one. */
         start_next_sync_immediately = true;
-
-        return false;
     }
 }
 
-bool writeback_t::sync_patiently(sync_callback_t *callback) {
-    if (callback)
+void writeback_t::sync_patiently(sync_callback_t *callback) {
+    if (callback) {
         sync_callbacks.push_back(callback);
-
-    return false;
+    }
 }
 
 void writeback_t::begin_transaction(mc_transaction_t *txn) {

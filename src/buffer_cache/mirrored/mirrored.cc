@@ -994,9 +994,7 @@ mc_transaction_t::~mc_transaction_t() {
     if (access == rwi_write && disk_ack_signal != NULL) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        if (cache->writeback.sync_patiently(disk_ack_signal)) {
-            disk_ack_signal->pulse();
-        }
+        cache->writeback.sync_patiently(disk_ack_signal);
 
         cache->on_transaction_commit(this);
     } else {
@@ -1176,9 +1174,10 @@ mc_cache_t::~mc_cache_t() {
             "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
             num_live_writeback_transactions, num_live_non_writeback_transactions);
 
-    /* Perform a final sync */
-    sync_callback_t sync_cb;
-    if (!writeback.sync(&sync_cb)) {
+    {
+        /* Perform a final sync */
+        sync_callback_t sync_cb;
+        writeback.sync(&sync_cb);
         sync_cb.wait();
     }
 
