@@ -428,7 +428,8 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            sync_callback_t *disk_ack_signal)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
@@ -588,13 +589,14 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            sync_callback_t *disk_ack_signal)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor);
+        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor, disk_ack_signal);
     }
 
 private:

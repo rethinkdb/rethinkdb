@@ -477,7 +477,8 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
                                            write_token_pair_t *token_pair,
-                                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                                           signal_t *interruptor,
+                                           sync_callback_t *disk_ack_signal) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
@@ -492,6 +493,8 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
         timestamps[*it] = state_timestamp_t::zero();
     }
     metainfo.update(new_metainfo);
+
+    disk_ack_signal->pulse();
 }
 
 void dummy_protocol_t::store_t::initialize_empty() {

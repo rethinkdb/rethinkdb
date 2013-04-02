@@ -106,7 +106,8 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            sync_callback_t *disk_ack_signal)
         THROWS_ONLY(interrupted_exc_t);
 
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);

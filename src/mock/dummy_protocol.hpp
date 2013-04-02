@@ -161,7 +161,8 @@ public:
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
                         write_token_pair_t *token_pair,
-                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+                        signal_t *interruptor,
+                        sync_callback_t *disk_ack_signal) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;
         std::map<std::string, state_timestamp_t> timestamps;

@@ -135,9 +135,6 @@ void btree_store_t<protocol_t>::receive_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // SAMRSI: Shall disk_ack_signal be passed as a parameter?
-    sync_callback_t disk_ack_signal;
-
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
@@ -145,7 +142,7 @@ void btree_store_t<protocol_t>::receive_backfill(
     acquire_superblock_for_write(rwi_write,
                                  chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
-                                 &disk_ack_signal,
+                                 NULL /* disk ack signal */,
                                  &token_pair->main_write_token,
                                  &txn,
                                  &superblock,
@@ -161,15 +158,13 @@ void btree_store_t<protocol_t>::receive_backfill(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
-        const typename protocol_t::region_t& subregion,
+        const typename protocol_t::region_t &subregion,
         const metainfo_t &new_metainfo,
         write_token_pair_t *token_pair,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        sync_callback_t *disk_ack_signal)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-
-    // SAMRSI: This should be a parameter?
-    sync_callback_t disk_ack_signal;
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -184,7 +179,7 @@ void btree_store_t<protocol_t>::reset_data(
     acquire_superblock_for_write(rwi_write,
                                  repli_timestamp_t::invalid,
                                  expected_change_count,
-                                 &disk_ack_signal,
+                                 disk_ack_signal,
                                  &token_pair->main_write_token,
                                  &txn,
                                  &superblock,
