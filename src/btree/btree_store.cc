@@ -240,11 +240,12 @@ void btree_store_t<protocol_t>::sindex_queue_push(
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
-    for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin(); 
-            it != sindex_queues.end(); ++it) {
-        // SAMRSI: Is this where we want the sync callback?  No.
-        sync_callback_t disk_ack_signal;
-        (*it)->push(&disk_ack_signal, value);
+    // SAMRSI: Do we want to push the disk_ack_signal out?
+    // TODO: With the right datatype we wouldn't need to allocate all these objects.
+    scoped_array_t<scoped_ptr_t<sync_callback_t> > callbacks(sindex_queues.size());
+
+    for (ssize_t i = 0; i < callbacks.size(); ++i) {
+        sindex_queues[i]->push(callbacks[i].get(), value);
     }
 }
 

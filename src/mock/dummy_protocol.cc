@@ -409,7 +409,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
         nap(rng.randint(10));
     }
 
-    // SAMRSI: Support delayed pulsing of the disk ack signal.
     disk_ack_signal->pulse();
 }
 
