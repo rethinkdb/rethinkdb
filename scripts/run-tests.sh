@@ -204,6 +204,7 @@ total=0
 list=()
 
 list_groups () {
+    # FIXME: this is very slow
     groups=
     for group in "$root"/test/full_test/*.group; do
         name=$(basename "$group" .group)
