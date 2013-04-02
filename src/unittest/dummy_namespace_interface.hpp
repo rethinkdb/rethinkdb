@@ -71,7 +71,7 @@ public:
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
-        // SAMRSI: Get disk_ack_signal from the parameter list?
+        // SAMRSI:  Get the disk_ack_signal from the parameter list?  Shouldn't we care when dummying these things?
         sync_callback_t disk_ack_signal;
         store->write(
             DEBUG_ONLY(metainfo_checker, )

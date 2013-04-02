@@ -31,7 +31,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                            1, NULL /* SAMRSI disk ack signal */,
+                                            1, NULL,
                                             &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
@@ -113,7 +113,7 @@ void run_sindex_post_construction() {
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, NULL /* SAMRSI disk ack signal */,
+                                           1, NULL,
                                            &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         Term mapping;
@@ -146,7 +146,7 @@ void run_sindex_post_construction() {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, NULL /* SAMRSI disk ack signal */,
+                                           1, NULL,
                                            &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         scoped_ptr_t<buf_lock_t> sindex_block;
