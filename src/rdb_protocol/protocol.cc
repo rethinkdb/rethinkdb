@@ -399,8 +399,6 @@ public:
                     throw *e;
                 } else if (auto e2 = boost::get<ql::exc_t>(&(_rr->result))) {
                     throw *e2;
-                } else if (auto e3 = boost::get<ql::datum_exc_t>(&(_rr->result))) {
-                    throw *e3;
                 }
             }
 
