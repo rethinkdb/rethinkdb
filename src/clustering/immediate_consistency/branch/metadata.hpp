@@ -29,18 +29,20 @@ public:
     /* These are the types of mailboxes that the master uses to communicate with
     the mirrors. */
 
+    // SAMRSI: What is this mailbox_addr_t<void()>?  Should we also pass a disk_ack_addr like with writeread?
     typedef mailbox_t<void(typename protocol_t::write_t,
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void()>)> write_mailbox_t;
 
+    // SAMRSI: Does the caller actually pass a nil disk ack addr?
     typedef mailbox_t<void(typename protocol_t::write_t,
                            transition_timestamp_t,
                            order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void(typename protocol_t::write_response_t)>,
-                           mailbox_addr_t<void()> disk_ack_addr)> writeread_mailbox_t;
+                           mailbox_addr_t<void()> disk_ack_addr /* can be nil! */)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
                            state_timestamp_t,
