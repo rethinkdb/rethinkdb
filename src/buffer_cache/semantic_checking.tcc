@@ -182,3 +182,8 @@ template<class inner_cache_t>
 bool scc_cache_t<inner_cache_t>::contains_block(block_id_t block_id) {
     return inner_cache.contains_block(block_id);
 }
+
+template<class inner_cache_t>
+unsigned int scc_cache_t<inner_cache_t>::num_blocks() {
+    return inner_cache.num_blocks();
+}

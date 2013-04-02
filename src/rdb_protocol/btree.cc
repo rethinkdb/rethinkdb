@@ -345,6 +345,7 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
         blob.clear(_txn);
 }
 
+//TODO this function needs to update secondary indexes.
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      bool left_key_supplied, const store_key_t& left_key_exclusive,
                      bool right_key_supplied, const store_key_t& right_key_inclusive,

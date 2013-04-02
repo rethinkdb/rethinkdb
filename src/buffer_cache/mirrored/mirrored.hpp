@@ -309,6 +309,8 @@ public:
 
     bool contains_block(block_id_t block_id);
 
+    unsigned int num_blocks();
+
     mc_inner_buf_t::version_id_t get_current_version_id() { return next_snapshot_version; }
 
     // must be O(1)
