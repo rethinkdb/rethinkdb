@@ -208,8 +208,6 @@ void batched_rget_stream_t::read_more() {
             throw *e;
         } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
-        } else if (ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
-            throw *e3;
         }
 
         // todo: just do a straight copy?
