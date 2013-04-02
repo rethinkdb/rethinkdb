@@ -17,7 +17,6 @@ module RethinkDB
     def self.response_to_native(r, orig_term)
       rt = Response::ResponseType
       if r.backtrace
-        PP.pp r.backtrace
         bt = r.backtrace.frames.map {|x|
           x.type == Frame::FrameType::POS ? x.pos : x.opt
         }
