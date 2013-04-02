@@ -12,6 +12,24 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+namespace ql {
+
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+
+class exc_visitor_t : public boost::static_visitor<void> {
+public:
+    exc_visitor_t(const datum_exc_t &_exc, rget_read_response_t::result_t *_res_out)
+        : exc(_exc), res_out(_res_out) { }
+    template<class T>
+    void operator()(const T &func) const {
+        *res_out =  exc_t(exc.what(), func.get_bt(), 1);
+    }
+private:
+    const datum_exc_t exc;
+    rget_read_response_t::result_t *res_out;
+};
+} // namespace ql
+
 namespace query_language {
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
