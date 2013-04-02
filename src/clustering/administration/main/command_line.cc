@@ -247,7 +247,10 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
 #endif  // WEBRESDIR
     }
 
-    return render_as_path(result);
+    // Make sure we return an absolute path
+    base_path_t abs_path(render_as_path(result));
+    abs_path.make_absolute();
+    return abs_path.path();
 }
 
 std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
@@ -1046,7 +1049,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        const std::string web_path = get_web_path(opts, argv);
 
         io_backend_t io_backend = get_io_backend_option(opts);
 
@@ -1168,7 +1171,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
 
         if (write_pid_file(opts) != EXIT_SUCCESS) {
