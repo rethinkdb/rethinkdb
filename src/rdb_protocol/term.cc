@@ -204,8 +204,8 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *src)
-    : pb_rcheckable_t(src), use_cached_val(false), env(_env), cached_val(0) {
+term_t::term_t(env_t *_env, const Term *_src)
+    : pb_rcheckable_t(_src), use_cached_val(false), env(_env), src(_src), cached_val(0) {
     guarantee(env);
 }
 term_t::~term_t() { }
@@ -232,6 +232,10 @@ bool term_t::is_deterministic() const {
     bool b = is_deterministic_impl();
     // DBG("%s det: %d\n", name(), b);
     return b;
+}
+
+const Term *term_t::get_src() const {
+    return src;
 }
 
 val_t *term_t::eval(bool _use_cached_val) {

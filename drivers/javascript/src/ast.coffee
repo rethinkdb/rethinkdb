@@ -256,6 +256,9 @@ class Table extends RDBOp
 
     get: ar (key) -> new Get {}, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
+    sindexCreate: ar (name, defun) -> new SIndexCreate {}, @, name, funcWrap(defun)
+    sindexDrop: ar (name) -> new SIndexDrop {}, @, name
+    sindexList: ar () -> new SIndexList {}, @
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
@@ -467,6 +470,18 @@ class TableList extends RDBOp
     tt: Term.TermType.TABLE_LIST
     mt: 'tableList'
 
+class SIndexCreate extends RDBOp
+    tt: Term.TermType.SINDEX_CREATE
+    mt: 'sindexCreate'
+
+class SIndexDrop extends RDBOp
+    tt: Term.TermType.SINDEX_DROP
+    mt: 'sindexDrop'
+
+class SIndexList extends RDBOp
+    tt: Term.TermType.SINDEX_LIST
+    mt: 'sindexList'
+
 class FunCall extends RDBOp
     tt: Term.TermType.FUNCALL
     compose: (args) ->
@@ -511,15 +526,18 @@ funcWrap = (val) ->
 
 class Func extends RDBOp
     tt: Term.TermType.FUNC
+    @nextVarId: 0
 
     constructor: (optargs, func) ->
         args = []
         argNums = []
         i = 0
         while i < func.length
-            argNums.push i
-            args.push new Var {}, i
+            argNums.push Func.nextVarId
+            args.push new Var {}, Func.nextVarId
+            Func.nextVarId++
             i++
+
         body = func(args...)
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)

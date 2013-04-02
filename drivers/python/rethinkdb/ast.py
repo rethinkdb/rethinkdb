@@ -23,7 +23,7 @@ class RqlQuery(object):
                 c = Connection.repl_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
-            
+
         return c._start(self, **global_opt_args)
 
     def __str__(self):
@@ -515,6 +515,15 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
+    def sindex_create(self, name, fundef):
+        return SIndexCreate(self, name, func_wrap(fundef))
+
+    def sindex_drop(self, name):
+        return SIndexDrop(self, name)
+
+    def sindex_list(self):
+        return SIndexList(self)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', args[1], ')')
@@ -634,6 +643,18 @@ class TableDrop(RqlMethodQuery):
 class TableList(RqlMethodQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
+
+class SIndexCreate(RqlMethodQuery):
+    tt = p.Term.SINDEX_CREATE
+    st = 'sindex_create'
+
+class SIndexDrop(RqlMethodQuery):
+    tt = p.Term.SINDEX_DROP
+    st = 'sindex_drop'
+
+class SIndexList(RqlMethodQuery):
+    tt = p.Term.SINDEX_LIST
+    st = 'sindex_list'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
