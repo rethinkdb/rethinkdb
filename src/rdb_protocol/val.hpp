@@ -37,7 +37,7 @@ public:
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
             return do_replace(d, t, b);
-        } catch (const any_ql_exc_t &e) {
+        } catch (const base_exc_t &e) {
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
             // TODO why is this bool (which is marked as MUST USE not used?)

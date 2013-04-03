@@ -309,7 +309,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
 }   /* anonymous namespace */
 
-void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx, signal_t *) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses, count);
     *response = boost::apply_visitor(v, query);
 }
@@ -342,7 +342,7 @@ write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx, signal_t *) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     guarantee(count == 1);
     *response = responses[0];
