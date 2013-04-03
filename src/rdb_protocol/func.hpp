@@ -100,7 +100,7 @@ public:
     }
 private:
     // We cache a separate function for every environment.
-    std::map<env_t *, func_t *> cached_funcs;
+    std::map<uuid_u, func_t *> cached_funcs;
 
     Term source;
     std::map<int64_t, Datum> scope;

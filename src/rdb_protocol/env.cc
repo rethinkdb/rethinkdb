@@ -269,7 +269,8 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : optargs(_optargs),
+  : uuid(generate_uuid()),
+    optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
     pool(_pool_group->get()),
@@ -289,7 +290,8 @@ env_t::env_t(
 }
 
 env_t::env_t(signal_t *_interruptor)
-  : next_gensym_val(-2),
+  : uuid(generate_uuid()),
+    next_gensym_val(-2),
     implicit_depth(0),
     pool(NULL),
     ns_repo(NULL),

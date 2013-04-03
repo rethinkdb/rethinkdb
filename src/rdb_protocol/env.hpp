@@ -34,6 +34,9 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 class env_t : private home_thread_mixin_t {
 public:
+    const uuid_u uuid;
+
+public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);

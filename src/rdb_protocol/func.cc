@@ -138,7 +138,7 @@ bool func_t::is_deterministic() const {
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) : source(*func->source) {
     if (env) {
-        cached_funcs[env] = func;
+        cached_funcs[env->uuid] = func;
     }
 
     func->dump_scope(&scope);
@@ -149,12 +149,12 @@ wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
 }
 
 func_t *wire_func_t::compile(env_t *env) {
-    if (cached_funcs.count(env) == 0) {
+    if (cached_funcs.count(env->uuid) == 0) {
         env->push_scope(&scope);
-        cached_funcs[env] = compile_term(env, &source)->eval()->as_func();
+        cached_funcs[env->uuid] = compile_term(env, &source)->eval()->as_func();
         env->pop_scope();
     }
-    return cached_funcs[env];
+    return cached_funcs[env->uuid];
 }
 
 func_term_t::func_term_t(env_t *env, const Term *term)
