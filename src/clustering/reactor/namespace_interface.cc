@@ -142,7 +142,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 template <class protocol_t>
@@ -235,7 +235,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 template <class protocol_t>

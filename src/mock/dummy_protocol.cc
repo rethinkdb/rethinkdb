@@ -63,7 +63,9 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t count, dummy_protocol_t::read_response_t *response, DEBUG_VAR context_t *ctx) const {
+void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t
+        count, dummy_protocol_t::read_response_t *response,
+        DEBUG_VAR context_t *ctx, signal_t *) const {
     rassert(ctx != NULL);
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
@@ -78,8 +80,8 @@ void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t coun
     }
 }
 
-void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *ctx) const {
-    unshard(resps, count, response, ctx);
+void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *ctx, signal_t *interruptor) const {
+    unshard(resps, count, response, ctx, interruptor);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -104,7 +106,7 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx) const {
+void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx, signal_t *) const {
     rassert(ctx != NULL);
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
@@ -119,8 +121,8 @@ void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t co
     }
 }
 
-void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx) const {
-    return unshard(resps, count, response, ctx);
+void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx, signal_t *interruptor) const {
+    return unshard(resps, count, response, ctx, interruptor);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
