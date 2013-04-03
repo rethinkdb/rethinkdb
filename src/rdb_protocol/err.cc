@@ -6,13 +6,14 @@
 namespace ql {
 void runtime_check(DEBUG_VAR const char *test, DEBUG_VAR const char *file,
                    DEBUG_VAR int line, bool pred,
-                   std::string msg, const Backtrace *bt_src) {
+                   std::string msg, const Backtrace *bt_src,
+                   int dummy_frames) {
     if (pred) return;
 #ifndef NDEBUG
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(msg, bt_src);
+    throw exc_t(msg, bt_src, dummy_frames);
 }
 void runtime_check(DEBUG_VAR const char *test, DEBUG_VAR const char *file,
                    DEBUG_VAR int line, bool pred, std::string msg) {

@@ -412,6 +412,11 @@ public:
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
             bad_init = true;
+        } catch (const ql::datum_exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                 terminal->variant);
+            bad_init = true;
         }
     }
 
@@ -432,17 +437,25 @@ public:
             {
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
-                    json_list_t tmp;
+                    try {
+                        json_list_t tmp;
 
-                    for (json_list_t::iterator jt  = data.begin();
-                         jt != data.end();
-                         ++jt) {
-                        boost::apply_visitor(query_language::transform_visitor_t(
-                                                 *jt, &tmp, ql_env, it->scopes,
-                                                 it->backtrace), it->variant);
+                        for (json_list_t::iterator jt  = data.begin();
+                             jt != data.end();
+                             ++jt) {
+                            boost::apply_visitor(query_language::transform_visitor_t(
+                                                     *jt, &tmp, ql_env, it->scopes,
+                                                     it->backtrace), it->variant);
+                        }
+                        data.clear();
+                        data.splice(data.begin(), tmp);
+                    } catch (const ql::datum_exc_t &e2) {
+                        /* Evaluation threw so we're not going to be accepting any
+                           more requests. */
+                        boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                             it->variant);
+                        return false;
                     }
-                    data.clear();
-                    data.splice(data.begin(), tmp);
                 }
             }
 
@@ -459,32 +472,40 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                // We use garbage collection during the reduction step, since
-                // most reductions throw away most of the allocate data.
-                ql::env_gc_checkpoint_t egct(ql_env);
-                int i = 0;
-                json_list_t::iterator jt;
-                for (jt = data.begin(); jt != data.end(); ++jt) {
-                    boost::apply_visitor(query_language::terminal_visitor_t(
-                                             *jt, ql_env, terminal->scopes,
-                                             terminal->backtrace, &response->result),
-                                         terminal->variant);
-                    // A reduce returns a `wire_datum_t` and a gmr returns a
-                    // `wire_datum_map_t`
-                    if (ql::wire_datum_t *wd
-                        = boost::get<ql::wire_datum_t>(&terminal->variant)) {
-                        egct.maybe_gc(wd->get());
-                    } else if (ql::wire_datum_map_t *wdm
-                               = boost::get<ql::wire_datum_map_t>(
-                                   &terminal->variant)) {
-                        // TODO: this is a hack because GCing a `wire_datum_map_t` is
-                        // expensive.  Need a better way to do this.
-                        int rounds = 10000 DEBUG_ONLY(/ 5000);
-                        if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
-                    }
+                try {
+                    // We use garbage collection during the reduction step, since
+                    // most reductions throw away most of the allocate data.
+                    ql::env_gc_checkpoint_t egct(ql_env);
+                    int i = 0;
+                    json_list_t::iterator jt;
+                    for (jt = data.begin(); jt != data.end(); ++jt) {
+                        boost::apply_visitor(query_language::terminal_visitor_t(
+                                                 *jt, ql_env, terminal->scopes,
+                                                 terminal->backtrace, &response->result),
+                                             terminal->variant);
+                        // A reduce returns a `wire_datum_t` and a gmr returns a
+                        // `wire_datum_map_t`
+                        if (ql::wire_datum_t *wd
+                            = boost::get<ql::wire_datum_t>(&terminal->variant)) {
+                            egct.maybe_gc(wd->get());
+                        } else if (ql::wire_datum_map_t *wdm
+                                   = boost::get<ql::wire_datum_map_t>(
+                                       &terminal->variant)) {
+                            // TODO: this is a hack because GCing a `wire_datum_map_t` is
+                            // expensive.  Need a better way to do this.
+                            int rounds = 10000 DEBUG_ONLY(/ 5000);
+                            if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
+                        }
 
+                    }
+                    return true;
+                } catch (const ql::datum_exc_t &e2) {
+                    /* Evaluation threw so we're not going to be accepting any
+                       more requests. */
+                    boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                         terminal->variant);
+                    return false;
                 }
-                return true;
             }
         } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */

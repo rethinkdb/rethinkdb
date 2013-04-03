@@ -18,6 +18,7 @@
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/transform_visitors.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
@@ -396,7 +397,7 @@ public:
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
-                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                } else if (auto e2 = boost::get<ql::exc_t>(&(_rr->result))) {
                     throw *e2;
                 }
             }
@@ -468,6 +469,11 @@ public:
             rg_response.result = e;
         } catch (const ql::exc_t &e) {
             rg_response.result = e;
+        } catch (const ql::datum_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any
+               more requests. */
+            boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
+                                 rg.terminal->variant);
         }
     }
 
