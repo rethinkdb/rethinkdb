@@ -822,32 +822,3 @@ void post_construct_secondary_indexes(
                 store->btree.get(), &helper, interruptor);
     }
 }
-
-// Creates a write transaction and touches a block just to make the disk sync.
-void sync_store(btree_store_t<rdb_protocol_t> *store, signal_t *interruptor, sync_callback_t *disk_ack_signal) {
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-
-    // It's okay to spontaneously get a token because this operation doesn't
-    // actually do anything to the cache, so its misordering relative to
-    // unrelated operations is not important.
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
-    store->new_write_token(&token);
-
-    // We acquire a superblock for write, and then get its buffer, so that
-    // we know transaction syncing will actually happen, instead of being
-    // treated as some kind of optimizable "empty" transaction.  The cost of
-    // flushing one extra buffer to disk is negligible, compared to the
-    // secondary index.
-    store->acquire_superblock_for_write(rwi_write,
-                                        repli_timestamp_t::distant_past /* SAMRSI does this produce correct behavior? */,
-                                        1,
-                                        disk_ack_signal,
-                                        &token,
-                                        &txn,
-                                        &superblock,
-                                        interruptor);
-
-    UNUSED void *superblock_buf = superblock->get()->get_data_write();
-}
-
