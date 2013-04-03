@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
-import sys, os, time, subprocess
+import sys, os, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner
+import driver 
 from vcoptparse import *
 
 op = OptParser()

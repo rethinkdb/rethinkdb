@@ -92,6 +92,8 @@ generate_callbacks_for_queries = (casper, query, result) ->
         test.last_result = new_result
 
     callbacks.timeout_do = ->
+        if query.length > 70
+            query = query.slice(0, 70)+'...'
         casper.test.fail "Timeout for query: #{query}"
 
 
@@ -106,7 +108,21 @@ execute_queries casper,
     'r.expr(false)': false
     'r.expr({key: "value"})': {key: "value"}
     'r.expr([14, "hello", null, false])': [14, "hello", null, false]
-    #TODO Add more tests
+    ###
+    'r.dbCreate("footemp")': {created: 1}
+    'r.dbList()': ["footemp"]
+    'r.dbDrop("footemp")': {dropped: 1}
+    'r.dbCreate("foo")': {created: 1}
+    'r.db("foo").tableCreate("bartemp")': {created: 1}
+    'r.db("foo").tableList()': ["bartemp"]
+    'r.db("foo").tableDrop("bartemp")': {dropped: 1}
+    'r.db("foo").tableCreate("bar")': {created: 1}
+    'r.db("foo").table("bar").insert([{id:1, key:1},{id:2, key:2},{id:3, key:3},{id:4, key:4},{id:5, key:5},{id:6, key:6},{id:7, key:7},{id:8, key:8},{id:9, key:9},{id:10, key:10} ])': {inserted: 10}
+    'r.db("foo").tableCreate("baz")': {created: 1}
+    'r.db("foo").table("baz").insert([{id:1, value:"a"},{id:2, value:"b"},{id:3, value:"c"},{id:4, value:"d"},{id:5, value:"e"},{id:6, value:"f"},{id:7, value:"g"},{id:8, value:"h"},{id:9, value:"i"},{id:10, key:10} ])': {inserted: 10}
+    'r.db("foo").table("bar").count()': 10
+    #TODO Add more tests and tests errors
+    ###
 
 casper.then ->
     @test.assertEval (-> return $('.query_history').length > 1), 'History exists'

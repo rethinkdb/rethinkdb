@@ -10,7 +10,7 @@ before_script:
   - sudo npm install -g handlebars@1.0.10
 
 # Build script
-script: ./configure && make DEBUG=1 unit -j 2 && ./scripts/run-tests.sh -f webui-tests-static
+script: ./configure && make DEBUG=1 -j 2 && ./scripts/run-tests.sh -f webui-tests-static
 
 # Notify only on change
 notifications:
