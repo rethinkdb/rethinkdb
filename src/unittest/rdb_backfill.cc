@@ -8,6 +8,7 @@
 #include "extproc/pool.hpp"
 #include "extproc/spawner.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -254,7 +255,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
             }
         } write_callback;
         cond_t non_interruptor;
-        broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore, 
+        broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
                 &write_callback, &non_interruptor);
         write_callback.wait_lazily_unordered();
     }
@@ -299,7 +300,9 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(it->first), sindex_id));
+        store_key_t key(cJSON_print_primary(scoped_cJSON_t(cJSON_Parse(it->second.c_str())).get(), 
+                                            query_language::backtrace_t()));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(key, sindex_id));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -308,7 +311,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
         rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
         auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
         guarantee(result_stream);
-        EXPECT_EQ(result_stream->size(), 1u);
+        ASSERT_EQ(result_stream->size(), 1u);
         EXPECT_EQ(query_language::json_cmp(generate_document(it->second)->get(), result_stream->at(0).second->get()), 0);
     }
 }
