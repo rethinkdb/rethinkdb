@@ -167,4 +167,6 @@ void post_construct_secondary_indexes(
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+void sync_store(btree_store_t<rdb_protocol_t> *store, signal_t *interruptor, sync_callback_t *disk_ack_signal);
+
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

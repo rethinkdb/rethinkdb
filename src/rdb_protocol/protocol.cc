@@ -94,6 +94,7 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
+        sync_callback_t *disk_ack_signal,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING;
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -124,11 +125,14 @@ void bring_sindexes_up_to_date(
         store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
+    // SAMRSI: Push the disk ack signal out further?
+    sync_callback_t disk_ack_signal;
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
                 sindexes_to_bring_up_to_date,
                 store,
                 mod_queue,
+                &disk_ack_signal,
                 auto_drainer_t::lock_t(&store->drainer)));
 }
 
@@ -139,6 +143,7 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
+        sync_callback_t *disk_ack_signal,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING
 {
@@ -159,7 +164,7 @@ void post_construct_and_drain_queue(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
-                NULL,  // SAMRSI: Pass a disk ack signal?
+                NULL /* disk ack signal */,
                 &token_pair.main_write_token,
                 &queue_txn,
                 &queue_superblock,
@@ -186,11 +191,7 @@ void post_construct_and_drain_queue(
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
                 std::vector<char> data_vec;
-                {
-                    // SAMRSI: What to do with this disk ack signal?
-                    sync_callback_t disk_ack_signal;
-                    mod_queue->pop(&disk_ack_signal, &data_vec);
-                }
+                mod_queue->pop(NULL /* disk ack signal */, &data_vec);
                 vector_read_stream_t read_stream(&data_vec);
 
                 rdb_modification_report_t mod_report;
@@ -204,13 +205,15 @@ void post_construct_and_drain_queue(
 
             if (mod_queue->size() == 0) {
                 for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
-                        it != sindexes_to_bring_up_to_date.end(); ++it) {
-                        store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
+                     it != sindexes_to_bring_up_to_date.end(); ++it) {
+                    store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 break;
             }
         }
+
+        sync_store(store, lock.get_drain_signal(), disk_ack_signal);
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
         // indeterminate state and will be cleaned up at a later point.

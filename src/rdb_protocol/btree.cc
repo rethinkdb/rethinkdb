@@ -739,7 +739,7 @@ public:
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
-                NULL,  // SAMRSI: Pass disk ack signal?
+                NULL /* Whoever uses this is responsible for calling sync_store. */,
                 &token_pair.main_write_token,
                 &wtxn,
                 &superblock,
@@ -801,22 +801,53 @@ void post_construct_secondary_indexes(
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
-    post_construct_traversal_helper_t helper(store, 
+    post_construct_traversal_helper_t helper(store,
             sindexes_to_post_construct, interruptor);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
 
+    {
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+
+        store->acquire_superblock_for_read(
+            rwi_read,
+            &read_token,
+            &txn,
+            &superblock,
+            interruptor,
+            true /* USE_SNAPSHOT */);
+        btree_parallel_traversal(txn.get(), superblock.get(),
+                store->btree.get(), &helper, interruptor);
+    }
+}
+
+// Creates a write transaction and touches a block just to make the disk sync.
+void sync_store(btree_store_t<rdb_protocol_t> *store, signal_t *interruptor, sync_callback_t *disk_ack_signal) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
-    store->acquire_superblock_for_read(
-        rwi_read,
-        &read_token,
-        &txn,
-        &superblock,
-        interruptor,
-        true /* USE_SNAPSHOT */);
-    btree_parallel_traversal(txn.get(), superblock.get(), 
-            store->btree.get(), &helper, interruptor);
+    // It's okay to spontaneously get a token because this operation doesn't
+    // actually do anything to the cache, so its misordering relative to
+    // unrelated operations is not important.
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
+    store->new_write_token(&token);
+
+    // We acquire a superblock for write, and then get its buffer, so that
+    // we know transaction syncing will actually happen, instead of being
+    // treated as some kind of optimizable "empty" transaction.  The cost of
+    // flushing one extra buffer to disk is negligible, compared to the
+    // secondary index.
+    store->acquire_superblock_for_write(rwi_write,
+                                        repli_timestamp_t::distant_past /* SAMRSI does this produce correct behavior? */,
+                                        1,
+                                        disk_ack_signal,
+                                        &token,
+                                        &txn,
+                                        &superblock,
+                                        interruptor);
+
+    UNUSED void *superblock_buf = superblock->get()->get_data_write();
 }
+
