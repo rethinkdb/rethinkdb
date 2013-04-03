@@ -258,6 +258,7 @@ private:
         int replicas;
         std::string primary;
         std::string database;
+        std::string durability;
     };
 
     template <class ns_type>
