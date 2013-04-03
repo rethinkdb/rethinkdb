@@ -518,7 +518,7 @@ public:
                                              terminal->variant);
                         boost::apply_visitor(result_gc_visitor, response->result);
                     }
-                    return true
+                    return true;
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */

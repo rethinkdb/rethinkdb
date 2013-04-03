@@ -151,7 +151,7 @@ wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
 func_t *wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env) == 0) {
         env->push_scope(&scope);
-        cached_funcs[env] = compile_term(env, &source)->eval(false)->as_func();
+        cached_funcs[env] = compile_term(env, &source)->eval()->as_func();
         env->pop_scope();
     }
     return cached_funcs[env];

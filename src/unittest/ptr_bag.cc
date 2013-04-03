@@ -27,7 +27,7 @@ TEST(PointerBag, PointerBagAddDelete) {
         ptr_bag_t *bag = new ptr_bag_t();
         bag->add(new bagged_t(allocated));
         ASSERT_EQ(allocated, 1);
-        ASSERT_EQ(allocated * sizeof(bagged_t) * ptr_bag_t::mem_estimate_multiplier, bag->mem_estimate());
+        ASSERT_EQ(allocated * sizeof(bagged_t) * ptr_bag_t::mem_estimate_multiplier, bag->get_mem_estimate());
         delete bag;
     }
     ASSERT_EQ(allocated, 0);
@@ -39,7 +39,7 @@ TEST(PointerBag, PointerBagAddDelete) {
             ASSERT_EQ(i, allocated);
             bag->add(new bagged_t(allocated));
         }
-        ASSERT_EQ(allocated * sizeof(bagged_t) * ptr_bag_t::mem_estimate_multiplier, bag->mem_estimate());
+        ASSERT_EQ(allocated * sizeof(bagged_t) * ptr_bag_t::mem_estimate_multiplier, bag->get_mem_estimate());
         delete bag;
     }
     ASSERT_EQ(allocated, 0);
