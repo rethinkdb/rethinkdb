@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/transform_visitors.hpp"
 
-
 namespace query_language {
 
 transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,

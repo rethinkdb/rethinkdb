@@ -48,6 +48,10 @@ protected:
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
+    eager_datum_stream_t(env_t *env, datum_stream_t *bt_src)
+        : datum_stream_t(env, bt_src) {
+        note_dummy_frame();
+    }
     template<class T>
     eager_datum_stream_t(env_t *env, const T *bt_src)
         : datum_stream_t(env, bt_src) { }
@@ -99,7 +103,6 @@ private:
     datum_stream_t *src;
     datum_stream_t *subsrc;
 };
-
 
 class lazy_datum_stream_t : public datum_stream_t {
 public:
