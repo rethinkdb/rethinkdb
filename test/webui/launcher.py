@@ -4,7 +4,6 @@ import sys, os, time, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, workload_runner
 from vcoptparse import *
-from termcolor import colored, cprint
 
 op = OptParser()
 op["num-nodes"] = IntFlag("--num-nodes", 1)
