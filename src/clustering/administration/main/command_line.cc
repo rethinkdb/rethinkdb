@@ -1059,10 +1059,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
-            return EXIT_FAILURE;
-        }
-
         if (!check_existence(base_path)) {
             fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
             return EXIT_FAILURE;
@@ -1076,6 +1072,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
             return EXIT_SUCCESS;
+        }
+
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
         }
 
         extproc::spawner_info_t spawner_info;
@@ -1174,13 +1174,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
 
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
-            return EXIT_FAILURE;
-        }
-
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
             return EXIT_SUCCESS;
+        }
+
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
         }
 
         extproc::spawner_info_t spawner_info;
@@ -1366,10 +1366,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
-            return EXIT_FAILURE;
-        }
-
         bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
         if (!check_existence(base_path)) {
@@ -1389,6 +1385,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
             return EXIT_SUCCESS;
+        }
+
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
         }
 
         extproc::spawner_info_t spawner_info;
