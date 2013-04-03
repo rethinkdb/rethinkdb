@@ -626,7 +626,7 @@ archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
-/* A target for pmap. Used below by rdb_update_sindexes. */
+/* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         rdb_modification_report_t *modification,
@@ -655,7 +655,6 @@ void rdb_update_single_sindex(
     if (modification->deleted) {
         promise_t<superblock_t *> return_superblock_local;
         {
-
             const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
 
             const ql::datum_t *index =

@@ -909,24 +909,23 @@ struct write_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
-void update_sindexes(rdb_modification_report_t *mod_report) {
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    store->acquire_sindex_block_for_write(
-        token_pair, txn, &sindex_block,
-        sindex_block_id, &interruptor);
+    void update_sindexes(rdb_modification_report_t *mod_report) {
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
+                                              sindex_block_id, &interruptor);
 
-    mutex_t::acq_t acq;
-    store->lock_sindex_queue(sindex_block.get(), &acq);
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(sindex_block.get(), &acq);
 
-    write_message_t wm;
-    wm << *mod_report;
-    store->sindex_queue_push(wm, &acq);
+        write_message_t wm;
+        wm << *mod_report;
+        store->sindex_queue_push(wm, &acq);
 
-    sindex_access_vector_t sindexes;
-    store->aquire_post_constructed_sindex_superblocks_for_write(
-            sindex_block.get(), txn, &sindexes);
-    rdb_update_sindexes(sindexes, mod_report, txn);
-}
+        sindex_access_vector_t sindexes;
+        store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+        rdb_update_sindexes(sindexes, mod_report, txn);
+    }
+
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
     transaction_t *txn;
