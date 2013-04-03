@@ -94,7 +94,6 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        sync_callback_t *disk_ack_signal,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING;
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -125,14 +124,11 @@ void bring_sindexes_up_to_date(
         store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
-    // SAMRSI: Push the disk ack signal out further?
-    sync_callback_t disk_ack_signal;
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
                 sindexes_to_bring_up_to_date,
                 store,
                 mod_queue,
-                &disk_ack_signal,
                 auto_drainer_t::lock_t(&store->drainer)));
 }
 
@@ -143,7 +139,6 @@ void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        sync_callback_t *disk_ack_signal,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING
 {
@@ -212,8 +207,6 @@ void post_construct_and_drain_queue(
                 break;
             }
         }
-
-        sync_store(store, lock.get_drain_signal(), disk_ack_signal);
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
         // indeterminate state and will be cleaned up at a later point.
