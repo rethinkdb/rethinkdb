@@ -135,7 +135,7 @@ class count_wire_func_t {
 public:
     RDB_MAKE_ME_SERIALIZABLE_0()
     const Backtrace *get_bt() const {
-        r_sanity_check(!"SERVER SHOULD NEVER CRASH HERE");
+        r_sanity_check(false); // Server should never crash here.
         unreachable();
     }
 };
