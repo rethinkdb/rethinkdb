@@ -340,12 +340,12 @@ T valgrind_undefined(T value) {
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
-    explicit base_path_t(const std::string& path) : path_(path) { }
+    explicit base_path_t(const std::string& path);
+    const std::string& path() const;
 
-    const std::string& path() const {
-        guarantee(!path_.empty());
-        return path_;
-    }
+    // Make this base_path_t into an absolute path (useful for daemonizing)
+    // This can only be done if the path already exists, which is why we don't do it at construction
+    void make_absolute();
 private:
     std::string path_;
 };

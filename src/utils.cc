@@ -189,7 +189,7 @@ void home_thread_mixin_debug_only_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread) 
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread)
 #ifndef NDEBUG
     : real_home_thread(specified_home_thread)
 #endif
@@ -713,6 +713,20 @@ void delete_all(const char *path) {
     const int max_openfd = 128;
     int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+}
+
+base_path_t::base_path_t(const std::string &path) : path_(path) { }
+
+void base_path_t::make_absolute() {
+    char absolute_path[PATH_MAX];
+    char *res = realpath(path_.c_str(), absolute_path);
+    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
+    path_.assign(absolute_path);
+}
+
+const std::string& base_path_t::path() const {
+    guarantee(!path_.empty());
+    return path_;
 }
 
 std::string temporary_directory_path(const base_path_t& base_path) {
