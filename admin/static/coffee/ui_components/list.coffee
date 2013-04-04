@@ -55,12 +55,13 @@ module 'UIComponents', ->
             # Make sure the model is relevant for this list before we add it
             if @filter model
                 @add_element model
-                @render()
+            @render()
 
         on_remove: (model, collection) =>
             # Make sure the model is relevant for this list before we remove it
             if @filter model
                 @remove_elements model
+            @render()
 
         render: =>
             if @sort?
