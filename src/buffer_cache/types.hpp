@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_TYPES_HPP_
 #define BUFFER_CACHE_TYPES_HPP_
 
@@ -8,23 +8,46 @@
 #include "concurrency/cond_var.hpp"
 #include "serializer/types.hpp"
 
+// sync_callback_t is a cond_t that gets pulsed when on_sync is called
+// sufficiently many times.  It is incorrect to call it more than that many
+// times.  It is incorrect to call it less than that many times (because you'll
+// block a waiter indefinitely).  The default number of times on_sync must be
+// called is 1.  The number can be increased.  Every call to on_sync decreases
+// the number by 1.  When the number reaches 0, cond_t::pulse() is called and
+// waiters will be signaled.
+//
+// Some operations need to wait on multiple disk acks, you see.
+//
+// For many operations that take a sync_callback_t, specifying a null
+// sync_callback_t * will mean "don't try to quickly sync this operation to
+// disk."  Whether you pass a null or non-null sync_callback_t * has an actual
+// effect on the writeback's behavior.
 class sync_callback_t : private cond_t, public intrusive_list_node_t<sync_callback_t> {
     // We privately inherit from cond_t so that nobody can call pulse() or other
     // unrighteous functions.
 public:
-    ~sync_callback_t() {
-        wait();
-    }
+    sync_callback_t() : necessary_sync_count_(1) {}
 
-    void on_sync() {
-        pulse();
-    }
+    // Waits for all the on_syncs!  Calls wait().
+    ~sync_callback_t();
+
+    // This is called when the data has been properly written (and fdatasynced) to disk.
+    void on_sync();
+
+    // Remember that necessary_sync_count starts at 1, so if you want to sync on
+    // N things (instead of just 1), you probably want to increase the sync
+    // count by N-1.
+    void increase_necessary_sync_count(size_t amount);
 
     using cond_t::wait;
 
     // Needed by some things like calls to wait_interruptable, because cond_t is
-    // privately inherited.  This is perfectly safe.
+    // privately inherited.  This is perfectly safe, because you can't pulse a
+    // signal_t, and certainly not a const signal_t.
     const signal_t *as_signal() const { return this; }
+
+private:
+    size_t necessary_sync_count_;
 };
 
 
