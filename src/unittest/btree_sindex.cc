@@ -176,8 +176,6 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store_key_t key("foo");
-
             store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
@@ -188,6 +186,7 @@ void run_sindex_btree_store_api_test() {
             rdb_protocol_t::point_write_response_t response;
             rdb_modification_report_t mod_report;
 
+            store_key_t key("foo");
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
