@@ -206,7 +206,7 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mute
 template <class protocol_t>
 void btree_store_t<protocol_t>::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq) {
+            const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
@@ -220,7 +220,7 @@ void btree_store_t<protocol_t>::register_sindex_queue(
 template <class protocol_t>
 void btree_store_t<protocol_t>::deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq) {
+            const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
@@ -235,7 +235,7 @@ void btree_store_t<protocol_t>::deregister_sindex_queue(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
-                                                  mutex_t::acq_t *acq) {
+                                                  const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 

@@ -114,15 +114,15 @@ public:
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void sindex_queue_push(
             const write_message_t& value,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
