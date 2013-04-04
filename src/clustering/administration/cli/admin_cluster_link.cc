@@ -1615,6 +1615,17 @@ admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(
         result.database.assign(uuid_to_str(ns.database.get()));
     }
 
+    if (ns.ack_expectations.in_conflict()) {
+        result.durability.assign("<conflict>");
+    } else {
+        std::map<datacenter_id_t, ack_expectation_t> acks = ns.ack_expectations.get();
+        if (acks.size() > 0) {
+            result.durability.assign(acks.begin()->second.is_hardly_durable() ? "hard" : "soft");
+        } else {
+            result.durability.assign("-");
+        }
+    }
+
     return result;
 }
 
@@ -1654,6 +1665,7 @@ void admin_cluster_link_t::do_admin_list_tables(const admin_command_parser_t::co
         header.push_back("replicas");
         header.push_back("primary");
         header.push_back("database");
+        header.push_back("durability");
     }
 
     table.push_back(header);
@@ -1723,6 +1735,7 @@ void admin_cluster_link_t::add_namespaces(UNUSED const std::string& protocol,
 
                 delta.push_back(info.primary);
                 delta.push_back(info.database);
+                delta.push_back(info.durability);
             }
 
             table->push_back(delta);
