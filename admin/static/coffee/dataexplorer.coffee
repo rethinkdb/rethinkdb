@@ -587,6 +587,11 @@ module 'DataExplorerView', ->
         # Handle events on codemirror
         # Return true if we want code mirror to ignore the event
         handle_keypress: (editor, event) =>
+            if @ignored_next_keyup is true
+                if event?.type is 'keyup' and event?.which isnt 9
+                    @ignored_next_keyup = false
+                return true
+
             @prototype.focus_on_codemirror = true
 
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
@@ -602,8 +607,13 @@ module 'DataExplorerView', ->
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     return true
-                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false or event.metaKey is false)
+                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
                     if event.type is 'keydown'
+                        if @current_highlighted_suggestion > -1
+                            event.preventDefault()
+                            @handle_keypress()
+                            return true
+
                         previous_char = @get_previous_char()
                         if previous_char of @matching_opening_bracket
                             next_char = @get_next_char()
@@ -621,6 +631,36 @@ module 'DataExplorerView', ->
                                 @show_suggestion()
                                 return true
                             else
+                                # We can retrieve the content of codemirror only on keyup events. The users may write "r." then hit "d" then "tab" If the events are triggered this way
+                                # keydown d - keydown tab - keyup d - keyup tab
+                                # We want to only show the suggestions for r.d
+                                if @written_suggestion is null
+                                    cached_query = @query_first_part+@current_element+@query_last_part
+                                else
+                                    cached_query = @query_first_part+@written_suggestion+@query_last_part
+                                if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
+                                    @current_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
+                                    regex = @create_safe_regex @current_element
+                                    new_suggestions = []
+                                    new_highlighted_suggestion = -1
+                                    for suggestion, index in @current_suggestions
+                                        if index < @current_highlighted_suggestion
+                                            new_highlighted_suggestion = new_suggestions.length
+                                        if regex.test(suggestion) is true
+                                            new_suggestions.push suggestion
+                                    @current_suggestions = new_suggestions
+                                    @current_highlighted_suggestion = new_highlighted_suggestion
+                                    if @current_suggestions.length > 0
+                                        @.$('.suggestion_name_list').empty()
+                                        for suggestion, i in @current_suggestions
+                                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                                id: i
+                                                suggestion: suggestion
+                                        @ignored_next_keyup = true
+                                    else
+                                        @hide_suggestion_and_description()
+
+
                                 # Switch throught the suggestions
                                 if event.shiftKey
                                     @current_highlighted_suggestion--
@@ -684,13 +724,13 @@ module 'DataExplorerView', ->
                 else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
                     if @history_displayed_id < @history.length
                         @history_displayed_id++
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                 else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
-                        @codemirror.setValue @history[@history.length-@history_displayed_id]
+                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                     else if @history_displayed_id is 1
@@ -699,52 +739,15 @@ module 'DataExplorerView', ->
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id]
+                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                     event.preventDefault()
                     return true
-
-            # Codemirror return a position given by line/char.
-            # We need to retrieve the lines first
-            query_lines = @codemirror.getValue().split '\n'
-            # Then let's get query before the cursor
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
-
-            # Get query after the cursor
-            query_after_cursor = query_lines[@codemirror.getCursor().line].slice @codemirror.getCursor().ch
-            if query_lines.length > @codemirror.getCursor().line+1
-                query_after_cursor += '\n'
-                for i in [@codemirror.getCursor().line+1..query_lines.length-1]
-                    if i isnt query_lines.length-1
-                        query_after_cursor += query_lines[i] + '\n'
-                    else
-                        query_after_cursor += query_lines[i]
-
-            # Initialize @current_element, which tracks what the user typed before they hit TAB (to auto-complete).
-            # Tracking this helps us let the user loop over all the suggestions available for the fragment they typed (and go back to the fragment).
-            # We now compute this stack earlier, because we need it for @pair_char
-            # BUT we don't want to save data too early
-            previous_element = @current_element
-            @current_element = ''
-
-            stack = @extract_data_from_query
-                query: query_before_cursor
-                position: 0
-
-            @pair_char(event, stack)
-
-            current_element = @current_element
-            @current_element = previous_element
-
             # If there is a hilighted suggestion, we want to catch enter
             if @$('.suggestion_name_li_hl').length > 0
                 if event?.which is 13
@@ -765,8 +768,17 @@ module 'DataExplorerView', ->
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
 
-            if event?.which isnt 9 # has to be before create_suggestion()
-                @cursor_for_auto_completion = @codemirror.getCursor()
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+            query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
+
+            # Compute the structure of the query written by the user.
+            # We compute it earlier than before because @pair_char also listen on keydown and needs stack
+            stack = @extract_data_from_query
+                query: query_before_cursor
+                position: 0
+
+            @pair_char(event, stack) # Pair brackets/quotes
+
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
                 return false
@@ -784,7 +796,6 @@ module 'DataExplorerView', ->
 
             # Valid step, let's save the data
             @query_last_part = query_after_cursor
-            @current_element = current_element
 
             # If a selection is active, we just catch shift+enter
             if @codemirror.getSelection() isnt ''
@@ -800,6 +811,11 @@ module 'DataExplorerView', ->
                     return false
                 else
                     return true
+
+            @current_suggestions = []
+            @current_element = ''
+            @written_suggestion = null
+            @cursor_for_auto_completion = @codemirror.getCursor()
 
             result =
                 status: null
@@ -824,7 +840,6 @@ module 'DataExplorerView', ->
                 query: query_before_cursor
                 result: result
 
-            @current_suggestions = []
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
                     @current_suggestions.push suggestion
@@ -841,7 +856,7 @@ module 'DataExplorerView', ->
 
             if event?.which is 9 # Catch tab
                 # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
-                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(query_lines[@codemirror.getCursor().line].slice(0, @codemirror.getCursor().ch)) isnt true
+                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
                     return false
@@ -1558,10 +1573,13 @@ module 'DataExplorerView', ->
         # Write the suggestion in the code mirror
         write_suggestion: (args) =>
             suggestion_to_write = args.suggestion_to_write
+
             if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                 @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+                @written_suggestion = suggestion_to_write+')'
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+                @written_suggestion = suggestion_to_write
     
             @codemirror.focus() # Useful if the user used the mouse to select a suggestion
             @codemirror.setCursor
@@ -1633,12 +1651,7 @@ module 'DataExplorerView', ->
         # We could create a new stack with @extract_data_from_query, but that would be a more expensive for not that much
         # We can not use the previous stack too since autocompletion doesn't validate the query until you hit enter (or another key than tab)
         extract_database_used: =>
-            query_lines = @codemirror.getValue().split '\n'
-            query_before_cursor = ''
-            if @codemirror.getCursor().line > 0
-                for i in [0..@codemirror.getCursor().line-1]
-                    query_before_cursor += query_lines[i] + '\n'
-            query_before_cursor += query_lines[@codemirror.getCursor().line].slice 0, @codemirror.getCursor().ch
+            query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
