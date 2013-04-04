@@ -48,6 +48,9 @@ typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 typedef rdb_protocol_t::distribution_read_t distribution_read_t;
 typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
 
+typedef rdb_protocol_t::sindex_list_t sindex_list_t;
+typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -283,6 +286,10 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const distribution_read_t &dg) const {
         return dg.region;
     }
+
+    region_t operator()(UNUSED const sindex_list_t &sl) const {
+        return rdb_protocol_t::monokey_region(store_key_t());
+    }
 };
 
 }   /* anonymous namespace */
@@ -317,6 +324,10 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
         distribution_read_t _dg(dg);
         _dg.region = region;
         return read_t(_dg);
+    }
+
+    read_t operator()(const sindex_list_t &sl) const {
+        return read_t(sl);
     }
 
     const region_t &region;
@@ -539,6 +550,12 @@ public:
         response_out->response = res;
     }
 
+    void operator()(UNUSED const sindex_list_t &sl) {
+        guarantee(count == 1);
+        guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
+        *response_out = responses[0];
+    }
+
 private:
     const read_response_t *responses;
     size_t count;
@@ -739,6 +756,19 @@ struct read_visitor_t : public boost::static_visitor<void> {
         }
 
         res.region = dg.region;
+    }
+
+    void operator()(UNUSED const sindex_list_t &sinner) {
+        response->response = sindex_list_response_t();
+        sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
+
+        std::map<uuid_u, secondary_index_t> sindexes;
+        store->get_sindexes(&sindexes, token_pair, txn, superblock, &interruptor);
+
+        res->sindexes.reserve(sindexes.size());
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            res->sindexes.push_back(it->first);
+        }
     }
 
     read_visitor_t(btree_slice_t *_btree,
@@ -1263,6 +1293,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, ins
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
                            result, errors, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
@@ -1270,6 +1301,7 @@ RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, transform, terminal, optargs);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
