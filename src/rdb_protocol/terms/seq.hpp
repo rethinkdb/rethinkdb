@@ -47,7 +47,7 @@ private:
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(2)), src_term(term) { }
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         val_t *v0 = arg(0), *v1 = arg(1);
@@ -60,8 +60,6 @@ private:
         }
     }
     virtual const char *name() const { return "filter"; }
-
-    const Term *src_term;
 };
 
 static const char *const reduce_optargs[] = {"base"};
