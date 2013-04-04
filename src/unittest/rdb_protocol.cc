@@ -144,7 +144,7 @@ TEST(RDBProtocol, GetSet) {
 }
 
 void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    uuid_u id = generate_uuid();
+    std::string id("sid");
     query_language::backtrace_t b;
     {
         /* Create a secondary index. */
@@ -254,7 +254,7 @@ TEST(RDBProtocol, SindexCreateDrop) {
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    uuid_u sindex_id = generate_uuid();
+    std::string id("sid");
     query_language::backtrace_t b;
     {
         /* Create a secondary index. */
@@ -264,7 +264,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
         ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -308,7 +308,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                             store_key_t(
                                 cJSON_print_primary(
                                     scoped_cJSON_t(cJSON_CreateString(sid.c_str())).get(), b)),
-                                sindex_id));
+                                id));
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
@@ -333,7 +333,7 @@ TEST(RDBProtocol, DISABLED_OverSizedKeys) {
 }
 
 void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    uuid_u sindex_id = generate_uuid();
+    std::string id("sid");
     query_language::backtrace_t b;
     {
         /* Create a secondary index. */
@@ -343,7 +343,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
 
         ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;

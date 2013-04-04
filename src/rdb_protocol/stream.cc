@@ -110,7 +110,7 @@ batched_rget_stream_t::batched_rget_stream_t(
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
+                      signal_t *_interruptor, key_range_t _range, const std::string &_sindex_id,
                       const std::map<std::string, ql::wire_func_t> &_optargs,
                       bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
