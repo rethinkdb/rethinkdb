@@ -54,7 +54,7 @@ private:
         func_t *f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<table_t *, datum_stream_t *> ts = v0->as_selection();
-            return new_val(ts.first, ts.second->filter(f));
+            return new_val(ts.second->filter(f), ts.first);
         } else {
             return new_val(v0->as_seq()->filter(f));
         }
@@ -102,7 +102,7 @@ private:
         std::pair<table_t *, datum_stream_t *> sel = arg(0)->as_selection();
         val_t *lb = optarg("left_bound", 0);
         val_t *rb = optarg("right_bound", 0);
-        if (!lb && !rb) return new_val(sel.first, sel.second);
+        if (!lb && !rb) return new_val(sel.second, sel.first);
 
         table_t *tbl = sel.first;
         const std::string &pk = tbl->get_pkey();
@@ -119,7 +119,7 @@ private:
         }
 
         guarantee(filter_func.has());
-        return new_val(tbl, seq->filter(env->new_func(filter_func.get())));
+        return new_val(seq->filter(env->new_func(filter_func.get())), tbl);
     }
     virtual const char *name() const { return "between"; }
 

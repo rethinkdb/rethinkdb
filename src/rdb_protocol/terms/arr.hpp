@@ -109,7 +109,7 @@ private:
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
             datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
-            return t ? new_val(t, new_ds) : new_val(new_ds);
+            return t ? new_val(new_ds, t) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
         unreachable();
@@ -136,7 +136,7 @@ private:
         } else {
             new_ds = ds->slice(0, r-1); // note that both bounds are inclusive
         }
-        return t ? new_val(t, new_ds) : new_val(new_ds);
+        return t ? new_val(new_ds, t) : new_val(new_ds);
     }
     virtual const char *name() const { return "limit"; }
 };

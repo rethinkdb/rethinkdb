@@ -11,6 +11,7 @@
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -161,7 +162,8 @@ void rdb_replace(btree_slice_t *slice,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
-                 Datum *response_out) {
+                 Datum *response_out,
+                 rdb_modification_report_t *mod_report_out) {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -212,13 +214,16 @@ void rdb_replace(btree_slice_t *slice,
             } else {
                 conflict = resp->add("inserted", num_1);
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
-                kv_location_set(&kv_location, key, new_val->as_json(),
+                boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
+                kv_location_set(&kv_location, key, new_val_as_json,
                                 slice, timestamp, txn);
+                mod_report_out->added = new_val_as_json;
             }
         } else {
             if (ended_empty) {
                 conflict = resp->add("deleted", num_1);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
+                mod_report_out->deleted = old_val->as_json();
             } else {
                 if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
                     if (*old_val == *new_val) {
@@ -226,8 +231,12 @@ void rdb_replace(btree_slice_t *slice,
                     } else {
                         conflict = resp->add("replaced", num_1);
                         r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
-                        kv_location_set(&kv_location, key, new_val->as_json(),
+                        boost::shared_ptr<scoped_cJSON_t> new_val_as_json
+                            = new_val->as_json();
+                        kv_location_set(&kv_location, key, new_val_as_json,
                                         slice, timestamp, txn);
+                        mod_report_out->added = new_val_as_json;
+                        mod_report_out->deleted = old_val->as_json();
                     }
                 } else {
                     rfail_target(
@@ -250,11 +259,20 @@ void rdb_replace(btree_slice_t *slice,
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response) {
+             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             rdb_modification_report_t *mod_report) {
     //block_size_t block_size = slice->cache()->get_block_size();
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool had_value = kv_location.value.has();
+
+    /* update the modification report */
+    if (kv_location.value.has()) {
+        mod_report->deleted = get_data(kv_location.value.get(), txn);
+    }
+
+    mod_report->added = data;
+
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, data, slice, timestamp, txn);
     }
@@ -286,6 +304,10 @@ public:
         cb_->on_keyvalue(atom, interruptor);
     }
 
+    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        cb_->on_sindexes(sindexes, interruptor);
+    }
+
     rdb_backfill_callback_t *cb_;
     key_range_t kr_;
 };
@@ -293,21 +315,34 @@ public:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
         transaction_t *txn, superblock_t *superblock,
+        buf_lock_t *sindex_block,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
 }
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp, transaction_t *txn,
-                superblock_t *superblock, point_delete_response_t *response) {
+                superblock_t *superblock, point_delete_response_t *response,
+                rdb_modification_report_t *mod_report_out) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool exists = kv_location.value.has();
+
+    /* Update the modification report. */
+    if (exists) {
+        mod_report_out->deleted = get_data(kv_location.value.get(), txn);
+    }
+
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
     response->result = (exists ? DELETED : MISSING);
+}
+
+void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
+        blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
+        blob.clear(_txn);
 }
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
@@ -318,12 +353,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    struct : public value_deleter_t {
-        void delete_value(transaction_t *_txn, void *_value) {
-            blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
-            blob.clear(_txn);
-        }
-    } deleter;
+    rdb_value_deleter_t deleter;
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
@@ -557,3 +587,250 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
     }
 }
 
+namespace {
+enum rdb_modification_has_value_t {
+    HAS_VALUE,
+    HAS_NO_VALUE
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rdb_modification_has_value_t, int8_t, HAS_VALUE, HAS_NO_VALUE);
+} //anonymous namespace
+
+void rdb_modification_report_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    msg << primary_key;
+    if (!deleted.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << deleted;
+    }
+
+    if (!added.get()) {
+        msg << HAS_NO_VALUE;
+    } else {
+        msg << HAS_VALUE;
+        msg << added;
+    }
+}
+
+archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res;
+
+    res = deserialize(s, &primary_key);
+    if (res) { return res; }
+
+    rdb_modification_has_value_t has_value;
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &deleted);
+        if (res) { return res; }
+    }
+
+    res = deserialize(s, &has_value);
+    if (res) { return res; }
+
+    if (has_value == HAS_VALUE) {
+        res = deserialize(s, &added);
+        if (res) { return res; }
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
+typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+
+/* A target for pmap. Used below by rdb_update_sindexes. */
+void rdb_update_single_sindex(
+        const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
+        rdb_modification_report_t *modification,
+        transaction_t *txn,
+        auto_drainer_t::lock_t) {
+    //Note if you get this error it's likely that you've passed in a default
+    //constructed mod_report. Don't do that mod reports should always be passed
+    //to a function as an output parameter before they're passed to this
+    //function.
+    guarantee(modification->primary_key.size() != 0);
+    ql::map_wire_func_t mapping;
+    vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
+    int success = deserialize(&read_stream, &mapping);
+    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+
+    //TODO we just use a NULL environment here. People should not be able
+    //to do anything that requires an environment like gets from other
+    //tables etc. but we don't have a nice way to disallow those things so
+    //for now we pass null and it will segfault if an illegal sindex
+    //mapping is passed.
+    cond_t non_interruptor;
+    ql::env_t env(&non_interruptor);
+
+    superblock_t *super_block = sindex->super_block.get();
+
+    if (modification->deleted) {
+        promise_t<superblock_t *> return_superblock_local;
+        {
+
+            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
+
+            const ql::datum_t *index =
+                mapping.compile(&env)->call(deleted)->as_datum();
+
+            store_key_t sindex_key(index->print_secondary(modification->primary_key));
+
+            keyvalue_location_t<rdb_value_t> kv_location;
+
+            find_keyvalue_location_for_write(txn, super_block,
+                    sindex_key.btree_key(), &kv_location,
+                    &sindex->btree->root_eviction_priority, &sindex->btree->stats,
+                    &return_superblock_local);
+
+            kv_location_delete(&kv_location, sindex_key,
+                        sindex->btree, repli_timestamp_t::distant_past, txn);
+            //The keyvalue location gets destroyed here.
+        }
+        super_block = return_superblock_local.wait();
+    }
+
+    if (modification->added) {
+        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
+
+        const ql::datum_t *index =
+            mapping.compile(&env)->call(added)->as_datum();
+
+        store_key_t sindex_key(index->print_secondary(modification->primary_key));
+
+        keyvalue_location_t<rdb_value_t> kv_location;
+
+        promise_t<superblock_t *> dummy;
+        find_keyvalue_location_for_write(txn, super_block,
+                sindex_key.btree_key(), &kv_location,
+                &sindex->btree->root_eviction_priority, &sindex->btree->stats,
+                &dummy);
+
+        kv_location_set(&kv_location, sindex_key,
+                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
+    }
+}
+
+void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
+        rdb_modification_report_t *modification,
+        transaction_t *txn) {
+    auto_drainer_t drainer;
+
+    for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+                                                it != sindexes.end();
+                                                ++it) {
+        coro_t::spawn_sometime(boost::bind(
+                    &rdb_update_single_sindex, &*it,
+                    modification, txn, auto_drainer_t::lock_t(&drainer)));
+    }
+}
+
+class post_construct_traversal_helper_t : public btree_traversal_helper_t {
+public:
+    post_construct_traversal_helper_t(
+            btree_store_t<rdb_protocol_t> *store,
+            const std::set<uuid_u> &sindexes_to_post_construct,
+            signal_t *interruptor
+            )
+        : store_(store),
+          sindexes_to_post_construct_(sindexes_to_post_construct),
+          interruptor_(interruptor)
+    { }
+
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
+                        const btree_key_t *, const btree_key_t *,
+                        signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
+        write_token_pair_t token_pair;
+        store_->new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> wtxn;
+        btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+        {
+            scoped_ptr_t<real_superblock_t> superblock;
+
+            store_->acquire_superblock_for_write(
+                rwi_write,
+                repli_timestamp_t::distant_past,
+                2,
+                &token_pair.main_write_token,
+                &wtxn,
+                &superblock,
+                interruptor_);
+
+            scoped_ptr_t<buf_lock_t> sindex_block;
+            store_->acquire_sindex_block_for_write(
+                &token_pair,
+                wtxn.get(),
+                &sindex_block,
+                superblock->get_sindex_block_id(),
+                interruptor_);
+
+            store_->acquire_sindex_superblocks_for_write(
+                    sindexes_to_post_construct_,
+                    sindex_block.get(),
+                    wtxn.get(),
+                    &sindexes);
+        }
+
+        const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
+
+        const btree_key_t *key;
+        while ((key = node_iter.get_key(leaf_node))) {
+            /* Grab relevant values from the leaf node. */
+            const void *value = node_iter.get_value(leaf_node);
+            guarantee(key);
+            node_iter.step(leaf_node);
+
+            store_key_t pk(key);
+            rdb_modification_report_t mod_report(pk);
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            mod_report.added = get_data(rdb_value, txn);
+
+            rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
+        }
+    }
+
+    void postprocess_internal_node(buf_lock_t *) { }
+
+    void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+        for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
+            cb->receive_interesting_child(i);
+        }
+        cb->no_more_interesting_children();
+    }
+
+    access_t btree_superblock_mode() { return rwi_read; }
+    access_t btree_node_mode() { return rwi_read; }
+
+    btree_store_t<rdb_protocol_t> *store_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
+    signal_t *interruptor_;
+};
+
+void post_construct_secondary_indexes(
+        btree_store_t<rdb_protocol_t> *store,
+        const std::set<uuid_u> &sindexes_to_post_construct,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+    post_construct_traversal_helper_t helper(store, 
+            sindexes_to_post_construct, interruptor);
+
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    store->new_read_token(&read_token);
+
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+
+    store->acquire_superblock_for_read(
+        rwi_read,
+        &read_token,
+        &txn,
+        &superblock,
+        interruptor,
+        true /* USE_SNAPSHOT */);
+    btree_parallel_traversal(txn.get(), superblock.get(), 
+            store->btree.get(), &helper, interruptor);
+}

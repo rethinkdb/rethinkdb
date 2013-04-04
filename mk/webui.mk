@@ -32,6 +32,8 @@ FONTS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/images
 FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
 
+HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
+
 .PHONY: $(TOP)/admin/all
 $(TOP)/admin/all: web-assets
 
@@ -65,7 +67,7 @@ $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_AS
 	$P CP
 	cp -pRP $< $@
 
-$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(WEB_SOURCE_DIR)/static/handlebars $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 

@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
-#include <ftw.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,37 +28,6 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-
-int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
-    int res = ::remove(path);
-    guarantee_err(res == 0, "remove syscall failed");
-    return 0;
-}
-
-void delete_all(const char *path) {
-    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
-    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
-    // and closing directories extra times if it needs to go deeper than that).
-    const int max_openfd = 128;
-    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
-    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
-}
-
-std::string temporary_directory_path(const base_path_t& base_path) {
-    return base_path.path() + "/tmp";
-}
-
-void recreate_temporary_directory(const base_path_t& base_path) {
-    const std::string path = temporary_directory_path(base_path);
-
-    delete_all(path.c_str());
-
-    int res;
-    do {
-        res = mkdir(path.c_str(), 0755);
-    } while (res == -1 && errno == EINTR);
-    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
-}
 
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
@@ -256,7 +224,11 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             // Verify that all specified addresses are valid ip addresses
             struct in_addr addr;
             if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
-                set_filter.insert(ip_address_t(addr));
+                if (addr.s_addr == INADDR_ANY) {
+                    all = true;
+                } else {
+                    set_filter.insert(ip_address_t(addr));
+                }
             } else {
                 throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
             }
@@ -649,7 +621,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,

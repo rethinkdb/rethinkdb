@@ -93,7 +93,7 @@ private:
         }
         datum_stream_t *s = new sort_datum_stream_t<lt_cmp_t>(
             env, lt_cmp, seq, this);
-        return tbl ? new_val(tbl, s) : new_val(s);
+        return tbl ? new_val(s, tbl) : new_val(s);
     }
     virtual const char *name() const { return "orderby"; }
 

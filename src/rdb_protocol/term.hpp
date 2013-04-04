@@ -38,7 +38,7 @@ public:
     val_t *new_val(datum_t *d, table_t *t); // shadow vvv
     val_t *new_val(const datum_t *d, table_t *t);
     val_t *new_val(datum_stream_t *s);
-    val_t *new_val(table_t *t, datum_stream_t *s);
+    val_t *new_val(datum_stream_t *s, table_t *t);
     val_t *new_val(uuid_u db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
