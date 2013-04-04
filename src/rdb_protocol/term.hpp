@@ -51,11 +51,15 @@ public:
 
     virtual bool is_deterministic() const;
 
+    const Term *get_src() const;
 protected:
     env_t *env;
+
 private:
     virtual val_t *eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
+
+    const Term *src;
 };
 
 term_t *compile_term(env_t *env, const Term *t);

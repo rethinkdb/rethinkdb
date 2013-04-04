@@ -9,8 +9,10 @@
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, term_t *parent)
-    : pb_rcheckable_t(parent), body(0), source(0),
-      js_parent(parent), js_env(env), js_id(id) { }
+    : pb_rcheckable_t(parent), body(0), source(parent->get_src()),
+      js_parent(parent), js_env(env), js_id(id) {
+    env->dump_scope(&scope);
+}
 
 func_t::func_t(env_t *env, const Term *_source)
     : pb_rcheckable_t(_source), body(0), source(_source),
@@ -75,7 +77,7 @@ func_t::func_t(env_t *env, const Term *_source)
 val_t *func_t::call(const std::vector<const datum_t *> &args) {
     try {
         if (js_parent != NULL) {
-            r_sanity_check(!body && !source && js_env);
+            r_sanity_check(!body && source && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
             for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
@@ -123,7 +125,6 @@ val_t *func_t::call(const datum_t *arg1, const datum_t *arg2) {
 }
 
 void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
-    r_sanity_check(body && source && !js_env && !js_parent);
     for (std::map<int64_t, const datum_t **>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
         if (!*it->second) continue;
@@ -150,7 +151,7 @@ wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
 func_t *wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env) == 0) {
         env->push_scope(&scope);
-        cached_funcs[env] = env->new_func(&source);
+        cached_funcs[env] = compile_term(env, &source)->eval()->as_func();
         env->pop_scope();
     }
     return cached_funcs[env];
