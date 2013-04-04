@@ -8,7 +8,10 @@
 #include "concurrency/cond_var.hpp"
 #include "serializer/types.hpp"
 
-struct sync_callback_t : public cond_t, public intrusive_list_node_t<sync_callback_t> {
+class sync_callback_t : private cond_t, public intrusive_list_node_t<sync_callback_t> {
+    // We privately inherit from cond_t so that nobody can call pulse() or other
+    // unrighteous functions.
+public:
     ~sync_callback_t() {
         wait();
     }
@@ -16,6 +19,12 @@ struct sync_callback_t : public cond_t, public intrusive_list_node_t<sync_callba
     void on_sync() {
         pulse();
     }
+
+    using cond_t::wait;
+
+    // Needed by some things like calls to wait_interruptable, because cond_t is
+    // privately inherited.  This is perfectly safe.
+    const signal_t *as_signal() const { return this; }
 };
 
 

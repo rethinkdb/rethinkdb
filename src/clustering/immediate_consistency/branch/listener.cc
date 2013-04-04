@@ -479,7 +479,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         interruptor);
 
     // SAMRSI: Is this how we want to wait?
-    wait_interruptible(&disk_ack_signal, interruptor);
+    wait_interruptible(disk_ack_signal.as_signal(), interruptor);
 }
 
 template <class protocol_t>
@@ -560,7 +560,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         send(mailbox_manager_, ack_addr, response);
 
         if (disk_ack_signal.has()) {
-            wait_interruptible(disk_ack_signal.get(), keepalive.get_drain_signal());
+            wait_interruptible(disk_ack_signal->as_signal(), keepalive.get_drain_signal());
             send(mailbox_manager_, disk_ack_addr);
         }
 

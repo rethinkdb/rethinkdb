@@ -409,7 +409,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
         nap(rng.randint(10));
     }
 
-    disk_ack_signal->pulse();
+    disk_ack_signal->on_sync();
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
@@ -493,7 +493,7 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
     }
     metainfo.update(new_metainfo);
 
-    disk_ack_signal->pulse();
+    disk_ack_signal->on_sync();
 }
 
 void dummy_protocol_t::store_t::initialize_empty() {
