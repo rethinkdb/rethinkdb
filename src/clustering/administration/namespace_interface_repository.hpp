@@ -16,23 +16,19 @@ round-trips. */
 template <class> class watchable_t;
 template <class> class namespaces_directory_metadata_t;
 
-
 template <class protocol_t>
-class namespace_repo_t : public home_thread_mixin_t {
-private:
+class base_namespace_repo_t {
+protected:
     struct namespace_cache_entry_t;
-    struct namespace_cache_t;
 
 public:
-    namespace_repo_t(mailbox_manager_t *,
-                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
-                     typename protocol_t::context_t *);
-    ~namespace_repo_t();
+    base_namespace_repo_t() { }
+    virtual ~base_namespace_repo_t() { }
 
     class access_t {
     public:
         access_t();
-        access_t(namespace_repo_t *parent, uuid_u namespace_id, signal_t *interruptor);
+        access_t(base_namespace_repo_t *parent, const uuid_u &ns_id, signal_t *interruptor);
         access_t(const access_t& access);
         access_t &operator=(const access_t &access);
 
@@ -53,12 +49,8 @@ public:
         int thread;
     };
 
-private:
-    void create_and_destroy_namespace_interface(
-            namespace_cache_t *cache,
-            uuid_u namespace_id,
-            auto_drainer_t::lock_t keepalive)
-            THROWS_NOTHING;
+protected:
+    virtual namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id) = 0;
 
     struct namespace_cache_entry_t {
     public:
@@ -67,6 +59,27 @@ private:
         cond_t *pulse_when_ref_count_becomes_zero;
         cond_t *pulse_when_ref_count_becomes_nonzero;
     };
+};
+
+template <class protocol_t>
+class namespace_repo_t : public base_namespace_repo_t<protocol_t>, public home_thread_mixin_t {
+private:
+    struct namespace_cache_t;
+
+public:
+    namespace_repo_t(mailbox_manager_t *,
+                     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >,
+                     typename protocol_t::context_t *);
+    ~namespace_repo_t();
+
+private:
+    void create_and_destroy_namespace_interface(
+            namespace_cache_t *cache,
+            const uuid_u &namespace_id,
+            auto_drainer_t::lock_t keepalive)
+            THROWS_NOTHING;
+
+    typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *get_cache_entry(const uuid_u &ns_id);
 
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;

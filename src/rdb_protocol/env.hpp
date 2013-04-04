@@ -112,11 +112,11 @@ public:
 public:
     void merge_checkpoint(); // Merge in all allocations since checkpoint
     void discard_checkpoint(); // Discard all allocations since checkpoint
+    size_t num_checkpoints() const; // number of checkpoints
 private:
     void checkpoint(); // create a new checkpoint
     friend class env_checkpoint_t;
     friend class env_gc_checkpoint_t;
-    size_t num_checkpoints(); // number of checkpoints
     bool some_bag_has(const ptr_baggable_t *p);
 
 private:
@@ -141,7 +141,7 @@ public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
     env_t(
         extproc::pool_group_t *_pool_group,
-        namespace_repo_t<rdb_protocol_t> *_ns_repo,
+        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
             _namespaces_semilattice_metadata,
@@ -158,7 +158,7 @@ public:
     ~env_t();
 
     extproc::pool_t *pool;      // for running external JS jobs
-    namespace_repo_t<rdb_protocol_t> *ns_repo;
+    base_namespace_repo_t<rdb_protocol_t> *ns_repo;
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
         namespaces_semilattice_metadata;
@@ -206,6 +206,20 @@ public:
         return js_runner;
     }
 
+    // This is a callback used in unittests to control things during a query
+    class eval_callback_t {
+    public:
+        virtual ~eval_callback_t() { }
+        virtual void eval_callback() = 0;
+    };
+
+    void set_eval_callback(eval_callback_t *callback);
+    void do_eval_callback();
+
+private:
+    eval_callback_t *eval_callback;
+
+public:
     signal_t *interruptor;
     uuid_u this_machine;
 
