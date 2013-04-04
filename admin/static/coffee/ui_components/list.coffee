@@ -53,9 +53,12 @@ module 'UIComponents', ->
         on_add: (model, collection) =>
             # When an element is added to the collection, create a view for it
             # Make sure the model is relevant for this list before we add it
+            need_to_render = false
             if @filter model
+                need_to_render = true
                 @add_element model
-            @render()
+            if need_to_render is true
+                @render()
 
         on_remove: (model, collection) =>
             # Make sure the model is relevant for this list before we remove it
