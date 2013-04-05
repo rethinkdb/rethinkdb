@@ -36,7 +36,6 @@ class mock_namespace_interface_t : public namespace_interface_t<rdb_protocol_t> 
 private:
     std::map<store_key_t, scoped_cJSON_t*> data;
     mock_namespace_repo_t *parent;
-    ql::env_t *env;
 
 public:
     mock_namespace_interface_t(mock_namespace_repo_t *_parent);
