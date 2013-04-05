@@ -465,21 +465,19 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
-    sync_callback_t disk_ack_signal;
+    // SAMRSI: But do we want a disk ack when backfilling is complete?
+    // This isn't used for client writes, so we don't want to wait for a disk ack.
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
-        &disk_ack_signal,
+        NULL /* disk ack signal */,
         qe.transition_timestamp,
         qe.order_token,
         &write_token_pair,
         interruptor);
-
-    // SAMRSI: Is this how we want to wait?
-    wait_interruptible(disk_ack_signal.as_signal(), interruptor);
 }
 
 template <class protocol_t>
