@@ -629,7 +629,7 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
-        const rdb_modification_report_t *modification,
+        rdb_modification_report_t *modification,
         transaction_t *txn,
         auto_drainer_t::lock_t) {
     //Note if you get this error it's likely that you've passed in a default
@@ -698,7 +698,7 @@ void rdb_update_single_sindex(
 }
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification,
+        rdb_modification_report_t *modification,
         transaction_t *txn) {
     auto_drainer_t drainer;
 

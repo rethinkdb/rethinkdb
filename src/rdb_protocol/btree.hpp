@@ -158,7 +158,7 @@ struct rdb_modification_report_t {
 };
 
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
+                         rdb_modification_report_t *modification,
                          transaction_t *txn);
 
 void post_construct_secondary_indexes(

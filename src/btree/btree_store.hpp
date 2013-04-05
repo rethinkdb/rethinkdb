@@ -120,9 +120,9 @@ public:
             internal_disk_backed_queue_t *disk_backed_queue,
             const mutex_t::acq_t *acq);
 
-    void sindex_queue_push(const write_message_t& value,
-                           const mutex_t::acq_t *acq,
-                           sync_callback_t *disk_ack_signal);
+    void sindex_queue_push(
+            const write_message_t& value,
+            const mutex_t::acq_t *acq);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,

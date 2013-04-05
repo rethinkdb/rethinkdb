@@ -235,18 +235,17 @@ void btree_store_t<protocol_t>::deregister_sindex_queue(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
-                                                  const mutex_t::acq_t *acq,
-                                                  sync_callback_t *disk_ack_signal) {
+                                                  const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
-    if (sindex_queues.empty()) {
-        disk_ack_signal->on_sync();
-    } else {
-        disk_ack_signal->increase_necessary_sync_count(sindex_queues.size() - 1);
+    if (!sindex_queues.empty()) {
+        // SAMRSI: Do we want to push the disk_ack_signal out?
+        sync_callback_t disk_ack_signal;
+        disk_ack_signal.increase_necessary_sync_count(sindex_queues.size() - 1);
 
         for (size_t i = 0; i < sindex_queues.size(); ++i) {
-            sindex_queues[i]->push(disk_ack_signal, value);
+            sindex_queues[i]->push(&disk_ack_signal, value);
         }
     }
 }
