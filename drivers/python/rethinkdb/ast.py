@@ -12,7 +12,7 @@ class RqlQuery(object):
 
         self.optargs = {}
         for k in optargs.keys():
-            if optargs[k] == ():
+            if not isinstance(optargs[k], RqlQuery) and optargs[k] == ():
                 continue
             self.optargs[k] = expr(optargs[k])
 
