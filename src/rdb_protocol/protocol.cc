@@ -18,6 +18,7 @@
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/transform_visitors.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
@@ -46,6 +47,9 @@ typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
 typedef rdb_protocol_t::distribution_read_t distribution_read_t;
 typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_t;
+
+typedef rdb_protocol_t::sindex_list_t sindex_list_t;
+typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
 
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
@@ -282,6 +286,10 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const distribution_read_t &dg) const {
         return dg.region;
     }
+
+    region_t operator()(UNUSED const sindex_list_t &sl) const {
+        return rdb_protocol_t::monokey_region(store_key_t());
+    }
 };
 
 }   /* anonymous namespace */
@@ -316,6 +324,10 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
         distribution_read_t _dg(dg);
         _dg.region = region;
         return read_t(_dg);
+    }
+
+    read_t operator()(const sindex_list_t &sl) const {
+        return read_t(sl);
     }
 
     const region_t &region;
@@ -396,7 +408,7 @@ public:
 
                 if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
-                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&(_rr->result))) {
+                } else if (auto e2 = boost::get<ql::exc_t>(&(_rr->result))) {
                     throw *e2;
                 }
             }
@@ -468,6 +480,11 @@ public:
             rg_response.result = e;
         } catch (const ql::exc_t &e) {
             rg_response.result = e;
+        } catch (const ql::datum_exc_t &e) {
+            /* Evaluation threw so we're not going to be accepting any
+               more requests. */
+            boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
+                                 rg.terminal->variant);
         }
     }
 
@@ -531,6 +548,12 @@ public:
         }
 
         response_out->response = res;
+    }
+
+    void operator()(UNUSED const sindex_list_t &sl) {
+        guarantee(count == 1);
+        guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
+        *response_out = responses[0];
     }
 
 private:
@@ -733,6 +756,19 @@ struct read_visitor_t : public boost::static_visitor<void> {
         }
 
         res.region = dg.region;
+    }
+
+    void operator()(UNUSED const sindex_list_t &sinner) {
+        response->response = sindex_list_response_t();
+        sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
+
+        std::map<uuid_u, secondary_index_t> sindexes;
+        store->get_sindexes(&sindexes, token_pair, txn, superblock, &interruptor);
+
+        res->sindexes.reserve(sindexes.size());
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            res->sindexes.push_back(it->first);
+        }
     }
 
     read_visitor_t(btree_slice_t *_btree,
@@ -1088,7 +1124,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    txn, superblock, &response, &mod_report);
 
@@ -1106,7 +1142,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(kv.backfill_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
                 txn, superblock, &response,
@@ -1191,12 +1227,11 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *token_pair) {
+                                  write_token_pair_t *) {
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
     cond_t dummy_interruptor;
 
-    drop_all_sindexes(token_pair, txn, superblock, &sizer, &deleter, &dummy_interruptor);
     always_true_key_tester_t key_tester;
     rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }
@@ -1258,6 +1293,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, ins
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
                            result, errors, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
@@ -1265,6 +1301,7 @@ RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, transform, terminal, optargs);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 

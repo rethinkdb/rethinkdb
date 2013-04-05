@@ -180,7 +180,9 @@ commands:
 
   - tag: contains
     section: jsonobject
-    description: Test if an object has the given attribute.
+    description: Test if an object has the given attribute. <br /><br />
+      <code>contains</code> can only be called on objects and not on
+      <code>string</code> or <code>array</code> attributes.
 
     body: attr
     parent: json

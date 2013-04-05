@@ -1,3 +1,20 @@
+# Release 1.4.2 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Replace `~` with `About` in the web UI (#485)
+* Add framing documentation to the protobuf spec (#500)
+* Fix crashes triggered by .orderBy().skip() and .reduce(r.js()) (#522, #545)
+* Replace MB with GB in an error message (#526)
+* Remove some semicolons from the protobuf spec (#530)
+* Fix the `rethinkdb import` command (#535)
+* Improve handling of very large queries in the data explorer (#536)
+* Fix variable shadowing in the javascript driver (#546)
+
+---
+
 # Release 1.4.1 (Some Like It Hot) #
 
 ## Changes ##

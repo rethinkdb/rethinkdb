@@ -1,16 +1,15 @@
-continuous_workloads = [
-    "$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity",
-    "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --duration forever",
-    ]
+continuous_workloads = {
+    'stress': "$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d infinity",
+    'serial': "$RETHINKDB/test/memcached_workloads/serial_mix.py $HOST:$PORT --duration forever",
+    }
 
 scenarios = [
     "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1+1+1 --workload-during '%(workload)s'",
     ]
 
 for scenario in scenarios:
-    for w in continuous_workloads:
+    for k, w in continuous_workloads.items():
         generate_test(
             scenario % {"workload": w},
-            repeat = 3,
-            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/memcached_workloads", "bench/stress-client/stress"]
+            name = k
             )
