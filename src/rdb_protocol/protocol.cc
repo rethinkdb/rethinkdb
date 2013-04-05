@@ -1081,7 +1081,7 @@ static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
         rdb_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice that interruptor
         has been pulsed */
     }
@@ -1124,7 +1124,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    txn, superblock, &response, &mod_report);
 
@@ -1142,7 +1142,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
-        rdb_modification_report_t mod_report;
+        rdb_modification_report_t mod_report(kv.backfill_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
                 btree, bf_atom.recency,
                 txn, superblock, &response,

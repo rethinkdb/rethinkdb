@@ -398,7 +398,7 @@ void reactor_driver_t<protocol_t>::on_change() {
 
             try {
                 pbp = it->second.get().blueprint.get();
-            } catch (in_conflict_exc_t) {
+            } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
                 continue;

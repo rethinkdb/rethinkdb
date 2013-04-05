@@ -129,7 +129,7 @@ private:
             requests_since_last_qps_sample++;
             try {
                 registrant.perform_request(request, keepalive.get_drain_signal());
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 /* ignore */
             }
             in_use_tickets--;

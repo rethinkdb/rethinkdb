@@ -329,7 +329,7 @@ void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const b
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
             ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         crash("The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.");
     }
 

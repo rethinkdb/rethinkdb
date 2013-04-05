@@ -411,7 +411,7 @@ void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, ty
         listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
                                   read, response, timestamp, order_token, enforcer_token,
                                   &interruptor2);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
             throw;
         } else {
@@ -501,7 +501,7 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
         listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                                    write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
                                    mirror_lock.get_drain_signal());
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         return;
     }
 }
@@ -535,7 +535,7 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
             write_ref.get()->callback->on_disk_ack(mirror->get_peer());
         }
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         return;
     }
 }

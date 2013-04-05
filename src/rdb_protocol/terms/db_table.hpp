@@ -208,7 +208,7 @@ private:
         try {
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
                                          env->interruptor, env->semilattice_metadata);
-        } catch (interrupted_exc_t e) {
+        } catch (const interrupted_exc_t &e) {
             rfail("Query interrupted, probably by user.");
         }
 

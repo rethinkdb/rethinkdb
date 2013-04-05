@@ -122,7 +122,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             }
             logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 

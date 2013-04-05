@@ -138,7 +138,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         directory_entry.set(typename reactor_business_card_t<protocol_t>::nothing_t());
 
         interruptor->wait_lazily_unordered();
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 }

@@ -151,7 +151,7 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
         initial_joiner.init(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
         try {
             wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             return false;
         }
     }
@@ -366,7 +366,7 @@ namespace_id_t get_or_create_metadata(namespace_repo_t<rdb_protocol_t> *ns_repo,
         if (do_update) {
             try {
                 fill_in_blueprints(&cluster_metadata, directory->get(), sync_machine_id, false);
-            } catch (missing_machine_exc_t exc) {
+            } catch (const missing_machine_exc_t &exc) {
                 printf("Cannot fill in blueprints while a machine is missing from the cluster\n");
                 return nil_uuid();
             }
@@ -468,7 +468,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
         }
 
         importation_complete = true;
-    } catch (interrupted_exc_t exc) {
+    } catch (const interrupted_exc_t &exc) {
         // do nothing.
     }
 
