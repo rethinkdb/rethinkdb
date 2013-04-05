@@ -61,7 +61,9 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             write_message_t wm;
             wm << mod_report;
 
-            store->sindex_queue_push(wm, &acq);
+            // SAMRSI: Push out disk ack signal?
+            sync_callback_t disk_ack_signal;
+            store->sindex_queue_push(wm, &acq, &disk_ack_signal);
         }
     }
 }

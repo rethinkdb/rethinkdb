@@ -939,7 +939,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
-    void update_sindexes(rdb_modification_report_t *mod_report) {
+    void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &interruptor);
@@ -949,7 +949,12 @@ private:
 
         write_message_t wm;
         wm << *mod_report;
-        store->sindex_queue_push(wm, &acq);
+
+        {
+            // SAMRSI: Push out disk ack signal?
+            sync_callback_t disk_ack_signal;
+            store->sindex_queue_push(wm, &acq, &disk_ack_signal);
+        }
 
         sindex_access_vector_t sindexes;
         store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
@@ -1195,7 +1200,12 @@ private:
 
         write_message_t wm;
         wm << *mod_report;
-        store->sindex_queue_push(wm, &acq);
+
+        {
+            // SAMRSI: Push out disk ack signal?
+            sync_callback_t disk_ack_signal;
+            store->sindex_queue_push(wm, &acq, &disk_ack_signal);
+        }
 
         sindex_access_vector_t sindexes;
         store->aquire_post_constructed_sindex_superblocks_for_write(
