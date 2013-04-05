@@ -29,7 +29,6 @@ public:
     /* These are the types of mailboxes that the master uses to communicate with
     the mirrors. */
 
-    // SAMRSI: What is this mailbox_addr_t<void()>?  Should we also pass a disk_ack_addr like with writeread?
     typedef mailbox_t<void(typename protocol_t::write_t,
                            transition_timestamp_t,
                            order_token_t,
