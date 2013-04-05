@@ -254,6 +254,9 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
             void on_done() {
                 pulse();
             }
+            void on_disk_ack(peer_id_t) {
+                /* Disk acks are not relevant to this unit test. */
+            }
         } write_callback;
         cond_t non_interruptor;
         broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
