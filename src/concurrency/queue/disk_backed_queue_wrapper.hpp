@@ -45,10 +45,7 @@ public:
         mutex_t::acq_t acq(&push_mutex);
         items_in_queue++;
         if (disk_queue.has()) {
-            // We pass a NULL disk ack signal because the fact that we have an in-memory-queue
-            // implies that the disk backed queue is a temporary thing that doesn't survive
-            // crashes.
-            disk_queue->push(NULL /* disk ack signal */, value);
+            disk_queue->push(value);
 
             // Check if we need to restart the copy coroutine that may have exited while we pushed
             if (restart_copy_coro) {
@@ -60,7 +57,7 @@ public:
         } else {
             if (memory_queue.full()) {
                 disk_queue.init(new disk_backed_queue_t<T>(io_backender, filename, stats_parent));
-                disk_queue->push(NULL /* disk ack signal */, value);
+                disk_queue->push(value);
                 coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
                     this, auto_drainer_t::lock_t(&drainer)));
@@ -105,7 +102,7 @@ private:
                     break;
                 }
                 T value;
-                disk_queue->pop(NULL /* disk ack signal */, &value);
+                disk_queue->pop(&value);
                 if (memory_queue.full()) {
                     guarantee(notify_when_room_in_memory_queue == NULL);
                     cond_t cond;

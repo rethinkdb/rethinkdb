@@ -239,14 +239,8 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
-    if (!sindex_queues.empty()) {
-        // SAMRSI: Do we want to push the disk_ack_signal out?
-        sync_callback_t disk_ack_signal;
-        disk_ack_signal.increase_necessary_sync_count(sindex_queues.size() - 1);
-
-        for (size_t i = 0; i < sindex_queues.size(); ++i) {
-            sindex_queues[i]->push(&disk_ack_signal, value);
-        }
+    for (size_t i = 0; i < sindex_queues.size(); ++i) {
+        sindex_queues[i]->push(value);
     }
 }
 

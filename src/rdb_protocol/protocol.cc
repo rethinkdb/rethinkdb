@@ -189,7 +189,7 @@ void post_construct_and_drain_queue(
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
                 std::vector<char> data_vec;
-                mod_queue->pop(NULL /* disk ack signal */, &data_vec);
+                mod_queue->pop(&data_vec);
                 vector_read_stream_t read_stream(&data_vec);
 
                 rdb_modification_report_t mod_report;
