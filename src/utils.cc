@@ -702,7 +702,7 @@ int get_num_db_threads() {
 
 int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
-    guarantee_err(res == 0, "remove syscall failed");
+    nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
     return 0;
 }
 
