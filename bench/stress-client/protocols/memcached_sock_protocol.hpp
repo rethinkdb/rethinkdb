@@ -13,7 +13,6 @@
 #include <map>
 #include "protocol.hpp"
 #include <queue>
-#include <unistd.h>
 
 #define MAX_MC_KEY_SIZE 250
 
@@ -103,7 +102,10 @@ protected:
             buffer.buffer.resize(std::max(buffer.first_buffer_byte + buffer.bytes_in_buffer + 512, buffer.buffer.size()), '\0');
             char* char_buffer = &buffer.buffer[0];
             const ssize_t bytes_read = recv(socketfd, char_buffer + buffer.first_buffer_byte + buffer.bytes_in_buffer, 512, 0);
-            if (bytes_read <= 0) {
+            if (bytes_read == 0) {
+                fprintf(stderr, "memcached_sock_protocol: read_line: error: server closed the connection\n");
+                exit(-1);
+            } else if (bytes_read < 0) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
@@ -121,7 +123,9 @@ protected:
         const ssize_t bytes_read = recv(socketfd, buffer.buffer.data() + buffer.first_buffer_byte + buffer.bytes_in_buffer, buffer.buffer.size() - (buffer.first_buffer_byte + buffer.bytes_in_buffer), MSG_DONTWAIT);
         if (bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             //We're fine with that, just means there wasn't any data
-        } else if (bytes_read <= 0) {
+        } else if (bytes_read == 0) {
+            //The connection was closed.
+        } else  if (bytes_read < 0) {
             //Not fine with this, this is a real error
             perror("Unable to read from socket");
             exit(-1);
