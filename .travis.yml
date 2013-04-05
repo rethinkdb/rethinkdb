@@ -15,8 +15,7 @@ before_script:
   # Travis, doesn't work with Clang and C++ 11)
   - yes | sudo apt-add-repository ppa:jkeiren/ppa
   - sudo apt-get update
-  - sudo apt-get upgrade
-  - sudo apt-get install libboost-all-dev
+  - sudo apt-get install libboost1.48-all-dev
 
 # Build script
 script: ./configure && make DEBUG=1 unit -j 2
