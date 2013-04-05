@@ -136,7 +136,7 @@ void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std:
         void on_done() {
             pulse();
         }
-        void on_disk_ack(peer_id_t) { /* Nobody cares. */ }
+        void on_disk_ack(const peer_id_t &) { /* Nobody cares. */ }
     } write_callback;
     cond_t non_interruptor;
     broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);
@@ -254,7 +254,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
             void on_done() {
                 pulse();
             }
-            void on_disk_ack(peer_id_t) {
+            void on_disk_ack(const peer_id_t &) {
                 /* Disk acks are not relevant to this unit test. */
             }
         } write_callback;

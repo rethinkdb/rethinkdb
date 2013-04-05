@@ -131,7 +131,7 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
             void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
                 /* Ignore. */
             }
-            void on_disk_ack(peer_id_t) {
+            void on_disk_ack(const peer_id_t &) {
                 /* Ignore, I guess. */
             }
             void on_done() {
@@ -176,7 +176,7 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
         void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
             /* Ignore. */
         }
-        void on_disk_ack(peer_id_t) {
+        void on_disk_ack(const peer_id_t &) {
             /* Ignore. */
         }
         void on_done() {

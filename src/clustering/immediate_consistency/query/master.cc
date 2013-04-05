@@ -76,7 +76,7 @@ void master_t<protocol_t>::client_t::perform_request(
                 }
             }
 
-            void on_disk_ack(peer_id_t peer) {
+            void on_disk_ack(const peer_id_t &peer) {
                 ASSERT_NO_CORO_WAITING;
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
                     // ack_state_disk overrides any preexisting ack_set_cache value.
