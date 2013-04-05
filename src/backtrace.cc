@@ -215,7 +215,7 @@ std::string print_frames(void **stack_frames, int size, bool use_addr2line) {
                     try {
                         std::string demangled = demangle_cpp_name(function);
                         output.append(demangled);
-                    } catch (demangle_failed_exc_t) {
+                    } catch (const demangle_failed_exc_t &) {
                         output.append(strprintf("%s+%s", function, offset));
                     }
                 } else {

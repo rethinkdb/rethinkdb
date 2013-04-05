@@ -76,7 +76,7 @@ private:
             signal_t *interruptor = keepalive.get_drain_signal();
             try {
                 serve_queries_until_interrupted(conn, interruptor);
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 // Ignore
             }
         }

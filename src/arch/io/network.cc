@@ -883,7 +883,7 @@ void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_
         }
 
         bound_cond.pulse();
-    } catch (interrupted_exc_t e) {
+    } catch (const interrupted_exc_t &e) {
         // ignore
     }
 }

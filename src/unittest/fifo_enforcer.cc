@@ -85,7 +85,7 @@ void run_state_transfer_test() {
             signal_timer_t interruptor(1000);
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&sink, tok2);
             wait_interruptible(&fifo_exit, &interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             ADD_FAILURE() << "Got stuck trying to exit FIFO";
         }
     }

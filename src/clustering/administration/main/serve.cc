@@ -175,7 +175,7 @@ bool do_serve(
             initial_joiner.init(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 return false;
             }
         }
@@ -373,7 +373,7 @@ bool do_serve(
 
         return true;
 
-    } catch (address_in_use_exc_t e) {
+    } catch (const address_in_use_exc_t &e) {
         nice_crash("%s. Cannot bind to cluster port. Exiting.\n", e.what());
     }
 }
