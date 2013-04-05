@@ -1137,7 +1137,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        range_key_tester_t tester(delete_range.range);
+        range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
 
         token_pair->sindex_write_token.reset();
@@ -1179,14 +1179,14 @@ private:
     originally necessary because in v1.1.x the hashing scheme might be different
     between the source and destination machines. */
     struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
+        explicit range_key_tester_t(const region_t *_delete_range) : delete_range(_delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
-            return delete_range.beg <= h && h < delete_range.end
-                && delete_range.inner.contains_key(key->contents, key->size);
+            return delete_range->beg <= h && h < delete_range->end
+                && delete_range->inner.contains_key(key->contents, key->size);
         }
 
-        const region_t& delete_range;
+        const region_t *delete_range;
     };
 
     void update_sindexes(rdb_modification_report_t *mod_report) const {
