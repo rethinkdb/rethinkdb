@@ -13,7 +13,7 @@ before_script:
 
   # we need a custom ppa for latest boost libs (1.46, which is on
   # Travis, doesn't work with Clang and C++ 11)
-  - sudo apt-add-repository ppa:jkeiren/ppa
+  - yes | sudo apt-add-repository ppa:jkeiren/ppa
   - sudo apt-get update
   - sudo apt-get upgrade
   - sudo apt-get install libboost-all-dev
