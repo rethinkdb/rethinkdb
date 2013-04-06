@@ -55,10 +55,6 @@ terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
       scopes(_scopes), backtrace(_backtrace), out(_out)
 { }
 
-void terminal_initializer_visitor_t::operator()(
-    UNUSED const ql::gmr_wire_func_t &f) const {
-    *out = ql::wire_datum_map_t();
-}
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
@@ -80,20 +76,10 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func/*NOLINT*/) const {
     }
 }
 
-void terminal_initializer_visitor_t::operator()(
-    UNUSED const ql::count_wire_func_t &f) const {
-    *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0.0)));
-}
-
 void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
     // TODO: just pass an int around
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
     d->reset(ql_env->add_ptr(new ql::datum_t(d->get()->as_int() + 1.0)));
-}
-
-void terminal_initializer_visitor_t::operator()(
-    UNUSED const ql::reduce_wire_func_t &f) const {
-    *out = rget_read_response_t::empty_t();
 }
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func/*NOLINT*/) const {
