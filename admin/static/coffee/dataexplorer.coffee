@@ -2503,6 +2503,7 @@ module 'DataExplorerView', ->
             else
                 keys_count.primitive_value_count++
 
+        # Compute occurrence of each key. The occurence can be a float since we compute the average occurence of all keys for an object
         compute_occurrence: (keys_count) =>
             if not keys_count['object']? # That means we are accessing only a primitive value
                 keys_count.occurrence = keys_count.primitive_value_count
@@ -2515,6 +2516,7 @@ module 'DataExplorerView', ->
                     count_occurrence += row.occurrence
                 keys_count.occurrence = count_occurrence/count_key # count_key cannot be 0
 
+        # Sort the keys per level
         order_keys: (keys) =>
             if keys.object?
                 copy_keys = []
@@ -2577,6 +2579,8 @@ module 'DataExplorerView', ->
                     result: result
                     flatten_attr: flatten_attr
 
+        # Flatten the object returns by build_map_keys().
+        # We get back an array of keys
         get_all_attr: (args) =>
             keys_count = args.keys_count
             attr = args.attr
