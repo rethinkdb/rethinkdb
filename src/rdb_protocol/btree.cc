@@ -770,8 +770,9 @@ public:
         {
             scoped_ptr_t<real_superblock_t> superblock;
 
-            // SAMRSI: Ensure that we make sure things get forced to disk later.
-            // We use soft durability because we'll make sure that things get forced to disk later.
+            // We want soft durability because having a partially constructed secondary index is
+            // okay -- we wipe it and rebuild it, if it has not been marked completely
+            // constructed.
             store_->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
