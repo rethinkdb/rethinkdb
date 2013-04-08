@@ -94,7 +94,7 @@ RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
 RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
 
 void post_construct_and_drain_queue(
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
@@ -102,7 +102,7 @@ void post_construct_and_drain_queue(
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING
@@ -139,7 +139,7 @@ void bring_sindexes_up_to_date(
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro. */
 void post_construct_and_drain_queue(
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
@@ -203,7 +203,7 @@ void post_construct_and_drain_queue(
             previous_size = mod_queue->size();
 
             if (mod_queue->size() == 0) {
-                for (std::set<uuid_u>::iterator it = sindexes_to_bring_up_to_date.begin();
+                for (auto it = sindexes_to_bring_up_to_date.begin();
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
                     store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
                 }
@@ -764,7 +764,7 @@ struct read_visitor_t : public boost::static_visitor<void> {
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
-        std::map<uuid_u, secondary_index_t> sindexes;
+        std::map<std::string, secondary_index_t> sindexes;
         store->get_sindexes(&sindexes, token_pair, txn, superblock, &interruptor);
 
         res->sindexes.reserve(sindexes.size());
@@ -886,7 +886,7 @@ struct write_visitor_t : public boost::static_visitor<void> {
                 &sindex_block,
                 &interruptor);
 
-        std::set<uuid_u> sindexes;
+        std::set<std::string> sindexes;
         sindexes.insert(c.id);
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes, store,
                 sindex_block.get());
@@ -1058,7 +1058,7 @@ public:
         chunk_fun_cb->send_chunk(chunk_t::set_key(atom), interruptor);
     }
 
-    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         chunk_fun_cb->send_chunk(chunk_t::sindexes(sindexes), interruptor);
     }
 
@@ -1156,7 +1156,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
         rdb_value_deleter_t deleter;
         scoped_ptr_t<buf_lock_t> sindex_block;
-        std::set<uuid_u> created_sindexes;
+        std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
 
         sindex_access_vector_t sindexes;

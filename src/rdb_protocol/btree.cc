@@ -304,7 +304,7 @@ public:
         cb_->on_keyvalue(atom, interruptor);
     }
 
-    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         cb_->on_sindexes(sindexes, interruptor);
     }
 
@@ -715,7 +715,7 @@ class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
-            const std::set<uuid_u> &sindexes_to_post_construct,
+            const std::set<std::string> &sindexes_to_post_construct,
             signal_t *interruptor
             )
         : store_(store),
@@ -793,13 +793,13 @@ public:
     access_t btree_node_mode() { return rwi_read; }
 
     btree_store_t<rdb_protocol_t> *store_;
-    const std::set<uuid_u> &sindexes_to_post_construct_;
+    const std::set<std::string> &sindexes_to_post_construct_;
     signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<uuid_u> &sindexes_to_post_construct,
+        const std::set<std::string> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     post_construct_traversal_helper_t helper(store,

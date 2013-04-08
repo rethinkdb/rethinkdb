@@ -98,36 +98,72 @@ std::string datum_t::print() const {
     return as_json()->Print();
 }
 
+void datum_t::num_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_NUM);
+    str_out->append("N");
+    union {
+        double d;
+        uint64_t u;
+    } packed;
+    guarantee(sizeof(packed.d) == sizeof(packed.u));
+    packed.d = as_num();
+    // Mangle the value so that lexicographic ordering matches double ordering
+    if (packed.u & (1ULL << 63)) {
+        // If we have a negative double, flip all the bits.  Flipping the
+        // highest bit causes the negative doubles to sort below the
+        // positive doubles (which will also have their highest bit
+        // flipped), and flipping all the other bits causes more negative
+        // doubles to sort below less negative doubles.
+        packed.u = ~packed.u;
+    } else {
+        // If we have a non-negative double, flip the highest bit so that it
+        // sorts higher than all the negative doubles (which had their
+        // highest bit flipped as well).
+        packed.u ^= (1ULL << 63);
+    }
+    // The formatting here is sensitive.  Talk to mlucy before changing it.
+    str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
+    str_out->append(strprintf("#" DBLPRI, as_num()));
+}
+
+void datum_t::str_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_STR);
+    str_out->append("S");
+    str_out->append(as_str());
+}
+
+// The key for an array is stored as a string of all its elements, each separated by a
+//  null character, with another null character at the end to signify the end of the
+//  array (this is necessary to prevent ambiguity when nested arrays are involved).
+void datum_t::array_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_ARRAY);
+    str_out->append("A");
+
+    for (size_t i = 0; i < size(); ++i) {
+        const datum_t *item = el(i, NOTHROW);
+        r_sanity_check(item != NULL);
+
+        if (item->type == R_NUM) {
+            item->num_to_str_key(str_out);
+        } else if (item->type == R_STR) {
+            item->str_to_str_key(str_out);
+        } else if (item->type == R_ARRAY) {
+            item->array_to_str_key(str_out);
+        } else {
+            rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+                  item->print().c_str(), datum_type_name(item->type));
+        }
+
+        str_out->append(std::string(1, '\0'));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     if (type == R_NUM) {
-        s += "N";
-        union {
-            double d;
-            uint64_t u;
-        } packed;
-        guarantee(sizeof(packed.d) == sizeof(packed.u));
-        packed.d = as_num();
-        // Mangle the value so that lexicographic ordering matches double ordering
-        if (packed.u & (1ULL << 63)) {
-            // If we have a negative double, flip all the bits.  Flipping the
-            // highest bit causes the negative doubles to sort below the
-            // positive doubles (which will also have their highest bit
-            // flipped), and flipping all the other bits causes more negative
-            // doubles to sort below less negative doubles.
-            packed.u = ~packed.u;
-        } else {
-            // If we have a non-negative double, flip the highest bit so that it
-            // sorts higher than all the negative doubles (which had their
-            // highest bit flipped as well).
-            packed.u ^= (1ULL << 63);
-        }
-        // The formatting here is sensitive.  Talk to mlucy before changing it.
-        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
-        s += strprintf("#" DBLPRI, as_num());
+        num_to_str_key(&s);
     } else if (type == R_STR) {
-        s += "S";
-        s += as_str();
+        str_to_str_key(&s);
     } else {
         rfail("Primary keys must be either a number or a string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
@@ -140,7 +176,25 @@ std::string datum_t::print_primary() const {
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key) const {
-    return print_primary() + std::string(1, '\0') + key_to_unescaped_str(primary_key);
+    std::string s;
+    if (type == R_NUM) {
+        num_to_str_key(&s);
+    } else if (type == R_STR) {
+        str_to_str_key(&s);
+    } else if (type == R_ARRAY) {
+        array_to_str_key(&s);
+    } else {
+        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+
+    s += std::string(1, '\0') + key_to_unescaped_str(primary_key);
+
+    if (s.size() > MAX_KEY_SIZE) {
+        rfail("Secondary key too long (max %d characters): %s",
+              MAX_KEY_SIZE - 1, print().c_str());
+    }
+    return s;
 }
 
 void datum_t::check_type(type_t desired) const {
