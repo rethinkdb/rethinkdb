@@ -140,7 +140,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
     str_out->append("A");
 
     for (size_t i = 0; i < size(); ++i) {
-        const datum_t *item = el(i, NOTHROW);
+        const datum_t *item = get(i, NOTHROW);
         r_sanity_check(item != NULL);
 
         if (item->type == R_NUM) {
