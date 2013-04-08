@@ -645,10 +645,10 @@ archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
 }
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
-        btree_store_t<rdb_protocol_t> *store, 
+        btree_store_t<rdb_protocol_t> *store,
         write_token_pair_t *token_pair,
         transaction_t *txn, block_id_t sindex_block_id,
-        auto_drainer_t::lock_t lock) 
+        auto_drainer_t::lock_t lock)
     : store_(store), token_pair_(token_pair),
       txn_(txn), sindex_block_id_(sindex_block_id),
       lock_(lock)

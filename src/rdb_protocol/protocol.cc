@@ -28,6 +28,7 @@
 // the module to something shorter and type out the shorter name everywhere, or
 // else use a `using` declaration.
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
+typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
 typedef rdb_protocol_t::context_t context_t;
 
@@ -215,6 +216,12 @@ void post_construct_and_drain_queue(
     }
 }
 
+
+bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
+    uint64_t h = hash_region_hasher(key->contents, key->size);
+    return delete_range.beg <= h && h < delete_range.end
+        && delete_range.inner.contains_key(key->contents, key->size);
+}
 
 }  // namespace rdb_protocol_details
 
@@ -1175,20 +1182,6 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    /* TODO: This might be redundant. I thought that `key_tester_t` was only
-    originally necessary because in v1.1.x the hashing scheme might be different
-    between the source and destination machines. */
-    struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
-        bool key_should_be_erased(const btree_key_t *key) {
-            uint64_t h = hash_region_hasher(key->contents, key->size);
-            return delete_range.beg <= h && h < delete_range.end
-                && delete_range.inner.contains_key(key->contents, key->size);
-        }
-
-        const region_t& delete_range;
-    };
-
     void update_sindexes(rdb_modification_report_t *mod_report) const {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
