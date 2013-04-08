@@ -34,15 +34,10 @@ public:
     sync_callback_t() : necessary_sync_count_(1) {}
 
     // Waits for all the on_syncs!  Calls wait().
-    ~sync_callback_t();
+    ~sync_callback_t() { wait(); }
 
     // This is called when the data has been properly written (and fdatasynced) to disk.
-    void on_sync();
-
-    // Remember that necessary_sync_count starts at 1, so if you want to sync on
-    // N things (instead of just 1), you probably want to increase the sync
-    // count by N-1.
-    void increase_necessary_sync_count(size_t amount);
+    void on_sync() { pulse(); }
 
     using cond_t::wait;
 
