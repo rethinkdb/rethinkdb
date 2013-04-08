@@ -554,10 +554,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
 
-        if (disk_ack_signal.has()) {
-            wait_interruptible(disk_ack_signal->as_signal(), keepalive.get_drain_signal());
-        }
-
     } catch (const interrupted_exc_t &) {
         /* pass */
     }
