@@ -345,22 +345,40 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
         blob.clear(_txn);
 }
 
+class erase_range_sindex_cb_t : public erase_range_cb_t {
+public:
+    erase_range_sindex_cb_t(rdb_modification_report_cb_t *mod_report_cb,
+                            transaction_t *txn)
+        : mod_report_cb_(mod_report_cb), txn_(txn)
+    { }
+
+    void handle_pair(const btree_key_t *key, const void *value) {
+        mod_report_cb_->delete_row(store_key_t(key),
+                get_data(static_cast<const rdb_value_t *>(value), txn_));
+    }
+
+    rdb_modification_report_cb_t *mod_report_cb_;
+    transaction_t *txn_;
+};
+
 //TODO this function needs to update secondary indexes.
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      bool left_key_supplied, const store_key_t& left_key_exclusive,
                      bool right_key_supplied, const store_key_t& right_key_inclusive,
                      transaction_t *txn, superblock_t *superblock,
-                     rdb_modification_report_cb_t *cb) {
+                     rdb_modification_report_cb_t *mod_report_cb) {
 
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    rdb_value_deleter_t deleter(cb);
+    rdb_value_deleter_t deleter;
+
+    erase_range_sindex_cb_t sindex_cb(mod_report_cb, txn);
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        txn, superblock);
+        txn, superblock, &sindex_cb);
 }
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,

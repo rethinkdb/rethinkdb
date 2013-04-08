@@ -120,15 +120,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 class rdb_modification_report_cb_t;
 
 class rdb_value_deleter_t : public value_deleter_t {
-public:
-    rdb_value_deleter_t()
-        : modification_cb_(NULL) { }
-    rdb_value_deleter_t(rdb_modification_report_cb_t *modification_cb)
-        : modification_cb_(modification_cb) { }
-private:
     void delete_value(transaction_t *_txn, void *_value);
-
-    rdb_modification_report_cb_t *modification_cb_;
 };
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
