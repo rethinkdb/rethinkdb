@@ -1133,7 +1133,12 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(delete_range.range);
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
+        rdb_modification_report_cb_t sindex_cb(
+            store, token_pair, txn,
+            superblock->get_sindex_block_id(), 
+            auto_drainer_t::lock_t(&store->drainer));
+
+        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, &sindex_cb);
 
         token_pair->sindex_write_token.reset();
         //TODO this doesn't update the secondary index and it needs to.
@@ -1227,13 +1232,18 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *) {
+                                  write_token_pair_t *token_pair) {
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
-    cond_t dummy_interruptor;
 
     always_true_key_tester_t key_tester;
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
+
+    rdb_modification_report_cb_t sindex_cb(
+            this, token_pair, txn,
+            superblock->get_sindex_block_id(), 
+            auto_drainer_t::lock_t(&drainer));
+
+    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, &sindex_cb);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

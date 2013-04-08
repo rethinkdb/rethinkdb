@@ -117,13 +117,24 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         point_delete_response_t *response,
         rdb_modification_report_t *mod_report);
 
+class rdb_modification_report_cb_t;
+
 class rdb_value_deleter_t : public value_deleter_t {
+public:
+    rdb_value_deleter_t()
+        : modification_cb_(NULL) { }
+    rdb_value_deleter_t(rdb_modification_report_cb_t *modification_cb)
+        : modification_cb_(modification_cb) { }
+private:
     void delete_value(transaction_t *_txn, void *_value);
+
+    rdb_modification_report_cb_t *modification_cb_;
 };
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
-                     transaction_t *txn, superblock_t *superblock);
+                     transaction_t *txn, superblock_t *superblock,
+                     rdb_modification_report_cb_t *sindex_cb);
 
 /* RGETS */
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
@@ -157,8 +168,35 @@ struct rdb_modification_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+/* An rdb_modification_cb_t is passed to BTree operations and allows them to
+ * modify the secondary while they perform an operation. */
+class rdb_modification_report_cb_t {
+public:
+    rdb_modification_report_cb_t(
+            btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
+            transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
+    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
+    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
+    void replace_row(const store_key_t &primary_key,
+            boost::shared_ptr<scoped_cJSON_t> added,
+            boost::shared_ptr<scoped_cJSON_t> removed);
+private:
+    void on_mod_report(const rdb_modification_report_t &mod_report);
+
+    /* Fields initialized by the constructor. */
+    btree_store_t<rdb_protocol_t> *store_;
+    write_token_pair_t *token_pair_;
+    transaction_t *txn_;
+    block_id_t sindex_block_id_;
+    auto_drainer_t::lock_t lock_;
+
+    /* Fields initialized by calls to on_mod_report */
+    scoped_ptr_t<buf_lock_t> sindex_block_;
+    btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
+};
+
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         rdb_modification_report_t *modification,
+                         const rdb_modification_report_t *modification,
                          transaction_t *txn);
 
 void post_construct_secondary_indexes(
