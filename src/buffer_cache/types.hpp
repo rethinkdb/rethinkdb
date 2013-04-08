@@ -6,7 +6,11 @@
 #include <stdint.h>
 
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
+
+enum write_durability_t { WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD);
 
 // sync_callback_t is a cond_t that gets pulsed when on_sync is called
 // sufficiently many times.  It is incorrect to call it more than that many

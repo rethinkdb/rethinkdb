@@ -57,48 +57,22 @@ void master_t<protocol_t>::client_t::perform_request(
         class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
         public:
             explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
-
             void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
-                ASSERT_NO_CORO_WAITING;
                 if (!response_promise.get_ready_signal()->is_pulsed()) {
-                    // Now we _try_ to set the ack state for this peer to ack_state_cache.  If
-                    // somehow we got the on-disk ack response first, this is a no-op.
-                    ack_set.insert(std::make_pair(peer, ack_state_cache));
-
+                    ASSERT_NO_CORO_WAITING;
+                    ack_set.insert(peer);
                     // TODO: Having this centralized ack checker is horrible?  But maybe it's ok.
-                    if (ack_checker->is_acceptable_ack_set(ack_set)) {
+                    bool is_acceptable = ack_checker->is_acceptable_ack_set(ack_set);
+                    if (is_acceptable) {
                         response_promise.pulse(response);
-                    } else {
-                        // Save a copy of the response.  We'll need it if a disk ack pushes us over
-                        // the ack requirement.
-                        saved_response = response;
                     }
                 }
             }
-
-            void on_disk_ack(const peer_id_t &peer) {
-                ASSERT_NO_CORO_WAITING;
-                if (!response_promise.get_ready_signal()->is_pulsed()) {
-                    // ack_state_disk overrides any preexisting ack_set_cache value.
-                    ack_set[peer] = ack_state_disk;
-
-                    // Since messages can generally technically arrive out of order, we don't know
-                    // whether saved_response was set yet.  If it hasn't been, we wait for a "cache
-                    // ack".
-                    const typename protocol_t::write_response_t *response = saved_response.get_ptr();
-
-                    if (response != NULL && ack_checker->is_acceptable_ack_set(ack_set)) {
-                        response_promise.pulse(*response);
-                    }
-                }
-            }
-
             void on_done() {
                 done_cond.pulse();
             }
             ack_checker_t *ack_checker;
-            std::map<peer_id_t, ack_state_t> ack_set;
-            boost::optional<typename protocol_t::write_response_t> saved_response;
+            std::set<peer_id_t> ack_set;
             promise_t<typename protocol_t::write_response_t> response_promise;
             cond_t done_cond;
         } write_callback(parent->ack_checker);

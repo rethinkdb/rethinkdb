@@ -138,11 +138,11 @@ std::string admin_value_to_string(const std::map<uuid_u, int32_t>& value) {
 std::string admin_value_to_string(const std::map<uuid_u, ack_expectation_t>& value) {
     std::string result;
     for (auto it = value.begin(); it != value.end(); ++it) {
-        result += strprintf("%s%s: %" PRIu32 " disk %" PRIu32 " cache",
+        result += strprintf("%s%s: %" PRIu32 " (%s)",
                             it == value.begin() ? "" : ", ",
                             uuid_to_str(it->first).c_str(),
-                            it->second.disk_expectation(),
-                            it->second.cache_expectation());
+                            it->second.expectation(),
+                            it->second.is_hardly_durable() ? "hard" : "soft");
     }
     return result;
 }
@@ -2444,15 +2444,12 @@ void admin_cluster_link_t::do_admin_set_acks_internal(const datacenter_id_t& dat
         hard_durability = ack_expectations.begin()->second.is_hardly_durable();
     }
 
-    // We don't bother checking ack_expectation.disk_expectation() because it must be no greater
-    // than cache_expectation.
     ack_expectation_t ack_expectation(num_acks, hard_durability);
-    if (ack_expectation.cache_expectation() > static_cast<uint32_t>(replicas)) {
+    if (ack_expectation.expectation() > static_cast<uint32_t>(replicas)) {
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
     }
 
-    if (ack_expectation.cache_expectation() == 0) {
-        // As with the comparison above, we know that disk_expectation must be zero.
+    if (ack_expectation.expectation() == 0) {
         ns->ack_expectations.get_mutable().erase(datacenter);
     } else {
         ns->ack_expectations.get_mutable()[datacenter] = ack_expectation;
@@ -2495,7 +2492,7 @@ void admin_cluster_link_t::do_admin_set_durability_internal(bool hard_durability
 
     std::map<datacenter_id_t, ack_expectation_t> &ack_expectations = ns->ack_expectations.get_mutable();
     for (auto it = ack_expectations.begin(); it != ack_expectations.end(); ++it) {
-        ack_expectation_t new_expectations(it->second.cache_expectation(), hard_durability);
+        ack_expectation_t new_expectations(it->second.expectation(), hard_durability);
         it->second = new_expectations;
     }
 
@@ -2580,8 +2577,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(const namespace_id_t& 
     }
 
     std::map<datacenter_id_t, ack_expectation_t>::iterator ack_iter = ns->ack_expectations.get_mutable().find(dc_id);
-    // We don't bother comparing ack_iter->second.disk_expectation because it's less than cache_expectation.
-    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.cache_expectation() > static_cast<uint32_t>(num_replicas)) {
+    if (ack_iter != ns->ack_expectations.get_mutable().end() && ack_iter->second.expectation() > static_cast<uint32_t>(num_replicas)) {
         throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks, run 'help set acks' for more information");
     }
 
@@ -2876,14 +2872,14 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 ack_expectation_t acks;
                 if (ack_it != ack_expectations.end()) {
                     acks = ack_it->second;
-                    delta.push_back(strprintf("%" PRIu32, acks.cache_expectation()));
+                    delta.push_back(strprintf("%" PRIu32, acks.expectation()));
                     delta.push_back(acks.is_hardly_durable() ? "hard" : "soft");
                 } else {
                     delta.push_back("0");
                     delta.push_back("-");
                 }
 
-                if (replicas != 0 || acks.cache_expectation() != 0) {
+                if (replicas != 0 || acks.expectation() != 0) {
                     table.push_back(delta);
                 }
             }
@@ -2905,7 +2901,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 
             std::map<datacenter_id_t, ack_expectation_t>::const_iterator ack_it = ack_expectations.find(nil_uuid());
             if (ack_it != ack_expectations.end()) {
-                delta.push_back(strprintf("%" PRIu32, ack_it->second.cache_expectation()));
+                delta.push_back(strprintf("%" PRIu32, ack_it->second.expectation()));
                 delta.push_back(ack_it->second.is_hardly_durable() ? "hard" : "soft");
             } else {
                 delta.push_back("0");

@@ -516,23 +516,14 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
             boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond),
             mailbox_callback_mode_inline);
 
-        cond_t disk_ack_cond;
-        mailbox_t<void()> disk_ack_mailbox(mailbox_manager,
-                                           boost::bind(&cond_t::pulse, &disk_ack_cond),
-                                           mailbox_callback_mode_inline);
-
-        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), disk_ack_mailbox.get_address());
+        // SAMRSI: Support sending WRITE_DURABILITY_SOFT depending on settings.
+        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), WRITE_DURABILITY_HARD);
 
         wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
 
         // TODO: Require that everybody provide a callback.
         if (write_ref.get()->callback) {
             write_ref.get()->callback->on_response(mirror->get_peer(), response);
-        }
-
-        wait_interruptible(&disk_ack_cond, mirror_lock.get_drain_signal());
-        if (write_ref.get()->callback) {
-            write_ref.get()->callback->on_disk_ack(mirror->get_peer());
         }
 
     } catch (const interrupted_exc_t &) {

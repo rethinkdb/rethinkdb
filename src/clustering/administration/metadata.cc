@@ -11,8 +11,8 @@ bool ack_expectation_t::operator==(ack_expectation_t other) const {
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
-    buf->appendf("ack_expectation{disk=%" PRIi32 " memory=%" PRIi32 "}",
-                 x.disk_expectation(), x.cache_expectation());
+    buf->appendf("ack_expectation{durability=%s, acks=%" PRIu32 "}",
+                 x.is_hardly_durable() ? "hard" : "soft", x.expectation());
 }
 
 // json adapter concept for ack_expectation_t

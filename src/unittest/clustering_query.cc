@@ -68,8 +68,8 @@ static void run_read_write_test() {
     /* Set up a master */
     class : public master_t<dummy_protocol_t>::ack_checker_t {
     public:
-        bool is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &map) {
-            return map.size() >= 1;
+        bool is_acceptable_ack_set(const std::set<peer_id_t> &set) {
+            return set.size() >= 1;
         }
     } ack_checker;
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);
@@ -159,7 +159,7 @@ static void run_broadcaster_problem_test() {
     write will return an error. */
     class : public master_t<dummy_protocol_t>::ack_checker_t {
     public:
-        bool is_acceptable_ack_set(const std::map<peer_id_t, ack_state_t> &) {
+        bool is_acceptable_ack_set(const std::set<peer_id_t> &) {
             return false;
         }
     } ack_checker;
