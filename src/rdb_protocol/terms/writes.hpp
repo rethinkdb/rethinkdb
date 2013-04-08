@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 
@@ -16,13 +16,11 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
                            const datum_t *l, const datum_t *r,
                            const rcheckable_t *caller) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
-        //debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
-        //       env->add_ptr(new datum_t(l->as_num() + r->as_num()))->print().c_str());
         return env->add_ptr(new datum_t(l->as_num() + r->as_num()));
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < l->size(); ++i) arr->add(l->el(i));
-        for (size_t i = 0; i < r->size(); ++i) arr->add(r->el(i));
+        for (size_t i = 0; i < l->size(); ++i) arr->add(l->get(i));
+        for (size_t i = 0; i < r->size(); ++i) arr->add(r->get(i));
         return arr;
     }
 
@@ -31,8 +29,6 @@ const datum_t *stats_merge(env_t *env, UNUSED const std::string &key,
         caller, l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
                   l->get_type_name(), r->get_type_name()));
-    // debugf("%s %s %s -> %s\n", key.c_str(), l->print().c_str(), r->print().c_str(),
-    //        l->print().c_str());
     return l;
 }
 
@@ -54,7 +50,7 @@ private:
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
                             const datum_t **datum_out) {
-        if (!(*datum_out)->el(tbl->get_pkey(), NOTHROW)) {
+        if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW)) {
             std::string key = uuid_to_str(generate_uuid());
             const datum_t *keyd = env->add_ptr(new datum_t(key));
             datum_t *d = env->add_ptr(new datum_t(datum_t::R_OBJECT));
@@ -79,7 +75,7 @@ private:
             if (d->get_type() == datum_t::R_OBJECT) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (const any_ql_exc_t &) {
+                } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
@@ -93,7 +89,7 @@ private:
             while (const datum_t *d = ds->next()) {
                 try {
                     maybe_generate_key(t, &generated_keys, &d);
-                } catch (const any_ql_exc_t &) {
+                } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
@@ -167,7 +163,7 @@ private:
                     stats = stats->merge(env, d, stats_merge);
                 } else {
                     for (size_t i = 0; i < d->size(); ++i) {
-                        stats = stats->merge(env, d->el(i), stats_merge);
+                        stats = stats->merge(env, d->get(i), stats_merge);
                     }
                 }
             } catch (const exc_t &e) {

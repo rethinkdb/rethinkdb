@@ -105,7 +105,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
             return resp;
         }
     }
-    store_key_t store_key(orig->el(pk)->print_primary());
+    store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(pk, store_key, mwf, env->get_all_optargs()));
 
@@ -136,8 +136,8 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")))
-            }
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
 
     propagate(&t);
     return do_replace(
