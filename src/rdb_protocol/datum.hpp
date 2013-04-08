@@ -173,9 +173,9 @@ private:
 };
 
 #ifndef NDEBUG
-static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
-#else
 static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
+#else
+static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
 #endif // NDEBUG
 
 
