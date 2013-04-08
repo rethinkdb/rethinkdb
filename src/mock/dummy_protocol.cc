@@ -371,7 +371,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       const metainfo_t& new_metainfo,
                                       const dummy_protocol_t::write_t &write,
                                       dummy_protocol_t::write_response_t *response,
-                                      sync_callback_t *disk_ack_signal,
+                                      UNUSED write_durability_t durability,
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
                                       write_token_pair_t *token_pair,
@@ -408,8 +408,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
     if (rng.randint(2) == 0) {
         nap(rng.randint(10));
     }
-
-    disk_ack_signal->on_sync();
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
@@ -477,7 +475,7 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
                                            const metainfo_t &new_metainfo,
                                            write_token_pair_t *token_pair,
                                            signal_t *interruptor,
-                                           sync_callback_t *disk_ack_signal) THROWS_ONLY(interrupted_exc_t) {
+                                           UNUSED write_durability_t durability) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
@@ -492,8 +490,6 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
         timestamps[*it] = state_timestamp_t::zero();
     }
     metainfo.update(new_metainfo);
-
-    disk_ack_signal->on_sync();
 }
 
 void dummy_protocol_t::store_t::initialize_empty() {

@@ -9,7 +9,8 @@
 #include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
 
-enum write_durability_t { WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD };
+// WRITE_DURABILITY_INVALID is an invalid value, notably it can't be serialized.
+enum write_durability_t { WRITE_DURABILITY_INVALID, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD);
 
 // sync_callback_t is a cond_t that gets pulsed when on_sync is called

@@ -74,14 +74,12 @@ persistent_file_t::persistent_file_t(io_backender_t *io_backender, const seriali
     filepath_file_opener_t file_opener(filename, io_backender);
     construct_serializer_and_cache(true, &file_opener, perfmon_parent);
 
-    sync_callback_t disk_ack_signal;
-
     transaction_t txn(cache.get(),
                       rwi_write,
                       1,
                       repli_timestamp_t::distant_past,
                       cache_order_source.check_in("persistent_file_t"),
-                      &disk_ack_signal);
+                      WRITE_DURABILITY_HARD);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
 
@@ -138,14 +136,12 @@ cluster_semilattice_metadata_t persistent_file_t::read_metadata() {
 }
 
 void persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    sync_callback_t disk_ack_signal;
-
     transaction_t txn(cache.get(),
                       rwi_write,
                       1,
                       repli_timestamp_t::distant_past,
                       cache_order_source.check_in("update_metadata"),
-                      &disk_ack_signal);
+                      WRITE_DURABILITY_HARD);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
     metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
     write_blob(&txn, sb->metadata_blob, metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
@@ -225,14 +221,12 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        sync_callback_t disk_ack_signal;
-
         transaction_t txn(parent->cache.get(),
                           rwi_write,
                           1,
                           repli_timestamp_t::distant_past,
                           parent->cache_order_source.check_in("flush"),
-                          &disk_ack_signal);
+                          WRITE_DURABILITY_HARD);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
         metadata_superblock_t *sb = static_cast<metadata_superblock_t *>(superblock.get_data_write());
         write_blob(&txn, sb->*field_name, metadata_superblock_t::BRANCH_HISTORY_BLOB_MAXREFLEN, bh);

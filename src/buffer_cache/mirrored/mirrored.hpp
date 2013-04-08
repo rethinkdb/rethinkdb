@@ -225,7 +225,7 @@ class mc_transaction_t :
     friend class writeback_t;
 
 public:
-    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, sync_callback_t *disk_ack_signal);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, write_durability_t durability);
 
     // For read transactions.
     mc_transaction_t(mc_cache_t *cache, access_t access, order_token_t order_token);
@@ -270,7 +270,7 @@ private:
 
     const bool is_writeback_transaction;
 
-    sync_callback_t *const disk_ack_signal;
+    const write_durability_t durability;
 
     DISABLE_COPYING(mc_transaction_t);
 };

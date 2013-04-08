@@ -71,12 +71,10 @@ public:
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
-        // SAMRSI:  Get the disk_ack_signal from the parameter list?  Shouldn't we care when dummying these things?
-        sync_callback_t disk_ack_signal;
         store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, &disk_ack_signal, transition_timestamp, order_token, &token_pair, &non_interruptor);
+            write, response, WRITE_DURABILITY_SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;

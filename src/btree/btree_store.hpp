@@ -81,7 +81,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
@@ -107,7 +107,7 @@ public:
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
             signal_t *interruptor,
-            sync_callback_t *disk_ack_signal)
+            write_durability_t durability)
         THROWS_ONLY(interrupted_exc_t);
 
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
@@ -337,7 +337,7 @@ public:
             access_t access,
             repli_timestamp_t timestamp,
             int expected_change_count,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,

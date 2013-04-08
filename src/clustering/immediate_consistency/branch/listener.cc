@@ -472,7 +472,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
-        NULL /* disk ack signal */,
+        WRITE_DURABILITY_SOFT,
         qe.transition_timestamp,
         qe.order_token,
         &write_token_pair,
@@ -503,7 +503,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-        write_durability_t durability,
+        const write_durability_t durability,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         /* Make sure the broadcaster isn't sending us too many writes */
@@ -545,7 +545,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
                     write,
                     &response,
-                    disk_ack_signal.get_or_null(),
+                    durability,
                     transition_timestamp,
                     order_token,
                     &write_token_pair,

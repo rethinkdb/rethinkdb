@@ -142,7 +142,7 @@ public:
                    const metainfo_t& new_metainfo,
                    const dummy_protocol_t::write_t &write,
                    dummy_protocol_t::write_response_t *response,
-                   sync_callback_t *disk_ack_signal,
+                   write_durability_t durability,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
                    write_token_pair_t *token_pair,
@@ -162,7 +162,7 @@ public:
                         const metainfo_t &new_metainfo,
                         write_token_pair_t *token_pair,
                         signal_t *interruptor,
-                        sync_callback_t *disk_ack_signal) THROWS_ONLY(interrupted_exc_t);
+                        write_durability_t durability) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;
         std::map<std::string, state_timestamp_t> timestamps;

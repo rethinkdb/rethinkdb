@@ -158,11 +158,12 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
+            // SAMRSI: Explain the soft durability here.
             store->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
-                NULL /* disk ack signal */,
+                WRITE_DURABILITY_SOFT,
                 &token_pair.main_write_token,
                 &queue_txn,
                 &queue_superblock,

@@ -734,11 +734,13 @@ public:
         {
             scoped_ptr_t<real_superblock_t> superblock;
 
+            // SAMRSI: Ensure that we make sure things get forced to disk later.
+            // We use soft durability because we'll make sure that things get forced to disk later.
             store_->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
-                NULL /* Whoever uses this is responsible for calling sync_store. */,
+                WRITE_DURABILITY_SOFT,
                 &token_pair.main_write_token,
                 &wtxn,
                 &superblock,

@@ -82,7 +82,7 @@ void btree_store_t<protocol_t>::write(
         const metainfo_t& new_metainfo,
         const typename protocol_t::write_t &write,
         typename protocol_t::write_response_t *response,
-        sync_callback_t *disk_ack_signal,
+        const write_durability_t durability,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         write_token_pair_t *token_pair,
@@ -93,7 +93,7 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, disk_ack_signal, &token_pair->main_write_token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, durability, &token_pair->main_write_token, &txn, &superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
     protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), token_pair, interruptor);
@@ -142,7 +142,7 @@ void btree_store_t<protocol_t>::receive_backfill(
     acquire_superblock_for_write(rwi_write,
                                  chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
-                                 NULL /* disk ack signal */,
+                                 WRITE_DURABILITY_SOFT,
                                  &token_pair->main_write_token,
                                  &txn,
                                  &superblock,
@@ -162,7 +162,7 @@ void btree_store_t<protocol_t>::reset_data(
         const metainfo_t &new_metainfo,
         write_token_pair_t *token_pair,
         signal_t *interruptor,
-        sync_callback_t *disk_ack_signal)
+        const write_durability_t durability)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
@@ -179,7 +179,7 @@ void btree_store_t<protocol_t>::reset_data(
     acquire_superblock_for_write(rwi_write,
                                  repli_timestamp_t::invalid,
                                  expected_change_count,
-                                 disk_ack_signal,
+                                 durability,
                                  &token_pair->main_write_token,
                                  &txn,
                                  &superblock,
@@ -808,14 +808,12 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    sync_callback_t disk_ack_signal;
-
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(rwi_write,
                                  repli_timestamp_t::invalid,
                                  1,
-                                 &disk_ack_signal,
+                                 WRITE_DURABILITY_HARD,
                                  token,
                                  &txn,
                                  &superblock,
@@ -876,7 +874,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         access_t access,
         repli_timestamp_t timestamp,
         int expected_change_count,
-        sync_callback_t *disk_ack_signal,
+        const write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
@@ -892,7 +890,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, timestamp, order_token, disk_ack_signal, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
 }
 
 /* store_view_t interface */
