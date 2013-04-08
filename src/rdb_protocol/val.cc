@@ -72,7 +72,23 @@ const datum_t *table_t::sindex_drop(const std::string &id) {
 }
 
 const datum_t *table_t::sindex_list() {
-    return env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    datum_t *array = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    rdb_protocol_t::sindex_list_t sindex_list;
+    rdb_protocol_t::read_t read(sindex_list);
+    try {
+        rdb_protocol_t::read_response_t res;
+        access->get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::sindex_list_response_t *s_res = boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
+        r_sanity_check(s_res);
+
+        for (auto it = s_res->sindexes.begin(); it != s_res->sindexes.end(); ++it) {
+            array->add(env->add_ptr(new datum_t(*it)));
+        }
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail("cannot perform read: %s", ex.what());
+    }
+
+    return array;
 }
 
 const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,

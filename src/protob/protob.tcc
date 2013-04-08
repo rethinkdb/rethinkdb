@@ -36,7 +36,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::se
 
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    } catch (address_in_use_exc_t e) {
+    } catch (const address_in_use_exc_t &e) {
         nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
     }
 }
@@ -96,7 +96,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     force_response = true;
                 }
             }
-        } catch (tcp_conn_read_closed_exc_t &) {
+        } catch (const tcp_conn_read_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
             //mode
             return;
@@ -129,7 +129,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
                     crash("unreachable");
                     break;
             }
-        } catch (tcp_conn_write_closed_exc_t &) {
+        } catch (const tcp_conn_write_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
             //mode
             return;

@@ -101,7 +101,7 @@ NORETURN void terminate_handler() {
         std::string name;
         try {
             name = demangle_cpp_name(t->name());
-        } catch (demangle_failed_exc_t) {
+        } catch (const demangle_failed_exc_t &) {
             name = t->name();
         }
         try {

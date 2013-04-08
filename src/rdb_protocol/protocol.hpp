@@ -234,9 +234,18 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    struct sindex_list_response_t {
+        sindex_list_response_t() { }
+        std::vector<std::string> sindexes;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct read_response_t {
     private:
-        typedef boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> _response_t;
+        typedef boost::variant<point_read_response_t,
+                               rget_read_response_t,
+                               distribution_read_response_t,
+                               sindex_list_response_t> _response_t;
     public:
         _response_t response;
 
@@ -340,10 +349,16 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class sindex_list_t {
+    public:
+        sindex_list_t() { }
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
 
     struct read_t {
     private:
-        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t> _read_t;
+        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> _read_t;
     public:
         _read_t read;
 
