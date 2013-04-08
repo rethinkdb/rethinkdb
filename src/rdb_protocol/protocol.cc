@@ -158,7 +158,8 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
-            // SAMRSI: Explain the soft durability here.
+            // We don't need hard durability here, because a secondary index just gets rebuilt
+            // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
