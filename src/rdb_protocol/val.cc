@@ -48,8 +48,7 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *table_t::sindex_create(const std::string &, func_t *index_func) {
-    uuid_u id = generate_uuid();
+const datum_t *table_t::sindex_create(const std::string &id, func_t *index_func) {
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
@@ -58,12 +57,10 @@ const datum_t *table_t::sindex_create(const std::string &, func_t *index_func) {
     access->get_namespace_if()->write(
         write, &response, order_token_t::ignore, env->interruptor);
 
-    return env->add_ptr(new datum_t(uuid_to_str(id)));
+    return env->add_ptr(new datum_t(id));
 }
 
-const datum_t *table_t::sindex_drop(const std::string &name) {
-    uuid_u id = str_to_uuid(name);
-
+const datum_t *table_t::sindex_drop(const std::string &id) {
     rdb_protocol_t::write_t write((
             rdb_protocol_t::sindex_drop_t(id)));
 
@@ -75,7 +72,23 @@ const datum_t *table_t::sindex_drop(const std::string &name) {
 }
 
 const datum_t *table_t::sindex_list() {
-    return env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    datum_t *array = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    rdb_protocol_t::sindex_list_t sindex_list;
+    rdb_protocol_t::read_t read(sindex_list);
+    try {
+        rdb_protocol_t::read_response_t res;
+        access->get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::sindex_list_response_t *s_res = boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
+        r_sanity_check(s_res);
+
+        for (auto it = s_res->sindexes.begin(); it != s_res->sindexes.end(); ++it) {
+            array->add(env->add_ptr(new datum_t(*it)));
+        }
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail("cannot perform read: %s", ex.what());
+    }
+
+    return array;
 }
 
 const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
@@ -149,7 +162,7 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt) {
+datum_stream_t *table_t::get_sindex_rows(const datum_t *pval, const std::string &sindex_id, const pb_rcheckable_t *bt) {
     return env->add_ptr(
             new lazy_datum_stream_t(env, use_outdated, access.get(),
                                     pval, sindex_id, bt));

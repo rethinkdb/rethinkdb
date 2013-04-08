@@ -1,9 +1,0 @@
-#!/usr/bin/env python
-
-print "Content-Type: text/plain"
-print
-
-print "Here's the log:"
-
-with open("log.txt") as log:
-    print log.read()

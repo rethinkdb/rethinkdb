@@ -69,7 +69,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
 
             scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts));
             return http_json_res(data.get());
-        } catch (cannot_perform_query_exc_t &) {
+        } catch (const cannot_perform_query_exc_t &) {
             return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
         }
     } else if (std_contains(rdb_ns_snapshot->namespaces, n_id)) {
@@ -86,7 +86,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
 
             scoped_cJSON_t data(render_as_json(&boost::get<rdb_protocol_t::distribution_read_response_t>(db_res.response).key_counts));
             return http_json_res(data.get());
-        } catch (cannot_perform_query_exc_t &) {
+        } catch (const cannot_perform_query_exc_t &) {
             return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
         }
     } else {

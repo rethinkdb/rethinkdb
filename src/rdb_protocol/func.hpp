@@ -43,7 +43,6 @@ private:
     // This is what's serialized over the wire.
     friend class wire_func_t;
     const Term *source;
-    bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int64_t, const datum_t **> scope;

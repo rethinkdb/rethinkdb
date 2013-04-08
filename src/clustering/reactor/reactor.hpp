@@ -197,7 +197,7 @@ boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcar
     }
     try {
         return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.activity)));
-    } catch (boost::bad_get) {
+    } catch (const boost::bad_get &) {
         crash("Tried to get an activity of an unexpected type! It is assumed "
             "the person calling this function knows the type of the activity "
             "they will be getting back.\n");

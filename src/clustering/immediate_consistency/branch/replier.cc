@@ -62,7 +62,7 @@ void replier_t<protocol_t>::on_synchronize(state_timestamp_t timestamp, mailbox_
     try {
         listener_->wait_for_version(timestamp, keepalive.get_drain_signal());
         send(mailbox_manager_, ack_mbox);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
     }
 }
 

@@ -626,7 +626,7 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
         memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
         */
     }

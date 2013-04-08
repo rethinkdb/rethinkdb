@@ -152,6 +152,10 @@ public:
 private:
     void init_json(cJSON *json, env_t *env);
 
+    void num_to_str_key(std::string *str_out) const;
+    void str_to_str_key(std::string *str_out) const;
+    void array_to_str_key(std::string *str_out) const;
+
     // TODO: fix later.  Listing everything is more debugging-friendly than a
     // boost::variant, but less efficient.
     type_t type;

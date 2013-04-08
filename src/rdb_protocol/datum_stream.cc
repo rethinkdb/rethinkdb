@@ -101,7 +101,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    const datum_t *pval, const uuid_u &sindex_id,
+    const datum_t *pval, const std::string &sindex_id,
     const pb_rcheckable_t *bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(

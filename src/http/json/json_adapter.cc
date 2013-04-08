@@ -206,7 +206,7 @@ void apply_json_to(cJSON *change, uuid_u *uuid) {
     } else {
         try {
             *uuid = str_to_uuid(get_string(change));
-        } catch (std::runtime_error) {
+        } catch (const std::runtime_error &) {
             throw schema_mismatch_exc_t(strprintf("String %s, did not parse as uuid", cJSON_print_unformatted_std_string(change).c_str()));
         }
     }
