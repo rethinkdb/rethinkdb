@@ -994,7 +994,6 @@ mc_transaction_t::~mc_transaction_t() {
     if (access == rwi_write && durability == WRITE_DURABILITY_HARD) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        // SAMRSI: Should sync_callback_t still be as complicated as it is (a cond_t, self-waiting)?
         sync_callback_t disk_ack_signal;
         cache->writeback.sync_patiently(&disk_ack_signal);
         cache->on_transaction_commit(this);
@@ -1177,7 +1176,6 @@ mc_cache_t::~mc_cache_t() {
         /* Perform a final sync */
         sync_callback_t sync_cb;
         writeback.sync(&sync_cb);
-        sync_cb.wait();
     }
 
     /* Delete all the buffers */
