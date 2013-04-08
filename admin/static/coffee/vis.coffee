@@ -150,16 +150,16 @@ module 'Vis', ->
                 table:      @type is 'table'
 
             # Set up the plot
-            sensible_plot = @context.sensible()
+            @sensible_plot = @context.sensible()
                 .height(@HEIGHT_IN_PIXELS)
                 .colors(["#983434","#729E51"])
                 .extent([0, @HEIGHT_IN_UNITS])
             d3.select(@.$('.plot')[0]).call (div) =>
                 div.data([[@read_stats, @write_stats]])
                 # Chart itself
-                div.append('div')
+                @selection = div.append('div')
                     .attr('class', 'chart')
-                    .call(sensible_plot)
+                @selection.call(@sensible_plot)
                 # Horizontal axis
                 div.append('div')
                     .attr('class', 'haxis')
@@ -180,7 +180,7 @@ module 'Vis', ->
                 # Vertical axis
                 div.append('div')
                     .attr('class', 'vaxis')
-                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], sensible_plot.scale())
+                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], @sensible_plot.scale())
                         .orient('left')
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSubdivide(@VAXIS_MINOR_SUBDIVISION_COUNT - 1)
@@ -189,7 +189,7 @@ module 'Vis', ->
                 # Vertical axis grid
                 div.append('div')
                     .attr('class', 'vgrid')
-                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], sensible_plot.scale())
+                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], @sensible_plot.scale())
                         .orient('left')
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSize(-(@WIDTH_IN_PIXELS + 35), 0, 0)
@@ -200,6 +200,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
+            @sensible_plot.remove(@selection)
             @context.on 'focus'
             @legend.destroy()
 
