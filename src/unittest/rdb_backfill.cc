@@ -138,7 +138,8 @@ void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std:
         }
     } write_callback;
     cond_t non_interruptor;
-    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);
+    spawn_write_fake_ack_checker_t ack_checker;
+    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
 }
 
@@ -255,8 +256,9 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
             }
         } write_callback;
         cond_t non_interruptor;
+        spawn_write_fake_ack_checker_t ack_checker;
         broadcaster->get()->spawn_write(write, &exiter, order_token_t::ignore,
-                &write_callback, &non_interruptor);
+                                        &write_callback, &non_interruptor, &ack_checker);
         write_callback.wait_lazily_unordered();
     }
 

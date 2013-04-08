@@ -15,6 +15,7 @@
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 
+class ack_checker_t;
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
@@ -74,7 +75,7 @@ public:
     `write_callback_t` is destroyed while the write is still in progress, its
     destructor will automatically deregister it so that no segfaults will
     happen. */
-    void spawn_write(const typename protocol_t::write_t &w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void spawn_write(const typename protocol_t::write_t &w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor, const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id() const;
 
@@ -96,7 +97,7 @@ private:
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
     void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
-    void background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
+    void background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
