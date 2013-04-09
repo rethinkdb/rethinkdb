@@ -98,7 +98,7 @@ private:
 
 
 // A per-thread worker pool.
-class pool_t : public home_thread_mixin_debug_only_t {
+class pool_t : public home_thread_mixin_t {
 public:
     explicit pool_t(pool_group_t *group);
     ~pool_t();
