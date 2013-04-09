@@ -7,3 +7,9 @@ tests:
 
     - py: r.expr(1).do(lambda x:{'self':x})
       ot: ({'self':1})
+
+    - py: r.expr({"a":{"self":1}})
+      ot: ({"a":{"self":1}})
+
+    - py: r.expr({"self":{"self":{"self":1}}})
+      ot: ({"self":{"self":{"self":1}}})
