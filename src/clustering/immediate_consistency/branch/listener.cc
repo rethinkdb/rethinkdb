@@ -168,7 +168,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                                backfill_session_id,
                                interruptor);
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         throw backfiller_lost_exc_t();
     }
 
@@ -380,7 +380,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
             mailbox_manager_,
             broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
             listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox_.get_address())));
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         throw broadcaster_lost_exc_t();
     }
 
@@ -433,7 +433,7 @@ void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &w
         sem_acq.reset();
         send(mailbox_manager_, ack_addr);
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }
@@ -553,7 +553,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }
@@ -616,7 +616,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             keepalive.get_drain_signal());
 
         send(mailbox_manager_, ack_addr, response);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }

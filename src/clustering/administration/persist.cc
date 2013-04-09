@@ -284,7 +284,7 @@ void semilattice_watching_persister_t::dump_loop(auto_drainer_t::lock_t keepaliv
                 break;
             }
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         // do nothing
     }
     stopped.pulse();

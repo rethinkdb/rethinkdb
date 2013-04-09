@@ -1,7 +1,7 @@
 #include "utils.hpp"
 
 #include "rdb_protocol/validate.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 #define check_has(pb, field)                                            \
     rcheck_toplevel(                                                    \

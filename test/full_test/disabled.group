@@ -1,0 +1,4 @@
+# These tests are broken
+static_cluster-rdb-python
+static_cluster-rdb-javascript
+regression-659

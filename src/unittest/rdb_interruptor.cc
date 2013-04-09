@@ -147,7 +147,7 @@ void count_evals(test_rdb_env_t *test_env, Term *term, uint32_t *count_out,
 
     ql::term_t *compiled_term = ql::compile_term(env_instance->get(), term);
 
-    UNUSED ql::val_t *result = compiled_term->eval(false);
+    UNUSED ql::val_t *result = compiled_term->eval();
     rassert(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
 }
@@ -165,7 +165,7 @@ void interrupt_test(test_rdb_env_t *test_env,
     ql::term_t *compiled_term = ql::compile_term(env_instance->get(), term);
 
     try {
-        UNUSED ql::val_t *result = compiled_term->eval(false);
+        UNUSED ql::val_t *result = compiled_term->eval();
     } catch (const interrupted_exc_t &ex) {
         guarantee(verify_callback->verify(env_instance.get()));
         return;

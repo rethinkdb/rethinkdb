@@ -12,7 +12,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/ptr_bag.hpp"
 #include "http/json.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 class Datum;
 
@@ -84,9 +84,9 @@ public:
     void add(const datum_t *val); // add to an array
     size_t size() const;
     // Access an element of an array.
-    const datum_t *el(size_t index, throw_bool_t throw_bool = THROW) const;
+    const datum_t *get(size_t index, throw_bool_t throw_bool = THROW) const;
 
-    // Use of `el` is preferred to `as_object` when possible.
+    // Use of `get` is preferred to `as_object` when possible.
     const std::map<const std::string, const datum_t *> &as_object() const;
     // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, const datum_t *val,
@@ -94,7 +94,7 @@ public:
     // Returns true if key was in object.
     MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
-    const datum_t *el(const std::string &key, throw_bool_t throw_bool = THROW) const;
+    const datum_t *get(const std::string &key, throw_bool_t throw_bool = THROW) const;
     const datum_t *merge(const datum_t *rhs) const;
     typedef const datum_t *(*merge_res_f)(env_t *env, const std::string &key,
                                           const datum_t *l, const datum_t *r,
@@ -121,7 +121,29 @@ public:
     // Iterate through an object or array with a callback.  (The callback
     // returns whether or not to continue iterating.)  Used for e.g. garbage
     // collection.
-    void iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const;
+    template<class callable_t>
+    void iter(callable_t callback) const {
+        if (callback(this)) {
+            switch (get_type()) {
+            case R_NULL: // fallthru
+            case R_BOOL: // fallthru
+            case R_NUM:  // fallthru
+            case R_STR:  break;
+            case R_ARRAY: {
+                for (size_t i = 0; i < as_array().size(); ++i) {
+                    get(i)->iter(callback);
+                }
+            } break;
+            case R_OBJECT: {
+                for (std::map<const std::string, const datum_t *>::const_iterator
+                         it = as_object().begin(); it != as_object().end(); ++it) {
+                    it->second->iter(callback);
+                }
+            } break;
+            default: unreachable();
+            }
+        }
+    }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
@@ -129,6 +151,10 @@ public:
     }
 private:
     void init_json(cJSON *json, env_t *env);
+
+    void num_to_str_key(std::string *str_out) const;
+    void str_to_str_key(std::string *str_out) const;
+    void array_to_str_key(std::string *str_out) const;
 
     // TODO: fix later.  Listing everything is more debugging-friendly than a
     // boost::variant, but less efficient.
@@ -141,16 +167,18 @@ private:
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);
-// A `wire_datum_t` is necessary to serialize data over the wire.  See README.md
-// for more info.
+// A `wire_datum_t` is necessary to serialize data over the wire.
 class wire_datum_t {
 public:
     wire_datum_t() : ptr(0), state(INVALID) { }
     explicit wire_datum_t(const datum_t *_ptr) : ptr(_ptr), state(COMPILED) { }
     const datum_t *get() const;
     const datum_t *reset(const datum_t *ptr2);
+    // Return a datum allocated in `env`.
     const datum_t *compile(env_t *env);
 
+    // Prepare ourselves for serialization over the wire (this is a performance
+    // optimizaiton that we need on the shards).
     void finalize();
 private:
     const datum_t *ptr;
@@ -159,20 +187,27 @@ private:
 public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == READY_TO_WRITE);
+        r_sanity_check(state == SERIALIZABLE);
         msg << ptr_pb;
     }
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
         archive_result_t res = deserialize(s, &ptr_pb);
         if (res) return res;
-        state = JUST_READ;
+        state = SERIALIZABLE;
         return ARCHIVE_SUCCESS;
     }
 
 private:
-    enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
+    enum { INVALID, SERIALIZABLE, COMPILED } state;
 };
+
+#ifndef NDEBUG
+static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
+#else
+static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
+#endif // NDEBUG
+
 
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
@@ -201,19 +236,19 @@ private:
 public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == READY_TO_WRITE);
+        r_sanity_check(state == SERIALIZABLE);
         msg << map_pb;
     }
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
         archive_result_t res = deserialize(s, &map_pb);
         if (res) return res;
-        state = JUST_READ;
+        state = SERIALIZABLE;
         return ARCHIVE_SUCCESS;
     }
 
 private:
-    enum { JUST_READ, COMPILED, READY_TO_WRITE } state;
+    enum { SERIALIZABLE, COMPILED } state;
 };
 
 } // namespace ql

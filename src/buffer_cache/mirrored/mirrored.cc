@@ -1246,6 +1246,10 @@ mc_inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     return buf;
 }
 
+unsigned int mc_cache_t::num_blocks() {
+    return page_map.size();
+}
+
 bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }

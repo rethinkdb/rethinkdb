@@ -2,13 +2,20 @@
 language: cpp
 compiler:
   - gcc
+  - clang
 
 # Install build dependencies
 before_script:
-  - sudo apt-get install npm protobuf-compiler protobuf-c-compiler libprotobuf-dev libv8-dev libgoogle-perftools-dev libprotoc-dev default-jre libboost-all-dev
+  - sudo apt-get install npm protobuf-compiler protobuf-c-compiler libprotobuf-dev libv8-dev libgoogle-perftools-dev libprotoc-dev default-jre
   - sudo npm install -g less@1.3.0
   - sudo npm install -g coffee-script@1.4.0
   - sudo npm install -g handlebars@1.0.10
+
+  # we need a custom ppa for latest boost libs (1.46, which is on
+  # Travis, doesn't work with Clang and C++ 11)
+  - yes | sudo apt-add-repository ppa:jkeiren/ppa
+  - sudo apt-get update
+  - sudo apt-get install libboost1.48-all-dev
 
 # Build script
 script: ./configure && make DEBUG=1 unit -j 2

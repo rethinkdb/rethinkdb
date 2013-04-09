@@ -36,7 +36,7 @@ commands:
       py: name[, use_outdated=False]
       rb: name[, opts]
     parent: db
-    returns: selection
+    returns: table
 
     examples:
       - description: Return all documents in the table 'marvel' of the default database.
@@ -123,7 +123,7 @@ commands:
           js: r.table('marvel').filter(r.row('magazines').gt(5)).run(conn, callback)
           py: r.table('users').filter(r.row['magazines'] > 5).run(conn)
           rb: r.table('users').filter{|user| user[:magazines] > 5}.run(conn)
-      - description: Select all documents where the 'abilities' field contains a key called 'super-strength'.
+      - description: Select all documents where the 'abilities' embedded document has an attribute called 'super-strength'.
         code:
           js: |
             r.table('marvel').filter(function(hero) {

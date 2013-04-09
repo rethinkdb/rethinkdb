@@ -208,7 +208,7 @@ private:
         try {
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
                                          env->interruptor, env->semilattice_metadata);
-        } catch (interrupted_exc_t e) {
+        } catch (const interrupted_exc_t &e) {
             rfail("Query interrupted, probably by user.");
         }
 
@@ -385,8 +385,8 @@ private:
         table_t *table = arg(0)->as_table();
         const datum_t *pkey = arg(1)->as_datum();
         if (num_args() == 3) {
-            uuid_u sindex_id = str_to_uuid(arg(2)->as_datum()->as_str());
-            datum_stream_t *sequence = table->get_sindex_rows(pkey, sindex_id, this);
+            datum_stream_t *sequence = table->get_sindex_rows(pkey, 
+                    arg(2)->as_datum()->as_str(), this);
             return new_val(sequence, table);
         } else {
             const datum_t *row = table->get_row(pkey);

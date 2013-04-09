@@ -12,6 +12,24 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+namespace ql {
+
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+
+class exc_visitor_t : public boost::static_visitor<void> {
+public:
+    exc_visitor_t(const datum_exc_t &_exc, rget_read_response_t::result_t *_res_out)
+        : exc(_exc), res_out(_res_out) { }
+    template<class T>
+    void operator()(const T &func) const {
+        *res_out =  exc_t(exc.what(), func.get_bt(), 1);
+    }
+private:
+    const datum_exc_t exc;
+    rget_read_response_t::result_t *res_out;
+};
+} // namespace ql
+
 namespace query_language {
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
@@ -48,9 +66,24 @@ public:
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
 
-    void operator()(const ql::gmr_wire_func_t &) const;
-    void operator()(const ql::count_wire_func_t &) const;
-    void operator()(const ql::reduce_wire_func_t &) const;
+    void operator()(ql::gmr_wire_func_t &f) const {
+        ql::func_t *group = f.compile_group(ql_env);
+        ql::func_t *map = f.compile_map(ql_env);
+        ql::func_t *reduce = f.compile_reduce(ql_env);
+        guarantee(group != NULL && map != NULL && reduce != NULL);
+        *out = ql::wire_datum_map_t();
+    }
+
+    void operator()(const ql::count_wire_func_t &) const {
+        *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0.0)));
+    }
+
+    void operator()(ql::reduce_wire_func_t &f) const {
+        ql::func_t *reduce = f.compile(ql_env);
+        guarantee(reduce != NULL);
+        *out = rget_read_response_t::empty_t();
+    }
+
 private:
     rget_read_response_t::result_t *out;
     ql::env_t *ql_env;

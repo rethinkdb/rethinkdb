@@ -1,0 +1,4 @@
+# By default, run all tests except the disabled tests and the long tests
+*
+!disabled
+!long

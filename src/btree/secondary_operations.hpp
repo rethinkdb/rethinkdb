@@ -48,16 +48,16 @@ struct secondary_index_t {
  * no reason to ever do this. */
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock);
 
-bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, secondary_index_t *sindex_out);
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, secondary_index_t *sindex_out);
 
-void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out);
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out);
 
 /* Overwrites existing values with the same id. */
-void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex);
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.
-bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid);
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id);
 
 //XXX note this just drops the enties. It doesn't cleanup the btree that it
 //points to. drop_secondary_indexes. Does both and should be used publicly.
