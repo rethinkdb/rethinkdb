@@ -372,6 +372,7 @@ private:
             db = arg(0)->as_db();
             name = arg(1)->as_str();
         }
+        virtual bool is_deterministic_impl() const { return false; }
         return new_val(new table_t(env, db, name, use_outdated, this));
     }
     virtual const char *name() const { return "table"; }
