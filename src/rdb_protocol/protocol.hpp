@@ -405,7 +405,8 @@ struct rdb_protocol_t {
     //TODO we're reusing the enums from row writes and reads to avoid name
     //shadowing. Nothing really wrong with this but maybe they could have a
     //more generic name.
-    struct sindex_create_response_t { 
+    struct sindex_create_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 

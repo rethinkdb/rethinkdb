@@ -48,20 +48,23 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *table_t::sindex_create(const std::string &id, func_t *index_func) {
+MUST_USE bool table_t::sindex_create(const std::string &id, func_t *index_func) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
 
-    rdb_protocol_t::write_response_t response;
+    rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+        write, &res, order_token_t::ignore, env->interruptor);
 
-    return env->add_ptr(new datum_t(id));
+    rdb_protocol_t::sindex_create_response_t *response =
+        boost::get<rdb_protocol_t::sindex_create_response_t>(&res.response);
+    r_sanity_check(response);
+    return response->success;
 }
 
-const datum_t *table_t::sindex_drop(const std::string &id) {
+MUST_USE bool table_t::sindex_drop(const std::string &id) {
     rdb_protocol_t::write_t write((
             rdb_protocol_t::sindex_drop_t(id)));
 
@@ -72,16 +75,7 @@ const datum_t *table_t::sindex_drop(const std::string &id) {
     rdb_protocol_t::sindex_drop_response_t *response =
         boost::get<rdb_protocol_t::sindex_drop_response_t>(&res.response);
     r_sanity_check(response);
-
-    if (!response->success) {
-        rfail("secondary index not found: %s", id.c_str());
-    }
-
-    datum_t *result = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-    datum_t *value = env->add_ptr(new datum_t(1.0));
-    bool already_exists = result->add("dropped", value);
-    r_sanity_check(!already_exists);
-    return result;
+    return response->success;
 }
 
 const datum_t *table_t::sindex_list() {

@@ -1,0 +1,27 @@
+desc: reject non-deterministic secondary indexes (#578)
+tests:
+
+  - cd: r.db('test').table_create('578')
+    def: tbl = r.table('578')
+
+  - js: tbl.sindex_create("578", function(rec){return 1})
+    py: tbl.sindex_create("578", lambda rec:1)
+    rb: tbl.sindex_create("578") {|rec| 1}
+    ot: ({'created':1})
+
+  - js: tbl.sindex_create("578", function(rec){return 1})
+    py: tbl.sindex_create("578", lambda rec:1)
+    rb: tbl.sindex_create("578") {|rec| 1}
+    ot: 'err("RqlRuntimeError", "Index already exists: 578", [])'
+
+  - js: tbl.sindex_drop("578")
+    py: tbl.sindex_drop("578")
+    rb: tbl.sindex_drop("578")
+    ot: ({'dropped':1})
+
+  - js: tbl.sindex_drop("578")
+    py: tbl.sindex_drop("578")
+    rb: tbl.sindex_drop("578")
+    ot: 'err("RqlRuntimeError", "Index not found: 578", [])'
+
+  - cd: r.db('test').table_drop('578')

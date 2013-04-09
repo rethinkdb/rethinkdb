@@ -126,13 +126,13 @@ void run_sindex_post_construction() {
         int res = send_write_message(&stream, &wm);
         guarantee(res == 0);
 
-        store.add_sindex(
-                &token_pair,
-                sindex_id,
-                stream.vector(),
-                txn.get(),
-                super_block.get(),
-                &dummy_interuptor);
+        UNUSED bool b = store.add_sindex(
+            &token_pair,
+            sindex_id,
+            stream.vector(),
+            txn.get(),
+            super_block.get(),
+            &dummy_interuptor);
     }
 
     cond_t background_inserts_done;
