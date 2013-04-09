@@ -204,6 +204,7 @@ public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
     boost::shared_ptr<js::runner_t> get_js_runner();
+
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
     public:
