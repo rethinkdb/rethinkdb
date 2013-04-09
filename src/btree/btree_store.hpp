@@ -177,7 +177,7 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    void drop_sindex(
+    bool drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         transaction_t *txn,

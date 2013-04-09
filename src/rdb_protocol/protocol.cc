@@ -964,18 +964,19 @@ struct write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        response->response = sindex_drop_response_t();
+        sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
         rdb_value_deleter_t deleter;
 
-        store->drop_sindex(
-                token_pair,
-                d.id,
-                txn,
-                superblock,
-                &sizer,
-                &deleter,
-                &interruptor);
+        res.success = store->drop_sindex(token_pair,
+                                         d.id,
+                                         txn,
+                                         superblock,
+                                         &sizer,
+                                         &deleter,
+                                         &interruptor);
+
+        response->response = res;
     }
 
     write_visitor_t(btree_slice_t *_btree,
@@ -1379,7 +1380,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_create_response_t);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_drop_response_t);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 

@@ -134,6 +134,10 @@ void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
 bool func_t::is_deterministic() const {
     return body ? body->is_deterministic() : false;
 }
+void func_t::assert_deterministic(const char *extra_msg) const {
+    rcheck(is_deterministic(),
+           strprintf("Could not prove function deterministic.  %s", extra_msg));
+}
 
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) : source(*func->source) {

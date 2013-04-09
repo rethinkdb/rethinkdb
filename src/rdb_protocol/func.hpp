@@ -34,6 +34,7 @@ public:
 
     void dump_scope(std::map<int64_t, Datum> *out) const;
     bool is_deterministic() const;
+    void assert_deterministic(const char *extra_msg) const;
 
 private:
     // Pointers to this function's arguments.
