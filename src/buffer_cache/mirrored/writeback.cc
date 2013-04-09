@@ -69,7 +69,9 @@ void writeback_t::sync(sync_callback_t *callback) {
     // even if there are no dirty blocks to make sure that the callbacks get called only
     // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
     if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0) {
-        callback->on_sync();
+        if (callback != NULL) {
+            callback->on_sync();
+        }
         return;
     }
 
