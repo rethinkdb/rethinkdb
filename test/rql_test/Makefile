@@ -8,43 +8,66 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
 BUILD='release'
 TEST_DEFAULT_PORT=0
 SHARD=0
+TEST=.*
+
+SHELL=/bin/bash
 
 .SILENT:
 
+.PHONY: run
 run: $(TEST_FILES) cursor connect
 	./test-runner run \"$(BUILD)\"
 
-py: py_connect py_cursor
+.PHONY: py
+py: py_connect py_cursor py_polyglot
 
-js: js_connect js_cursor
+.PHONY: js
+js: js_connect js_cursor py_polyglot
 
-py js rb: $(TEST_FILES)
-	./test-runner run \"$(BUILD)\" \"$@\"
+.PHONY: rb
+rb: rb_polyglot
 
-$(TEST_FILES): $(YAML_FILES) $(DRIVER_FILES) test-runner
+.PHONY: py_polyglot js_polyglot rb_polyglot
+py_polyglot js_polyglot rb_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD)\" \"$(shell echo $@ | cut -b 1-2)\"
+
+$(TEST_FILES): build/.stub
+build/.stub: $(YAML_FILES) $(DRIVER_FILES)
 	mkdir -p build
-	./test-runner build_test_scripts $(SHARD)
+	RQL_TEST=$(TEST) ./test-runner build_test_scripts $(SHARD)
+	touch $@
 
+.PHONY: list
+list:
+	cd src && find -name \*.yaml | sed 's|^./||; s|/|-|g; s|.yaml$$||'
+
+.PHONY: polyglot
+polyglot: py_polyglot js_polyglot rb_polyglot
+
+.PHONY: py_connect
 py_connect: connections/connection.py
 	python connections/connection.py $(BUILD) $(TEST_DEFAULT_PORT)
 
+.PHONY: js_connect
 js_connect: connections/connection.js
 	BUILD=$(BUILD) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
 
+.PHONY: cursor
 cursor:
 	python connections/cursor_test.py $(BUILD)
 
+.PHONY: js_cursor
 js_cursor:
 	python connections/cursor_test.py $(BUILD) js
 
+.PHONY: py_cursor
 py_cursor:
 	python connections/cursor_test.py $(BUILD) py
 
-
+.PHONY: connect
 connect: js_connect py_connect
 
+.PHONY: clean
 clean:
 	rm -r build
-
-.PHONY: run py js rb clean connect py_connect js_connect
