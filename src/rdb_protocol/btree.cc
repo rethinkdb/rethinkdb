@@ -345,53 +345,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
 }
 
-// Recursively defined function to estimate the size of a cJSON object.
-// This is defined here to be used in `estimate_rget_response_size` but
-// could be useful elsewhere so we may consider moving it.
-size_t estimate_cJSON_size(const cJSON *json) {
-    if (!json) {
-        // We've reached the end of an Array or Object's sub-fields
-        return 0;
-    }
-
-    // The cJSON struct obviously takes up some memory by itself
-    size_t estimate = sizeof(struct cJSON);
-
-    // If this is a sub-field (of any type) the 'string' field is set
-    if (json->string)
-        estimate += strlen(json->string);
-
-    switch(json->type) {
-    case cJSON_False:
-    case cJSON_True:
-    case cJSON_NULL:
-    case cJSON_Number:
-        // No additional memory is used in these cases
-        break;
-    case cJSON_String:
-        guarantee(json->valuestring);
-        estimate += strlen(json->valuestring);
-        break;
-    case cJSON_Array:
-    case cJSON_Object:
-        // These both use the embedded linked list to store fields
-        estimate += estimate_cJSON_size(json->head);
-        break;
-    default:
-        unreachable();
-    };
-
-    // Continue iterating over the other sub-fields
-    estimate += estimate_cJSON_size(json->next);
-
-    return estimate;
-}
-
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
 // not a whole rget though it is used for that purpose (by summing up these responses).
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json) {
-    const cJSON *raw_json = json->get();
-    return estimate_cJSON_size(raw_json);
+    return cJSON_estimate_size(json->get());
 }
 
 
