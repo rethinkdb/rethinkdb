@@ -269,8 +269,8 @@ private:
                          order_source.check_in("test_cow_delete(t1)").with_read_mode());
         transaction_t t2(cache, rwi_read,
                          order_source.check_in("test_cow_delete(t2)").with_read_mode());
-        transaction_t t3(cache, rwi_write,
-                         order_source.check_in("test_cow_delete(t3)"));
+        transaction_t t3(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                         order_source.check_in("test_cow_delete(t3)"), WRITE_DURABILITY_SOFT);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
         buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);
