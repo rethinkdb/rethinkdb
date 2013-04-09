@@ -16,7 +16,9 @@ def expr(val):
     elif isinstance(val, list):
         return MakeArray(*val)
     elif isinstance(val, dict):
-        return MakeObj(**val)
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        return MakeObj(val)
     elif callable(val):
         return Func(val)
     else:
