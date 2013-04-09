@@ -361,7 +361,6 @@ public:
     transaction_t *txn_;
 };
 
-//TODO this function needs to update secondary indexes.
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      bool left_key_supplied, const store_key_t& left_key_exclusive,
                      bool right_key_supplied, const store_key_t& right_key_inclusive,

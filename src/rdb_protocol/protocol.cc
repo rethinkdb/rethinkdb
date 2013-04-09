@@ -1142,13 +1142,10 @@ struct receive_backfill_visitor_t : public boost::static_visitor<void> {
         range_key_tester_t tester(delete_range.range);
         rdb_modification_report_cb_t sindex_cb(
             store, token_pair, txn,
-            superblock->get_sindex_block_id(), 
+            superblock->get_sindex_block_id(),
             auto_drainer_t::lock_t(&store->drainer));
 
         rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, &sindex_cb);
-
-        token_pair->sindex_write_token.reset();
-        //TODO this doesn't update the secondary index and it needs to.
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {

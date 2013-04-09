@@ -40,6 +40,8 @@ protected:
     DISABLE_COPYING(value_deleter_t);
 };
 
+/* This call back will be called with each kv pair that is slated for erase
+ * before the erase has actually happened on the kv pair. */
 class erase_range_cb_t {
 public:
     virtual void handle_pair(const btree_key_t *key, const void *value) = 0;
