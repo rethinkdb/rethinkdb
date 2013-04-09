@@ -556,7 +556,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     secondary_index_t sindex;
     ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
 
-    if (sindex.post_construction_complete) {
+    if (!sindex.post_construction_complete) {
         throw sindex_not_post_constructed_exc_t(id);
     }
 
@@ -586,7 +586,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     secondary_index_t sindex;
     ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
 
-    if (sindex.post_construction_complete) {
+    if (!sindex.post_construction_complete) {
         throw sindex_not_post_constructed_exc_t(id);
     }
 
@@ -655,7 +655,7 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
     ::get_secondary_indexes(txn, sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (it->second.post_construction_complete) {
+        if (!it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
@@ -680,11 +680,6 @@ void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->first)) {
             continue;
-        }
-
-        /* First make sure things are post constructed. */
-        if (!it->second.post_construction_complete) {
-            throw sindex_not_post_constructed_exc_t(it->first);
         }
 
         /* Getting the slice and asserting we're on the right thread. */

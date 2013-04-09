@@ -220,12 +220,16 @@ private:
 // turned into a normal `exc_t`.
 class datum_exc_t : public any_ql_exc_t {
 public:
+    datum_exc_t() : exc_msg("UNINITIALIZED") { }
     explicit datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
 private:
     std::string exc_msg;
+
+public:
+    RDB_MAKE_ME_SERIALIZABLE_1(exc_msg);
 };
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,

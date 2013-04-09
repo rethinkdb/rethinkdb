@@ -406,10 +406,12 @@ public:
                 const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(_rr);
 
-                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&(_rr->result))) {
+                if (auto e = boost::get<runtime_exc_t>(&(_rr->result))) {
                     throw *e;
                 } else if (auto e2 = boost::get<ql::exc_t>(&(_rr->result))) {
                     throw *e2;
+                } else if (auto e3 = boost::get<ql::datum_exc_t>(&(_rr->result))) {
+                    throw *e3;
                 }
             }
 
@@ -443,48 +445,54 @@ public:
 
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
-            } else if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
-                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
-                typedef std::vector<ql::wire_datum_t> wire_data_t;
-                wire_data_t *out_vec = boost::get<wire_data_t>(
-                    &(rg_response.result = wire_data_t()));
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    if (const ql::wire_datum_t *d =
-                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
-                        out_vec->push_back(*d);
-                    } else {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(
-                                      &(_rr->result)));
-                    }
-                }
-            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
-                typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
-                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
-                    &(rg_response.result = wire_datum_maps_t()));
-                for (size_t i = 0; i < count; ++i) {
-                    const rget_read_response_t *_rr =
-                        boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(_rr);
-                    const ql::wire_datum_map_t *dm =
-                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
-                    r_sanity_check(dm);
-                    out_vec->push_back(*dm);
-                }
             } else {
-                unreachable();
+                try {
+                    if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
+                               || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+                        typedef std::vector<ql::wire_datum_t> wire_data_t;
+                        wire_data_t *out_vec = boost::get<wire_data_t>(
+                            &(rg_response.result = wire_data_t()));
+                        for (size_t i = 0; i < count; ++i) {
+                            const rget_read_response_t *_rr =
+                                boost::get<rget_read_response_t>(&responses[i].response);
+                            guarantee(_rr);
+                            if (const ql::wire_datum_t *d =
+                                boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                                out_vec->push_back(*d);
+                            } else {
+                                guarantee(boost::get<rget_read_response_t::empty_t>(
+                                              &(_rr->result)));
+                            }
+                        }
+                    } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                        typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
+                        wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
+                            &(rg_response.result = wire_datum_maps_t()));
+                        for (size_t i = 0; i < count; ++i) {
+                            const rget_read_response_t *_rr =
+                                boost::get<rget_read_response_t>(&responses[i].response);
+                            guarantee(_rr);
+                            const ql::wire_datum_map_t *dm =
+                                boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                            r_sanity_check(dm);
+                            out_vec->push_back(*dm);
+                        }
+                    } else {
+                        unreachable();
+                    }
+                } catch (const ql::datum_exc_t &e) {
+                    /* Evaluation threw so we're not going to be accepting any
+                       more requests. */
+                    boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
+                                         rg.terminal->variant);
+                }
             }
         } catch (const runtime_exc_t &e) {
             rg_response.result = e;
         } catch (const ql::exc_t &e) {
             rg_response.result = e;
         } catch (const ql::datum_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any
-               more requests. */
-            boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
-                                 rg.terminal->variant);
+            rg_response.result = e;
         }
     }
 
@@ -725,9 +733,16 @@ struct read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, &res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
-            store->acquire_sindex_superblock_for_read(*rget.sindex,
-                    superblock->get_sindex_block_id(), token_pair,
-                    txn, &sindex_sb, &interruptor);
+
+            try {
+                store->acquire_sindex_superblock_for_read(*rget.sindex,
+                        superblock->get_sindex_block_id(), token_pair,
+                        txn, &sindex_sb, &interruptor);
+            } catch (const sindex_not_post_constructed_exc_t &) {
+                res.result = ql::datum_exc_t(strprintf("Sindex %s is not post constructed.",
+                                    rget.sindex->c_str()));
+                return;
+            }
 
             guarantee(rget.sindex_region, "If an rget has a sindex uuid specified it should also have a sindex_region.");
             rdb_rget_slice(store->get_sindex_slice(*rget.sindex), rget.sindex_region->inner,
