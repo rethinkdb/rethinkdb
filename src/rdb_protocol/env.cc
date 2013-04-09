@@ -254,6 +254,14 @@ void env_t::join_and_wait_to_propagate(
     }
 }
 
+boost::shared_ptr<js::runner_t> env_t::get_js_runner() {
+    r_sanity_check(pool != NULL && get_thread_id() == pool->home_thread());
+    if (!js_runner->connected()) {
+        js_runner->begin(pool);
+    }
+    return js_runner;
+}
+
 env_t::env_t(
     extproc::pool_group_t *_pool_group,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
