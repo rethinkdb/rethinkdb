@@ -49,6 +49,7 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
 }
 
 const datum_t *table_t::sindex_create(const std::string &id, func_t *index_func) {
+    index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
