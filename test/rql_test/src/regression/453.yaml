@@ -13,3 +13,5 @@ tests:
     py: "r.table('foo').map(lambda x: r.table('foo').coerce_to('array'))"
     rb: r.table('foo').map{ |x| r.table('foo').coerce_to('array') }
     ot: []
+
+  - cd: r.db('test').table_drop('foo')
