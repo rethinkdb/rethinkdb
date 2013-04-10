@@ -45,6 +45,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
+            @context.stop()
             @read_metric.on 'change' # We remove the listener.
 
     class @OpsPlot extends Backbone.View
