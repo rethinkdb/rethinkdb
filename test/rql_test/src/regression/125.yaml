@@ -13,12 +13,12 @@ tests:
     # Type of group_by
     - cd: []
       py: t.group_by('a', r.count).type_of()
-      ot: ('STREAM')
+      ot: ('ARRAY')
 
     # Type of gmr
     - cd: []
       py: t.grouped_map_reduce(lambda row:1, r.row['a'], lambda a,b:a + b).type_of()
-      ot: ('STREAM')
+      ot: ('ARRAY')
 
     # clean up
     - cd: r.db('test').table_drop('t125')
