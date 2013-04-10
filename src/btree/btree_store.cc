@@ -656,7 +656,7 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
     ::get_secondary_indexes(txn, sindex_block, &sindexes);
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!it->second.post_construction_complete) {
+        if (it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
