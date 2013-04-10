@@ -549,6 +549,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+        std::vector<char> *opaque_definition_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
     assert_thread();
@@ -561,6 +562,10 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     secondary_index_t sindex;
     if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
         return false;
+    }
+
+    if (opaque_definition_out != NULL) {
+        *opaque_definition_out = sindex.opaque_definition;
     }
 
     if (!sindex.post_construction_complete) {

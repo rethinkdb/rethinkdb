@@ -72,6 +72,7 @@ public:
     std::string print() const;
     std::string print_primary() const;
     std::string print_secondary(const store_key_t &key) const;
+    store_key_t truncated_secondary() const;
     void check_type(type_t desired) const;
 
     bool as_bool() const;
@@ -180,6 +181,10 @@ public:
     // Prepare ourselves for serialization over the wire (this is a performance
     // optimizaiton that we need on the shards).
     void finalize();
+
+    Datum get_datum() const {
+        return ptr_pb;
+    }
 private:
     const datum_t *ptr;
     Datum ptr_pb;

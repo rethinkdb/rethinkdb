@@ -193,6 +193,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
+    ql::datum_t sindex_key_literal(1.0);
+
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
@@ -212,7 +214,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(1)).get(), b)), id));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(sindex_key_literal.truncated_secondary()),
+                                                                id,
+                                                                &sindex_key_literal,
+                                                                &sindex_key_literal));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -246,7 +251,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(1)).get(), b)), id));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(sindex_key_literal.truncated_secondary()),
+                                                                id,
+                                                                &sindex_key_literal,
+                                                                &sindex_key_literal));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -324,6 +332,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
         for (int j = 1; j < 300; ++j) {
             std::string id(i, 'a');
             std::string sid(j, 'a');
+            ql::datum_t sindex_key_literal(sid);
             boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
@@ -345,12 +354,10 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::read_t read(
-                        rdb_protocol_t::rget_read_t(
-                            store_key_t(
-                                cJSON_print_primary(
-                                    scoped_cJSON_t(cJSON_CreateString(sid.c_str())).get(), b)),
-                                id));
+                rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(store_key_t(sindex_key_literal.truncated_secondary()),
+                                                                        id,
+                                                                        &sindex_key_literal,
+                                                                        &sindex_key_literal));
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
