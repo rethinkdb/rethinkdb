@@ -2358,7 +2358,7 @@ module 'DataExplorerView', ->
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        primitive_key: '_-primitive value-_' # We suppose that there is no key with such value in the database.
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
         events:
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
@@ -2590,6 +2590,7 @@ module 'DataExplorerView', ->
                 if key is @primitive_key
                     attr.push
                         prefix: prefix
+                        prefix_str: prefix_str
                         is_primitive: true
                 else
                     if keys_count['object'][key]['object']?
@@ -2623,11 +2624,11 @@ module 'DataExplorerView', ->
                     value = single_result
                     for prefix in attr_obj.prefix
                         value = value?[prefix]
-                    if key is @primitive_key
+                    if attr_obj.is_primitive is true
                         if jQuery.isPlainObject(value)
                             value = undefined
                         else
-                            value = value.key
+                            value = value
                     else
                         if value?
                             value = value[key]
