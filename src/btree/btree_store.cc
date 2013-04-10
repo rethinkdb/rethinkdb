@@ -163,8 +163,8 @@ void btree_store_t<protocol_t>::reset_data(
         const typename protocol_t::region_t &subregion,
         const metainfo_t &new_metainfo,
         write_token_pair_t *token_pair,
-        signal_t *interruptor,
-        const write_durability_t durability)
+        const write_durability_t durability,
+        signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
