@@ -446,46 +446,46 @@ public:
                     rg_response.truncated = rg_response.truncated || _rr->truncated;
                 }
             } else {
-                try {
-                    if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
-                               || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
-                        typedef std::vector<ql::wire_datum_t> wire_data_t;
-                        wire_data_t *out_vec = boost::get<wire_data_t>(
-                            &(rg_response.result = wire_data_t()));
-                        for (size_t i = 0; i < count; ++i) {
-                            const rget_read_response_t *_rr =
-                                boost::get<rget_read_response_t>(&responses[i].response);
-                            guarantee(_rr);
-                            if (const ql::wire_datum_t *d =
-                                boost::get<ql::wire_datum_t>(&(_rr->result))) {
-                                out_vec->push_back(*d);
-                            } else {
-                                guarantee(boost::get<rget_read_response_t::empty_t>(
-                                              &(_rr->result)));
-                            }
-                        }
-                    } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
-                        typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
-                        wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
-                            &(rg_response.result = wire_datum_maps_t()));
-                        for (size_t i = 0; i < count; ++i) {
-                            const rget_read_response_t *_rr =
-                                boost::get<rget_read_response_t>(&responses[i].response);
-                            guarantee(_rr);
-                            const ql::wire_datum_map_t *dm =
-                                boost::get<ql::wire_datum_map_t>(&(_rr->result));
-                            r_sanity_check(dm);
-                            out_vec->push_back(*dm);
-                        }
+            try {
+            if (boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)
+                       || boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_t> wire_data_t;
+                wire_data_t *out_vec = boost::get<wire_data_t>(
+                    &(rg_response.result = wire_data_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    if (const ql::wire_datum_t *d =
+                        boost::get<ql::wire_datum_t>(&(_rr->result))) {
+                        out_vec->push_back(*d);
                     } else {
-                        unreachable();
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
                     }
-                } catch (const ql::datum_exc_t &e) {
-                    /* Evaluation threw so we're not going to be accepting any
-                       more requests. */
-                    boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
-                                         rg.terminal->variant);
                 }
+            } else if (boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                typedef std::vector<ql::wire_datum_map_t> wire_datum_maps_t;
+                wire_datum_maps_t *out_vec = boost::get<wire_datum_maps_t>(
+                    &(rg_response.result = wire_datum_maps_t()));
+                for (size_t i = 0; i < count; ++i) {
+                    const rget_read_response_t *_rr =
+                        boost::get<rget_read_response_t>(&responses[i].response);
+                    guarantee(_rr);
+                    const ql::wire_datum_map_t *dm =
+                        boost::get<ql::wire_datum_map_t>(&(_rr->result));
+                    r_sanity_check(dm);
+                    out_vec->push_back(*dm);
+                }
+            } else {
+                unreachable();
+            }
+            } catch (const ql::datum_exc_t &e) {
+                /* Evaluation threw so we're not going to be accepting any
+                   more requests. */
+                boost::apply_visitor(ql::exc_visitor_t(e, &rg_response.result),
+                                     rg.terminal->variant);
+            }
             }
         } catch (const runtime_exc_t &e) {
             rg_response.result = e;
