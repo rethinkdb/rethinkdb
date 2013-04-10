@@ -246,7 +246,7 @@ size_t cJSON_estimate_size(const cJSON *json) {
     if (json->string)
         estimate += strlen(json->string);
 
-    switch(json->type) {
+    switch (json->type) {
     case cJSON_False:
     case cJSON_True:
     case cJSON_NULL:
@@ -266,8 +266,16 @@ size_t cJSON_estimate_size(const cJSON *json) {
         unreachable();
     };
 
-    // Continue iterating over the other sub-fields
-    estimate += cJSON_estimate_size(json->next);
+    // Iterate over the sub-fields
+    // Why iterate and not simply recurse? This function is not tail
+    // call optimizable and could use a lot of stack for long arrays.
+    // With pure recursion stack size is preportional to array (or
+    // object) length, with this loop, just nesting depth.
+    const cJSON *next = json->next;
+    while (next) {
+        estimate += cJSON_estimate_size(next);
+        next = next->next;
+    }
 
     return estimate;
 }
