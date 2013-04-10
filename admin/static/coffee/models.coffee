@@ -617,7 +617,7 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]?.expectation
         if acks?
             return acks
         else
