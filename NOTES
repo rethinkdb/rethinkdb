@@ -7,7 +7,7 @@ Bug fix update:
 * Improve the networking code in the Python driver
 * Fix a crash triggered by a type error when using concatMap (#568)
 * Fix a crash when running `rethinkdb proxy --help` (#565)
-* Fix a bug in the python driver that caused it to occasionally return None (#564)
+* Fix a bug in the Python driver that caused it to occasionally return `None` (#564)
 
 # Release 1.4.2 (Some Like It Hot) #
 
