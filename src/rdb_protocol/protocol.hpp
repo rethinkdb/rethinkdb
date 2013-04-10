@@ -197,6 +197,7 @@ struct rdb_protocol_t {
             inserted_t,
             runtime_exc_t,
             ql::exc_t,
+            ql::datum_exc_t,
             ql::wire_datum_t,
             std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *

@@ -415,6 +415,7 @@ public:
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
+    void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
@@ -575,6 +576,7 @@ public:
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
+    void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
