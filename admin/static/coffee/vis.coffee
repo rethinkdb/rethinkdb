@@ -268,7 +268,6 @@ module 'Vis', ->
 
             elapsed_time = Date.now()-@last_date
             missing_steps = Math.max 1, Math.round(elapsed_time/1000*@nip) # If the tab has focus, we have missing_steps = 1 else we have missing_steps > 1
-            console.log missing_steps
             for i in [1..missing_steps]
                 if @values[@values.length - 1] is @next_value
                     value_to_push = @next_value
