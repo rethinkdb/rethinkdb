@@ -234,9 +234,8 @@ void run_erase_range_test() {
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, &store);
 
-    uuid_u sindex_id;
+    std::string sindex_id = "sid";
     {
-        sindex_id = generate_uuid();
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
@@ -287,7 +286,7 @@ void run_erase_range_test() {
         coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                     &store, &background_inserts_done));
 
-        std::set<uuid_u> created_sindexes;
+        std::set<std::string> created_sindexes;
         created_sindexes.insert(sindex_id);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, &store,
