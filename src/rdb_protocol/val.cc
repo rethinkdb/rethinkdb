@@ -49,6 +49,7 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
 }
 
 const datum_t *table_t::sindex_create(const std::string &id, func_t *index_func) {
+    index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
@@ -64,11 +65,23 @@ const datum_t *table_t::sindex_drop(const std::string &id) {
     rdb_protocol_t::write_t write((
             rdb_protocol_t::sindex_drop_t(id)));
 
-    rdb_protocol_t::write_response_t response;
+    rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+        write, &res, order_token_t::ignore, env->interruptor);
 
-    return env->add_ptr(new datum_t(datum_t::R_OBJECT));
+    rdb_protocol_t::sindex_drop_response_t *response =
+        boost::get<rdb_protocol_t::sindex_drop_response_t>(&res.response);
+    r_sanity_check(response);
+
+    if (!response->success) {
+        rfail("secondary index not found: %s", id.c_str());
+    }
+
+    datum_t *result = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+    datum_t *value = env->add_ptr(new datum_t(1.0));
+    bool already_exists = result->add("dropped", value);
+    r_sanity_check(!already_exists);
+    return result;
 }
 
 const datum_t *table_t::sindex_list() {
@@ -105,7 +118,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
             return resp;
         }
     }
-    store_key_t store_key(orig->el(pk)->print_primary());
+    store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(pk, store_key, mwf, env->get_all_optargs()));
 
@@ -136,8 +149,8 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")))
-            }
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
 
     propagate(&t);
     return do_replace(

@@ -3,7 +3,7 @@
 
 namespace ql {
 
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 

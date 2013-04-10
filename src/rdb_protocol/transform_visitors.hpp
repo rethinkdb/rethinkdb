@@ -66,9 +66,24 @@ public:
                                    const scopes_t &_scopes,
                                    const backtrace_t &_backtrace);
 
-    void operator()(const ql::gmr_wire_func_t &) const;
-    void operator()(const ql::count_wire_func_t &) const;
-    void operator()(const ql::reduce_wire_func_t &) const;
+    void operator()(ql::gmr_wire_func_t &f) const {
+        ql::func_t *group = f.compile_group(ql_env);
+        ql::func_t *map = f.compile_map(ql_env);
+        ql::func_t *reduce = f.compile_reduce(ql_env);
+        guarantee(group != NULL && map != NULL && reduce != NULL);
+        *out = ql::wire_datum_map_t();
+    }
+
+    void operator()(const ql::count_wire_func_t &) const {
+        *out = ql::wire_datum_t(ql_env->add_ptr(new ql::datum_t(0.0)));
+    }
+
+    void operator()(ql::reduce_wire_func_t &f) const {
+        ql::func_t *reduce = f.compile(ql_env);
+        guarantee(reduce != NULL);
+        *out = rget_read_response_t::empty_t();
+    }
+
 private:
     rget_read_response_t::result_t *out;
     ql::env_t *ql_env;

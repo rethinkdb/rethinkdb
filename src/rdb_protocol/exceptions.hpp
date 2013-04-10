@@ -45,15 +45,16 @@ public:
     backtrace_t backtrace;
 };
 
-class runtime_exc_t {
+class runtime_exc_t : public std::exception {
 public:
     runtime_exc_t() { }
     runtime_exc_t(const std::string &_what, const backtrace_t &bt)
         : message(_what), backtrace(bt)
     { }
+    ~runtime_exc_t() throw () { }
 
-    std::string what() const throw() {
-        return message;
+    const char *what() const throw() {
+        return message.c_str();
     }
 
     std::string as_str() const throw() {

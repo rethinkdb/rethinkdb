@@ -85,7 +85,7 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out,
-                 rdb_modification_report_t *mod_report_out) THROWS_NOTHING;
+                 rdb_modification_report_t *mod_report_out);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,

@@ -365,7 +365,9 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(read_response_t *responses, size_t count, read_response_t *response,
+                context_t *ctx, signal_t *interruptor) const
+            THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -409,6 +411,7 @@ struct rdb_protocol_t {
     };
 
     struct sindex_drop_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
@@ -504,7 +507,7 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
