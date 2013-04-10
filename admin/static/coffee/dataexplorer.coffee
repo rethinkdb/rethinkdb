@@ -2588,9 +2588,12 @@ module 'DataExplorerView', ->
             prefix_str = args.prefix_str
             for key in keys_count.sorted_keys
                 if key is @primitive_key
+                    new_prefix_str = prefix_str # prefix_str without the last dot
+                    if new_prefix_str.length > 0
+                        new_prefix_str = new_prefix_str.slice(0, -1)
                     attr.push
                         prefix: prefix
-                        prefix_str: prefix_str
+                        prefix_str: new_prefix_str
                         is_primitive: true
                 else
                     if keys_count['object'][key]['object']?
@@ -2624,12 +2627,7 @@ module 'DataExplorerView', ->
                     value = single_result
                     for prefix in attr_obj.prefix
                         value = value?[prefix]
-                    if attr_obj.is_primitive is true
-                        if jQuery.isPlainObject(value)
-                            value = undefined
-                        else
-                            value = value
-                    else
+                    if attr_obj.is_primitive isnt true
                         if value?
                             value = value[key]
                         else
@@ -2669,7 +2667,7 @@ module 'DataExplorerView', ->
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object'
                 data['value'] = '{ ... }'
-                data['data_to_expand'] = JSON.stringify(value)
+                data['is_object'] = true
             else if value_type is 'number'
                 data['classname'] = 'jta_num'
             else if value_type is 'string'
