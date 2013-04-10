@@ -845,18 +845,16 @@ void post_construct_secondary_indexes(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
 
-    {
-        scoped_ptr_t<transaction_t> txn;
-        scoped_ptr_t<real_superblock_t> superblock;
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
 
-        store->acquire_superblock_for_read(
-            rwi_read,
-            &read_token,
-            &txn,
-            &superblock,
-            interruptor,
-            true /* USE_SNAPSHOT */);
-        btree_parallel_traversal(txn.get(), superblock.get(),
-                store->btree.get(), &helper, interruptor);
-    }
+    store->acquire_superblock_for_read(
+        rwi_read,
+        &read_token,
+        &txn,
+        &superblock,
+        interruptor,
+        true /* USE_SNAPSHOT */);
+    btree_parallel_traversal(txn.get(), superblock.get(),
+            store->btree.get(), &helper, interruptor);
 }
