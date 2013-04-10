@@ -266,9 +266,25 @@ region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
 }
 
 key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &k) {
-    store_key_t start(key_to_unescaped_str(k) + "\0"),
-                end(key_to_unescaped_str(k) + std::string(1, '\0' + 1));
-    return key_range_t(key_range_t::closed, start, key_range_t::open, end);
+    std::string start_key_str(key_to_unescaped_str(k));
+    std::string end_key_str(start_key_str);
+    store_key_t end_key;
+
+    // Need to make the next largest store_key_t without making the key longer
+    while (end_key_str.length() > 0 &&
+           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+        end_key_str.erase(end_key_str.length() - 1);
+    }
+
+    if (end_key_str.length() == 0) {
+        end_key = store_key_t::max();
+    } else {
+        ++end_key_str[end_key_str.length() - 1];
+        end_key = store_key_t(end_key_str);
+    }
+
+    return key_range_t(key_range_t::closed, store_key_t(start_key_str),
+                       key_range_t::open, end_key);
 }
 
 namespace {

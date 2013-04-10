@@ -126,6 +126,8 @@ void bring_sindexes_up_to_date(
 class cluster_semilattice_metadata_t;
 
 struct rdb_protocol_t {
+    static const size_t MAX_PRIMARY_KEY_SIZE = 128;
+
     static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
 

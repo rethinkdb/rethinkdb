@@ -168,7 +168,7 @@ std::string datum_t::print_primary() const {
         rfail("Primary keys must be either a number or a string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
-    if (s.size() > MAX_KEY_SIZE) {
+    if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
         rfail("Primary key too long (max %d characters): %s",
               MAX_KEY_SIZE - 1, print().c_str());
     }
@@ -176,6 +176,32 @@ std::string datum_t::print_primary() const {
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key) const {
+    std::string s;
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
+    guarantee(primary_key_string.length() <= rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+
+    if (type == R_NUM) {
+        num_to_str_key(&s);
+    } else if (type == R_STR) {
+        str_to_str_key(&s);
+    } else if (type == R_ARRAY) {
+        array_to_str_key(&s);
+    } else {
+        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+
+    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length()) +
+        std::string(1, '\0') + primary_key_string;
+
+    return s;
+}
+
+// This function returns a store_key_t suitable for searching by a secondary-index.
+//  This is needed because secondary indexes may be truncated, but the amount truncated
+//  depends on the length of the primary key.  Since we do not know how much was truncated,
+//  we have to truncate the maximum amount, then return all matches and filter them out later.
+store_key_t datum_t::truncated_secondary() const {
     std::string s;
     if (type == R_NUM) {
         num_to_str_key(&s);
@@ -188,13 +214,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
               print().c_str(), datum_type_name(type));
     }
 
-    s += std::string(1, '\0') + key_to_unescaped_str(primary_key);
-
-    if (s.size() > MAX_KEY_SIZE) {
-        rfail("Secondary key too long (max %d characters): %s",
-              MAX_KEY_SIZE - 1, print().c_str());
-    }
-    return s;
+    return store_key_t(s.substr(0, MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1));
 }
 
 void datum_t::check_type(type_t desired) const {
