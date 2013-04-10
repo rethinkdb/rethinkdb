@@ -69,7 +69,7 @@ tests:
     - py: tbl.get(1).update({'id':None,'d':1})
       js: tbl.get(1).update({'id':null,'d':1})
       rb: tbl.get(1).update({:id => nil, :d => 1})
-      ot: ({'repalced':1})
+      ot: ({'replaced':1})
     
     # check r.row, static value and otherwise
     - py: tbl.get(1).update({'id':r.row['id'],'d':'b'})
