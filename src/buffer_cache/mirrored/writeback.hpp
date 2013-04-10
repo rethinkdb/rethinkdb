@@ -20,6 +20,14 @@ class mc_buf_lock_t;
 class mc_inner_buf_t;
 class mc_transaction_t;
 
+class sync_callback_t : private cond_t, public intrusive_list_node_t<sync_callback_t> {
+public:
+    // Waits for all the on_syncs!  Calls wait().
+    ~sync_callback_t() { wait(); }
+
+    using cond_t::pulse;
+};
+
 class writeback_t : private timer_callback_t {
 public:
     writeback_t(
