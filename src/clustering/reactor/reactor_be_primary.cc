@@ -201,7 +201,7 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                     } else {
                         return false;
                     }
-                } catch (divergent_data_exc_t) {
+                } catch (const divergent_data_exc_t &) {
                     return false;
                 }
             }
@@ -274,9 +274,9 @@ void do_backfill(
 
         }
         success->pulse(true);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         success->pulse(false);
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         success->pulse(false);
     }
 
@@ -458,7 +458,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
         interruptor->wait_lazily_unordered();
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 }

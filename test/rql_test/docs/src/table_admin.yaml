@@ -18,26 +18,26 @@ commands:
 
     examples:
       - description: |
-          Create a table named 'dc-universe' with the primary key set to field 'id'.
+          Create a table named 'dc_universe' with the primary key set to field 'id'.
           If a new document doesn't contain the field 'id', the database will
           autogenerate a value for it.
-        code: r.db('test').table_create('dc-universe').run(conn)
+        code: r.db('test').table_create('dc_universe').run(conn)
       - description: |
-          Create a table named 'dc-universe' using the field 'name'
+          Create a table named 'dc_universe' using the field 'name'
           as primary key.
         code:
-          py: r.db('test').table_create('dc-universe', primary_key='name').run(conn)
-          rb: r.db('test').table_create('dc-universe', :primary_key => 'name').run(conn)
+          py: r.db('test').table_create('dc_universe', primary_key='name').run(conn)
+          rb: r.db('test').table_create('dc_universe', :primary_key => 'name').run(conn)
 
     js:
       name: tableCreate
       examples:
         0:
-          code: r.db('test').tableCreate('dc-universe').run(conn, callback)
+          code: r.db('test').tableCreate('dc_universe').run(conn, callback)
           can_try: true
           dataset: marvel
         1:
-          code: r.db('test').tableCreate('dc-universe', {primaryKey:'name'}).run(conn, callback)
+          code: r.db('test').tableCreate('dc_universe', {primaryKey:'name'}).run(conn, callback)
           can_try: true
           dataset: marvel
 
@@ -53,15 +53,15 @@ commands:
     returns: json
 
     examples:
-      - description: Drop a table named 'dc-universe'.
-        code: r.db('test').table_drop('dc-universe').run(conn)
+      - description: Drop a table named 'dc_universe'.
+        code: r.db('test').table_drop('dc_universe').run(conn)
 
     js:
       name: tableDrop
       body: tableName
       examples:
         0:
-          code: r.db('test').tableDrop('dc-universe').run(conn, callback)
+          code: r.db('test').tableDrop('dc_universe').run(conn, callback)
           can_try: true
           dataset: marvel
 

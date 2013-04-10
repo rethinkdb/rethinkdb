@@ -163,7 +163,7 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out,
-                 rdb_modification_report_t *mod_report_out) THROWS_NOTHING {
+                 rdb_modification_report_t *mod_report_out) {
     const ql::datum_t *num_1 = ql_env->add_ptr(new ql::datum_t(1.0));
     ql::datum_t *resp = ql_env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
@@ -194,7 +194,7 @@ void rdb_replace(btree_slice_t *slice,
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
             rcheck_target(
-                new_val, new_val->el(primary_key, ql::NOTHROW),
+                new_val, new_val->get(primary_key, ql::NOTHROW),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
         } else {
@@ -213,7 +213,7 @@ void rdb_replace(btree_slice_t *slice,
                 conflict = resp->add("skipped", num_1);
             } else {
                 conflict = resp->add("inserted", num_1);
-                r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
+                r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
                                 slice, timestamp, txn);
@@ -225,12 +225,12 @@ void rdb_replace(btree_slice_t *slice,
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_report_out->deleted = old_val->as_json();
             } else {
-                if (*old_val->el(primary_key) == *new_val->el(primary_key)) {
+                if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
                     if (*old_val == *new_val) {
                         conflict = resp->add("unchanged", num_1);
                     } else {
                         conflict = resp->add("replaced", num_1);
-                        r_sanity_check(new_val->el(primary_key, ql::NOTHROW));
+                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                         boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                             = new_val->as_json();
                         kv_location_set(&kv_location, key, new_val_as_json,
@@ -248,7 +248,7 @@ void rdb_replace(btree_slice_t *slice,
             }
         }
         guarantee(!conflict); // message never added twice
-    } catch (const ql::any_ql_exc_t &e) {
+    } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
         bool b = resp->add("errors", num_1)
               || resp->add("first_error", ql_env->add_ptr(new ql::datum_t(msg)));
@@ -304,7 +304,7 @@ public:
         cb_->on_keyvalue(atom, interruptor);
     }
 
-    void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         cb_->on_sindexes(sindexes, interruptor);
     }
 
@@ -402,6 +402,40 @@ size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*js
     return 250;
 }
 
+
+class result_gc_visitor_t : public boost::static_visitor<void> {
+public:
+    result_gc_visitor_t(ql::env_t *e, ql::env_gc_checkpoint_t *egct) :
+        env(e), env_gc_checkpoint(egct), total_rounds(0) { }
+
+    void operator()(const rget_read_response_t::stream_t &) const { }
+    void operator()(const rget_read_response_t::groups_t &) const { }
+    void operator()(const rget_read_response_t::atom_t &) const { }
+    void operator()(const rget_read_response_t::length_t &) const { }
+    void operator()(const rget_read_response_t::inserted_t &) const { }
+    void operator()(const query_language::runtime_exc_t &) const { }
+    void operator()(const ql::exc_t &) const { }
+    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+    void operator()(const rget_read_response_t::empty_t &) const { }
+    void operator()(const rget_read_response_t::vec_t &) const { }
+
+    void operator()(ql::wire_datum_t &d) {
+        env_gc_checkpoint->maybe_gc(d.get());
+    }
+    void operator()(ql::wire_datum_map_t &dm) {
+        total_rounds += 1;
+        if (total_rounds % ql::WIRE_DATUM_MAP_GC_ROUNDS == 0) {
+            env_gc_checkpoint->maybe_gc(dm.to_arr(env));
+        }
+    }
+
+private:
+    ql::env_t *env;
+    ql::env_gc_checkpoint_t *env_gc_checkpoint;
+    int64_t total_rounds;
+};
+
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
     rdb_rget_depth_first_traversal_callback_t(
@@ -494,28 +528,14 @@ public:
                 try {
                     // We use garbage collection during the reduction step, since
                     // most reductions throw away most of the allocate data.
-                    ql::env_gc_checkpoint_t egct(ql_env);
-                    int i = 0;
-                    json_list_t::iterator jt;
-                    for (jt = data.begin(); jt != data.end(); ++jt) {
+                    ql::env_gc_checkpoint_t gc_checkpoint(ql_env);
+                    result_gc_visitor_t result_gc_visitor(ql_env, &gc_checkpoint);
+                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         boost::apply_visitor(query_language::terminal_visitor_t(
                                                  *jt, ql_env, terminal->scopes,
                                                  terminal->backtrace, &response->result),
                                              terminal->variant);
-                        // A reduce returns a `wire_datum_t` and a gmr returns a
-                        // `wire_datum_map_t`
-                        if (ql::wire_datum_t *wd
-                            = boost::get<ql::wire_datum_t>(&terminal->variant)) {
-                            egct.maybe_gc(wd->get());
-                        } else if (ql::wire_datum_map_t *wdm
-                                   = boost::get<ql::wire_datum_map_t>(
-                                       &terminal->variant)) {
-                            // TODO: this is a hack because GCing a `wire_datum_map_t` is
-                            // expensive.  Need a better way to do this.
-                            int rounds = 10000 DEBUG_ONLY(/ 5000);
-                            if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
-                        }
-
+                        boost::apply_visitor(result_gc_visitor, response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
@@ -546,6 +566,28 @@ public:
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
+class result_finalizer_visitor_t : public boost::static_visitor<void> {
+public:
+    void operator()(const rget_read_response_t::stream_t &) const { }
+    void operator()(const rget_read_response_t::groups_t &) const { }
+    void operator()(const rget_read_response_t::atom_t &) const { }
+    void operator()(const rget_read_response_t::length_t &) const { }
+    void operator()(const rget_read_response_t::inserted_t &) const { }
+    void operator()(const query_language::runtime_exc_t &) const { }
+    void operator()(const ql::exc_t &) const { }
+    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+    void operator()(const rget_read_response_t::empty_t &) const { }
+    void operator()(const rget_read_response_t::vec_t &) const { }
+
+    void operator()(ql::wire_datum_t &d) const {
+        d.finalize();
+    }
+    void operator()(ql::wire_datum_map_t &dm) const {
+        dm.finalize();
+    }
+};
+
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
                     ql::env_t *ql_env,
@@ -561,13 +603,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
         response->truncated = false;
     }
 
-    //TODO: change this whole file so that this isn't necessary.
-    if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
-        d->finalize();
-    } else if (ql::wire_datum_map_t *dm =
-               boost::get<ql::wire_datum_map_t>(&response->result)) {
-        dm->finalize();
-    }
+    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
@@ -793,7 +829,7 @@ class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
-            const std::set<uuid_u> &sindexes_to_post_construct,
+            const std::set<std::string> &sindexes_to_post_construct,
             signal_t *interruptor
             )
         : store_(store),
@@ -868,13 +904,13 @@ public:
     access_t btree_node_mode() { return rwi_read; }
 
     btree_store_t<rdb_protocol_t> *store_;
-    const std::set<uuid_u> &sindexes_to_post_construct_;
+    const std::set<std::string> &sindexes_to_post_construct_;
     signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<uuid_u> &sindexes_to_post_construct,
+        const std::set<std::string> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     post_construct_traversal_helper_t helper(store, 

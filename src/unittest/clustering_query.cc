@@ -187,7 +187,7 @@ static void run_broadcaster_problem_test() {
             &write_token,
             &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         /* expected */
     }
 }

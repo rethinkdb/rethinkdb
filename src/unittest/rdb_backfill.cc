@@ -232,7 +232,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
 
-    uuid_u sindex_id = generate_uuid();
+    std::string sindex_id("sid");
     {
         /* Create a secondary index object. */
         Term mapping;

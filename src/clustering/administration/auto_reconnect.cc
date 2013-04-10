@@ -77,7 +77,7 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last
             guarantee(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
             backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore; this is how we escape the loop */
     }
 }

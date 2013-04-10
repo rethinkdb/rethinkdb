@@ -269,7 +269,7 @@ void socket_stream_t::shutdown_write() {
 bool socket_stream_t::wait_for_read(signal_t *interruptor) {
     try {
         return fd_watcher_->wait_for_read(interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         shutdown_read();
         throw;
     }
@@ -278,7 +278,7 @@ bool socket_stream_t::wait_for_read(signal_t *interruptor) {
 bool socket_stream_t::wait_for_write(signal_t *interruptor) {
     try {
         return fd_watcher_->wait_for_write(interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         shutdown_write();
         throw;
     }

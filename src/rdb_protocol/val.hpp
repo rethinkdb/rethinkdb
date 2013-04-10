@@ -26,7 +26,8 @@ public:
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
-    datum_stream_t *get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt);
+    datum_stream_t *get_sindex_rows(
+        const datum_t *pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
     datum_t *env_add_ptr(datum_t *d);
 
     // A wrapper around `do_replace` that does error handling correctly.
@@ -37,7 +38,7 @@ public:
         rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
         try {
             return do_replace(d, t, b);
-        } catch (const any_ql_exc_t &e) {
+        } catch (const base_exc_t &e) {
             datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
             std::string err = e.what();
             // TODO why is this bool (which is marked as MUST USE not used?)

@@ -30,7 +30,7 @@ include $(TOP)/mk/lib.mk
 
 # Don't parse the rest of the rules if the configure step is not complete
 ifneq (success,$(CONFIGURE_STATUS))
-  # Don't build anything 
+  # Don't build anything
   real-default-goal:
 else # if CONFIGURE_STATUS = success
 
@@ -60,6 +60,9 @@ include $(TOP)/mk/packaging.mk
 
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
+
+# Tests
+include $(TOP)/test/build.mk
 
 # Generate local Makefiles
 include $(TOP)/mk/local.mk
