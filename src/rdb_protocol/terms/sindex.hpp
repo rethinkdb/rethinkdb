@@ -24,7 +24,7 @@ public:
             UNUSED bool b = res->add("created", env->add_ptr(new datum_t(1.0)));
             return new_val(res);
         } else {
-            rfail("Index already exists: %s", name.c_str());
+            rfail("Index `%s` already exists.", name.c_str());
         }
     }
 
@@ -45,7 +45,7 @@ public:
             UNUSED bool b = res->add("dropped", env->add_ptr(new datum_t(1.0)));
             return new_val(res);
         } else {
-            rfail("Index not found: %s", name.c_str());
+            rfail("Index `%s` does not exist.", name.c_str());
         }
     }
 
