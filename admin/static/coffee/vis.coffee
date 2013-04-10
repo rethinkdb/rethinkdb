@@ -236,12 +236,13 @@ module 'Vis', ->
     class @InterpolatingCache
         constructor: (num_data_points, num_interpolation_points, get_data_fn) ->
             @ndp = num_data_points
-            @nip = num_interpolation_points
+            @nip = num_interpolation_points # =Pixels/Sec
             @get_data_fn = get_data_fn
             @values = []
             for i in [0..(@ndp-1)]
                 @values.push(0)
             @next_value = null
+            @last_date = Date.now()
 
         step: (num_points) ->
             # First, grab newest data
@@ -251,21 +252,24 @@ module 'Vis', ->
             return @values.slice(-num_points)
 
         push_data: ->
-            # Check if we need to restart interpolation
-            current_value = @get_data_fn()
-            if @next_value isnt current_value
-                @start_value = @values[@values.length - 1]
-                @next_value = current_value
-                @interpolation_step = 1
+            elapsed_time = Date.now()-@last_date
+            current_value = @values[@values.length - 1]
 
-            if @values[@values.length - 1] is @next_value
-                value_to_push = @next_value
+            next_value = @get_data_fn()
+
+            if elapsed_time > 1/@nip
+                missing_pixels = elapsed_time*@nip
+                for i in [1..missing_pixels]
+                    @values.push current_value+(next_value-current_value)/(elapsed_time*@nip)*i
+                @interpolation_step = 1
             else
-                value_to_push = @start_value + ((@next_value - @start_value) / @nip * @interpolation_step)
-                @interpolation_step += 1
-                if @interpolation_step > @nip
-                    value_to_push = @next_value
-            @values.push(value_to_push)
+                if @interpolation_step > @mip
+                    @values.push next_value
+                    @interpolation_step++
+                else
+                    @values.push current_value+(next_value-current_value)/(elapsed_time*@nip)*@interpolation_step
+                @interpolation_step++
+            @last_date = Date.now()
 
             # Trim the cache
             if @values.length > @ndp
