@@ -172,6 +172,8 @@ public:
     void replace_row(const store_key_t &primary_key,
             boost::shared_ptr<scoped_cJSON_t> added,
             boost::shared_ptr<scoped_cJSON_t> removed);
+
+    ~rdb_modification_report_cb_t();
 private:
     void on_mod_report(const rdb_modification_report_t &mod_report);
 

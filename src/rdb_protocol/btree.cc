@@ -674,6 +674,12 @@ void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
     on_mod_report(report);
 }
 
+rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
+    if (token_pair_->sindex_write_token.has()) {
+        token_pair_->sindex_write_token.reset();
+    }
+}
+
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
     if (!sindex_block_.has()) {
