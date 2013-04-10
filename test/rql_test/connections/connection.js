@@ -67,6 +67,13 @@ describe('Javascript connection API', function(){
                     r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", function(){
                         r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))}))}));
         });
+
+        it("empty run", function(done) {
+          assert.throws(function(){
+            r.expr(1).run();
+          }, "RqlDriverError", "Connection is closed.");
+          done();
+        });
     });
 
     describe('With a server', function(){
@@ -136,7 +143,7 @@ describe('Javascript connection API', function(){
             setTimeout(function() {
                 assert.throws(function(){
                     r(1).run(c);
-                }, "RqlDriverError", "Connection is closed.");
+                }, "RqlDriverError", "Connection is closed."); // TODO: error message isn't getting tested at all
                 done();
             }, 100);
         });
