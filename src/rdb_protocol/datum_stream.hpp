@@ -133,7 +133,6 @@ private:
     datum_stream_t *subsource;
 };
 
-
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
@@ -141,7 +140,7 @@ public:
                         const pb_rcheckable_t *bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        const datum_t *pval, const uuid_u &sindex_id,
+                        const datum_t *pval, const std::string &sindex_id,
                         const pb_rcheckable_t *bt_src);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
@@ -149,10 +148,14 @@ public:
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *base, func_t *r);
     virtual const datum_t *as_array() { return NULL; } // cannot be converted implicitly
 private:
     virtual batch_info_t next_impl(const datum_t **datum_out);
+
+    // SAMRSI: Get rid of these typedefs.
+    typedef rdb_protocol_t::rget_read_response_t::result_t rdb_result_t;
+    typedef rdb_protocol_t::rget_read_response_t::empty_t rdb_empty_t;
 
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
@@ -161,13 +164,8 @@ private:
 
     // These are used on the json streams.  They're in the class instead of
     // being locally allocated because it makes debugging easier.
-    rdb_protocol_details::transform_variant_t trans;
-    rdb_protocol_details::terminal_variant_t terminal;
-    query_language::scopes_t _s;
-    query_language::backtrace_t _b;
 
-    void run_terminal(const rdb_protocol_details::terminal_variant_t &t);
-    std::vector<const datum_t *> shard_data; // used by run_terminal
+    rdb_result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
@@ -245,7 +243,7 @@ private:
                    strprintf("Can only sort at most %zu elements.",
                              sort_el_limit));
             for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->el(i));
+                data.push_back(arr->get(i));
             }
         } else {
             is_arr_ = false;

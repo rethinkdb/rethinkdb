@@ -191,7 +191,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
     try {
         wait_any_t interrupt(&timeout, drainer_lock.get_drain_signal());
         rate_control->co_lock_interruptible(&interrupt);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         // Stop if interrupted externally, keep going if we timed out waiting
         if (drainer_lock.get_drain_signal()->is_pulsed()) {
             return;
@@ -212,9 +212,9 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addr, 
             if (!*successful_join) {
                 handle(&conn, expected_id, boost::optional<peer_address_t>(*addr), drainer_lock, successful_join);
             }
-        } catch (tcp_conn_t::connect_failed_exc_t) {
+        } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* Ignore */
         }
     }
@@ -693,7 +693,7 @@ void connectivity_cluster_t::run_t::handle(
                 vector_read_stream_t stream(&vec);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
             }
-        } catch (fake_archive_exc_t) {
+        } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
             wanted. This could either be because we lost contact with the peer
             or because the cluster is shutting down and `close_conn()` got

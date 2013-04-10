@@ -381,7 +381,6 @@ module 'DataExplorerView', ->
                         @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
                         event.preventDefault()
                         return true
-                    return true
 
                 if event.which is 8 # Backspace
                     if event.type isnt 'keydown'
@@ -409,15 +408,21 @@ module 'DataExplorerView', ->
 
                 char_to_insert = String.fromCharCode event.which
                 if char_to_insert?
+                    if @codemirror.getSelection() isnt ''
+                        if (char_to_insert of @matching_opening_bracket or char_to_insert of @matching_closing_bracket)
+                            @codemirror.replaceSelection ''
+                        else
+                            return true
                     if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
                         return true
 
+                    last_element_incomplete_type = @last_element_type_if_incomplete(stack)
                     if char_to_insert is '"' or char_to_insert is "'"
                         num_quote = @count_char char_to_insert
                         next_char = @get_next_char()
                         if next_char is char_to_insert # Next char is a single quote
                             if num_quote%2 is 0
-                                if @last_element_type_if_incomplete(stack) is 'string' # We are at the end of a string and the user just wrote a quote 
+                                if last_element_incomplete_type is 'string' or last_element_incomplete_type is 'object_key' # We are at the end of a string and the user just wrote a quote 
                                     @move_cursor 1
                                     event.preventDefault()
                                     return true
@@ -430,13 +435,16 @@ module 'DataExplorerView', ->
                         else
                             if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes. 
                                 # Let's keep a number of quote even, so we add one extra quote
-                                if @last_element_type_if_incomplete(stack) isnt 'string'
-                                    @insert_next char_to_insert
-                                else # We add a quote inside a string, probably something like that 'He doesn|\'t'
+                                last_key = @get_last_key(stack)
+                                if last_element_incomplete_type is 'string'
                                     return true
+                                else if last_element_incomplete_type is 'object_key' and (last_key isnt '' and @create_safe_regex(char_to_insert).test(last_key) is true) # A key in an object can be seen as a string
+                                    return true
+                                else
+                                    @insert_next char_to_insert
                             else # Else we'll just insert one quote
                                 return true
-                    else if @last_element_type_if_incomplete(stack) isnt 'string'
+                    else if last_element_incomplete_type isnt 'string' and last_element_incomplete_type isnt 'object_key'
                         next_char = @get_next_char()
 
                         if char_to_insert of @matching_opening_bracket
@@ -980,7 +988,7 @@ module 'DataExplorerView', ->
 
         # Return the type of the last incomplete object or an empty string
         last_element_type_if_incomplete: (stack) =>
-            if stack.length is 0
+            if (not stack?) or stack.length is 0
                 return ''
 
             element = stack[stack.length-1]
@@ -992,7 +1000,21 @@ module 'DataExplorerView', ->
                 else
                     return ''
 
-        # We build a stack of the query.
+         # Get the last key if the last element is a key of an object
+         get_last_key: (stack) =>
+            if (not stack?) or stack.length is 0
+                return ''
+
+            element = stack[stack.length-1]
+            if element.body?
+                return @get_last_key(element.body)
+            else
+                if element.complete is false and element.key?
+                    return element.key
+                else
+                    return ''
+
+       # We build a stack of the query.
         # Chained functions are in the same array, arguments/inner queries are in a nested array
         # element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object', 'array_entry', 'object_key' 'array']
         extract_data_from_query: (args) =>

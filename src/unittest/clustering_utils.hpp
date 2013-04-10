@@ -173,7 +173,7 @@ private:
 
                 nap(10, keepalive.get_drain_signal());
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* Break out of loop */
         }
     }

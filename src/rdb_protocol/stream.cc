@@ -135,7 +135,7 @@ batched_rget_stream_t::batched_rget_stream_t(
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, key_range_t _range, uuid_u _sindex_id,
+                      signal_t *_interruptor, key_range_t _range, const std::string &_sindex_id,
                       const std::map<std::string, ql::wire_func_t> &_optargs,
                       bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
@@ -193,10 +193,12 @@ result_t batched_rget_stream_t::apply_terminal(
             throw *e;
         } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
+        } else if (ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
+            throw *e3;
         }
 
         return p_res->result;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
@@ -229,11 +231,12 @@ void batched_rget_stream_t::read_more() {
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
-            //BREAKPOINT;
+        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
             throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
+        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
+            throw *e3;
         }
 
         // todo: just do a straight copy?
@@ -251,7 +254,7 @@ void batched_rget_stream_t::read_more() {
         if (!range.left.increment()) {
             finished = true;
         }
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {

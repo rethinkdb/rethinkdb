@@ -26,10 +26,11 @@ public:
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
-    datum_stream_t *get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt);
+    datum_stream_t *get_sindex_rows(
+        const datum_t *pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
     datum_t *env_add_ptr(datum_t *d);
 
-    const datum_t *make_error_datum(const any_ql_exc_t &exception);
+    const datum_t *make_error_datum(const base_exc_t &exception);
 
 
     const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);

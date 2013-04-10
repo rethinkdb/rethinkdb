@@ -10,10 +10,10 @@ commands:
     description: Produce a single value from a sequence through repeated application
       of a reduction function.
 
-    base:
-      js: reductionFunction[, base]
-      py: reduction_function[, base]
-      rb: '[base,] reduction_function'
+    body:
+      js: "reductionFunction[, base]"
+      py: "reduction_function[, base]"
+      rb: "[base,] reduction_function"
     parent: sequence
     returns: json
 

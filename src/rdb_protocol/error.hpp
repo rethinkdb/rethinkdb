@@ -16,7 +16,8 @@ namespace ql {
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
 void runtime_check(const char *test, const char *file, int line,
-                   bool pred, std::string msg, const Backtrace *bt_src);
+                   bool pred, std::string msg, const Backtrace *bt_src,
+                   int dummy_frames = 0);
 void runtime_check(const char *test, const char *file, int line,
                    bool pred, std::string msg);
 void runtime_sanity_check(bool test);
@@ -38,20 +39,25 @@ public:
 class pb_rcheckable_t : public rcheckable_t {
 public:
     explicit pb_rcheckable_t(const Term *t)
-        : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
+        : bt_src(&t->GetExtension(ql2::extension::backtrace)), dummy_frames(0) { }
 
-    explicit pb_rcheckable_t(const pb_rcheckable_t *rct) : bt_src(rct->bt_src) { }
+    explicit pb_rcheckable_t(const pb_rcheckable_t *rct)
+        : bt_src(rct->bt_src), dummy_frames(rct->dummy_frames) { }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg, bt_src);
+        ql::runtime_check(test, file, line, pred, msg, bt_src, dummy_frames);
     }
 
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
+    void note_dummy_frame() {
+        dummy_frames += 1;
+    }
 private:
     const Backtrace *bt_src;
+    int dummy_frames;
 };
 
 // Use these macros to return errors to users.
@@ -145,11 +151,19 @@ public:
 
     bool is_empty() { return frames.size() == 0; }
 
+    void delete_frames(int num_frames) {
+        for (int i = 0; i < num_frames; ++i) {
+            if (frames.size() == 0) {
+                rassert(false);
+            } else {
+                frames.pop_back();
+            }
+        }
+    }
 private:
     // Push a frame onto the back of the backtrace.
     void push_back(frame_t f) {
         r_sanity_check(f.is_valid());
-        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
         frames.push_back(f);
     }
     template<class T>
@@ -163,23 +177,26 @@ private:
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
-class any_ql_exc_t : public std::exception {
+class base_exc_t : public std::exception {
 public:
-    virtual ~any_ql_exc_t() throw () { }
+    virtual ~base_exc_t() throw () { }
 };
 
 // A RQL exception.  In the future it will be tagged.
-class exc_t : public any_ql_exc_t {
+class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    template<class T>
-    exc_t(const std::string &_exc_msg, const T *bt_src)
+    exc_t(const std::string &_exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
         : exc_msg(_exc_msg) {
         if (bt_src) set_backtrace(bt_src);
+        backtrace.delete_frames(dummy_frames);
     }
-    exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace)
-        : backtrace(_backtrace), exc_msg(_exc_msg) { }
+    exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace,
+          int dummy_frames = 0)
+        : backtrace(_backtrace), exc_msg(_exc_msg) {
+        backtrace.delete_frames(dummy_frames);
+    }
     virtual ~exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
     RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
@@ -199,13 +216,18 @@ private:
 // correspond to part of the source tree.  It's usually thrown from inside
 // datum.{hpp,cc} and must be caught by the enclosing term/stream/whatever and
 // turned into a normal `exc_t`.
-class datum_exc_t : public any_ql_exc_t {
+class datum_exc_t : public base_exc_t {
 public:
+    datum_exc_t() : exc_msg("UNINITIALIZED") { }
     explicit datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
+
 private:
     std::string exc_msg;
+
+public:
+    RDB_MAKE_ME_SERIALIZABLE_1(exc_msg);
 };
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,

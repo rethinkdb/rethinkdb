@@ -89,7 +89,7 @@ class Connection
                 cb mkErr(RqlCompileError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.CLIENT_ERROR
-                cb mkErr(RqlClientErr, response, root)
+                cb mkErr(RqlClientError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.RUNTIME_ERROR
                 cb mkErr(RqlRuntimeError, response, root)

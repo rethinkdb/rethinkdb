@@ -11,8 +11,9 @@
 
 class append_only_printf_buffer_t;
 
-// uuid_t is defined on Darwin.  I have given up on what to name it.  Please don't use guid_t, for
-// it has a Windowsian connotation and we might run into the same sort of problem from that.
+// uuid_t is defined on Darwin.  I have given up on what to name it.  Please
+// don't use guid_t, for it has a Windowsian connotation and we might run into
+// the same sort of problem from that.
 class uuid_u {
 public:
     uuid_u();

@@ -40,7 +40,7 @@ void run_sindex_low_level_operations_test() {
 
     order_source_t order_source;
 
-    std::map<uuid_u, secondary_index_t> mirror;
+    std::map<std::string, secondary_index_t> mirror;
 
     {
         order_token_t otok = order_source.check_in("sindex unittest");
@@ -54,7 +54,7 @@ void run_sindex_low_level_operations_test() {
     }
 
     for (int i = 0; i < 100; ++i) {
-        uuid_u uuid = generate_uuid();
+        std::string id = uuid_to_str(generate_uuid());
 
         secondary_index_t s;
         s.superblock = randint(1000);
@@ -62,7 +62,7 @@ void run_sindex_low_level_operations_test() {
         std::string opaque_blob = rand_string(1000);
         s.opaque_definition.assign(opaque_blob.begin(), opaque_blob.end());
 
-        mirror[uuid] = s;
+        mirror[id] = s;
 
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<transaction_t> txn;
@@ -70,7 +70,7 @@ void run_sindex_low_level_operations_test() {
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
-        set_secondary_index(txn.get(), &sindex_block, uuid, s);
+        set_secondary_index(txn.get(), &sindex_block, id, s);
     }
 
     {
@@ -80,7 +80,7 @@ void run_sindex_low_level_operations_test() {
         get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
-        std::map<uuid_u, secondary_index_t> sindexes;
+        std::map<std::string, secondary_index_t> sindexes;
         get_secondary_indexes(txn.get(), &sindex_block, &sindexes);
 
         ASSERT_TRUE(sindexes == mirror);
@@ -119,10 +119,10 @@ void run_sindex_btree_store_api_test() {
 
     cond_t dummy_interuptor;
 
-    std::set<uuid_u> created_sindexs;
+    std::set<std::string> created_sindexs;
 
     for (int i = 0; i < 50; ++i) {
-        uuid_u id = generate_uuid();
+        std::string id = uuid_to_str(generate_uuid());
         created_sindexs.insert(id);
         {
             write_token_pair_t token_pair;
@@ -176,8 +176,6 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store_key_t key("foo");
-
             store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
@@ -188,6 +186,7 @@ void run_sindex_btree_store_api_test() {
             rdb_protocol_t::point_write_response_t response;
             rdb_modification_info_t mod_info;
 
+            store_key_t key("foo");
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
@@ -226,9 +225,7 @@ void run_sindex_btree_store_api_test() {
         }
     }
 
-    for (std::set<uuid_u>::iterator it  = created_sindexs.begin();
-                                    it != created_sindexs.end();
-                                    ++it) {
+    for (auto it  = created_sindexs.begin(); it != created_sindexs.end(); ++it) {
         /* Drop the sindex */
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);

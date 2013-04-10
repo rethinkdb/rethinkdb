@@ -36,7 +36,6 @@ class mock_namespace_interface_t : public namespace_interface_t<rdb_protocol_t> 
 private:
     std::map<store_key_t, scoped_cJSON_t*> data;
     mock_namespace_repo_t *parent;
-    ql::env_t *env;
 
 public:
     mock_namespace_interface_t(mock_namespace_repo_t *_parent);
@@ -65,6 +64,7 @@ private:
         void operator()(const rdb_protocol_t::point_read_t &get);
         void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
         void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);
 
         read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
 
