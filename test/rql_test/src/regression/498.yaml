@@ -1,0 +1,15 @@
+desc: Regression tests for issue #498, inserting a null primary key
+tests:
+    
+    # Set up a stream
+    - cd: r.db('test').table_create('t498')
+      def: t = r.db('test').table('t498')
+
+    - cd: t.insert({'id':null,'a':1,'b':null})
+      ot: ({'inserted':1,'generated_keys':arrlen(1,uuid())})
+
+    - cd: t
+      ot: ([{'id':uuid(),'a':1,'b':null}])
+
+    # clean up
+    - cd: r.db('test').table_drop('t498')
