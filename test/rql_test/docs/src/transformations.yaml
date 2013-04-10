@@ -97,8 +97,8 @@ commands:
             r.table('marvel').order_by(
                 r.desc('enemies_vanquished'), r.asc('damsels_saved')).run(conn)
           rb: |-
-            r.table('marvel').order_by(r.desc(:enemies_vanquished), r.asc(:damsels_saved))
-             .run(conn)
+            r.table('marvel').order_by(r.desc(:enemies_vanquished),
+                                       r.asc(:damsels_saved)      ).run(conn)
 
     js:
       name: orderBy
