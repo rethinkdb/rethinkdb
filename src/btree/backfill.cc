@@ -167,7 +167,7 @@ THROWS_ONLY(interrupted_exc_t) {
     //Start things off easy with a coro assertion.
     rassert(coro_t::self());
 
-    std::map<uuid_u, secondary_index_t> sindexes;
+    std::map<std::string, secondary_index_t> sindexes;
     get_secondary_indexes(txn, sindex_block, &sindexes);
     callback->on_sindexes(sindexes, interruptor);
 

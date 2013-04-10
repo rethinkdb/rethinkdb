@@ -4,6 +4,9 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+
+// TODO: We include master.hpp, which kind of breaks abstraction boundaries, for ack_checker_t.
+#include "clustering/immediate_consistency/query/master.hpp"
 #include "containers/uuid.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -131,15 +134,13 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
             void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
                 /* Ignore. */
             }
-            void on_disk_ack(peer_id_t) {
-                /* Ignore, I guess. */
-            }
             void on_done() {
                 pulse();
             }
         } write_callback;
         cond_t non_interruptor;
-        (*broadcaster)->spawn_write(w, &exiter, order_source->check_in("unittest::run_read_write_test(write)"), &write_callback, &non_interruptor);
+        spawn_write_fake_ack_checker_t ack_checker;
+        (*broadcaster)->spawn_write(w, &exiter, order_source->check_in("unittest::run_read_write_test(write)"), &write_callback, &non_interruptor, &ack_checker);
         write_callback.wait_lazily_unordered();
     }
 
@@ -176,15 +177,13 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
         void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
             /* Ignore. */
         }
-        void on_disk_ack(peer_id_t) {
-            /* Ignore. */
-        }
         void on_done() {
             pulse();
         }
     } write_callback;
+    spawn_write_fake_ack_checker_t ack_checker;
     cond_t non_interruptor;
-    broadcaster->spawn_write(w, &exiter, otok, &write_callback, &non_interruptor);
+    broadcaster->spawn_write(w, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
 }
 

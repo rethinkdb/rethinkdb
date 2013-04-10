@@ -85,7 +85,6 @@ void run_backfill_test() {
             metainfo_checker_t<dummy_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
 #endif
 
-            sync_callback_t disk_ack_signal;
             backfiller_store.write(
                 DEBUG_ONLY(metainfo_checker, )
                 region_map_t<dummy_protocol_t, binary_blob_t>(
@@ -93,12 +92,11 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w,
-                &response, &disk_ack_signal,
+                &response, WRITE_DURABILITY_SOFT,
                 ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,
                 &non_interruptor);
-            disk_ack_signal.wait();
         }
     }
 

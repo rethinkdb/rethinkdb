@@ -1,0 +1,27 @@
+desc: Regression tests for issue #546, variable shadowing
+tests:
+
+    # Just a single nesting level, for sanity
+    - js: r(1).do(function(a) { return a; })
+      py: r.expr(1).do(lambda a:a)
+      ot: 1
+
+    # Nested but returning the inner var
+    - js: |-
+        r(1).do(function(a) {
+          return r(2).do(function(b) {
+            return b;
+          });
+        })
+      py: r.expr(1).do(lambda a:r.expr(2).do(lambda b:b))
+      ot: 2
+
+    # Nested but returning the outer var (this was the problem in 546)
+    - js: |-
+        r(1).do(function(a) {
+          return r(2).do(function(b) {
+            return a;
+          });
+        })
+      py: r.expr(1).do(lambda a:r.expr(2).do(lambda b:a))
+      ot: 1

@@ -45,7 +45,7 @@ void run_timeout_test(js::runner_t *runner) {
     try {
         runner->eval(longloop, &config);
         FAIL() << "didn't time out";
-    } catch (interrupted_exc_t) {}
+    } catch (const interrupted_exc_t &) {}
 
     // Interruption should have quit the job.
     ASSERT_FALSE(runner->connected());

@@ -64,7 +64,9 @@ dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const 
     return r;
 }
 
-void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t count, dummy_protocol_t::read_response_t *response, DEBUG_VAR context_t *ctx) const {
+void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t
+        count, dummy_protocol_t::read_response_t *response,
+        DEBUG_VAR context_t *ctx, signal_t *) const {
     rassert(ctx != NULL);
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
@@ -79,8 +81,8 @@ void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t coun
     }
 }
 
-void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *ctx) const {
-    unshard(resps, count, response, ctx);
+void dummy_protocol_t::read_t::multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *ctx, signal_t *interruptor) const {
+    unshard(resps, count, response, ctx, interruptor);
 }
 
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
@@ -105,7 +107,7 @@ dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) cons
     return w;
 }
 
-void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx) const {
+void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx, signal_t *) const {
     rassert(ctx != NULL);
     for (size_t i = 0; i < count; ++i) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
@@ -120,8 +122,8 @@ void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t co
     }
 }
 
-void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx) const {
-    return unshard(resps, count, response, ctx);
+void dummy_protocol_t::write_t::multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *ctx, signal_t *interruptor) const {
+    return unshard(resps, count, response, ctx, interruptor);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
@@ -371,7 +373,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       const metainfo_t& new_metainfo,
                                       const dummy_protocol_t::write_t &write,
                                       dummy_protocol_t::write_response_t *response,
-                                      sync_callback_t *disk_ack_signal,
+                                      UNUSED write_durability_t durability,
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
                                       write_token_pair_t *token_pair,
@@ -408,9 +410,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
     if (rng.randint(2) == 0) {
         nap(rng.randint(10));
     }
-
-    // SAMRSI: Support delayed pulsing of the disk ack signal.
-    disk_ack_signal->pulse();
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
@@ -477,7 +476,8 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
                                            write_token_pair_t *token_pair,
-                                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                                           signal_t *interruptor,
+                                           UNUSED write_durability_t durability) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 

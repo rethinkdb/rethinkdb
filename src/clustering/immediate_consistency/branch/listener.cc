@@ -465,21 +465,18 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
-    sync_callback_t disk_ack_signal;
+    // This isn't used for client writes, so we don't want to wait for a disk ack.
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
-        &disk_ack_signal,
+        WRITE_DURABILITY_SOFT,
         qe.transition_timestamp,
         qe.order_token,
         &write_token_pair,
         interruptor);
-
-    // SAMRSI: Is this how we want to wait?
-    wait_interruptible(&disk_ack_signal, interruptor);
 }
 
 template <class protocol_t>
@@ -488,7 +485,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-        mailbox_addr_t<void()> disk_ack_addr) THROWS_NOTHING {
+        write_durability_t durability) THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
@@ -496,7 +493,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr, disk_ack_addr,
+        write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
@@ -506,7 +503,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-        mailbox_addr_t<void()> disk_ack_addr,
+        const write_durability_t durability,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         /* Make sure the broadcaster isn't sending us too many writes */
@@ -540,13 +537,13 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
         // Perform the operation
         typename protocol_t::write_response_t response;
-        sync_callback_t disk_ack_signal;
+
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
                     write,
                     &response,
-                    &disk_ack_signal,
+                    durability,
                     transition_timestamp,
                     order_token,
                     &write_token_pair,
@@ -556,9 +553,6 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         broadcaster can send us a new write as soon as we send the ack */
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
-
-        wait_interruptible(&disk_ack_signal, keepalive.get_drain_signal());
-        send(mailbox_manager_, disk_ack_addr);
 
     } catch (const interrupted_exc_t &) {
         /* pass */

@@ -31,12 +31,12 @@ public:
         unsigned int max_concurrent_flushes);
     virtual ~writeback_t();
 
-    /* Forces a writeback to happen soon. If there is nothing to write, return 'true'; otherwise,
-    returns 'false' and calls 'callback' as soon as the next writeback cycle is over. */
-    bool sync(sync_callback_t *callback);
+    /* Forces a writeback to happen soon. If there is nothing to write, pulses the callback.
+       Otherwise, pulses the callback as soon as the next writeback cycle is over. */
+    void sync(sync_callback_t *callback);
 
-    /* Same as sync(), but doesn't hurry up the writeback in any way. */
-    bool sync_patiently(sync_callback_t *callback);
+    /* Same as sync(), but doesn't hurry up the writeback very much. */
+    void sync_patiently(sync_callback_t *callback);
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
     it ought to be throttled. */

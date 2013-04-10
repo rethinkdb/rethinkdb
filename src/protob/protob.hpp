@@ -97,7 +97,6 @@ public:
                     response_t (*_on_unparsable_query)(request_t *, std::string),
                     protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
-    static const int32_t magic_number;
 
     int get_port() const;
 private:
@@ -128,10 +127,6 @@ private:
 
     unsigned next_thread;
 };
-
-template<class request_t, class response_t, class context_t>
-const int32_t protob_server_t<request_t, response_t, context_t>::magic_number
-    = 0x3f61ba36;
 
 //TODO figure out how to do 0 copy serialization with this.
 

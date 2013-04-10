@@ -42,7 +42,7 @@ static void run_missing_master_test() {
     try {
         namespace_interface.read(r, &rr, order_source.check_in("unittest::run_missing_master_test(A)").with_read_mode(), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         /* expected */
     }
 
@@ -52,7 +52,7 @@ static void run_missing_master_test() {
     try {
         namespace_interface.write(w, &wr, order_source.check_in("unittest::run_missing_master_test(B)"), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         /* expected */
     }
 }

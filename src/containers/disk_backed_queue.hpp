@@ -32,7 +32,7 @@ public:
     ~internal_disk_backed_queue_t();
 
     // TODO: order_token_t::ignore.  This should take an order token and store it.
-    void push(const write_message_t& value);
+    void push(const write_message_t &value);
 
     // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
     void pop(std::vector<char> *buf_out);
@@ -65,12 +65,15 @@ public:
         : internal_(io_backender, filename, stats_parent) { }
 
     void push(const T &t) {
+        // TODO: There's an unnecessary copying of data here (which would require a
+        // serialization_size overloaded function to be implemented in order to eliminate).
         write_message_t wm;
         wm << t;
         internal_.push(wm);
     }
 
     void pop(T *out) {
+        // TODO: There's an unnecessary copying of data here.
         std::vector<char> data_vec;
 
         internal_.pop(&data_vec);

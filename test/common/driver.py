@@ -32,7 +32,7 @@ def unblock_path(source_port, dest_port):
 def find_subpath(subpath):
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
     if "RETHINKDB" in os.environ:
-        paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
+        paths = [os.path.join(os.environ["RETHINKDB"], subpath)]
     for path in paths:
         if os.path.exists(path):
             return path
@@ -42,7 +42,10 @@ def find_rethinkdb_executable(mode = "debug"):
     return find_subpath("build/%s/rethinkdb" % mode)
 
 def get_namespace_host(namespace_port, processes):
-    return ("localhost", namespace_port + random.choice(processes).port_offset)
+    if namespace_port == 0:
+        return ("localhost", random.choice(processes).driver_port)
+    else:
+        return ("localhost", namespace_port + random.choice(processes).port_offset)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
@@ -185,8 +188,8 @@ class Files(object):
             self.machine_name = machine_name
 
         create_args = command_prefix + [executable_path, "create",
-            "--directory=" + self.db_path,
-            "--machine-name=" + self.machine_name]
+            "--directory", self.db_path,
+            "--machine-name", self.machine_name]
 
         if log_path is None:
             print "setting log_path to /dev/null."
@@ -215,8 +218,9 @@ class _Process(object):
             for peer in cluster.processes:
                 if peer is not self:
                     # TODO(OSX) Why did we ever use socket.gethostname() and not localhost?
-                    # self.args.append("--join=" + socket.gethostname() + ":" + str(peer.cluster_port))
-                    self.args.append("--join=" + "localhost" + ":" + str(peer.cluster_port))
+                    # self.args.append("--join",  socket.gethostname() + ":" + str(peer.cluster_port))
+                    self.args.append("--join")
+                    self.args.append("localhost" + ":" + str(peer.cluster_port))
 
             self.log_path = log_path
             if self.log_path is None:
@@ -269,11 +273,13 @@ class _Process(object):
                 log = file(self.logfile_path).read()
                 cluster_ports = re.findall("(?<=Listening for intracluster connections on port )([0-9]+)",log)
                 http_ports = re.findall("(?<=Listening for administrative HTTP connections on port )([0-9]+)",log)
+                driver_ports = re.findall("(?<=Listening for client driver connections on port )([0-9]+)",log)
                 if cluster_ports == [] or http_ports == []:
                     time.sleep(1)
                 else:
                     self.cluster_port = int(cluster_ports[-1])
                     self.http_port = int(http_ports[-1])
+                    self.driver_port = int(driver_ports[-1])
                     break
             except IOError, e:
                 time.sleep(1)
@@ -347,12 +353,12 @@ class Process(_Process):
         self.local_cluster_port = 29015 + self.port_offset
 
         options = ["serve",
-                   "--directory=" + self.files.db_path,
-                   "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port),
-                   "--cluster-port=0",
-                   "--driver-port=0",
-                   "--http-port=0"
+                   "--directory",  self.files.db_path,
+                   "--port-offset",  str(self.port_offset),
+                   "--client-port",  str(self.local_cluster_port),
+                   "--cluster-port", "0",
+                   "--driver-port", "0",
+                   "--http-port", "0"
                    ] + extra_options
 
         _Process.__init__(self, cluster, options,
@@ -377,12 +383,10 @@ class ProxyProcess(_Process):
         self.local_cluster_port = 28015 + self.port_offset
 
         options = ["proxy",
-                   "--log-file=" + self.logfile_path,
-                   "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port),
-                   "--http-port=0",
-                   "--cluster-port=0",
-                   "--driver-port=0"] + extra_options
+                   "--log-file",  self.logfile_path,
+                   "--port-offset",  str(self.port_offset),
+                   "--client-port",  str(self.local_cluster_port)
+                   ] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

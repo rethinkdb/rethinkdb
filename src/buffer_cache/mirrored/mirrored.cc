@@ -881,8 +881,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-// SAMRSI: Check that nothing indiscriminantly passes a non-null disk_ack_signal.
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, sync_callback_t *_disk_ack_signal)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, const write_durability_t _durability)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -892,7 +891,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      disk_ack_signal(_disk_ack_signal) {
+      durability(_durability) {
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -923,7 +922,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      disk_ack_signal(NULL) {
+      durability(WRITE_DURABILITY_INVALID) {
 
     guarantee(is_read_mode(access));
 
@@ -955,7 +954,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true),
-    disk_ack_signal(NULL) /* SAMRSI: This should be NULL? */ {
+    durability(WRITE_DURABILITY_INVALID) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -992,19 +991,13 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
-    if (access == rwi_write && disk_ack_signal != NULL) {
+    if (access == rwi_write && durability == WRITE_DURABILITY_HARD) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        if (cache->writeback.sync_patiently(disk_ack_signal)) {
-            disk_ack_signal->pulse();
-        }
-
+        sync_callback_t disk_ack_signal;
+        cache->writeback.sync_patiently(&disk_ack_signal);
         cache->on_transaction_commit(this);
-
-        // SAMRSI: Make sure that everybody waits on its disk_ack_signal after the txn destructs.
     } else {
-        guarantee(disk_ack_signal == NULL, "Somebody passed a sync callback with a read transaction.");
-
         cache->on_transaction_commit(this);
     }
 
@@ -1179,10 +1172,10 @@ mc_cache_t::~mc_cache_t() {
             "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
             num_live_writeback_transactions, num_live_non_writeback_transactions);
 
-    /* Perform a final sync */
-    sync_callback_t sync_cb;
-    if (!writeback.sync(&sync_cb)) {
-        sync_cb.wait();
+    {
+        /* Perform a final sync */
+        sync_callback_t sync_cb;
+        writeback.sync(&sync_cb);
     }
 
     /* Delete all the buffers */
@@ -1254,6 +1247,10 @@ mc_inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
         ++stats->pm_cache_misses;
     }
     return buf;
+}
+
+unsigned int mc_cache_t::num_blocks() {
+    return page_map.size();
 }
 
 bool mc_cache_t::contains_block(block_id_t block_id) {

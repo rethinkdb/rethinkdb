@@ -112,7 +112,7 @@ public:
                 done_cond.pulse_if_not_already_pulsed();
             }
 
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* This means that the `coro_pool_t` is being destroyed
                before the queue drains. That can only happen if we are
                being interrupted or if we lost contact with the backfiller.

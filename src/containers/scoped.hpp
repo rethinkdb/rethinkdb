@@ -44,10 +44,12 @@ public:
         other.ptr_ = tmp;
     }
 
-
-
     T *get() const {
         rassert(ptr_);
+        return ptr_;
+    }
+
+    T *get_or_null() const {
         return ptr_;
     }
 

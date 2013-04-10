@@ -4,41 +4,30 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 
-
-bool ack_expectation_t::make(uint32_t disk_expectation, uint32_t cache_expectation, ack_expectation_t *out) {
-    if (disk_expectation <= cache_expectation) {
-        out->disk_expectation_ = disk_expectation;
-        out->cache_expectation_ = cache_expectation;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, disk_expectation_, cache_expectation_);
+RDB_IMPL_ME_SERIALIZABLE_2(ack_expectation_t, expectation_, hard_durability_);
 
 bool ack_expectation_t::operator==(ack_expectation_t other) const {
-    return disk_expectation_ == other.disk_expectation_ && cache_expectation_ == other.cache_expectation_;
+    return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
-    buf->appendf("ack_expectation{disk=%" PRIi32 " memory=%" PRIi32 "}",
-                 x.disk_expectation(), x.cache_expectation());
+    buf->appendf("ack_expectation{durability=%s, acks=%" PRIu32 "}",
+                 x.is_hardly_durable() ? "hard" : "soft", x.expectation());
 }
 
 // json adapter concept for ack_expectation_t
-// TODO(acks) sophisticated, use both fields
-json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *) {
-    return json_adapter_if_t::json_adapter_map_t();
+json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["expectation"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<uint32_t>(&target->expectation_));
+    res["hard_durability"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<bool>(&target->hard_durability_));
+    return res;
 }
-cJSON *render_as_json(const ack_expectation_t *target) {
-    uint32_t memory = target->cache_expectation();
-    return render_as_json(&memory);
+cJSON *render_as_json(ack_expectation_t *target) {
+    return render_as_directory(target);
 }
+
 void apply_json_to(cJSON *change, ack_expectation_t *target) {
-    uint32_t memory = target->cache_expectation() /* TODO(acks) sophisticated */;
-    apply_json_to(change, &memory);
-    *target = ack_expectation_t(memory);
+    apply_as_directory(change, target);
 }
 
 

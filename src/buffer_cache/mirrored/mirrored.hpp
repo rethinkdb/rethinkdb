@@ -225,12 +225,11 @@ class mc_transaction_t :
     friend class writeback_t;
 
 public:
-    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, sync_callback_t *disk_ack_signal);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t order_token, write_durability_t durability);
 
     // For read transactions.
     mc_transaction_t(mc_cache_t *cache, access_t access, order_token_t order_token);
 
-    // SAMRSI: Should the writeback constructor also take a disk_ack_signal?
     mc_transaction_t(mc_cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
 
@@ -271,7 +270,7 @@ private:
 
     const bool is_writeback_transaction;
 
-    sync_callback_t *const disk_ack_signal;
+    const write_durability_t durability;
 
     DISABLE_COPYING(mc_transaction_t);
 };
@@ -314,6 +313,8 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<mc_cache_account_t> *out);
 
     bool contains_block(block_id_t block_id);
+
+    unsigned int num_blocks();
 
     mc_inner_buf_t::version_id_t get_current_version_id() { return next_snapshot_version; }
 
