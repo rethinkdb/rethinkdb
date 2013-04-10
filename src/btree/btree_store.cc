@@ -139,6 +139,8 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
+    // We don't want hard durability, this is a backfill chunk, and nobody wants chunk-by-chunk
+    // acks.
     acquire_superblock_for_write(rwi_write,
                                  chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
