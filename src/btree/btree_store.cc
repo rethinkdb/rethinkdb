@@ -241,8 +241,8 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
-    for (size_t i = 0; i < sindex_queues.size(); ++i) {
-        sindex_queues[i]->push(value);
+    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
+        (*it)->push(value);
     }
 }
 
