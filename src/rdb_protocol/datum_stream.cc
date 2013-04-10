@@ -207,7 +207,7 @@ const datum_t *lazy_datum_stream_t::next_impl() {
 }
 
 const datum_t *lazy_datum_stream_t::as_array() {
-    return 0; // cannot be converted implciitly
+    return 0; // cannot be converted implicitly
 }
 
 // ARRAY_DATUM_STREAM_T
