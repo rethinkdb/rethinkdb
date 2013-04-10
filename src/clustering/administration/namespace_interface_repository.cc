@@ -191,7 +191,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             }
         }
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* We got here because we were interrupted in the startup process. That
         means the `namespace_repo_t` destructor was called, which means there
         mustn't exist any `access_t` objects. So ref_count must be 0. */

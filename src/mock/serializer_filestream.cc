@@ -61,14 +61,12 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     mirrored_cache_config_t config;
     cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
 
-    sync_callback_t disk_ack_signal;
-
     transaction_t txn(cache_.get(),
                       rwi_write,
                       1,
                       repli_timestamp_t::invalid,
                       order_token_t::ignore,
-                      &disk_ack_signal);
+                      WRITE_DURABILITY_HARD);
 
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
@@ -86,9 +84,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     const char *chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    sync_callback_t disk_ack_signal;
-
-    transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, &disk_ack_signal);
+    transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, WRITE_DURABILITY_HARD);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
     int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_write());

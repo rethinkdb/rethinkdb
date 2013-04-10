@@ -181,7 +181,7 @@ private:
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-            mailbox_addr_t<void()> disk_ack_addr)
+            write_durability_t durability)
         THROWS_NOTHING;
 
     void perform_writeread(const typename protocol_t::write_t &write,
@@ -189,7 +189,7 @@ private:
             order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-            mailbox_addr_t<void()> disk_ack_addr,
+            write_durability_t durability,
             auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING;
 

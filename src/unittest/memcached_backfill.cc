@@ -102,15 +102,13 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
         void on_response(peer_id_t, const memcached_protocol_t::write_response_t &) {
             /* ignore */
         }
-        void on_disk_ack(peer_id_t) {
-            /* ignore (I guess) */
-        }
         void on_done() {
             pulse();
         }
     } write_callback;
     cond_t non_interruptor;
-    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);
+    spawn_write_fake_ack_checker_t ack_checker;
+    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
 }
 

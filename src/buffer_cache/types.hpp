@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_TYPES_HPP_
 #define BUFFER_CACHE_TYPES_HPP_
 
@@ -6,16 +6,48 @@
 #include <stdint.h>
 
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
 
-struct sync_callback_t : public cond_t, public intrusive_list_node_t<sync_callback_t> {
-    ~sync_callback_t() {
-        wait();
-    }
+// WRITE_DURABILITY_INVALID is an invalid value, notably it can't be serialized.
+enum write_durability_t { WRITE_DURABILITY_INVALID, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD);
 
-    void on_sync() {
-        pulse();
-    }
+// sync_callback_t is a cond_t that gets pulsed when on_sync is called
+// sufficiently many times.  It is incorrect to call it more than that many
+// times.  It is incorrect to call it less than that many times (because you'll
+// block a waiter indefinitely).  The default number of times on_sync must be
+// called is 1.  The number can be increased.  Every call to on_sync decreases
+// the number by 1.  When the number reaches 0, cond_t::pulse() is called and
+// waiters will be signaled.
+//
+// Some operations need to wait on multiple disk acks, you see.
+//
+// For many operations that take a sync_callback_t, specifying a null
+// sync_callback_t * will mean "don't try to quickly sync this operation to
+// disk."  Whether you pass a null or non-null sync_callback_t * has an actual
+// effect on the writeback's behavior.
+class sync_callback_t : private cond_t, public intrusive_list_node_t<sync_callback_t> {
+    // We privately inherit from cond_t so that nobody can call pulse() or other
+    // unrighteous functions.
+public:
+    sync_callback_t() : necessary_sync_count_(1) {}
+
+    // Waits for all the on_syncs!  Calls wait().
+    ~sync_callback_t() { wait(); }
+
+    // This is called when the data has been properly written (and fdatasynced) to disk.
+    void on_sync() { pulse(); }
+
+    using cond_t::wait;
+
+    // Needed by some things like calls to wait_interruptable, because cond_t is
+    // privately inherited.  This is perfectly safe, because you can't pulse a
+    // signal_t, and certainly not a const signal_t.
+    const signal_t *as_signal() const { return this; }
+
+private:
+    size_t necessary_sync_count_;
 };
 
 

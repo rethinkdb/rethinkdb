@@ -27,8 +27,6 @@
 
 namespace ql {
 
-// #define INSTRUMENT 1
-
 term_t *compile_term(env_t *env, const Term *t) {
     switch (t->type()) {
     case Term_TermType_DATUM:              return new datum_term_t(env, t);
@@ -110,7 +108,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
-    } catch (const any_ql_exc_t &e) {
+    } catch (const base_exc_t &e) {
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
         return;
     }
@@ -162,7 +160,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         }
 
         try {
-            val_t *val = root_term->eval(false);
+            val_t *val = root_term->eval();
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 const datum_t *d = val->as_datum();
@@ -205,13 +203,14 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
 }
 
 term_t::term_t(env_t *_env, const Term *_src)
-    : pb_rcheckable_t(_src), use_cached_val(false), env(_env), src(_src), cached_val(0) {
+    : pb_rcheckable_t(_src), env(_env), src(_src) {
     guarantee(env);
 }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
 // you are in query execution when something goes wrong).
+// #define INSTRUMENT 1
 
 #ifdef INSTRUMENT
 __thread int DBG_depth = 0;
@@ -238,24 +237,24 @@ const Term *term_t::get_src() const {
     return src;
 }
 
-val_t *term_t::eval(bool _use_cached_val) {
-    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is basically a hook for unit tests to change things mid-query
+val_t *term_t::eval() {
+    // This is basically a hook for unit tests to change things mid-query
+    DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     try {
-        use_cached_val = _use_cached_val;
         try {
-            if (!cached_val || !use_cached_val) cached_val = eval_impl();
+            val_t *ret = eval_impl();
+            DEC_DEPTH;
+            DBG("%s returned %s\n", name(), ret->print().c_str());
+            return ret;
         } catch (const datum_exc_t &e) {
+            DEC_DEPTH;
             DBG("%s THREW\n", name());
             rfail("%s", e.what());
         }
-
-        DEC_DEPTH;
-        DBG("%s returned %s\n", name(), cached_val->print().c_str());
-        return cached_val;
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());

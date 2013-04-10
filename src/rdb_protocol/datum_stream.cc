@@ -18,7 +18,8 @@ datum_stream_t *datum_stream_t::zip() {
 }
 
 const datum_t *datum_stream_t::next() {
-    DEBUG_ONLY_CODE(env->do_eval_callback()); // This is a hook for unit tests to change things mid-query
+    // This is a hook for unit tests to change things mid-query.
+    DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
     try {
         return next_impl();
@@ -31,7 +32,7 @@ const datum_t *datum_stream_t::next() {
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
-        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         if (!next()) break;
         ++i;
     }
@@ -43,32 +44,33 @@ const datum_t *eager_datum_stream_t::reduce(val_t *base_val, func_t *f) {
     base = base_val ? base_val->as_datum() : next();
     rcheck(base, "Cannot reduce over an empty stream with no base.");
 
-    env_gc_checkpoint_t egct(env);
+    env_gc_checkpoint_t gc_checkpoint(env);
     while (const datum_t *rhs = next()){
-        base = egct.maybe_gc(f->call(base, rhs)->as_datum());
+        base = gc_checkpoint.maybe_gc(f->call(base, rhs)->as_datum());
     }
-    return egct.finalize(base);
+    return gc_checkpoint.finalize(base);
 }
 
 const datum_t *eager_datum_stream_t::gmr(
-    func_t *g, func_t *m, const datum_t *d, func_t *r) {
+    func_t *group, func_t *map, const datum_t *base, func_t *reduce) {
     int i = 0;
-    env_gc_checkpoint_t egct(env);
-    wire_datum_map_t map;
+    env_gc_checkpoint_t gc_checkpoint(env);
+    wire_datum_map_t wd_map;
     while (const datum_t *el = next()) {
-        const datum_t *el_group = g->call(el)->as_datum();
-        const datum_t *el_map = m->call(el)->as_datum();
-        if (!map.has(el_group)) {
-            map.set(el_group, d ? r->call(d, el_map)->as_datum() : el_map);
+        const datum_t *el_group = group->call(el)->as_datum();
+        const datum_t *el_map = map->call(el)->as_datum();
+        if (!wd_map.has(el_group)) {
+            wd_map.set(el_group, base ? reduce->call(base, el_map)->as_datum() : el_map);
         } else {
-            map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
+            wd_map.set(el_group, reduce->call(wd_map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
-            int rounds = 10000 DEBUG_ONLY(/ 5000);
-            if (!(++i%rounds)) egct.maybe_gc(map.to_arr(env));
+            if (++i % WIRE_DATUM_MAP_GC_ROUNDS == 0) {
+                gc_checkpoint.maybe_gc(wd_map.to_arr(env));
+            }
         }
     }
-    return egct.finalize(map.to_arr(env));
+    return gc_checkpoint.finalize(wd_map.to_arr(env));
 }
 
 datum_stream_t *eager_datum_stream_t::filter(func_t *f) {
@@ -99,7 +101,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    const datum_t *pval, const uuid_u &sindex_id,
+    const datum_t *pval, const std::string &sindex_id,
     const pb_rcheckable_t *bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
@@ -115,90 +117,87 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 
 datum_stream_t *lazy_datum_stream_t::map(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
-    out->trans = rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(
+        rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f)),
+        env, query_language::scopes_t(), query_language::backtrace_t());
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::concatmap(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
-    out->trans
-        = rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(
+        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f)),
+        env, query_language::scopes_t(), query_language::backtrace_t());
     return out;
 }
 datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
     lazy_datum_stream_t *out = env->add_ptr(new lazy_datum_stream_t(this));
-    out->trans = rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f));
-    out->json_stream = json_stream->add_transformation(out->trans, env, _s, _b);
+    out->json_stream = json_stream->add_transformation(
+        rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f)),
+        env, query_language::scopes_t(), query_language::backtrace_t());
     return out;
 }
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
 template<class T>
-void lazy_datum_stream_t::run_terminal(T t) {
-    terminal = rdb_protocol_details::terminal_variant_t(t);
-    rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(terminal, env, _s, _b);
-    std::vector<wire_datum_t> *data = boost::get<std::vector<wire_datum_t> >(&res);
-    r_sanity_check(data);
-    for (size_t i = 0; i < data->size(); ++i) {
-        shard_data.push_back((*data)[i].compile(env));
-    }
+lazy_datum_stream_t::rdb_result_t lazy_datum_stream_t::run_terminal(T t) {
+    return json_stream->apply_terminal(
+        rdb_protocol_details::terminal_variant_t(t),
+        env, query_language::scopes_t(), query_language::backtrace_t());
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    datum_t *d = env->add_ptr(new datum_t(0.0));
-    env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-    run_terminal(count_wire_func_t());
-    for (size_t i = 0; i < shard_data.size(); ++i) {
-        *d = datum_t(d->as_num() + shard_data[i]->as_int());
-    }
-    return d;
+    rdb_result_t res = run_terminal(count_wire_func_t());
+    auto wire_datum = boost::get<wire_datum_t>(&res);
+    r_sanity_check(wire_datum);
+    return wire_datum->compile(env);
 }
 
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    run_terminal(reduce_wire_func_t(env, f));
-    const datum_t *out;
-    if (base_val) {
-        out = base_val->as_datum();
+    rdb_result_t res =
+        run_terminal(reduce_wire_func_t(env, f));
+
+    if (auto wire_datum = boost::get<wire_datum_t>(&res)) {
+        const datum_t *datum = wire_datum->compile(env);
+        if (base_val) {
+            return f->call(base_val->as_datum(), datum)->as_datum();
+        } else {
+            return datum;
+        }
     } else {
-        rcheck(shard_data.size() > 0,
-               "Cannot reduce over an empty stream with no base.");
-        out = shard_data[0];
+        r_sanity_check(boost::get<rdb_empty_t>(&res));
+        if (base_val) {
+            return base_val->as_datum();
+        } else {
+            rfail("Cannot reduce over an empty stream with no base.");
+        }
     }
-    for (size_t i = !base_val; i < shard_data.size(); ++i) {
-        out = f->call(out, shard_data[i])->as_datum();
-    }
-    return out;
 }
 
 const datum_t *lazy_datum_stream_t::gmr(
-    func_t *g, func_t *m, const datum_t *d, func_t *r) {
-    terminal = rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r));
+    func_t *g, func_t *m, const datum_t *base, func_t *r) {
     rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(terminal, env, _s, _b);
-    typedef std::vector<wire_datum_map_t> wire_datum_maps_t;
-    wire_datum_maps_t *dms = boost::get<wire_datum_maps_t>(&res);
-    r_sanity_check(dms);
-    wire_datum_map_t map;
+        json_stream->apply_terminal(
+            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r)),
+            env, query_language::scopes_t(), query_language::backtrace_t());
+    wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
+    r_sanity_check(dm);
+    env_gc_checkpoint_t gc_checkpoint(env);
+    dm->compile(env);
+    const datum_t *dm_arr = dm->to_arr(env);
+    if (!base) {
+        return gc_checkpoint.finalize(dm_arr);
+    } else {
+        wire_datum_map_t map;
 
-    env_gc_checkpoint_t egct(env);
-    for (size_t i = 0; i < dms->size(); ++i) {
-        wire_datum_map_t *rhs = &((*dms)[i]);
-        rhs->compile(env);
-        const datum_t *rhs_arr = rhs->to_arr(env);
-        for (size_t f = 0; f < rhs_arr->size(); ++f) {
-            const datum_t *key = rhs_arr->el(f)->el("group");
-            const datum_t *val = rhs_arr->el(f)->el("reduction");
-            if (!map.has(key)) {
-                map.set(key, d ? r->call(d, val)->as_datum() : val);
-            } else {
-                map.set(key, r->call(map.get(key), val)->as_datum());
-            }
+        for (size_t f = 0; f < dm_arr->size(); ++f) {
+            const datum_t *key = dm_arr->get(f)->get("group");
+            const datum_t *val = dm_arr->get(f)->get("reduction");
+            r_sanity_check(!map.has(key));
+            map.set(key, r->call(base, val)->as_datum());
         }
+        return gc_checkpoint.finalize(map.to_arr(env));
     }
-    return egct.finalize(map.to_arr(env));
 }
 
 const datum_t *lazy_datum_stream_t::next_impl() {
@@ -213,7 +212,7 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
     : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
-    return arr->el(index++, NOTHROW);
+    return arr->get(index++, NOTHROW);
 }
 
 // MAP_DATUM_STREAM_T
@@ -238,11 +237,11 @@ const datum_t *concatmap_datum_stream_t::next_impl() {
 const datum_t *filter_datum_stream_t::next_impl() {
     const datum_t *arg = 0;
     for (;;) {
-        env_checkpoint_t outer_checkpoint(env, &env_t::discard_checkpoint);
+        env_checkpoint_t outer_checkpoint(env, env_checkpoint_t::DISCARD);
         if (!(arg = src->next())) return 0;
-        env_checkpoint_t inner_checkpoint(env, &env_t::discard_checkpoint);
+        env_checkpoint_t inner_checkpoint(env, env_checkpoint_t::DISCARD);
         if (f->filter_call(arg)) {
-            outer_checkpoint.reset(&env_t::merge_checkpoint);
+            outer_checkpoint.reset(env_checkpoint_t::MERGE);
             break;
         }
     }
@@ -259,7 +258,7 @@ const datum_t *slice_datum_stream_t::next_impl() {
         return NULL;
     }
     while (ind++ < left) {
-        env_checkpoint_t ect(env, &env_t::discard_checkpoint);
+        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         if (!src->next()) {
             return NULL;
         }
@@ -273,8 +272,8 @@ zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
 const datum_t *zip_datum_stream_t::next_impl() {
     const datum_t *d = src->next();
     if (!d) return 0;
-    const datum_t *l = d->el("left", NOTHROW);
-    const datum_t *r = d->el("right", NOTHROW);
+    const datum_t *l = d->get("left", NOTHROW);
+    const datum_t *r = d->get("right", NOTHROW);
     rcheck(l, "ZIP can only be called on the result of a join.");
     return r ? env->add_ptr(l->merge(r)) : l;
 }

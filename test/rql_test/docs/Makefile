@@ -6,8 +6,9 @@ YAML_FILES=$(shell find $(YAML_DIR) -name '*.yaml')
 SRCIPTS=scripts
 JSON_CONVERT=$(SRCIPTS)/json_convert.py
 VALIDATE_SCRIPT=$(SRCIPTS)/validate_examples.py
+HEADER=header.json
 
-$(JSON_OUT): $(JSON_CONVERT) $(YAML_FILES)
+$(JSON_OUT): $(JSON_CONVERT) $(YAML_FILES) $(HEADER)
 	python $(JSON_CONVERT) $(YAML_DIR) $(JSON_OUT)
 
 validate: $(YAML_FILES)

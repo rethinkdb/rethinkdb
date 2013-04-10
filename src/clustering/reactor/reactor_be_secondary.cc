@@ -261,16 +261,16 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 /* Wait for something to change. */
                 wait_interruptible(&ct_broadcaster_lost_signal, interruptor);
-            } catch (typename listener_t<protocol_t>::backfiller_lost_exc_t) {
+            } catch (const typename listener_t<protocol_t>::backfiller_lost_exc_t &) {
                 /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.
                  * */
-            } catch (typename listener_t<protocol_t>::broadcaster_lost_exc_t) {
+            } catch (const typename listener_t<protocol_t>::broadcaster_lost_exc_t &) {
                 /* We didn't find the broadcaster which means we should retry,
                  * same deal as above. */
             }
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 }

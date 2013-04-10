@@ -81,7 +81,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
@@ -106,22 +106,23 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            write_durability_t durability)
         THROWS_ONLY(interrupted_exc_t);
 
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void sindex_queue_push(
             const write_message_t& value,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
@@ -141,7 +142,7 @@ public:
 
     void add_sindex(
         write_token_pair_t *token_pair,
-        uuid_u id,
+        const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         transaction_t *txn,
         superblock_t *super_block,
@@ -150,7 +151,7 @@ public:
 
     void add_sindex(
         write_token_pair_t *token_pair,
-        uuid_u id,
+        const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         transaction_t *txn,
         superblock_t *super_block,
@@ -160,25 +161,25 @@ public:
 
     void set_sindexes(
         write_token_pair_t *token_pair,
-        const std::map<uuid_u, secondary_index_t> &sindexes,
+        const std::map<std::string, secondary_index_t> &sindexes,
         transaction_t *txn,
         superblock_t *superblock,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        std::set<uuid_u> *created_sindexes_out,
+        std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
     void mark_index_up_to_date(
-        uuid_u id,
+        const std::string &id,
         transaction_t *txn,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
-    void drop_sindex(
+    bool drop_sindex(
         write_token_pair_t *token_pair,
-        uuid_u id,
+        const std::string &id,
         transaction_t *txn,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -196,7 +197,7 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 
     void get_sindexes(
-        std::map<uuid_u, secondary_index_t> *sindexes_out,
+        std::map<std::string, secondary_index_t> *sindexes_out,
         read_token_pair_t *token_pair,
         transaction_t *txn,
         superblock_t *super_block,
@@ -204,7 +205,7 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_read(
-            uuid_u id,
+            const std::string &id,
             block_id_t sindex_block_id,
             read_token_pair_t *token_pair,
             transaction_t *txn_out,
@@ -213,7 +214,7 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_superblock_for_write(
-            uuid_u id,
+            const std::string &id,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
@@ -264,13 +265,13 @@ public:
             THROWS_NOTHING;
 
     void acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
             THROWS_NOTHING;
 
-    btree_slice_t *get_sindex_slice(uuid_u id) {
+    btree_slice_t *get_sindex_slice(std::string id) {
         return &(secondary_index_slices.at(id));
     }
 
@@ -336,7 +337,7 @@ public:
             access_t access,
             repli_timestamp_t timestamp,
             int expected_change_count,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
@@ -347,13 +348,13 @@ public:
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
         transaction_t *txn,
-        real_superblock_t *superbloc) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         transaction_t *txn,
-        real_superblock_t *superbloc) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
@@ -371,7 +372,7 @@ public:
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 
-    boost::ptr_map<uuid_u, btree_slice_t> secondary_index_slices;
+    boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     mutex_t sindex_queue_mutex;

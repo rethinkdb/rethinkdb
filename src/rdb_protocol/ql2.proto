@@ -160,6 +160,9 @@ message Datum {
 // terms).  These are marked with a `!`.
 // Optional arguments are specified within curly braces as argname `:` value
 // type (e.x `{use_outdated:BOOL}`)
+// Many RQL operations are polymorphic. For these, alterantive type signatures
+// are separated by `|`.
+//
 // The RQL type hierarchy is as follows:
 //   Top
 //     DATUM
@@ -177,6 +180,7 @@ message Datum {
 //           Table
 //     Database
 //     Function
+//     Ordering - used only by ORDER_BY
 //   Error
 message Term {
     enum TermType {
@@ -259,7 +263,7 @@ message Term {
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, !STRING... -> Sequence
+        ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence.
@@ -388,8 +392,10 @@ message Term {
         //           }];
         FUNC = 69; // ARRAY, Top -> ARRAY -> Top
 
-        ASC = 73;
-        DESC = 74;
+        // Indicates to ORDER_BY that this attribute is to be sorted in ascending order.
+        ASC = 73; // !STRING -> Ordering
+        // Indicates to ORDER_BY that this attribute is to be sorted in descending order.
+        DESC = 74; // !STRING -> Ordering
     }
     optional TermType type = 1;
 

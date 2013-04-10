@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
 namespace ql {
@@ -98,36 +98,72 @@ std::string datum_t::print() const {
     return as_json()->Print();
 }
 
+void datum_t::num_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_NUM);
+    str_out->append("N");
+    union {
+        double d;
+        uint64_t u;
+    } packed;
+    guarantee(sizeof(packed.d) == sizeof(packed.u));
+    packed.d = as_num();
+    // Mangle the value so that lexicographic ordering matches double ordering
+    if (packed.u & (1ULL << 63)) {
+        // If we have a negative double, flip all the bits.  Flipping the
+        // highest bit causes the negative doubles to sort below the
+        // positive doubles (which will also have their highest bit
+        // flipped), and flipping all the other bits causes more negative
+        // doubles to sort below less negative doubles.
+        packed.u = ~packed.u;
+    } else {
+        // If we have a non-negative double, flip the highest bit so that it
+        // sorts higher than all the negative doubles (which had their
+        // highest bit flipped as well).
+        packed.u ^= (1ULL << 63);
+    }
+    // The formatting here is sensitive.  Talk to mlucy before changing it.
+    str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
+    str_out->append(strprintf("#" DBLPRI, as_num()));
+}
+
+void datum_t::str_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_STR);
+    str_out->append("S");
+    str_out->append(as_str());
+}
+
+// The key for an array is stored as a string of all its elements, each separated by a
+//  null character, with another null character at the end to signify the end of the
+//  array (this is necessary to prevent ambiguity when nested arrays are involved).
+void datum_t::array_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_ARRAY);
+    str_out->append("A");
+
+    for (size_t i = 0; i < size(); ++i) {
+        const datum_t *item = get(i, NOTHROW);
+        r_sanity_check(item != NULL);
+
+        if (item->type == R_NUM) {
+            item->num_to_str_key(str_out);
+        } else if (item->type == R_STR) {
+            item->str_to_str_key(str_out);
+        } else if (item->type == R_ARRAY) {
+            item->array_to_str_key(str_out);
+        } else {
+            rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+                  item->print().c_str(), datum_type_name(item->type));
+        }
+
+        str_out->append(std::string(1, '\0'));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     if (type == R_NUM) {
-        s += "N";
-        union {
-            double d;
-            uint64_t u;
-        } packed;
-        guarantee(sizeof(packed.d) == sizeof(packed.u));
-        packed.d = as_num();
-        // Mangle the value so that lexicographic ordering matches double ordering
-        if (packed.u & (1ULL << 63)) {
-            // If we have a negative double, flip all the bits.  Flipping the
-            // highest bit causes the negative doubles to sort below the
-            // positive doubles (which will also have their highest bit
-            // flipped), and flipping all the other bits causes more negative
-            // doubles to sort below less negative doubles.
-            packed.u = ~packed.u;
-        } else {
-            // If we have a non-negative double, flip the highest bit so that it
-            // sorts higher than all the negative doubles (which had their
-            // highest bit flipped as well).
-            packed.u ^= (1ULL << 63);
-        }
-        // The formatting here is sensitive.  Talk to mlucy before changing it.
-        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
-        s += strprintf("#" DBLPRI, as_num());
+        num_to_str_key(&s);
     } else if (type == R_STR) {
-        s += "S";
-        s += as_str();
+        str_to_str_key(&s);
     } else {
         rfail("Primary keys must be either a number or a string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
@@ -140,7 +176,25 @@ std::string datum_t::print_primary() const {
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key) const {
-    return print_primary() + std::string(1, '\0') + key_to_unescaped_str(primary_key);
+    std::string s;
+    if (type == R_NUM) {
+        num_to_str_key(&s);
+    } else if (type == R_STR) {
+        str_to_str_key(&s);
+    } else if (type == R_ARRAY) {
+        array_to_str_key(&s);
+    } else {
+        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+
+    s += std::string(1, '\0') + key_to_unescaped_str(primary_key);
+
+    if (s.size() > MAX_KEY_SIZE) {
+        rfail("Secondary key too long (max %d characters): %s",
+              MAX_KEY_SIZE - 1, print().c_str());
+    }
+    return s;
 }
 
 void datum_t::check_type(type_t desired) const {
@@ -181,13 +235,13 @@ size_t datum_t::size() const {
     return as_array().size();
 }
 
-const datum_t *datum_t::el(size_t index, throw_bool_t throw_bool) const {
+const datum_t *datum_t::get(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) return as_array()[index];
     if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
     return 0;
 }
 
-const datum_t *datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
+const datum_t *datum_t::get(const std::string &key, throw_bool_t throw_bool) const {
     std::map<const std::string, const datum_t *>::const_iterator
         it = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -233,17 +287,20 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 
 // TODO: make STR and OBJECT convertible to sequence?
 datum_stream_t *datum_t::as_datum_stream(
-    // BT_SRC should be a pointer to whatever part of the term tree we want the
-    // resulting stream to be associated with (i.e. what part of the tree we
-    // should highlight in the backtrace if that stream exhibits an error).
-    env_t *env, const pb_rcheckable_t *bt_src) const {
+    // BACKTRACE_SRC should be a pointer to whatever part of the term tree we
+    // want the resulting stream to be associated with (i.e. what part of the
+    // tree we should highlight in the backtrace if that stream exhibits an
+    // error).
+    env_t *env, const pb_rcheckable_t *backtrace_src) const {
     switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
-    case R_ARRAY: return env->add_ptr(new array_datum_stream_t(env, this, bt_src));
+    case R_ARRAY: {
+        return env->add_ptr(new array_datum_stream_t(env, this, backtrace_src));
+    }
     default: unreachable();
     }
     unreachable();
@@ -282,7 +339,7 @@ const datum_t *datum_t::merge(env_t *env, const datum_t *rhs, merge_res_f f) con
     const std::map<const std::string, const datum_t *> &rhs_obj = rhs->as_object();
     for (std::map<const std::string, const datum_t *>::const_iterator
              it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (const datum_t *l = el(it->first, NOTHROW)) {
+        if (const datum_t *l = get(it->first, NOTHROW)) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
@@ -423,27 +480,6 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
-void datum_t::iter(bool (*callback)(const datum_t *, env_t *), env_t *env) const {
-    if (callback(this, env)) {
-        switch (get_type()) {
-        case R_NULL: // fallthru
-        case R_BOOL: // fallthru
-        case R_NUM:  // fallthru
-        case R_STR:  break;
-        case R_ARRAY: {
-            for (size_t i = 0; i < as_array().size(); ++i) el(i)->iter(callback, env);
-        } break;
-        case R_OBJECT: {
-            for (std::map<const std::string, const datum_t *>::const_iterator
-                     it = as_object().begin(); it != as_object().end(); ++it) {
-                it->second->iter(callback, env);
-            }
-        } break;
-        default: unreachable();
-        }
-    }
-}
-
 const datum_t *wire_datum_t::get() const {
     r_sanity_check(state == COMPILED);
     return ptr;
@@ -463,11 +499,11 @@ const datum_t *wire_datum_t::compile(env_t *env) {
     return ptr;
 }
 void wire_datum_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) return;
     r_sanity_check(state == COMPILED);
     ptr->write_to_protobuf(&ptr_pb);
     ptr = 0;
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 bool wire_datum_map_t::has(const datum_t *key) {
@@ -496,7 +532,7 @@ void wire_datum_map_t::compile(env_t *env) {
     state = COMPILED;
 }
 void wire_datum_map_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) return;
     r_sanity_check(state == COMPILED);
     while (!map.empty()) {
         map_pb.push_back(std::make_pair(Datum(), Datum()));
@@ -504,7 +540,7 @@ void wire_datum_map_t::finalize() {
         map.begin()->second->write_to_protobuf(&map_pb.back().second);
         map.erase(map.begin());
     }
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 const datum_t *wire_datum_map_t::to_arr(env_t *env) const {

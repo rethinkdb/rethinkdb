@@ -31,7 +31,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                            1, NULL /* SAMRSI disk ack signal */,
+                                            1, WRITE_DURABILITY_SOFT,
                                             &token_pair.main_write_token, &txn, &superblock, &dummy_interuptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
@@ -103,9 +103,8 @@ void run_sindex_post_construction() {
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, &store);
 
-    uuid_u sindex_id;
+    std::string sindex_id("sid");
     {
-        sindex_id = generate_uuid();
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
@@ -113,7 +112,7 @@ void run_sindex_post_construction() {
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, NULL /* SAMRSI disk ack signal */,
+                                           1, WRITE_DURABILITY_SOFT,
                                            &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         Term mapping;
@@ -146,7 +145,7 @@ void run_sindex_post_construction() {
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, NULL /* SAMRSI disk ack signal */,
+                                           1, WRITE_DURABILITY_SOFT,
                                            &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
         scoped_ptr_t<buf_lock_t> sindex_block;
@@ -158,7 +157,7 @@ void run_sindex_post_construction() {
         coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done, (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                     &store, &background_inserts_done));
 
-        std::set<uuid_u> created_sindexes;
+        std::set<std::string> created_sindexes;
         created_sindexes.insert(sindex_id);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, &store,

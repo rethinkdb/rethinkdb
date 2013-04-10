@@ -456,7 +456,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
 
     try {
         state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, state->interruptor, &population_change);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         rassert(state->interruptor->is_pulsed());
         /* ignore it; the backfill will come to a stop on its own now that
         `interruptor` has been pulsed */

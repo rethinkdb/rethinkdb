@@ -52,7 +52,7 @@ void direct_reader_t<protocol_t>::perform_read(
 
         send(mailbox_manager, cont, response);
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 }

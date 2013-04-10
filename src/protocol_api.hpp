@@ -386,7 +386,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token,
@@ -428,7 +428,8 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            write_durability_t durability)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
@@ -547,7 +548,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
-            sync_callback_t *disk_ack_signal,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
@@ -557,7 +558,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, disk_ack_signal, timestamp, order_token, token_pair, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
@@ -588,13 +589,14 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor)
+            signal_t *interruptor,
+            write_durability_t durability)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor);
+        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor, durability);
     }
 
 private:

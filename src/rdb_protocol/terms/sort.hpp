@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "rdb_protocol/datum_stream.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
@@ -49,12 +49,12 @@ private:
         explicit lt_cmp_t(const datum_t *_attrs) : attrs(_attrs) { }
         bool operator()(const datum_t *l, const datum_t *r) {
             for (size_t i = 0; i < attrs->size(); ++i) {
-                std::string attrname = attrs->el(i)->as_str();
+                std::string attrname = attrs->get(i)->as_str();
                 bool invert = (attrname[0] == '-');
                 r_sanity_check(attrname[0] == '-' || attrname[0] == '+');
                 attrname.erase(0, 1);
-                const datum_t *lattr = l->el(attrname, NOTHROW);
-                const datum_t *rattr = r->el(attrname, NOTHROW);
+                const datum_t *lattr = l->get(attrname, NOTHROW);
+                const datum_t *rattr = r->get(attrname, NOTHROW);
                 if (!lattr && !rattr) continue;
                 if (!lattr) return static_cast<bool>(true ^ invert);
                 if (!rattr) return static_cast<bool>(false ^ invert);

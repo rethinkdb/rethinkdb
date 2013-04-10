@@ -132,9 +132,12 @@ class Connection(object):
         self.socket.sendall(query_header + query_protobuf)
 
         # Get response
-        response_header = self.socket.recv(4)
-        if len(response_header) == 0:
-            raise RqlDriverError("Connection is closed.")
+        response_header = ''
+        while len(response_header) < 4:
+            chunk = self.socket.recv(4 - len(response_header))
+            if len(chunk) == 0:
+                raise RqlDriverError("Connection is closed.")
+            response_header += chunk
 
         # The first 4 bytes give the expected length of this response
         (response_len,) = struct.unpack("<L", response_header)
@@ -142,7 +145,7 @@ class Connection(object):
         response_buf = ''
         while len(response_buf) < response_len:
             chunk = self.socket.recv(response_len - len(response_buf))
-            if chunk == '':
+            if len(chunk) == 0:
                 raise RqlDriverError("Connection is broken.")
             response_buf += chunk
 
@@ -151,30 +154,34 @@ class Connection(object):
         response.ParseFromString(response_buf)
 
         # Error responses
-        if response.type is p.Response.RUNTIME_ERROR:
+        if response.type == p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlRuntimeError(message, term, frames)
-        elif response.type is p.Response.COMPILE_ERROR:
+        elif response.type == p.Response.COMPILE_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlCompileError(message, term, frames)
-        elif response.type is p.Response.CLIENT_ERROR:
+        elif response.type == p.Response.CLIENT_ERROR:
             message = Datum.deconstruct(response.response[0])
             backtrace = response.backtrace
             frames = backtrace.frames or []
             raise RqlClientError(message, term, frames)
 
         # Sequence responses
-        if response.type is p.Response.SUCCESS_PARTIAL or response.type is p.Response.SUCCESS_SEQUENCE:
+        elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return Cursor(self, query, term, chunk, response.type is p.Response.SUCCESS_SEQUENCE)
+            return Cursor(self, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
-        if response.type is p.Response.SUCCESS_ATOM:
+        elif response.type == p.Response.SUCCESS_ATOM:
             return Datum.deconstruct(response.response[0])
+
+        # Default for unknown response types
+        else:
+            raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
 def connect(host='localhost', port=28015, db='test'):
     return Connection(host, port, db)

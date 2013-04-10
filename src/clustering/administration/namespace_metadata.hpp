@@ -49,8 +49,7 @@ public:
 
     static bool make(uint32_t expectation, bool hard_durability, ack_expectation_t *out);
 
-    uint32_t disk_expectation() const { return hard_durability_ ? expectation_ : 0; }
-    uint32_t cache_expectation() const { return expectation_; }
+    uint32_t expectation() const { return expectation_; }
     bool is_hardly_durable() const { return hard_durability_; }
 
     RDB_DECLARE_ME_SERIALIZABLE;

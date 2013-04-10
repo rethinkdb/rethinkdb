@@ -373,9 +373,9 @@ void semilattice_manager_t<metadata_t>::deliver_sync_to_query_on_home_thread(pee
     on_thread_t thread_switcher(home_thread());
     try {
         wait_for_version_from_peer(sender, version, &cross_thread_interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         return;
-    } catch (sync_failed_exc_t) {
+    } catch (const sync_failed_exc_t &) {
         return;
     }
     sync_to_reply_writer_t writer(query_id);
