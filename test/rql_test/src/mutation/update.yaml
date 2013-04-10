@@ -65,6 +65,12 @@ tests:
       rb: [] # the ruby test driver cannot parse the expected error message
       ot: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"d":\t1,\n\t"id":\t2\n})','errors':1})
     
+    # however, passing null doesn't constitute a change
+    - py: tbl.get(1).update({'id':None,'d':1})
+      js: tbl.get(1).update({'id':null,'d':1})
+      rb: tbl.get(1).update({:id => nil, :d => 1})
+      ot: ({'repalced':1})
+    
     # check r.row, static value and otherwise
     - py: tbl.get(1).update({'id':r.row['id'],'d':'b'})
       js: tbl.get(1).update({'id':r.row('id'),'d':'b'})
