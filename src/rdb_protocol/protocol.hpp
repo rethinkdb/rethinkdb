@@ -410,6 +410,7 @@ struct rdb_protocol_t {
     };
 
     struct sindex_drop_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 

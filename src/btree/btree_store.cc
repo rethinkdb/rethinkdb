@@ -422,7 +422,7 @@ THROWS_NOTHING {
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::drop_sindex(
+bool btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         transaction_t *txn,
@@ -440,7 +440,7 @@ void btree_store_t<protocol_t>::drop_sindex(
     /* Remove reference in the super block */
     secondary_index_t sindex;
     if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
-        return;
+        return false;
     } else {
         delete_secondary_index(txn, sindex_block.get(), id);
         sindex_block->release(); //So others may proceed
@@ -464,6 +464,7 @@ void btree_store_t<protocol_t>::drop_sindex(
             sindex_superblock_lock.mark_deleted();
         }
     }
+    return true;
 }
 
 template <class protocol_t>

@@ -374,6 +374,7 @@ private:
         }
         return new_val(new table_t(env, db, name, use_outdated, this));
     }
+    virtual bool is_deterministic_impl() const { return false; }
     virtual const char *name() const { return "table"; }
 };
 

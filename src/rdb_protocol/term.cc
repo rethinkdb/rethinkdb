@@ -27,8 +27,6 @@
 
 namespace ql {
 
-// #define INSTRUMENT 1
-
 term_t *compile_term(env_t *env, const Term *t) {
     switch (t->type()) {
     case Term_TermType_DATUM:              return new datum_term_t(env, t);
@@ -212,6 +210,7 @@ term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
 // you are in query execution when something goes wrong).
+// #define INSTRUMENT 1
 
 #ifdef INSTRUMENT
 __thread int DBG_depth = 0;
@@ -249,7 +248,7 @@ val_t *term_t::eval() {
         try {
             val_t *ret = eval_impl();
             DEC_DEPTH;
-            DBG("%s returned %s\n", name(), cached_val->print().c_str());
+            DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
         } catch (const datum_exc_t &e) {
             DEC_DEPTH;
