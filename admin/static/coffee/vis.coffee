@@ -243,7 +243,7 @@ module 'Vis', ->
             for i in [0..(@ndp-1)]
                 @values.push(0)
             @next_value = null
-            @last_date = Date.now()
+            @last_date = null
 
         step: (num_points) ->
             # First, grab newest data
@@ -253,26 +253,34 @@ module 'Vis', ->
             return @values.slice(-num_points)
 
         push_data: ->
-            elapsed_time = Date.now()-@last_date
-            current_value = @values[@values.length - 1]
+            if @last_date is null # First time we call @push_data
+                @last_date = Date.now()
+                @values.push @get_data_fn()
+                return true
 
-            next_value = @get_data_fn()
-
-            if elapsed_time > 1/@nip
-                missing_pixels = elapsed_time*@nip
-                for i in [1..missing_pixels]
-                    @values.push current_value+(next_value-current_value)/(elapsed_time*@nip)*i
+            # Check if we need to restart interpolation
+            current_value = @get_data_fn()
+            if @next_value isnt current_value
+                @start_value = @values[@values.length - 1]
+                @next_value = current_value
                 @interpolation_step = 1
-            else
-                if @interpolation_step > @mip
-                    @values.push next_value
-                    @interpolation_step++
+
+
+            elapsed_time = Date.now()-@last_date
+            missing_steps = Math.max 1, Math.round(elapsed_time/1000*@nip) # If the tab has focus, we have missing_steps = 1 else we have missing_steps > 1
+            console.log missing_steps
+            for i in [1..missing_steps]
+                if @values[@values.length - 1] is @next_value
+                    value_to_push = @next_value
                 else
-                    @values.push current_value+(next_value-current_value)/(elapsed_time*@nip)*@interpolation_step
-                @interpolation_step++
+                    value_to_push = @start_value + ((@next_value - @start_value) / @nip * @interpolation_step)
+                    @interpolation_step += 1
+                    if @interpolation_step > @nip
+                        value_to_push = @next_value
+                @values.push(value_to_push)
+
             @last_date = Date.now()
 
             # Trim the cache
             if @values.length > @ndp
                 @values = @values.slice(-@ndp)
-
