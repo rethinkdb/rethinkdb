@@ -121,7 +121,7 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *base, func_t *r);
     virtual const datum_t *next_impl();
-    virtual const datum_t *as_array() { return 0; } // cannot be converted implicitly
+    virtual const datum_t *as_array();
 private:
     typedef rdb_protocol_t::rget_read_response_t::result_t rdb_result_t;
     typedef rdb_protocol_t::rget_read_response_t::empty_t rdb_empty_t;
@@ -145,6 +145,13 @@ public:
 private:
     size_t index;
     const datum_t *arr;
+};
+
+class opaque_array_datum_stream_t : public array_datum_stream_t {
+public:
+    template<class... Args>
+    opaque_array_datum_stream_t(Args... args) : array_datum_stream_t(args...) { }
+    virtual const datum_t *as_array();
 };
 
 class slice_datum_stream_t : public eager_datum_stream_t {

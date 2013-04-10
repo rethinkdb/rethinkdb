@@ -206,6 +206,10 @@ const datum_t *lazy_datum_stream_t::next_impl() {
     return env->add_ptr(new datum_t(json, env));
 }
 
+const datum_t *lazy_datum_stream_t::as_array() {
+    return 0; // cannot be converted implciitly
+}
+
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
                                            const pb_rcheckable_t *bt_src)
@@ -213,6 +217,10 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
 
 const datum_t *array_datum_stream_t::next_impl() {
     return arr->get(index++, NOTHROW);
+}
+
+const datum_t *opaque_array_datum_stream_t::as_array() {
+    return 0;
 }
 
 // MAP_DATUM_STREAM_T
