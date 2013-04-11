@@ -703,8 +703,8 @@ module 'NamespaceView', ->
 
         on_success_off: =>
             data_to_set = @data_cached
-            for dc, value in @model.get('replica_affinities')
-                if not data_to_set['replica_affinities']?
+            for dc, value of @model.get('replica_affinities')
+                if not data_to_set['replica_affinities'][dc]?
                     data_to_set['replica_affinities'][dc] = value
 
             @model.set data_to_set
@@ -854,8 +854,8 @@ module 'NamespaceView', ->
 
         on_success_pin: =>
             data_to_set = @data_cached
-            for dc, value in @model.get('replica_affinities')
-                if not data_to_set['replica_affinities']?
+            for dc, value of @model.get('replica_affinities')
+                if not data_to_set['replica_affinities'][dc]?
                     data_to_set['replica_affinities'][dc] = value
 
             @model.set data_to_set
