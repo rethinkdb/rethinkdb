@@ -234,10 +234,8 @@ std::string cJSON_type_to_string(int type) {
 }
 
 size_t cJSON_estimate_size(const cJSON *json) {
-    if (!json) {
-        // We've reached the end of an Array or Object's sub-fields
-        return 0;
-    }
+    guarantee(json, "Someone called cJSON_estimate_size with a NULL pointer.");
+    const cJSON *next = NULL;
 
     // The cJSON struct obviously takes up some memory by itself
     size_t estimate = sizeof(struct cJSON);
@@ -260,22 +258,15 @@ size_t cJSON_estimate_size(const cJSON *json) {
     case cJSON_Array:
     case cJSON_Object:
         // These both use the embedded linked list to store fields
-        estimate += cJSON_estimate_size(json->head);
+        next = json->head;
+        while (next) {
+            estimate += cJSON_estimate_size(next);
+            next = next->next;
+        }
         break;
     default:
         unreachable();
     };
-
-    // Iterate over the sub-fields
-    // Why iterate and not simply recurse? This function is not tail
-    // call optimizable and could use a lot of stack for long arrays.
-    // With pure recursion stack size is preportional to array (or
-    // object) length, with this loop, just nesting depth.
-    const cJSON *next = json->next;
-    while (next) {
-        estimate += cJSON_estimate_size(next);
-        next = next->next;
-    }
 
     return estimate;
 }
