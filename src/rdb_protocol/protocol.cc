@@ -27,6 +27,7 @@
 
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
+typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
 typedef rdb_protocol_t::context_t context_t;
 
@@ -214,6 +215,12 @@ void post_construct_and_drain_queue(
     }
 }
 
+
+bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
+    uint64_t h = hash_region_hasher(key->contents, key->size);
+    return delete_range.beg <= h && h < delete_range.end
+        && delete_range.inner.contains_key(key->contents, key->size);
+}
 
 }  // namespace rdb_protocol_details
 
@@ -877,8 +884,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         superblock->get_sindex_block_id(), token_pair,
                         txn, &sindex_sb, &interruptor);
             } catch (const sindex_not_post_constructed_exc_t &) {
-                res->result = ql::datum_exc_t(strprintf("Sindex %s is not post constructed.",
-                                                        rget.sindex->c_str()));
+                res->result = ql::datum_exc_t(
+                    strprintf("Index `%s` was accessed before"
+                              "its construction was finished.",
+                                    rget.sindex->c_str()));
                 return;
             }
 
@@ -1277,10 +1286,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(delete_range.range);
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
+        rdb_modification_report_cb_t sindex_cb(
+            store, token_pair, txn,
+            superblock->get_sindex_block_id(),
+            auto_drainer_t::lock_t(&store->drainer));
 
-        token_pair->sindex_write_token.reset();
-        //TODO this doesn't update the secondary index and it needs to.
+        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, &sindex_cb);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -1314,20 +1325,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
 private:
-    /* TODO: This might be redundant. I thought that `key_tester_t` was only
-    originally necessary because in v1.1.x the hashing scheme might be different
-    between the source and destination machines. */
-    struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const region_t& _delete_range) : delete_range(_delete_range) { }
-        bool key_should_be_erased(const btree_key_t *key) {
-            uint64_t h = hash_region_hasher(key->contents, key->size);
-            return delete_range.beg <= h && h < delete_range.end
-                && delete_range.inner.contains_key(key->contents, key->size);
-        }
-
-        const region_t& delete_range;
-    };
-
     void update_sindexes(rdb_modification_report_t *mod_report) const {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
@@ -1369,13 +1366,18 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *) {
+                                  write_token_pair_t *token_pair) {
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
-    cond_t dummy_interruptor;
 
     always_true_key_tester_t key_tester;
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
+
+    rdb_modification_report_cb_t sindex_cb(
+            this, token_pair, txn,
+            superblock->get_sindex_block_id(), 
+            auto_drainer_t::lock_t(&drainer));
+
+    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, &sindex_cb);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
