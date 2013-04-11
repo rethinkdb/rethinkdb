@@ -38,8 +38,6 @@ protected:
     mock_file_opener_t *mock_file_opener;
 
 private:
-    scoped_ptr_t<thread_pool_t> thread_pool;
-
     struct acquiring_coro_t {
         buf_lock_t *result;
         bool signaled;
