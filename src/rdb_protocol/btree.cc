@@ -345,26 +345,45 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
         blob.clear(_txn);
 }
 
-//TODO this function needs to update secondary indexes.
+class erase_range_sindex_cb_t : public erase_range_cb_t {
+public:
+    erase_range_sindex_cb_t(rdb_modification_report_cb_t *mod_report_cb,
+                            transaction_t *txn)
+        : mod_report_cb_(mod_report_cb), txn_(txn)
+    { }
+
+    void handle_pair(const btree_key_t *key, const void *value) {
+        mod_report_cb_->delete_row(store_key_t(key),
+                get_data(static_cast<const rdb_value_t *>(value), txn_));
+    }
+
+    rdb_modification_report_cb_t *mod_report_cb_;
+    transaction_t *txn_;
+};
+
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      bool left_key_supplied, const store_key_t& left_key_exclusive,
                      bool right_key_supplied, const store_key_t& right_key_inclusive,
-                     transaction_t *txn, superblock_t *superblock) {
+                     transaction_t *txn, superblock_t *superblock,
+                     rdb_modification_report_cb_t *mod_report_cb) {
 
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_deleter_t deleter;
 
+    erase_range_sindex_cb_t sindex_cb(mod_report_cb, txn);
+
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        txn, superblock);
+        txn, superblock, &sindex_cb);
 }
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        const key_range_t &keys,
-                       transaction_t *txn, superblock_t *superblock) {
+                       transaction_t *txn, superblock_t *superblock,
+                       rdb_modification_report_cb_t *cb) {
     store_key_t left_exclusive(keys.left);
     store_key_t right_inclusive(keys.right.key);
 
@@ -373,7 +392,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     if (right_key_supplied) {
         right_inclusive.decrement();
     }
-    rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
+    rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock, cb);
 }
 
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
@@ -396,6 +415,7 @@ public:
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
+    void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
@@ -556,6 +576,7 @@ public:
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
+    void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
@@ -660,12 +681,70 @@ archive_result_t rdb_modification_report_t::rdb_deserialize(read_stream_t *s) {
     return ARCHIVE_SUCCESS;
 }
 
+rdb_modification_report_cb_t::rdb_modification_report_cb_t(
+        btree_store_t<rdb_protocol_t> *store,
+        write_token_pair_t *token_pair,
+        transaction_t *txn, block_id_t sindex_block_id,
+        auto_drainer_t::lock_t lock)
+    : store_(store), token_pair_(token_pair),
+      txn_(txn), sindex_block_id_(sindex_block_id),
+      lock_(lock)
+{ }
+
+void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added) {
+    rdb_modification_report_t report(primary_key);
+    report.added = added;
+    on_mod_report(report);
+}
+
+void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted) {
+    rdb_modification_report_t report(primary_key);
+    report.deleted = deleted;
+    on_mod_report(report);
+}
+
+void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
+        boost::shared_ptr<scoped_cJSON_t> added,
+        boost::shared_ptr<scoped_cJSON_t> deleted) {
+    rdb_modification_report_t report(primary_key);
+    report.added = added;
+    report.deleted = deleted;
+    on_mod_report(report);
+}
+
+rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
+    if (token_pair_->sindex_write_token.has()) {
+        token_pair_->sindex_write_token.reset();
+    }
+}
+
+void rdb_modification_report_cb_t::on_mod_report(
+        const rdb_modification_report_t &mod_report) {
+    if (!sindex_block_.has()) {
+        store_->acquire_sindex_block_for_write(
+            token_pair_, txn_, &sindex_block_,
+            sindex_block_id_, lock_.get_drain_signal());
+
+        store_->aquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block_.get(), txn_, &sindexes_);
+    }
+
+    mutex_t::acq_t acq;
+    store_->lock_sindex_queue(sindex_block_.get(), &acq);
+
+    write_message_t wm;
+    wm << mod_report;
+    store_->sindex_queue_push(wm, &acq);
+
+    rdb_update_sindexes(sindexes_, &mod_report, txn_);
+}
+
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 /* A target for pmap. Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
-        rdb_modification_report_t *modification,
+        const rdb_modification_report_t *modification,
         transaction_t *txn,
         auto_drainer_t::lock_t) {
     //Note if you get this error it's likely that you've passed in a default
@@ -735,7 +814,7 @@ void rdb_update_single_sindex(
 }
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-        rdb_modification_report_t *modification,
+        const rdb_modification_report_t *modification,
         transaction_t *txn) {
     auto_drainer_t drainer;
 
