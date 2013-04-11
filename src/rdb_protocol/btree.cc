@@ -272,21 +272,27 @@ void rdb_replace(btree_slice_t *slice,
                                       key, f, ql_env, NULL, response_out, mod_info);
 }
 
+struct slice_timestamp_t {
+    slice_timestamp_t(btree_slice_t *_slice, repli_timestamp_t _timestamp)
+        : slice(_slice), timestamp(_timestamp) { }
+
+    btree_slice_t *slice;
+    repli_timestamp_t timestamp;
+};
+
 void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                        const point_replace_t *replace,
-                                       btree_slice_t *slice,
-                                       repli_timestamp_t timestamp,
+                                       slice_timestamp_t slice_timestamp,
                                        transaction_t *txn,
                                        superblock_t *superblock,
                                        ql::env_t *ql_env,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
-                                       Datum *response_out) {
+                                       Datum *response_out,
+                                       rdb_modification_info_t *mod_info) {
     ql::map_wire_func_t f = replace->f;
-    // SAMRSI: What to do with this modification info?
-    rdb_modification_info_t mod_info;
-    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, replace->primary_key,
-                                      replace->key, &f, ql_env, superblock_promise_or_null, response_out,
-                                      &mod_info);
+    rdb_replace_and_return_superblock(slice_timestamp.slice, slice_timestamp.timestamp, txn, superblock,
+                                      replace->primary_key, replace->key, &f, ql_env,
+                                      superblock_promise_or_null, response_out, mod_info);
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -295,7 +301,8 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
 void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces,
                          btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
-                         batched_replaces_response_t *response_out) {
+                         batched_replaces_response_t *response_out,
+                         std::vector<rdb_modification_report_t> *mod_reports) {
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
@@ -310,11 +317,14 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
                                   auto_drainer_t::lock_t(&drainer),
-                                  &replaces[i].second, slice, timestamp, txn,
+                                  &replaces[i].second,
+                                  slice_timestamp_t(slice, timestamp),
+                                  txn,
                                   current_superblock.release(),
                                   ql_env,
                                   &superblock_promise,
-                                  &response_out->point_replace_responses[i].second));
+                                  &response_out->point_replace_responses[i].second,
+                                  &(*mod_reports)[i].info));
 
         current_superblock.init(superblock_promise.wait());
     }

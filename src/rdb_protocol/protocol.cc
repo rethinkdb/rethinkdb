@@ -995,14 +995,21 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                     r.primary_key, r.key, f, &ql_env, res,
                     &mod_report.info);
 
-        update_sindexes(&mod_report);
+        update_sindexes(&mod_report, 1);
     }
 
     void operator()(const batched_replaces_t &br) {
         response->response = batched_replaces_response_t();
         batched_replaces_response_t *res = boost::get<batched_replaces_response_t>(&response->response);
+
+        std::vector<rdb_modification_report_t> mod_reports(br.point_replaces.size());
+        for (size_t i = 0; i < br.point_replaces.size(); ++i) {
+            mod_reports[i].primary_key = br.point_replaces[i].second.key;
+        }
         rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
-                            &ql_env, res);
+                            &ql_env, res, &mod_reports);
+
+        update_sindexes(mod_reports.data(), mod_reports.size());
     }
 
     void operator()(const point_write_t &w) {
@@ -1012,7 +1019,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
-        update_sindexes(&mod_report);
+        update_sindexes(&mod_report, 1);
     }
 
     void operator()(const point_delete_t &d) {
@@ -1022,7 +1029,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
-        update_sindexes(&mod_report);
+        update_sindexes(&mod_report, 1);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -1100,7 +1107,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
-    void update_sindexes(const rdb_modification_report_t *mod_report) {
+    void update_sindexes(const rdb_modification_report_t *mod_reports, const size_t count) {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &interruptor);
@@ -1108,13 +1115,17 @@ private:
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
-        write_message_t wm;
-        wm << *mod_report;
-        store->sindex_queue_push(wm, &acq);
+        // RSI: pmap this, while following the rule that mod_reports[i + 1] gets applied after
+        // mod_reports[i].
+        for (size_t i = 0; i < count; ++i) {
+            write_message_t wm;
+            wm << mod_reports[i];
+            store->sindex_queue_push(wm, &acq);
 
-        sindex_access_vector_t sindexes;
-        store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
-        rdb_update_sindexes(sindexes, mod_report, txn);
+            sindex_access_vector_t sindexes;
+            store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+            rdb_update_sindexes(sindexes, &mod_reports[i], txn);
+        }
     }
 
     btree_slice_t *btree;

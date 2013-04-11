@@ -95,7 +95,8 @@ void rdb_replace(btree_slice_t *slice,
 
 void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
-                         batched_replaces_response_t *response_out);
+                         batched_replaces_response_t *response_out,
+                         std::vector<rdb_modification_report_t> *mod_reports);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
