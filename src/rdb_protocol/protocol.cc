@@ -783,11 +783,11 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
 }
 
 struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
-    void operator()(const point_replace_response_t &) const { monokey_response(); }
+    void operator()(const point_replace_t &) const { monokey_response(); }
 
     // The special case here is batched_replaces_response_t, which actually gets sharded into
     // multiple operations instead of getting sent unsplit in a single direction.
-    void operator()(const batched_replaces_response_t &) const {
+    void operator()(const batched_replaces_t &) const {
         std::vector<std::pair<int64_t, point_replace_response_t> > combined;
 
         for (size_t i = 0; i < count; ++i) {
@@ -804,14 +804,14 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
         *response_out = write_response_t(batched_replaces_response_t(combined));
     }
 
-    void operator()(const point_write_response_t &) const { monokey_response(); }
-    void operator()(const point_delete_response_t &) const { monokey_response(); }
+    void operator()(const point_write_t &) const { monokey_response(); }
+    void operator()(const point_delete_t &) const { monokey_response(); }
 
-    void operator()(const sindex_create_response_t &) const {
+    void operator()(const sindex_create_t &) const {
         *response_out = responses[0];
     }
 
-    void operator()(const sindex_drop_response_t &) const {
+    void operator()(const sindex_drop_t &) const {
         *response_out = responses[0];
     }
 
@@ -835,12 +835,8 @@ private:
 };
 
 void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response_out, context_t *, signal_t *) const THROWS_NOTHING {
-    // SAMRSI: And get rid of this guarantee.
-    guarantee(count > 0);
-
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
-    // SAMRSI: Unshard using the write, not the response.
-    boost::apply_visitor(visitor, responses[0].response);
+    boost::apply_visitor(visitor, write);
 }
 
 store_t::store_t(serializer_t *serializer,
