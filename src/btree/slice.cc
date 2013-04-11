@@ -7,6 +7,7 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
+#include "repli_timestamp.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
@@ -26,6 +27,10 @@ void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key
 void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
         const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
     buf_lock_t superblock(txn, superblock_id, rwi_write);
+
+    // Initialize the replication time barrier to 0 so that if we are a slave,
+    // we will begin by pulling ALL updates from master.
+    superblock.touch_recency(repli_timestamp_t::distant_past);
 
     btree_superblock_t *sb = static_cast<btree_superblock_t *>(superblock.get_data_write());
     bzero(sb, cache->get_block_size().value());
