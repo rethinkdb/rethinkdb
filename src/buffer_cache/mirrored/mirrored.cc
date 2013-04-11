@@ -967,7 +967,7 @@ void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner
 }
 
 mc_transaction_t::~mc_transaction_t() {
-
+    debugf("in txn destructor.\n");
     assert_thread();
 
     cache->stats->pm_transactions_active.end(&start_time);
@@ -986,12 +986,17 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
+    debugf("txn destructor, about to maybe wait .\n");
     if (access == rwi_write && durability == WRITE_DURABILITY_HARD) {
+        debugf("txn destructor, about to sync .\n");
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
         sync_callback_t disk_ack_signal;
+        debugf("txn destructor, about to call sync_patiently .\n");
         cache->writeback.sync_patiently(&disk_ack_signal);
+        debugf("txn destructor, about to call on_transaction_commit.\n");
         cache->on_transaction_commit(this);
+        debugf("txn destructor, about to destruct sync_callback_t.\n");
     } else {
         cache->on_transaction_commit(this);
     }

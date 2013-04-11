@@ -12,6 +12,8 @@ class translator_serializer_t;
 
 namespace unittest {
 
+class mock_file_opener_t;
+
 class server_test_helper_t {
 public:
     server_test_helper_t();
@@ -33,6 +35,7 @@ protected:
     virtual void run_serializer_tests();
 
     translator_serializer_t *serializer;
+    mock_file_opener_t *mock_file_opener;
 
 private:
     scoped_ptr_t<thread_pool_t> thread_pool;

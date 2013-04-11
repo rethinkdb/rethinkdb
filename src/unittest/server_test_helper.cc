@@ -21,7 +21,7 @@ const uint32_t server_test_helper_t::init_value = 0x12345678;
 const uint32_t server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
-    : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }
+    : serializer(NULL), mock_file_opener(NULL), thread_pool(new thread_pool_t(1, false)) { }
 
 // Destructor defined in the .cc so that thread_pool_t isn't an incomplete type.
 server_test_helper_t::~server_test_helper_t() { }
@@ -46,9 +46,13 @@ void server_test_helper_t::setup_server_and_run_tests() {
         serializer_multiplexer_t::create(serializers, 1);
         serializer_multiplexer_t multiplexer(serializers);
 
+        this->mock_file_opener = &file_opener;
         this->serializer = multiplexer.proxies[0];
 
         run_serializer_tests();
+
+        this->serializer = NULL;
+        this->mock_file_opener = NULL;
     }
 
     trace_call(thread_pool->shutdown_thread_pool);
@@ -58,7 +62,7 @@ void server_test_helper_t::run_serializer_tests() {
     cache_t::create(this->serializer);
     mirrored_cache_config_t cache_cfg;
     cache_cfg.flush_timer_ms = MILLION;
-    cache_cfg.flush_dirty_size = BILLION;
+    cache_cfg.flush_dirty_size = 0;  // SAMRSI: This was BILLION.  Get rid of this parameter?
     cache_cfg.max_size = GIGABYTE;
     cache_t cache(this->serializer, cache_cfg, &get_global_perfmon_collection());
 

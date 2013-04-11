@@ -127,6 +127,7 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
 void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
 
+        debugf("in on_transaction_commit.\n");
         dirty_block_semaphore.unlock(txn->expected_change_count);
 
         flush_lock.unlock();
@@ -134,10 +135,13 @@ void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
         if (num_dirty_blocks() > flush_threshold) {
+            debugf("dirty blocks over threshold\n");
             sync(NULL);
         } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
+            debugf("dirty blocks and flush timer\n");
             sync(NULL);
         } else if (sync_callbacks.size() >= flush_waiting_threshold) {
+            debugf("dirty blocks and flush waiting threshold\n");
             sync(NULL);
         }
 
