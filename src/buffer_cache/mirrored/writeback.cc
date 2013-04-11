@@ -70,7 +70,7 @@ void writeback_t::sync(sync_callback_t *callback) {
     // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
     if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0) {
         if (callback != NULL) {
-            callback->on_sync();
+            callback->pulse();
         }
         return;
     }
@@ -402,7 +402,7 @@ void writeback_t::do_concurrent_flush() {
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();
         current_sync_callbacks.remove(cb);
-        cb->on_sync();
+        cb->pulse();
     }
 
     cache->stats->pm_flushes_writing.end(&start_time);

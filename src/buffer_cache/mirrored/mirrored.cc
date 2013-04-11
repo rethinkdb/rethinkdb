@@ -930,14 +930,9 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
 
     coro_fifo_acq_t write_throttle_acq;
 
-    if (is_write_mode(access)) {
-        write_throttle_acq.enter(&cache->co_begin_coro_fifo());
-    }
-
-    rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
+    rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
     rassert(!cache->shutting_down);
-    rassert(access == rwi_write || expected_change_count == 0);
     cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
 

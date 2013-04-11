@@ -15,7 +15,7 @@ clean:
 install: build
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) install
+	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install
 
 build:
 	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1

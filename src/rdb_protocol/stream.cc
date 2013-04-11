@@ -204,10 +204,12 @@ void batched_rget_stream_t::read_more() {
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
+        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
             throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
+        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
+            throw *e3;
         }
 
         // todo: just do a straight copy?

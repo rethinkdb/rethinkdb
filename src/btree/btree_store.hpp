@@ -27,6 +27,15 @@ class io_backender_t;
 class superblock_t;
 class real_superblock_t;
 
+class sindex_not_post_constructed_exc_t : public std::exception {
+public:
+    sindex_not_post_constructed_exc_t(std::string sindex_name);
+    const char* what() const throw();
+    ~sindex_not_post_constructed_exc_t() throw();
+private:
+    std::string info;
+};
+
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
 public:
@@ -106,8 +115,8 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
-            signal_t *interruptor,
-            write_durability_t durability)
+            write_durability_t durability,
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
@@ -211,7 +220,7 @@ public:
             transaction_t *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
     void acquire_sindex_superblock_for_write(
             const std::string &id,
@@ -220,7 +229,7 @@ public:
             transaction_t *txn,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -242,13 +251,13 @@ public:
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
-            THROWS_NOTHING;
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void aquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
@@ -256,20 +265,20 @@ public:
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+    THROWS_ONLY(interrupted_exc_t);
 
     void aquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
-            THROWS_NOTHING;
+    THROWS_NOTHING;
 
     void acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
-            THROWS_NOTHING;
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     btree_slice_t *get_sindex_slice(std::string id) {
         return &(secondary_index_slices.at(id));

@@ -34,14 +34,9 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
     sb->stat_block = NULL_BLOCK_ID;
-
-    // sb->metainfo_blob has been properly zeroed.
+    sb->sindex_block = NULL_BLOCK_ID;
 
     set_superblock_metainfo(txn, &superblock, metainfo_key, metainfo_value);
-
-    sb->magic = btree_superblock_t::expected_magic;
-    sb->root_block = NULL_BLOCK_ID;
-    sb->stat_block = NULL_BLOCK_ID;
 
     buf_lock_t sindex_block(txn);
     initialize_secondary_indexes(txn, &sindex_block);
