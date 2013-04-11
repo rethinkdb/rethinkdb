@@ -36,7 +36,6 @@ public:
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
         unsigned int max_dirty_blocks,
-        unsigned int flush_waiting_threshold,
         unsigned int max_concurrent_flushes);
     virtual ~writeback_t();
 
@@ -87,7 +86,6 @@ public:
 
     /* User-controlled settings. */
 
-    const unsigned int flush_waiting_threshold;
     const unsigned int max_concurrent_flushes;
     const unsigned int max_dirty_blocks;
 

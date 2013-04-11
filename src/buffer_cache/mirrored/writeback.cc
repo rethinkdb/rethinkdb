@@ -21,10 +21,8 @@ writeback_t::writeback_t(
         unsigned int _flush_timer_ms,
         unsigned int _flush_threshold,
         unsigned int _max_dirty_blocks,
-        unsigned int _flush_waiting_threshold,
         unsigned int _max_concurrent_flushes
         ) :
-    flush_waiting_threshold(_flush_waiting_threshold),
     max_concurrent_flushes(_max_concurrent_flushes),
     max_dirty_blocks(_max_dirty_blocks),
     flush_time_randomizer(_flush_timer_ms),
@@ -136,7 +134,7 @@ void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
             sync(NULL);
         } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
             sync(NULL);
-        } else if (sync_callbacks.size() >= flush_waiting_threshold) {
+        } else if (!sync_callbacks.empty()) {
             sync(NULL);
         }
 

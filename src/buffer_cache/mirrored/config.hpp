@@ -17,7 +17,6 @@ struct mirrored_cache_config_t {
         flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
         max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
         flush_dirty_size = 0;
-        flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
         max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
         io_priority_reads = CACHE_READS_IO_PRIORITY;
         io_priority_writes = CACHE_WRITES_IO_PRIORITY;
@@ -39,11 +38,6 @@ struct mirrored_cache_config_t {
     // should be much less than max_dirty_size. It's in bytes.
     int64_t flush_dirty_size;
 
-    // flush_waiting_threshold is the maximal number of transactions which can wait for a sync
-    // before a flush gets triggered on any single slice. As transactions only wait for sync
-    // when a non-NULL disk_ack_signal is passed, this option plays a role only then.
-    int flush_waiting_threshold;
-
     // If a non-NULL disk_ack_signal is passed, concurrent flushing can be used to reduce the
     // latency of each single flush. max_concurrent_flushes controls how many flushes can be
     // active on a specific slice at any given time.
@@ -60,7 +54,6 @@ struct mirrored_cache_config_t {
         msg << flush_timer_ms;
         msg << max_dirty_size;
         msg << flush_dirty_size;
-        msg << flush_waiting_threshold;
         msg << max_concurrent_flushes;
         msg << io_priority_reads;
         msg << io_priority_writes;
@@ -75,8 +68,6 @@ struct mirrored_cache_config_t {
         res = deserialize(s, &max_dirty_size);
         if (res) { return res; }
         res = deserialize(s, &flush_dirty_size);
-        if (res) { return res; }
-        res = deserialize(s, &flush_waiting_threshold);
         if (res) { return res; }
         res = deserialize(s, &max_concurrent_flushes);
         if (res) { return res; }

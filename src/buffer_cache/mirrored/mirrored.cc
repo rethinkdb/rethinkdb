@@ -1110,7 +1110,6 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         dynamic_config.flush_timer_ms,
         dynamic_config.flush_dirty_size / _serializer->get_block_size().ser_value(),
         dynamic_config.max_dirty_size / _serializer->get_block_size().ser_value(),
-        dynamic_config.flush_waiting_threshold,
         dynamic_config.max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
     free_list(_serializer, stats.get()),
