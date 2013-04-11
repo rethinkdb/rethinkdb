@@ -133,10 +133,6 @@ public:
 private:
     const datum_t *next_impl();
 
-    // SAMRSI: Get rid of these typedefs.
-    typedef rdb_protocol_t::rget_read_response_t::result_t rdb_result_t;
-    typedef rdb_protocol_t::rget_read_response_t::empty_t rdb_empty_t;
-
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
@@ -145,7 +141,7 @@ private:
     // These are used on the json streams.  They're in the class instead of
     // being locally allocated because it makes debugging easier.
 
-    rdb_result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
+    rdb_protocol_t::rget_read_response_t::result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {

@@ -748,13 +748,13 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 
 void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added) {
     rdb_modification_report_t report(primary_key);
-    report.added = added;
+    report.info.added = added;
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
-    report.deleted = deleted;
+    report.info.deleted = deleted;
     on_mod_report(report);
 }
 
@@ -762,8 +762,8 @@ void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
         boost::shared_ptr<scoped_cJSON_t> added,
         boost::shared_ptr<scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
-    report.added = added;
-    report.deleted = deleted;
+    report.info.added = added;
+    report.info.deleted = deleted;
     on_mod_report(report);
 }
 

@@ -158,7 +158,7 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
-lazy_datum_stream_t::rdb_result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
+rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
     return json_stream->apply_terminal(t,
                                        env,
                                        query_language::scopes_t(),
@@ -166,14 +166,14 @@ lazy_datum_stream_t::rdb_result_t lazy_datum_stream_t::run_terminal(const rdb_pr
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    rdb_result_t res = run_terminal(count_wire_func_t());
+    rdb_protocol_t::rget_read_response_t::result_t res = run_terminal(count_wire_func_t());
     auto wire_datum = boost::get<wire_datum_t>(&res);
     r_sanity_check(wire_datum);
     return wire_datum->compile(env);
 }
 
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    rdb_result_t res =
+    rdb_protocol_t::rget_read_response_t::result_t res =
         run_terminal(reduce_wire_func_t(env, f));
 
     if (auto wire_datum = boost::get<wire_datum_t>(&res)) {
@@ -184,7 +184,7 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
             return datum;
         }
     } else {
-        r_sanity_check(boost::get<rdb_empty_t>(&res));
+        r_sanity_check(boost::get<rdb_protocol_t::rget_read_response_t::empty_t>(&res));
         if (base_val) {
             return base_val->as_datum();
         } else {
