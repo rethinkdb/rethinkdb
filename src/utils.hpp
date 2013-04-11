@@ -331,7 +331,7 @@ int get_num_db_threads();
 template <class T>
 T valgrind_undefined(T value) {
 #ifdef VALGRIND
-    VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
+    UNUSED auto x = VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
 #endif
     return value;
 }

@@ -5,7 +5,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
-void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out) {
+void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out) {
     const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());
 
     blob_t sindex_blob(const_cast<char *>(data->sindex_blob), btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
@@ -27,7 +27,7 @@ void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
     guarantee_err(res == 0, "corrupted secondary index.");
 }
 
-void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<uuid_u, secondary_index_t> &sindexes) {
+void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<std::string, secondary_index_t> &sindexes) {
     btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_write());
 
     blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
@@ -51,15 +51,15 @@ void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) 
 
     blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
-    set_secondary_indexes_internal(txn, sindex_block, std::map<uuid_u, secondary_index_t>());
+    set_secondary_indexes_internal(txn, sindex_block, std::map<std::string, secondary_index_t>());
 }
 
-bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, secondary_index_t *sindex_out) {
-    std::map<uuid_u, secondary_index_t> sindex_map;
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, secondary_index_t *sindex_out) {
+    std::map<std::string, secondary_index_t> sindex_map;
 
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    std::map<uuid_u, secondary_index_t>::const_iterator it = sindex_map.find(uuid);
+    auto it = sindex_map.find(id);
     if (it != sindex_map.end()) {
         *sindex_out = it->second;
         return true;
@@ -68,24 +68,24 @@ bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uu
     }
 }
 
-void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<uuid_u, secondary_index_t> *sindexes_out) {
+void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out) {
     get_secondary_indexes_internal(txn, sindex_block, sindexes_out);
 }
 
-void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid, const secondary_index_t &sindex) {
-    std::map<uuid_u, secondary_index_t> sindex_map;
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, const secondary_index_t &sindex) {
+    std::map<std::string, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
     /* We insert even if it already exists overwriting the old value. */
-    sindex_map[uuid] = sindex;
+    sindex_map[id] = sindex;
     set_secondary_indexes_internal(txn, sindex_block, sindex_map);
 }
 
-bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u uuid) {
-    std::map<uuid_u, secondary_index_t> sindex_map;
+bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id) {
+    std::map<std::string, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
 
-    if (sindex_map.erase(uuid) == 1) {
+    if (sindex_map.erase(id) == 1) {
         set_secondary_indexes_internal(txn, sindex_block, sindex_map);
         return true;
     } else {
@@ -94,6 +94,6 @@ bool delete_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u
 }
 
 void delete_all_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {
-    set_secondary_indexes_internal(txn, sindex_block, std::map<uuid_u, secondary_index_t>());
+    set_secondary_indexes_internal(txn, sindex_block, std::map<std::string, secondary_index_t>());
 }
 

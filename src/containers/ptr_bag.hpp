@@ -44,16 +44,16 @@ public:
     // This is a bullshit constant.  We assume the memory usage of `T` is
     // `sizeof(T) * mem_estimate_multiplier`.  This will be improved for explain.
     static const int mem_estimate_multiplier = 2;
-    size_t mem_estimate() const;
+    size_t get_mem_estimate() const;
 private:
-    void real_add(ptr_baggable_t *ptr, size_t mem_estimate);
+    void real_add(ptr_baggable_t *ptr, size_t _mem_estimate);
 
     // When a ptr_bag shadows another ptr_bag, any pointers inserted into it in
     // the past or future are inserted into the parent ptr_bag.
     void shadow(ptr_bag_t *_parent, size_t *bag_size_out);
     ptr_bag_t *parent; // See `shadow`.
     std::set<ptr_baggable_t *> ptrs;
-    size_t mem_estimate_;
+    size_t mem_estimate;
 
     DISABLE_COPYING(ptr_bag_t);
 };

@@ -110,10 +110,10 @@ void checkpoint_discard_test(test_rdb_env_t *test_env) {
     add_ptrs(env_instance->get(), 5, alloc_tracker);
     ASSERT_TRUE(env_instance->get()->num_checkpoints() == 0);
     {
-        ql::env_checkpoint_t checkpoint1(env_instance->get(), &ql::env_t::discard_checkpoint);
+        ql::env_checkpoint_t checkpoint1(env_instance->get(), ql::env_checkpoint_t::DISCARD);
         ASSERT_TRUE(env_instance->get()->num_checkpoints() == 1);
         add_ptrs(env_instance->get(), 5, alloc_tracker);
-        ql::env_checkpoint_t checkpoint2(env_instance->get(), &ql::env_t::discard_checkpoint);
+        ql::env_checkpoint_t checkpoint2(env_instance->get(), ql::env_checkpoint_t::DISCARD);
         ASSERT_TRUE(env_instance->get()->num_checkpoints() == 2);
         add_ptrs(env_instance->get(), 5, alloc_tracker);
     }
@@ -124,7 +124,7 @@ void checkpoint_discard_test(test_rdb_env_t *test_env) {
     ql::datum_t *keep = construct_random_datum(&alloc_tracker, env_instance->get());
     keep_allocs = alloc_tracker - keep_allocs;
     {
-        ql::env_checkpoint_t checkpoint1(env_instance->get(), &ql::env_t::discard_checkpoint);
+        ql::env_checkpoint_t checkpoint1(env_instance->get(), ql::env_checkpoint_t::DISCARD);
         ASSERT_TRUE(env_instance->get()->num_checkpoints() == 1);
         add_data(&alloc_tracker, env_instance->get(), 5);
         env_instance->get()->add_ptr(keep);
@@ -153,10 +153,10 @@ void checkpoint_do_stuff(bool *is_merge, int *alloc_tracker, int *allocs_delta, 
         add_data(alloc_tracker, env, new_data_before);
 
         if (changed_checkpoint_type == 0) {
-            checkpoint->reset(&ql::env_t::discard_checkpoint);
+            checkpoint->reset(ql::env_checkpoint_t::DISCARD);
             *is_merge = false;
         } else if (changed_checkpoint_type == 1) {
-            checkpoint->reset(&ql::env_t::merge_checkpoint);
+            checkpoint->reset(ql::env_checkpoint_t::MERGE);
             *is_merge = true;
         }
 
@@ -178,7 +178,7 @@ void checkpoint_all_test(test_rdb_env_t *test_env) {
             int checkpoint_data = 0;
             int checkpoint_type = randint(2);
             ql::env_checkpoint_t checkpoint(env_instance->get(), checkpoint_type == 0 ?
-                                            &ql::env_t::discard_checkpoint : &ql::env_t::merge_checkpoint);
+                                            ql::env_checkpoint_t::DISCARD : ql::env_checkpoint_t::MERGE);
             bool checkpoint_merge = (checkpoint_type != 0);
 
             ASSERT_EQ(alloc_tracker, expected_allocs);
@@ -188,7 +188,7 @@ void checkpoint_all_test(test_rdb_env_t *test_env) {
                 int subcheckpoint_type = randint(2);
                 int subcheckpoint_data = 0;
                 ql::env_checkpoint_t subcheckpoint(env_instance->get(), subcheckpoint_type == 0 ?
-                                                   &ql::env_t::discard_checkpoint : &ql::env_t::merge_checkpoint);
+                                                   ql::env_checkpoint_t::DISCARD : ql::env_checkpoint_t::MERGE);
                 bool subcheckpoint_merge = (subcheckpoint_type != 0);
                 checkpoint_do_stuff(&subcheckpoint_merge, &alloc_tracker, &subcheckpoint_data, env_instance->get(), &subcheckpoint);
 

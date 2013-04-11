@@ -855,6 +855,7 @@ void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out
 
     help_out->push_back(help);
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_help_options(options_out));
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -908,7 +909,6 @@ std::map<std::string, options::values_t> parse_commands_deep(int argc, char **ar
         opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
     }
     opts = options::merge(opts, default_values_map(options));
-    options::verify_option_counts(options, opts);
     return opts;
 }
 
@@ -948,6 +948,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
+        options::verify_option_counts(options, opts);
+
         set_user_group(opts);
 
         io_backend_t io_backend = get_io_backend_option(opts);
@@ -985,8 +987,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
     } catch (const std::exception &ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1040,6 +1044,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             help_rethinkdb_serve();
             return EXIT_SUCCESS;
         }
+
+        options::verify_option_counts(options, opts);
 
         set_user_group(opts);
 
@@ -1095,8 +1101,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help serve' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help serve' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1134,8 +1142,10 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1154,6 +1164,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             help_rethinkdb_proxy();
             return EXIT_SUCCESS;
         }
+
+        options::verify_option_counts(options, opts);
 
         const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
@@ -1195,8 +1207,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help proxy' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help proxy' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1233,6 +1247,8 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             help_rethinkdb_import();
             return EXIT_SUCCESS;
         }
+
+        options::verify_option_counts(options, opts);
 
         const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
@@ -1319,8 +1335,10 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1340,6 +1358,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             help_rethinkdb_porcelain();
             return EXIT_SUCCESS;
         }
+
+        options::verify_option_counts(options, opts);
 
         set_user_group(opts);
 
@@ -1410,8 +1430,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }

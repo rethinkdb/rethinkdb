@@ -164,7 +164,6 @@ private:
     // Push a frame onto the back of the backtrace.
     void push_back(frame_t f) {
         r_sanity_check(f.is_valid());
-        // debugf("PUSHING %s\n", f.toproto().DebugString().c_str());
         frames.push_back(f);
     }
     template<class T>
@@ -178,18 +177,17 @@ private:
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
 // Catch this if you want to handle either `exc_t` or `datum_exc_t`.
-class any_ql_exc_t : public std::exception {
+class base_exc_t : public std::exception {
 public:
-    virtual ~any_ql_exc_t() throw () { }
+    virtual ~base_exc_t() throw () { }
 };
 
 // A RQL exception.  In the future it will be tagged.
-class exc_t : public any_ql_exc_t {
+class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : exc_msg("UNINITIALIZED") { }
-    template<class T>
-    exc_t(const std::string &_exc_msg, const T *bt_src, int dummy_frames = 0)
+    exc_t(const std::string &_exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
         : exc_msg(_exc_msg) {
         if (bt_src) set_backtrace(bt_src);
         backtrace.delete_frames(dummy_frames);
@@ -218,14 +216,18 @@ private:
 // correspond to part of the source tree.  It's usually thrown from inside
 // datum.{hpp,cc} and must be caught by the enclosing term/stream/whatever and
 // turned into a normal `exc_t`.
-class datum_exc_t : public any_ql_exc_t {
+class datum_exc_t : public base_exc_t {
 public:
+    datum_exc_t() : exc_msg("UNINITIALIZED") { }
     explicit datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
 private:
     std::string exc_msg;
+
+public:
+    RDB_MAKE_ME_SERIALIZABLE_1(exc_msg);
 };
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,

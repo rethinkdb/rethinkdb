@@ -143,9 +143,9 @@ TEST(RDBProtocol, GetSet) {
     run_in_thread_pool_with_namespace_interface(&run_get_set_test);
 }
 
-uuid_u create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
-                     order_source_t *osource) {
-    uuid_u id = generate_uuid();
+std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
+                          order_source_t *osource) {
+    std::string id = uuid_to_str(generate_uuid());
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
     N2(GETATTR, NVAR(1), NDATUM("sid"));
@@ -165,9 +165,9 @@ uuid_u create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     return id;
 }
 
-void drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
+bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                  order_source_t *osource,
-                 const uuid_u &id) {
+                 const std::string &id) {
     rdb_protocol_t::sindex_drop_t d(id);
     rdb_protocol_t::write_t write(d);
     rdb_protocol_t::write_response_t response;
@@ -175,16 +175,21 @@ void drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     cond_t interruptor;
     nsi->write(write, &response, osource->check_in("unittest::drop_sindex(rdb_protocol_t.cc-A"), &interruptor);
 
-    if (!boost::get<rdb_protocol_t::sindex_drop_response_t>(&response.response)) {
+    rdb_protocol_t::sindex_drop_response_t *res =
+        boost::get<rdb_protocol_t::sindex_drop_response_t>(&response.response);
+
+    if (res == NULL) {
         ADD_FAILURE() << "got wrong type of result back";
     }
+
+    return res->success;
 }
 
 void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     query_language::backtrace_t b;
 
     /* Create a secondary index. */
-    uuid_u id = create_sindex(nsi, osource);
+    std::string id = create_sindex(nsi, osource);
 
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
@@ -256,14 +261,14 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
-    drop_sindex(nsi, osource, id);
+    ASSERT_TRUE(drop_sindex(nsi, osource, id));
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {
     run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test);
 }
 
-std::set<uuid_u> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
+std::set<std::string> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     rdb_protocol_t::sindex_list_t l;
     rdb_protocol_t::read_t read(l);
     rdb_protocol_t::read_response_t response;
@@ -277,11 +282,11 @@ std::set<uuid_u> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order
         ADD_FAILURE() << "got wrong type of result back";
     }
 
-    return std::set<uuid_u>(res->sindexes.begin(), res->sindexes.end());
+    return std::set<std::string>(res->sindexes.begin(), res->sindexes.end());
 }
 
 void run_sindex_list_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    std::set<uuid_u> sindexes;
+    std::set<std::string> sindexes;
 
     // Do the whole test a couple times on the same namespace for kicks
     for (size_t i = 0; i < 2; ++i) {
@@ -296,7 +301,7 @@ void run_sindex_list_test(namespace_interface_t<rdb_protocol_t> *nsi, order_sour
         // Remove all the sindexes
         for (size_t j = 0; j < reps; ++j) {
             ASSERT_TRUE(list_sindexes(nsi, osource) == sindexes);
-            drop_sindex(nsi, osource, *sindexes.begin());
+            ASSERT_TRUE(drop_sindex(nsi, osource, *sindexes.begin()));
             sindexes.erase(sindexes.begin());
         }
         ASSERT_TRUE(sindexes.empty());
@@ -309,26 +314,8 @@ TEST(RDBProtocol,SindexList) {
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    uuid_u sindex_id = generate_uuid();
     query_language::backtrace_t b;
-    {
-        /* Create a secondary index. */
-        Term mapping;
-        Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GETATTR, NVAR(1), NDATUM("sid"));
-
-        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
-
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
-        rdb_protocol_t::write_response_t response;
-
-        cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
-
-        if (!boost::get<rdb_protocol_t::sindex_create_response_t>(&response.response)) {
-            ADD_FAILURE() << "got wrong type of result back";
-        }
-    }
+    std::string sindex_id = create_sindex(nsi, osource);
 
     // TODO this test is going to send primary keys of size up to 300. Somewhere
     // below that it should start throwing exceptions but this test doesn't know
@@ -363,7 +350,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                             store_key_t(
                                 cJSON_print_primary(
                                     scoped_cJSON_t(cJSON_CreateString(sid.c_str())).get(), b)),
-                                sindex_id));
+                                id));
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
@@ -388,26 +375,8 @@ TEST(RDBProtocol, DISABLED_OverSizedKeys) {
 }
 
 void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    uuid_u sindex_id = generate_uuid();
     query_language::backtrace_t b;
-    {
-        /* Create a secondary index. */
-        Term mapping;
-        Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GETATTR, NVAR(1), NDATUM("sid"));
-
-        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
-
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
-        rdb_protocol_t::write_response_t response;
-
-        cond_t interruptor;
-        nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
-
-        if (!boost::get<rdb_protocol_t::sindex_create_response_t>(&response.response)) {
-            ADD_FAILURE() << "got wrong type of result back";
-        }
-    }
+    create_sindex(nsi, osource);
 
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
