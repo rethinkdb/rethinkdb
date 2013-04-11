@@ -12,9 +12,9 @@ tests:
     rb: r.table('foo').map{ |x| r.table 'foo' }
     ot: err("RqlRuntimeError", 'Expected type DATUM but found TABLE.', [0])
 
-  - js: r.table('foo').map(function(x) { return r.table('foo').pluck('a').coerceTo('array'); }).count()
-    py: "r.table('foo').map(lambda x: r.table('foo').pluck('a').coerce_to('array')).count()"
-    rb: r.table('foo').map{ |x| r.table('foo').pluck('a').coerce_to('array') }.count
+  - js: r.table('foo').map(function(x) { return r.table('foo').coerceTo('array'); }).count()
+    py: "r.table('foo').map(lambda x: r.table('foo').coerce_to('array')).count()"
+    rb: r.table('foo').map{ |x| r.table('foo').coerce_to('array') }.count
     ot: 2
 
   - cd: r.db('test').table_drop('foo')
