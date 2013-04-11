@@ -198,6 +198,7 @@ struct rdb_protocol_t {
             inserted_t,
             runtime_exc_t,
             ql::exc_t,
+            ql::datum_exc_t,
             ql::wire_datum_t,
             std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
@@ -646,8 +647,19 @@ struct rdb_protocol_t {
         context_t *ctx;
     };
 
-
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
+
+namespace rdb_protocol_details {
+/* TODO: This might be redundant. I thought that `key_tester_t` was only
+originally necessary because in v1.1.x the hashing scheme might be different
+between the source and destination machines. */
+struct range_key_tester_t : public key_tester_t {
+    explicit range_key_tester_t(const rdb_protocol_t::region_t *_delete_range) : delete_range(_delete_range) { }
+    bool key_should_be_erased(const btree_key_t *key);
+
+    const rdb_protocol_t::region_t *delete_range;
+};
+} //namespace rdb_protocol_details 
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

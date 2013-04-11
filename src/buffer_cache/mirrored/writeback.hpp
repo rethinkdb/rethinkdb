@@ -8,6 +8,7 @@
 #include "arch/timer.hpp"
 #include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/cond_var.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
