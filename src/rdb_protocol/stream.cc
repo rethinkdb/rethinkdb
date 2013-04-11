@@ -12,18 +12,6 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
     return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
 }
 
-boost::shared_ptr<scoped_cJSON_t> json_stream_t::next() {
-    // We loop until we get a value.  Somethings things need to return a NULL value while
-    // returning END_OF_BATCH.
-    for (;;) {
-        boost::shared_ptr<scoped_cJSON_t> ret;
-        const batch_info_t res = next_with_batch_info(&ret);
-        if (ret || res == END_OF_STREAM) {
-            return ret;
-        }
-    }
-}
-
 result_t json_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
     ql::env_t *ql_env,
@@ -53,14 +41,13 @@ in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) 
     }
 }
 
-batch_info_t in_memory_stream_t::next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out) {
+boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     if (data.empty()) {
-        *out = boost::shared_ptr<scoped_cJSON_t>();
-        return END_OF_STREAM;
+        return boost::shared_ptr<scoped_cJSON_t>();
     } else {
-        *out = data.front();
+        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
         data.pop_front();
-        return data.empty() ? LAST_OF_BATCH : MID_BATCH;
+        return ret;
     }
 }
 
@@ -71,15 +58,12 @@ transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
     ql_env(_ql_env),
     transform(tr) { }
 
-batch_info_t transform_stream_t::next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out) {
+boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {
-        boost::shared_ptr<scoped_cJSON_t> input;
-        const batch_info_t res = stream->next_with_batch_info(&input);
+        boost::shared_ptr<scoped_cJSON_t> input = stream->next();
         if (!input) {
-            *out = input;
-            return res;
-        } else {
-            data_end_batch_info = res;
+            // End of stream reached.
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
 
         json_list_t accumulator;
@@ -103,19 +87,11 @@ batch_info_t transform_stream_t::next_with_batch_info(boost::shared_ptr<scoped_c
 
         /* Equivalent to `data = accumulator`, but without the extra copying */
         std::swap(data, accumulator);
-
-        // We have to report the last-of-batch marker even if there's no data to come with it.
-        // We can (and should) skip mid-batch data though.
-        if (res == LAST_OF_BATCH) {
-            *out = boost::shared_ptr<scoped_cJSON_t>();
-            return LAST_OF_BATCH;
-        }
     }
 
     boost::shared_ptr<scoped_cJSON_t> datum = data.front();
     data.pop_front();
-    *out = datum;
-    return data.empty() ? data_end_batch_info : MID_BATCH;
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
@@ -144,24 +120,22 @@ batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol
       table_scan_backtrace()
 { }
 
-batch_info_t batched_rget_stream_t::next_with_batch_info(boost::shared_ptr<scoped_cJSON_t> *out) {
+boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     started = true;
     if (data.empty()) {
         if (finished) {
-            *out = boost::shared_ptr<scoped_cJSON_t>();
-            return END_OF_STREAM;
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
         read_more();
         if (data.empty()) {
             finished = true;
-            *out = boost::shared_ptr<scoped_cJSON_t>();
-            return END_OF_STREAM;
+            return boost::shared_ptr<scoped_cJSON_t>();
         }
     }
 
-    *out = data.front();
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
     data.pop_front();
-    return data.empty() ? LAST_OF_BATCH : MID_BATCH;
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
