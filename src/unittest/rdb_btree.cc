@@ -374,36 +374,36 @@ void run_erase_range_test() {
     }
 
     {
-            /* Check that we don't have any of the keys (we just deleted them all) */
-            for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-                read_token_pair_t token_pair;
-                store.new_read_token_pair(&token_pair);
+        /* Check that we don't have any of the keys (we just deleted them all) */
+        for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
+            read_token_pair_t token_pair;
+            store.new_read_token_pair(&token_pair);
 
-                scoped_ptr_t<transaction_t> txn;
-                scoped_ptr_t<real_superblock_t> super_block;
+            scoped_ptr_t<transaction_t> txn;
+            scoped_ptr_t<real_superblock_t> super_block;
 
-                store.acquire_superblock_for_read(rwi_read,
-                        &token_pair.main_read_token, &txn, &super_block,
-                        &dummy_interruptor, true);
+            store.acquire_superblock_for_read(rwi_read,
+                    &token_pair.main_read_token, &txn, &super_block,
+                    &dummy_interruptor, true);
 
-                scoped_ptr_t<real_superblock_t> sindex_sb;
+            scoped_ptr_t<real_superblock_t> sindex_sb;
 
-                store.acquire_sindex_superblock_for_read(sindex_id,
-                        super_block->get_sindex_block_id(), &token_pair,
-                        txn.get(), &sindex_sb, &dummy_interruptor);
+            store.acquire_sindex_superblock_for_read(sindex_id,
+                    super_block->get_sindex_block_id(), &token_pair,
+                    txn.get(), &sindex_sb, &dummy_interruptor);
 
-                rdb_protocol_t::rget_read_response_t res;
-                rdb_rget_slice(store.get_sindex_slice(sindex_id),
-                       rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
-                       txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-                       boost::optional<rdb_protocol_details::terminal_t>(), &res);
+            rdb_protocol_t::rget_read_response_t res;
+            rdb_rget_slice(store.get_sindex_slice(sindex_id),
+                   rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+                   txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+                   boost::optional<rdb_protocol_details::terminal_t>(), &res);
 
-                rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
-                ASSERT_TRUE(stream != NULL);
-                ASSERT_EQ(stream->size(), 0ul);
-            }
+            rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+            ASSERT_TRUE(stream != NULL);
+            ASSERT_EQ(stream->size(), 0ul);
         }
     }
+}
 
 TEST(RDBBtree, SindexEraseRange) {
     run_in_thread_pool(&run_erase_range_test);
