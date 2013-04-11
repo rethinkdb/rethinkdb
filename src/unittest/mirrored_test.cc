@@ -66,12 +66,12 @@ TEST(MirroredTest, ReadAheadChecks) {
     mirrored_tester_t().run();
 }
 
+static const uint64_t value_A = 12345;
+static const uint64_t value_B = 23456;
+
 class durability_tester_t : public server_test_helper_t {
 public:
     durability_tester_t() : block_id(NULL_BLOCK_ID) {}
-
-    const uint64_t value_A = 12345;
-    const uint64_t value_B = 23456;
 
     void run_tests(cache_t *cache) {
         {
