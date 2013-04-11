@@ -235,7 +235,6 @@ std::string cJSON_type_to_string(int type) {
 
 size_t cJSON_estimate_size(const cJSON *json) {
     guarantee(json, "Someone called cJSON_estimate_size with a NULL pointer.");
-    const cJSON *next = NULL;
 
     // The cJSON struct obviously takes up some memory by itself
     size_t estimate = sizeof(struct cJSON);
@@ -256,14 +255,14 @@ size_t cJSON_estimate_size(const cJSON *json) {
         estimate += strlen(json->valuestring);
         break;
     case cJSON_Array:
-    case cJSON_Object:
+    case cJSON_Object: {
         // These both use the embedded linked list to store fields
-        next = json->head;
+        const cJSON *next = json->head;
         while (next) {
             estimate += cJSON_estimate_size(next);
             next = next->next;
         }
-        break;
+    } break;
     default:
         unreachable();
     };
