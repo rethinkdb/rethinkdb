@@ -47,8 +47,6 @@ public:
         expectation_(expectation),
         hard_durability_(hard_durability) { }
 
-    static bool make(uint32_t expectation, bool hard_durability, ack_expectation_t *out);
-
     uint32_t expectation() const { return expectation_; }
     bool is_hardly_durable() const { return hard_durability_; }
 
@@ -157,7 +155,6 @@ RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, bl
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
 cJSON *render_as_json(ack_expectation_t *target);
 void apply_json_to(cJSON *change, ack_expectation_t *target);
-void on_subfield_change(ack_expectation_t *target);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class protocol_t>
