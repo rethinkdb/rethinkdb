@@ -1,4 +1,8 @@
-desc: Regression tests for issue #125, aggregation ops should be of type stream, not array
+# Note that the expected behavior (these should be arrays, not
+# streams), is opposite of the title of the issue on github. We
+# arrived at the expected behavior after some debate, hence the
+# difference.
+desc: Regression tests for issue #125, aggregation ops should be of type array, not stream
 tests:
     
     # Set up a stream
