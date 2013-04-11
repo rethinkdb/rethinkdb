@@ -74,7 +74,6 @@ public:
     const uint64_t value_B = 23456;
 
     void run_tests(cache_t *cache) {
-        debugf("In run_tests.\n");
         {
             transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, WRITE_DURABILITY_SOFT);
             buf_lock_t buf(&t0);
@@ -82,22 +81,16 @@ public:
             *static_cast<uint64_t *>(buf.get_data_write()) = value_A;
         }
 
-        debugf("In run_tests B.\n");
         {
             transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, WRITE_DURABILITY_HARD);
-            debugf("Created txn\n");
             {
                 buf_lock_t buf(&t0, block_id, rwi_write);
-                debugf("opened buf\n");
                 const uint64_t value = *static_cast<const uint64_t *>(buf.get_data_read());
                 EXPECT_EQ(value_A, value);
                 *static_cast<uint64_t *>(buf.get_data_write()) = value_B;
-                debugf("about to destruct buf\n");
             }
-            debugf("about to destruct txn\n");
         }
 
-        debugf("In run_tests C.\n");
         // We snapshot the file immediately after the transaction has finished, to verify that it's actually written.
         snapshotted_file_opener_ = *this->mock_file_opener;
     }
@@ -133,7 +126,6 @@ private:
 TEST(MirroredTest, Durability) {
     durability_tester_t tester;
     tester.run();
-    debugf("run finished.\n");
     unittest::run_in_thread_pool(boost::bind(&durability_tester_t::check_snapshotted_file_contents, &tester));
 }
 
