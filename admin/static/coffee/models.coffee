@@ -168,6 +168,16 @@ class Namespace extends Backbone.Model
                 __s.global_disk_space += machine.get_used_disk_space()
         return __s
 
+    get_durability: =>
+        if @get('hard_durability')?
+            return @get('hard_durability')
+        else
+            for dc, ack of @get('ack_expectations')
+                @set('hard_durability', ack.hard_durability)
+                return @get('hard_durability')
+            @set('hard_durability', true)
+            return @get('hard_durability')
+
 class Datacenter extends Backbone.Model
     # Compute the number of machines not used by other datacenters for one namespace
     compute_num_machines_not_used_by_other_datacenters: (namespace) =>

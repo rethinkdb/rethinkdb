@@ -372,14 +372,6 @@ module 'NamespaceView', ->
 
             @render_progress()
 
-            # Define hard_durability by looking at the current acks
-            hard_durability = true
-            for dc, ack of @model.get('ack_expectations')
-                hard_durability = ack.hard_durability
-                break # Because the durability is per table for the moment
-            @model.set('hard_durability', hard_durability)
-            
-
         remove_parent_alert: (event) ->
             event.preventDefault()
             element = $(event.target).parent()
@@ -538,7 +530,7 @@ module 'NamespaceView', ->
             ack_expectations_to_send = {}
             ack_expectations_to_send[@datacenter.get('id')] =
                 expectation: num_acks
-                hard_durability: @model.get('hard_durability')
+                hard_durability: @model.get_durability()
 
             @data_cached =
                 num_replicas: num_replicas
@@ -578,7 +570,7 @@ module 'NamespaceView', ->
             new_acks = DataUtils.deep_copy @model.get 'ack_expectations' # We need a deep copy or .set() is not going to trigger any events
             new_acks[@datacenter.get('id')] =
                 expectation: @data_cached.num_acks
-                hard_durability: @model.get('hard_durability')
+                hard_durability: @model.get_durability()
             @model.set('ack_expectations', new_acks)
 
             @current_state = @states[0]
@@ -710,9 +702,11 @@ module 'NamespaceView', ->
             @set_new_primary new_primary, current_primary, @on_success_off, @on_error_off
 
         on_success_off: =>
-            data_to_set =
-                replica_affinities: @model.get('replica_affinities')
-            data_to_set = _.extend @data_cached, data_to_set
+            data_to_set = @data_cached
+            for dc, value in @model.get('replica_affinities')
+                if not data_to_set['replica_affinities']?
+                    data_to_set['replica_affinities'][dc] = value
+
             @model.set data_to_set
             @model.trigger 'change:primary_uuid'
             # Not working?
@@ -837,7 +831,7 @@ module 'NamespaceView', ->
             if (not @model.get('ack_expectations')[new_primary]?) or @model.get('ack_expectations')[new_primary].expectation is 0
                 new_ack[new_primary] =
                     expectation: 1
-                    hard_durability: @model.get('hard_durability')
+                    hard_durability: @model.get_durability()
 
 
 
@@ -859,13 +853,13 @@ module 'NamespaceView', ->
 
 
         on_success_pin: =>
-            data_to_set =
-                replica_affinities: @model.get('replica_affinities')
-            if @data_cached.replica_affinities?
-                data_to_set.replica_affinities = _.extend data_to_set.replica_affinities, @data_cached.replica_affinities
-            data_to_set = _.extend @data_cached, data_to_set
+            data_to_set = @data_cached
+            for dc, value in @model.get('replica_affinities')
+                if not data_to_set['replica_affinities']?
+                    data_to_set['replica_affinities'][dc] = value
 
             @model.set data_to_set
+
             @model.trigger 'change:primary_uuid'
             @turn_primary_on()
 
