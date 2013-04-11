@@ -928,9 +928,6 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
-    coro_fifo_acq_t write_throttle_acq;
-
-    rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     cache->num_live_non_writeback_transactions++;
