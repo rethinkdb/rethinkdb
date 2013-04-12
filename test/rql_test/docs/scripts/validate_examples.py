@@ -35,6 +35,7 @@ from sys import path
 path.insert(0, '../../../drivers/python')
 import rethinkdb as r
 conn = r.connect(port=%d)
+print 'Running python validation.'
 """ % port)
         elif lang == 'js':
             out.write("""
@@ -42,9 +43,16 @@ var r = require("../../../../drivers/javascript/build/rethinkdb");
 var callback = (function() { });
 var cur = {next:(function(){}), hasNext:(function(){}), each:(function(){}), toArray:(function(){})};
 r.connect({port:%d}, function(err, conn) {
-""" % port)
+console.log("Running Javascript validation.");
+            """ % port)
         elif lang == 'rb':
-            return
+            out.write("""
+$LOAD_PATH.unshift('../../../drivers/ruby/lib')
+require 'rethinkdb.rb'
+include RethinkDB::Shortcuts
+conn = r.connect('localhost', %d)
+puts 'Running Ruby validation.'
+""" % port)
 
         for command in commands:
             section_name = command['section']
@@ -61,6 +69,9 @@ r.connect({port:%d}, function(err, conn) {
 
                 if 'validate' in example and not example['validate']:
                     test_case = None
+                    skip_validation = True
+                else:
+                    skip_validation = False
 
                 # Check for an override of this test case
                 if lang in command:
@@ -77,7 +88,10 @@ r.connect({port:%d}, function(err, conn) {
                                 elif 'code' in example_override:
                                     test_case = example_override['code']
 
-                                if 'validate' in example_override and not example_override['validate']:
+                                if 'validate' in example_override:
+                                    if not example_override['validate']:
+                                        test_case = None
+                                elif skip_validation:
                                     test_case = None
 
                 comment = '#'
@@ -89,12 +103,19 @@ r.connect({port:%d}, function(err, conn) {
                     out.write("%s %s %s\n" % (test_case, comment, test_tag))
 
         if lang == 'js':
+            out.write("console.log('Javascript validation complete.');\n");
             out.write("conn.close()})")
+        if lang == 'py':
+            out.write("print 'Python validation complete.'");
+        if lang == 'rb':
+            out.write("puts 'Ruby validation complete.'");
 
     if lang == 'py':
         interpreter = 'python'
     elif lang == 'js':
         interpreter = 'node'
+    elif lang == 'rb':
+        interpreter = 'ruby'
 
     call([interpreter, test_file_name])
 
@@ -131,9 +152,11 @@ def validate():
     t = Thread(target=server.serve_forever)
     t.start()
 
-    validate_for('py', port)
-    validate_for('js', port)
-    validate_for('rb', port)
-    server.shutdown()
+    try:
+        validate_for('py', port)
+        validate_for('js', port)
+        validate_for('rb', port)
+    finally:
+        server.shutdown()
 
 validate()
