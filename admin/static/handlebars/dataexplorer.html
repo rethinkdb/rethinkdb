@@ -287,9 +287,9 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         <td class="td_attr col-{{col}}" data-col={{col}}>
             <div class="click_detector">
                 {{#if is_primitive}}
-                    <div class="jta_attr value-{{col}}"><em>value</em></div>
+                    <div class="jta_attr value-{{col}}">{{prefix_str}} <em>value</em></div>
                 {{else}}
-                    <div class="jta_attr value-{{col}}">{{key}}</div>
+                    <div class="jta_attr value-{{col}}">{{prefix_str}}{{key}}</div>
                 {{/if}}
             </div>
         </td>
@@ -331,9 +331,14 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
             <strong>{{print_safe value}}</strong>
         </span>
     </div>
+    {{else}}{{#if is_object}}
+     <div class="{{class_value}} jta_value {{classname}}">       
+        <strong>{...}</strong>
+    </div>
+   
     {{else}}
     <div class="jta_value {{class_value}} {{classname}}"><span>{{value}}</span></div>
-    {{/if}}
+    {{/if}}{{/if}}
 </div>
 </script>
 

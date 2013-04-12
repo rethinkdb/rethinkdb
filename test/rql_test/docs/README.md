@@ -67,3 +67,13 @@ commands:
           can_try: true
           dataset: marvel
 ```
+
+## How to validate the examples
+
+Validating examples means passing them through the appropriate interpreter and driver
+to ensure that they are accepted as valid RQL. Validing will catch syntax errors and
+certain kinds of API usage errors. It cannot catch errors that would otherwise be
+reported by the server though since the queries go into a black hole.
+
+To run the validation script simply run `make validate` in this directory or
+`make validate -C <rethinkdb-src>/test/rql_test/docs/`.

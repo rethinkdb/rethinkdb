@@ -400,7 +400,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     //value is in the sindex right now or be checking that it isn't.
 }
 
-TEST(RDBProtocol, DISABLED_MissingAttr) {
+TEST(RDBProtocol, MissingAttr) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test);
 }
 

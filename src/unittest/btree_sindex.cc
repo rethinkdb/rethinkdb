@@ -135,13 +135,13 @@ void run_sindex_btree_store_api_test() {
                                                1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
                                                &txn, &super_block, &dummy_interuptor);
 
-            store.add_sindex(
-                    &token_pair,
-                    id,
-                    std::vector<char>(),
-                    txn.get(),
-                    super_block.get(),
-                    &dummy_interuptor);
+            UNUSED bool b =store.add_sindex(
+                &token_pair,
+                id,
+                std::vector<char>(),
+                txn.get(),
+                super_block.get(),
+                &dummy_interuptor);
         }
 
         {
@@ -178,21 +178,22 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store.acquire_sindex_superblock_for_write(id,
+            bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
+            ASSERT_TRUE(sindex_exists);
 
             boost::shared_ptr<scoped_cJSON_t> data(new
                     scoped_cJSON_t(cJSON_CreateNumber(1)));
 
             rdb_protocol_t::point_write_response_t response;
-            rdb_modification_report_t mod_report;
+            rdb_modification_info_t mod_info;
 
             store_key_t key("foo");
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
-                    &mod_report);
+                    &mod_info);
         }
 
         {
@@ -210,9 +211,10 @@ void run_sindex_btree_store_api_test() {
 
             store_key_t key("foo");
 
-            store.acquire_sindex_superblock_for_read(id,
+            bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(), &token_pair,
                     txn.get(), &sindex_super_block, &dummy_interuptor);
+            ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;
 

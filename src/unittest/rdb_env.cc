@@ -158,19 +158,23 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     resp->write_to_protobuf(res);
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::point_write_t &w) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::batched_replaces_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::point_delete_t &d) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_write_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_create_t &s) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_delete_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_create_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_drop_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 

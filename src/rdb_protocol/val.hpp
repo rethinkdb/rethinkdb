@@ -30,36 +30,42 @@ public:
         const datum_t *pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
     datum_t *env_add_ptr(datum_t *d);
 
-    // A wrapper around `do_replace` that does error handling correctly.
-    // TODO: Use a variadic template so we can get rid of
-    // `_so_the_template_matches` above?
-    template<class T>
-    const datum_t *replace(const datum_t *d, T t, bool b) {
-        rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
-        try {
-            return do_replace(d, t, b);
-        } catch (const base_exc_t &e) {
-            datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
-            std::string err = e.what();
-            // TODO why is this bool (which is marked as MUST USE not used?)
-            // T0D0NE: the bool is true if there's a conflict when inserting the
-            // key, but since we just created an empty object above conflicts
-            // are impossible here.  If you want to harden this against future
-            // changes, you could store the bool and `r_sanity_check` that it's
-            // false.
-            UNUSED bool key_in_object =
-                datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1.0)));
-            return datum;
-        }
-    }
+    const datum_t *make_error_datum(const base_exc_t &exception);
 
-    const datum_t *sindex_create(const std::string &name, func_t *index_func);
-    const datum_t *sindex_drop(const std::string &name);
+
+    const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
+
+    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
+                                               func_t *replacement_generator,
+                                               bool nondeterministic_replacements_ok);
+
+    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
+                                               const std::vector<const datum_t *> &replacement_values,
+                                               bool upsert);
+
+    MUST_USE bool sindex_create(const std::string &name, func_t *index_func);
+    MUST_USE bool sindex_drop(const std::string &name);
     const datum_t *sindex_list();
+
 private:
-    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                             bool _so_the_template_matches = false);
+    struct datum_func_pair_t {
+        datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
+        datum_func_pair_t(const datum_t *_original_value, const map_wire_func_t *_replacer)
+            : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
+
+        explicit datum_func_pair_t(const datum_t *_error_value)
+            : original_value(NULL), replacer(NULL), error_value(_error_value) { }
+
+        // One of these datum_t *'s is NULL.
+        const datum_t *original_value;
+        const map_wire_func_t *replacer;
+        const datum_t *error_value;
+    };
+
+    std::vector<const datum_t *> batch_replace(const std::vector<datum_func_pair_t> &replacements);
+
+    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
 

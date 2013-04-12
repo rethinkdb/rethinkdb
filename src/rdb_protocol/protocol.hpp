@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
@@ -243,17 +243,14 @@ struct rdb_protocol_t {
     };
 
     struct read_response_t {
-    private:
-        typedef boost::variant<point_read_response_t,
-                               rget_read_response_t,
-                               distribution_read_response_t,
-                               sindex_list_response_t> _response_t;
-    public:
-        _response_t response;
+        boost::variant<point_read_response_t,
+                       rget_read_response_t,
+                       distribution_read_response_t,
+                       sindex_list_response_t> response;
 
         read_response_t() { }
-        read_response_t(const read_response_t& r) : response(r.response) { }
-        explicit read_response_t(const _response_t &r) : response(r) { }
+        explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
+            : response(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -359,10 +356,7 @@ struct rdb_protocol_t {
 
 
     struct read_t {
-    private:
-        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> _read_t;
-    public:
-        _read_t read;
+        boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
@@ -371,14 +365,27 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        read_t(const read_t& r) : read(r.read) { }
-        explicit read_t(const _read_t &r) : read(r) { }
+        explicit read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r)
+            : read(r) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
+
+    typedef Datum point_replace_response_t;
+
+    struct batched_replaces_response_t {
+        std::vector<std::pair<int64_t, point_replace_response_t> > point_replace_responses;
+
+        batched_replaces_response_t() { }
+        explicit batched_replaces_response_t(const std::vector<std::pair<int64_t, point_replace_response_t> > &_point_replace_responses)
+            : point_replace_responses(_point_replace_responses) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
 
     struct point_write_response_t {
         point_write_result_t result;
@@ -402,12 +409,11 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    typedef Datum point_replace_response_t;
-
     //TODO we're reusing the enums from row writes and reads to avoid name
     //shadowing. Nothing really wrong with this but maybe they could have a
     //more generic name.
-    struct sindex_create_response_t { 
+    struct sindex_create_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
@@ -417,17 +423,18 @@ struct rdb_protocol_t {
     };
 
     struct write_response_t {
-        boost::variant<point_write_response_t,
+        boost::variant<point_replace_response_t,
+                       batched_replaces_response_t,
+                       point_write_response_t,
                        point_delete_response_t,
-                       point_replace_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
 
         write_response_t() { }
-        write_response_t(const write_response_t& w) : response(w.response) { }
+        explicit write_response_t(const point_replace_response_t& r) : response(r) { }
+        explicit write_response_t(const batched_replaces_response_t& br) : response(br) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
-        explicit write_response_t(const Datum& d) : response(d) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -445,7 +452,19 @@ struct rdb_protocol_t {
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
 
-        RDB_MAKE_ME_SERIALIZABLE_4(primary_key, key, f, optargs);
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    class batched_replaces_t {
+    public:
+        batched_replaces_t() { }
+        batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
+            : point_replaces(_point_replaces) { }
+
+        // The replaces are numbered so that unshard can sort them back in order.
+        std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {
@@ -500,9 +519,10 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_write_t,
+        boost::variant<point_replace_t,
+                       batched_replaces_t,
+                       point_write_t,
                        point_delete_t,
-                       point_replace_t,
                        sindex_create_t,
                        sindex_drop_t> write;
 
@@ -511,10 +531,10 @@ struct rdb_protocol_t {
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
         write_t() { }
-        write_t(const write_t& w) : write(w.write) { }
+        explicit write_t(const point_replace_t &r) : write(r) { }
+        explicit write_t(const batched_replaces_t &br) : write(br) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const point_replace_t &r) : write(r) { }
         explicit write_t(const sindex_create_t &c) : write(c) { }
         explicit write_t(const sindex_drop_t &c) : write(c) { }
 
@@ -618,7 +638,7 @@ struct rdb_protocol_t {
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock,
+                            scoped_ptr_t<superblock_t> *superblock,
                             write_token_pair_t *token_pair,
                             signal_t *interruptor);
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 
@@ -149,7 +149,7 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void add_sindex(
+    MUST_USE bool add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
@@ -158,7 +158,7 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    void add_sindex(
+    MUST_USE bool add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
@@ -180,7 +180,7 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    void mark_index_up_to_date(
+    bool mark_index_up_to_date(
         const std::string &id,
         transaction_t *txn,
         buf_lock_t *sindex_block)
@@ -213,7 +213,7 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    void acquire_sindex_superblock_for_read(
+    MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
             read_token_pair_t *token_pair,
@@ -222,7 +222,7 @@ public:
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
-    void acquire_sindex_superblock_for_write(
+    MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
@@ -273,7 +273,7 @@ public:
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
 
-    void acquire_sindex_superblocks_for_write(
+    bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
@@ -297,7 +297,7 @@ public:
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 transaction_t *txn,
-                                superblock_t *superblock,
+                                scoped_ptr_t<superblock_t> *superblock,
                                 write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
 

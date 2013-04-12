@@ -29,6 +29,25 @@ const datum_t *datum_stream_t::next() {
     }
 }
 
+std::vector<const datum_t *> datum_stream_t::next_batch() {
+    env->throw_if_interruptor_pulsed();
+    try {
+        std::vector<const datum_t *> batch;
+        for (;;) {
+            const datum_t *datum = next_impl();
+            if (datum != NULL) {
+                batch.push_back(datum);
+            }
+            if (datum == NULL || batch.size() == MAX_BATCH_SIZE) {
+                return batch;
+            }
+        }
+    } catch (const datum_exc_t &e) {
+        rfail("%s", e.what());
+        unreachable();
+    }
+}
+
 const datum_t *eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
@@ -139,22 +158,22 @@ datum_stream_t *lazy_datum_stream_t::filter(func_t *f) {
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
-template<class T>
-lazy_datum_stream_t::rdb_result_t lazy_datum_stream_t::run_terminal(T t) {
-    return json_stream->apply_terminal(
-        rdb_protocol_details::terminal_variant_t(t),
-        env, query_language::scopes_t(), query_language::backtrace_t());
+rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
+    return json_stream->apply_terminal(t,
+                                       env,
+                                       query_language::scopes_t(),
+                                       query_language::backtrace_t());
 }
 
 const datum_t *lazy_datum_stream_t::count() {
-    rdb_result_t res = run_terminal(count_wire_func_t());
+    rdb_protocol_t::rget_read_response_t::result_t res = run_terminal(count_wire_func_t());
     auto wire_datum = boost::get<wire_datum_t>(&res);
     r_sanity_check(wire_datum);
     return wire_datum->compile(env);
 }
 
 const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
-    rdb_result_t res =
+    rdb_protocol_t::rget_read_response_t::result_t res =
         run_terminal(reduce_wire_func_t(env, f));
 
     if (auto wire_datum = boost::get<wire_datum_t>(&res)) {
@@ -165,7 +184,7 @@ const datum_t *lazy_datum_stream_t::reduce(val_t *base_val, func_t *f) {
             return datum;
         }
     } else {
-        r_sanity_check(boost::get<rdb_empty_t>(&res));
+        r_sanity_check(boost::get<rdb_protocol_t::rget_read_response_t::empty_t>(&res));
         if (base_val) {
             return base_val->as_datum();
         } else {
@@ -202,88 +221,129 @@ const datum_t *lazy_datum_stream_t::gmr(
 
 const datum_t *lazy_datum_stream_t::next_impl() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    if (!json.get()) return 0;
-    return env->add_ptr(new datum_t(json, env));
+    return json ? env->add_ptr(new datum_t(json, env)) : NULL;
 }
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, const datum_t *_arr,
-                                           const pb_rcheckable_t *bt_src)
-    : eager_datum_stream_t(env, bt_src), index(0), arr(_arr) { }
+                                           const pb_rcheckable_t *backtrace_source)
+    : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
 
 const datum_t *array_datum_stream_t::next_impl() {
-    return arr->get(index++, NOTHROW);
+    const datum_t *datum = arr->get(index, NOTHROW);
+    if (datum == NULL) {
+        return NULL;
+    } else {
+        ++index;
+        return datum;
+    }
 }
 
 // MAP_DATUM_STREAM_T
 const datum_t *map_datum_stream_t::next_impl() {
-    const datum_t *arg = src->next();
-    return !arg ? 0 : f->call(arg)->as_datum();
+    const datum_t *arg = source->next();
+    if (arg == NULL) {
+        return NULL;
+    } else {
+        return f->call(arg)->as_datum();
+    }
+}
+
+// FILTER_DATUM_STREAM_T
+const datum_t *filter_datum_stream_t::next_impl() {
+    for (;;) {
+        env_checkpoint_t outer_checkpoint(env, env_checkpoint_t::DISCARD);
+
+        const datum_t *arg = source->next();
+
+        if (arg == NULL) {
+            return NULL;
+        }
+
+        env_checkpoint_t inner_checkpoint(env, env_checkpoint_t::DISCARD);
+
+        if (f->filter_call(arg)) {
+            outer_checkpoint.reset(env_checkpoint_t::MERGE);
+            return arg;
+        }
+    }
 }
 
 // CONCATMAP_DATUM_STREAM_T
 const datum_t *concatmap_datum_stream_t::next_impl() {
     for (;;) {
-        if (!subsrc) {
-            const datum_t *arg = src->next();
-            if (!arg) return 0;
-            subsrc = f->call(arg)->as_seq();
+        if (subsource == NULL) {
+            const datum_t *arg = source->next();
+            if (arg == NULL) {
+                return NULL;
+            }
+            subsource = f->call(arg)->as_seq();
         }
-        if (const datum_t *retval = subsrc->next()) return retval;
-        subsrc = 0;
-    }
-}
 
-const datum_t *filter_datum_stream_t::next_impl() {
-    const datum_t *arg = 0;
-    for (;;) {
-        env_checkpoint_t outer_checkpoint(env, env_checkpoint_t::DISCARD);
-        if (!(arg = src->next())) return 0;
-        env_checkpoint_t inner_checkpoint(env, env_checkpoint_t::DISCARD);
-        if (f->filter_call(arg)) {
-            outer_checkpoint.reset(env_checkpoint_t::MERGE);
-            break;
+        const datum_t *datum = subsource->next();
+        if (datum != NULL) {
+            return datum;
         }
+
+        subsource = NULL;
     }
-    return arg;
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _left, size_t _right, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0),
-      left(_left), right(_right), src(_src) { }
+slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _right,
+                                           datum_stream_t *_source)
+    : eager_datum_stream_t(_env, _source), env(_env), index(0),
+      left(_left), right(_right), source(_source) { }
+
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (left > right || ind > right) {
+    if (left > right || index > right) {
         return NULL;
     }
-    while (ind++ < left) {
+
+    while (index < left) {
         env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-        if (!src->next()) {
+        const datum_t *discard = source->next();
+        if (discard == NULL) {
             return NULL;
         }
+        ++index;
     }
-    return src->next();
+
+    const datum_t *datum = source->next();
+    if (datum != NULL) {
+        ++index;
+    }
+    return datum;
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), src(_src) { }
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_source)
+    : eager_datum_stream_t(_env, _source), env(_env), source(_source) { }
+
 const datum_t *zip_datum_stream_t::next_impl() {
-    const datum_t *d = src->next();
-    if (!d) return 0;
-    const datum_t *l = d->get("left", NOTHROW);
-    const datum_t *r = d->get("right", NOTHROW);
-    rcheck(l, "ZIP can only be called on the result of a join.");
-    return r ? env->add_ptr(l->merge(r)) : l;
+    const datum_t *datum = source->next();
+    if (datum == NULL) {
+        return NULL;
+    }
+
+    const datum_t *left = datum->get("left", NOTHROW);
+    const datum_t *right = datum->get("right", NOTHROW);
+    rcheck(left != NULL, "ZIP can only be called on the result of a join.");
+    return right != NULL ? env->add_ptr(left->merge(right)) : left;
 }
+
 
 // UNION_DATUM_STREAM_T
 const datum_t *union_datum_stream_t::next_impl() {
     for (; streams_index < streams.size(); ++streams_index) {
-        if (const datum_t *d = streams[streams_index]->next()) return d;
+        const datum_t *datum = streams[streams_index]->next();
+        if (datum != NULL) {
+            return datum;
+        }
     }
-    return 0;
-};
+
+    return NULL;
+}
+
 
 } // namespace ql

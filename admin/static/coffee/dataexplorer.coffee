@@ -199,6 +199,8 @@ module 'DataExplorerView', ->
                     cursor_timed_out: true
                     view: 'tree'
                     history_state: 'hidden'
+                    last_keys: []
+                    last_columns_size: {}
 
             # Load history, keep it in memory for the session
             if not DataExplorerView.Container.prototype.history?
@@ -2378,7 +2380,7 @@ module 'DataExplorerView', ->
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        primitive_key: '_-primitive value-_' # We suppose that there is no key with such value in the database.
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
         events:
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
@@ -2400,8 +2402,8 @@ module 'DataExplorerView', ->
             else
                 @view = 'tree'
 
-            @last_keys = [] # Arrays of the last keys displayed
-            @last_columns_size = {} # Size of the columns displayed. Undefined if a column has the default size
+            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
         set_limit: (limit) =>
             @limit = limit
@@ -2499,6 +2501,66 @@ module 'DataExplorerView', ->
                     classname: 'jt_bool'
                     value: if value then 'true' else 'false'
  
+        ###
+        keys =
+            primitive_value_count: <int>
+            object:
+                key_1: <keys>
+                key_2: <keys>
+        ###
+        build_map_keys: (args) =>
+            keys_count = args.keys_count
+            result = args.result
+
+            if jQuery.isPlainObject(result)
+                for key, row of result
+                    if not keys_count['object']?
+                        keys_count['object'] = {} # That's define only if there are keys!
+                    if not keys_count['object'][key]?
+                        keys_count['object'][key] =
+                            primitive_value_count: 0
+                    @build_map_keys
+                        keys_count: keys_count['object'][key]
+                        result: row
+            else
+                keys_count.primitive_value_count++
+
+        # Compute occurrence of each key. The occurence can be a float since we compute the average occurence of all keys for an object
+        compute_occurrence: (keys_count) =>
+            if not keys_count['object']? # That means we are accessing only a primitive value
+                keys_count.occurrence = keys_count.primitive_value_count
+            else
+                count_key = if keys_count.primitive_value_count > 0 then 1 else 0
+                count_occurrence = keys_count.primitive_value_count
+                for key, row of keys_count['object']
+                    count_key++
+                    @compute_occurrence row
+                    count_occurrence += row.occurrence
+                keys_count.occurrence = count_occurrence/count_key # count_key cannot be 0
+
+        # Sort the keys per level
+        order_keys: (keys) =>
+            if keys.object?
+                copy_keys = []
+                for key, value of keys.object
+                    if jQuery.isPlainObject(value)
+                        @order_keys value
+
+                    copy_keys.push
+                        key: key
+                        value: value.occurrence
+                # If we could know if a key is a primary key, that would be awesome
+                copy_keys.sort (a, b) ->
+                    if b.value-a.value
+                        return b.value-a.value
+                    else
+                        if a.key > b.key
+                            return 1
+                        else # We cannot have two times the same key
+                            return -1
+                keys.sorted_keys = _.map copy_keys, (d) -> return d.key
+                if keys.primitive_value_count > 0
+                    keys.sorted_keys.unshift @primitive_key
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
@@ -2506,66 +2568,90 @@ module 'DataExplorerView', ->
             if not (result.constructor? and result.constructor is Array)
                 result = [result]
 
-            map = {}
-            for element in result
-                if jQuery.isPlainObject(element)
-                    for key of element
-                        if map[key]?
-                            map[key]++
-                        else
-                            map[key] = 1
-                else
-                    map[@primitive_key] = Infinity
+            keys_count =
+                primitive_value_count: 0
 
-            keys_sorted = []
-            for key of map
-                keys_sorted.push [key, map[key]]
+            for result_entry in result
+                @build_map_keys
+                    keys_count: keys_count
+                    result: result_entry
+            @compute_occurrence keys_count
+            @order_keys keys_count
+        
 
-            keys_sorted.sort((a, b) ->
-                if a[1] < b[1]
-                    return 1
-                else if a[1] > b[1]
-                    return -1
-                else
-                    if a[0] < b[0]
-                        return -1
-                    else if a[0] > b[0]
-                        return 1
-                    else return 0
-            )
+            flatten_attr = []
 
-            @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
+            @get_all_attr # fill attr[]
+                keys_count: keys_count
+                attr: flatten_attr
+                prefix: []
+                prefix_str: ''
+            for value, index in flatten_attr
+                value.col = index
+
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @container.saved_data.last_keys = @last_keys
 
             return @template_json_table.container
-                table_attr: @json_to_table_get_attr keys_sorted
-                table_data: @json_to_table_get_values result, keys_sorted
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
 
-        json_to_table_get_attr: (keys_sorted) =>
-            attr = []
-            for element, col in keys_sorted
-                attr.push
-                    is_primitive: element[0] is @primitive_key
-                    key: element[0]
-                    col: col
- 
-            return @template_json_table.tr_attr
-                attr: attr
-
-        json_to_table_get_values: (result, keys_stored) =>
-            document_list = []
-            for element, i in result
-                new_document = {}
-                new_document.cells = []
-                for key_container, col in keys_stored
-                    key = key_container[0]
-                    if key is @primitive_key
-                        if jQuery.isPlainObject(element)
-                            value = undefined
-                        else
-                            value = element
+        # Flatten the object returns by build_map_keys().
+        # We get back an array of keys
+        get_all_attr: (args) =>
+            keys_count = args.keys_count
+            attr = args.attr
+            prefix = args.prefix
+            prefix_str = args.prefix_str
+            for key in keys_count.sorted_keys
+                if key is @primitive_key
+                    new_prefix_str = prefix_str # prefix_str without the last dot
+                    if new_prefix_str.length > 0
+                        new_prefix_str = new_prefix_str.slice(0, -1)
+                    attr.push
+                        prefix: prefix
+                        prefix_str: new_prefix_str
+                        is_primitive: true
+                else
+                    if keys_count['object'][key]['object']?
+                        new_prefix = DataUtils.deep_copy(prefix)
+                        new_prefix.push key
+                        @get_all_attr
+                            keys_count: keys_count.object[key]
+                            attr: attr
+                            prefix: new_prefix
+                            prefix_str: (if prefix_str? then prefix_str else '')+key+'.'
                     else
-                        if element?
-                            value = element[key]
+                        attr.push
+                            prefix: prefix
+                            prefix_str: prefix_str
+                            key: key
+
+        json_to_table_get_attr: (flatten_attr) =>
+            return @template_json_table.tr_attr
+                attr: flatten_attr
+
+        json_to_table_get_values: (args) =>
+            result = args.result
+            flatten_attr = args.flatten_attr
+
+            document_list = []
+            for single_result, i in result
+                new_document =
+                    cells: []
+                for attr_obj, col in flatten_attr
+                    key = attr_obj.key
+                    value = single_result
+                    for prefix in attr_obj.prefix
+                        value = value?[prefix]
+                    if attr_obj.is_primitive isnt true
+                        if value?
+                            value = value[key]
                         else
                             value = undefined
 
@@ -2603,7 +2689,7 @@ module 'DataExplorerView', ->
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object'
                 data['value'] = '{ ... }'
-                data['data_to_expand'] = JSON.stringify(value)
+                data['is_object'] = true
             else if value_type is 'number'
                 data['classname'] = 'jta_num'
             else if value_type is 'string'
@@ -2660,16 +2746,16 @@ module 'DataExplorerView', ->
                 @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
-            $('.col-'+col).css 'max-width', size
-            $('.value-'+col).css 'max-width', size-20
-            $('.col-'+col).css 'width', size
-            $('.value-'+col).css 'width', size-20
+            @$('.col-'+col).css 'max-width', size
+            @$('.value-'+col).css 'max-width', size-20
+            @$('.col-'+col).css 'width', size
+            @$('.value-'+col).css 'width', size-20
             if size < 20
-                $('.value-'+col).css 'padding-left', (size-5)+'px'
-                $('.value-'+col).css 'visibility', 'hidden'
+                @$('.value-'+col).css 'padding-left', (size-5)+'px'
+                @$('.value-'+col).css 'visibility', 'hidden'
             else
-                $('.value-'+col).css 'padding-left', '15px'
-                $('.value-'+col).css 'visibility', 'visible'
+                @$('.value-'+col).css 'padding-left', '15px'
+                @$('.value-'+col).css 'visibility', 'visible'
 
 
         handle_mouseup: (event) =>
