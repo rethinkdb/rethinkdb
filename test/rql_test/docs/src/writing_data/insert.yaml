@@ -29,8 +29,8 @@ commands:
             r.table('marvel').insert(
                 { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)
           rb: |
-            r.table('marvel').insert({:superhero => 'Iron Man', :superpower => 'Arc Reactor'})
-             .run(conn)
+            r.table('marvel').insert(
+                { :superhero => 'Iron Man', :superpower => 'Arc Reactor' }).run(conn)
       - description: Insert multiple rows into a table named 'marvel'.
         code:
           js: |

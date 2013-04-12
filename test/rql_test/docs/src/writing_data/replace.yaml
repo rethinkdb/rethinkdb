@@ -33,8 +33,8 @@ commands:
             r.table('marvel').get('superman').replace(
                 { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
           rb: |
-            r.table('marvel').get('superman')
-             .replace(:non_atomic, {:id => 'superman', :age => 30}).run(conn)
+            r.table('marvel').get('superman').replace(
+               :non_atomic, {:id => 'superman', :age => 30}).run(conn)
       - description: Mark all Marvel heroes as favorites.
         code:
           js: |
@@ -45,9 +45,9 @@ commands:
             r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
                 lambda hero: hero.merge({'is_fav': True})).run(conn)
           rb: |
-            r.table('heroes').filter { |hero| hero[:universe] == 'marvel' }
-             .replace { |hero| hero.merge(:is_fav => true)}
-             .run(conn)
+            r.table('heroes').filter { |hero| hero[:universe].eq 'marvel'
+             }.replace { |hero| hero.merge(:is_fav => true)
+             }.run(conn)
 
     js:
       examples:
