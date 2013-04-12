@@ -176,9 +176,10 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
-            store.acquire_sindex_superblock_for_write(id,
+            bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
+            ASSERT_TRUE(sindex_exists);
 
             boost::shared_ptr<scoped_cJSON_t> data(new
                     scoped_cJSON_t(cJSON_CreateNumber(1)));
@@ -208,9 +209,10 @@ void run_sindex_btree_store_api_test() {
 
             store_key_t key("foo");
 
-            store.acquire_sindex_superblock_for_read(id,
+            bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(), &token_pair,
                     txn.get(), &sindex_super_block, &dummy_interuptor);
+            ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;
 

@@ -183,6 +183,10 @@ void post_construct_and_drain_queue(
                     queue_txn.get(),
                     &sindexes);
 
+            if (sindexes.empty()) {
+                break;
+            }
+
             mutex_t::acq_t acq;
             store->lock_sindex_queue(queue_sindex_block.get(), &acq);
 
@@ -207,12 +211,44 @@ void post_construct_and_drain_queue(
                         store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
-                break;
+                return;
             }
         }
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
         // indeterminate state and will be cleaned up at a later point.
+    }
+
+    {
+        /* If we get here it's either because we were interrupted or the sindex
+         * we were post constructiing was deleted. Either way we need to clean
+         * up the queue. */
+        write_token_pair_t token_pair;
+        store->new_write_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> queue_txn;
+        scoped_ptr_t<real_superblock_t> queue_superblock;
+
+        store->acquire_superblock_for_write(
+            rwi_write,
+            repli_timestamp_t::distant_past,
+            2,
+            &token_pair.main_write_token,
+            &queue_txn,
+            &queue_superblock,
+            lock.get_drain_signal());
+
+        scoped_ptr_t<buf_lock_t> queue_sindex_block;
+        store->acquire_sindex_block_for_write(
+            &token_pair,
+            queue_txn.get(),
+            &queue_sindex_block,
+            queue_superblock->get_sindex_block_id(),
+            lock.get_drain_signal());
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(queue_sindex_block.get(), &acq);
+        store->deregister_sindex_queue(mod_queue.get(), &acq);
     }
 }
 
@@ -812,12 +848,18 @@ struct read_visitor_t : public boost::static_visitor<void> {
             scoped_ptr_t<real_superblock_t> sindex_sb;
 
             try {
-                store->acquire_sindex_superblock_for_read(*rget.sindex,
+                bool found = store->acquire_sindex_superblock_for_read(*rget.sindex,
                         superblock->get_sindex_block_id(), token_pair,
                         txn, &sindex_sb, &interruptor);
+
+                if (!found) {
+                    res.result = ql::datum_exc_t(
+                        strprintf("Index `%s` was not found.",
+                                  rget.sindex->c_str()));
+                }
             } catch (const sindex_not_post_constructed_exc_t &) {
                 res.result = ql::datum_exc_t(
-                    strprintf("Index `%s` was accessed before"
+                    strprintf("Index `%s` was accessed before "
                               "its construction was finished.",
                                     rget.sindex->c_str()));
                 return;
