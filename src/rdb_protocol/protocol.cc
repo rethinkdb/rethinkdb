@@ -220,9 +220,9 @@ void post_construct_and_drain_queue(
     }
 
     {
-        /* If we get here it's either because we were interrupted or the sidnex
-         * we were post construction was deleted. Either way we need to cleanup
-         * the queue. */
+        /* If we get here it's either because we were interrupted or the sindex
+         * we were post constructiing was deleted. Either way we need to clean
+         * up the queue. */
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
