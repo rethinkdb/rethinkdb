@@ -395,11 +395,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock, cb);
 }
 
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
-    // TODO: don't be stupid, be a smarty, come and join the nazy
-    // party (json size estimation will be much easier once we switch
-    // to bson -- fuck it for now).
-    return 250;
+// This is actually a kind of misleading name. This function estimates the size of a cJSON object
+// not a whole rget though it is used for that purpose (by summing up these responses).
+size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json) {
+    return cJSON_estimate_size(json->get());
 }
 
 
@@ -768,48 +767,64 @@ void rdb_update_single_sindex(
     superblock_t *super_block = sindex->super_block.get();
 
     if (modification->deleted) {
-        promise_t<superblock_t *> return_superblock_local;
-        {
+        try {
+            promise_t<superblock_t *> return_superblock_local;
+            {
 
-            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
+                const ql::datum_t *deleted =
+                    env.add_ptr(new ql::datum_t(modification->deleted, &env));
 
-            const ql::datum_t *index =
-                mapping.compile(&env)->call(deleted)->as_datum();
+                const ql::datum_t *index =
+                    mapping.compile(&env)->call(deleted)->as_datum();
+
+                store_key_t sindex_key(
+                    index->print_secondary(modification->primary_key));
+
+                keyvalue_location_t<rdb_value_t> kv_location;
+
+                find_keyvalue_location_for_write(txn, super_block,
+                                                 sindex_key.btree_key(),
+                                                 &kv_location,
+                                                 &sindex->btree->root_eviction_priority,
+                                                 &sindex->btree->stats,
+                                                 &return_superblock_local);
+
+                kv_location_delete(&kv_location, sindex_key,
+                                   sindex->btree, repli_timestamp_t::distant_past, txn);
+                //The keyvalue location gets destroyed here.
+            }
+            super_block = return_superblock_local.wait();
+        } catch (const ql::base_exc_t &) {
+            // Do nothing (it wasn't actually in the index).
+        }
+    }
+
+    if (modification->added) {
+        try {
+            const ql::datum_t *added =
+                env.add_ptr(new ql::datum_t(modification->added, &env));
+
+            const ql::datum_t *index = mapping.compile(&env)->call(added)->as_datum();
 
             store_key_t sindex_key(index->print_secondary(modification->primary_key));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
-            find_keyvalue_location_for_write(txn, super_block,
-                    sindex_key.btree_key(), &kv_location,
-                    &sindex->btree->root_eviction_priority, &sindex->btree->stats,
-                    &return_superblock_local);
+            promise_t<superblock_t *> dummy;
+            find_keyvalue_location_for_write(txn,
+                                             super_block,
+                                             sindex_key.btree_key(),
+                                             &kv_location,
+                                             &sindex->btree->root_eviction_priority,
+                                             &sindex->btree->stats,
+                                             &dummy);
 
-            kv_location_delete(&kv_location, sindex_key,
-                        sindex->btree, repli_timestamp_t::distant_past, txn);
-            //The keyvalue location gets destroyed here.
+            kv_location_set(&kv_location, sindex_key,
+                            modification->added, sindex->btree,
+                            repli_timestamp_t::distant_past, txn);
+        } catch (const ql::base_exc_t &) {
+            // Do nothing (we just drop the row from the index).
         }
-        super_block = return_superblock_local.wait();
-    }
-
-    if (modification->added) {
-        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
-
-        const ql::datum_t *index =
-            mapping.compile(&env)->call(added)->as_datum();
-
-        store_key_t sindex_key(index->print_secondary(modification->primary_key));
-
-        keyvalue_location_t<rdb_value_t> kv_location;
-
-        promise_t<superblock_t *> dummy;
-        find_keyvalue_location_for_write(txn, super_block,
-                sindex_key.btree_key(), &kv_location,
-                &sindex->btree->root_eviction_priority, &sindex->btree->stats,
-                &dummy);
-
-        kv_location_set(&kv_location, sindex_key,
-                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
     }
 }
 

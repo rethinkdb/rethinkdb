@@ -24,7 +24,7 @@ commands:
                                         ironman)
             ).run(conn)
           rb: |-
-            r.table('marvel').get('IronMan').do {
+            r.table('marvel').get('IronMan').do { |ironman|
               r.branch(ironman[:victories] < ironman[:battles],
                 r.error('impossible code path'),
                 ironman)

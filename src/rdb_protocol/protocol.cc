@@ -1001,29 +1001,33 @@ struct write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
-        response->response = sindex_create_response_t();
+        sindex_create_response_t res;
 
         write_message_t wm;
         wm << c.mapping;
 
         vector_stream_t stream;
-        int res = send_write_message(&stream, &wm);
-        guarantee(res == 0);
+        int write_res = send_write_message(&stream, &wm);
+        guarantee(write_res == 0);
 
         scoped_ptr_t<buf_lock_t> sindex_block;
-        store->add_sindex(
-                token_pair,
-                c.id,
-                stream.vector(),
-                txn,
-                superblock,
-                &sindex_block,
-                &interruptor);
+        res.success = store->add_sindex(
+            token_pair,
+            c.id,
+            stream.vector(),
+            txn,
+            superblock,
+            &sindex_block,
+            &interruptor);
 
-        std::set<std::string> sindexes;
-        sindexes.insert(c.id);
-        rdb_protocol_details::bring_sindexes_up_to_date(sindexes, store,
-                sindex_block.get());
+        if (res.success) {
+            std::set<std::string> sindexes;
+            sindexes.insert(c.id);
+            rdb_protocol_details::bring_sindexes_up_to_date(
+                sindexes, store, sindex_block.get());
+        }
+
+        response->response = res;
     }
 
     void operator()(const sindex_drop_t &d) {
@@ -1436,7 +1440,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_create_response_t);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);

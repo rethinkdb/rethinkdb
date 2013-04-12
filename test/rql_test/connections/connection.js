@@ -23,8 +23,17 @@ var assertErr = function(err, type, msg) {
 var givesError = function(type, msg, done){
     return function(err){
         assertErr(err, type, msg);
-        done();
+        if(done) {
+          done();
+        }
     };
+};
+
+var checkError = function(type, msg) {
+    return function(err) {
+      assertErr(err, type, msg);
+      return true; // error is correct
+    }
 };
 
 var withConnection = function(f){
@@ -66,6 +75,13 @@ describe('Javascript connection API', function(){
                 r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
                     r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", function(){
                         r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))}))}));
+        });
+
+        it("empty run", function(done) {
+          assert.throws(function(){ r.expr(1).run(); },
+                        checkError("RqlDriverError",
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."));
+          done();
         });
     });
 
@@ -110,7 +126,8 @@ describe('Javascript connection API', function(){
 
         it("fails to query after close", withConnection(function(done, c){
             c.close();
-            assert.throws(function(){ r(1).run(c, function(){}); }, "RqlDriverError");
+            assert.throws(function(){ r(1).run(c, function(){}); },
+                          checkError("RqlDriverError", "Connection is closed."));
             done();
         }));
 
@@ -131,15 +148,15 @@ describe('Javascript connection API', function(){
                     r.table('t1').run({connection: c, useOutdated: true}, done);});});
         }));
 
-        it("fails to query after kill", function(done){
+        it("fails to query after kill", withConnection(function(done, c){
             cpp_server.kill();
             setTimeout(function() {
                 assert.throws(function(){
-                    r(1).run(c);
-                }, "RqlDriverError", "Connection is closed.");
+                    r(1).run(c, function(err, res) { assert.ok(false, "This callback should never get called"); });
+                }, checkError("RqlDriverError", "Connection is closed."));
                 done();
             }, 100);
-        });
+        }));
 
         it("pretty-printing", function(){
             assert.equal(r.db('db1').table('tbl1').map(function(x){ return x; }).toString(),
@@ -164,6 +181,4 @@ describe('Javascript connection API', function(){
         }));
     });
 });
-
-// TODO: test cursors, streaming large values
 

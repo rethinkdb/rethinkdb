@@ -134,13 +134,13 @@ void run_sindex_btree_store_api_test() {
             store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                                                1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
 
-            store.add_sindex(
-                    &token_pair,
-                    id,
-                    std::vector<char>(),
-                    txn.get(),
-                    super_block.get(),
-                    &dummy_interuptor);
+            UNUSED bool b =store.add_sindex(
+                &token_pair,
+                id,
+                std::vector<char>(),
+                txn.get(),
+                super_block.get(),
+                &dummy_interuptor);
         }
 
         {

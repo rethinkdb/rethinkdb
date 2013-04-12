@@ -1,4 +1,4 @@
-###
+##
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
@@ -41,6 +41,13 @@ class TestNoConnection(unittest.TestCase):
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to 0.0.0.0:11221.",
             r.connect, host="0.0.0.0", port=11221)
+
+    def test_empty_run(self):
+        # Test the error message when we pass nothing to run and
+        # didn't call `repl`
+        self.assertRaisesRegexp(
+            r.RqlDriverError, "RqlQuery.run must be given a connection to run on.",
+            r.expr(1).run)
 
 class TestConnectionDefaultPort(unittest.TestCase):
 
