@@ -767,48 +767,64 @@ void rdb_update_single_sindex(
     superblock_t *super_block = sindex->super_block.get();
 
     if (modification->deleted) {
-        promise_t<superblock_t *> return_superblock_local;
-        {
+        try {
+            promise_t<superblock_t *> return_superblock_local;
+            {
 
-            const ql::datum_t *deleted = env.add_ptr(new ql::datum_t(modification->deleted, &env));
+                const ql::datum_t *deleted =
+                    env.add_ptr(new ql::datum_t(modification->deleted, &env));
 
-            const ql::datum_t *index =
-                mapping.compile(&env)->call(deleted)->as_datum();
+                const ql::datum_t *index =
+                    mapping.compile(&env)->call(deleted)->as_datum();
+
+                store_key_t sindex_key(
+                    index->print_secondary(modification->primary_key));
+
+                keyvalue_location_t<rdb_value_t> kv_location;
+
+                find_keyvalue_location_for_write(txn, super_block,
+                                                 sindex_key.btree_key(),
+                                                 &kv_location,
+                                                 &sindex->btree->root_eviction_priority,
+                                                 &sindex->btree->stats,
+                                                 &return_superblock_local);
+
+                kv_location_delete(&kv_location, sindex_key,
+                                   sindex->btree, repli_timestamp_t::distant_past, txn);
+                //The keyvalue location gets destroyed here.
+            }
+            super_block = return_superblock_local.wait();
+        } catch (const ql::base_exc_t &) {
+            // Do nothing (it wasn't actually in the index).
+        }
+    }
+
+    if (modification->added) {
+        try {
+            const ql::datum_t *added =
+                env.add_ptr(new ql::datum_t(modification->added, &env));
+
+            const ql::datum_t *index = mapping.compile(&env)->call(added)->as_datum();
 
             store_key_t sindex_key(index->print_secondary(modification->primary_key));
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
-            find_keyvalue_location_for_write(txn, super_block,
-                    sindex_key.btree_key(), &kv_location,
-                    &sindex->btree->root_eviction_priority, &sindex->btree->stats,
-                    &return_superblock_local);
+            promise_t<superblock_t *> dummy;
+            find_keyvalue_location_for_write(txn,
+                                             super_block,
+                                             sindex_key.btree_key(),
+                                             &kv_location,
+                                             &sindex->btree->root_eviction_priority,
+                                             &sindex->btree->stats,
+                                             &dummy);
 
-            kv_location_delete(&kv_location, sindex_key,
-                        sindex->btree, repli_timestamp_t::distant_past, txn);
-            //The keyvalue location gets destroyed here.
+            kv_location_set(&kv_location, sindex_key,
+                            modification->added, sindex->btree,
+                            repli_timestamp_t::distant_past, txn);
+        } catch (const ql::base_exc_t &) {
+            // Do nothing (we just drop the row from the index).
         }
-        super_block = return_superblock_local.wait();
-    }
-
-    if (modification->added) {
-        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
-
-        const ql::datum_t *index =
-            mapping.compile(&env)->call(added)->as_datum();
-
-        store_key_t sindex_key(index->print_secondary(modification->primary_key));
-
-        keyvalue_location_t<rdb_value_t> kv_location;
-
-        promise_t<superblock_t *> dummy;
-        find_keyvalue_location_for_write(txn, super_block,
-                sindex_key.btree_key(), &kv_location,
-                &sindex->btree->root_eviction_priority, &sindex->btree->stats,
-                &dummy);
-
-        kv_location_set(&kv_location, sindex_key,
-                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
     }
 }
 
@@ -831,11 +847,12 @@ public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
             const std::set<std::string> &sindexes_to_post_construct,
+            cond_t *interrupt_myself,
             signal_t *interruptor
             )
         : store_(store),
           sindexes_to_post_construct_(sindexes_to_post_construct),
-          interruptor_(interruptor)
+          interrupt_myself_(interrupt_myself), interruptor_(interruptor)
     { }
 
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
@@ -846,7 +863,7 @@ public:
 
         scoped_ptr_t<transaction_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
-        {
+        try {
             scoped_ptr_t<real_superblock_t> superblock;
 
             store_->acquire_superblock_for_write(
@@ -871,6 +888,13 @@ public:
                     sindex_block.get(),
                     wtxn.get(),
                     &sindexes);
+
+            if (sindexes.empty()) {
+                interrupt_myself_->pulse_if_not_already_pulsed();
+                return;
+            }
+        } catch (const interrupted_exc_t &e) {
+            return;
         }
 
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
@@ -906,6 +930,7 @@ public:
 
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<std::string> &sindexes_to_post_construct_;
+    cond_t *interrupt_myself_;
     signal_t *interruptor_;
 };
 
@@ -914,8 +939,12 @@ void post_construct_secondary_indexes(
         const std::set<std::string> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
-    post_construct_traversal_helper_t helper(store, 
-            sindexes_to_post_construct, interruptor);
+    cond_t local_interruptor;
+
+    wait_any_t wait_any(&local_interruptor, interruptor);
+
+    post_construct_traversal_helper_t helper(store,
+            sindexes_to_post_construct, &local_interruptor, interruptor);
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
@@ -930,6 +959,6 @@ void post_construct_secondary_indexes(
         &superblock,
         interruptor,
         true /* USE_SNAPSHOT */);
-    btree_parallel_traversal(txn.get(), superblock.get(), 
-            store->btree.get(), &helper, interruptor);
+    btree_parallel_traversal(txn.get(), superblock.get(),
+            store->btree.get(), &helper, &wait_any);
 }
