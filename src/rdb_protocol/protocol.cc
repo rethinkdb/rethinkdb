@@ -954,10 +954,12 @@ struct write_visitor_t : public boost::static_visitor<void> {
             &sindex_block,
             &interruptor);
 
-        std::set<std::string> sindexes;
-        sindexes.insert(c.id);
-        rdb_protocol_details::bring_sindexes_up_to_date(
-            sindexes, store, sindex_block.get());
+        if (res.success) {
+            std::set<std::string> sindexes;
+            sindexes.insert(c.id);
+            rdb_protocol_details::bring_sindexes_up_to_date(
+                sindexes, store, sindex_block.get());
+        }
 
         response->response = res;
     }
