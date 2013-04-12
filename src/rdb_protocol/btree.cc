@@ -874,24 +874,10 @@ void rdb_update_single_sindex(
         }
     }
 
-<<<<<<< HEAD
     if (modification->info.added) {
-        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->info.added, &env));
-
-        const ql::datum_t *index =
-            mapping.compile(&env)->call(added)->as_datum();
-||||||| merged common ancestors
-    if (modification->added) {
-        const ql::datum_t *added = env.add_ptr(new ql::datum_t(modification->added, &env));
-
-        const ql::datum_t *index =
-            mapping.compile(&env)->call(added)->as_datum();
-=======
-    if (modification->added) {
         try {
             const ql::datum_t *added =
-                env.add_ptr(new ql::datum_t(modification->added, &env));
->>>>>>> next
+                env.add_ptr(new ql::datum_t(modification->info.added, &env));
 
             const ql::datum_t *index = mapping.compile(&env)->call(added)->as_datum();
 
@@ -899,13 +885,6 @@ void rdb_update_single_sindex(
 
             keyvalue_location_t<rdb_value_t> kv_location;
 
-<<<<<<< HEAD
-        kv_location_set(&kv_location, sindex_key,
-                        modification->info.added, sindex->btree, repli_timestamp_t::distant_past, txn);
-||||||| merged common ancestors
-        kv_location_set(&kv_location, sindex_key,
-                 modification->added, sindex->btree, repli_timestamp_t::distant_past, txn);
-=======
             promise_t<superblock_t *> dummy;
             find_keyvalue_location_for_write(txn,
                                              super_block,
@@ -916,12 +895,11 @@ void rdb_update_single_sindex(
                                              &dummy);
 
             kv_location_set(&kv_location, sindex_key,
-                            modification->added, sindex->btree,
+                            modification->info.added, sindex->btree,
                             repli_timestamp_t::distant_past, txn);
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
         }
->>>>>>> next
     }
 }
 
