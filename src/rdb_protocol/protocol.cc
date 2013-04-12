@@ -980,8 +980,6 @@ void store_t::protocol_read(const read_t &read,
     boost::apply_visitor(v, read.read);
 }
 
-// RSISAM: Ask Joe how secondary index updates are done in the proper order.  (Also demand better commenting of this in the code.)
-
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
@@ -1002,14 +1000,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response = batched_replaces_response_t();
         batched_replaces_response_t *res = boost::get<batched_replaces_response_t>(&response->response);
 
-        std::vector<rdb_modification_report_t> mod_reports(br.point_replaces.size());
-        for (size_t i = 0; i < br.point_replaces.size(); ++i) {
-            mod_reports[i].primary_key = br.point_replaces[i].second.key;
-        }
+        rdb_modification_report_cb_t sindex_cb(store, token_pair, txn,
+                                               (*superblock)->get_sindex_block_id(),
+                                               auto_drainer_t::lock_t(&store->drainer));
         rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
-                            &ql_env, res, &mod_reports);
-
-        update_sindexes(mod_reports.data(), mod_reports.size());
+                            &ql_env, res, &sindex_cb);
     }
 
     void operator()(const point_write_t &w) {

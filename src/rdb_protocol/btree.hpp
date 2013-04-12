@@ -77,6 +77,7 @@ private:
 
 struct rdb_modification_info_t;
 struct rdb_modification_report_t;
+class rdb_modification_report_cb_t;
 
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
@@ -96,7 +97,7 @@ void rdb_replace(btree_slice_t *slice,
 void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out,
-                         std::vector<rdb_modification_report_t> *mod_reports);
+                         rdb_modification_report_cb_t *sindex_cb);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
@@ -126,8 +127,6 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         timestamp, transaction_t *txn, superblock_t *superblock,
         point_delete_response_t *response,
         rdb_modification_info_t *mod_info);
-
-class rdb_modification_report_cb_t;
 
 class rdb_value_deleter_t : public value_deleter_t {
     void delete_value(transaction_t *_txn, void *_value);
@@ -189,9 +188,10 @@ public:
             boost::shared_ptr<scoped_cJSON_t> added,
             boost::shared_ptr<scoped_cJSON_t> removed);
 
+    void on_mod_report(const rdb_modification_report_t &mod_report);
+
     ~rdb_modification_report_cb_t();
 private:
-    void on_mod_report(const rdb_modification_report_t &mod_report);
 
     /* Fields initialized by the constructor. */
     btree_store_t<rdb_protocol_t> *store_;

@@ -272,27 +272,34 @@ void rdb_replace(btree_slice_t *slice,
                                       key, f, ql_env, NULL, response_out, mod_info);
 }
 
-struct slice_timestamp_t {
-    slice_timestamp_t(btree_slice_t *_slice, repli_timestamp_t _timestamp)
-        : slice(_slice), timestamp(_timestamp) { }
+struct slice_timestamp_txn_replace_t {
+    slice_timestamp_txn_replace_t(btree_slice_t *_slice, repli_timestamp_t _timestamp,
+                                  transaction_t *_txn, const point_replace_t *_replace)
+        : slice(_slice), timestamp(_timestamp), txn(_txn), replace(_replace) { }
 
     btree_slice_t *slice;
     repli_timestamp_t timestamp;
+    transaction_t *txn;
+    const point_replace_t *replace;
 };
 
 void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
-                                       const point_replace_t *replace,
-                                       slice_timestamp_t slice_timestamp,
-                                       transaction_t *txn,
+                                       fifo_enforcer_sink_t *batched_replaces_fifo_sink,
+                                       const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
+                                       slice_timestamp_txn_replace_t sttr,
                                        superblock_t *superblock,
                                        ql::env_t *ql_env,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
-                                       rdb_modification_info_t *mod_info) {
-    ql::map_wire_func_t f = replace->f;
-    rdb_replace_and_return_superblock(slice_timestamp.slice, slice_timestamp.timestamp, txn, superblock,
-                                      replace->primary_key, replace->key, &f, ql_env,
-                                      superblock_promise_or_null, response_out, mod_info);
+                                       rdb_modification_report_cb_t *sindex_cb) {
+    ql::map_wire_func_t f = sttr.replace->f;
+    rdb_modification_report_t mod_report(sttr.replace->key);
+    rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
+                                      sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
+                                      superblock_promise_or_null, response_out, &mod_report.info);
+
+    fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    sindex_cb->on_mod_report(mod_report);
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -302,11 +309,14 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          btree_slice_t *slice, repli_timestamp_t timestamp,
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out,
-                         std::vector<rdb_modification_report_t> *mod_reports) {
+                         rdb_modification_report_cb_t *sindex_cb) {
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
     scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+
+    fifo_enforcer_source_t batched_replaces_fifo_source;
+    fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
@@ -317,14 +327,14 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
         promise_t<superblock_t *> superblock_promise;
         coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
                                   auto_drainer_t::lock_t(&drainer),
-                                  &replaces[i].second,
-                                  slice_timestamp_t(slice, timestamp),
-                                  txn,
+                                  &batched_replaces_fifo_sink,
+                                  batched_replaces_fifo_source.enter_write(),
+                                  slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second),
                                   current_superblock.release(),
                                   ql_env,
                                   &superblock_promise,
                                   &response_out->point_replace_responses[i].second,
-                                  &(*mod_reports)[i].info));
+                                  sindex_cb));
 
         current_superblock.init(superblock_promise.wait());
     }
