@@ -426,24 +426,24 @@ message Term {
 //     args = [Term {
 //               type = TABLE;
 //               args = [Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_STR; r_str = "tbl"; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_STR; r_str = "tbl"; };
 //                       }];
 //               optargs = [["use_outdated",
 //                           Term {
-//                             type = R_DATUM;
-//                             r_datum = Datum { type = R_BOOL; r_bool = true; };
+//                             type = DATUM;
+//                             datum = Datum { type = R_BOOL; r_bool = true; };
 //                           }]];
 //             },
 //             Term {
 //               type = R_ARRAY;
 //               args = [Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
 //                       },
 //                       Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 1]]; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_OBJECT; r_object = [["id", 1]]; };
 //                       }];
 //             }]
 //   }
