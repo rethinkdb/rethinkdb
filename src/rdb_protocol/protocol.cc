@@ -993,7 +993,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                     r.primary_key, r.key, f, &ql_env, res,
                     &mod_report.info);
 
-        update_sindexes(&mod_report, 1);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const batched_replaces_t &br) {
@@ -1014,7 +1014,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(w.key);
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
-        update_sindexes(&mod_report, 1);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const point_delete_t &d) {
@@ -1024,7 +1024,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
 
-        update_sindexes(&mod_report, 1);
+        update_sindexes(&mod_report);
     }
 
     void operator()(const sindex_create_t &c) {
@@ -1102,7 +1102,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
-    void update_sindexes(const rdb_modification_report_t *mod_reports, const size_t count) {
+    void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &interruptor);
@@ -1110,17 +1110,13 @@ private:
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
-        // RSI: pmap this, while following the rule that mod_reports[i + 1] gets applied after
-        // mod_reports[i].
-        for (size_t i = 0; i < count; ++i) {
-            write_message_t wm;
-            wm << mod_reports[i];
-            store->sindex_queue_push(wm, &acq);
+        write_message_t wm;
+        wm << *mod_report;
+        store->sindex_queue_push(wm, &acq);
 
-            sindex_access_vector_t sindexes;
-            store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
-            rdb_update_sindexes(sindexes, &mod_reports[i], txn);
-        }
+        sindex_access_vector_t sindexes;
+        store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+        rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
     btree_slice_t *btree;
