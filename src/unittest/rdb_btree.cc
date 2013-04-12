@@ -96,7 +96,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     int res = send_write_message(&stream, &wm);
     guarantee(res == 0);
 
-    store->add_sindex(
+    UNUSED bool b = store->add_sindex(
             &token_pair,
             sindex_id,
             stream.vector(),

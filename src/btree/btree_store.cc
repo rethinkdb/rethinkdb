@@ -286,7 +286,7 @@ bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::m
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::add_sindex(
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
@@ -299,13 +299,13 @@ void btree_store_t<protocol_t>::add_sindex(
     /* Get the sindex block which we will need to modify. */
     scoped_ptr_t<buf_lock_t> sindex_block;
 
-    add_sindex(token_pair, id, definition, txn,
-               super_block, &sindex_block,
-               interruptor);
+    return add_sindex(token_pair, id, definition, txn,
+                      super_block, &sindex_block,
+                      interruptor);
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::add_sindex(
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
@@ -316,12 +316,12 @@ void btree_store_t<protocol_t>::add_sindex(
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, super_block->get_sindex_block_id(), interruptor);
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
+                                   super_block->get_sindex_block_id(), interruptor);
 
     secondary_index_t sindex;
     if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
-        /* sindex was already created. */
-        return;
+        return false; // sindex was already created
     } else {
         {
             buf_lock_t sindex_superblock(txn);
@@ -337,12 +337,15 @@ void btree_store_t<protocol_t>::add_sindex(
          * something that would give a better error if someone did try to use
          * it... on the other hand this code isn't exactly idiot proof even
          * with that. */
-        btree_slice_t::create(txn->get_cache(), sindex.superblock, txn, std::vector<char>(), std::vector<char>());
-        secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, id));
+        btree_slice_t::create(txn->get_cache(), sindex.superblock,
+                              txn, std::vector<char>(), std::vector<char>());
+        secondary_index_slices.insert(
+            id, new btree_slice_t(cache.get(), &perfmon_collection, id));
 
         sindex.post_construction_complete = false;
 
         ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
+        return true;
     }
 }
 
@@ -430,7 +433,7 @@ THROWS_NOTHING {
 }
 
 template <class protocol_t>
-bool btree_store_t<protocol_t>::drop_sindex(
+MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
         transaction_t *txn,

@@ -18,7 +18,14 @@ public:
         std::string name = arg(1)->as_datum()->as_str();
         func_t *index_func = arg(2)->as_func();
 
-        return new_val(table->sindex_create(name, index_func));
+        bool success = table->sindex_create(name, index_func);
+        if (success) {
+            datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+            UNUSED bool b = res->add("created", env->add_ptr(new datum_t(1.0)));
+            return new_val(res);
+        } else {
+            rfail("Index `%s` already exists.", name.c_str());
+        }
     }
 
     virtual const char *name() const { return "sindex_create"; }
@@ -32,8 +39,14 @@ public:
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
         std::string name = arg(1)->as_datum()->as_str();
-
-        return new_val(table->sindex_drop(name));
+        bool success = table->sindex_drop(name);
+        if (success) {
+            datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+            UNUSED bool b = res->add("dropped", env->add_ptr(new datum_t(1.0)));
+            return new_val(res);
+        } else {
+            rfail("Index `%s` does not exist.", name.c_str());
+        }
     }
 
     virtual const char * name() const { return "sindex_drop"; }
