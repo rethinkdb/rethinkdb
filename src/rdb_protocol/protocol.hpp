@@ -412,6 +412,7 @@ struct rdb_protocol_t {
     //shadowing. Nothing really wrong with this but maybe they could have a
     //more generic name.
     struct sindex_create_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 

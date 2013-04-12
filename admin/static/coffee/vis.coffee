@@ -45,6 +45,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
+            @context.stop()
             @read_metric.on 'change' # We remove the listener.
 
     class @OpsPlot extends Backbone.View
@@ -150,16 +151,16 @@ module 'Vis', ->
                 table:      @type is 'table'
 
             # Set up the plot
-            sensible_plot = @context.sensible()
+            @sensible_plot = @context.sensible()
                 .height(@HEIGHT_IN_PIXELS)
                 .colors(["#983434","#729E51"])
                 .extent([0, @HEIGHT_IN_UNITS])
             d3.select(@.$('.plot')[0]).call (div) =>
                 div.data([[@read_stats, @write_stats]])
                 # Chart itself
-                div.append('div')
+                @selection = div.append('div')
                     .attr('class', 'chart')
-                    .call(sensible_plot)
+                @selection.call(@sensible_plot)
                 # Horizontal axis
                 div.append('div')
                     .attr('class', 'haxis')
@@ -180,7 +181,7 @@ module 'Vis', ->
                 # Vertical axis
                 div.append('div')
                     .attr('class', 'vaxis')
-                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], sensible_plot.scale())
+                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], @sensible_plot.scale())
                         .orient('left')
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSubdivide(@VAXIS_MINOR_SUBDIVISION_COUNT - 1)
@@ -189,7 +190,7 @@ module 'Vis', ->
                 # Vertical axis grid
                 div.append('div')
                     .attr('class', 'vgrid')
-                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], sensible_plot.scale())
+                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], @sensible_plot.scale())
                         .orient('left')
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSize(-(@WIDTH_IN_PIXELS + 35), 0, 0)
@@ -200,6 +201,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
+            @sensible_plot.remove(@selection)
             @context.on 'focus'
             @legend.destroy()
 
@@ -235,12 +237,13 @@ module 'Vis', ->
     class @InterpolatingCache
         constructor: (num_data_points, num_interpolation_points, get_data_fn) ->
             @ndp = num_data_points
-            @nip = num_interpolation_points
+            @nip = num_interpolation_points # =Pixels/Sec
             @get_data_fn = get_data_fn
             @values = []
             for i in [0..(@ndp-1)]
                 @values.push(0)
             @next_value = null
+            @last_date = null
 
         step: (num_points) ->
             # First, grab newest data
@@ -250,6 +253,11 @@ module 'Vis', ->
             return @values.slice(-num_points)
 
         push_data: ->
+            if @last_date is null # First time we call @push_data
+                @last_date = Date.now()
+                @values.push @get_data_fn()
+                return true
+
             # Check if we need to restart interpolation
             current_value = @get_data_fn()
             if @next_value isnt current_value
@@ -257,16 +265,21 @@ module 'Vis', ->
                 @next_value = current_value
                 @interpolation_step = 1
 
-            if @values[@values.length - 1] is @next_value
-                value_to_push = @next_value
-            else
-                value_to_push = @start_value + ((@next_value - @start_value) / @nip * @interpolation_step)
-                @interpolation_step += 1
-                if @interpolation_step > @nip
+
+            elapsed_time = Date.now()-@last_date
+            missing_steps = Math.max 1, Math.round(elapsed_time/1000*@nip) # If the tab has focus, we have missing_steps = 1 else we have missing_steps > 1
+            for i in [1..missing_steps]
+                if @values[@values.length - 1] is @next_value
                     value_to_push = @next_value
-            @values.push(value_to_push)
+                else
+                    value_to_push = @start_value + ((@next_value - @start_value) / @nip * @interpolation_step)
+                    @interpolation_step += 1
+                    if @interpolation_step > @nip
+                        value_to_push = @next_value
+                @values.push(value_to_push)
+
+            @last_date = Date.now()
 
             # Trim the cache
             if @values.length > @ndp
                 @values = @values.slice(-@ndp)
-

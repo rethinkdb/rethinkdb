@@ -44,8 +44,8 @@ public:
                                                const std::vector<const datum_t *> &replacement_values,
                                                bool upsert);
 
-    const datum_t *sindex_create(const std::string &name, func_t *index_func);
-    const datum_t *sindex_drop(const std::string &name);
+    MUST_USE bool sindex_create(const std::string &name, func_t *index_func);
+    MUST_USE bool sindex_drop(const std::string &name);
     const datum_t *sindex_list();
 
 private:
