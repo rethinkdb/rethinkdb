@@ -75,13 +75,13 @@ class Cursor
 
     ## The public API
 
-    hasNext: -> !@_endFlag || @_chunks[0]?
+    hasNext: ar () -> !@_endFlag || @_chunks[0]?
 
-    next: (cb) ->
+    next: ar (cb) ->
         @_cbQueue.push cb
         @_promptNext()
 
-    each: (cb) ->
+    each: ar (cb) ->
         n = =>
             @next (err, row) =>
                 cb(err, row)
@@ -90,7 +90,7 @@ class Cursor
         if @hasNext()
             n()
 
-    toArray: (cb) ->
+    toArray: ar (cb) ->
         arr = []
         if not @hasNext()
             cb null, arr
@@ -103,8 +103,8 @@ class Cursor
             if not @hasNext()
                 cb null, arr
 
-    close: ->
+    close: ar () ->
         unless @_endFlag
             @_conn._end(@_token)
 
-    toString: -> "[object Cursor]"
+    toString: ar () -> "[object Cursor]"

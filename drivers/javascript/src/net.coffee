@@ -110,14 +110,14 @@ class Connection
         else
             @_error new RqlDriverError "Unknown token in response"
 
-    close: ->
+    close: ar () ->
         @open = false
 
-    cancel: ->
+    cancel: ar () ->
         @outstandingCallbacks = {}
         @close()
 
-    reconnect: (callback) ->
+    reconnect: ar (callback) ->
         @cancel()
         new @constructor({host:@host, port:@port}, callback)
 
@@ -219,11 +219,11 @@ class TcpConnection extends Connection
         @rawSocket.on 'close', =>
             @close()
 
-    close: ->
+    close: ar () ->
         @rawSocket.end()
         super()
 
-    cancel: ->
+    cancel: ar () ->
         @rawSocket.destroy()
         super()
 
@@ -261,7 +261,7 @@ class HttpConnection extends Connection
                     @_error()
         xhr.send()
 
-    cancel: ->
+    cancel: ar () ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
         xhr.send()
@@ -288,7 +288,7 @@ class EmbeddedConnection extends Connection
 
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
-rethinkdb.connect = (host, callback) ->
+rethinkdb.connect = ar (host, callback) ->
     # Host must be a string or an object
     unless typeof(host) is 'string' or typeof(host) is 'object'
         throw new RqlDriverError "First argument to `connect` must be a string giving the "+
@@ -307,7 +307,7 @@ rethinkdb.connect = (host, callback) ->
         throw new RqlDriverError "Neither TCP nor HTTP avaiable in this environment"
     return
 
-rethinkdb.embeddedConnect = (callback) ->
+rethinkdb.embeddedConnect = ar (callback) ->
     unless callback? then callback = (->)
     unless EmbeddedConnection.isAvailable()
         throw new RqlDriverError "Embedded connection not available in this environment"
