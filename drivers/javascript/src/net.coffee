@@ -219,11 +219,11 @@ class TcpConnection extends Connection
         @rawSocket.on 'close', =>
             @close()
 
-    close: ar () ->
+    close: ->
         @rawSocket.end()
         super()
 
-    cancel: ar () ->
+    cancel: ->
         @rawSocket.destroy()
         super()
 
@@ -261,7 +261,7 @@ class HttpConnection extends Connection
                     @_error()
         xhr.send()
 
-    cancel: ar () ->
+    cancel: ->
         xhr = new XMLHttpRequest
         xhr.open("POST", "#{@_url}close-connection?conn_id=#{@_connId}", true)
         xhr.send()
