@@ -415,18 +415,21 @@ void btree_store_t<protocol_t>::set_sindexes(
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::mark_index_up_to_date(
+bool btree_store_t<protocol_t>::mark_index_up_to_date(
     const std::string &id,
     transaction_t *txn,
     buf_lock_t *sindex_block)
 THROWS_NOTHING {
     secondary_index_t sindex;
     bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
-    guarantee(found, "Trying to mark an index up to date that doesn't exist.");
 
-    sindex.post_construction_complete = true;
+    if (found) {
+        sindex.post_construction_complete = true;
 
-    ::set_secondary_index(txn, sindex_block, id, sindex);
+        ::set_secondary_index(txn, sindex_block, id, sindex);
+    }
+
+    return found;
 }
 
 template <class protocol_t>
@@ -536,7 +539,7 @@ void btree_store_t<protocol_t>::get_sindexes(
 
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
+MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
         block_id_t sindex_block_id,
         read_token_pair_t *token_pair,
@@ -546,16 +549,15 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
     assert_thread();
 
-    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
-    sindex_slice->assert_thread();
-
     /* Acquire the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+    if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
+        return false;
+    }
 
     if (!sindex.post_construction_complete) {
         throw sindex_not_post_constructed_exc_t(id);
@@ -563,10 +565,11 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
 
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+    return true;
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
+MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
         block_id_t sindex_block_id,
         write_token_pair_t *token_pair,
@@ -576,16 +579,15 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
     assert_thread();
 
-    btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
-    sindex_slice->assert_thread();
-
     /* Get the sindex block. */
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    ::get_secondary_index(txn, sindex_block.get(), id, &sindex);
+    if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
+        return false;
+    }
 
     if (!sindex.post_construction_complete) {
         throw sindex_not_post_constructed_exc_t(id);
@@ -594,6 +596,7 @@ void btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+    return true;
 }
 
 template <class protocol_t>
@@ -667,7 +670,7 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
+bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
@@ -697,6 +700,9 @@ void btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
     }
+    
+    //return's true if we got all of the sindexes requested.
+    return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
 
 template <class protocol_t>

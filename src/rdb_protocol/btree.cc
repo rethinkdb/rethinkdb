@@ -872,6 +872,10 @@ public:
                     sindex_block.get(),
                     wtxn.get(),
                     &sindexes);
+
+            if (sindexes.empty()) {
+                return;
+            }
         }
 
         const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
