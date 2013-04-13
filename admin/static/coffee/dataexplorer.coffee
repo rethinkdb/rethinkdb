@@ -35,13 +35,13 @@ module 'DataExplorerView', ->
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'open_close_history'
+            'click .toggle_options_link': 'toggle_options'
 
         clear_history_view: (event) =>
             @history_view.clear_history event
             @clear_history()
 
-        open_close_history: (event, args) =>
-            @history_view.open_close_history(args)
+        toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
                 @saved_data.history_state = 'visible'
                 if args?.no_animation is true
@@ -53,6 +53,25 @@ module 'DataExplorerView', ->
                 @saved_data.history_state = 'hidden'
                 @$('.clear_queries_link').fadeOut 'fast'
                 @$('.close_queries_link').removeClass 'active'
+
+            if @options_view.state is 'visible'
+                @$('.toggle_options_link').addClass 'active'
+            else
+                @$('.toggle_options_link').removeClass 'active'
+
+
+        open_close_history: (event, args) =>
+            if @options_view.state is 'vislble'
+                @options_view.toggle_view()
+
+            @history_view.open_close_history(args)
+            @toggle_pressed_buttons()
+
+        toggle_options: (event) =>
+            if @history_view.state is 'visible'
+                @history_view.open_close_history()
+            @options_view.toggle_view()
+            @toggle_pressed_buttons()
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -188,7 +207,15 @@ module 'DataExplorerView', ->
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
-            # We do not load data from localStorage.
+            # Load options from local storage
+            if window.localStorage?.options?
+                @options = JSON.parse window.localStorage.options
+            else
+                @options =
+                    suggestions: true
+                    electric_punctuation: true
+
+            # We do not load the rest of data from localStorage.
             if not DataExplorerView.Container.prototype.saved_data?
                 DataExplorerView.Container.prototype.saved_data =
                     current_query: null
@@ -199,6 +226,7 @@ module 'DataExplorerView', ->
                     cursor_timed_out: true
                     view: 'tree'
                     history_state: 'hidden'
+                    options: @options
 
             # Load history, keep it in memory for the session
             if not DataExplorerView.Container.prototype.history?
@@ -242,6 +270,10 @@ module 'DataExplorerView', ->
                 container: @
                 limit: @limit
                 view: @saved_data.view
+
+            @options_view = new DataExplorerView.OptionsView
+                container: @
+                options: @saved_data.options
 
             @history_view = new DataExplorerView.HistoryView
                 container: @
@@ -305,6 +337,8 @@ module 'DataExplorerView', ->
                 @error_on_connect()
     
             @$('.history_container').html @history_view.render().$el
+            @$('.options_codemirror_container').html @options_view.render().$el
+
             return @
 
         # This method has to be called AFTER the el element has been inserted in the DOM tree, mostly for codemirror
@@ -866,7 +900,8 @@ module 'DataExplorerView', ->
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
                 return false
-            @pair_char(event, stack) # Pair brackets/quotes
+            if @options.electric_punctuation is true
+                @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
@@ -2876,6 +2911,45 @@ module 'DataExplorerView', ->
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
 
+    class @OptionsView extends Backbone.View
+        dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
+
+        events:
+            'change input[type=checkbox]': 'toggle_option'
+
+        initialize: (args) =>
+            @container = args.container
+            @options = args.options
+            @state = 'hidden'
+
+        toggle_option: (event) =>
+            new_target = @$(event.target).data('option')
+            new_value = @$('#'+new_target).is(':checked')
+            @options[new_target] = new_value
+            if window.localStorage?
+                window.localStorage.options = JSON.stringify @options
+
+
+        toggle_view: =>
+            that = @
+            if @state is 'visible'
+                @state = 'hidden'
+                @$('.content').slideUp 'fast', ->
+                    that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                    that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
+                @$('.nano_border').slideUp 'fast'
+                @$('.arrow_history').slideUp 'fast'
+            else
+                @state = 'visible'
+                @$('.arrow_options').show()
+                @$('.nano_border').show()
+                @$('.content').slideDown 'fast'
+
+        render: =>
+            @$el.html @dataexplorer_options_template @options
+            @delegateEvents()
+            return @
+
     class @HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
@@ -2985,9 +3059,9 @@ module 'DataExplorerView', ->
                     , 200
                     , ->
                         $('body').css 'overflow', 'auto'
-                        $(@).css 'visibility', 'hidden'
-                        $('.nano_border').hide() # In case the user trigger hide/show really fast
-                        $('.arrow_history').hide() # In case the user trigger hide/show really fast
+                        that.$(@).css 'visibility', 'hidden'
+                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                        that.$('.arrow_history').hide() # In case the user trigger hide/show really fast
                 @$('.nano_border').slideUp 'fast'
                 @$('.arrow_history').slideUp 'fast'
             else
@@ -3003,6 +3077,7 @@ module 'DataExplorerView', ->
         #   extra: extra size
         # Note, we can define extra OR extra but not both
         resize: (args) =>
+            that = @
             if args?.size?
                 size = args.size
             else
@@ -3026,12 +3101,12 @@ module 'DataExplorerView', ->
                     , duration
                     , ->
                         $('body').css 'overflow', 'auto'
-                        $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                        $('.arrow_history').show() # In case the user trigger hide/show really fast
-                        $('.nano_border').show() # In case the user trigger hide/show really fast
-                        $(@).nanoScroller({preventPageScrolling: true})
+                        that.$(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                        that.$('.arrow_history').show() # In case the user trigger hide/show really fast
+                        that.$('.nano_border').show() # In case the user trigger hide/show really fast
+                        that.$(@).nanoScroller({preventPageScrolling: true})
                         if args?.is_at_bottom is true
-                            $('.nano >.content').animate
+                            that.$('.nano >.content').animate
                                 scrollTop: $('.history_list').height()
                                 , 300
 

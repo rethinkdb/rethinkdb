@@ -1,22 +1,41 @@
 <script id="dataexplorer_view-template" type="text/x-handlebars-template">
     <div class="section">
         <div class="options_container">
-
             <button class="clear_queries_link btn" title="Clear history">Clear history<div class="option_icon clear_history"></div></button>
             <button class="close_queries_link btn" title="History">History<div class="option_icon show_history"></div></button>
+            <button class="btn toggle_options_link" title="Options"><div class="option_icon show_options"></div></button>
             <button class="btn button_query change_size" title="Fullscreen"><div class="option_icon fullscreen"></div></button> 
         </div>
         <h1 class="title small_margin_bottom">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
         <div class="history_container"></div> 
+        <div class="options_codemirror_container"></div> 
         <div class="input_query_full_container"></div>
         <div class="results_container"></div>
     </div>
 </script>
 
+<script id="dataexplorer-options-template" type="text/x-handlebars-template">
+    <div class="arrow_dataexplorer arrow_options"></div>
+    <div class="nano_border"></div>
+    <div class="content">
+        <ul class="options_list">
+            <li>
+                <div class="checkbox-container"><input type="checkbox" data-option="suggestions" id="suggestions"{{#if suggestions}} checked=true{{/if}}><label for="suggestions"></label></div> 
+                <div class="option_description">Enable suggestions.</div></li>
+            <li>
+                <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation"></label></div> 
+                <div class="option_description">Enable electric punctuation.</div></li>
+
+        </ul>
+     </div>
+    <div class="nano_border nano_border_bottom"></div>
+</script>
+
+
 <script id="dataexplorer-history-template" type="text/x-handlebars-template">
-    <div class="arrow_history"></div>
+    <div class="arrow_dataexplorer arrow_history"></div>
     <div class="nano_border"></div>
     <div class="nano">
         <div class="content">
