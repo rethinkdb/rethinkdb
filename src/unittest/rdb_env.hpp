@@ -74,6 +74,7 @@ private:
 
     struct write_visitor_t : public boost::static_visitor<void> {
         void operator()(const rdb_protocol_t::point_replace_t &r);
+        void NORETURN operator()(const rdb_protocol_t::batched_replaces_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
@@ -102,7 +103,7 @@ private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
 
     struct mock_namespace_cache_entry_t {
-        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) : 
+        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
             mock_ns_if(ns_repo) { }
         namespace_cache_entry_t entry;
         mock_namespace_interface_t mock_ns_if;

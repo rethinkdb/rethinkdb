@@ -40,13 +40,13 @@ const datum_t *pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
     return 0;
 }
 
-static const char *const insert_optargs[] = {"upsert"};
+static const char *const insert_optargs[] = { "upsert" };
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
-private:
 
+private:
     void maybe_generate_key(table_t *tbl,
                             std::vector<std::string> *generated_keys_out,
                             const datum_t **datum_out) {
@@ -63,8 +63,8 @@ private:
 
     virtual val_t *eval_impl() {
         table_t *t = arg(0)->as_table();
-        val_t *upsert_val = optarg("upsert", 0);
-        bool upsert = upsert_val ? upsert_val->as_bool() : false;
+        val_t *const upsert_val = optarg("upsert", 0);
+        const bool upsert = upsert_val != NULL && upsert_val->as_bool();
 
         bool done = false;
         const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
@@ -85,15 +85,27 @@ private:
         }
 
         if (!done) {
-            datum_stream_t *ds = v1->as_seq();
-            while (const datum_t *d = ds->next()) {
-                try {
-                    maybe_generate_key(t, &generated_keys, &d);
-                } catch (const base_exc_t &) {
-                    // We just ignore it, the same error will be handled in `replace`.
-                    // TODO: that solution sucks.
+            datum_stream_t *datum_stream = v1->as_seq();
+
+            for (;;) {
+                std::vector<const datum_t *> datums = datum_stream->next_batch();
+                if (datums.empty()) {
+                    break;
                 }
-                stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
+
+                for (auto datum_it = datums.begin(); datum_it != datums.end(); ++datum_it) {
+                    try {
+                        maybe_generate_key(t, &generated_keys, &*datum_it);
+                    } catch (const base_exc_t &) {
+                        // We just ignore it, the same error will be handled in `replace`.
+                        // TODO: that solution sucks.
+                    }
+                }
+
+                std::vector<const datum_t *> results = t->batch_replace(datums, datums, upsert);
+                for (auto result_it = results.begin(); result_it != results.end(); ++result_it) {
+                    stats = stats->merge(env, *result_it, stats_merge);
+                }
             }
         }
 
@@ -112,11 +124,12 @@ private:
     virtual const char *name() const { return "insert"; }
 };
 
-static const char *const replace_optargs[] = {"non_atomic"};
+static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
+
 private:
     virtual val_t *eval_impl() {
         bool nondet_ok = false;
@@ -130,16 +143,28 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<table_t *, const datum_t *> tblrow = v0->as_single_selection();
             return new_val(tblrow.first->replace(tblrow.second, f, nondet_ok));
+        } else {
+            std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
+            table_t *tbl = tblrows.first;
+            datum_stream_t *ds = tblrows.second;
+            const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+
+            for (;;) {
+                std::vector<const datum_t *> datums = ds->next_batch();
+                if (datums.empty()) {
+                    break;
+                }
+                std::vector<const datum_t *> results = tbl->batch_replace(datums, f, nondet_ok);
+
+                for (auto result = results.begin(); result != results.end(); ++result) {
+                    stats = stats->merge(env, *result, stats_merge);
+                }
+            }
+
+            return new_val(stats);
         }
-        std::pair<table_t *, datum_stream_t *> tblrows = v0->as_selection();
-        table_t *tbl = tblrows.first;
-        datum_stream_t *ds = tblrows.second;
-        const datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        while (const datum_t *d = ds->next()) {
-            stats = stats->merge(env, tbl->replace(d, f, nondet_ok), stats_merge);
-        }
-        return new_val(stats);
     }
+
     virtual const char *name() const { return "replace"; }
 };
 
@@ -149,6 +174,7 @@ class foreach_term_t : public op_term_t {
 public:
     foreach_term_t(env_t *env, const Term *term)
         : op_term_t(env, term, argspec_t(2)) { }
+
 private:
     virtual val_t *eval_impl() {
         const char *fail_msg = "FOREACH expects one or more write queries.";
@@ -174,6 +200,7 @@ private:
         }
         return new_val(stats);
     }
+
     virtual const char *name() const { return "foreach"; }
 };
 

@@ -103,12 +103,13 @@ void btree_store_t<protocol_t>::write(
     assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
+    scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &real_superblock, interruptor);
 
-    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
-    protocol_write(write, response, timestamp, btree.get(), txn.get(), superblock.get(), token_pair, interruptor);
+    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
+    scoped_ptr_t<superblock_t> superblock(real_superblock.release());
+    protocol_write(write, response, timestamp, btree.get(), txn.get(), &superblock, token_pair, interruptor);
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.

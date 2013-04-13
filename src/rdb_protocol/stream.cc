@@ -45,9 +45,9 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     if (data.empty()) {
         return boost::shared_ptr<scoped_cJSON_t>();
     } else {
-        boost::shared_ptr<scoped_cJSON_t> res = data.front();
+        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
         data.pop_front();
-        return res;
+        return ret;
     }
 }
 
@@ -62,6 +62,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {
         boost::shared_ptr<scoped_cJSON_t> input = stream->next();
         if (!input) {
+            // End of stream reached.
             return boost::shared_ptr<scoped_cJSON_t>();
         }
 
@@ -88,9 +89,9 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
         std::swap(data, accumulator);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> res = data.front();
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
     data.pop_front();
-    return res;
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
@@ -131,10 +132,10 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
             return boost::shared_ptr<scoped_cJSON_t>();
         }
     }
-    boost::shared_ptr<scoped_cJSON_t> ret = data.front();
-    data.pop_front();
 
-    return ret;
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
+    data.pop_front();
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
@@ -238,28 +239,4 @@ void batched_rget_stream_t::read_more() {
     }
 }
 
-union_stream_t::union_stream_t(const stream_list_t &_streams)
-    : streams(_streams), hd(streams.begin())
-{ }
-
-boost::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
-    while (hd != streams.end()) {
-        if (boost::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
-            return json;
-        } else {
-            ++hd;
-        }
-    }
-    return boost::shared_ptr<scoped_cJSON_t>();
-}
-
-boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
-    for (stream_list_t::iterator it  = streams.begin();
-                                 it != streams.end();
-                                 ++it) {
-        *it = (*it)->add_transformation(t, ql_env, scopes, backtrace);
-    }
-    return shared_from_this();
-}
-
-} //namespace query_language 
+} //namespace query_language

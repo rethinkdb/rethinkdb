@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/protocol.hpp"
 
 #include "errors.hpp"
@@ -575,7 +575,7 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock,
+                             scoped_ptr_t<superblock_t> *superblock,
                              write_token_pair_t *token_pair,
                              UNUSED signal_t *interruptor) {
     /* Memcached doesn't have any secondary structures so right now we just
@@ -583,7 +583,7 @@ void store_t::protocol_write(const write_t &write,
     token_pair->sindex_write_token.reset();
 
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
-    write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree, txn, superblock->get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 
@@ -295,7 +295,7 @@ public:
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 transaction_t *txn,
-                                superblock_t *superblock,
+                                scoped_ptr_t<superblock_t> *superblock,
                                 write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
 
