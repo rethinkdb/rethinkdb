@@ -5,7 +5,10 @@ var CPPPORT = process.argv[3]
 
 // -- utilities --
 
+failure_count = 0;
+
 function printTestFailure(name, src, message) {
+    failure_count += 1;
     console.log("\nTEST FAILURE: "+name+"\nTEST BODY: "+src+"\n"+message+"\n");
 }
 
@@ -74,9 +77,6 @@ var defines = {}
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
-
-    // Now connect to js server
-    //r.connect({port:JSPORT}, function(js_conn_err, js_conn) {
 
         // Pull a test off the queue and run it
         function runTest() {
@@ -155,18 +155,6 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                         function afterArray(arr_err, cpp_res) {
 
-                            // Now run test on js server
-                            //test.run(js_conn, js_cont);
-
-                            //function js_cont(js_err, js_res) {
-
-                                /*
-                                if (js_res instanceof Object && js_res.toArray) {
-                                    js_res.toArray(afterArray2);
-                                } else {
-                                    afterArray2(null, js_res);
-                                }
-                                */
                                 afterArray2(null, null);
 
                                 // Again, convert to array
@@ -191,32 +179,12 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                             "\n\tVALUE: "+cpp_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
                                     }
 
-                                    /*
-                                    if (js_err) {
-                                        if (exp_fun.isErr && !exp_fun(js_err)) {
-                                            printTestFailure(testName, src,
-                                                "Error running test on JS server not equal to expected err:"+
-                                                "\n\tERROR: "+js_err.toString()+
-                                                "\n\tEXPECTED "+exp_fun.toString());
-                                        } else {
-                                            printTestFailure(testName, src,
-                                                "Error running test on JS server:"+
-                                                "\n\tERROR: "+cpp_err.toString());
-                                        }
-                                    } else if (!exp_fun(js_res)) {
-                                        printTestFailure(testName, src,
-                                            "JS result is not equal to expected result:"+
-                                            "\n\tVALUE: "+js_res.toString()+"\n\tEXPECTED: "+exp_fun.toString());
-                                    }
-                                    */
-
                                     // Continue to next test. Tests are fully sequential
                                     // so you can rely on previous queries results in
                                     // subsequent tests.
                                     runTest();
                                     return;
                                 }
-                            //}
                         }
                     }
                 }
@@ -225,13 +193,16 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 // closing the connection will allow the
                 // event loop to quit naturally
                 cpp_conn.close();
-                //js_conn.close();
+
+                if(failure_count != 0){
+                    console.log("Failed " + failure_count + " tests");
+                    process.exit(1);
+                }
             }
         }
 
         // Start the recursion though all the tests
         runTest();
-    //});
 });
 
 // Invoked by generated code to add test and expected result
@@ -265,7 +236,7 @@ function bag(list) {
 
 // Invoked by generated code to demonstrate expected error output
 function err(err_name, err_msg, err_frames) {
-    var err_frames = null; // Don't test frames for now, at least not until the C++ is done with them
+    var err_frames = null; // TODO: test for frames
     var fun = function(other) {
         if (!(function() {
             if (!(other instanceof Error)) return false;
@@ -273,6 +244,8 @@ function err(err_name, err_msg, err_frames) {
 
             // Strip out "offending object" from err message
             other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
+            other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
+            console.log('FOOOOOO', other.msg);
 
             if (err_msg && !(other.msg === err_msg)) return false;
             if (err_frames && !(eq_test(other.frames, err_frames))) return false;
@@ -313,6 +286,8 @@ function uuid() {
 function shard() {
     // Don't do anything in JS
 }
+
+function the_end(){ }
 
 True = true;
 False = false;
