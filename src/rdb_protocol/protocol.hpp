@@ -134,10 +134,10 @@ struct rdb_protocol_t {
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    // Constructs a region which will query an sindex for matches to a specific
-    // key
+    // Constructs a region which will query an sindex for matches to a specific key
     // TODO consider relocating this
-    static key_range_t sindex_key_range(const store_key_t &k);
+    static key_range_t sindex_key_range(const store_key_t &start,
+                                        const store_key_t &end);
 
     struct context_t {
         context_t();
@@ -273,14 +273,14 @@ struct rdb_protocol_t {
         explicit rget_read_t(const region_t &_region)
             : region(_region) { }
 
-        rget_read_t(const store_key_t &key,
-                    const std::string &_sindex,
+        rget_read_t(const std::string &_sindex,
                     const ql::datum_t *_sindex_start_value,
                     const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(key)),
               sindex_start_value(_sindex_start_value),
-              sindex_end_value(_sindex_end_value) {
+              sindex_end_value(_sindex_end_value),
+              sindex_region(rdb_protocol_t::sindex_key_range(_sindex_start_value->truncated_secondary(),
+                                                             _sindex_end_value->truncated_secondary())) {
             sindex_start_value->finalize();
             sindex_end_value->finalize();
         }
@@ -290,9 +290,9 @@ struct rdb_protocol_t {
                     const ql::datum_t *_sindex_start_value,
                     const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region),
               sindex_start_value(_sindex_start_value),
-              sindex_end_value(_sindex_end_value) {
+              sindex_end_value(_sindex_end_value),
+              sindex_region(_sindex_region) {
             sindex_start_value->finalize();
             sindex_end_value->finalize();
         }
@@ -304,9 +304,9 @@ struct rdb_protocol_t {
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region),
               sindex_start_value(_sindex_start_value),
               sindex_end_value(_sindex_end_value),
+              sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs) {
             sindex_start_value->finalize();
             sindex_end_value->finalize();
@@ -344,14 +344,14 @@ struct rdb_protocol_t {
         /* The sindex from which we're reading. */
         boost::optional<std::string> sindex;
 
-        /* The region of that sindex we're reading use `sindex_key_range` to
-        read a single key. */
-        boost::optional<region_t> sindex_region;
-
         /* The actual sindex values to use for bounds, since the sindex key may
         have been truncated due to excessive length */
         boost::optional<ql::wire_datum_t> sindex_start_value;
         boost::optional<ql::wire_datum_t> sindex_end_value;
+
+        /* The region of that sindex we're reading use `sindex_key_range` to
+        read a single key. */
+        boost::optional<region_t> sindex_region;
 
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;

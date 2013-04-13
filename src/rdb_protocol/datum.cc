@@ -169,8 +169,8 @@ std::string datum_t::print_primary() const {
               print().c_str(), datum_type_name(type));
     }
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
-        rfail("Primary key too long (max %d characters): %s",
-              MAX_KEY_SIZE - 1, print().c_str());
+        rfail("Primary key too long (max %zu characters): %s",
+              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
     return s;
 }
@@ -178,7 +178,11 @@ std::string datum_t::print_primary() const {
 std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     std::string s;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
-    guarantee(primary_key_string.length() <= rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+
+    if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
+        rfail("Primary key too long (max %zu characters): %s",
+              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, key_to_debug_str(primary_key).c_str());
+    }
 
     if (type == R_NUM) {
         num_to_str_key(&s);
@@ -214,7 +218,17 @@ store_key_t datum_t::truncated_secondary() const {
               print().c_str(), datum_type_name(type));
     }
 
-    return store_key_t(s.substr(0, MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1));
+    const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+
+    // If the key does not need truncation, add a null byte at the end to filter out more
+    //  potential results
+    if (s.length() < max_trunc_size) {
+        s += std::string(1, '\0');
+    } else {
+        s.erase(max_trunc_size);
+    }
+
+    return store_key_t(s);
 }
 
 void datum_t::check_type(type_t desired) const {

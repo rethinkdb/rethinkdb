@@ -124,8 +124,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const pb_rcheckable_t *bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor,
-                      rdb_protocol_t::sindex_key_range(pval->truncated_secondary()), sindex_id,
+                      *ns_access, env->interruptor, sindex_id,
                       env->get_all_optargs(), use_outdated, pval, pval))
 { }
 

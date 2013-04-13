@@ -183,7 +183,8 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
+                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
                boost::optional<rdb_protocol_details::terminal_t>(), &res);
 
@@ -223,7 +224,8 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
+                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
                boost::optional<rdb_protocol_details::terminal_t>(), &res);
 

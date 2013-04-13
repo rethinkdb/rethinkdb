@@ -306,8 +306,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
             it != inserter_state.end(); it++) {
         boost::shared_ptr<scoped_cJSON_t> sindex_key_json(new scoped_cJSON_t(cJSON_Parse(it->second.c_str())));
         ql::datum_t sindex_key_literal(sindex_key_json, &dummy_env);
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_key_literal.truncated_secondary(),
-                                                                sindex_id,
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_id,
                                                                 &sindex_key_literal,
                                                                 &sindex_key_literal));
         fake_fifo_enforcement_t enforce;
