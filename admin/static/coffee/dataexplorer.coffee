@@ -900,6 +900,7 @@ module 'DataExplorerView', ->
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
                 return false
+
             if @options.electric_punctuation is true
                 @pair_char(event, stack) # Pair brackets/quotes
 
@@ -1838,18 +1839,30 @@ module 'DataExplorerView', ->
             move_outside = args.move_outside is true # So default value is false
 
             ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
-            if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
-                @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
-                @written_suggestion = suggestion_to_write+')'
+
+            if @options.electric_punctuation is true
+                if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
+                    @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+                    @written_suggestion = suggestion_to_write+')'
+                else
+                    @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+                    @written_suggestion = suggestion_to_write
+                    if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
+                        ch--
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+                @codemirror.setCursor
+                    line: @cursor_for_auto_completion.line
+                    ch:ch
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
                 @written_suggestion = suggestion_to_write
                 if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
                     ch--
-            @codemirror.focus() # Useful if the user used the mouse to select a suggestion
-            @codemirror.setCursor
-                line: @cursor_for_auto_completion.line
-                ch:ch
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+                @codemirror.setCursor
+                    line: @cursor_for_auto_completion.line
+                    ch:ch
+
 
         # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
