@@ -117,7 +117,10 @@ puts 'Running Ruby validation.'
     elif lang == 'rb':
         interpreter = 'ruby'
 
-    call([interpreter, test_file_name])
+    ret = call([interpreter, test_file_name])
+
+    if ret is not 0:
+        sys.exit(1)
 
 class BlackHoleRDBHandler(SocketServer.BaseRequestHandler):
     def handle(self):

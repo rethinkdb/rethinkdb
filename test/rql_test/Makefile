@@ -3,9 +3,9 @@ DRIVERS=drivers
 
 YAML_FILES=$(shell find $(SRC) -name '*.yaml')
 DRIVER_FILES=$(wildcard $(DRIVERS)/*)
-TEST_FILES=$(patsubst $(DRIVERS)/driver.%,$(BUILD)/test.%,$(DRIVER_FILES))
+TEST_FILES=$(patsubst $(DRIVERS)/driver.%,build/test.%,$(DRIVER_FILES))
 
-BUILD='release'
+BUILD_DIR='../../build/debug'
 TEST_DEFAULT_PORT=0
 SHARD=0
 TEST=.*
@@ -16,7 +16,7 @@ SHELL=/bin/bash
 
 .PHONY: run
 run: $(TEST_FILES) cursor connect
-	./test-runner run \"$(BUILD)\"
+	./test-runner run \"$(BUILD_DIR)\"
 
 .PHONY: py
 py: py_connect py_cursor py_polyglot
@@ -29,7 +29,7 @@ rb: rb_polyglot
 
 .PHONY: py_polyglot js_polyglot rb_polyglot
 py_polyglot js_polyglot rb_polyglot: $(TEST_FILES)
-	./test-runner run \"$(BUILD)\" \"$(shell echo $@ | cut -b 1-2)\"
+	./test-runner run \"$(BUILD_DIR)\" \"$(shell echo $@ | cut -b 1-2)\"
 
 $(TEST_FILES): build/.stub
 build/.stub: $(YAML_FILES) $(DRIVER_FILES)
@@ -46,24 +46,24 @@ polyglot: py_polyglot js_polyglot rb_polyglot
 
 .PHONY: py_connect
 py_connect: connections/connection.py
-	python connections/connection.py $(BUILD) $(TEST_DEFAULT_PORT)
+	python connections/connection.py $(BUILD_DIR) $(TEST_DEFAULT_PORT)
 
 .PHONY: js_connect
 js_connect: connections/connection.js
-	BUILD=$(BUILD) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
+	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
 
 .PHONY: cursor
 cursor:
-	python connections/cursor_test.py $(BUILD)
+	python connections/cursor_test.py $(BUILD_DIR)
 
 .PHONY: js_cursor
 js_cursor:
-	python connections/cursor_test.py $(BUILD) js
+	python connections/cursor_test.py $(BUILD_DIR) js
 
 .PHONY: py_cursor
 py_cursor:
-	python connections/cursor_test.py $(BUILD) py
+	python connections/cursor_test.py $(BUILD_DIR) py
 
 .PHONY: connect
 connect: js_connect py_connect

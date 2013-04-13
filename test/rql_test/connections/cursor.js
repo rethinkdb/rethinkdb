@@ -38,6 +38,7 @@ r.connect({port:port}, function(err, c) {
                     console.log("Test passed!");
                 } else {
                     console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
+                    process.exit(1)
                 }
                 c.close();
             }

@@ -1,4 +1,8 @@
 # These tests are broken
+
+# The rdb tests still use the old query language
 static_cluster-rdb-python
 static_cluster-rdb-javascript
+
+# This test tries to use the stress client in rdb mode, which was removed
 regression-659

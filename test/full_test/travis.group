@@ -1,0 +1,15 @@
+# On travis-ci, only run the following tests:
+
+unit-*
+ql-*
+
+# The ruby tests require ruby_protobuf. Installing it with gem doesn't seem to work
+!*-rb-*
+
+# The validator wants to validate against the ruby driver
+!ql-validate-examples
+
+# This test fails on travis with "Connection is closed"
+!ql-js-cursor
+
+!disabled

@@ -5,7 +5,7 @@
 from sys import argv
 from subprocess import Popen
 from time import sleep
-from sys import path
+from sys import path, exit
 import unittest
 path.append('.')
 from test_util import RethinkDBTestServers
@@ -16,7 +16,7 @@ path.append("../../drivers/python")
 from rethinkdb import *
 import rethinkdb as r
 
-server_build = argv[1]
+server_build_dir = argv[1]
 use_default_port = bool(int(argv[2]))
 
 
@@ -54,7 +54,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
     def setUp(self):
         if not use_default_port:
             skipTest("Not testing default port")
-        self.servers = RethinkDBTestServers(4, server_build=server_build, use_default_port=use_default_port)
+        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
         self.servers.__enter__()
 
     def tearDown(self):
@@ -79,7 +79,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
 class TestWithConnection(unittest.TestCase):
 
     def setUp(self):
-        self.servers = RethinkDBTestServers(4, server_build=server_build)
+        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir)
         self.servers.__enter__()
         self.port = self.servers.driver_port()
 
@@ -127,7 +127,7 @@ class TestConnection(TestWithConnection):
             r.table('t2').run, c)
 
         c.close()
-        
+
         # Test setting the db in connect
         c = r.connect(db='db2', port=self.port)
         r.table('t2').run(c)
@@ -153,7 +153,7 @@ class TestConnection(TestWithConnection):
         r.table('t1').run(c, use_outdated=True)
 
     def test_repl(self):
-        
+
         # Calling .repl() should set this connection as global state
         # to be used when `run` is not otherwise passed a connection.
         c = r.connect(port=self.port).repl()
@@ -170,7 +170,7 @@ class TestConnection(TestWithConnection):
         self.assertRaisesRegexp(
             r.RqlDriverError, "Connection is closed.",
             r.expr(1).run)
-    
+
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):
         c = r.connect(port=self.port)
@@ -200,10 +200,9 @@ class TestBatching(TestWithConnection):
         r.db('test').table_create('t1').run(c)
         t1 = r.table('t1')
 
-        if server_build == 'debug':
+        if server_build_dir.find('debug') != -1:
             batch_size = 5
         else:
-            self.assertEqual(server_build, 'release')
             batch_size = 1000
 
         t1.insert([{'id':i} for i in xrange(0, batch_size)]).run(c)
@@ -214,7 +213,7 @@ class TestBatching(TestWithConnection):
 
         # Only the first chunk (of either 1 or 2) should have loaded
         self.assertEqual(len(cursor.chunks), 1)
-        
+
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
@@ -242,4 +241,8 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
     suite.addTest(TestPrinting())
     suite.addTest(TestBatching())
-    unittest.TextTestRunner(verbosity=2).run(suite)
+
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
+
+    if not res.wasSuccessful():
+        exit(1)

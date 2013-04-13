@@ -11,7 +11,10 @@ HEADER=header.json
 $(JSON_OUT): $(JSON_CONVERT) $(YAML_FILES) $(HEADER)
 	python $(JSON_CONVERT) $(YAML_DIR) $(JSON_OUT)
 
-validate: $(YAML_FILES)
+build:
+	@mkdir build
+
+validate: $(YAML_FILES) | build
 	python $(VALIDATE_SCRIPT) $(YAML_DIR)
 
 clean: $(JSON_OUT)

@@ -173,12 +173,20 @@ def do_res_test name, src, res, expected
   end
 end
 
+@failure_count = 0
 def fail_test name, src, res, expected
-      puts "TEST FAILURE: #{name}"
-      puts "TEST BODY: #{src}" 
-      puts "\tVALUE: #{show res}"
-      puts "\tEXPECTED: #{show expected}"
-      puts; puts;
+  @failure_count = @failure_count + 1
+  puts "TEST FAILURE: #{name}"
+  puts "TEST BODY: #{src}" 
+  puts "\tVALUE: #{show res}"
+  puts "\tEXPECTED: #{show expected}"
+  puts; puts;
+end
+
+def the_end
+  if @failure_count != 0 then
+    abort "Failed #{@failure_count} tests"
+  end
 end
 
 def define expr
