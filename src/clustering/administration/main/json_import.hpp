@@ -7,6 +7,7 @@
 
 #include "errors.hpp"
 
+class bitset_t;
 class scoped_cJSON_t;
 
 class json_importer_t {
@@ -46,5 +47,8 @@ private:
     DISABLE_COPYING(csv_to_json_importer_t);
 };
 
+// For unit tests.
+void separators_to_bitset(const std::string &separators, bitset_t *out);
+std::vector<std::string> split_buf(const bitset_t &seps, const char *buf, int64_t size);
 
 #endif  // CLUSTERING_ADMINISTRATION_MAIN_JSON_IMPORT_HPP_
