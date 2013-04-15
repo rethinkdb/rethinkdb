@@ -152,7 +152,6 @@ public:
         ql::runtime_check(test, file, line, pred, msg);
     }
 
-    void copy_from(const datum_t &rhs);
 private:
     void init_empty();
     void init_str();
@@ -164,15 +163,15 @@ private:
     void str_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
 
-    // TODO: fix later.  Listing everything is more debugging-friendly than a
-    // boost::variant, but less efficient.
     type_t type;
-    bool r_bool;
-    double r_num;
-    // TODO: Make this a char vector
-    std::string *r_str;
-    std::vector<const datum_t *> *r_array;
-    std::map<const std::string, const datum_t *> *r_object;
+    union {
+        bool r_bool;
+        double r_num;
+        // TODO: Make this a char vector
+        std::string *r_str;
+        std::vector<const datum_t *> *r_array;
+        std::map<const std::string, const datum_t *> *r_object;
+    };
 
     DISABLE_COPYING(datum_t);
 };

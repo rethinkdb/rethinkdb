@@ -12,34 +12,32 @@
 namespace ql {
 
 datum_t::datum_t(type_t _type, bool _bool)
-    : type(_type), r_bool(_bool), r_str(NULL), r_array(NULL), r_object(NULL) {
+    : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num)
-    : type(R_NUM), r_num(_num), r_str(NULL), r_array(NULL), r_object(NULL) {
+    : type(R_NUM), r_num(_num) {
     using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
     rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str)
-    : type(R_STR), r_str(new std::string(_str)), r_array(NULL), r_object(NULL) { }
+    : type(R_STR), r_str(new std::string(_str)) { }
 datum_t::datum_t(const char *cstr)
-    : type(R_STR), r_str(new std::string(cstr)), r_array(NULL), r_object(NULL) { }
+    : type(R_STR), r_str(new std::string(cstr)) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
-    : type(R_ARRAY), r_str(NULL),
-      r_array(new std::vector<const datum_t *>(_array)), r_object(NULL) { }
+    : type(R_ARRAY), r_array(new std::vector<const datum_t *>(_array)) { }
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
-    : type(R_OBJECT), r_str(NULL), r_array(NULL),
+    : type(R_OBJECT),
       r_object(new std::map<const std::string, const datum_t *>(_object)) { }
-datum_t::datum_t(datum_t::type_t _type)
-    : type(_type), r_str(NULL), r_array(NULL), r_object(NULL) {
+datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
-    case R_NUM: break;
-    case R_STR: {
-        r_str = new std::string();
+    case R_NULL: {
+        r_str = NULL; // Zeroing here is probably good for debugging.
     } break;
+    case R_BOOL: // fallthru
+    case R_NUM: // fallthru
+    case R_STR: unreachable();
     case R_ARRAY: {
         r_array = new std::vector<const datum_t *>();
     } break;
@@ -71,36 +69,6 @@ datum_t::~datum_t() {
     }
 }
 
-void datum_t::init_empty() {
-    r_str = NULL;
-    r_array = NULL;
-    r_object = NULL;
-}
-
-void datum_t::copy_from(const datum_t &rhs) {
-    type = rhs.type;
-    init_empty();
-    switch (type) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
-    case R_NUM: break;
-    case R_STR: {
-        r_sanity_check(rhs.r_str != NULL);
-        r_str = new auto(*rhs.r_str);
-        delete r_str;
-    } break;
-    case R_ARRAY: {
-        r_sanity_check(rhs.r_array != NULL);
-        r_array = new auto(*rhs.r_array);
-    } break;
-    case R_OBJECT: {
-        r_sanity_check(rhs.r_object != NULL);
-        r_object = new auto(*rhs.r_object);
-    } break;
-    default: unreachable();
-    }
-}
-
 void datum_t::init_str() {
     type = R_STR;
     r_str = new std::string();
@@ -117,7 +85,6 @@ void datum_t::init_object() {
 }
 
 void datum_t::init_json(cJSON *json, env_t *env) {
-    init_empty();
     switch (json->type) {
     case cJSON_False: {
         type = R_BOOL;
@@ -495,8 +462,7 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
-datum_t::datum_t(const Datum *d, env_t *env)
-    : r_str(NULL), r_array(NULL), r_object(NULL) {
+datum_t::datum_t(const Datum *d, env_t *env) {
     switch (d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
