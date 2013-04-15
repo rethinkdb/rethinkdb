@@ -95,14 +95,14 @@ public:
     }
     template<class T>
     val_t *new_val(T *ptr, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), parent, this));
+        return add_ptr(new val_t(add_ptr(ptr), parent));
     }
     template<class T, class U>
     val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent, this));
+        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent));
     }
     val_t *new_val(uuid_u db, term_t *parent) {
-        return add_ptr(new val_t(db, parent, this));
+        return add_ptr(new val_t(db, parent));
     }
     term_t *new_term(const Term *source) {
         return add_ptr(compile_term(this, source));
