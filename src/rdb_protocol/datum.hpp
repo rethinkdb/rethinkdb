@@ -65,6 +65,8 @@ public:
     explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
+    ~datum_t();
+
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
@@ -149,7 +151,13 @@ public:
                                bool pred, std::string msg) const {
         ql::runtime_check(test, file, line, pred, msg);
     }
+
+    void copy_from(const datum_t &rhs);
 private:
+    void init_empty();
+    void init_str();
+    void init_array();
+    void init_object();
     void init_json(cJSON *json, env_t *env);
 
     void num_to_str_key(std::string *str_out) const;
@@ -161,9 +169,12 @@ private:
     type_t type;
     bool r_bool;
     double r_num;
-    std::string r_str;
-    std::vector<const datum_t *> r_array;
-    std::map<const std::string, const datum_t *> r_object;
+    // TODO: Make this a char vector
+    std::string *r_str;
+    std::vector<const datum_t *> *r_array;
+    std::map<const std::string, const datum_t *> *r_object;
+
+    DISABLE_COPYING(datum_t);
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);

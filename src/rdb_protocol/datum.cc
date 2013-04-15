@@ -11,24 +11,113 @@
 
 namespace ql {
 
-datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
+datum_t::datum_t(type_t _type, bool _bool)
+    : type(_type), r_bool(_bool), r_str(NULL), r_array(NULL), r_object(NULL) {
     r_sanity_check(_type == R_BOOL);
 }
-datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
+datum_t::datum_t(double _num)
+    : type(R_NUM), r_num(_num), r_str(NULL), r_array(NULL), r_object(NULL) {
     using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
     rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
-datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
+datum_t::datum_t(const std::string &_str)
+    : type(R_STR), r_str(new std::string(_str)), r_array(NULL), r_object(NULL) { }
+datum_t::datum_t(const char *cstr)
+    : type(R_STR), r_str(new std::string(cstr)), r_array(NULL), r_object(NULL) { }
 datum_t::datum_t(const std::vector<const datum_t *> &_array)
-    : type(R_ARRAY), r_array(_array) { }
+    : type(R_ARRAY), r_str(NULL),
+      r_array(new std::vector<const datum_t *>(_array)), r_object(NULL) { }
 datum_t::datum_t(const std::map<const std::string, const datum_t *> &_object)
-    : type(R_OBJECT), r_object(_object) { }
-datum_t::datum_t(datum_t::type_t _type) : type(_type) {
+    : type(R_OBJECT), r_str(NULL), r_array(NULL),
+      r_object(new std::map<const std::string, const datum_t *>(_object)) { }
+datum_t::datum_t(datum_t::type_t _type)
+    : type(_type), r_str(NULL), r_array(NULL), r_object(NULL) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
+    switch (type) {
+    case R_NULL: //fallthru
+    case R_BOOL: //fallthru
+    case R_NUM: break;
+    case R_STR: {
+        r_str = new std::string();
+    } break;
+    case R_ARRAY: {
+        r_array = new std::vector<const datum_t *>();
+    } break;
+    case R_OBJECT: {
+        r_object = new std::map<const std::string, const datum_t *>();
+    } break;
+    default: unreachable();
+    }
+}
+
+datum_t::~datum_t() {
+    switch (type) {
+    case R_NULL: //fallthru
+    case R_BOOL: //fallthru
+    case R_NUM: break;
+    case R_STR: {
+        r_sanity_check(r_str != NULL);
+        delete r_str;
+    } break;
+    case R_ARRAY: {
+        r_sanity_check(r_array != NULL);
+        delete r_array;
+    } break;
+    case R_OBJECT: {
+        r_sanity_check(r_object != NULL);
+        delete r_object;
+    } break;
+    default: unreachable();
+    }
+}
+
+void datum_t::init_empty() {
+    r_str = NULL;
+    r_array = NULL;
+    r_object = NULL;
+}
+
+void datum_t::copy_from(const datum_t &rhs) {
+    type = rhs.type;
+    init_empty();
+    switch (type) {
+    case R_NULL: //fallthru
+    case R_BOOL: //fallthru
+    case R_NUM: break;
+    case R_STR: {
+        r_sanity_check(rhs.r_str != NULL);
+        r_str = new auto(*rhs.r_str);
+        delete r_str;
+    } break;
+    case R_ARRAY: {
+        r_sanity_check(rhs.r_array != NULL);
+        r_array = new auto(*rhs.r_array);
+    } break;
+    case R_OBJECT: {
+        r_sanity_check(rhs.r_object != NULL);
+        r_object = new auto(*rhs.r_object);
+    } break;
+    default: unreachable();
+    }
+}
+
+void datum_t::init_str() {
+    type = R_STR;
+    r_str = new std::string();
+}
+
+void datum_t::init_array() {
+    type = R_ARRAY;
+    r_array = new std::vector<const datum_t *>();
+}
+
+void datum_t::init_object() {
+    type = R_OBJECT;
+    r_object = new std::map<const std::string, const datum_t *>();
 }
 
 void datum_t::init_json(cJSON *json, env_t *env) {
+    init_empty();
     switch (json->type) {
     case cJSON_False: {
         type = R_BOOL;
@@ -48,17 +137,17 @@ void datum_t::init_json(cJSON *json, env_t *env) {
         r_sanity_check(isfinite(r_num));
     } break;
     case cJSON_String: {
-        type = R_STR;
-        r_str = json->valuestring;
+        init_str();
+        *r_str = json->valuestring;
     } break;
     case cJSON_Array: {
-        type = R_ARRAY;
+        init_array();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             add(env->add_ptr(new datum_t(cJSON_GetArrayItem(json, i), env)));
         }
     } break;
     case cJSON_Object: {
-        type = R_OBJECT;
+        init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
             bool b = add(el->string, env->add_ptr(new datum_t(el, env)));
@@ -225,11 +314,11 @@ int64_t datum_t::as_int() const {
 }
 const std::string &datum_t::as_str() const {
     check_type(R_STR);
-    return r_str;
+    return *r_str;
 }
 const std::vector<const datum_t *> &datum_t::as_array() const {
     check_type(R_ARRAY);
-    return r_array;
+    return *r_array;
 }
 size_t datum_t::size() const {
     return as_array().size();
@@ -253,7 +342,7 @@ const datum_t *datum_t::get(const std::string &key, throw_bool_t throw_bool) con
 
 const std::map<const std::string, const datum_t *> &datum_t::as_object() const {
     check_type(R_OBJECT);
-    return r_object;
+    return *r_object;
 }
 
 cJSON *datum_t::as_raw_json() const {
@@ -309,20 +398,20 @@ datum_stream_t *datum_t::as_datum_stream(
 void datum_t::add(const datum_t *val) {
     check_type(R_ARRAY);
     r_sanity_check(val);
-    r_array.push_back(val);
+    r_array->push_back(val);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, const datum_t *val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     r_sanity_check(val);
-    bool key_in_obj = r_object.count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) r_object[key] = val;
+    bool key_in_obj = r_object->count(key) > 0;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
     return key_in_obj;
 }
 
 MUST_USE bool datum_t::delete_key(const std::string &key) {
-    return r_object.erase(key);
+    return r_object->erase(key);
 }
 
 const datum_t *datum_t::merge(const datum_t *rhs) const {
@@ -406,7 +495,8 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
-datum_t::datum_t(const Datum *d, env_t *env) {
+datum_t::datum_t(const Datum *d, env_t *env)
+    : r_str(NULL), r_array(NULL), r_object(NULL) {
     switch (d->type()) {
     case Datum_DatumType_R_NULL: {
         type = R_NULL;
@@ -420,23 +510,23 @@ datum_t::datum_t(const Datum *d, env_t *env) {
         r_num = d->r_num();
     } break;
     case Datum_DatumType_R_STR: {
-        type = R_STR;
-        r_str = d->r_str();
+        init_str();
+        *r_str = d->r_str();
     } break;
     case Datum_DatumType_R_ARRAY: {
-        type = R_ARRAY;
+        init_array();
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array.push_back(env->add_ptr(new datum_t(&d->r_array(i), env)));
+            r_array->push_back(env->add_ptr(new datum_t(&d->r_array(i), env)));
         }
     } break;
     case Datum_DatumType_R_OBJECT: {
-        type = R_OBJECT;
+        init_object();
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            rcheck(r_object.count(key) == 0,
+            rcheck(r_object->count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            r_object[key] = env->add_ptr(new datum_t(&ap->val(), env));
+            (*r_object)[key] = env->add_ptr(new datum_t(&ap->val(), env));
         }
     } break;
     default: unreachable();
@@ -458,19 +548,19 @@ void datum_t::write_to_protobuf(Datum *d) const {
     } break;
     case R_STR: {
         d->set_type(Datum_DatumType_R_STR);
-        d->set_r_str(r_str);
+        d->set_r_str(*r_str);
     } break;
     case R_ARRAY: {
         d->set_type(Datum_DatumType_R_ARRAY);
-        for (size_t i = 0; i < r_array.size(); ++i) {
-            r_array[i]->write_to_protobuf(d->add_r_array());
+        for (size_t i = 0; i < r_array->size(); ++i) {
+            (*r_array)[i]->write_to_protobuf(d->add_r_array());
         }
     } break;
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
         for (std::map<const std::string, const datum_t *>::const_reverse_iterator
-                 it = r_object.rbegin(); it != r_object.rend(); ++it) {
+                 it = r_object->rbegin(); it != r_object->rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
             it->second->write_to_protobuf(ap->mutable_val());
