@@ -21,8 +21,6 @@ public:
         guarantee(namestr && op);
     }
     virtual val_t *eval_impl() {
-        // I'm not sure what I was smoking when I wrote this.  I think I was
-        // trying to avoid undue allocations or something.
         const datum_t *acc = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             acc = (this->*op)(acc, arg(i)->as_datum());
