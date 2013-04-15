@@ -132,19 +132,26 @@ class Connection(object):
         self.socket.sendall(query_header + query_protobuf)
 
         # Get response
-        response_header = self.socket.recv(4)
-        if len(response_header) == 0:
-            raise RqlDriverError("Connection is closed.")
-
-        # The first 4 bytes give the expected length of this response
-        (response_len,) = struct.unpack("<L", response_header)
 
         response_buf = ''
-        while len(response_buf) < response_len:
-            chunk = self.socket.recv(response_len - len(response_buf))
-            if chunk == '':
-                raise RqlDriverError("Connection is broken.")
-            response_buf += chunk
+        try:
+            response_header = self.socket.recv(4)
+            if len(response_header) == 0:
+                raise RqlDriverError("Connection is closed.")
+
+            # The first 4 bytes give the expected length of this response
+            (response_len,) = struct.unpack("<L", response_header)
+
+            while len(response_buf) < response_len:
+                chunk = self.socket.recv(response_len - len(response_buf))
+                if chunk == '':
+                    raise RqlDriverError("Connection is broken.")
+                response_buf += chunk
+        except KeyboardInterrupt as err:
+            # When interrupted while waiting for a response cancel the outstanding
+            # requests by resetting this connection
+            self.reconnect()
+            raise err
 
         # Construct response
         response = p.Response()
