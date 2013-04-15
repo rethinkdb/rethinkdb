@@ -27,6 +27,9 @@ class csv_to_json_importer_t : public json_importer_t {
 public:
     csv_to_json_importer_t(std::string separators, std::string filepath);
 
+    // Imports CSV given file contents, pre-split into lines.  For unit tests.
+    csv_to_json_importer_t(std::string separators, std::vector<std::string> lines);
+
     // Returns false upon EOF.
     bool next_json(scoped_cJSON_t *out);
 
@@ -36,6 +39,7 @@ public:
 
 private:
     void import_json_from_file(std::string separators, std::string filepath);
+    void import_json_from_lines(std::string separators, std::vector<std::string> *lines);
 
     std::vector<std::string> column_names_;
     std::vector<std::vector<std::string> > rows_;
