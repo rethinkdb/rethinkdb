@@ -528,10 +528,9 @@ datum_stream_t *val_t::as_seq() {
         return table->as_datum_stream();
     } else if (type.raw_type == type_t::DATUM) {
         return datum->as_datum_stream(get_env(), parent);
-    } else {
-        rcheck_literal_type(type_t::SEQUENCE);
-        unreachable();
     }
+    rcheck_literal_type(type_t::SEQUENCE);
+    unreachable();
 }
 
 std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
