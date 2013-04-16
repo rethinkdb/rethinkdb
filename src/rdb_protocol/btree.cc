@@ -310,13 +310,13 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out,
                          rdb_modification_report_cb_t *sindex_cb) {
-    auto_drainer_t drainer;
-
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
     scoped_ptr_t<superblock_t> current_superblock(superblock->release());
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
+
+    auto_drainer_t drainer;
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
