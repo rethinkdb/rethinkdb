@@ -15,7 +15,24 @@ var assertNoError = function(err) {
     }
 };
 
+var assertArgError = function(expected, found, callback) {
+    var errFound = null;
+    try {
+        callback();
+    } catch (err) {
+        errFound = err;
+    }
+
+    if (!errFound) {
+        throw new Error("No error thrown");
+    } else if (!(errFound.msg !== "Expected "+expected+" argument(s) but found "+found)) {
+        throw new Error("Wrong error message: "+errFound.msg);
+    }
+};
+
 var port = parseInt(process.argv[2], 10)
+
+assertArgError(2, 0, function() { r.connect(); });
 
 r.connect({port:port}, function(err, c) {
     assertNoError(err);
@@ -26,6 +43,14 @@ r.connect({port:port}, function(err, c) {
 
     tbl.run(c, function(err, cur) {
         assertNoError(err);
+
+        assertArgError(1, 0, function() { cur.each(); });
+        assertArgError(1, 0, function() { cur.toArray(); });
+        assertArgError(1, 0, function() { cur.toArray(); });
+        assertArgError(1, 0, function() { cur.next(); });
+        assertArgError(0, 1, function() { cur.hasNext(1); });
+        assertArgError(0, 1, function() { cur.close(1); });
+        assertArgError(0, 1, function() { cur.toString(1); });
 
         var i = 0;
         cur.each(function(err, row) {
