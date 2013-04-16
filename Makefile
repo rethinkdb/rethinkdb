@@ -39,7 +39,7 @@ MAKECMDGOALS ?=
 # Build the make command line
 MAKE_CMD_LINE = $(MAKE) -f $(TOP)/mk/main.mk
 MAKE_CMD_LINE += --no-print-directory
-MAKE_CMD_LINE += --warn-undefined-variables 
+MAKE_CMD_LINE += --warn-undefined-variables
 MAKE_CMD_LINE += --no-builtin-rules
 MAKE_CMD_LINE += --no-builtin-variables
 MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
@@ -47,13 +47,15 @@ MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
 # Call fixpath on all goals that aren't phony
 MAKE_GOALS = $(foreach goal,$(filter-out $(PHONY_LIST),$(MAKECMDGOALS)),$(call fixpath,$(goal))) $(filter $(PHONY_LIST),$(MAKECMDGOALS))
 
-default: make
-
 # Delegate the build to mk/main.mk
 .PHONY: make
 make:
 	@$(CHECK_ARG_VARIABLES)
 	+@$(MAKE_CMD_LINE) COUNTDOWN_TOTAL=$(COUNTDOWN_TOTAL) $(MAKE_GOALS)
+
+.PHONY: command-line
+command-line:
+	@echo $(MAKE_CMD_LINE)
 
 %: make
 	@true
@@ -92,10 +94,13 @@ $(TOP)/mk/gen/phony-list.mk: $(wildcard $(TOP)/mk/*.mk)
 	    2>/dev/null > $@
 
 # Don't try to rebuild any of the Makefiles
-$(TOP)/%.mk:
+Makefile:
 	@true
 
-$(TOP)/Makefile:
+%/Makefile:
+	@true
+
+%.mk:
 	@true
 
 ##### Cancel builtin rules
