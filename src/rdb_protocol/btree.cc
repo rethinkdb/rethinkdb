@@ -345,11 +345,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
 }
 
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
-    // TODO: don't be stupid, be a smarty, come and join the nazy
-    // party (json size estimation will be much easier once we switch
-    // to bson -- fuck it for now).
-    return 250;
+// This is actually a kind of misleading name. This function estimates the size of a cJSON object
+// not a whole rget though it is used for that purpose (by summing up these responses).
+size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json) {
+    return cJSON_estimate_size(json->get());
 }
 
 
