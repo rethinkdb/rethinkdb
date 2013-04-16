@@ -157,19 +157,19 @@ private:
 public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == READY_TO_WRITE);
+        r_sanity_check(state == SERIALIZABLE);
         msg << ptr_pb;
     }
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
         archive_result_t res = deserialize(s, &ptr_pb);
         if (res) return res;
-        state = JUST_READ;
+        state = SERIALIZABLE;
         return ARCHIVE_SUCCESS;
     }
 
 private:
-    enum { INVALID, JUST_READ, COMPILED, READY_TO_WRITE } state;
+    enum { INVALID, SERIALIZABLE, COMPILED } state;
 };
 
 #ifndef NDEBUG
@@ -206,19 +206,19 @@ private:
 public:
     friend class write_message_t;
     void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == READY_TO_WRITE);
+        r_sanity_check(state == SERIALIZABLE);
         msg << map_pb;
     }
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
         archive_result_t res = deserialize(s, &map_pb);
         if (res) return res;
-        state = JUST_READ;
+        state = SERIALIZABLE;
         return ARCHIVE_SUCCESS;
     }
 
 private:
-    enum { JUST_READ, COMPILED, READY_TO_WRITE } state;
+    enum { SERIALIZABLE, COMPILED } state;
 };
 
 } // namespace ql
