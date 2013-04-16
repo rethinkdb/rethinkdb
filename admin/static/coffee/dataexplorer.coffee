@@ -17,7 +17,7 @@ module 'DataExplorerView', ->
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
-        size_history: 100
+        size_history: 50
         
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
         max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
@@ -61,7 +61,7 @@ module 'DataExplorerView', ->
 
 
         open_close_history: (event, args) =>
-            if @options_view.state is 'vislble'
+            if @options_view.state is 'visible'
                 @options_view.toggle_view()
 
             @history_view.open_close_history(args)
@@ -287,10 +287,15 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
-
+            $(window).keydown  @handle_keydown
             @id_execution = 0
 
             @render()
+        handle_keydown: (event) =>
+            if event?.type is 'keydown' and event?.which is 32 and (event.ctrlKey is true or event.metaKey is true)
+                @options_view.toggle_suggestions()
+                @hide_suggestion_and_description()
+
 
         handle_mousemove: (event) =>
             @results_view.handle_mousemove event
@@ -638,6 +643,12 @@ module 'DataExplorerView', ->
 
             @prototype.focus_on_codemirror = true
 
+            # We want to check here if ctrl/cmd space was hit because it's the callback on window is called AFTER this function
+            if event?.type is 'keydown' and event?.which is 32 and (event.ctrlKey is true or event.metaKey is true)
+                event.stopPropagation() # So we don't catch it on window
+                @options_view.toggle_suggestions()
+                @hide_suggestion_and_description()
+
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
@@ -647,7 +658,10 @@ module 'DataExplorerView', ->
 
             # Look for special commands
             if event?.which?
-                if @options.suggestions is true
+                if @options.suggestions isnt true
+                    if event.which is 9 # We still want to catch tab
+                        event.preventDefault()
+                else # The user wants suggestion
                     if event.which is 27 # ESC
                         event.preventDefault() # Keep focus on code mirror
                         @hide_suggestion_and_description()
@@ -982,14 +996,14 @@ module 'DataExplorerView', ->
                     @show_description result.description
                 else
                     @hide_suggestion_and_description()
+            
+            if event?.which is 9 # Catch tab
+                # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
+                if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
+                    return true
+                else
+                    return false
 
-                if event?.which is 9 # Catch tab
-                    # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
-                    if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
-                        return true
-                    else
-                        return false
-           
             return true
 
         # Extract information from the current query
@@ -2397,6 +2411,7 @@ module 'DataExplorerView', ->
             $(window).off 'resize', @display_full
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
+            $(document).unbind 'keydown', @handle_keydown
 
 
             clearTimeout @timeout_driver_connect
@@ -2943,16 +2958,19 @@ module 'DataExplorerView', ->
             if window.localStorage?
                 window.localStorage.options = JSON.stringify @options
 
+        toggle_suggestions: =>
+            @options.suggestions = not @options.suggestions
+            if @$('.content').css('display') is 'block'
+                @$('#suggestions').prop 'checked', @options.suggestions
 
         toggle_view: =>
             that = @
             if @state is 'visible'
                 @state = 'hidden'
                 @$('.content').slideUp 'fast', ->
-                    that.$('.nano_border').hide() # In case the user trigger hide/show really fast
-                    that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
-                @$('.nano_border').slideUp 'fast'
-                @$('.arrow_history').slideUp 'fast'
+                    if that.state is 'hidden'
+                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                        that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
             else
                 @state = 'visible'
                 @$('.arrow_options').show()
