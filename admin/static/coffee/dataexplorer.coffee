@@ -664,6 +664,7 @@ module 'DataExplorerView', ->
                 else # The user wants suggestion
                     if event.which is 27 # ESC
                         event.preventDefault() # Keep focus on code mirror
+                        @current_suggestions.length = 0 # Let's get rid of suggestions
                         @hide_suggestion_and_description()
                         return true
                     else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
