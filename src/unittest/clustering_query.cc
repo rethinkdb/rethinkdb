@@ -66,10 +66,13 @@ static void run_read_write_test() {
     replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
     /* Set up a master */
-    class : public master_t<dummy_protocol_t>::ack_checker_t {
+    class : public ack_checker_t {
     public:
         bool is_acceptable_ack_set(const std::set<peer_id_t> &set) {
             return set.size() >= 1;
+        }
+        write_durability_t get_write_durability(const peer_id_t&) const {
+            return WRITE_DURABILITY_SOFT;
         }
     } ack_checker;
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);
@@ -157,10 +160,13 @@ static void run_broadcaster_problem_test() {
 
     /* Set up a master. The ack checker is impossible to satisfy, so every
     write will return an error. */
-    class : public master_t<dummy_protocol_t>::ack_checker_t {
+    class : public ack_checker_t {
     public:
         bool is_acceptable_ack_set(const std::set<peer_id_t> &) {
             return false;
+        }
+        write_durability_t get_write_durability(const peer_id_t &) const {
+            return WRITE_DURABILITY_SOFT;
         }
     } ack_checker;
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);

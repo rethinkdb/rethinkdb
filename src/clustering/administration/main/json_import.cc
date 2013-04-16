@@ -20,6 +20,12 @@ csv_to_json_importer_t::csv_to_json_importer_t(std::string separators, std::stri
     thread_pool_t::run_in_blocker_pool(boost::bind(&csv_to_json_importer_t::import_json_from_file, this, separators, filepath));
 }
 
+csv_to_json_importer_t::csv_to_json_importer_t(std::string separators,
+                                               std::vector<std::string> lines)
+    : position_(0), num_ignored_rows_(0) {
+    import_json_from_lines(separators, &lines);
+}
+
 bool detect_number(const char *s, double *out) {
     char *endptr;
     errno = 0;
@@ -225,9 +231,15 @@ bool is_empty_line(const std::string &line) {
 }
 
 void csv_to_json_importer_t::import_json_from_file(std::string separators, std::string filepath) {
-
     std::vector<std::string> lines = read_lines_from_file(filepath);
-    lines.erase(std::remove_if(lines.begin(), lines.end(), is_empty_line));
+    import_json_from_lines(separators, &lines);
+}
+
+void csv_to_json_importer_t::import_json_from_lines(std::string separators, std::vector<std::string> *lines_ptr) {
+    std::vector<std::string> lines;
+    lines_ptr->swap(lines);
+
+    lines.erase(std::remove_if(lines.begin(), lines.end(), is_empty_line), lines.end());
     if (lines.size() == 0) {
         return;
     }

@@ -57,34 +57,35 @@ public:
     std::vector<std::string> get_conflicted_ids(const std::string& base);
 
     // Commands that may be run by the parser
-    void do_admin_list(const admin_command_parser_t::command_data& data);
-    void do_admin_list_stats(const admin_command_parser_t::command_data& data);
-    void do_admin_list_issues(const admin_command_parser_t::command_data& data);
-    void do_admin_list_machines(const admin_command_parser_t::command_data& data);
-    void do_admin_list_directory(const admin_command_parser_t::command_data& data);
-    void do_admin_list_tables(const admin_command_parser_t::command_data& data);
-    void do_admin_list_datacenters(const admin_command_parser_t::command_data& data);
-    void do_admin_list_databases(const admin_command_parser_t::command_data& data);
-    void do_admin_resolve(const admin_command_parser_t::command_data& data);
-    void do_admin_pin_shard(const admin_command_parser_t::command_data& data);
-    void do_admin_split_shard(const admin_command_parser_t::command_data& data);
-    void do_admin_merge_shard(const admin_command_parser_t::command_data& data);
-    void do_admin_set_name(const admin_command_parser_t::command_data& data);
-    void do_admin_set_acks(const admin_command_parser_t::command_data& data);
-    void do_admin_set_replicas(const admin_command_parser_t::command_data& data);
-    void do_admin_set_primary(const admin_command_parser_t::command_data& data);
-    void do_admin_unset_primary(const admin_command_parser_t::command_data& data);
-    void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
-    void do_admin_unset_datacenter(const admin_command_parser_t::command_data& data);
-    void do_admin_set_database(const admin_command_parser_t::command_data& data);
-    void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
-    void do_admin_create_database(const admin_command_parser_t::command_data& data);
-    void do_admin_create_table(const admin_command_parser_t::command_data& data);
-    void do_admin_remove_machine(const admin_command_parser_t::command_data& data);
-    void do_admin_remove_table(const admin_command_parser_t::command_data& data);
-    void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
-    void do_admin_remove_database(const admin_command_parser_t::command_data& data);
-    void do_admin_touch(const admin_command_parser_t::command_data& data);
+    void do_admin_list(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_stats(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_issues(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_machines(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_directory(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_tables(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_datacenters(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_databases(const admin_command_parser_t::command_data_t& data);
+    void do_admin_resolve(const admin_command_parser_t::command_data_t& data);
+    void do_admin_pin_shard(const admin_command_parser_t::command_data_t& data);
+    void do_admin_split_shard(const admin_command_parser_t::command_data_t& data);
+    void do_admin_merge_shard(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_name(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_acks(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_durability(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_replicas(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_primary(const admin_command_parser_t::command_data_t& data);
+    void do_admin_unset_primary(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_datacenter(const admin_command_parser_t::command_data_t& data);
+    void do_admin_unset_datacenter(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_database(const admin_command_parser_t::command_data_t& data);
+    void do_admin_create_datacenter(const admin_command_parser_t::command_data_t& data);
+    void do_admin_create_database(const admin_command_parser_t::command_data_t& data);
+    void do_admin_create_table(const admin_command_parser_t::command_data_t& data);
+    void do_admin_remove_machine(const admin_command_parser_t::command_data_t& data);
+    void do_admin_remove_table(const admin_command_parser_t::command_data_t& data);
+    void do_admin_remove_datacenter(const admin_command_parser_t::command_data_t& data);
+    void do_admin_remove_database(const admin_command_parser_t::command_data_t& data);
+    void do_admin_touch(const admin_command_parser_t::command_data_t& data);
 
     void sync_from();
 
@@ -129,8 +130,12 @@ private:
 
     template <class protocol_t>
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
-                                    int num_acks,
+                                    uint32_t num_acks,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
+    template <class protocol_t>
+    void do_admin_set_durability_internal(bool hard_durability,
+                                          namespace_semilattice_metadata_t<protocol_t> *ns);
+
     template <class map_type>
     void do_admin_set_replicas_internal(const namespace_id_t& ns_id,
                                         const datacenter_id_t& dc_id,
@@ -253,6 +258,7 @@ private:
         int replicas;
         std::string primary;
         std::string database;
+        std::string durability;
     };
 
     template <class ns_type>

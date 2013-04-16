@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 
@@ -212,9 +212,6 @@ void erase_json(deletable_t<T> *target) {
     *target = target->get_deletion();
 }
 
-template <class T>
-void on_subfield_change(deletable_t<T> *) { }
-
 
 // ctx-less json adapter concept for peer_id_t
 // TODO: de-inline these?
@@ -232,9 +229,6 @@ inline void apply_json_to(cJSON *change, peer_id_t *target) {
     apply_json_to(change, &uuid);
     *target = peer_id_t(uuid);
 }
-
-inline void on_subfield_change(peer_id_t *) { }
-
 
 
 
@@ -328,8 +322,5 @@ void apply_json_to(cJSON *change, region_map_t<protocol_t, value_t> *target) {
     }
 }
 
-template <class protocol_t, class value_t>
-void on_subfield_change(region_map_t<protocol_t, value_t> *) { }
 
-
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_

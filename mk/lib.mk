@@ -76,11 +76,16 @@ else
   ifneq ($(VERBOSE),1)
     # Silence every rule
     .SILENT:
+    ifeq ($(SHOW_BUILD_REASON),1)
+      NEWER_PREREQUISITES = $(if $?,$(space)($(firstword $?)),)
+    else
+      NEWER_PREREQUISITES :=
+    endif
     # $P traces the compilation when VERBOSE=0
     # '$P CP' becomes 'echo "   CP $^ -> $@"'
     # '$P foo bar' becomes 'echo "   FOO bar"'
     # CHECK_ARG_VARIABLES comes from check-env.mk
-    P = +@bash -c 'prereq="$^"; echo "    $(COUNTDOWN_TAG)$$0 $${*:-$$prereq$${prereq:+ -> }$@}"'
+    P = +@bash -c 'prereq="$^"; echo "    $(COUNTDOWN_TAG)$$0 $${*:-$$prereq$${prereq:+ -> }$@}$(NEWER_PREREQUISITES)"'
   else
     # Let every rule be verbose and make $P quiet
     P = @\#

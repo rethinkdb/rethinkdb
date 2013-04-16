@@ -41,8 +41,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     // TODO: Don't specify cache dynamic config here.
     cache_dynamic_config.max_size = cache_target;
     cache_dynamic_config.max_dirty_size = cache_target / 2;
-    cache_dynamic_config.wait_for_flush = true;
-    cache_dynamic_config.flush_waiting_threshold = 1;
     cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
 
     if (create) {
@@ -95,6 +93,7 @@ void btree_store_t<protocol_t>::write(
         const metainfo_t& new_metainfo,
         const typename protocol_t::write_t &write,
         typename protocol_t::write_response_t *response,
+        const write_durability_t durability,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
         write_token_pair_t *token_pair,
@@ -105,7 +104,7 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &real_superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, durability, &token_pair->main_write_token, &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
@@ -152,16 +151,31 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    acquire_superblock_for_write(rwi_write, chunk.get_btree_repli_timestamp(), expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
+    // We don't want hard durability, this is a backfill chunk, and nobody wants chunk-by-chunk
+    // acks.
+    acquire_superblock_for_write(rwi_write,
+                                 chunk.get_btree_repli_timestamp(),
+                                 expected_change_count,
+                                 WRITE_DURABILITY_SOFT,
+                                 &token_pair->main_write_token,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
 
-    protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), token_pair, interruptor, chunk);
+    protocol_receive_backfill(btree.get(),
+                              txn.get(),
+                              superblock.get(),
+                              token_pair,
+                              interruptor,
+                              chunk);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
-        const typename protocol_t::region_t& subregion,
+        const typename protocol_t::region_t &subregion,
         const metainfo_t &new_metainfo,
         write_token_pair_t *token_pair,
+        const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -176,13 +190,24 @@ void btree_store_t<protocol_t>::reset_data(
     // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, expected_change_count, &token_pair->main_write_token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write,
+                                 repli_timestamp_t::invalid,
+                                 expected_change_count,
+                                 durability,
+                                 &token_pair->main_write_token,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
     get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get(), token_pair);
+    protocol_reset_data(subregion,
+                        btree.get(),
+                        txn.get(),
+                        superblock.get(),
+                        token_pair);
 }
 
 template <class protocol_t>
@@ -195,7 +220,7 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mute
 template <class protocol_t>
 void btree_store_t<protocol_t>::register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq) {
+            const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
@@ -209,7 +234,7 @@ void btree_store_t<protocol_t>::register_sindex_queue(
 template <class protocol_t>
 void btree_store_t<protocol_t>::deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq) {
+            const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
@@ -223,14 +248,12 @@ void btree_store_t<protocol_t>::deregister_sindex_queue(
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::sindex_queue_push(
-            const write_message_t& value,
-            mutex_t::acq_t *acq) {
+void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
+                                                  const mutex_t::acq_t *acq) {
     assert_thread();
     acq->assert_is_holding(&sindex_queue_mutex);
 
-    for (std::vector<internal_disk_backed_queue_t *>::iterator it = sindex_queues.begin(); 
-            it != sindex_queues.end(); ++it) {
+    for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
         (*it)->push(value);
     }
 }
@@ -809,9 +832,17 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid, 1, token, &txn, &superblock, interruptor);
+    acquire_superblock_for_write(rwi_write,
+                                 repli_timestamp_t::invalid,
+                                 1,
+                                 WRITE_DURABILITY_HARD,
+                                 token,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
     get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
@@ -868,6 +899,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         access_t access,
         repli_timestamp_t timestamp,
         int expected_change_count,
+        const write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
@@ -883,7 +915,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, timestamp, order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
 }
 
 /* store_view_t interface */

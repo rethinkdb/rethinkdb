@@ -107,7 +107,8 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
         }
     } write_callback;
     cond_t non_interruptor;
-    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);
+    spawn_write_fake_ack_checker_t ack_checker;
+    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
 }
 

@@ -358,6 +358,16 @@ class MakeArray(RqlQuery):
 class MakeObj(RqlQuery):
     tt = p.Term.MAKE_OBJ
 
+    # We cannot inherit from RqlQuery because of potential conflicts with
+    # the `self` parameter. This is not a problem for other RqlQuery sub-
+    # classes unless we add a 'self' optional argument to one of them.
+    def __init__(self, obj_dict):
+        self.args = []
+
+        self.optargs = {}
+        for k in obj_dict.keys():
+            self.optargs[k] = expr(obj_dict[k])
+
     def compose(self, args, optargs):
         return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
 

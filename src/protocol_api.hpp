@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -385,6 +386,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token,
@@ -426,6 +428,7 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
+            write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -545,6 +548,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
@@ -554,7 +558,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, timestamp, order_token, token_pair, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
@@ -585,13 +589,14 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
+            write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), subregion));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->reset_data(subregion, new_metainfo, token_pair, interruptor);
+        store_view->reset_data(subregion, new_metainfo, token_pair, durability, interruptor);
     }
 
 private:

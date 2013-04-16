@@ -86,11 +86,14 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
 }
 
 template<class protocol_t>
-class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
+class test_reactor_t : private ack_checker_t {
 public:
     test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
+    write_durability_t get_write_durability(const peer_id_t &) const {
+        return WRITE_DURABILITY_SOFT;
+    }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;

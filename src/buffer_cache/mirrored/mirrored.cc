@@ -881,7 +881,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp, UNUSED order_token_t order_token /* used only by the scc transaction */, const write_durability_t _durability)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -890,7 +890,9 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       snapshotted(false),
       cache_account(NULL),
       num_buf_locks_acquired(0),
-      is_writeback_transaction(false) {
+      is_writeback_transaction(false),
+      durability(_durability) {
+
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
     coro_fifo_acq_t write_throttle_acq;
@@ -909,26 +911,28 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
-/* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, DEBUG_VAR bool dont_assert_about_shutting_down) :
-    cache(_cache),
-    expected_change_count(0),
-    access(_access),
-    recency_timestamp(repli_timestamp_t::distant_past),
-    snapshot_version(mc_inner_buf_t::faux_version_id),
-    snapshotted(false),
-    cache_account(NULL),
-    num_buf_locks_acquired(0),
-    is_writeback_transaction(false) {
-    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
-    rassert(access == rwi_read || access == rwi_read_sync);
+// For read transactions.
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED order_token_t order_token /* used only by the scc transaction */)
+    : cache(_cache),
+      expected_change_count(0),
+      access(_access),
+      recency_timestamp(repli_timestamp_t::distant_past),
+      snapshot_version(mc_inner_buf_t::faux_version_id),
+      snapshotted(false),
+      cache_account(NULL),
+      num_buf_locks_acquired(0),
+      is_writeback_transaction(false),
+      durability(WRITE_DURABILITY_INVALID) {
 
-    // No write throttle acq.
+    guarantee(is_read_mode(access));
+
+    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
     cache->assert_thread();
-    rassert(dont_assert_about_shutting_down || !cache->shutting_down);
+    rassert(!cache->shutting_down);
     cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
+
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
@@ -941,7 +945,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     snapshotted(false),
     cache_account(NULL),
     num_buf_locks_acquired(0),
-    is_writeback_transaction(true) {
+    is_writeback_transaction(true),
+    durability(WRITE_DURABILITY_INVALID) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -959,7 +964,6 @@ void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner
 }
 
 mc_transaction_t::~mc_transaction_t() {
-
     assert_thread();
 
     cache->stats->pm_transactions_active.end(&start_time);
@@ -978,23 +982,14 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
-    if (access == rwi_write && cache->writeback.wait_for_flush) {
+    if (access == rwi_write && durability == WRITE_DURABILITY_HARD) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
-        struct : public writeback_t::sync_callback_t, public cond_t {
-            void on_sync() { pulse(); }
-        } sync_callback;
-
-        if (cache->writeback.sync_patiently(&sync_callback)) {
-            sync_callback.pulse();
-        }
-
+        sync_callback_t disk_ack_signal;
+        cache->writeback.sync_patiently(&disk_ack_signal);
         cache->on_transaction_commit(this);
-        sync_callback.wait();
-
     } else {
         cache->on_transaction_commit(this);
-
     }
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
@@ -1109,11 +1104,9 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         this),
     writeback(
         this,
-        dynamic_config.wait_for_flush,
         dynamic_config.flush_timer_ms,
         dynamic_config.flush_dirty_size / _serializer->get_block_size().ser_value(),
         dynamic_config.max_dirty_size / _serializer->get_block_size().ser_value(),
-        dynamic_config.flush_waiting_threshold,
         dynamic_config.max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
     free_list(_serializer, stats.get()),
@@ -1169,11 +1162,11 @@ mc_cache_t::~mc_cache_t() {
             "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
             num_live_writeback_transactions, num_live_non_writeback_transactions);
 
-    /* Perform a final sync */
-    struct : public writeback_t::sync_callback_t, public cond_t {
-        void on_sync() { pulse(); }
-    } sync_cb;
-    if (!writeback.sync(&sync_cb)) sync_cb.wait();
+    {
+        /* Perform a final sync */
+        sync_callback_t sync_cb;
+        writeback.sync(&sync_cb);
+    }
 
     /* Delete all the buffers */
     while (evictable_t *buf = page_repl.get_first_buf()) {

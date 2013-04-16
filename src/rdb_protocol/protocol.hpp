@@ -28,6 +28,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
+#include "utils.hpp"
 
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -703,10 +704,10 @@ namespace rdb_protocol_details {
 originally necessary because in v1.1.x the hashing scheme might be different
 between the source and destination machines. */
 struct range_key_tester_t : public key_tester_t {
-    explicit range_key_tester_t(const rdb_protocol_t::region_t& _delete_range) : delete_range(_delete_range) { }
+    explicit range_key_tester_t(const rdb_protocol_t::region_t *_delete_range) : delete_range(_delete_range) { }
     bool key_should_be_erased(const btree_key_t *key);
 
-    const rdb_protocol_t::region_t& delete_range;
+    const rdb_protocol_t::region_t *delete_range;
 };
 } //namespace rdb_protocol_details 
 

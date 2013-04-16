@@ -34,6 +34,7 @@ const char *split_shard_command = "split shard";
 const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
+const char *set_durability_command = "set durability";
 const char *set_replicas_command = "set replicas";
 const char *set_primary_command = "set primary";
 const char *unset_primary_command = "unset primary";
@@ -70,6 +71,7 @@ const char *split_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *merge_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *set_name_usage = "<ID> <NEW-NAME>";
 const char *set_acks_usage = "<TABLE> <NUM-ACKS> [<DATACENTER>]";
+const char *set_durability_usage = "<TABLE> (--soft | --hard)";
 const char *set_replicas_usage = "<TABLE> <NUM-REPLICAS> [<DATACENTER>]";
 const char *set_primary_usage = "<TABLE> <DATACENTER>";
 const char *unset_primary_usage = "<TABLE>";
@@ -105,6 +107,9 @@ const char *set_name_new_name_option = "<NEW-NAME>";
 const char *set_acks_table_option = "<TABLE>";
 const char *set_acks_datacenter_option = "<DATACENTER>";
 const char *set_acks_num_acks_option = "<NUM-ACKS>";
+const char *set_durability_table_option = "<TABLE>";
+const char *set_durability_soft_option = "--soft";
+const char *set_durability_hard_option = "--hard";
 const char *set_replicas_table_option = "<TABLE>";
 const char *set_replicas_datacenter_option = "<DATACENTER>";
 const char *set_replicas_num_replicas_option = "<NUM-REPLICAS>";
@@ -150,6 +155,9 @@ const char *set_name_new_name_option_desc = "the new name for the specified obje
 const char *set_acks_table_option_desc = "the table to change the acks for";
 const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for, defaults to 'universe' if not specified";
 const char *set_acks_num_acks_option_desc = "the number of acknowledgements required from the replicas in a datacenter for a write operation to be considered successful, this value should not exceed the number of replicas of the specified table for the specified datacenter";
+const char *set_durability_table_option_desc = "the table to change the durability of";
+const char *set_durability_soft_option_desc = "give soft durability, acks are sent when writes have reached memory and before they reach disk";
+const char *set_durability_hard_option_desc = "give hard durability, acks are not sent until writes have reached disk";
 const char *set_replicas_table_option_desc = "the table to change the number of replicas of";
 const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas, defaults to 'universe' if not specified";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
@@ -190,6 +198,7 @@ const char *split_shard_description = "Add a new shard to a table by creating a 
 const char *merge_shard_description = "Remove a shard from a table by deleting a split point.  This will merge the two shards on each side of the split point into one, and clear all existing pinnings for the table.";
 const char *set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
 const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given table and datacenter.";
+const char *set_durability_description = "Set soft or hard durability for the given table";
 const char *set_replicas_description = "Set the replica affinities of a table.  This represents the number of replicas that the table will have in each specified datacenter.";
 const char *set_primary_description = "Set the primary datacenter of a table, which will move the master replicas to this datacenter.";
 const char *unset_primary_description = "Clear the primary datacenter of a table, which will allow the cluster to automatically distribute replicas.";
@@ -486,7 +495,7 @@ void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, 
 admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(const std::string& full_cmd,
                                                                             const std::string& cmd,
                                                                             const std::string& usage,
-                                                                            void (admin_cluster_link_t::*const fn)(const command_data&),
+                                                                            void (admin_cluster_link_t::*const fn)(const command_data_t&),
                                                                             std::map<std::string, command_info_t *> *cmd_map) {
     command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
@@ -548,6 +557,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("table", 1, true)->add_option("!namespace");
     info->add_positional("num-acks", 1, true);
     info->add_positional("datacenter", 1, false)->add_option("!datacenter");
+
+    info = add_command(set_durability_command, set_durability_command, set_durability_usage, &admin_cluster_link_t::do_admin_set_durability, &commands);
+    info->add_positional("table", 1, true)->add_option("!namespace");
+    info->add_flag("soft", 0, false);
+    info->add_flag("hard", 0, false);
 
     info = add_command(set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas, &commands);
     info->add_positional("table", 1, true)->add_option("!namespace");
@@ -683,9 +697,9 @@ admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(con
     return i->second;
 }
 
-admin_command_parser_t::command_data admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
+admin_command_parser_t::command_data_t admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
 {
-    command_data data(info);
+    command_data_t data(info);
     size_t positional_index = 0;
     size_t positional_count = 0;
 
@@ -743,7 +757,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
     return data;
 }
 
-void admin_command_parser_t::run_command(const command_data& data) {
+void admin_command_parser_t::run_command(const command_data_t& data) {
     // Special cases for help and join, which do nothing through the cluster
     if (data.info->command == "help") {
         do_admin_help(data);
@@ -1010,7 +1024,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             throw admin_parse_exc_t("incomplete command");
         }
 
-        command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
+        command_data_t data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
     } catch (const admin_parse_exc_t& ex) {
         std::string exception_str(ex.what());
@@ -1093,7 +1107,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     console_mode = false;
 }
 
-void admin_command_parser_t::do_admin_help(const command_data& data) {
+void admin_command_parser_t::do_admin_help(const command_data_t& data) {
     if (data.params.count("command") == 1) {
         std::string command = guarantee_param_0(data.params, "command");
         std::string subcommand = (data.params.count("subcommand") > 0 ? guarantee_param_0(data.params, "subcommand") : "");
@@ -1155,6 +1169,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
                 helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
+                helps.push_back(admin_help_info_t(set_durability_command, set_durability_usage, set_durability_description));
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
                 helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
@@ -1171,6 +1186,12 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(set_acks_datacenter_option, set_acks_datacenter_option_desc));
                 options.push_back(std::make_pair(set_acks_num_acks_option, set_acks_num_acks_option_desc));
                 do_usage_internal(helps, options, "set acks - change the number of acknowledgements required for a write operation to succeed", console_mode);
+            } else if (subcommand == "durability") {
+                helps.push_back(admin_help_info_t(set_durability_command, set_durability_usage, set_durability_description));
+                options.push_back(std::make_pair(set_durability_table_option, set_durability_table_option_desc));
+                options.push_back(std::make_pair(set_durability_soft_option, set_durability_soft_option_desc));
+                options.push_back(std::make_pair(set_durability_hard_option, set_durability_hard_option_desc));
+                do_usage_internal(helps, options, "set durability - change the durability of a table between soft and hard", console_mode);
             } else if (subcommand == "replicas") {
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
                 options.push_back(std::make_pair(set_replicas_table_option, set_replicas_table_option_desc));

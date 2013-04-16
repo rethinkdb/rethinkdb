@@ -162,10 +162,13 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
+            // We don't need hard durability here, because a secondary index just gets rebuilt
+            // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
+                WRITE_DURABILITY_SOFT,
                 &token_pair.main_write_token,
                 &queue_txn,
                 &queue_superblock,
@@ -210,8 +213,8 @@ void post_construct_and_drain_queue(
 
             if (mod_queue->size() == 0) {
                 for (auto it = sindexes_to_bring_up_to_date.begin();
-                        it != sindexes_to_bring_up_to_date.end(); ++it) {
-                        store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
+                     it != sindexes_to_bring_up_to_date.end(); ++it) {
+                    store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
@@ -236,6 +239,7 @@ void post_construct_and_drain_queue(
             rwi_write,
             repli_timestamp_t::distant_past,
             2,
+            WRITE_DURABILITY_HARD,
             &token_pair.main_write_token,
             &queue_txn,
             &queue_superblock,
@@ -258,8 +262,8 @@ void post_construct_and_drain_queue(
 
 bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
     uint64_t h = hash_region_hasher(key->contents, key->size);
-    return delete_range.beg <= h && h < delete_range.end
-        && delete_range.inner.contains_key(key->contents, key->size);
+    return delete_range->beg <= h && h < delete_range->end
+        && delete_range->inner.contains_key(key->contents, key->size);
 }
 
 }  // namespace rdb_protocol_details
@@ -1392,7 +1396,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        range_key_tester_t tester(delete_range.range);
+        range_key_tester_t tester(&delete_range.range);
         rdb_modification_report_cb_t sindex_cb(
             store, token_pair, txn,
             superblock->get_sindex_block_id(),

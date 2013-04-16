@@ -7,6 +7,8 @@
 
 #include "arch/timer.hpp"
 #include "buffer_cache/mirrored/flush_time_randomizer.hpp"
+#include "buffer_cache/types.hpp"
+#include "concurrency/cond_var.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
@@ -19,29 +21,30 @@ class mc_buf_lock_t;
 class mc_inner_buf_t;
 class mc_transaction_t;
 
+class sync_callback_t : private cond_t, public intrusive_list_node_t<sync_callback_t> {
+public:
+    // Waits for all the on_syncs!  Calls wait().
+    ~sync_callback_t() { wait(); }
+
+    using cond_t::pulse;
+};
+
 class writeback_t : private timer_callback_t {
 public:
     writeback_t(
         mc_cache_t *cache,
-        bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
         unsigned int max_dirty_blocks,
-        unsigned int flush_waiting_threshold,
         unsigned int max_concurrent_flushes);
     virtual ~writeback_t();
 
-    struct sync_callback_t : public intrusive_list_node_t<sync_callback_t> {
-        virtual ~sync_callback_t() {}
-        virtual void on_sync() = 0;
-    };
+    /* Forces a writeback to happen soon. If there is nothing to write, pulses the callback.
+       Otherwise, pulses the callback as soon as the next writeback cycle is over. */
+    void sync(sync_callback_t *callback);
 
-    /* Forces a writeback to happen soon. If there is nothing to write, return 'true'; otherwise,
-    returns 'false' and calls 'callback' as soon as the next writeback cycle is over. */
-    bool sync(sync_callback_t *callback);
-
-    /* Same as sync(), but doesn't hurry up the writeback in any way. */
-    bool sync_patiently(sync_callback_t *callback);
+    /* Same as sync(), but doesn't hurry up the writeback very much. */
+    void sync_patiently(sync_callback_t *callback);
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
     it ought to be throttled. */
@@ -62,7 +65,7 @@ public:
         However, due to a peculiarity of how snapshots interact with the deletion of blocks
         and the writeback process (as of 11/20/2012), new blocks can sometimes be assigned a block id
         for which a local_buf_t still exists. In that case, the local_buf_t has to be reset ot its initial
-        configuration. This process is currently triggered by mc_inner_buf_t::allocate(). */ 
+        configuration. This process is currently triggered by mc_inner_buf_t::allocate(). */
         void reset();
 
         void set_dirty(bool _dirty = true);
@@ -83,8 +86,6 @@ public:
 
     /* User-controlled settings. */
 
-    const bool wait_for_flush;
-    const unsigned int flush_waiting_threshold;
     const unsigned int max_concurrent_flushes;
     const unsigned int max_dirty_blocks;
 
@@ -137,8 +138,9 @@ private:
     // If something requests a sync but a sync is already in progress, then
     // start_next_sync_immediately is set so that a new sync operation is started as soon as the
     // old one finishes. Note that start_next_sync_immediately being true is not equivalent to
-    // sync_callbacks being nonempty, because when wait_for_flush is set, transactions will sit
-    // patiently in sync_callbacks without setting start_next_sync_immediately.
+    // sync_callbacks being nonempty, because when non-null disk_ack_signals are passed,
+    // transactions will sit patiently in sync_callbacks without setting
+    // start_next_sync_immediately.
     bool start_next_sync_immediately;
 
     // List of bufs that are currenty dirty

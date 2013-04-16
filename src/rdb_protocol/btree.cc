@@ -821,7 +821,7 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
-/* A target for pmap. Used below by rdb_update_sindexes. */
+/* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         const rdb_modification_report_t *modification,
@@ -947,10 +947,14 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
+            // We want soft durability because having a partially constructed secondary index is
+            // okay -- we wipe it and rebuild it, if it has not been marked completely
+            // constructed.
             store_->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
+                WRITE_DURABILITY_SOFT,
                 &token_pair.main_write_token,
                 &wtxn,
                 &superblock,
@@ -978,7 +982,7 @@ public:
             return;
         }
 
-        const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
         const btree_key_t *key;
@@ -990,7 +994,7 @@ public:
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
             mod_report.info.added = get_data(rdb_value, txn);
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
@@ -1040,6 +1044,7 @@ void post_construct_secondary_indexes(
         &superblock,
         interruptor,
         true /* USE_SNAPSHOT */);
+
     btree_parallel_traversal(txn.get(), superblock.get(),
             store->btree.get(), &helper, &wait_any);
 }
