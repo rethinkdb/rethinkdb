@@ -43,7 +43,7 @@ writeback_t::~writeback_t() {
     rassert(!writeback_in_progress);
     rassert(active_flushes == 0);
     rassert(sync_callbacks.size() == 0);
-    if (flush_timer) {
+    if (flush_timer != NULL) {
         cancel_timer(flush_timer);
         flush_timer = NULL;
     }
@@ -73,7 +73,7 @@ void writeback_t::sync(sync_callback_t *callback) {
         return;
     }
 
-    if (callback) {
+    if (callback != NULL) {
         sync_callbacks.push_back(callback);
     }
 
@@ -89,7 +89,7 @@ void writeback_t::sync(sync_callback_t *callback) {
 }
 
 void writeback_t::sync_patiently(sync_callback_t *callback) {
-    if (callback) {
+    if (callback != NULL) {
         sync_callbacks.push_back(callback);
     }
 }
@@ -138,7 +138,9 @@ void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
             sync(NULL);
         }
 
-        if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
+        if (flush_timer == NULL
+            && !flush_time_randomizer.is_never_flush()
+            && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
             flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), this);
