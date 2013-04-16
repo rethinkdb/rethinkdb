@@ -104,7 +104,7 @@ endif
 # foo/bar: baz | foo/.
 # 	zap $< > $@
 %/.:
-	$P MKDIR
+	$P MKDIR $(patsubst %/.,%,$@)
 	mkdir -p $@
 
 ##### Make recursive make less error-prone
