@@ -222,6 +222,13 @@ public:
         return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
     }
 
+    // Computes what write durability we should use when sending a write to the
+    // given peer, on the given table.  Uses the ack_info parameter to figure
+    // out the answer to this question.  Figures out the answer much like how
+    // compute_is_acceptable_ack_set figures out whether it has the right ack
+    // set.  It figures out what datacenter the peer belongs to, and then, using
+    // the ack_expectations_t for the given namespace, figures out whether we
+    // want hard durability or soft durability for that datacenter.
     static write_durability_t compute_write_durability(const peer_id_t &peer, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
         // FML
         const std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
