@@ -41,9 +41,7 @@ static bool is_satisfiable(
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters) {
     //If any of the numbers are negative return false immediately since it's
     //malformed data.
-    for (std::map<datacenter_id_t, int32_t>::const_iterator it = replica_affinities.begin();
-                                                            it != replica_affinities.end();
-                                                            ++it) {
+    for (auto it = replica_affinities.begin(); it != replica_affinities.end(); ++it) {
         if (it->second < 0) {
             return false;
         }
@@ -54,9 +52,7 @@ static bool is_satisfiable(
 
     std::map<datacenter_id_t, int> unused_machines_in_dc = actual_machines_in_datacenters;
 
-    for (std::map<datacenter_id_t, int32_t>::iterator it = machines_needed_in_dc.begin();
-                                                      it != machines_needed_in_dc.end();
-                                                      ++it) {
+    for (auto it = machines_needed_in_dc.begin(); it != machines_needed_in_dc.end(); ++it) {
         if (it->first == nil_uuid() || it->second == 0) {
             //We handle this below after we've checked the concrete assignments
             continue;
@@ -69,9 +65,7 @@ static bool is_satisfiable(
     }
 
     int extra_machines = 0;
-    for (std::map<datacenter_id_t, int>::iterator it  = unused_machines_in_dc.begin();
-                                                  it != unused_machines_in_dc.end();
-                                                  ++it) {
+    for (auto it = unused_machines_in_dc.begin(); it != unused_machines_in_dc.end(); ++it) {
         extra_machines += it->second;
     }
 
