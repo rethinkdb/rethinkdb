@@ -521,15 +521,19 @@ private:
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(
-        transaction_t *txn,
-        ql::env_t *_ql_env,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        rget_read_response_t *_response)
-        : bad_init(false), transaction(txn), response(_response), cumulative_size(0),
-          ql_env(_ql_env), transform(_transform), terminal(_terminal)
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
+                                              ql::env_t *_ql_env,
+                                              const rdb_protocol_details::transform_t &_transform,
+                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
+                                              const key_range_t &range,
+                                              rget_read_response_t *_response) :
+        bad_init(false),
+        transaction(txn),
+        response(_response),
+        cumulative_size(0),
+        ql_env(_ql_env),
+        transform(_transform),
+        terminal(_terminal)
     {
         try {
             response->last_considered_key = range.left;
@@ -557,7 +561,9 @@ public:
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
-        if (bad_init) return false;
+        if (bad_init) {
+            return false;
+        }
         try {
             store_key_t store_key(key);
             if (response->last_considered_key < store_key) {
@@ -569,7 +575,7 @@ public:
             json_list_t data;
             data.push_back(get_data(rdb_value, transaction));
 
-            //Apply transforms to the data
+            // Apply transforms to the data
             {
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {

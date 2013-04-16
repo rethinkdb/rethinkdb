@@ -65,6 +65,8 @@ public:
     explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
+    ~datum_t();
+
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
@@ -72,6 +74,7 @@ public:
     std::string print() const;
     std::string print_primary() const;
     std::string print_secondary(const store_key_t &key) const;
+    store_key_t truncated_secondary() const;
     void check_type(type_t desired) const;
 
     bool as_bool() const;
@@ -149,21 +152,29 @@ public:
                                bool pred, std::string msg) const {
         ql::runtime_check(test, file, line, pred, msg);
     }
+
 private:
+    void init_empty();
+    void init_str();
+    void init_array();
+    void init_object();
     void init_json(cJSON *json, env_t *env);
 
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
 
-    // TODO: fix later.  Listing everything is more debugging-friendly than a
-    // boost::variant, but less efficient.
     type_t type;
-    bool r_bool;
-    double r_num;
-    std::string r_str;
-    std::vector<const datum_t *> r_array;
-    std::map<const std::string, const datum_t *> r_object;
+    union {
+        bool r_bool;
+        double r_num;
+        // TODO: Make this a char vector
+        std::string *r_str;
+        std::vector<const datum_t *> *r_array;
+        std::map<const std::string, const datum_t *> *r_object;
+    };
+
+    DISABLE_COPYING(datum_t);
 };
 
 RDB_DECLARE_SERIALIZABLE(Datum);
@@ -180,6 +191,10 @@ public:
     // Prepare ourselves for serialization over the wire (this is a performance
     // optimizaiton that we need on the shards).
     void finalize();
+
+    Datum get_datum() const {
+        return ptr_pb;
+    }
 private:
     const datum_t *ptr;
     Datum ptr_pb;

@@ -7,7 +7,7 @@ def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["valgrind"] = BoolFlag("--valgrind")
     opt_parser["valgrind-options"] = StringFlag("--valgrind-options", "--leak-check=full --track-origins=yes --child-silent-after-fork=yes")
     opt_parser["wrapper"] = StringFlag("--wrapper", None)
-    opt_parser["mode"] = StringFlag("--mode", "debug")
+    opt_parser["mode"] = StringFlag("--mode", "")
     opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
     opt_parser["protocol"] = ChoiceFlag("--protocol", ["rdb", "memcached"], "memcached")
 
@@ -22,7 +22,7 @@ def parse_mode_flags(parsed_opts):
 
         # Make sure we use the valgrind build
         # this assumes that the 'valgrind' substring goes at the end of the specific build string
-        if "valgrind" not in mode:
+        if "valgrind" not in mode and mode != "":
             mode = mode + "-valgrind"
 
     elif parsed_opts["wrapper"] is not None:

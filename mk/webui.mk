@@ -49,11 +49,7 @@ web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
 
 ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
 
-$(WEB_ASSETS_BUILD_DIR):
-	$P MKDIR
-	mkdir -p $@
-
-$(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)
+$(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP
 	mkdir -p $(dir $@)
 	cp -pRP $< $@

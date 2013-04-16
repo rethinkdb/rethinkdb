@@ -219,6 +219,7 @@ public:
             read_token_pair_t *token_pair,
             transaction_t *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            std::vector<char> *opaque_definition_out, // Optional, may be NULL
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 

@@ -10,6 +10,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -300,11 +301,16 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
     // TODO: 100 seconds?
     nap(100000);
 
+    cond_t dummy_interruptor;
+    ql::env_t dummy_env(&dummy_interruptor);
+
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        store_key_t key(cJSON_print_primary(scoped_cJSON_t(cJSON_Parse(it->second.c_str())).get(), 
-                                            query_language::backtrace_t()));
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(key, sindex_id));
+        boost::shared_ptr<scoped_cJSON_t> sindex_key_json(new scoped_cJSON_t(cJSON_Parse(it->second.c_str())));
+        ql::datum_t sindex_key_literal(sindex_key_json, &dummy_env);
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_id,
+                                                                &sindex_key_literal,
+                                                                &sindex_key_literal));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

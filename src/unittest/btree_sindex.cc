@@ -213,7 +213,8 @@ void run_sindex_btree_store_api_test() {
 
             bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(), &token_pair,
-                    txn.get(), &sindex_super_block, &dummy_interuptor);
+                    txn.get(), &sindex_super_block,
+                    static_cast<std::vector<char>*>(NULL), &dummy_interuptor);
             ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;

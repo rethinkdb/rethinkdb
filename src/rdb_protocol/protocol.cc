@@ -21,10 +21,14 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "serializer/config.hpp"
 
+// Ignore clang errors for ql macros
+#pragma GCC diagnostic ignored "-Wshadow"
 
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
@@ -311,10 +315,26 @@ region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
-key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &k) {
-    store_key_t start(key_to_unescaped_str(k) + "\0"),
-                end(key_to_unescaped_str(k) + std::string(1, '\0' + 1));
-    return key_range_t(key_range_t::closed, start, key_range_t::open, end);
+key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start, const store_key_t &end) {
+    std::string start_key_str(key_to_unescaped_str(start));
+    std::string end_key_str(key_to_unescaped_str(end));
+    store_key_t end_key;
+
+    // Need to make the next largest store_key_t without making the key longer
+    while (end_key_str.length() > 0 &&
+           end_key_str[end_key_str.length() - 1] == static_cast<char>(255)) {
+        end_key_str.erase(end_key_str.length() - 1);
+    }
+
+    if (end_key_str.length() == 0) {
+        end_key = store_key_t::max();
+    } else {
+        ++end_key_str[end_key_str.length() - 1];
+        end_key = store_key_t(end_key_str);
+    }
+
+    return key_range_t(key_range_t::closed, store_key_t(start_key_str),
+                       key_range_t::open, end_key);
 }
 
 /* read_t::get_region implementation */
@@ -914,11 +934,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
+            std::vector<char> sindex_mapping_data;
 
             try {
                 bool found = store->acquire_sindex_superblock_for_read(*rget.sindex,
                         superblock->get_sindex_block_id(), token_pair,
-                        txn, &sindex_sb, &interruptor);
+                        txn, &sindex_sb, &sindex_mapping_data, &interruptor);
 
                 if (!found) {
                     res->result = ql::datum_exc_t(
@@ -933,9 +954,51 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
-            guarantee(rget.sindex_region, "If an rget has a sindex uuid specified it should also have a sindex_region.");
-            rdb_rget_slice(store->get_sindex_slice(*rget.sindex), rget.sindex_region->inner,
-                           txn, sindex_sb.get(), &ql_env, rget.transform,
+            guarantee(rget.sindex_region, "If an rget has a sindex specified "
+                      "it should also have a sindex_region.");
+            guarantee(rget.sindex_start_value, "If an rget has a sindex specified "
+                      "it should also have a start_sindex_value.");
+            guarantee(rget.sindex_end_value, "If an rget has a sindex specified "
+                      "it should also have an end_sindex_value.");
+
+            // This chunk of code puts together a filter so we can exclude any items
+            //  that don't fall in the specified range.  Because the secondary index
+            //  keys may have been truncated, we can't go by keys alone.  Therefore,
+            //  we construct a filter function that ensures all returned items lie
+            //  between sindex_start_value and sindex_end_value.
+            ql::map_wire_func_t sindex_mapping;
+            vector_read_stream_t read_stream(&sindex_mapping_data);
+            int success = deserialize(&read_stream, &sindex_mapping);
+            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+
+            Term filter_term;
+            int arg1 = ql_env.gensym();
+            int sindex_val = ql_env.gensym();
+            Term *arg = ql::pb::set_func(&filter_term, arg1);
+            N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
+               N2(ALL,
+                  N2(GE, NVAR(sindex_val),
+                     *ql::pb::set_datum(arg) =rget.sindex_start_value->get_datum()),
+                  N2(LE, NVAR(sindex_val),
+                     *ql::pb::set_datum(arg) = rget.sindex_end_value->get_datum())),
+               N2(FUNCALL,
+                  *arg = sindex_mapping.get_term(),
+                  NVAR(arg1)));
+
+            Backtrace dummy_backtrace;
+            ql::term_walker_t(&filter_term, &dummy_backtrace);
+            ql::filter_wire_func_t sindex_filter(filter_term,
+                                                 static_cast<std::map<int64_t, Datum>*>(NULL));
+
+            // We then add this new filter to the beginning of the transform stack
+            rdb_protocol_details::transform_t sindex_transform(rget.transform);
+            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(sindex_filter,
+                                                                               scopes_t(),
+                                                                               backtrace_t()));
+
+            rdb_rget_slice(store->get_sindex_slice(*rget.sindex),
+                           rget.sindex_region->inner,
+                           txn, sindex_sb.get(), &ql_env, sindex_transform,
                            rget.terminal, res);
         }
     }

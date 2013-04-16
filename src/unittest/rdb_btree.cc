@@ -181,12 +181,14 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(sindex_id,
                 super_block->get_sindex_block_id(), &token_pair,
-                txn.get(), &sindex_sb, &dummy_interruptor);
+                txn.get(), &sindex_sb,
+                static_cast<std::vector<char>*>(NULL), &dummy_interruptor);
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
+                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
                boost::optional<rdb_protocol_details::terminal_t>(), &res);
 
@@ -220,12 +222,14 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         bool sindex_exists = store->acquire_sindex_superblock_for_read(sindex_id,
                 super_block->get_sindex_block_id(), &token_pair,
-                txn.get(), &sindex_sb, &dummy_interruptor);
+                txn.get(), &sindex_sb,
+                static_cast<std::vector<char>*>(NULL), &dummy_interruptor);
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
+               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
+                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
                boost::optional<rdb_protocol_details::terminal_t>(), &res);
 

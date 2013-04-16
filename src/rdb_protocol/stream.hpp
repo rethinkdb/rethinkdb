@@ -95,9 +95,11 @@ public:
 
     /* Sindex rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                          signal_t *_interruptor, key_range_t _range, const std::string &_sindex_id,
+                          signal_t *_interruptor, const std::string &_sindex_id,
                           const std::map<std::string, ql::wire_func_t> &_optargs,
-                          bool _use_outdated);
+                          bool _use_outdated,
+                          const ql::datum_t *_sindex_start_value,
+                          const ql::datum_t *_sindex_end_value);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
@@ -118,13 +120,17 @@ private:
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
-    key_range_t range;
     boost::optional<std::string> sindex_id;
 
     json_list_t data;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
+
+    const ql::datum_t *sindex_start_value;
+    const ql::datum_t *sindex_end_value;
+
+    key_range_t range;
 
     boost::optional<backtrace_t> table_scan_backtrace;
 };
