@@ -1,0 +1,20 @@
+commands:
+  - tag: type_of
+    section: control
+    order: 7
+    description: Gets the type of a value.
+
+    parent: value
+    returns: string
+
+    examples:
+      - description: Get the type of a string.
+        code: r.expr("foo").type_of().run(conn)
+
+    js:
+      name: typeOf
+      examples:
+        0:
+          code: r.expr("foo").typeOf().run(conn, callback)
+          can_try: true
+          dataset: marvel

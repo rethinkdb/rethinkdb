@@ -1,0 +1,70 @@
+sections:
+  - tag: reductions
+    name: Reductions
+    description: These standard reduction objects are to be used in conjunction with group_by.
+    order: 8
+
+commands:
+  - tag: count
+    section: reductions
+    description: Count the total size of the group.
+
+    dont_need_parenthesis: true
+    parent: r
+    returns: null
+
+    examples:
+      - description: Just how many heroes do we have at each strength level?
+        code:
+          js: r.table('marvel').groupBy('strength', r.count).run(conn, callback)
+          py: r.table('marvel').group_by('strength', r.count).run(conn)
+          rb: r.table('marvel').group_by(:strength, r.count).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: sum
+    section: reductions
+    description: Compute the sum of the given field in the group.
+
+    body: attr
+    parent: r
+    returns: null
+
+    examples:
+      - description: How many enemies have been vanquished by heroes at each strength level?
+        code:
+          js: r.table('marvel').groupBy('strength', r.sum('enemiesVanquished')).run(conn, callback)
+          py: r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run(conn)
+          rb: r.table('marvel').group_by(:strength, r.sum(:enemies_vanquished)).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: avg
+    section: reductions
+    description: Compute the average value of the given attribute for the group.
+
+    body: attr
+    parent: r
+    returns: null
+
+    examples:
+      - description: What's the average agility of heroes at each strength level?
+        code:
+          js: r.table('marvel').groupBy('strength', r.avg('agility')).run(conn, callback)
+          py: r.table('marvel').group_by('strength', r.avg('agility')).run(conn)
+          rb: r.table('marvel').group_by(:strength, r.avg(:agility)).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+

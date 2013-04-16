@@ -129,7 +129,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             write_token_pair_t token_pair;
             svs->new_write_token_pair(&token_pair);
 
-            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, &ct_interruptor);
+            svs->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), &token_pair, WRITE_DURABILITY_HARD, &ct_interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,
@@ -137,7 +137,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         directory_entry.set(typename reactor_business_card_t<protocol_t>::nothing_t());
 
         interruptor->wait_lazily_unordered();
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 }

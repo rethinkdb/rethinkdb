@@ -4,6 +4,9 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -103,6 +106,42 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, opt
     return get_optional_option(opts, name, &source);
 }
 
+void set_user_group(const std::map<std::string, options::values_t> &opts) {
+    boost::optional<std::string> rungroup = get_optional_option(opts, "--rungroup");
+    boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
+
+    if (rungroup) {
+        struct group *group_data = getgrnam(rungroup->c_str());
+        if (group_data == NULL) {
+            throw std::runtime_error(strprintf("Group '%s' not found: %s",
+                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+        }
+        if (setgid(group_data->gr_gid) != 0) {
+            throw std::runtime_error(strprintf("Could not set group to '%s': %s",
+                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+        }
+    }
+
+    if (runuser) {
+        struct passwd *user_data = getpwnam(runuser->c_str());
+        if (user_data == NULL) {
+            throw std::runtime_error(strprintf("User '%s' not found: %s",
+                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+        }
+        if (!rungroup) {
+            // No group specified, use the user's group
+            if (setgid(user_data->pw_gid) != 0) {
+                throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
+                                                   runuser->c_str(), errno_string(errno).c_str()).c_str());
+            }
+        }
+        if (setuid(user_data->pw_uid) != 0) {
+            throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
+                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+        }
+    }
+}
+
 // Maybe writes a pid file, using the --pid-file option, if it's present.
 int write_pid_file(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
@@ -163,12 +202,26 @@ public:
     boost::optional<std::string> config_file;
 };
 
+// Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
+// option exists.
+bool exists_option(const std::map<std::string, options::values_t> &opts, const std::string &name) {
+    auto it = opts.find(name);
+    return it != opts.end() && !it->second.values.empty();
+}
+
 serializer_filepath_t metadata_file(const base_path_t& dirpath) {
     return serializer_filepath_t(dirpath, "metadata");
 }
 
-std::string get_logfilepath(const base_path_t& dirpath) {
-    return dirpath.path() + "/log_file";
+void initialize_logfile(const std::map<std::string, options::values_t> &opts,
+                               const base_path_t& dirpath) {
+    std::string filename;
+    if (exists_option(opts, "--log-file")) {
+        filename = get_single_option(opts, "--log-file");
+    } else {
+        filename = dirpath.path() + "/log_file";
+    }
+    install_fallback_log_writer(filename);
 }
 
 bool check_existence(const base_path_t& base_path) {
@@ -194,7 +247,10 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
 #endif  // WEBRESDIR
     }
 
-    return render_as_path(result);
+    // Make sure we return an absolute path
+    base_path_t abs_path(render_as_path(result));
+    abs_path.make_absolute();
+    return abs_path.path();
 }
 
 std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
@@ -224,7 +280,11 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             // Verify that all specified addresses are valid ip addresses
             struct in_addr addr;
             if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
-                set_filter.insert(ip_address_t(addr));
+                if (addr.s_addr == INADDR_ANY) {
+                    all = true;
+                } else {
+                    set_filter.insert(ip_address_t(addr));
+                }
             } else {
                 throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
             }
@@ -282,13 +342,6 @@ int get_single_int(const std::map<std::string, options::values_t> &opts, const s
     }
     throw std::runtime_error(strprintf("Option '%s' (with value '%s') not a valid integer",
                                        name.c_str(), value.c_str()));
-}
-
-// Used for options that don't take parameters, such as --help or --exit-failure, tells whether the
-// option exists.
-bool exists_option(const std::map<std::string, options::values_t> &opts, const std::string &name) {
-    auto it = opts.find(name);
-    return it != opts.end() && !it->second.values.empty();
 }
 
 int offseted_port(const int port, const int port_offset) {
@@ -548,6 +601,15 @@ options::help_section_t get_machine_options(std::vector<options::option_t> *opti
     return help;
 }
 
+options::help_section_t get_log_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Log options");
+    options_out->push_back(options::option_t(options::names_t("--log-file"),
+                                             options::OPTIONAL));
+    help.add("--log-file file", "specify the file to log to, defaults to 'log_file'");
+    return help;
+}
+
+
 options::help_section_t get_file_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("File path options");
     options_out->push_back(options::option_t(options::names_t("--directory", "-d"),
@@ -563,13 +625,6 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
                                              options::OPTIONAL));
     help.add("--config-file", "take options from a configuration file");
     return help;
-}
-
-void get_ignored_options(std::vector<options::option_t> *options_out) {
-    options_out->push_back(options::option_t(options::names_t("--runuser"),
-                                             options::OPTIONAL));
-    options_out->push_back(options::option_t(options::names_t("--rungroup"),
-                                             options::OPTIONAL));
 }
 
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
@@ -602,7 +657,7 @@ options::help_section_t get_web_options(std::vector<options::option_t> *options_
     options::help_section_t help("Web options");
     options_out->push_back(options::option_t(options::names_t("--web-static-directory"),
                                              options::OPTIONAL));
-    // No help for --web-static-directory.
+    help.add("--web-static-directory directory", "the directory containing web resources for the http interface");
     options_out->push_back(options::option_t(options::names_t("--http-port"),
                                              options::OPTIONAL,
                                              strprintf("%d", port_defaults::http_port)));
@@ -617,7 +672,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options::help_section_t help("Network options");
     options_out->push_back(options::option_t(options::names_t("--bind"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by deafult");
+    help.add("--bind {all | addr}", "add the address of a local interface to listen on when accepting connections; loopback addresses are enabled by default");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
@@ -677,6 +732,21 @@ options::help_section_t get_service_options(std::vector<options::option_t> *opti
     options_out->push_back(options::option_t(options::names_t("--pid-file"),
                                              options::OPTIONAL));
     help.add("--pid-file path", "a file in which to write the process id when the process is running");
+    options_out->push_back(options::option_t(options::names_t("--daemon"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--daemon", "daemonize this rethinkdb process");
+    return help;
+}
+
+options::help_section_t get_setuser_options(std::vector<options::option_t> *options_out) {
+    options::help_section_t help("Set User/Group options");
+    options_out->push_back(options::option_t(options::names_t("--runuser"),
+                                             options::OPTIONAL));
+    help.add("--runuser user", "run as the specified user");
+    options_out->push_back(options::option_t(options::names_t("--rungroup"),
+                                             options::OPTIONAL));
+    help.add("--rungroup group", "run with the specified group");
+
     return help;
 }
 
@@ -693,7 +763,9 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_machine_options(options_out));
     get_disk_options(help_out, options_out);
+    help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -705,7 +777,9 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     get_disk_options(help_out, options_out);
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -714,15 +788,9 @@ void get_rethinkdb_proxy_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_network_options(true, options_out));
     help_out->push_back(get_web_options(options_out));
     help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
-
-    options::help_section_t help("Log options");
-    options_out->push_back(options::option_t(options::names_t("--log-file"),
-                                             options::OPTIONAL,
-                                             "log_file"));
-    help.add("--log-file path", "specifies the log file (defaults to 'log_file')");
-    help_out->push_back(help);
-
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
 }
 
@@ -787,6 +855,7 @@ void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out
 
     help_out->push_back(help);
     help_out->push_back(get_config_file_options(options_out));
+    help_out->push_back(get_help_options(options_out));
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -798,9 +867,10 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     get_disk_options(help_out, options_out);
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
+    help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
+    help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
-    get_ignored_options(options_out);
 }
 
 io_backend_t get_io_backend_option(const std::map<std::string, options::values_t> &opts) {
@@ -839,7 +909,6 @@ std::map<std::string, options::values_t> parse_commands_deep(int argc, char **ar
         opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
     }
     opts = options::merge(opts, default_values_map(options));
-    options::verify_option_counts(options, opts);
     return opts;
 }
 
@@ -879,10 +948,13 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
+        options::verify_option_counts(options, opts);
+
+        set_user_group(opts);
+
         io_backend_t io_backend = get_io_backend_option(opts);
 
-        const base_path_t base_path(get_single_option(opts, "--directory"));
-        std::string logfilepath = get_logfilepath(base_path);
+        base_path_t base_path(get_single_option(opts, "--directory"));
 
         std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
@@ -907,7 +979,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         recreate_temporary_directory(base_path);
 
-        install_fallback_log_writer(logfilepath);
+        initialize_logfile(opts, base_path);
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
@@ -915,12 +987,49 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
     } catch (const std::exception &ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
     return EXIT_FAILURE;
+}
+
+bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
+    if (exists_option(opts, "--daemon")) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(errno).c_str()).c_str());
+        }
+
+        if (pid > 0) {
+            return false;
+        }
+
+        umask(0);
+
+        pid_t sid = setsid();
+        if (sid == 0) {
+            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(errno).c_str()).c_str());
+        }
+
+        if (chdir("/") < 0) {
+            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(errno).c_str()).c_str());
+        }
+
+        if (freopen("/dev/null", "r", stdin) == NULL) {
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+        }
+        if (freopen("/dev/null", "w", stdout) == NULL) {
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+        }
+        if (freopen("/dev/null", "w", stderr) == NULL) {
+            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
+        }
+    }
+    return true;
 }
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
@@ -936,27 +1045,23 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
-        const base_path_t base_path(get_single_option(opts, "--directory"));
-        std::string logfilepath = get_logfilepath(base_path);
+        options::verify_option_counts(options, opts);
+
+        set_user_group(opts);
+
+        base_path_t base_path(get_single_option(opts, "--directory"));
 
         const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
+        const std::string web_path = get_web_path(opts, argv);
 
         io_backend_t io_backend = get_io_backend_option(opts);
-
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
 
         const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-            return EXIT_FAILURE;
-        }
-
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -967,7 +1072,20 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         recreate_temporary_directory(base_path);
 
-        install_fallback_log_writer(logfilepath);
+        base_path.make_absolute();
+        initialize_logfile(opts, base_path);
+
+        if (!maybe_daemonize(opts)) {
+            // This is the parent process of the daemon, just exit
+            return EXIT_SUCCESS;
+        }
+
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
@@ -983,8 +1101,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help serve' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help serve' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1022,8 +1142,10 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help admin' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1043,6 +1165,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_SUCCESS;
         }
 
+        options::verify_option_counts(options, opts);
+
         const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
         if (joins.empty()) {
@@ -1051,21 +1175,28 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const std::string logfilepath = get_single_option(opts, "--log-file");
-        install_fallback_log_writer(logfilepath);
+        set_user_group(opts);
+
+        // Default to putting the log file in the current working directory
+        base_path_t base_path(".");
+        initialize_logfile(opts, base_path);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
-        std::string web_path = get_web_path(opts, argv);
-
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
-
+        const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
+
+        if (!maybe_daemonize(opts)) {
+            // This is the parent process of the daemon, just exit
+            return EXIT_SUCCESS;
+        }
 
         if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
+
+        extproc::spawner_info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
@@ -1076,8 +1207,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help proxy' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help proxy' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1114,6 +1247,8 @@ int main_rethinkdb_import(int argc, char *argv[]) {
             help_rethinkdb_import();
             return EXIT_SUCCESS;
         }
+
+        options::verify_option_counts(options, opts);
 
         const std::vector<host_and_port_t> joins = parse_join_options(opts);
 
@@ -1200,8 +1335,10 @@ int main_rethinkdb_import(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -1221,8 +1358,12 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             help_rethinkdb_porcelain();
             return EXIT_SUCCESS;
         }
-        const base_path_t base_path(get_single_option(opts, "--directory"));
-        const std::string logfilepath = get_logfilepath(base_path);
+
+        options::verify_option_counts(options, opts);
+
+        set_user_group(opts);
+
+        base_path_t base_path(get_single_option(opts, "--directory"));
 
         std::string machine_name_str = get_single_option(opts, "--machine-name");
         name_string_t machine_name;
@@ -1239,16 +1380,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         io_backend_t io_backend = get_io_backend_option(opts);
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
-
         const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
-            return EXIT_FAILURE;
-        }
-
-        if (write_pid_file(opts) != EXIT_SUCCESS) {
             return EXIT_FAILURE;
         }
 
@@ -1265,7 +1399,20 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         recreate_temporary_directory(base_path);
 
-        install_fallback_log_writer(logfilepath);
+        base_path.make_absolute();
+        initialize_logfile(opts, base_path);
+
+        if (!maybe_daemonize(opts)) {
+            // This is the parent process of the daemon, just exit
+            return EXIT_SUCCESS;
+        }
+
+        if (write_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
+        extproc::spawner_info_t spawner_info;
+        extproc::spawner_t::create(&spawner_info);
 
         serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
@@ -1283,8 +1430,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
+        fprintf(stderr, "Run 'rethinkdb help' for help on the command\n");
     } catch (const options::option_error_t &ex) {
         output_sourced_error(ex);
+        fprintf(stderr, "Run 'rethinkdb help' for help on the command\n");
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }

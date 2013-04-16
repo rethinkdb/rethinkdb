@@ -1,3 +1,31 @@
+# Release 1.4.3 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Improve the networking code in the Python driver
+* Fix a crash triggered by a type error when using concatMap (#568)
+* Fix a crash when running `rethinkdb proxy --help` (#565)
+* Fix a bug in the Python driver that caused it to occasionally return `None` (#564)
+
+# Release 1.4.2 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Replace `~` with `About` in the web UI (#485)
+* Add framing documentation to the protobuf spec (#500)
+* Fix crashes triggered by .orderBy().skip() and .reduce(r.js()) (#522, #545)
+* Replace MB with GB in an error message (#526)
+* Remove some semicolons from the protobuf spec (#530)
+* Fix the `rethinkdb import` command (#535)
+* Improve handling of very large queries in the data explorer (#536)
+* Fix variable shadowing in the javascript driver (#546)
+
+---
+
 # Release 1.4.1 (Some Like It Hot) #
 
 ## Changes ##
@@ -9,6 +37,7 @@ Bug fix update:
 * JS driver: added useOutdated to r.table() (#502)
 * RDB protocol performance fix in release mode.
 * Performance fix when using filter with object shortcut syntax.
+* Do not abort when the `runuser` or `rungroup` options are present (#512)
 
 ---
 

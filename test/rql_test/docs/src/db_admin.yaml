@@ -1,0 +1,79 @@
+sections:
+  - tag: db_admin
+    name: Manipulating databases
+    description: These commands allow database manipulation.
+    order: 1
+
+commands:
+  - tag: db_create
+    section: db_admin
+    description: |
+      Create a database. A RethinkDB database is a collection of tables,
+      similar to relational databases.<br /><br />If successful, the operation returns
+      an object: <code>{created: 1}</code>. If a database with the same name already
+      exists the operation throws <code>RqlRuntimeError</code>.
+
+    body: db_name
+    parent: r
+    returns: json
+
+    examples:
+      - description: Create a database named 'superheroes'.
+        code: r.db_create('superheroes').run(conn)
+
+    js:
+      name: dbCreate
+      body: dbName
+      examples:
+        0:
+          code: r.dbCreate('superheroes').run(conn, callback)
+          can_try: true
+          dataset: marvel
+
+  - tag: db_drop
+    section: db_admin
+    description: |
+      Drop a database. The database, all its tables, and corresponding
+      data will be deleted.<br /><br />If successful, the operation returns the object
+      <code>{dropped: 1}</code>. If the specified database doesn't exist a <code>RqlRuntimeError</code>
+      is thrown.
+
+    body: db_name
+    parent: r
+    returns: object
+
+    examples:
+      - description: Drop a database named 'superheroes'.
+        code: r.db_drop('superheroes').run(conn)
+
+    js:
+      name: dbDrop
+      body: dbName
+      examples:
+        0:
+          code: r.dbDrop('superheroes').run(conn, callback)
+          can_try: true
+          dataset: marvel
+
+  - tag: db_list
+    section: db_admin
+    description: List all database names in the system.
+
+    parent: r
+    returns: array
+
+    examples:
+      - description: List all databases.
+        code:
+          js: r.dbList().run(conn, callback)
+          py: r.db_list().run(conn)
+          rb: r.db_list.run(conn)
+
+    js:
+      name: dbList
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+    rb:
+      dont_need_parenthesis: true

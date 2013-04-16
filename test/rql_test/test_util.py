@@ -1,14 +1,15 @@
 import random
 import socket
+import os
 from time import sleep
 from subprocess import call, Popen, PIPE
 
 # Manages a cluster of RethinkDB servers
 class RethinkDBTestServers(object):
-    def __init__(self, num_servers=4, server_build='debug', use_default_port=False):
+    def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False):
         assert num_servers >= 1
         self.num_servers = num_servers
-        self.server_build = server_build
+        self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
 
     def __enter__(self):
@@ -19,7 +20,7 @@ class RethinkDBTestServers(object):
         self.stop()
 
     def start(self):
-        self.servers = [RethinkDBTestServer(self.server_build, self.use_default_port)
+        self.servers = [RethinkDBTestServer(self.server_build_dir, self.use_default_port)
                             for i in xrange(0, self.num_servers)]
 
         cluster_port = self.servers[0].start()
@@ -50,8 +51,8 @@ class RethinkDBTestServers(object):
 
 # Manages starting and stopping an instance of the Rethindb server
 class RethinkDBTestServer(object):
-    def __init__(self, server_build='debug', use_default_port=False):
-        self.server_build = server_build
+    def __init__(self, server_build_dir=None, use_default_port=False):
+        self.server_build_dir = server_build_dir
         self.use_default_port = use_default_port
 
     # Implement `with` methods to ensure proper lifetime management
@@ -123,7 +124,7 @@ class RethinkDBTestServer(object):
         rdbfile = directory+'rdb'
         call(['mkdir', '-p', directory])
         log_out = open(directory+'server-log.txt','a')
-        self.executable = '../../build/%s/rethinkdb' % self.server_build
+        self.executable = os.path.join(self.server_build_dir or os.getenv('RETHINKDB_BUILD_DIR') or '../../build/debug', 'rethinkdb')
         call([self.executable, 'create', '--directory', rdbfile], stdout=log_out, stderr=log_out)
         return rdbfile, log_out
 

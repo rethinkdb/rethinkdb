@@ -2,13 +2,17 @@
 //                            THE HIGH-LEVEL VIEW                             //
 ////////////////////////////////////////////////////////////////////////////////
 
-// Process: First send the magic number for the version of the protobuf you're
-// targetting (in the [Version] enum).  This should **NOT** be sent as a
-// protobuf; just send the little-endian 32-bit integer over the wire raw.
-// Next, construct a [Query] protobuf and serialize it to a binary blob.  Send
-// the blob's size to the server encoded as a little-endian 32-bit integer,
-// followed by the blob itself.  You will recieve a [Response] protobuf back
-// preceded by its own size, once again encoded as a little-endian 32-bit
+// Process: When you first open a connection, send the magic number
+// for the version of the protobuf you're targetting (in the [Version]
+// enum).  This should **NOT** be sent as a protobuf; just send the
+// little-endian 32-bit integer over the wire raw.  This number should
+// only be sent once per connection.
+
+// Next, for each query you want to send, construct a [Query] protobuf
+// and serialize it to a binary blob.  Send the blob's size to the
+// server encoded as a little-endian 32-bit integer, followed by the
+// blob itself.  You will recieve a [Response] protobuf back preceded
+// by its own size, once again encoded as a little-endian 32-bit
 // integer.  You can see an example exchange below in **EXAMPLE**.
 
 // A query consists of a [Term] to evaluate and a unique-per-connection
@@ -160,6 +164,9 @@ message Datum {
 // terms).  These are marked with a `!`.
 // Optional arguments are specified within curly braces as argname `:` value
 // type (e.x `{use_outdated:BOOL}`)
+// Many RQL operations are polymorphic. For these, alterantive type signatures
+// are separated by `|`.
+//
 // The RQL type hierarchy is as follows:
 //   Top
 //     DATUM
@@ -177,6 +184,7 @@ message Datum {
 //           Table
 //     Database
 //     Function
+//     Ordering - used only by ORDER_BY
 //   Error
 message Term {
     enum TermType {
@@ -259,7 +267,7 @@ message Term {
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
-        ORDERBY   = 41; // Sequence, !STRING... -> Sequence
+        ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
         // Count the number of elements in a sequence.
@@ -388,8 +396,10 @@ message Term {
         //           }];
         FUNC = 69; // ARRAY, Top -> ARRAY -> Top
 
-        ASC = 73;
-        DESC = 74;
+        // Indicates to ORDER_BY that this attribute is to be sorted in ascending order.
+        ASC = 73; // !STRING -> Ordering
+        // Indicates to ORDER_BY that this attribute is to be sorted in descending order.
+        DESC = 74; // !STRING -> Ordering
     }
     optional TermType type = 1;
 
@@ -420,24 +430,24 @@ message Term {
 //     args = [Term {
 //               type = TABLE;
 //               args = [Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_STR; r_str = "tbl"; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_STR; r_str = "tbl"; };
 //                       }];
 //               optargs = [["use_outdated",
 //                           Term {
-//                             type = R_DATUM;
-//                             r_datum = Datum { type = R_BOOL; r_bool = true; };
+//                             type = DATUM;
+//                             datum = Datum { type = R_BOOL; r_bool = true; };
 //                           }]];
 //             },
 //             Term {
 //               type = R_ARRAY;
 //               args = [Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
 //                       },
 //                       Term {
-//                         type = R_DATUM;
-//                         r_datum = Datum { type = R_OBJECT; r_object = [["id", 1]]; };
+//                         type = DATUM;
+//                         datum = Datum { type = R_OBJECT; r_object = [["id", 1]]; };
 //                       }];
 //             }]
 //   }

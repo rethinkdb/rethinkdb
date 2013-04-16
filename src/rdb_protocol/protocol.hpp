@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PROTOCOL_HPP_
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
@@ -28,6 +28,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
+#include "utils.hpp"
 
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -115,7 +116,7 @@ struct terminal_t {
 RDB_DECLARE_SERIALIZABLE(terminal_t);
 
 void bring_sindexes_up_to_date(
-        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
@@ -126,16 +127,18 @@ void bring_sindexes_up_to_date(
 class cluster_semilattice_metadata_t;
 
 struct rdb_protocol_t {
+    static const size_t MAX_PRIMARY_KEY_SIZE = 128;
+
     static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
 
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    // Constructs a region which will query an sindex for matches to a specific
-    // key
+    // Constructs a region which will query an sindex for matches to a specific key
     // TODO consider relocating this
-    static key_range_t sindex_key_range(const store_key_t &k);
+    static key_range_t sindex_key_range(const store_key_t &start,
+                                        const store_key_t &end);
 
     struct context_t {
         context_t();
@@ -197,6 +200,7 @@ struct rdb_protocol_t {
             inserted_t,
             runtime_exc_t,
             ql::exc_t,
+            ql::datum_exc_t,
             ql::wire_datum_t,
             std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
@@ -234,15 +238,21 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    struct sindex_list_response_t {
+        sindex_list_response_t() { }
+        std::vector<std::string> sindexes;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct read_response_t {
-    private:
-        typedef boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> _response_t;
-    public:
-        _response_t response;
+        boost::variant<point_read_response_t,
+                       rget_read_response_t,
+                       distribution_read_response_t,
+                       sindex_list_response_t> response;
 
         read_response_t() { }
-        read_response_t(const read_response_t& r) : response(r.response) { }
-        explicit read_response_t(const _response_t &r) : response(r) { }
+        explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
+            : response(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -260,26 +270,48 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
+
         explicit rget_read_t(const region_t &_region)
             : region(_region) { }
 
-        rget_read_t(const store_key_t &key,
-                    uuid_u _sindex)
+        rget_read_t(const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(key)) { }
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
+              sindex_region(rdb_protocol_t::sindex_key_range(_sindex_start_value->truncated_secondary(),
+                                                             _sindex_end_value->truncated_secondary())) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
 
         rget_read_t(const region_t &_sindex_region,
-                    uuid_u _sindex)
+                    const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region) { }
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
+              sindex_region(_sindex_region) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
 
         rget_read_t(const region_t &_sindex_region,
-                    uuid_u _sindex,
+                    const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
               sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs) { }
+              transform(_transform), optargs(_optargs) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
@@ -311,7 +343,12 @@ struct rdb_protocol_t {
         is still used due to sharding. */
 
         /* The sindex from which we're reading. */
-        boost::optional<uuid_u> sindex;
+        boost::optional<std::string> sindex;
+
+        /* The actual sindex values to use for bounds, since the sindex key may
+        have been truncated due to excessive length */
+        boost::optional<ql::wire_datum_t> sindex_start_value;
+        boost::optional<ql::wire_datum_t> sindex_end_value;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -340,26 +377,44 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class sindex_list_t {
+    public:
+        sindex_list_t() { }
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
 
     struct read_t {
-    private:
-        typedef boost::variant<point_read_t, rget_read_t, distribution_read_t> _read_t;
-    public:
-        _read_t read;
+        boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
 
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(read_response_t *responses, size_t count, read_response_t *response, context_t *ctx) const THROWS_NOTHING;
+        void unshard(read_response_t *responses, size_t count, read_response_t *response,
+                context_t *ctx, signal_t *interruptor) const
+            THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        read_t(const read_t& r) : read(r.read) { }
-        explicit read_t(const _read_t &r) : read(r) { }
+        explicit read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r)
+            : read(r) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
+
+    typedef Datum point_replace_response_t;
+
+    struct batched_replaces_response_t {
+        std::vector<std::pair<int64_t, point_replace_response_t> > point_replace_responses;
+
+        batched_replaces_response_t() { }
+        explicit batched_replaces_response_t(const std::vector<std::pair<int64_t, point_replace_response_t> > &_point_replace_responses)
+            : point_replace_responses(_point_replace_responses) { }
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
 
     struct point_write_response_t {
         point_write_result_t result;
@@ -383,31 +438,32 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    typedef Datum point_replace_response_t;
-
     //TODO we're reusing the enums from row writes and reads to avoid name
     //shadowing. Nothing really wrong with this but maybe they could have a
     //more generic name.
-    struct sindex_create_response_t { 
+    struct sindex_create_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct sindex_drop_response_t {
+        bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct write_response_t {
-        boost::variant<point_write_response_t,
+        boost::variant<point_replace_response_t,
+                       batched_replaces_response_t,
+                       point_write_response_t,
                        point_delete_response_t,
-                       point_replace_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
 
         write_response_t() { }
-        write_response_t(const write_response_t& w) : response(w.response) { }
+        explicit write_response_t(const point_replace_response_t& r) : response(r) { }
+        explicit write_response_t(const batched_replaces_response_t& br) : response(br) { }
         explicit write_response_t(const point_write_response_t& w) : response(w) { }
         explicit write_response_t(const point_delete_response_t& d) : response(d) { }
-        explicit write_response_t(const Datum& d) : response(d) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -425,7 +481,19 @@ struct rdb_protocol_t {
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
 
-        RDB_MAKE_ME_SERIALIZABLE_4(primary_key, key, f, optargs);
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    class batched_replaces_t {
+    public:
+        batched_replaces_t() { }
+        batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
+            : point_replaces(_point_replaces) { }
+
+        // The replaces are numbered so that unshard can sort them back in order.
+        std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {
@@ -455,11 +523,11 @@ struct rdb_protocol_t {
     class sindex_create_t {
     public:
         sindex_create_t() { }
-        sindex_create_t(uuid_u _id, const ql::map_wire_func_t &_mapping)
+        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping)
             : id(_id), mapping(_mapping), region(region_t::universe())
         { }
 
-        uuid_u id;
+        std::string id;
         ql::map_wire_func_t mapping;
         region_t region;
 
@@ -469,32 +537,33 @@ struct rdb_protocol_t {
     class sindex_drop_t {
     public:
         sindex_drop_t() { }
-        explicit sindex_drop_t(uuid_u _id)
+        explicit sindex_drop_t(const std::string &_id)
             : id(_id), region(region_t::universe())
         { }
 
-        uuid_u id;
+        std::string id;
         region_t region;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct write_t {
-        boost::variant<point_write_t,
+        boost::variant<point_replace_t,
+                       batched_replaces_t,
+                       point_write_t,
                        point_delete_t,
-                       point_replace_t,
                        sindex_create_t,
                        sindex_drop_t> write;
 
         region_t get_region() const THROWS_NOTHING;
         write_t shard(const region_t &region) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
         write_t() { }
-        write_t(const write_t& w) : write(w.write) { }
+        explicit write_t(const point_replace_t &r) : write(r) { }
+        explicit write_t(const batched_replaces_t &br) : write(br) { }
         explicit write_t(const point_write_t &w) : write(w) { }
         explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const point_replace_t &r) : write(r) { }
         explicit write_t(const sindex_create_t &c) : write(c) { }
         explicit write_t(const sindex_drop_t &c) : write(c) { }
 
@@ -529,10 +598,10 @@ struct rdb_protocol_t {
             RDB_DECLARE_ME_SERIALIZABLE;
         };
         struct sindexes_t {
-            std::map<uuid_u, secondary_index_t> sindexes;
+            std::map<std::string, secondary_index_t> sindexes;
 
             sindexes_t() { }
-            explicit sindexes_t(const std::map<uuid_u, secondary_index_t> &_sindexes)
+            explicit sindexes_t(const std::map<std::string, secondary_index_t> &_sindexes)
                 : sindexes(_sindexes) { }
 
             RDB_DECLARE_ME_SERIALIZABLE;
@@ -554,7 +623,7 @@ struct rdb_protocol_t {
             return backfill_chunk_t(key_value_pair_t(key));
         }
 
-        static backfill_chunk_t sindexes(const std::map<uuid_u, secondary_index_t> &sindexes) {
+        static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
             return backfill_chunk_t(sindexes_t(sindexes));
         }
 
@@ -598,7 +667,7 @@ struct rdb_protocol_t {
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             transaction_t *txn,
-                            superblock_t *superblock,
+                            scoped_ptr_t<superblock_t> *superblock,
                             write_token_pair_t *token_pair,
                             signal_t *interruptor);
 
@@ -627,8 +696,19 @@ struct rdb_protocol_t {
         context_t *ctx;
     };
 
-
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
+
+namespace rdb_protocol_details {
+/* TODO: This might be redundant. I thought that `key_tester_t` was only
+originally necessary because in v1.1.x the hashing scheme might be different
+between the source and destination machines. */
+struct range_key_tester_t : public key_tester_t {
+    explicit range_key_tester_t(const rdb_protocol_t::region_t *_delete_range) : delete_range(_delete_range) { }
+    bool key_should_be_erased(const btree_key_t *key);
+
+    const rdb_protocol_t::region_t *delete_range;
+};
+} //namespace rdb_protocol_details 
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

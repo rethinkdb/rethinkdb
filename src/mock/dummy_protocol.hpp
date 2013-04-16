@@ -51,8 +51,8 @@ public:
     public:
         region_t get_region() const;
         read_t shard(region_t region) const;
-        void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache) const;
-        void multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache) const;
+        void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
+        void multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
@@ -68,8 +68,8 @@ public:
     public:
         region_t get_region() const;
         write_t shard(region_t region) const;
-        void unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache) const;
-        void multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache) const;
+        void unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *) const;
+        void multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;
@@ -142,6 +142,7 @@ public:
                    const metainfo_t& new_metainfo,
                    const dummy_protocol_t::write_t &write,
                    dummy_protocol_t::write_response_t *response,
+                   write_durability_t durability,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
                    write_token_pair_t *token_pair,
@@ -160,6 +161,7 @@ public:
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
                         write_token_pair_t *token_pair,
+                        write_durability_t durability,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         std::map<std::string, std::string> values;

@@ -1,0 +1,204 @@
+sections:
+  - tag: jsonobject
+    name: Document Manipulation
+    description: These commands manipulate JSON objects and documents
+    order: 9
+
+commands:
+  - tag: row
+    section: jsonobject
+    description: Returns the currently visited document.
+
+    dont_need_parenthesis: true
+    parent: r
+    returns: json
+
+    examples:
+      - description: Get all users whose age is greater than 5.
+        code:
+          js: r.table('users').filter(r.row('age').gt(5)).run(conn, callback)
+          py: r.table('users').filter(r.row['age'] > 5).run(conn)
+      - description: Accessing the attribute 'child' of an embedded document.
+        code:
+          js: r.table('users').filter(r.row('embedded_doc')('child') > 5).run(conn, callback)
+          py: r.table('users').filter(r.row['embedded_doc']['child'] > 5).run(conn)
+      - description: Add 1 to every element of an array.
+        code:
+          js: r.expr([1, 2, 3]).map(r.row.add(1)).run(conn, callback)
+          py: r.expr([1, 2, 3]).map(r.row + 1).run(conn)
+      - description: For nested queries functions should be used instead of r.row.
+        code:
+          js: |-
+            r.table('users').filter(function(doc) {
+                return doc('name').eq(r.table('prizes').get('winner'))
+            }).run(conn, callback)
+          py: |-
+            r.table('users').filter(
+                lambda doc: doc['name'] == r.table('prizes').get('winner')).run(conn)
+
+    rb: false
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+        2:
+          can_try: true
+          dataset: marvel
+
+  - tag: pluck
+    section: jsonobject
+    description: Plucks out one or more attributes from either an object or a sequence
+      of objects (projection).
+
+    body: attr1[, attr2...]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: We just need information about IronMan's reactor and not the rest of the document.
+        code: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+      - description: For the hero beauty contest we only care about certain qualities.
+        code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: |
+            r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower')
+             .run(conn, callback)
+        1:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn, callback)
+
+  - tag: without
+    section: jsonobject
+    description: The opposite of pluck; takes an object or a sequence of objects,
+      and removes all attributes except for the ones specified.
+
+    body: attr1[, attr2...]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Since we don't need it for this computation we'll save bandwidth
+          and leave out the list of IronMan's romantic conquests.
+        code: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+      - description: Without their prized weapons, our enemies will quickly be vanquished.
+        code: r.table('enemies').without('weapons').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn, callback)
+        1:
+          can_try: true
+          dataset: marvel
+          code: r.table('enemies').without('weapons').run(conn, callback)
+
+  - tag: merge
+    section: jsonobject
+    description: Merge two objects together to construct a new object with properties
+      from both. Gives preference to attributes from other when there is a conflict.
+
+    body: other
+    parent: json
+    returns: json
+
+    examples:
+      - description: Equip IronMan for battle.
+        code: |-
+          r.table('marvel').get('IronMan').merge(
+            r.table('loadouts').get('alienInvasionKit')).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn, callback)
+
+  - tag: append
+    section: jsonobject
+    description: Append a value to an array.
+
+    body: value
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').append('newBoots').run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].append('new_boots').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: getattr
+    section: jsonobject
+    description: Get a single attribute from an object.
+
+    name: '[]'
+    name1: '['
+    name2: ']'
+    is_selector: true
+    body: attr
+    parent: json
+    returns: json
+
+    examples:
+      - description: What was Iron Man's first appearance in a comic?
+        code:
+          py: r.table('marvel').get('IronMan')['firstAppearance'].run(conn)
+          js: r.table('marvel').get('IronMan')('firstAppearance').run(conn, callback)
+          rb: r.table('marvel').get('IronMan')[:first_appearance].run(conn)
+
+    js:
+      name: ()
+      name1: (
+      name2: )
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: contains
+    section: jsonobject
+    description: Test if an object has the given attribute. <br /><br />
+      <code>contains</code> can only be called on objects and not on
+      <code>string</code> or <code>array</code> attributes.
+
+    body: attr
+    parent: json
+    returns: bool
+
+    examples:
+      - description: Which heroes are married?
+        code:
+          js: |
+            r.table('marvel').filter(function(hero) {return hero.contains('spouse')})
+             .run(conn, callback)
+          py: "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
+          rb: r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel

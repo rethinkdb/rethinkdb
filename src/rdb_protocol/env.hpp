@@ -14,7 +14,7 @@
 #include "containers/ptr_bag.hpp"
 #include "extproc/pool.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
@@ -33,6 +33,9 @@ bool is_joined(const T &multiple, const T &divisor) {
 }
 
 class env_t : private home_thread_mixin_t {
+public:
+    const uuid_u uuid;
+
 public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
@@ -92,14 +95,14 @@ public:
     }
     template<class T>
     val_t *new_val(T *ptr, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), parent, this));
+        return add_ptr(new val_t(add_ptr(ptr), parent));
     }
     template<class T, class U>
     val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent, this));
+        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent));
     }
     val_t *new_val(uuid_u db, term_t *parent) {
-        return add_ptr(new val_t(db, parent, this));
+        return add_ptr(new val_t(db, parent));
     }
     term_t *new_term(const Term *source) {
         return add_ptr(compile_term(this, source));
@@ -122,7 +125,13 @@ private:
 private:
     // `old_bag` and `new_bag` are so that `gc` can communicate with `gc_callback`.
     ptr_bag_t *old_bag, *new_bag;
-    static bool gc_callback_trampoline(const datum_t *el, env_t *env);
+    class gc_callback_caller_t {
+    public:
+        gc_callback_caller_t(env_t *_env) : env(_env) { }
+        bool operator()(const datum_t *el) { return env->gc_callback(el); }
+    private:
+        env_t *env;
+    };
     bool gc_callback(const datum_t *el);
     void gc(const datum_t *root);
 
@@ -194,14 +203,7 @@ private:
 public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
-    //TODO(bill) should the implementation of this go into a different file?
-    boost::shared_ptr<js::runner_t> get_js_runner() {
-        pool->assert_thread();
-        if (!js_runner->connected()) {
-            js_runner->begin(pool);
-        }
-        return js_runner;
-    }
+    boost::shared_ptr<js::runner_t> get_js_runner();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {
@@ -230,15 +232,16 @@ private:
 // with `reset`.
 class env_checkpoint_t {
 public:
-    env_checkpoint_t(env_t *_env, void (env_t::*_f)());
+    enum destructor_op_t { MERGE, DISCARD };
+    env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op);
     ~env_checkpoint_t();
-    void reset(void (env_t::*_f)());
+    void reset(destructor_op_t new_destructor_op);
     // This will garbage-collect the checkpoint so that only `root` and data it
     // points to remain.
     void gc(const datum_t *root);
 private:
     env_t *env;
-    void (env_t::*f)();
+    destructor_op_t destructor_op;
 };
 
 // This is a checkpoint (as above) that also does shitty generational garbage

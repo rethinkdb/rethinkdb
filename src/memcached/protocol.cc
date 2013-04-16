@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/protocol.hpp"
 
 #include "errors.hpp"
@@ -309,7 +309,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
 
 }   /* anonymous namespace */
 
-void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void read_t::unshard(const read_response_t *responses, size_t count, read_response_t *response, UNUSED context_t *ctx, signal_t *) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses, count);
     *response = boost::apply_visitor(v, query);
 }
@@ -342,7 +342,7 @@ write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
 
 /* `write_response_t::unshard()` */
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response, UNUSED context_t *ctx, signal_t *) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     guarantee(count == 1);
     *response = responses[0];
@@ -575,7 +575,7 @@ void store_t::protocol_write(const write_t &write,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
                              transaction_t *txn,
-                             superblock_t *superblock,
+                             scoped_ptr_t<superblock_t> *superblock,
                              write_token_pair_t *token_pair,
                              UNUSED signal_t *interruptor) {
     /* Memcached doesn't have any secondary structures so right now we just
@@ -583,7 +583,7 @@ void store_t::protocol_write(const write_t &write,
     token_pair->sindex_write_token.reset();
 
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
-    write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree, txn, superblock->get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     *response = boost::apply_visitor(v, write.mutation);
 }
 
@@ -626,7 +626,7 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
         memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
         */
     }

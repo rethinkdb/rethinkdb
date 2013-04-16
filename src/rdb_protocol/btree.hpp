@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_BTREE_HPP_
 #define RDB_PROTOCOL_BTREE_HPP_
 
@@ -29,6 +29,11 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
+
+typedef rdb_protocol_t::point_replace_t point_replace_t;
+typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
+
+typedef rdb_protocol_t::batched_replaces_response_t batched_replaces_response_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
@@ -70,7 +75,9 @@ private:
     DISABLE_COPYING(value_sizer_t<rdb_value_t>);
 };
 
+struct rdb_modification_info_t;
 struct rdb_modification_report_t;
+class rdb_modification_report_cb_t;
 
 void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
 
@@ -85,20 +92,24 @@ void rdb_replace(btree_slice_t *slice,
                  ql::map_wire_func_t *f,
                  ql::env_t *ql_env,
                  Datum *response_out,
-                 rdb_modification_report_t *mod_report_out) THROWS_NOTHING;
+                 rdb_modification_info_t *mod_info);
+
+void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
+                         transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
+                         batched_replaces_response_t *response_out,
+                         rdb_modification_report_cb_t *sindex_cb);
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
-             rdb_modification_report_t *mod_report);
-
+             rdb_modification_info_t *mod_info);
 
 class rdb_backfill_callback_t {
 public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_sindexes(const std::map<uuid_u, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };
@@ -115,7 +126,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         timestamp, transaction_t *txn, superblock_t *superblock,
         point_delete_response_t *response,
-        rdb_modification_report_t *mod_report);
+        rdb_modification_info_t *mod_info);
 
 class rdb_value_deleter_t : public value_deleter_t {
     void delete_value(transaction_t *_txn, void *_value);
@@ -123,7 +134,8 @@ class rdb_value_deleter_t : public value_deleter_t {
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
-                     transaction_t *txn, superblock_t *superblock);
+                     transaction_t *txn, superblock_t *superblock,
+                     rdb_modification_report_cb_t *sindex_cb);
 
 /* RGETS */
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
@@ -145,25 +157,61 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 
 /* Secondary Indexes */
 
-struct rdb_modification_report_t {
-    rdb_modification_report_t() { }
-    rdb_modification_report_t(const store_key_t &_primary_key)
-        : primary_key(_primary_key) { }
-
-    store_key_t primary_key;
+struct rdb_modification_info_t {
     boost::shared_ptr<scoped_cJSON_t> deleted;
     boost::shared_ptr<scoped_cJSON_t> added;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+struct rdb_modification_report_t {
+    rdb_modification_report_t() { }
+    rdb_modification_report_t(const store_key_t &_primary_key)
+        : primary_key(_primary_key) { }
+
+    store_key_t primary_key;
+    rdb_modification_info_t info;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+/* An rdb_modification_cb_t is passed to BTree operations and allows them to
+ * modify the secondary while they perform an operation. */
+class rdb_modification_report_cb_t {
+public:
+    rdb_modification_report_cb_t(
+            btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
+            transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
+    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
+    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
+    void replace_row(const store_key_t &primary_key,
+            boost::shared_ptr<scoped_cJSON_t> added,
+            boost::shared_ptr<scoped_cJSON_t> removed);
+
+    void on_mod_report(const rdb_modification_report_t &mod_report);
+
+    ~rdb_modification_report_cb_t();
+private:
+
+    /* Fields initialized by the constructor. */
+    btree_store_t<rdb_protocol_t> *store_;
+    write_token_pair_t *token_pair_;
+    transaction_t *txn_;
+    block_id_t sindex_block_id_;
+    auto_drainer_t::lock_t lock_;
+
+    /* Fields initialized by calls to on_mod_report */
+    scoped_ptr_t<buf_lock_t> sindex_block_;
+    btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
+};
+
 void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         rdb_modification_report_t *modification,
+                         const rdb_modification_report_t *modification,
                          transaction_t *txn);
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<uuid_u> &sindexes_to_post_construct,
+        const std::set<std::string> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 

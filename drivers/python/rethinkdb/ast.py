@@ -12,7 +12,7 @@ class RqlQuery(object):
 
         self.optargs = {}
         for k in optargs.keys():
-            if optargs[k] is ():
+            if not isinstance(optargs[k], RqlQuery) and optargs[k] == ():
                 continue
             self.optargs[k] = expr(optargs[k])
 
@@ -23,7 +23,7 @@ class RqlQuery(object):
                 c = Connection.repl_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
-            
+
         return c._start(self, **global_opt_args)
 
     def __str__(self):
@@ -224,9 +224,9 @@ class RqlQuery(object):
     def between(self, left_bound=None, right_bound=None):
         # This is odd and inconsistent with the rest of the API. Blame a
         # poorly thought out spec.
-        if left_bound is None:
+        if left_bound == None:
             left_bound = ()
-        if right_bound is None:
+        if right_bound == None:
             right_bound = ()
         return Between(self, left_bound=left_bound, right_bound=right_bound)
 
@@ -309,7 +309,7 @@ class Datum(RqlQuery):
     def build(self, term):
         term.type = p.Term.DATUM
 
-        if self.data is None:
+        if self.data == None:
             term.datum.type = p.Datum.R_NULL
         elif isinstance(self.data, bool):
             term.datum.type = p.Datum.R_BOOL
@@ -328,23 +328,23 @@ class Datum(RqlQuery):
 
     @staticmethod
     def deconstruct(datum):
-        if datum.type is p.Datum.R_NULL:
+        if datum.type == p.Datum.R_NULL:
             return None
-        elif datum.type is p.Datum.R_BOOL:
+        elif datum.type == p.Datum.R_BOOL:
             return datum.r_bool
-        elif datum.type is p.Datum.R_NUM:
+        elif datum.type == p.Datum.R_NUM:
             return datum.r_num
-        elif datum.type is p.Datum.R_STR:
+        elif datum.type == p.Datum.R_STR:
             return datum.r_str
-        elif datum.type is p.Datum.R_ARRAY:
+        elif datum.type == p.Datum.R_ARRAY:
             return [Datum.deconstruct(e) for e in datum.r_array]
-        elif datum.type is p.Datum.R_OBJECT:
+        elif datum.type == p.Datum.R_OBJECT:
             obj = {}
             for pair in datum.r_object:
                 obj[pair.key] = Datum.deconstruct(pair.val)
             return obj
         else:
-            raise RuntimeError("type not handled")
+            raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
 
 class MakeArray(RqlQuery):
     tt = p.Term.MAKE_ARRAY
@@ -357,6 +357,16 @@ class MakeArray(RqlQuery):
 
 class MakeObj(RqlQuery):
     tt = p.Term.MAKE_OBJ
+
+    # We cannot inherit from RqlQuery because of potential conflicts with
+    # the `self` parameter. This is not a problem for other RqlQuery sub-
+    # classes unless we add a 'self' optional argument to one of them.
+    def __init__(self, obj_dict):
+        self.args = []
+
+        self.optargs = {}
+        for k in obj_dict.keys():
+            self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
         return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
@@ -515,6 +525,15 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
+    def sindex_create(self, name, fundef):
+        return SIndexCreate(self, name, func_wrap(fundef))
+
+    def sindex_drop(self, name):
+        return SIndexDrop(self, name)
+
+    def sindex_list(self):
+        return SIndexList(self)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', args[1], ')')
@@ -634,6 +653,18 @@ class TableDrop(RqlMethodQuery):
 class TableList(RqlMethodQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
+
+class SIndexCreate(RqlMethodQuery):
+    tt = p.Term.SINDEX_CREATE
+    st = 'sindex_create'
+
+class SIndexDrop(RqlMethodQuery):
+    tt = p.Term.SINDEX_DROP
+    st = 'sindex_drop'
+
+class SIndexList(RqlMethodQuery):
+    tt = p.Term.SINDEX_LIST
+    st = 'sindex_list'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH

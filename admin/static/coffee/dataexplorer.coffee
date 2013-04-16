@@ -18,6 +18,9 @@ module 'DataExplorerView', ->
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
         size_history: 100
+        
+        max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
+        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -196,6 +199,8 @@ module 'DataExplorerView', ->
                     cursor_timed_out: true
                     view: 'tree'
                     history_state: 'hidden'
+                    last_keys: []
+                    last_columns_size: {}
 
             # Load history, keep it in memory for the session
             if not DataExplorerView.Container.prototype.history?
@@ -309,13 +314,12 @@ module 'DataExplorerView', ->
             @codemirror = CodeMirror.fromTextArea document.getElementById('input_query'),
                 mode:
                     name: 'javascript'
-                    json: true
                 onKeyEvent: @handle_keypress
                 lineNumbers: true
                 lineWrapping: true
                 matchBrackets: true
                 tabSize: 2
-                #smartIndent: false # Indent a new line as the previous one
+
             @codemirror.on 'blur', @on_blur
             @codemirror.on 'gutterClick', @handle_gutter_click
 
@@ -379,7 +383,6 @@ module 'DataExplorerView', ->
                         @codemirror.replaceSelection(char_to_insert+@codemirror.getSelection()+char_to_insert)
                         event.preventDefault()
                         return true
-                    return true
 
                 if event.which is 8 # Backspace
                     if event.type isnt 'keydown'
@@ -407,15 +410,21 @@ module 'DataExplorerView', ->
 
                 char_to_insert = String.fromCharCode event.which
                 if char_to_insert?
+                    if @codemirror.getSelection() isnt ''
+                        if (char_to_insert of @matching_opening_bracket or char_to_insert of @matching_closing_bracket)
+                            @codemirror.replaceSelection ''
+                        else
+                            return true
                     if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
                         return true
 
+                    last_element_incomplete_type = @last_element_type_if_incomplete(stack)
                     if char_to_insert is '"' or char_to_insert is "'"
                         num_quote = @count_char char_to_insert
                         next_char = @get_next_char()
                         if next_char is char_to_insert # Next char is a single quote
                             if num_quote%2 is 0
-                                if @last_element_type_if_incomplete(stack) is 'string' # We are at the end of a string and the user just wrote a quote 
+                                if last_element_incomplete_type is 'string' or last_element_incomplete_type is 'object_key' # We are at the end of a string and the user just wrote a quote 
                                     @move_cursor 1
                                     event.preventDefault()
                                     return true
@@ -428,13 +437,16 @@ module 'DataExplorerView', ->
                         else
                             if num_quote%2 is 0 # Next char is not a single quote and the user has an even number of quotes. 
                                 # Let's keep a number of quote even, so we add one extra quote
-                                if @last_element_type_if_incomplete(stack) isnt 'string'
-                                    @insert_next char_to_insert
-                                else # We add a quote inside a string, probably something like that 'He doesn|\'t'
+                                last_key = @get_last_key(stack)
+                                if last_element_incomplete_type is 'string'
                                     return true
+                                else if last_element_incomplete_type is 'object_key' and (last_key isnt '' and @create_safe_regex(char_to_insert).test(last_key) is true) # A key in an object can be seen as a string
+                                    return true
+                                else
+                                    @insert_next char_to_insert
                             else # Else we'll just insert one quote
                                 return true
-                    else if @last_element_type_if_incomplete(stack) isnt 'string'
+                    else if last_element_incomplete_type isnt 'string' and last_element_incomplete_type isnt 'object_key'
                         next_char = @get_next_char()
 
                         if char_to_insert of @matching_opening_bracket
@@ -838,15 +850,24 @@ module 'DataExplorerView', ->
                 @history_displayed_id = 0
                 @draft = @codemirror.getValue()
 
+            # The expensive operations are coming. If the query is too long, we just don't parse the query
+            if @codemirror.getValue().length > @max_size_query
+                return false
+
             query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
             query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
 
             # Compute the structure of the query written by the user.
             # We compute it earlier than before because @pair_char also listen on keydown and needs stack
             stack = @extract_data_from_query
+                size_stack: 0
                 query: query_before_cursor
                 position: 0
 
+            if stack is null # Stack is null if the query was too big for us to parse
+                @ignore_tab_keyup = false
+                @hide_suggestion_and_description()
+                return false
             @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
@@ -897,11 +918,12 @@ module 'DataExplorerView', ->
                 
             # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
+
             if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
-                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor)
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
                 if result_last_char_is_white isnt null
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
@@ -968,7 +990,7 @@ module 'DataExplorerView', ->
 
         # Return the type of the last incomplete object or an empty string
         last_element_type_if_incomplete: (stack) =>
-            if stack.length is 0
+            if (not stack?) or stack.length is 0
                 return ''
 
             element = stack[stack.length-1]
@@ -980,11 +1002,25 @@ module 'DataExplorerView', ->
                 else
                     return ''
 
+         # Get the last key if the last element is a key of an object
+         get_last_key: (stack) =>
+            if (not stack?) or stack.length is 0
+                return ''
 
-        # We build a stack of the query.
+            element = stack[stack.length-1]
+            if element.body?
+                return @get_last_key(element.body)
+            else
+                if element.complete is false and element.key?
+                    return element.key
+                else
+                    return ''
+
+       # We build a stack of the query.
         # Chained functions are in the same array, arguments/inner queries are in a nested array
         # element.type in ['string', 'function', 'var', 'separator', 'anonymous_function', 'object', 'array_entry', 'object_key' 'array']
         extract_data_from_query: (args) =>
+            size_stack = args.size_stack
             query = args.query
             context = if args.context? then DataUtils.deep_copy(args.context) else {}
             position = args.position
@@ -1011,6 +1047,9 @@ module 'DataExplorerView', ->
                             element.name = query.slice start, i+1
                             element.complete = true
                             stack.push element
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -1078,6 +1117,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = result_regex[0].length-1
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -1132,6 +1174,9 @@ module 'DataExplorerView', ->
                                         element.type = 'var'
                                         element.name = result_regex[0].slice(0, position_opening_parenthesis)
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: 'function'
                                             name: '('
@@ -1156,6 +1201,9 @@ module 'DataExplorerView', ->
                                 element.complete = true
                                 to_skip = element.name.length-1+new_start-i
                                 stack.push element
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -1172,6 +1220,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -1189,6 +1240,9 @@ module 'DataExplorerView', ->
                                     type: 'separator'
                                     complete: true
                                     name: query.slice i, result_regex[0].length
+                                size_stack++
+                                if size_stack > @max_size_stack
+                                    return null
                                 element =
                                     type: null
                                     context: context
@@ -1213,6 +1267,9 @@ module 'DataExplorerView', ->
                                 complete: true
                                 name: query.slice i, result_regex[0].length
                                 position: position+i
+                            size_stack++
+                            if size_stack > @max_size_stack
+                                return null
                             element =
                                 type: null
                                 context: context
@@ -1230,11 +1287,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -1249,11 +1312,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice body_start, i
                                             context: element.context
                                             position: position+body_start
+                                        if element.body
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -1267,11 +1336,17 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         element.body = @extract_data_from_query
+                                            size_stack: size_stack
                                             query: query.slice start+element.name.length, i
                                             context: element.context
                                             position: position+start+element.name.length
+                                        if element.body is null
+                                            return null
                                         element.complete = true
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -1290,15 +1365,19 @@ module 'DataExplorerView', ->
                                     if stack_stop_char.length is 0
                                         # We just reach a }, it's the end of the object
                                         if element.next_key?
+                                            body = @extract_data_from_query
+                                                size_stack: size_stack
+                                                query: query.slice element.current_value_start, i
+                                                context: element.context
+                                                position: position+element.current_value_start
+                                            if body is null
+                                                return null
                                             new_element =
                                                 type: 'object_key'
                                                 key: element.next_key
                                                 key_complete: true
                                                 complete: false
-                                                body: @extract_data_from_query
-                                                    query: query.slice element.current_value_start, i
-                                                    context: element.context
-                                                    position: position+element.current_value_start
+                                                body: body
                                             element.body[element.body.length-1] = new_element
                                         element.next_key = null # No more next_key
                                         element.complete = true
@@ -1307,6 +1386,9 @@ module 'DataExplorerView', ->
                                         # TODO show error once brackets/ace will be used
 
                                         stack.push element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                         element =
                                             type: null
                                             context: context
@@ -1321,6 +1403,9 @@ module 'DataExplorerView', ->
                                         key_complete: true
                                     if element.body.length is 0
                                         element.body.push new_element
+                                        size_stack++
+                                        if size_stack > @max_size_stack
+                                            return null
                                     else
                                         element.body[element.body.length-1] = new_element
                                     element.next_key = query.slice element.current_key_start, i
@@ -1328,14 +1413,18 @@ module 'DataExplorerView', ->
                             else
                                 result_regex = @regex.comma.exec query.slice i
                                 if stack_stop_char.length is 1 and result_regex isnt null #We reached the end of a value
+                                    body = @extract_data_from_query
+                                        size_stack: size_stack
+                                        query: query.slice element.current_value_start, i
+                                        context: element.context
+                                        position: element.current_value_start
+                                    if body is null
+                                        return null
                                     new_element =
                                         type: 'object_key'
                                         key:  element.next_key
                                         key_complete: true
-                                        body: @extract_data_from_query
-                                            query: query.slice element.current_value_start, i
-                                            context: element.context
-                                            position: element.current_value_start
+                                        body: body
                                     element.body[element.body.length-1] = new_element
                                     to_skip = result_regex[0].length-1
                                     element.next_key = null
@@ -1349,27 +1438,41 @@ module 'DataExplorerView', ->
                                     stack_stop_char.pop()
                                     if stack_stop_char.length is 0
                                         # We just reach a ], it's the end of the object
+                                        body = @extract_data_from_query
+                                            size_stack: size_stack
+                                            query: query.slice entry_start, i
+                                            context: element.context
+                                            position: position+entry_start
+                                        if body is null
+                                            return null
                                         new_element =
                                             type: 'array_entry'
                                             complete: true
-                                            body: @extract_data_from_query
-                                                query: query.slice entry_start, i
-                                                context: element.context
-                                                position: position+entry_start
+                                            body: body
                                         if new_element.body.length > 0
                                             element.body.push new_element
+                                            size_stack++
+                                            if size_stack > @max_size_stack
+                                                return null
                                         continue
 
                             if stack_stop_char.length is 1 and char is ','
+                                body = @extract_data_from_query
+                                    size_stack: size_stack
+                                    query: query.slice entry_start, i
+                                    context: element.context
+                                    position: position+entry_start
+                                if body is null
+                                    return null
                                 new_element =
                                     type: 'array_entry'
                                     complete: true
-                                    body: @extract_data_from_query
-                                        query: query.slice entry_start, i
-                                        context: element.context
-                                        position: position+entry_start
+                                    body: body
                                 if new_element.body.length > 0
                                     element.body.push new_element
+                                    size_stack++
+                                    if size_stack > @max_size_stack
+                                        return null
                                 entry_start = i+1
 
             # We just reached the end, let's try to find the type of the incomplete element
@@ -1377,19 +1480,28 @@ module 'DataExplorerView', ->
                 element.complete = false
                 if element.type is 'function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice start+element.name.length
                         context: element.context
                         position: position+start+element.name.length
+                    if element.body is null
+                        return null
                 else if element.type is 'anonymous_function'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'loop'
                     element.body = @extract_data_from_query
+                        size_stack: size_stack
                         query: query.slice body_start
                         context: element.context
                         position: position+body_start
+                    if element.body is null
+                        return null
                 else if element.type is 'string'
                     element.name = query.slice start
                 else if element.type is 'object'
@@ -1400,30 +1512,47 @@ module 'DataExplorerView', ->
                             key_complete: false
                             complete: false
                         element.body.push new_element # They key was not defined, so we add a new element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                         element.next_key = query.slice element.current_key_start
                     else
+                        body = @extract_data_from_query
+                            size_stack: size_stack
+                            query: query.slice element.current_value_start
+                            context: element.context
+                            position: position+element.current_value_start
+                        if body is null
+                            return null
                         new_element =
                             type: 'object_key'
                             key: element.next_key
                             key_complete: true
                             complete: false
-                            body: @extract_data_from_query
-                                query: query.slice element.current_value_start
-                                context: element.context
-                                position: position+element.current_value_start
+                            body: body
                         element.body[element.body.length-1] = new_element
                         element.next_key = null # No more next_key
                 else if element.type is 'array'
+                    body = @extract_data_from_query
+                        size_stack: size_stack
+                        query: query.slice entry_start
+                        context: element.context
+                        position: position+entry_start
+                    if body is null
+                        return null
                     new_element =
                         type: 'array_entry'
                         complete: false
-                        body: @extract_data_from_query
-                            query: query.slice entry_start
-                            context: element.context
-                            position: position+entry_start
+                        body: body
                     if new_element.body.length > 0
                         element.body.push new_element
+                        size_stack++
+                        if size_stack > @max_size_stack
+                            return null
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             else if start isnt i
                 if query.slice(start) of element.context
                     element.name = query.slice start
@@ -1444,6 +1573,9 @@ module 'DataExplorerView', ->
                     element.position = position+start
                     element.complete = false
                 stack.push element
+                size_stack++
+                if size_stack > @max_size_stack
+                    return null
             return stack
 
         # Decide if we have to show a suggestion or a description
@@ -2248,7 +2380,7 @@ module 'DataExplorerView', ->
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        primitive_key: '_-primitive value-_' # We suppose that there is no key with such value in the database.
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
         events:
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
@@ -2270,8 +2402,8 @@ module 'DataExplorerView', ->
             else
                 @view = 'tree'
 
-            @last_keys = [] # Arrays of the last keys displayed
-            @last_columns_size = {} # Size of the columns displayed. Undefined if a column has the default size
+            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
         set_limit: (limit) =>
             @limit = limit
@@ -2369,6 +2501,66 @@ module 'DataExplorerView', ->
                     classname: 'jt_bool'
                     value: if value then 'true' else 'false'
  
+        ###
+        keys =
+            primitive_value_count: <int>
+            object:
+                key_1: <keys>
+                key_2: <keys>
+        ###
+        build_map_keys: (args) =>
+            keys_count = args.keys_count
+            result = args.result
+
+            if jQuery.isPlainObject(result)
+                for key, row of result
+                    if not keys_count['object']?
+                        keys_count['object'] = {} # That's define only if there are keys!
+                    if not keys_count['object'][key]?
+                        keys_count['object'][key] =
+                            primitive_value_count: 0
+                    @build_map_keys
+                        keys_count: keys_count['object'][key]
+                        result: row
+            else
+                keys_count.primitive_value_count++
+
+        # Compute occurrence of each key. The occurence can be a float since we compute the average occurence of all keys for an object
+        compute_occurrence: (keys_count) =>
+            if not keys_count['object']? # That means we are accessing only a primitive value
+                keys_count.occurrence = keys_count.primitive_value_count
+            else
+                count_key = if keys_count.primitive_value_count > 0 then 1 else 0
+                count_occurrence = keys_count.primitive_value_count
+                for key, row of keys_count['object']
+                    count_key++
+                    @compute_occurrence row
+                    count_occurrence += row.occurrence
+                keys_count.occurrence = count_occurrence/count_key # count_key cannot be 0
+
+        # Sort the keys per level
+        order_keys: (keys) =>
+            if keys.object?
+                copy_keys = []
+                for key, value of keys.object
+                    if jQuery.isPlainObject(value)
+                        @order_keys value
+
+                    copy_keys.push
+                        key: key
+                        value: value.occurrence
+                # If we could know if a key is a primary key, that would be awesome
+                copy_keys.sort (a, b) ->
+                    if b.value-a.value
+                        return b.value-a.value
+                    else
+                        if a.key > b.key
+                            return 1
+                        else # We cannot have two times the same key
+                            return -1
+                keys.sorted_keys = _.map copy_keys, (d) -> return d.key
+                if keys.primitive_value_count > 0
+                    keys.sorted_keys.unshift @primitive_key
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
@@ -2376,66 +2568,90 @@ module 'DataExplorerView', ->
             if not (result.constructor? and result.constructor is Array)
                 result = [result]
 
-            map = {}
-            for element in result
-                if jQuery.isPlainObject(element)
-                    for key of element
-                        if map[key]?
-                            map[key]++
-                        else
-                            map[key] = 1
-                else
-                    map[@primitive_key] = Infinity
+            keys_count =
+                primitive_value_count: 0
 
-            keys_sorted = []
-            for key of map
-                keys_sorted.push [key, map[key]]
+            for result_entry in result
+                @build_map_keys
+                    keys_count: keys_count
+                    result: result_entry
+            @compute_occurrence keys_count
+            @order_keys keys_count
+        
 
-            keys_sorted.sort((a, b) ->
-                if a[1] < b[1]
-                    return 1
-                else if a[1] > b[1]
-                    return -1
-                else
-                    if a[0] < b[0]
-                        return -1
-                    else if a[0] > b[0]
-                        return 1
-                    else return 0
-            )
+            flatten_attr = []
 
-            @last_keys = _.union(['record'], keys_sorted.map( (key) -> return key[0] ))
+            @get_all_attr # fill attr[]
+                keys_count: keys_count
+                attr: flatten_attr
+                prefix: []
+                prefix_str: ''
+            for value, index in flatten_attr
+                value.col = index
+
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @container.saved_data.last_keys = @last_keys
 
             return @template_json_table.container
-                table_attr: @json_to_table_get_attr keys_sorted
-                table_data: @json_to_table_get_values result, keys_sorted
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
 
-        json_to_table_get_attr: (keys_sorted) =>
-            attr = []
-            for element, col in keys_sorted
-                attr.push
-                    is_primitive: element[0] is @primitive_key
-                    key: element[0]
-                    col: col
- 
-            return @template_json_table.tr_attr
-                attr: attr
-
-        json_to_table_get_values: (result, keys_stored) =>
-            document_list = []
-            for element, i in result
-                new_document = {}
-                new_document.cells = []
-                for key_container, col in keys_stored
-                    key = key_container[0]
-                    if key is @primitive_key
-                        if jQuery.isPlainObject(element)
-                            value = undefined
-                        else
-                            value = element
+        # Flatten the object returns by build_map_keys().
+        # We get back an array of keys
+        get_all_attr: (args) =>
+            keys_count = args.keys_count
+            attr = args.attr
+            prefix = args.prefix
+            prefix_str = args.prefix_str
+            for key in keys_count.sorted_keys
+                if key is @primitive_key
+                    new_prefix_str = prefix_str # prefix_str without the last dot
+                    if new_prefix_str.length > 0
+                        new_prefix_str = new_prefix_str.slice(0, -1)
+                    attr.push
+                        prefix: prefix
+                        prefix_str: new_prefix_str
+                        is_primitive: true
+                else
+                    if keys_count['object'][key]['object']?
+                        new_prefix = DataUtils.deep_copy(prefix)
+                        new_prefix.push key
+                        @get_all_attr
+                            keys_count: keys_count.object[key]
+                            attr: attr
+                            prefix: new_prefix
+                            prefix_str: (if prefix_str? then prefix_str else '')+key+'.'
                     else
-                        if element?
-                            value = element[key]
+                        attr.push
+                            prefix: prefix
+                            prefix_str: prefix_str
+                            key: key
+
+        json_to_table_get_attr: (flatten_attr) =>
+            return @template_json_table.tr_attr
+                attr: flatten_attr
+
+        json_to_table_get_values: (args) =>
+            result = args.result
+            flatten_attr = args.flatten_attr
+
+            document_list = []
+            for single_result, i in result
+                new_document =
+                    cells: []
+                for attr_obj, col in flatten_attr
+                    key = attr_obj.key
+                    value = single_result
+                    for prefix in attr_obj.prefix
+                        value = value?[prefix]
+                    if attr_obj.is_primitive isnt true
+                        if value?
+                            value = value[key]
                         else
                             value = undefined
 
@@ -2473,7 +2689,7 @@ module 'DataExplorerView', ->
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object'
                 data['value'] = '{ ... }'
-                data['data_to_expand'] = JSON.stringify(value)
+                data['is_object'] = true
             else if value_type is 'number'
                 data['classname'] = 'jta_num'
             else if value_type is 'string'
@@ -2530,16 +2746,16 @@ module 'DataExplorerView', ->
                 @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
-            $('.col-'+col).css 'max-width', size
-            $('.value-'+col).css 'max-width', size-20
-            $('.col-'+col).css 'width', size
-            $('.value-'+col).css 'width', size-20
+            @$('.col-'+col).css 'max-width', size
+            @$('.value-'+col).css 'max-width', size-20
+            @$('.col-'+col).css 'width', size
+            @$('.value-'+col).css 'width', size-20
             if size < 20
-                $('.value-'+col).css 'padding-left', (size-5)+'px'
-                $('.value-'+col).css 'visibility', 'hidden'
+                @$('.value-'+col).css 'padding-left', (size-5)+'px'
+                @$('.value-'+col).css 'visibility', 'hidden'
             else
-                $('.value-'+col).css 'padding-left', '15px'
-                $('.value-'+col).css 'visibility', 'visible'
+                @$('.value-'+col).css 'padding-left', '15px'
+                @$('.value-'+col).css 'visibility', 'visible'
 
 
         handle_mouseup: (event) =>

@@ -104,6 +104,10 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED cons
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_list_t &sinner) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
                                                            rdb_protocol_t::read_response_t *_response) :
     data(_data), response(_response) {
@@ -154,19 +158,23 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     resp->write_to_protobuf(res);
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::point_write_t &w) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::batched_replaces_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::point_delete_t &d) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_write_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_create_t &s) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_delete_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s) {
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_create_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_drop_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 

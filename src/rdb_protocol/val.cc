@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/val.hpp"
 
 #include "rdb_protocol/env.hpp"
@@ -36,7 +36,6 @@ table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
-    //meta_check(status, METADATA_SUCCESS, "FIND_TABLE " + table_name.str(), this);
     rcheck(status == METADATA_SUCCESS,
            strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
@@ -48,38 +47,261 @@ datum_t *table_t::env_add_ptr(datum_t *d) {
     return env->add_ptr(d);
 }
 
-const datum_t *table_t::sindex_create(const std::string &, func_t *index_func) {
-    uuid_u id = generate_uuid();
+const datum_t *table_t::make_error_datum(const base_exc_t &exception) {
+    datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
+    const std::string err = exception.what();
+
+    // The bool is true if there's a conflict when inserting the
+    // key, but since we just created an empty object above conflicts
+    // are impossible here.  If you want to harden this against future
+    // changes, you could store the bool and `r_sanity_check` that it's
+    // false.
+    DEBUG_VAR const bool had_first_error =
+        datum->add("first_error", env_add_ptr(new datum_t(err)));
+    rassert(!had_first_error);
+
+    DEBUG_VAR const bool had_errors =
+        datum->add("errors", env_add_ptr(new datum_t(1.0)));
+    rassert(!had_errors);
+
+    return datum;
+}
+
+const datum_t *table_t::replace(const datum_t *original,
+                                func_t *replacement_generator,
+                                bool nondet_ok) {
+    try {
+        return do_replace(original, replacement_generator, nondet_ok);
+    } catch (const base_exc_t &exc) {
+        return make_error_datum(exc);
+    }
+}
+
+const datum_t *table_t::replace(const datum_t *original,
+                                const datum_t *replacement,
+                                bool upsert) {
+    try {
+        return do_replace(original, replacement, upsert);
+    } catch (const base_exc_t &exc) {
+        return make_error_datum(exc);
+    }
+}
+
+
+std::vector<const datum_t *> table_t::batch_replace(
+    const std::vector<const datum_t *> &original_values,
+    func_t *replacement_generator,
+    const bool nondeterministic_replacements_ok) {
+    if (replacement_generator->is_deterministic()) {
+        std::vector<datum_func_pair_t> pairs(original_values.size());
+        map_wire_func_t wire_func = map_wire_func_t(env, replacement_generator);
+        for (size_t i = 0; i < original_values.size(); ++i) {
+            try {
+                pairs[i] = datum_func_pair_t(original_values[i], &wire_func);
+            } catch (const base_exc_t &exc) {
+                pairs[i] = datum_func_pair_t(make_error_datum(exc));
+            }
+        }
+
+        return batch_replace(pairs);
+    } else {
+        r_sanity_check(nondeterministic_replacements_ok);
+
+        scoped_array_t<map_wire_func_t> funcs(original_values.size());
+        std::vector<datum_func_pair_t> pairs(original_values.size());
+        for (size_t i = 0; i < original_values.size(); ++i) {
+            try {
+                const datum_t *replacement =
+                    replacement_generator->call(original_values[i])->as_datum();
+
+                Term t;
+                const int x = env->gensym();
+                Term *const arg = pb::set_func(&t, x);
+                replacement->write_to_protobuf(pb::set_datum(arg));
+                propagate(&t);
+
+                funcs[i] = map_wire_func_t(
+                    t, static_cast<std::map<int64_t, Datum> *>(NULL));
+                pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
+            } catch (const base_exc_t &exc) {
+                pairs[i] = datum_func_pair_t(make_error_datum(exc));
+            }
+        }
+
+        return batch_replace(pairs);
+    }
+}
+
+std::vector<const datum_t *> table_t::batch_replace(
+    const std::vector<const datum_t *> &original_values,
+    const std::vector<const datum_t *> &replacement_values,
+    bool upsert) {
+    r_sanity_check(original_values.size() == replacement_values.size());
+    scoped_array_t<map_wire_func_t> funcs(original_values.size());
+    std::vector<datum_func_pair_t> pairs(original_values.size());
+    for (size_t i = 0; i < original_values.size(); ++i) {
+        try {
+            Term t;
+            const int x = env->gensym();
+            Term *const arg = pb::set_func(&t, x);
+            if (upsert) {
+                replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
+            } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+                N3(BRANCH,
+                   N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+                   NDATUM(replacement_values[i]),
+                   N1(ERROR, NDATUM("Duplicate primary key.")));
+#pragma GCC diagnostic pop
+            }
+
+            propagate(&t);
+            funcs[i] = map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL));
+            pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
+        } catch (const base_exc_t &exc) {
+            pairs[i] = datum_func_pair_t(make_error_datum(exc));
+        }
+    }
+
+    return batch_replace(pairs);
+}
+
+bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
+    if (v.size() == 0) {
+        return true;
+    }
+
+    auto it = v.begin();
+    auto jt = it + 1;
+    while (jt < v.end()) {
+        if (!(it->first < jt->first)) {
+            return false;
+        }
+        ++it;
+        ++jt;
+    }
+    return true;
+}
+
+
+std::vector<const datum_t *> table_t::batch_replace(
+    const std::vector<datum_func_pair_t> &replacements) {
+    std::vector<const datum_t *> ret(replacements.size(), NULL);
+
+    std::vector<std::pair<int64_t, rdb_protocol_t::point_replace_t> > point_replaces;
+
+    for (size_t i = 0; i < replacements.size(); ++i) {
+        try {
+            if (replacements[i].error_value != NULL) {
+                r_sanity_check(replacements[i].original_value == NULL);
+                ret[i] = replacements[i].error_value;
+            } else {
+                const datum_t *orig = replacements[i].original_value;
+                r_sanity_check(orig != NULL);
+
+                if (orig->get_type() == datum_t::R_NULL) {
+                    // TODO: We copy this for some reason, possibly no reason.
+                    map_wire_func_t mwf = *replacements[i].replacer;
+                    orig = mwf.compile(env)->call(orig)->as_datum();
+                    if (orig->get_type() == datum_t::R_NULL) {
+                        datum_t *resp = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+                        const datum_t *const one = env->add_ptr(new ql::datum_t(1.0));
+                        const bool b = resp->add("skipped", one);
+                        r_sanity_check(!b);
+                        ret[i] = resp;
+                        continue;
+                    }
+                }
+
+                const std::string &pk = get_pkey();
+                store_key_t store_key(orig->get(pk)->print_primary());
+                point_replaces.push_back(
+                    std::make_pair(static_cast<int64_t>(point_replaces.size()),
+                                   rdb_protocol_t::point_replace_t(
+                                       pk, store_key,
+                                       *replacements[i].replacer,
+                                       env->get_all_optargs())));
+            }
+        } catch (const base_exc_t& exc) {
+            ret[i] = make_error_datum(exc);
+        }
+    }
+
+    rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
+    rdb_protocol_t::write_response_t response;
+    access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+    rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
+        = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
+    r_sanity_check(batched_replaces_response != NULL);
+    std::vector<std::pair<int64_t, Datum> > *datums = &batched_replaces_response->point_replace_responses;
+
+    rassert(is_sorted_by_first(*datums));
+
+    size_t j = 0;
+    for (size_t i = 0; i < ret.size(); ++i) {
+        if (ret[i] == NULL) {
+            r_sanity_check(j < datums->size());
+            ret[i] = env->add_ptr(new datum_t(&(*datums)[j].second, env));
+            ++j;
+        }
+    }
+    r_sanity_check(j == datums->size());
+
+    return ret;
+}
+
+MUST_USE bool table_t::sindex_create(const std::string &id, func_t *index_func) {
+    index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
 
-    rdb_protocol_t::write_response_t response;
+    rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+        write, &res, order_token_t::ignore, env->interruptor);
 
-    return env->add_ptr(new datum_t(uuid_to_str(id)));
+    rdb_protocol_t::sindex_create_response_t *response =
+        boost::get<rdb_protocol_t::sindex_create_response_t>(&res.response);
+    r_sanity_check(response);
+    return response->success;
 }
 
-const datum_t *table_t::sindex_drop(const std::string &name) {
-    uuid_u id = str_to_uuid(name);
-
+MUST_USE bool table_t::sindex_drop(const std::string &id) {
     rdb_protocol_t::write_t write((
             rdb_protocol_t::sindex_drop_t(id)));
 
-    rdb_protocol_t::write_response_t response;
+    rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+        write, &res, order_token_t::ignore, env->interruptor);
 
-    return env->add_ptr(new datum_t(datum_t::R_OBJECT));
+    rdb_protocol_t::sindex_drop_response_t *response =
+        boost::get<rdb_protocol_t::sindex_drop_response_t>(&res.response);
+    r_sanity_check(response);
+    return response->success;
 }
 
 const datum_t *table_t::sindex_list() {
-    return env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    datum_t *array = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    rdb_protocol_t::sindex_list_t sindex_list;
+    rdb_protocol_t::read_t read(sindex_list);
+    try {
+        rdb_protocol_t::read_response_t res;
+        access->get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::sindex_list_response_t *s_res = boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
+        r_sanity_check(s_res);
+
+        for (auto it = s_res->sindexes.begin(); it != s_res->sindexes.end(); ++it) {
+            array->add(env->add_ptr(new datum_t(*it)));
+        }
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail("cannot perform read: %s", ex.what());
+    }
+
+    return array;
 }
 
-const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                                   UNUSED bool _so_the_template_matches) {
+const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &mwf) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -92,7 +314,7 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
             return resp;
         }
     }
-    store_key_t store_key(orig->el(pk)->print_primary());
+    store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(pk, store_key, mwf, env->get_all_optargs()));
 
@@ -102,7 +324,6 @@ const datum_t *table_t::do_replace(const datum_t *orig, const map_wire_func_t &m
     Datum *d = boost::get<Datum>(&response.response);
     return env->add_ptr(new datum_t(d, env));
 }
-
 
 const datum_t *table_t::do_replace(const datum_t *orig, func_t *f, bool nondet_ok) {
     if (f->is_deterministic()) {
@@ -123,8 +344,8 @@ const datum_t *table_t::do_replace(const datum_t *orig, const datum_t *d, bool u
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
            NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")))
-            }
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
 
     propagate(&t);
     return do_replace(
@@ -149,7 +370,9 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::get_sindex_rows(const datum_t *pval, uuid_u sindex_id, const pb_rcheckable_t *bt) {
+datum_stream_t *table_t::get_sindex_rows(const datum_t *pval,
+                                         const std::string &sindex_id,
+                                         const pb_rcheckable_t *bt) {
     return env->add_ptr(
             new lazy_datum_stream_t(env, use_outdated, access.get(),
                                     pval, sindex_id, bt));
@@ -204,85 +427,83 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(const datum_t *_datum, const term_t *_parent, env_t *_env)
+val_t::val_t(const datum_t *_datum, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::DATUM),
-      table(0),
-      sequence(0),
-      datum(env->add_ptr(_datum)),
-      func(0) {
-    guarantee(datum);
+      table(NULL),
+      datum(get_env()->add_ptr(_datum)) {
+    guarantee(table == NULL);
+    guarantee(datum != NULL);
 }
-val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env)
+val_t::val_t(const datum_t *_datum, table_t *_table, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::SINGLE_SELECTION),
-      table(env->add_ptr(_table)),
-      sequence(0),
-      datum(env->add_ptr(_datum)),
-      func(0) {
-    guarantee(table);
-    guarantee(datum);
+      table(get_env()->add_ptr(_table)),
+      datum(_datum) {
+    guarantee(table != NULL);
+    guarantee(datum != NULL);
 }
-val_t::val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env)
+val_t::val_t(datum_stream_t *_sequence, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::SEQUENCE),
-      table(0),
-      sequence(env->add_ptr(_sequence)),
-      datum(0),
-      func(0) {
-    guarantee(sequence);
+      table(NULL),
+      sequence(get_env()->add_ptr(_sequence)) {
+    guarantee(table == NULL);
+    guarantee(sequence != NULL);
     // Some streams are really arrays in disguise.
-    if ((datum = sequence->as_array())) {
-        sequence = 0;
+    const datum_t *arr = sequence->as_array();
+    if (arr) {
         type = type_t::DATUM;
+        datum = arr;
     }
 }
 
-val_t::val_t(table_t *_table, datum_stream_t *_sequence,
-             const term_t *_parent, env_t *_env)
+val_t::val_t(table_t *_table, datum_stream_t *_sequence, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::SELECTION),
-      table(env->add_ptr(_table)),
-      sequence(env->add_ptr(_sequence)),
-      datum(0),
-      func(0) {
-    guarantee(table);
-    guarantee(sequence);
+      table(get_env()->add_ptr(_table)),
+      sequence(get_env()->add_ptr(_sequence)) {
+    guarantee(table != NULL);
+    guarantee(sequence != NULL);
 }
 
-val_t::val_t(table_t *_table, const term_t *_parent, env_t *_env)
+val_t::val_t(table_t *_table, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::TABLE),
-      table(env->add_ptr(_table)),
-      sequence(0),
-      datum(0),
-      func(0) {
-    guarantee(table);
+      table(get_env()->add_ptr(_table)),
+      sequence(NULL) {
+    guarantee(table != NULL);
+    guarantee(sequence == NULL);
 }
-val_t::val_t(uuid_u _db, const term_t *_parent, env_t *_env)
+val_t::val_t(uuid_u _db, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::DB),
-      db(_db),
-      table(0),
-      sequence(0),
-      datum(0),
-      func(0) {
+      table(NULL) {
+    guarantee(table == NULL);
+    *db_ptr() = _db;
 }
-val_t::val_t(func_t *_func, const term_t *_parent, env_t *_env)
+val_t::val_t(func_t *_func, const term_t *_parent)
     : pb_rcheckable_t(_parent),
-      parent(_parent), env(_env),
+      parent(_parent),
       type(type_t::FUNC),
-      table(0),
-      sequence(0),
-      datum(0),
-      func(env->add_ptr(_func)) {
-    guarantee(func);
+      table(NULL),
+      func(get_env()->add_ptr(_func)) {
+    guarantee(table == NULL);
+    guarantee(func != NULL);
+}
+
+val_t::~val_t() {
+    if (get_type().is_convertible(type_t::DB)) {
+        // This isn't necessary right now because the `uuid_u` destructor
+        // doesn't do anything useful, but it helps make us future-proof.
+        db_ptr()->~uuid_u();
+    }
 }
 
 val_t::type_t val_t::get_type() const { return type; }
@@ -302,15 +523,14 @@ table_t *val_t::as_table() {
 
 datum_stream_t *val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
-        // passthru
+        return sequence;
     } else if (type.raw_type == type_t::TABLE) {
-        if (!sequence) sequence = table->as_datum_stream();
+        return table->as_datum_stream();
     } else if (type.raw_type == type_t::DATUM) {
-        if (!sequence) sequence = datum->as_datum_stream(env, parent);
-    } else {
-        rcheck_literal_type(type_t::SEQUENCE);
+        return datum->as_datum_stream(get_env(), parent);
     }
-    return sequence;
+    rcheck_literal_type(type_t::SEQUENCE);
+    unreachable();
 }
 
 std::pair<table_t *, datum_stream_t *> val_t::as_selection() {
@@ -326,29 +546,38 @@ std::pair<table_t *, const datum_t *> val_t::as_single_selection() {
 }
 
 func_t *val_t::as_func(function_shortcut_t shortcut) {
+    if (get_type().is_convertible(type_t::FUNC)) {
+        r_sanity_check(func);
+        return func;
+    }
+
     if (shortcut == NO_SHORTCUT) {
         rcheck_literal_type(type_t::FUNC);
-        r_sanity_check(func);
+        unreachable();
     }
-    if (!func) {
-        if (!type.is_convertible(type_t::DATUM)) {
-            rcheck_literal_type(type_t::FUNC);
-        }
-        r_sanity_check(parent);
-        switch (shortcut) {
-        case IDENTITY_SHORTCUT: {
-            func = env->add_ptr(func_t::new_identity_func(env, as_datum(), parent));
-        } break;
-        case NO_SHORTCUT: // fallthru
-        default: unreachable();
-        }
+
+    if (!type.is_convertible(type_t::DATUM)) {
+        rcheck_literal_type(type_t::FUNC);
+        unreachable();
     }
-    return func;
+
+    r_sanity_check(parent);
+    // We use a switch here so that people have to update it if they add another
+    // shortcut.
+    switch(shortcut) {
+    case IDENTITY_SHORTCUT: {
+        return get_env()->add_ptr(
+            func_t::new_identity_func(get_env(), as_datum(), parent));
+    } break;
+    case NO_SHORTCUT: //fallthru
+    default: unreachable();
+    }
+    unreachable();
 }
 
 uuid_u val_t::as_db() {
     rcheck_literal_type(type_t::DB);
-    return db;
+    return *db_ptr();
 }
 
 bool val_t::as_bool() {

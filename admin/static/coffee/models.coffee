@@ -141,10 +141,9 @@ class Namespace extends Backbone.Model
                 keys_set = 0
                 for serializer_id of _s.serializers
                     serializer = _s.serializers[serializer_id]
-                    if serializer.btree?
-
-                        keys_read = parseFloat(serializer.btree.keys_read)
-                        keys_set = parseFloat(serializer.btree.keys_set)
+                    if serializer['btree-primary']?
+                        keys_read = parseFloat(serializer['btree-primary'].keys_read)
+                        keys_set = parseFloat(serializer['btree-primary'].keys_set)
                         if not isNaN(keys_read)
                             __s.keys_read += keys_read
                         if not isNaN(keys_set)
@@ -168,6 +167,16 @@ class Namespace extends Backbone.Model
                 num_machines_in_namespace++
                 __s.global_disk_space += machine.get_used_disk_space()
         return __s
+
+    get_durability: =>
+        if @get('hard_durability')?
+            return @get('hard_durability')
+        else
+            for dc, ack of @get('ack_expectations')
+                @set('hard_durability', ack.hard_durability)
+                return @get('hard_durability')
+            @set('hard_durability', true)
+            return @get('hard_durability')
 
 class Datacenter extends Backbone.Model
     # Compute the number of machines not used by other datacenters for one namespace
@@ -618,7 +627,7 @@ module 'DataUtils', ->
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-        acks = namespace?.get('ack_expectations')?[datacenter_uuid]
+        acks = namespace?.get('ack_expectations')?[datacenter_uuid]?.expectation
         if acks?
             return acks
         else

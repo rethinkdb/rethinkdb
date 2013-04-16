@@ -4,7 +4,7 @@
 
 import unittest
 from os import getenv
-from sys import path, argv
+from sys import path, argv, exit
 path.append("../../drivers/python")
 
 import rethinkdb as r
@@ -34,4 +34,7 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestCursor))
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    res = unittest.TextTestRunner(verbosity=2).run(suite)
+
+    if not res.wasSuccessful():
+        exit(1)

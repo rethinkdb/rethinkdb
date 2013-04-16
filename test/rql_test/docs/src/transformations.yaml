@@ -1,0 +1,237 @@
+sections:
+  - tag: transformations
+    name: Transformations
+    description: These commands are used to transform data in a sequence.
+    order: 6
+
+commands:
+  - tag: map
+    section: transformations
+    description: Transform each element of the sequence by applying the given mapping
+      function.
+
+    body: mapping_function
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Construct a sequence of hero power ratings.
+        code:
+          js: |-
+            r.table('marvel').map(function(hero) {
+             return hero('combatPower').add(hero('compassionPower').mul(2))
+            }).run(conn, callback)
+          py: |-
+            r.table('marvel').map(
+                lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run(conn)
+          rb: |-
+            r.table('marvel').map {|hero|
+             hero[:combat_power] + hero[:compassion_power] * 2
+            }.run(conn)
+
+    rb:
+      dont_need_parenthesis: true
+
+    js:
+      body: mappingFunction
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+
+  - tag: concat_map
+    section: transformations
+    description: Flattens a sequence of arrays returned by the <code>mappingFunction</code>
+      into a single sequence.
+
+    body: mapping_function
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Construct a sequence of all monsters defeated by Marvel heroes.
+          Here the field 'defeatedMonsters' is a list that is concatenated to
+          the sequence.
+        code:
+          js: |-
+            r.table('marvel').concatMap(function(hero) {
+              return hero('defeatedMonsters')
+            }).run(conn, callback)
+          py: "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)"
+          rb: |-
+            r.table('marvel').concat_map {|hero|
+              hero[:defeated_monsters]
+            }.run(conn)
+
+    js:
+      name: concatMap
+      body: mappingFunction
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: order_by
+    section: transformations
+    description: Sort the sequence by document values of the given key(s).<br /><br />
+      <code>order by</code> defaults to ascending ordering. To explicitly specify
+      the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.
+
+    body: key1, [key2...]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Order our heroes by a series of performance metrics.
+        code:
+          js: r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run(conn, callback)
+          py: r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(conn)
+          rb: r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run(conn)
+      - description: Let's lead with our best vanquishers by specify descending ordering.
+        code:
+          js: |-
+            r.table('marvel').orderBy(r.desc('enemiesVanquished'), r.asc('damselsSaved'))
+             .run(conn, callback)
+          py: |-
+            r.table('marvel').order_by(
+                r.desc('enemies_vanquished'), r.asc('damsels_saved')).run(conn)
+          rb: |-
+            r.table('marvel').order_by(r.desc(:enemies_vanquished),
+                                       r.asc(:damsels_saved)      ).run(conn)
+
+    js:
+      name: orderBy
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+
+  - tag: skip
+    section: transformations
+    description: Skip a number of elements from the head of the sequence.
+
+    body: n
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Here in conjunction with `order_by` we choose to ignore the most
+            successful heroes.
+        code:
+          js: r.table('marvel').orderBy('successMetric').skip(10).run(conn, callback)
+          py: r.table('marvel').order_by('successMetric').skip(10).run(conn)
+          rb: r.table('marvel').order_by(:success_metric).skip(10).run(conn)
+
+    js:
+      0:
+        can_try: true
+        dataset: marvel
+
+  - tag: limit
+    section: transformations
+    description: End the sequence after the given number of elements.
+
+    body: n
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Only so many can fit in our Pantheon of heroes.
+        code:
+          js: r.table('marvel').orderBy('belovedness').limit(10).run(conn, callback)
+          py: r.table('marvel').order_by('belovedness').limit(10).run(conn)
+          rb: r.table('marvel').order_by(:belovedness).limit(10).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: slice
+    section: transformations
+    description: Trim the sequence to within the bounds provided.
+
+    body: startIndex[, endIndex]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: For this fight, we need heroes with a good mix of strength and agility.
+        code:
+          js: r.table('marvel').orderBy('strength').slice(5, 10).run(conn, callback)
+          py: r.table('marvel').order_by('strength')[5:10].run(conn)
+          rb: r.table('marvel').order_by(:strength)[5..10].run(conn)
+
+    py:
+      name: '[]'
+      is_selector: true
+      name1: '['
+      name2: ']'
+
+    rb:
+      name: '[]'
+      is_selector: true
+      name1: '['
+      name2: ']'
+
+    js:
+      0:
+        can_try: true
+        dataset: marvel
+
+  - tag: nth
+    section: transformations
+    description: Get the nth element of a sequence.
+
+    body: index
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: Select the second element in the array.
+        code:
+          js: r.expr([1,2,3]).nth(1).run(conn, callback)
+          py: r.expr([1,2,3])[1].run(conn)
+          rb: r([1,2,3])[1].run(conn)
+
+    py:
+      name: '[]'
+      is_selector: true
+      name1: '['
+      name2: ']'
+
+    rb:
+      name: '[]'
+      is_selector: true
+      name1: '['
+      name2: ']'
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: union
+    section: transformations
+    description: Concatenate two sequences.
+
+    body: other
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Construct a stream of all heroes.
+        code: r.table('marvel').union(r.table('dc')).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').union(r.table('dc')).run(conn, callback)

@@ -1,0 +1,153 @@
+sections:
+  - tag: select
+    name: Selecting data
+    description: These commands allow searching for data in the database.
+    order: 4
+
+commands:
+  - tag: db
+    section: select
+    description: Reference a database.
+
+    body: db_name
+    parent: r
+    returns: db
+
+    examples:
+      - description: Before we can query a table we have to select the correct database.
+        code: r.db('heroes').table('marvel').run(conn)
+
+    js:
+      body: dbName
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.db('heroes').table('marvel').run(conn, callback)
+
+  - tag: table
+    section: select
+    description: |
+      Select all documents in a table. This command can be chained with
+      other commands to do further processing on the data.
+
+    body:
+      js: "name[, {useOutdated: false}]"
+      py: name[, use_outdated=False]
+      rb: name[, opts]
+    parent: db
+    returns: table
+
+    examples:
+      - description: Return all documents in the table 'marvel' of the default database.
+        code: r.table('marvel').run(conn)
+      - description: Return all documents in the table 'marvel' of the database 'heroes'.
+        code: r.db('heroes').table('marvel').run(conn)
+      - description: |
+          If you are OK with potentially out of date data
+          from this table and want potentially faster reads, pass
+          a flag allowing out of date data.
+        code:
+          js: "r.db('heroes').table('marvel', {useOutdated: true}).run(conn, callback)"
+          py: r.db('heroes').table('marvel', True).run(conn)
+          rb: r.db('heroes').table('marvel', {:use_outdated => true}).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').run(conn, callback)
+        1:
+          can_try: true
+          dataset: marvel
+          code: r.db('heroes').table('marvel').run(conn, callback)
+        2:
+          can_try: true
+          dataset: marvel
+
+  - tag: get
+    section: select
+    description: Get a document by primary key.
+
+    body: key
+    parent: table
+    returns: json
+
+    examples:
+      - description: Find a document with the primary key 'superman'.
+        code: r.table('marvel').get('superman').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').get('superman').run(conn, callback)
+
+  - tag: between
+    section: select
+    description: Get all documents between two primary keys (both keys are inclusive).
+
+    body: lower_key, upper_key
+    parent: selection
+    returns: selection
+
+    examples:
+        - description: Find all users with primary keys between 10 and 20, inclusive.
+          code: r.table('marvel').between(10, 20).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+          code: r.table('marvel').between(10, 20).run(conn, callback)
+
+  - tag: filter
+    section: select
+    description: Get all the documents for which the given predicate is true.
+
+    body: predicate
+    parent: selection
+    returns: selection
+
+    examples:
+      - description: Get all active users aged 30.
+        code:
+          js: "r.table('users').filter({active: true, age: 30}).run(conn, callback)"
+          py: "r.table('users').filter({'active': True, 'age': 30}).run(conn)"
+          rb: r.table('users').filter('active' => true, 'age' => 30).run(conn)
+      - description: Select all documents where the 'magazines' field is greater than 5.
+        code:
+          js: r.table('marvel').filter(r.row('magazines').gt(5)).run(conn, callback)
+          py: r.table('users').filter(r.row['magazines'] > 5).run(conn)
+          rb: r.table('users').filter{|user| user[:magazines] > 5}.run(conn)
+      - description: Select all documents where the 'abilities' embedded document has an attribute called 'super-strength'.
+        code:
+          js: |
+            r.table('marvel').filter(function(hero) {
+              return hero('abilities').contains('super-strength')
+            }).run(conn, callback)
+          py: |
+            r.table('marvel').filter(
+                lambda hero: hero['abilities'].contains('super-strength')).run(conn)
+          rb: |
+            r.table('marvel').filter {|hero|
+              hero[:abilities].contains('super-strength')
+            }.run(conn)
+
+    rb:
+      dont_need_parenthesis: true
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+        2:
+          can_try: true
+          dataset: marvel

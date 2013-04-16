@@ -1,0 +1,147 @@
+sections:
+    - tag: joins
+      name: Joins
+      description: These commands allow the combination of multiple sequences into a single
+        sequence
+      order: 5
+
+commands:
+  - tag: inner
+    section: joins
+    description: Returns the inner product of two sequences (e.g. a table, a filter
+      result) filtered by the predicate. The query compares each row of the left sequence
+      with each row of the right sequence to find all pairs of rows which satisfy
+      the predicate. When the predicate is satisfied, each matched pair of rows of
+      both sequences are combined into a result row.
+
+    name:
+      js: innerJoin
+      py: inner_join
+      rb: inner_join
+    body: othersequence, predicate
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Construct a sequence of documents containing all cross-universe
+          matchups where a marvel hero would lose.
+        code:
+          js: |-
+           r.table('marvel').innerJoin(r.table('dc'), function(marvelRow, dcRow) {
+             return marvelRow('strength').lt(dcRow('strength'))
+            }).run(conn, callback)
+          py: "r.table('marvel').inner_join(r.table('dc'),
+                 lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)"
+          rb: |-
+            r.table('marvel').inner_join(r.table('dc')) {|marvel_row, dc_row|
+             marvel_row[:strength] < dc_row[:strength]
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: outer
+    section: joins
+    description: Computes a left outer join by retaining each row in the left table
+      even if no match was found in the right table.
+
+    name:
+      js: outerJoin
+      py: outer_join
+      rb: outer_join
+    body: othersequence, predicate
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Construct a sequence of documents containing all cross-universe
+          matchups where a marvel hero would lose, but keep marvel heroes who would
+          never lose a matchup in the sequence.
+        code:
+          js: |-
+            r.table('marvel').outerJoin(r.table('dc'), function(marvelRow, dcRow) {
+             return marvelRow('strength').lt(dcRow('strength'))
+            }).run(conn, callback)
+          py: |-
+            r.table('marvel').outer_join(r.table('dc'),
+              lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
+          rb: |-
+            r.table('marvel').outer_join(r.table('dc')) {|marvel_row, dc_row|
+             marvel_row[:strength] < dc_row[:strength]
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: eqJoin
+    section: joins
+    description: An efficient join that looks up elements in the right table by primary
+      key.
+
+    name: eq_join
+    body: left_attr, other
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Let our heroes join forces to battle evil!
+        code:
+          js: r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc')).run(conn, callback)
+          py: r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)
+          rb: r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).run(conn)
+      - description: The above query is equivalent to this inner join but runs
+          in O(n log(m)) time rather than the O(n * m) time the inner join takes.
+        code:
+          js: |-
+            r.table('marvel').innerJoin(r.table('dc'), function(left, right) {
+              return left('main_dc_collaborator').eq(right('hero_name'));
+            }).run(conn, callback)
+          py: |-
+            r.table('marvel').inner_join(r.table('dc'),
+              lambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)
+          rb: |-
+            r.table('marvel').inner_join(r.table('dc')) {|left, right|
+             left[:main_dc_collaborator].eq(right[:hero_name])
+            }.run(conn)
+
+    js:
+      name: eqJoin
+      body: leftAttr, other
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+
+  - tag: zip
+    section: joins
+    description: Used to 'zip' up the result of a join by merging the 'right' fields into 
+      'left' fields of each member of the sequence.
+
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: "'zips up' the sequence by merging the left and right fields
+          produced by a join."
+        code:
+          js: r.table('t1').eqJoin('t2', 'id').zip().run(conn, callback)
+          py: r.table('t1').eq_join('t2', 'id').zip().run(conn)
+          rb: r.table(:t1).eq_join(:t2, :id).zip.run(conn)
+
+    rb:
+      dont_need_parenthesis: true
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel

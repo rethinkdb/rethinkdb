@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 import sys, os, time, tempfile, subprocess
 rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
@@ -16,7 +16,7 @@ with driver.Metacluster() as metacluster:
             cluster,
             files[i],
             log_path = "serve-output-%d" % i,
-            executable_path = driver.find_rethinkdb_executable("debug"))
+            executable_path = driver.find_rethinkdb_executable())
         for i in xrange(num_nodes)]
     time.sleep(3)
     print "Creating table..."

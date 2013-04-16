@@ -36,7 +36,6 @@ class mock_namespace_interface_t : public namespace_interface_t<rdb_protocol_t> 
 private:
     std::map<store_key_t, scoped_cJSON_t*> data;
     mock_namespace_repo_t *parent;
-    ql::env_t *env;
 
 public:
     mock_namespace_interface_t(mock_namespace_repo_t *_parent);
@@ -65,6 +64,7 @@ private:
         void operator()(const rdb_protocol_t::point_read_t &get);
         void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
         void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);
 
         read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
 
@@ -74,6 +74,7 @@ private:
 
     struct write_visitor_t : public boost::static_visitor<void> {
         void operator()(const rdb_protocol_t::point_replace_t &r);
+        void NORETURN operator()(const rdb_protocol_t::batched_replaces_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
@@ -102,7 +103,7 @@ private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
 
     struct mock_namespace_cache_entry_t {
-        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) : 
+        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
             mock_ns_if(ns_repo) { }
         namespace_cache_entry_t entry;
         mock_namespace_interface_t mock_ns_if;
