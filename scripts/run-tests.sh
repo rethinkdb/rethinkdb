@@ -18,6 +18,7 @@ run_elsewhere=false
 report_out=
 build_dir=
 dashboard_url=
+colorful=true
 
 # Print usage
 usage () {
@@ -32,8 +33,9 @@ usage () {
     echo "   -r <repeats>    Repeat each test"
     echo "   -d <run_dir>    Run the tests in a different folder (eg: /dev/shm)"
     echo "   -w <file>       Write report to file (- for stdout)"
-    echo "   -b <build>      RethinkDB build name (default: debug)"
+    echo "   -b <build>      RethinkDB build directory (default: build/debug)"
     echo "   -u <url>        Post the test results to the url"
+    echo "   -c              Disable color"
     echo "   -s <name> -- <command>  For internal use only"
     echo "Output Directory Format:"
     echo "   A folder is created for each test. Files in the folder contain the command"
@@ -53,7 +55,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:b:u:" opt; do
+while getopts ":lo:hvs:j:r:d:w:b:u:c" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -66,6 +68,7 @@ while getopts ":lo:hvs:j:r:d:w:b:u:" opt; do
         w) report_out=$OPTARG ;;
         b) build_dir=$OPTARG ;;
         u) dashboard_url=$OPTARG ;;
+        c) colorful=false ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -86,6 +89,22 @@ build_dir=$(absdir "$build_dir")
 # The tests depend on these variables being set
 export RETHINKDB=$root
 export RETHINKDB_BUILD_DIR=$build_dir
+
+if $colorful; then
+    red=`printf '\e[31m'`
+    green=`printf '\e[32m'`
+    yellow=`printf '\e[33m'`
+    plain=`printf '\e[0m'`
+else
+    red=
+    green=
+    yellow=
+    plain=
+fi
+
+if [[ -z "$OUTPUT_WIDTH" ]]; then
+    export OUTPUT_WIDTH=`tput cols`
+fi
 
 # Run a single test
 run_single_test () {
@@ -114,10 +133,10 @@ run_single_test () {
         $run_elsewhere && mv "$elsewhere/"* .
         exit_code=$(cat return-code-$index)
         if [[ $exit_code = 0 ]]; then
-            echo "Ok   $test ($index)"
+            echo "${green}Ok   $test ($index)${plain}"
         else
-            echo "Fail $test ($index)"
-            ( tail -n 5 stdout-$index; tail -n 5 stderr-$index ) | tail -n 5 | sed 's/^/  | /'
+            echo "${red}Fail $test ($index)${plain}"
+            ( tail -n 10 stdout-$index; tail -n 10 stderr-$index ) | sed 's/\(.\{'$((OUTPUT_WIDTH - 6))'\}\)/\1\\\n    /g; s/^/  | /' | tail -n 10
         fi
         exit $exit_code
     )
@@ -142,7 +161,7 @@ fi
 
 # Find or create the output_dir and list_dir
 if $list_only; then
-    list_dir=`mktemp -t -d run-tests.XXXXXXXX`
+    list_dir=`mktemp -d "$TMPDIR/run-tests.XXXXXXXX"`
 else
     if [[ -z "$dir" ]]; then
         if ! dir=$(mktemp -d "test_results.XXXXX"); then
@@ -160,6 +179,9 @@ fi
 "$root"/scripts/generate_test_param_files.py --test-dir "$root/test/full_test/" --output-dir "$list_dir" >/dev/null || exit 1
 all_tests="$(for f in "$list_dir"/*.param; do basename "$f" .param; done)"
 total_tests=$(echo "$all_tests" | wc -l)
+
+trap exit USR1
+export RUN_TESTS_PID=$$
 
 # filter_tests <negate> <filters> <tests>
 # Apply the filters or their opposite to the tests
@@ -218,7 +240,7 @@ filter_tests () {
         fi
 
         echo "Error: Non-existing test '$filter'" >&2
-        exit 1
+        kill -USR1 $RUN_TESTS_PID
     done
     echo "$tests" | tr ' ' '\n' | sort -u
 }
@@ -270,15 +292,16 @@ run_dir_msg=
 $run_elsewhere && run_dir_msg=", run dir: $run_dir"
 echo "Running $total of $total_tests tests (tasks: $parallel_tasks, repeats: $repeats, output dir: $dir$run_dir_msg, build: `basename "$build_dir"`, filter: $(eval echo $test_filter))"
 trap "echo Aborting tests; sleep 2" INT
-varg=
-$verbose && varg='-v'
-elsewhere_args=
-$run_elsewhere && elsewhere_args="-d $(printf %q "$run_dir")"
+args=
+$verbose && args="$args -v"
+$run_elsewhere && args="$args -d $(printf %q "$run_dir")"
+! $colorful && args="$args -c"
 for i in `seq $repeats`; do
     for item in "${list[@]}"; do
-        echo "$0 $varg $elsewhere_args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
+        echo "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
+        printf '\0'
     done
-done | xargs -d '\n' -n 1 --max-procs=$parallel_tasks -I@ bash -c @
+done | xargs -0 -n 1 --max-procs=$parallel_tasks -I@ bash -c @
 trap - INT
 
 gen_report () {
@@ -324,10 +347,10 @@ duration_str=$((duration/60))'m'$((duration%60))'s'
 test -n "$report_out" && gen_report "$dir" "$report_out"
 
 if [[ $passed = $total ]]; then
-    echo Passed all $total tests in $duration_str.
+    echo "${green}Passed all $total tests in $duration_str.${plain}"
     exit_code=0
 else
-    echo Failed $(( total - passed )) of $total tests in $duration_str.
+    echo "${red}Failed $(( total - passed )) of $total tests in $duration_str.${plain}"
     exit_code=1
 fi
 
