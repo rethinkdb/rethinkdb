@@ -632,6 +632,9 @@ build_try_lib_paths () {
         ld_paths="/usr/lib /usr/local/lib" # Default ld search paths on OSX
     fi
     try_lib_paths="$lib_paths $cc_paths $ld_paths"
+    try_lib_paths=$(for path in $try_lib_paths; do
+            test -d "$path" && niceabspath "$path"
+        done | sort -u)
 }
 
 # check_lib <name>
@@ -715,6 +718,23 @@ subst () { echo "${1%%$2*}$3${1#*$2}"; }
 # bash's ! as a command
 not () {
     ! "$@"
+}
+
+# Make the path absolute and prettier (with no /..)
+niceabspath () {
+    if [[ -d "$1" ]]; then
+        (cd "$1" && pwd) && return
+    fi
+    local dir=$(dirname "$1")
+    if [[ -d "$dir" ]] && dir=$(cd "$dir" && pwd); then
+        echo "$dir/$(basename "$1")" | sed 's|^//|/|'
+        return
+    fi
+    if [[ "${1:0:1}" = / ]]; then
+        echo "$1"
+    else
+        echo "$(pwd)/$1"
+    fi
 }
 
 # Call the main command with the command line arguments
