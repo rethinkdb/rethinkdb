@@ -75,7 +75,12 @@ public:
     `write_callback_t` is destroyed while the write is still in progress, its
     destructor will automatically deregister it so that no segfaults will
     happen. */
-    void spawn_write(const typename protocol_t::write_t &w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor, const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t);
+    void spawn_write(const typename protocol_t::write_t &w,
+                     fifo_enforcer_sink_t::exit_write_t *lock,
+                     order_token_t tok,
+                     write_callback_t *cb,
+                     signal_t *interruptor,
+                     const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id() const;
 

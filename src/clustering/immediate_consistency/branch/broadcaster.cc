@@ -423,7 +423,12 @@ void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, ty
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &write, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token, write_callback_t *cb, signal_t *interruptor, const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
+void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &write,
+                                            fifo_enforcer_sink_t::exit_write_t *lock,
+                                            order_token_t order_token,
+                                            write_callback_t *cb,
+                                            signal_t *interruptor,
+                                            const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
 
     order_token.assert_write_mode();
 
