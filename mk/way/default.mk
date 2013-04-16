@@ -93,6 +93,8 @@ TEST ?= default
 # How to run the tests (arguments for ./scripts/run-tests.sh)
 RUN_TEST_ARGS ?=
 
+# For each triggered rule, show one of the dependencies that caused it to be run
+SHOW_BUILD_REASON ?= 0
 
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
