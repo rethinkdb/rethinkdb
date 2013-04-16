@@ -213,7 +213,7 @@ module 'DataExplorerView', ->
             else
                 @options =
                     suggestions: true
-                    electric_punctuation: true
+                    electric_punctuation: false # False by default
 
             # We do not load the rest of data from localStorage.
             if not DataExplorerView.Container.prototype.saved_data?
