@@ -403,7 +403,6 @@ module 'NamespaceView', ->
                         input_error = true
                         template_error.namespace_exists = true
                         break
-
             # Need a database
             if not formdata.database? or formdata.database is ''
                 input_error = true
@@ -428,7 +427,9 @@ module 'NamespaceView', ->
                 @reset_buttons()
             else
                 ack = {}
-                ack[universe_datacenter.get('id')] = 1
+                ack[universe_datacenter.get('id')] =
+                    expectation: 1
+                    hard_durability: if formdata.write_disk is 'yes' then true else false
 
                 $.ajax
                     processData: false

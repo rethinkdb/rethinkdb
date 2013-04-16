@@ -322,11 +322,15 @@ module 'LogView', ->
                                                     datacenter_name = datacenters.get(datacenter_id).get 'name'
                                                 else
                                                     datacenter_name = 'a removed datacenter'
+                                                if attribute is 'ack_expectations'
+                                                    value = json_data[group][namespace_id][attribute][datacenter_id].expectation
+                                                else
+                                                    value = json_data[group][namespace_id][attribute][datacenter_id]
                                                 data =
                                                     is_universe: datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
                                                     datacenter_name: datacenter_name
-                                                    value: json_data[group][namespace_id][attribute][datacenter_id]
+                                                    value: value
                                                 _datacenters.push data
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
