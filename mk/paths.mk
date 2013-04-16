@@ -55,6 +55,10 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += aiosupport
   endif
 
+  ifeq (1,$(NO_TCMALLOC))
+    BUILD_DIR += notcmalloc
+  endif
+
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))
 endif
 
