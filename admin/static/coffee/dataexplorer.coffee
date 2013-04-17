@@ -287,15 +287,9 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
-            $(window).keydown  @handle_keydown
             @id_execution = 0
 
             @render()
-        handle_keydown: (event) =>
-            if event?.type is 'keydown' and event?.which is 32 and (event.ctrlKey is true or event.metaKey is true)
-                @options_view.toggle_suggestions()
-                @hide_suggestion_and_description()
-
 
         handle_mousemove: (event) =>
             @results_view.handle_mousemove event
@@ -2412,8 +2406,6 @@ module 'DataExplorerView', ->
             $(window).off 'resize', @display_full
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
-            $(document).unbind 'keydown', @handle_keydown
-
 
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
