@@ -525,14 +525,14 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
-    def sindex_create(self, name, fundef):
-        return SIndexCreate(self, name, func_wrap(fundef))
+    def index_create(self, name, fundef):
+        return IndexCreate(self, name, func_wrap(fundef))
 
-    def sindex_drop(self, name):
-        return SIndexDrop(self, name)
+    def index_drop(self, name):
+        return IndexDrop(self, name)
 
-    def sindex_list(self):
-        return SIndexList(self)
+    def index_list(self):
+        return IndexList(self)
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
@@ -654,17 +654,17 @@ class TableList(RqlMethodQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
-class SIndexCreate(RqlMethodQuery):
-    tt = p.Term.SINDEX_CREATE
-    st = 'sindex_create'
+class IndexCreate(RqlMethodQuery):
+    tt = p.Term.INDEX_CREATE
+    st = 'index_create'
 
-class SIndexDrop(RqlMethodQuery):
-    tt = p.Term.SINDEX_DROP
-    st = 'sindex_drop'
+class IndexDrop(RqlMethodQuery):
+    tt = p.Term.INDEX_DROP
+    st = 'index_drop'
 
-class SIndexList(RqlMethodQuery):
-    tt = p.Term.SINDEX_LIST
-    st = 'sindex_list'
+class IndexList(RqlMethodQuery):
+    tt = p.Term.INDEX_LIST
+    st = 'index_list'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
