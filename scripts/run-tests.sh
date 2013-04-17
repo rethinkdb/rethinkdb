@@ -189,11 +189,13 @@ filter_tests () {
     local negate
     local filters=$2
     local tests=$3
+    local ignore_negate=$4
     for filter in $filters; do
         negate=$1
 
         # Negate the current filter
         if [[ "${filter:0:2}" = '\!' ]]; then
+            $ignore_negate && continue
             negate=$((! negate))
             filter=${filter:2}
         fi
@@ -203,9 +205,9 @@ filter_tests () {
         if [[ -f "$group" ]]; then
             group_filters=$(cat "$group" | sed 's/#.*//' | grep -v '^$' | while read -r line; do printf "%q " "$line"; done)
             if [[ $negate = 1 ]]; then
-                tests=$(filter_tests 1 "$group_filters" "$tests")
+                tests=$(filter_tests 1 "$group_filters" "$tests" $ignore_negate)
             else
-                tests="$tests "$(filter_tests 0 "$group_filters" "")
+                tests="$tests "$(filter_tests 0 "$group_filters" "" $ignore_negate)
             fi
             continue
         fi
@@ -244,7 +246,9 @@ filter_tests () {
     done
     echo "$tests" | tr ' ' '\n' | sort -u
 }
-selected_tests=$(filter_tests 0 "$test_filter" "")
+selected_tests=$(filter_tests 0 "$test_filter" "" false)
+positive_tests=$(filter_tests 0 "$test_filter" "" true)
+num_skipped_tests=$(( $(echo "$positive_tests" | wc -l) - $(echo "$selected_tests" | wc -l) ))
 
 # Number of tests to run
 total=0
@@ -352,6 +356,10 @@ if [[ $passed = $total ]]; then
 else
     echo "${red}Failed $(( total - passed )) of $total tests in $duration_str.${plain}"
     exit_code=1
+fi
+
+if [[ $num_skipped_tests != 0 ]]; then
+    echo "${yellow}Skipped $num_skipped_tests tests.${plain}"
 fi
 
 if [[ -n "$dashboard_url" ]]; then
