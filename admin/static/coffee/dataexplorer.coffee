@@ -2945,7 +2945,7 @@ module 'DataExplorerView', ->
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
 
         events:
-            'change input[type=checkbox]': 'toggle_option'
+            'click li': 'toggle_option'
 
         initialize: (args) =>
             @container = args.container
@@ -2953,11 +2953,14 @@ module 'DataExplorerView', ->
             @state = 'hidden'
 
         toggle_option: (event) =>
+            event.preventDefault()
             new_target = @$(event.target).data('option')
-            new_value = @$('#'+new_target).is(':checked')
-            @options[new_target] = new_value
-            if window.localStorage?
-                window.localStorage.options = JSON.stringify @options
+            @$('#'+new_target).prop 'checked', !@options[new_target]
+            if event.target.nodeName isnt 'INPUT' # Label we catch if for us
+                new_value = @$('#'+new_target).is(':checked')
+                @options[new_target] = new_value
+                if window.localStorage?
+                    window.localStorage.options = JSON.stringify @options
 
         toggle_suggestions: =>
             @options.suggestions = not @options.suggestions
