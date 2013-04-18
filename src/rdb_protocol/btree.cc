@@ -274,14 +274,15 @@ void rdb_replace(btree_slice_t *slice,
 
 struct slice_timestamp_txn_replace_t {
     slice_timestamp_txn_replace_t(btree_slice_t *_slice, repli_timestamp_t _timestamp,
-                                  transaction_t *_txn, const point_replace_t *_replace, int *mrcc)
-        : slice(_slice), timestamp(_timestamp), txn(_txn), replace(_replace), mod_report_call_count(mrcc) { }
+                                  transaction_t *_txn, const point_replace_t *_replace, int *mrcc, int *_coro_count)
+        : slice(_slice), timestamp(_timestamp), txn(_txn), replace(_replace), mod_report_call_count(mrcc), coro_count(_coro_count) { }
 
     btree_slice_t *slice;
     repli_timestamp_t timestamp;
     transaction_t *txn;
     const point_replace_t *replace;
     int *mod_report_call_count;  // SAMRSI: Get rid of this.
+    int *coro_count;  // SAMRSI: Get rid of this.
 };
 
 void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
@@ -293,6 +294,8 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
                                        rdb_modification_report_cb_t *sindex_cb) {
+    ++*sttr.coro_count;
+    {
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
@@ -300,11 +303,25 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
-    guarantee(*sttr.mod_report_call_count == 0);
+    guarantee(*sttr.mod_report_call_count == 0, "mrcc was %p", sttr.mod_report_call_count);
     ++*sttr.mod_report_call_count;
     sindex_cb->on_mod_report(mod_report);
     --*sttr.mod_report_call_count;
+    }
+    --*sttr.coro_count;
 }
+
+struct enter_leave_t {
+    enter_leave_t(void *p) : ptr_(p) {
+        debugf("entering mrcc %p\n", ptr_);
+    }
+
+    ~enter_leave_t() {
+        debugf("leaving mrcc %p\n", ptr_);
+    }
+
+    void *ptr_;
+};
 
 // The int64_t in replaces is ignored -- that's used for preserving order
 // through sharding/unsharding.  We're not about to repack a new vector just to
@@ -318,35 +335,44 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     int mrcc = 0;
+    int coro_count = 0;
 
-    // Note the destructor ordering: We have to drain write operations before
-    // destructing the batched_replaces_fifo_sink, because the coroutines being
-    // drained use said fifo.
-    auto_drainer_t drainer;
+    enter_leave_t enter_leave(&mrcc);
 
-    // Note the destructor ordering: We release the superblock before draining on all the write operations.
-    scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+    {
+        // Note the destructor ordering: We have to drain write operations before
+        // destructing the batched_replaces_fifo_sink, because the coroutines being
+        // drained use said fifo.
+        auto_drainer_t drainer;
 
-    response_out->point_replace_responses.resize(replaces.size());
-    for (size_t i = 0; i < replaces.size(); ++i) {
-        // Pass out the int64_t for shard/unshard reordering.
-        response_out->point_replace_responses[i].first = replaces[i].first;
+        // Note the destructor ordering: We release the superblock before draining on all the write operations.
+        scoped_ptr_t<superblock_t> current_superblock(superblock->release());
 
-        // Pass out the point_replace_response_t.
-        promise_t<superblock_t *> superblock_promise;
-        coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
-                                  auto_drainer_t::lock_t(&drainer),
-                                  &batched_replaces_fifo_sink,
-                                  batched_replaces_fifo_source.enter_write(),
-                                  slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second, &mrcc),
-                                  current_superblock.release(),
-                                  ql_env,
-                                  &superblock_promise,
-                                  &response_out->point_replace_responses[i].second,
-                                  sindex_cb));
+        response_out->point_replace_responses.resize(replaces.size());
+        for (size_t i = 0; i < replaces.size(); ++i) {
+            // Pass out the int64_t for shard/unshard reordering.
+            response_out->point_replace_responses[i].first = replaces[i].first;
 
-        current_superblock.init(superblock_promise.wait());
+            // Pass out the point_replace_response_t.
+            promise_t<superblock_t *> superblock_promise;
+            coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
+                                      auto_drainer_t::lock_t(&drainer),
+                                      &batched_replaces_fifo_sink,
+                                      batched_replaces_fifo_source.enter_write(),
+                                      slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second, &mrcc, &coro_count),
+                                      current_superblock.release(),
+                                      ql_env,
+                                      &superblock_promise,
+                                      &response_out->point_replace_responses[i].second,
+                                      sindex_cb));
+
+            current_superblock.init(superblock_promise.wait());
+        }
     }
+
+    guarantee(mrcc == 0);
+    guarantee(coro_count == 0);
+    debugf("leaving mrcc (no exception) %p\n", &mrcc);
 }
 
 void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
