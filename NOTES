@@ -4,18 +4,17 @@
 
 Bug fix update:
 
-* Fixed bug: Can't insert objects that use 'self' as a key with Python driver (#619)
-* Fixed bug: Statistics graphs are not plotted correctly in background tabs (#373)
-* Fixed bug: Large JSON Causes Data Explorer to Hang (#536)
-* Fixed bug: Import command doesn't import last row if doesn't have end-of-line (#637)
-* Fixed bug: Cubism doesn't unbind some listeners (#622)
 * Improved the documentation
   * Made the output of `rethinkdb help` and `--help` consistent (#643)
   * Clarify details about the client protocol (#649)
-* Made rethinkdb more efficient
-  * Cap the size of data returned from rgets not just the number of values (#597)
-  * Size optimizations (#667)
-  * Partial bug fix: Rethinkdb server crashing (#621)
+* Cap the size of data returned from rgets not just the number of values (#597)
+  * The limit changed from 4000 rows to 1MiB
+* Partial bug fix: Rethinkdb server crashing (#621)
+* Fixed bug: Can't insert objects that use 'self' as a key with Python driver (#619)
+* Fixed bug: [Web UI] Statistics graphs are not plotted correctly in background tabs (#373)
+* Fixed bug: [Web UI] Large JSON Causes Data Explorer to Hang (#536)
+* Fixed bug: Import command doesn't import last row if doesn't have end-of-line (#637)
+* Fixed bug: [Web UI] Cubism doesn't unbind some listeners (#622)
 
 ---
 
