@@ -460,6 +460,24 @@ THROWS_NOTHING {
 }
 
 template <class protocol_t>
+bool btree_store_t<protocol_t>::mark_index_up_to_date(
+    uuid_u id,
+    transaction_t *txn,
+    buf_lock_t *sindex_block)
+THROWS_NOTHING {
+    secondary_index_t sindex;
+    bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
+
+    if (found) {
+        sindex.post_construction_complete = true;
+
+        ::set_secondary_index(txn, sindex_block, id, sindex);
+    }
+
+    return found;
+}
+
+template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
@@ -552,10 +570,10 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
-        std::map<std::string, secondary_index_t> *sindexes_out,
         read_token_pair_t *token_pair,
         transaction_t *txn,
         superblock_t *super_block,
+        std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -564,6 +582,14 @@ void btree_store_t<protocol_t>::get_sindexes(
     return get_secondary_indexes(txn, sindex_block.get(), sindexes_out);
 }
 
+template <class protocol_t>
+void btree_store_t<protocol_t>::get_sindexes(
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        std::map<std::string, secondary_index_t> *sindexes_out)
+    THROWS_NOTHING {
+    return get_secondary_indexes(txn, sindex_block, sindexes_out);
+}
 
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
@@ -715,6 +741,42 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->first)) {
+            continue;
+        }
+
+        /* Getting the slice and asserting we're on the right thread. */
+        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
+        sindex_slice->assert_thread();
+
+        /* Notice this looks like a bug but isn't. This buf_lock_t will indeed
+         * get destructed at the end of this function but passing it to the
+         * real_superblock_t constructor below swaps out its acual lock so it's
+         * just default constructed lock when it gets destructed. */
+        buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
+
+        sindex_sbs_out->push_back(new
+                sindex_access_t(get_sindex_slice(it->first), it->second, new
+                    real_superblock_t(&superblock_lock)));
+    }
+    
+    //return's true if we got all of the sindexes requested.
+    return sindex_sbs_out->size() == sindexes_to_acquire->size();
+}
+
+template <class protocol_t>
+bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
+    assert_thread();
+
+    std::map<std::string, secondary_index_t> sindexes;
+    ::get_secondary_indexes(txn, sindex_block, &sindexes);
+
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->second.id)) {
             continue;
         }
 

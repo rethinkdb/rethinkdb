@@ -927,7 +927,7 @@ class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
-            const std::set<std::string> &sindexes_to_post_construct,
+            const std::set<uuid_u> &sindexes_to_post_construct,
             cond_t *interrupt_myself,
             signal_t *interruptor
             )
@@ -1014,14 +1014,14 @@ public:
     access_t btree_node_mode() { return rwi_read; }
 
     btree_store_t<rdb_protocol_t> *store_;
-    const std::set<std::string> &sindexes_to_post_construct_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
     signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<std::string> &sindexes_to_post_construct,
+        const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     cond_t local_interruptor;

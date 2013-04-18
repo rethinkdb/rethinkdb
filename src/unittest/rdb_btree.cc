@@ -160,7 +160,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     created_sindexes.insert(sindex_id);
 
     rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-            sindex_block.get());
+            sindex_block.get(), txn.get());
 }
 
 void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,

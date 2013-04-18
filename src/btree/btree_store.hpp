@@ -186,6 +186,12 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
+    bool mark_index_up_to_date(
+        uuid_u id,
+        transaction_t *txn,
+        buf_lock_t *sindex_block)
+    THROWS_NOTHING;
+
     bool drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
@@ -206,12 +212,18 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 
     void get_sindexes(
-        std::map<std::string, secondary_index_t> *sindexes_out,
         read_token_pair_t *token_pair,
         transaction_t *txn,
         superblock_t *super_block,
+        std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
+
+    void get_sindexes(
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        std::map<std::string, secondary_index_t> *sindexes_out)
+    THROWS_NOTHING;
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
@@ -276,6 +288,13 @@ public:
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+
+    bool acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
