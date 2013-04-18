@@ -1,8 +1,28 @@
 import ql2_pb2 as p
 import types
 import sys
+from threading import Lock
 from errors import *
-from net import Connection
+import repl # For the repl connection
+
+# This is both an external function and one used extensively
+# internally to convert coerce python values to RQL types
+def expr(val):
+    '''
+        Convert a Python primitive into a RQL primitive value
+    '''
+    if isinstance(val, RqlQuery):
+        return val
+    elif isinstance(val, list):
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        return MakeObj(val)
+    elif callable(val):
+        return Func(val)
+    else:
+        return Datum(val)
 
 class RqlQuery(object):
 
@@ -19,8 +39,8 @@ class RqlQuery(object):
     # Send this query to the server to be executed
     def run(self, c=None, **global_opt_args):
         if not c:
-            if Connection.repl_connection:
-                c = Connection.repl_connection
+            if repl.default_connection:
+                c = repl.default_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
 
@@ -366,6 +386,8 @@ class MakeObj(RqlQuery):
 
         self.optargs = {}
         for k in obj_dict.keys():
+            if not isinstance(k, types.StringTypes):
+                raise RqlDriverError("RQL object keys must be strings.");
             self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
@@ -706,6 +728,7 @@ def func_wrap(val):
 
 class Func(RqlQuery):
     tt = p.Term.FUNC
+    lock = Lock()
     nextVarId = 1
 
     def __init__(self, lmbd):
@@ -714,7 +737,9 @@ class Func(RqlQuery):
         for i in xrange(lmbd.func_code.co_argcount):
             vrs.append(Var(Func.nextVarId))
             vrids.append(Func.nextVarId)
+            Func.lock.acquire()
             Func.nextVarId += 1
+            Func.lock.release()
 
         self.vrs = vrs
         self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
@@ -730,5 +755,3 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
-
-from query import expr
