@@ -3,7 +3,26 @@ import types
 import sys
 from threading import Lock
 from errors import *
-from net import Connection
+import repl # For the repl connection
+
+# This is both an external function and one used extensively
+# internally to convert coerce python values to RQL types
+def expr(val):
+    '''
+        Convert a Python primitive into a RQL primitive value
+    '''
+    if isinstance(val, RqlQuery):
+        return val
+    elif isinstance(val, list):
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        return MakeObj(val)
+    elif callable(val):
+        return Func(val)
+    else:
+        return Datum(val)
 
 class RqlQuery(object):
 
@@ -20,8 +39,8 @@ class RqlQuery(object):
     # Send this query to the server to be executed
     def run(self, c=None, **global_opt_args):
         if not c:
-            if Connection.repl_connection:
-                c = Connection.repl_connection
+            if repl.default_connection:
+                c = repl.default_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
 
@@ -713,5 +732,3 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
-
-from query import expr
