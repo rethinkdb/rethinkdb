@@ -7,7 +7,9 @@ import struct
 
 import ql2_pb2 as p
 
+import repl # For the repl connection
 from errors import *
+from ast import Datum, DB, expr
 
 class Cursor(object):
     def __init__(self, conn, query, term, chunk, complete):
@@ -39,8 +41,6 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    repl_connection = None
-
     def __init__(self, host, port, db):
         self.socket = None
         self.host = host
@@ -68,6 +68,8 @@ class Connection(object):
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
 
     def close(self):
+        if repl.default_connection is self:
+            repl.default_connection = None
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
@@ -77,7 +79,7 @@ class Connection(object):
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
     # a Python repl environment.
     def repl(self):
-        Connection.repl_connection = self
+        repl.default_connection = self
         return self
 
     def _start(self, term, **global_opt_args):
@@ -116,7 +118,7 @@ class Connection(object):
 
     def _end(self, orig_query, orig_term):
         query = p.Query()
-        query.type = p.Query.END
+        query.type = p.Query.STOP
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
@@ -132,26 +134,37 @@ class Connection(object):
         self.socket.sendall(query_header + query_protobuf)
 
         # Get response
-        response_header = ''
-        while len(response_header) < 4:
-            chunk = self.socket.recv(4 - len(response_header))
-            if len(chunk) == 0:
-                raise RqlDriverError("Connection is closed.")
-            response_header += chunk
-
-        # The first 4 bytes give the expected length of this response
-        (response_len,) = struct.unpack("<L", response_header)
-
         response_buf = ''
-        while len(response_buf) < response_len:
-            chunk = self.socket.recv(response_len - len(response_buf))
-            if len(chunk) == 0:
-                raise RqlDriverError("Connection is broken.")
-            response_buf += chunk
+        try:
+            response_header = ''
+            while len(response_header) < 4:
+                chunk = self.socket.recv(4)
+                if len(chunk) == 0:
+                    raise RqlDriverError("Connection is closed.")
+                response_header += chunk
+
+            # The first 4 bytes give the expected length of this response
+            (response_len,) = struct.unpack("<L", response_header)
+
+            while len(response_buf) < response_len:
+                chunk = self.socket.recv(response_len - len(response_buf))
+                if chunk == '':
+                    raise RqlDriverError("Connection is broken.")
+                response_buf += chunk
+        except KeyboardInterrupt as err:
+            # When interrupted while waiting for a response cancel the outstanding
+            # requests by resetting this connection
+            self.reconnect()
+            raise err
 
         # Construct response
         response = p.Response()
         response.ParseFromString(response_buf)
+
+        # Check that this is the response we were expecting
+        if response.token != query.token:
+            # This response is corrupted or not intended for us.
+            raise RqlDriverError("Unexpected response received.")
 
         # Error responses
         if response.type == p.Response.RUNTIME_ERROR:
@@ -185,6 +198,3 @@ class Connection(object):
 
 def connect(host='localhost', port=28015, db='test'):
     return Connection(host, port, db)
-
-from ast import Datum, DB
-from query import expr

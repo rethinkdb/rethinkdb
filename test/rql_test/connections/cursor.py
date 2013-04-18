@@ -29,6 +29,10 @@ class TestCursor(unittest.TestCase):
 
         self.assertEqual(i, num_rows)
 
+    def test_close(self):
+        # This excercises a code path at the root of #650
+        self.cur.close()
+
 if __name__ == '__main__':
     print "Testing cursor for %d rows" % num_rows
     suite = unittest.TestSuite()

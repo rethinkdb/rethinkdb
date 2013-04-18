@@ -54,9 +54,9 @@ class Connection
 
     _end: -> @close()
 
-    mkAtom = (response) -> DatumTerm.deconstruct response.getResponse 0
+    mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
-    mkSeq = (response) -> (DatumTerm.deconstruct res for res in response.responseArray())
+    mkSeq = (response) -> (DatumTerm::deconstruct res for res in response.responseArray())
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
