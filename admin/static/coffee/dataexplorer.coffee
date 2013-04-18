@@ -637,12 +637,6 @@ module 'DataExplorerView', ->
 
             @prototype.focus_on_codemirror = true
 
-            # We want to check here if ctrl/cmd space was hit because it's the callback on window is called AFTER this function
-            if event?.type is 'keydown' and event?.which is 32 and (event.ctrlKey is true or event.metaKey is true)
-                event.stopPropagation() # So we don't catch it on window
-                @options_view.toggle_suggestions()
-                @hide_suggestion_and_description()
-
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
@@ -652,99 +646,195 @@ module 'DataExplorerView', ->
 
             # Look for special commands
             if event?.which?
-                if @options.suggestions isnt true
-                    if event.which is 9 # We still want to catch tab
-                        event.preventDefault()
-                else # The user wants suggestion
-                    if event.which is 27 # ESC
-                        event.preventDefault() # Keep focus on code mirror
-                        @current_suggestions.length = 0 # Let's get rid of suggestions
+                if event.which is 27 # ESC
+                    event.preventDefault() # Keep focus on code mirror
+                    #@current_suggestions.length = 0 # Let's get rid of suggestions
+                    @hide_suggestion_and_description()
+                    query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+                    query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
+
+                    # Compute the structure of the query written by the user.
+                    # We compute it earlier than before because @pair_char also listen on keydown and needs stack
+                    stack = @extract_data_from_query
+                        size_stack: 0
+                        query: query_before_cursor
+                        position: 0
+
+                    if stack is null # Stack is null if the query was too big for us to parse
+                        @ignore_tab_keyup = false
                         @hide_suggestion_and_description()
+                        return false
+
+                    if @options.electric_punctuation is true
+                        @pair_char(event, stack) # Pair brackets/quotes
+
+                    # We just look at key up so we don't fire the call 3 times
+                    if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
+                        return false
+                    if event?.which is 16 # We don't do anything with Shift.
+                        return false
+
+                    # Tab is an exception, we let it pass (tab bring back suggestions) - What we want is to catch keydown
+                    if @ignore_tab_keyup is true and event?.which is 9
+                        if event.type is 'keyup'
+                            @ignore_tab_keyup = false
                         return true
-                    else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
-                        if event.type is 'keydown'
-                            if @current_highlighted_suggestion > -1
-                                event.preventDefault()
-                                @handle_keypress()
+
+                    @current_highlighted_suggestion = -1
+                    @current_highlighted_extra_suggestion = -1
+                    @.$('.suggestion_name_list').empty()
+
+                    # Valid step, let's save the data
+                    @query_last_part = query_after_cursor
+
+                    # If a selection is active, we just catch shift+enter
+                    if @codemirror.getSelection() isnt ''
+                        @hide_suggestion_and_description()
+                        if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
+                            @hide_suggestion_and_description()
+                            if event.type isnt 'keydown'
                                 return true
+                            @execute_query()
+                            return true # We do not replace the selection with a new line
+                        # If the user select something and end somehwere with suggestion
+                        if event?.type isnt 'mouseup'
+                            return false
+                        else
+                            return true
 
-                            previous_char = @get_previous_char()
-                            if previous_char of @matching_opening_bracket
-                                next_char = @get_next_char()
-                                if @matching_opening_bracket[previous_char] is next_char
-                                    cursor = @codemirror.getCursor()
-                                    @insert_next '\n'
-                                    @codemirror.indentLine cursor.line+1, 'smart'
-                                    @codemirror.setCursor cursor
-                                    return false
-                    else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
-                        event.preventDefault()
-                        if event.type is 'keydown'
-                            if @current_suggestions?.length > 0
-                                if @$('.suggestion_name_list').css('display') is 'none'
-                                    @show_suggestion()
-                                    return true
+                    @current_suggestions = []
+                    @current_element = ''
+                    @current_extra_suggestion = ''
+                    @written_suggestion = null
+                    @cursor_for_auto_completion = @codemirror.getCursor()
+                    @description = null
+
+                    result =
+                        status: null
+                        # create_suggestion is going to fill to_complete and to_describe
+                        #to_complete: undefined
+                        #to_describe: undefined
+                        
+                    # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
+                    result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
+
+                    if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+                        result.status = 'break_and_look_for_description'
+                        @hide_suggestion()
+                    else
+                        result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
+                        if result_last_char_is_white isnt null
+                            result.status = 'break_and_look_for_description'
+                            @hide_suggestion()
+
+                    # Create the suggestion/description
+                    @create_suggestion
+                        stack: stack
+                        query: query_before_cursor
+                        result: result
+
+                    if result.suggestions?.length > 0
+                        for suggestion, i in result.suggestions
+                            @current_suggestions.push suggestion
+                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                id: i
+                                suggestion: suggestion
+                    else if result.description?
+                        @description = result.description
+
+                    return true
+                else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
+                    if event.type is 'keydown'
+                        if @current_highlighted_suggestion > -1
+                            event.preventDefault()
+                            @handle_keypress()
+                            return true
+
+                        previous_char = @get_previous_char()
+                        if previous_char of @matching_opening_bracket
+                            next_char = @get_next_char()
+                            if @matching_opening_bracket[previous_char] is next_char
+                                cursor = @codemirror.getCursor()
+                                @insert_next '\n'
+                                @codemirror.indentLine cursor.line+1, 'smart'
+                                @codemirror.setCursor cursor
+                                return false
+                else if event.which is 9 or ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) # If the user hit tab or ctrl/cmd+space, we switch the highlighted suggestion
+                    event.preventDefault()
+                    if event.type isnt 'keydown'
+                        return false
+                    else
+                        if @current_suggestions?.length > 0
+                            if @$('.suggestion_name_list').css('display') is 'none'
+                                @show_suggestion()
+                                return true
+                            else
+                                # We can retrieve the content of codemirror only on keyup events. The users may write "r." then hit "d" then "tab" If the events are triggered this way
+                                # keydown d - keydown tab - keyup d - keyup tab
+                                # We want to only show the suggestions for r.d
+                                if @written_suggestion is null
+                                    cached_query = @query_first_part+@current_element+@query_last_part
                                 else
-                                    # We can retrieve the content of codemirror only on keyup events. The users may write "r." then hit "d" then "tab" If the events are triggered this way
-                                    # keydown d - keydown tab - keyup d - keyup tab
-                                    # We want to only show the suggestions for r.d
-                                    if @written_suggestion is null
-                                        cached_query = @query_first_part+@current_element+@query_last_part
+                                    cached_query = @query_first_part+@written_suggestion+@query_last_part
+                                if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
+                                    @current_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
+                                    regex = @create_safe_regex @current_element
+                                    new_suggestions = []
+                                    new_highlighted_suggestion = -1
+                                    for suggestion, index in @current_suggestions
+                                        if index < @current_highlighted_suggestion
+                                            new_highlighted_suggestion = new_suggestions.length
+                                        if regex.test(suggestion) is true
+                                            new_suggestions.push suggestion
+                                    @current_suggestions = new_suggestions
+                                    @current_highlighted_suggestion = new_highlighted_suggestion
+                                    if @current_suggestions.length > 0
+                                        @.$('.suggestion_name_list').empty()
+                                        for suggestion, i in @current_suggestions
+                                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                                id: i
+                                                suggestion: suggestion
+                                        @ignored_next_keyup = true
                                     else
-                                        cached_query = @query_first_part+@written_suggestion+@query_last_part
-                                    if cached_query isnt @codemirror.getValue() # We fired a keydown tab before a keyup, so our suggestions are not up to date
-                                        @current_element = @codemirror.getValue().slice @query_first_part.length, @codemirror.getValue().length-@query_last_part.length
-                                        regex = @create_safe_regex @current_element
-                                        new_suggestions = []
-                                        new_highlighted_suggestion = -1
-                                        for suggestion, index in @current_suggestions
-                                            if index < @current_highlighted_suggestion
-                                                new_highlighted_suggestion = new_suggestions.length
-                                            if regex.test(suggestion) is true
-                                                new_suggestions.push suggestion
-                                        @current_suggestions = new_suggestions
-                                        @current_highlighted_suggestion = new_highlighted_suggestion
-                                        if @current_suggestions.length > 0
-                                            @.$('.suggestion_name_list').empty()
-                                            for suggestion, i in @current_suggestions
-                                                @.$('.suggestion_name_list').append @template_suggestion_name
-                                                    id: i
-                                                    suggestion: suggestion
-                                            @ignored_next_keyup = true
-                                        else
-                                            @hide_suggestion_and_description()
+                                        @hide_suggestion_and_description()
 
 
-                                    # Switch throught the suggestions
-                                    if event.shiftKey
-                                        @current_highlighted_suggestion--
-                                        if @current_highlighted_suggestion < -1
-                                            @current_highlighted_suggestion = @current_suggestions.length-1
-                                        else if @current_highlighted_suggestion < 0
-                                            @show_suggestion_without_moving()
-                                            @remove_highlight_suggestion()
-                                            @write_suggestion
-                                                suggestion_to_write: @current_element
-                                            @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
-                                            return true
-                                    else
-                                        @current_highlighted_suggestion++
-                                        if @current_highlighted_suggestion >= @current_suggestions.length
-                                            @show_suggestion_without_moving()
-                                            @remove_highlight_suggestion()
-                                            @write_suggestion
-                                                suggestion_to_write: @current_element
-                                            @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
-                                            @current_highlighted_suggestion = -1
-                                            return true
-                                    if @current_suggestions[@current_highlighted_suggestion]?
+                                # Switch throught the suggestions
+                                if event.shiftKey
+                                    @current_highlighted_suggestion--
+                                    if @current_highlighted_suggestion < -1
+                                        @current_highlighted_suggestion = @current_suggestions.length-1
+                                    else if @current_highlighted_suggestion < 0
                                         @show_suggestion_without_moving()
-                                        @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                                        @remove_highlight_suggestion()
                                         @write_suggestion
-                                            suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                                            suggestion_to_write: @current_element
                                         @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                         return true
-                            else if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
+                                else
+                                    @current_highlighted_suggestion++
+                                    if @current_highlighted_suggestion >= @current_suggestions.length
+                                        @show_suggestion_without_moving()
+                                        @remove_highlight_suggestion()
+                                        @write_suggestion
+                                            suggestion_to_write: @current_element
+                                        @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                        @current_highlighted_suggestion = -1
+                                        return true
+                                if @current_suggestions[@current_highlighted_suggestion]?
+                                    @show_suggestion_without_moving()
+                                    @highlight_suggestion @current_highlighted_suggestion # Highlight the current suggestion
+                                    @write_suggestion
+                                        suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
+                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                    return true
+                        else if @description?
+                            if @$('.suggestion_description').css('display') is 'none'
+                                # We show it once only because we don't want to move the cursor around
+                                @show_description()
+                                return true
+
+                            if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
                                 # Trim suggestion
                                 if @extra_suggestion?.body?[0]?.type is 'string'
                                     if @extra_suggestion.body[0].complete is true
@@ -775,10 +865,12 @@ module 'DataExplorerView', ->
                                         @query_last_part = query.slice end_body
                                     @query_first_part = query.slice 0, @extra_suggestion.start_body
                                     lines = @query_first_part.split('\n')
+                                    ###
                                     # Because we may have slice before @cursor_for_auto_completion, we re-define it
                                     @cursor_for_auto_completion =
                                         line: lines.length-1
                                         ch: lines[lines.length-1].length
+                                    ###
 
                                     if event.shiftKey is true
                                         @current_highlighted_extra_suggestion--
@@ -884,6 +976,10 @@ module 'DataExplorerView', ->
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
                     return false
 
+            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
+                return false
+
+
             # Avoid arrows+home+end+page down+pageup
             # if event? and (event.which is 24 or event.which is ..)
             # 0 is for firefox...
@@ -919,86 +1015,91 @@ module 'DataExplorerView', ->
             if event?.which is 16 # We don't do anything with Shift.
                 return false
 
-            if @options.suggestions is true
-                # Tab is an exception, we let it pass (tab bring back suggestions) - What we want is to catch keydown
-                if @ignore_tab_keyup is true and event?.which is 9
-                    if event.type is 'keyup'
-                        @ignore_tab_keyup = false
+            # Tab is an exception, we let it pass (tab bring back suggestions) - What we want is to catch keydown
+            if @ignore_tab_keyup is true and event?.which is 9
+                if event.type is 'keyup'
+                    @ignore_tab_keyup = false
+                return true
+
+            @current_highlighted_suggestion = -1
+            @current_highlighted_extra_suggestion = -1
+            @.$('.suggestion_name_list').empty()
+
+            # Valid step, let's save the data
+            @query_last_part = query_after_cursor
+
+            # If a selection is active, we just catch shift+enter
+            if @codemirror.getSelection() isnt ''
+                @hide_suggestion_and_description()
+                if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
+                    @hide_suggestion_and_description()
+                    if event.type isnt 'keydown'
+                        return true
+                    @execute_query()
+                    return true # We do not replace the selection with a new line
+                # If the user select something and end somehwere with suggestion
+                if event?.type isnt 'mouseup'
+                    return false
+                else
                     return true
 
-                @current_highlighted_suggestion = -1
-                @current_highlighted_extra_suggestion = -1
-                @.$('.suggestion_name_list').empty()
+            @current_suggestions = []
+            @current_element = ''
+            @current_extra_suggestion = ''
+            @written_suggestion = null
+            @cursor_for_auto_completion = @codemirror.getCursor()
+            @description = null
 
-                # Valid step, let's save the data
-                @query_last_part = query_after_cursor
+            result =
+                status: null
+                # create_suggestion is going to fill to_complete and to_describe
+                #to_complete: undefined
+                #to_describe: undefined
+                
+            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
+            result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
 
-                # If a selection is active, we just catch shift+enter
-                if @codemirror.getSelection() isnt ''
-                    @hide_suggestion_and_description()
-                    if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
-                        @hide_suggestion_and_description()
-                        if event.type isnt 'keydown'
-                            return true
-                        @execute_query()
-                        return true # We do not replace the selection with a new line
-                    # If the user select something and end somehwere with suggestion
-                    if event?.type isnt 'mouseup'
-                        return false
-                    else
-                        return true
-
-                @current_suggestions = []
-                @current_element = ''
-                @current_extra_suggestion = ''
-                @written_suggestion = null
-                @cursor_for_auto_completion = @codemirror.getCursor()
-
-                result =
-                    status: null
-                    # create_suggestion is going to fill to_complete and to_describe
-                    #to_complete: undefined
-                    #to_describe: undefined
-                    
-                # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
-                result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-
-                if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+                result.status = 'break_and_look_for_description'
+                @hide_suggestion()
+            else
+                result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
+                if result_last_char_is_white isnt null
                     result.status = 'break_and_look_for_description'
                     @hide_suggestion()
-                else
-                    result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
-                    if result_last_char_is_white isnt null
-                        result.status = 'break_and_look_for_description'
-                        @hide_suggestion()
 
-                # Create the suggestion/description
-                @create_suggestion
-                    stack: stack
-                    query: query_before_cursor
-                    result: result
+            # Create the suggestion/description
+            @create_suggestion
+                stack: stack
+                query: query_before_cursor
+                result: result
 
-                if result.suggestions?.length > 0
-                    for suggestion, i in result.suggestions
-                        @current_suggestions.push suggestion
-                        @.$('.suggestion_name_list').append @template_suggestion_name
-                            id: i
-                            suggestion: suggestion
+            if result.suggestions?.length > 0
+                for suggestion, i in result.suggestions
+                    @current_suggestions.push suggestion
+                    @.$('.suggestion_name_list').append @template_suggestion_name
+                        id: i
+                        suggestion: suggestion
+                if @options.suggestions is true
                     @show_suggestion()
-                    @hide_description()
-                else if result.description? and event?.type isnt 'mouseup'
-                    @hide_suggestion()
-                    @show_description result.description
                 else
-                    @hide_suggestion_and_description()
-            
+                    @hide_suggestion()
+                @hide_description()
+            else if result.description? and event?.type isnt 'mouseup'
+                @hide_suggestion()
+                @description = result.description
+                if @options.suggestions is true
+                    @show_description()
+                else
+                    @hide_description()
+            else
+                @hide_suggestion_and_description()
             if event?.which is 9 # Catch tab
                 # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
                 if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
                     return false
-
             return true
 
         # Extract information from the current query
@@ -1783,14 +1884,14 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').show()
 
         # Show description and determine where to put it
-        show_description: (fn) =>
-            if @descriptions[fn]? # Just for safety
+        show_description: =>
+            if @descriptions[@description]? # Just for safety
                 margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
 
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.arrow').css 'margin-top', margin
 
-                @.$('.suggestion_description').html @description_template @extend_description fn
+                @.$('.suggestion_description').html @description_template @extend_description @description
 
                 @.$('.suggestion_description').show()
                 @move_suggestion()
