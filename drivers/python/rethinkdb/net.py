@@ -116,7 +116,7 @@ class Connection(object):
 
     def _end(self, orig_query, orig_term):
         query = p.Query()
-        query.type = p.Query.END
+        query.type = p.Query.STOP
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
