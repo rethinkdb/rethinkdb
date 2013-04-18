@@ -65,7 +65,7 @@ publish: $(JS_DRIVER_LIB)
 	cd $(JS_PKG_DIR); npm publish --force
 
 .PHONY: test
-test: $(JS_DRIVER_LIB)
+test-js: $(JS_DRIVER_LIB)
 	coffee test.coffee
 
 .PHONY: testWeb

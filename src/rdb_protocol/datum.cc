@@ -459,11 +459,11 @@ const datum_t *wire_datum_t::compile(env_t *env) {
     return ptr;
 }
 void wire_datum_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) return;
     r_sanity_check(state == COMPILED);
     ptr->write_to_protobuf(&ptr_pb);
     ptr = 0;
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 bool wire_datum_map_t::has(const datum_t *key) {
@@ -492,7 +492,7 @@ void wire_datum_map_t::compile(env_t *env) {
     state = COMPILED;
 }
 void wire_datum_map_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) return;
     r_sanity_check(state == COMPILED);
     while (!map.empty()) {
         map_pb.push_back(std::make_pair(Datum(), Datum()));
@@ -500,7 +500,7 @@ void wire_datum_map_t::finalize() {
         map.begin()->second->write_to_protobuf(&map_pb.back().second);
         map.erase(map.begin());
     }
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 const datum_t *wire_datum_map_t::to_arr(env_t *env) const {

@@ -63,8 +63,9 @@ const datum_t *eager_datum_stream_t::gmr(
             map.set(el_group, r->call(map.get(el_group), el_map)->as_datum());
             // TODO: this is a hack because GCing a `wire_datum_map_t` is
             // expensive.  Need a better way to do this.
-            int rounds = 10000 DEBUG_ONLY(/ 5000);
-            if (!(++i%rounds)) egct.maybe_gc(map.to_arr(env));
+            if (++i % WIRE_DATUM_MAP_GC_ROUNDS == 0) {
+                egct.maybe_gc(map.to_arr(env));
+            }
         }
     }
     return egct.finalize(map.to_arr(env));
@@ -238,13 +239,18 @@ const datum_t *filter_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(
-    env_t *_env, size_t _l, size_t _r, datum_stream_t *_src)
-    : eager_datum_stream_t(_env, _src), env(_env), ind(0), l(_l), r(_r), src(_src) { }
+    env_t *_env, size_t _left, size_t _right, datum_stream_t *_src)
+    : eager_datum_stream_t(_env, _src), env(_env), ind(0),
+      left(_left), right(_right), src(_src) { }
 const datum_t *slice_datum_stream_t::next_impl() {
-    if (l > r || ind > r) return 0;
-    while (ind++ < l) {
+    if (left > right || ind > right) {
+        return NULL;
+    }
+    while (ind++ < left) {
         env_checkpoint_t ect(env, &env_t::discard_checkpoint);
-        src->next();
+        if (!src->next()) {
+            return NULL;
+        }
     }
     return src->next();
 }

@@ -345,12 +345,45 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
 }
 
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
-    // TODO: don't be stupid, be a smarty, come and join the nazy
-    // party (json size estimation will be much easier once we switch
-    // to bson -- fuck it for now).
-    return 250;
+// This is actually a kind of misleading name. This function estimates the size of a cJSON object
+// not a whole rget though it is used for that purpose (by summing up these responses).
+size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json) {
+    return cJSON_estimate_size(json->get());
 }
+
+
+class result_gc_visitor_t : public boost::static_visitor<void> {
+public:
+    result_gc_visitor_t(ql::env_t *e, ql::env_gc_checkpoint_t *egct) :
+        env(e), env_gc_checkpoint(egct), total_rounds(0) { }
+
+    void operator()(const rget_read_response_t::stream_t &) const { }
+    void operator()(const rget_read_response_t::groups_t &) const { }
+    void operator()(const rget_read_response_t::atom_t &) const { }
+    void operator()(const rget_read_response_t::length_t &) const { }
+    void operator()(const rget_read_response_t::inserted_t &) const { }
+    void operator()(const query_language::runtime_exc_t &) const { }
+    void operator()(const ql::exc_t &) const { }
+    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+    void operator()(const rget_read_response_t::empty_t &) const { }
+    void operator()(const rget_read_response_t::vec_t &) const { }
+
+    void operator()(ql::wire_datum_t &d) {
+        env_gc_checkpoint->maybe_gc(d.get());
+    }
+    void operator()(ql::wire_datum_map_t &dm) {
+        total_rounds += 1;
+        if (total_rounds % ql::WIRE_DATUM_MAP_GC_ROUNDS == 0) {
+            env_gc_checkpoint->maybe_gc(dm.to_arr(env));
+        }
+    }
+
+private:
+    ql::env_t *env;
+    ql::env_gc_checkpoint_t *env_gc_checkpoint;
+    int64_t total_rounds;
+};
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
@@ -381,6 +414,11 @@ public:
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
             bad_init = true;
+        } catch (const ql::datum_exc_t &e2) {
+            /* Evaluation threw so we're not going to be accepting any more requests. */
+            boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                 terminal->variant);
+            bad_init = true;
         }
     }
 
@@ -401,17 +439,25 @@ public:
             {
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
-                    json_list_t tmp;
+                    try {
+                        json_list_t tmp;
 
-                    for (json_list_t::iterator jt  = data.begin();
-                         jt != data.end();
-                         ++jt) {
-                        boost::apply_visitor(query_language::transform_visitor_t(
-                                                 *jt, &tmp, ql_env, it->scopes,
-                                                 it->backtrace), it->variant);
+                        for (json_list_t::iterator jt  = data.begin();
+                             jt != data.end();
+                             ++jt) {
+                            boost::apply_visitor(query_language::transform_visitor_t(
+                                                     *jt, &tmp, ql_env, it->scopes,
+                                                     it->backtrace), it->variant);
+                        }
+                        data.clear();
+                        data.splice(data.begin(), tmp);
+                    } catch (const ql::datum_exc_t &e2) {
+                        /* Evaluation threw so we're not going to be accepting any
+                           more requests. */
+                        boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                             it->variant);
+                        return false;
                     }
-                    data.clear();
-                    data.splice(data.begin(), tmp);
                 }
             }
 
@@ -428,32 +474,27 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                // We use garbage collection during the reduction step, since
-                // most reductions throw away most of the allocate data.
-                ql::env_gc_checkpoint_t egct(ql_env);
-                int i = 0;
-                json_list_t::iterator jt;
-                for (jt = data.begin(); jt != data.end(); ++jt) {
-                    boost::apply_visitor(query_language::terminal_visitor_t(
-                                             *jt, ql_env, terminal->scopes,
-                                             terminal->backtrace, &response->result),
-                                         terminal->variant);
-                    // A reduce returns a `wire_datum_t` and a gmr returns a
-                    // `wire_datum_map_t`
-                    if (ql::wire_datum_t *wd
-                        = boost::get<ql::wire_datum_t>(&terminal->variant)) {
-                        egct.maybe_gc(wd->get());
-                    } else if (ql::wire_datum_map_t *wdm
-                               = boost::get<ql::wire_datum_map_t>(
-                                   &terminal->variant)) {
-                        // TODO: this is a hack because GCing a `wire_datum_map_t` is
-                        // expensive.  Need a better way to do this.
-                        int rounds = 10000 DEBUG_ONLY(/ 5000);
-                        if (!(++i % rounds)) egct.maybe_gc(wdm->to_arr(ql_env));
+                try {
+                    // We use garbage collection during the reduction step, since
+                    // most reductions throw away most of the allocate data.
+                    ql::env_gc_checkpoint_t egct(ql_env);
+                    result_gc_visitor_t result_gc_visitor(ql_env, &egct);
+                    json_list_t::iterator jt;
+                    for (jt = data.begin(); jt != data.end(); ++jt) {
+                        boost::apply_visitor(query_language::terminal_visitor_t(
+                                                 *jt, ql_env, terminal->scopes,
+                                                 terminal->backtrace, &response->result),
+                                             terminal->variant);
+                        boost::apply_visitor(result_gc_visitor, response->result);
                     }
-
+                    return true;
+                } catch (const ql::datum_exc_t &e2) {
+                    /* Evaluation threw so we're not going to be accepting any
+                       more requests. */
+                    boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                                         terminal->variant);
+                    return false;
                 }
-                return true;
             }
         } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
@@ -475,6 +516,28 @@ public:
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 };
 
+class result_finalizer_visitor_t : public boost::static_visitor<void> {
+public:
+    void operator()(const rget_read_response_t::stream_t &) const { }
+    void operator()(const rget_read_response_t::groups_t &) const { }
+    void operator()(const rget_read_response_t::atom_t &) const { }
+    void operator()(const rget_read_response_t::length_t &) const { }
+    void operator()(const rget_read_response_t::inserted_t &) const { }
+    void operator()(const query_language::runtime_exc_t &) const { }
+    void operator()(const ql::exc_t &) const { }
+    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
+    void operator()(const rget_read_response_t::empty_t &) const { }
+    void operator()(const rget_read_response_t::vec_t &) const { }
+
+    void operator()(ql::wire_datum_t &d) const {
+        d.finalize();
+    }
+    void operator()(ql::wire_datum_map_t &dm) const {
+        dm.finalize();
+    }
+};
+
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
                     ql::env_t *ql_env,
@@ -490,13 +553,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
         response->truncated = false;
     }
 
-    //TODO: change this whole file so that this isn't necessary.
-    if (ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(&response->result)) {
-        d->finalize();
-    } else if (ql::wire_datum_map_t *dm =
-               boost::get<ql::wire_datum_map_t>(&response->result)) {
-        dm->finalize();
-    }
+    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,

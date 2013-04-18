@@ -3,6 +3,5 @@ for interface_test_name in ['detect_dead', 'distribution', 'log', 'progress',
         'net_corruption', 'resources', 'large_branch_history']:
     generate_test(
         "$RETHINKDB/test/interface/%s.py" % interface_test_name,
-        repeat = 3,
-        inputs = ["build/debug/rethinkdb", "build/debug/web", "test/interface", "test/common"]
+        name = interface_test_name
         )
