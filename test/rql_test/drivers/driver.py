@@ -20,8 +20,8 @@ BUILD = sys.argv[4]
 
 def print_test_failure(test_name, test_src, message):
     print ''
-    print "TEST FAILURE: %s" % test_name
-    print "TEST BODY: %s" % test_src
+    print "TEST FAILURE: %s" % test_name.encode('utf-8')
+    print "TEST BODY: %s" % test_src.encode('utf-8')
     print message
     print ''
 
