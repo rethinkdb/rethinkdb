@@ -1004,6 +1004,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
+        // SAMRSI: Figure out why we must explicitly do this here.  (Is the
+        // read_token_pair_t destructed on a different thread?)
+        token_pair->sindex_read_token.reset();
+
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, res);
