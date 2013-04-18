@@ -274,13 +274,14 @@ void rdb_replace(btree_slice_t *slice,
 
 struct slice_timestamp_txn_replace_t {
     slice_timestamp_txn_replace_t(btree_slice_t *_slice, repli_timestamp_t _timestamp,
-                                  transaction_t *_txn, const point_replace_t *_replace)
-        : slice(_slice), timestamp(_timestamp), txn(_txn), replace(_replace) { }
+                                  transaction_t *_txn, const point_replace_t *_replace, int *mrcc)
+        : slice(_slice), timestamp(_timestamp), txn(_txn), replace(_replace), mod_report_call_count(mrcc) { }
 
     btree_slice_t *slice;
     repli_timestamp_t timestamp;
     transaction_t *txn;
     const point_replace_t *replace;
+    int *mod_report_call_count;  // SAMRSI: Get rid of this.
 };
 
 void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
@@ -299,7 +300,10 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    guarantee(*sttr.mod_report_call_count == 0);
+    ++*sttr.mod_report_call_count;
     sindex_cb->on_mod_report(mod_report);
+    --*sttr.mod_report_call_count;
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -312,6 +316,8 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          rdb_modification_report_cb_t *sindex_cb) {
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
+
+    int mrcc = 0;
 
     // Note the destructor ordering: We have to drain write operations before
     // destructing the batched_replaces_fifo_sink, because the coroutines being
@@ -332,7 +338,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                                   auto_drainer_t::lock_t(&drainer),
                                   &batched_replaces_fifo_sink,
                                   batched_replaces_fifo_source.enter_write(),
-                                  slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second),
+                                  slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second, &mrcc),
                                   current_superblock.release(),
                                   ql_env,
                                   &superblock_promise,
@@ -771,7 +777,7 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         auto_drainer_t::lock_t lock)
     : store_(store), token_pair_(token_pair),
       txn_(txn), sindex_block_id_(sindex_block_id),
-      lock_(lock)
+      lock_(lock), initialization_attempts_(0)
 { }
 
 void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added) {
@@ -804,6 +810,8 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
     if (!sindex_block_.has()) {
+        guarantee(initialization_attempts_ == 0);
+        ++initialization_attempts_;
         store_->acquire_sindex_block_for_write(
             token_pair_, txn_, &sindex_block_,
             sindex_block_id_, lock_.get_drain_signal());
@@ -811,6 +819,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         store_->aquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block_.get(), txn_, &sindexes_);
     }
+    guarantee(sindex_block_.has());
 
     mutex_t::acq_t acq;
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
