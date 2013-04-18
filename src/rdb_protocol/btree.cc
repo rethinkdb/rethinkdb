@@ -303,7 +303,7 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
-    guarantee(*sttr.mod_report_call_count == 0, "mrcc was %p", sttr.mod_report_call_count);
+    guarantee(*sttr.mod_report_call_count == 0, "mrcc was %p, value %d, thread %d", sttr.mod_report_call_count, *sttr.mod_report_call_count, get_thread_id());
     ++*sttr.mod_report_call_count;
     sindex_cb->on_mod_report(mod_report);
     --*sttr.mod_report_call_count;
@@ -836,7 +836,7 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
     if (!sindex_block_.has()) {
-        guarantee(initialization_attempts_ == 0);
+        guarantee(initialization_attempts_ == 0, "initialization attempts was %d, thread %d", initialization_attempts_, get_thread_id());
         ++initialization_attempts_;
         store_->acquire_sindex_block_for_write(
             token_pair_, txn_, &sindex_block_,
