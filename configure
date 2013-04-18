@@ -64,6 +64,8 @@ configure () {
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
     var DEB_ARCH $(echo "${GCC_ARCH_REDUCED:-}" | sed -e 's/^x86_64$$/amd64/g')
+    require "Use ccache"
+    boolvar USE_CCACHE $use_ccache
     check_cxx
     require "Precompiled web assets"
     if [[ -z "$enable_precompiled_web" ]]; then
@@ -111,7 +113,7 @@ main () {
     init
 
     read_args "$@"
-    
+
     echo "* Detecting system configuration"
 
     trap "show error; echo '* Aborting configure'" EXIT
@@ -124,7 +126,7 @@ main () {
     configure 3>> "$config"
 
     trap - EXIT
-    
+
     if ! $failed; then
         write "CONFIGURE_STATUS := success" 3>> "$config"
         echo "* Wrote configuration to $config"
@@ -133,7 +135,7 @@ main () {
         echo "* Aborting configure"
         exit 1
     fi
-    
+
 }
 
 # Parse the command line arguments
@@ -162,6 +164,7 @@ read_args () {
     with_tcmalloc=true
     enable_drivers=true
     enable_precompiled_web=
+    use_ccache=false
 
     while [[ $# -ne 0 ]]; do
         arg=${1#*=}
@@ -190,7 +193,7 @@ read_args () {
                 elif contains "$support_deps" "$arg"; then
                     fetch_list="$fetch_list $arg"
                 else
-                    die "Don't know how to fetch '$arg'" 
+                    die "Don't know how to fetch '$arg'"
                 fi ;;
             --static) $has_arg
                 if [[ "$arg" = suggested ]]; then
@@ -213,6 +216,7 @@ read_args () {
             --disable-drivers) $no_arg; enable_drivers=false ;;
             --enable-precompiled-web) $no_arg; enable_precompiled_web=true ;;
             --disable-precompiled-web) $no_arg; enable_precompiled_web=false ;;
+            --ccache) $no_arg; use_ccache=true ;;
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
             --localstatedir) $has_arg; arg_localstatedir=$arg ;;
@@ -490,7 +494,7 @@ check_cxx () {
     else
         test_version_gt $(uc $type) $min_version $(read_version "$version_string") || return
     fi
-    
+
     show "$(uc $type) $version_string ($full_CXX)"
     var COMPILER "$(uc $type)"
     var CXX "$full_CXX"
