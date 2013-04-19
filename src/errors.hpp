@@ -21,7 +21,7 @@
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
-#ifdef __MACH__
+#if defined(__MACH__) || defined(__FreeBSD__)
 #define BREAKPOINT raise(SIGTRAP)
 #endif
 #else /* Breakpoints Disabled */
