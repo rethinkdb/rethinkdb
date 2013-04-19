@@ -524,7 +524,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     switch (backender->get_direct_io_mode()) {
     case file_direct_io_mode_t::direct_desired: {
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
         // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
         // should be generally fine, with either the x86 or amd64 calling convention, on another
