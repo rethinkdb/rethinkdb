@@ -804,6 +804,10 @@ struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
             }
         }
 
+        // We can't have an empty point_replaces because we should not be
+        // sharding on a region with no intersection.  Right guys?
+        guarantee(!replaces->point_replaces.empty());
+
         return ret;
     }
 
