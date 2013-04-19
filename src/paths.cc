@@ -76,7 +76,15 @@ void remove_directory_recursive(const char *dirpath) {
     // limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper
     // than that).
+    // For FreeBSD, max_openfd must be >= 1 and <= OPEN_MAX. Also, even if
+    // given path does not exist, delete_all_helper will still be called; so we
+    // must check path existence before using nftw.
+#ifdef __FreeBSD__
+    const int max_openfd = OPEN_MAX;
+    if (::access(path, 0) != 0) return;
+#else
     const int max_openfd = 128;
+#endif
     logNTC("Recursively removing directory %s\n", dirpath);
     int res = nftw(dirpath, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || get_errno() == ENOENT, "Trouble while traversing and destroying temporary directory %s.", dirpath);
