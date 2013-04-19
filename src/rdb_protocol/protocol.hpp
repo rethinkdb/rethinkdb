@@ -488,7 +488,9 @@ struct rdb_protocol_t {
     public:
         batched_replaces_t() { }
         batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
-            : point_replaces(_point_replaces) { }
+            : point_replaces(_point_replaces) {
+            guarantee(!_point_replaces.empty());
+        }
 
         // The replaces are numbered so that unshard can sort them back in order.
         std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
