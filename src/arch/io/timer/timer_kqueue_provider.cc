@@ -11,6 +11,31 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
+#ifdef HAVE_KEVENT64
+
+static int _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
+                        int flags, int64_t nano_seconds) {
+    EV_SET64(kev, ident, filter, flags, NOTE_NSECONDS, nano_seconds, 0, 0, 0);
+}
+
+#else
+
+# define kevent64_s kevent
+
+static int _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
+                        int flags, int64_t nano_seconds) {
+    EV_SET(kev, ident, filter, flags, 0, (nano_seconds / 1000000.0), NULL);
+}
+
+static inline int kevent64(int kq, const struct kevent64_s *changelist,
+                           int nchanges, struct kevent64_s *eventlist,
+                           int nevents, unsigned int flags,
+                           const struct timespec *timeout) {
+    return kevent(kq, changelist, nchanges, eventlist, nevents, timeout);
+}
+
+#endif // HAVE_KEVENT64
+
 timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
     : queue_(queue), kq_fd_(-1), callback_(NULL) {
     const int fd = kqueue();
@@ -32,7 +57,7 @@ void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos,
     const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
 
     struct kevent64_s event;
-    EV_SET64(&event, 99, EVFILT_TIMER, EV_ADD | EV_ONESHOT, NOTE_NSECONDS, wait_nanos, 0, 0, 0);
+    _EV_SET_NANO(&event, 99, EVFILT_TIMER, EV_ADD | EV_ONESHOT, wait_nanos);
 
     // Setting the timeout to zero makes this a non-blocking call.
     struct timespec timeout;
@@ -46,7 +71,7 @@ void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos,
 
 void timer_kqueue_provider_t::unschedule_oneshot() {
     struct kevent64_s event;
-    EV_SET64(&event, 99, EVFILT_TIMER, EV_DELETE, 0, 0, 0, 0, 0);
+    _EV_SET_NANO(&event, 99, EVFILT_TIMER, EV_DELETE, 0);
 
     struct timespec timeout;
     timeout.tv_sec = 0;
@@ -58,12 +83,19 @@ void timer_kqueue_provider_t::unschedule_oneshot() {
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const struct kevent64_s& event) {
+#ifdef HAVE_KEVENT64
     buf->appendf("kevent64_s{ident=%" PRIu64 ", filter=%" PRIi16 ", flags=%" PRIu16
                  ", fflags=%" PRIu32 ", data=%" PRIi64 ", udata=%" PRIu64
                  ", ext[0]=%" PRIu64 ", ext[1]=%" PRIu64,
                  event.ident, event.filter, event.flags,
                  event.fflags, event.data, event.udata,
                  event.ext[0], event.ext[1]);
+#else
+    buf->appendf("kevent{ident=%lu, filter=%" PRIi16 ", flags=%" PRIu16
+                 ", fflags=%" PRIu32 ", data=%ld, udata=%p",
+                 event.ident, event.filter, event.flags,
+                 event.fflags, event.data, event.udata);
+#endif
 }
 
 void timer_kqueue_provider_t::on_event(int eventmask) {
