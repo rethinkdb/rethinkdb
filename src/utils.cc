@@ -699,7 +699,7 @@ int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
-int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED struct FTW *ftw) {
     int res = ::remove(path);
     nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
     return 0;
@@ -709,7 +709,15 @@ void delete_all(const char *path) {
     // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
     // depth) and used by Linux to limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper than that).
+    // For FreeBSD, max_openfd must be >= 1 and <= OPEN_MAX. Also, even if
+    // given path does not exist, delete_all_helper will still be called; so we
+    // must check path existence before using nftw.
+#ifdef __FreeBSD__
+    const int max_openfd = OPEN_MAX;
+    if (::access(path, 0) != 0) return;
+#else
     const int max_openfd = 128;
+#endif
     int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
