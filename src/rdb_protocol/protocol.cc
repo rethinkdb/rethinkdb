@@ -1004,8 +1004,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        // SAMRSI: Probably want token_pair->sindex_read_token.reset() here (or earlier).
-
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, res);
@@ -1025,17 +1023,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
 
         res->region = dg.region;
-
-        coro_t::yield();
-        coro_t::yield();
-        coro_t::yield();
-        coro_t::yield();
-        coro_t::yield();
-        coro_t::yield();
-        coro_t::yield();
-
-        // SAMRSI: Figure out why we must explicitly do this.
-        // if (token_pair->sindex_read_token.has()) { token_pair->sindex_read_token.reset(); }
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {

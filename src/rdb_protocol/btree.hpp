@@ -201,7 +201,6 @@ private:
     auto_drainer_t::lock_t lock_;
 
     /* Fields initialized by calls to on_mod_report */
-    int initialization_attempts_;  // SAMRSI: Remove this variable.
     scoped_ptr_t<buf_lock_t> sindex_block_;
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
