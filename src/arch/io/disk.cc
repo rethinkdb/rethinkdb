@@ -305,14 +305,22 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
     // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.
-#ifndef __MACH__
+#ifdef __linux__
     flags |= O_LARGEFILE;
 #endif
 
 #ifndef FILE_SYNC_TECHNIQUE
 #error "FILE_SYNC_TECHNIQUE is not defined"
 #elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
+#if defined(__linux__)
     flags |= O_DSYNC;
+#elif defined(__FreeBSD__)
+    // FreeBSD does not have O_DSYNC / F_FULLSYNC. Instead, it relies on file
+    // system features like "soft updates" to reduce metadata syncing time.
+    flags |= O_SYNC;
+#else
+#error "Please define the sync flag for your system."
+#endif
 #endif  // FILE_SYNC_TECHNIQUE
 
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
@@ -348,7 +356,7 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
     // fcntl(2) is documented to take an argument of type long, not of type int, with the F_SETFL
     // command, on Linux.  But POSIX says it's supposed to take an int?  Passing long should be
     // generally fine, with either the x86 or amd64 calling convention, on another system (that
