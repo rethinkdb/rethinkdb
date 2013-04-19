@@ -85,6 +85,9 @@
  *    Effect: clear the whole screen
  *
  */
+#ifndef _WITH_DPRINTF
+#define _WITH_DPRINTF
+#endif
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
