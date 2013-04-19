@@ -30,6 +30,12 @@ var assertArgError = function(expected, found, callback) {
     }
 };
 
+var assert = function(predicate) {
+    if (!predicate) {
+        throw new Error("Assert failed");
+    }
+};
+
 var port = parseInt(process.argv[2], 10)
 
 assertArgError(2, 0, function() { r.connect(); });
@@ -44,6 +50,24 @@ r.connect({port:port}, function(err, c) {
     tbl.run(c, function(err, cur) {
         assertNoError(err);
 
+        // This is getting unruley but we want to make sure that array results
+        // support the connection api too
+        r([1,2,3]).run(c, function(err, res) {
+            assertNoError(err);
+
+            // yes, res is an array that supports array ops
+            res.concat([4,5]);
+            res.toArray(function(err, res) {
+                assertNoError(err);
+                assert(res.length == 5);
+                for (var i = 0; i < 5; ++i) {
+                    assert(res[i] = i);
+                }
+            });
+        });
+
+        // These simply test that we appropriately check arg numbers for
+        // cursor api methods
         assertArgError(1, 0, function() { cur.each(); });
         assertArgError(1, 0, function() { cur.toArray(); });
         assertArgError(1, 0, function() { cur.toArray(); });
