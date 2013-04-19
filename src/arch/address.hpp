@@ -7,6 +7,7 @@
 #include <inaddr.h> // NOLINT
 #else
 #include <arpa/inet.h>   /* for `inet_ntop()` */
+#include <sys/socket.h>  /* for net/if.h */
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
