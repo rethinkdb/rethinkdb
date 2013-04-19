@@ -303,6 +303,8 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    exiter.wait();
+
     guarantee(*sttr.mod_report_call_count == 0, "mrcc was %p, value %d, thread %d", sttr.mod_report_call_count, *sttr.mod_report_call_count, get_thread_id());
     ++*sttr.mod_report_call_count;
     sindex_cb->on_mod_report(mod_report);
