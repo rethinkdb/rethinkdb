@@ -12,7 +12,7 @@ int64_t get_file_size(fd_t fd) {
     guarantee(size.LowPart != INVALID_FILE_SIZE, "GetFileSize failed");
     return size.QuadPart;
 #else
-#ifdef __MACH__
+#if defined(__MACH__) || defined(__FreeBSD__)
     struct stat buf;
     int res = fstat(fd, &buf);
 #elif defined(__linux__)
