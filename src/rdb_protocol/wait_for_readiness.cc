@@ -27,7 +27,9 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     // It must be an rget to make sure that access is available to all shards.
 
     const int poll_ms = 10;
-    rdb_protocol_t::rget_read_t empty_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::rget_read_t empty_rget_read(
+        hash_region_t<key_range_t>::universe(),
+        std::map<std::string, ql::wire_func_t>());
     rdb_protocol_t::read_t empty_read(empty_rget_read);
     for (;;) {
         signal_timer_t start_poll(poll_ms);
