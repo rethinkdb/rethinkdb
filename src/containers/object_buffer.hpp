@@ -8,7 +8,7 @@
 //  you are going to allocate multiple times using a single object_buffer_t.  This object
 //  should catch it if you try to do anything particularly stupid, though.
 template <class T>
-class object_buffer_t : public home_thread_mixin_t {
+class object_buffer_t {
 public:
     class destruction_sentinel_t {
     public:
