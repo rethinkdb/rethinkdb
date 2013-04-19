@@ -248,28 +248,33 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        explicit rget_read_t(const region_t &_region)
-            : region(_region) { }
+        explicit rget_read_t(const region_t &_region,
+                             const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), optargs(_optargs) {
+        }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform), optargs(_optargs)
-        { }
+            : region(_region), transform(_transform), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         rget_read_t(const region_t &_region,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), terminal(_terminal), optargs(_optargs)
-        { }
+            : region(_region), terminal(_terminal), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(_region), transform(_transform),
-              terminal(_terminal), optargs(_optargs)
-        { }
+              terminal(_terminal), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         region_t region;
 

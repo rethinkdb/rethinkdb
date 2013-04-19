@@ -149,7 +149,7 @@ result_t batched_rget_stream_t::apply_terminal(
     const scopes_t &scopes,
     const backtrace_t &per_op_backtrace) {
     rdb_protocol_t::region_t region(range);
-    rdb_protocol_t::rget_read_t rget_read(region);
+    rdb_protocol_t::rget_read_t rget_read(region, optargs);
     rget_read.transform = transform;
     rget_read.terminal = rdb_protocol_details::terminal_t(t, scopes, per_op_backtrace);
     rdb_protocol_t::read_t read(rget_read);
