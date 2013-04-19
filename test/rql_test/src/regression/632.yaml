@@ -1,0 +1,6 @@
+desc: Regression test for #632 - objects with non-string keys
+tests:
+
+    #TODO Add other languages when we implement the fix there
+    - py: r.expr({1:'a'})
+      ot: err_regex("RqlDriverError", "RQL object keys must be strings.")

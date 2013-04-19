@@ -88,9 +88,9 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
     case Term_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
     case Term_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
-    case Term_TermType_SINDEX_CREATE:      return new sindex_create_term_t(env, t);
-    case Term_TermType_SINDEX_DROP:        return new sindex_drop_term_t(env, t);
-    case Term_TermType_SINDEX_LIST:        return new sindex_list_term_t(env, t);
+    case Term_TermType_INDEX_CREATE:       return new sindex_create_term_t(env, t);
+    case Term_TermType_INDEX_DROP:         return new sindex_drop_term_t(env, t);
+    case Term_TermType_INDEX_LIST:         return new sindex_list_term_t(env, t);
     case Term_TermType_FUNCALL:            return new funcall_term_t(env, t);
     case Term_TermType_BRANCH:             return new branch_term_t(env, t);
     case Term_TermType_ANY:                return new any_term_t(env, t);
