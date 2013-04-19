@@ -15,6 +15,7 @@ Bug fix update:
 * Fixed bug: [Web UI] Large JSON Causes Data Explorer to Hang (#536)
 * Fixed bug: Import command doesn't import last row if doesn't have end-of-line (#637)
 * Fixed bug: [Web UI] Cubism doesn't unbind some listeners (#622)
+* Fixed crash: Made global optargs actually propagate to the shards properly (#683)
 
 ---
 
