@@ -52,7 +52,7 @@ configure () {
     require "OS Version"
     show "`uname -msr`"
     case "$OS" in
-        Darwin) with_tcmalloc=false ;;
+        Darwin | FreeBSD) with_tcmalloc=false ;;
         Linux) true ;;
         *) error "unsupported operating system: $OS" ;;
     esac
