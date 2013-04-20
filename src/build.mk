@@ -75,6 +75,13 @@ else ifeq ($(COMPILER),GCC)
 endif
 
 RT_LDFLAGS += $(RT_LIBS)
+ifeq ($(OS),FreeBSD)
+  RT_CXXFLAGS += -I/usr/local/include
+  RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
+  RT_LDFLAGS += -L/usr/local/lib
+# TODO: Possibly redundant; RT_LIBS should be specified in ./configrue
+  RT_LDFLAGS += -lrt
+endif
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)
