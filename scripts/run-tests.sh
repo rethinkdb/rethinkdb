@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 start_time=$(date +%s)
 
@@ -124,9 +124,9 @@ run_single_test () {
         ( $run_elsewhere && cd "$elsewhere"
           mkdir files-$index
           if $verbose; then
-              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > >(tee stdout-$index) 2> >(tee stderr-$index)
+              /usr/bin/time -o time-$index bash -c "cd files-$index; $cmd" > >(tee stdout-$index) 2> >(tee stderr-$index)
           else
-              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+              /usr/bin/time -o time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
           fi
           echo $? >> return-code-$index
         )
@@ -305,7 +305,7 @@ for i in `seq $repeats`; do
         echo "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
         printf '\0'
     done
-done | xargs -0 -n 1 --max-procs=$parallel_tasks -I@ bash -c @
+done | xargs -0 -n 1 -P $parallel_tasks -I@ bash -c @
 trap - INT
 
 gen_report () {

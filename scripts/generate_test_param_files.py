@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This script is used by run-tests.sh to build a list of all tests that can be run.
 # The --test-dir argument should probalby be test/full_test
 # A file is create in the --output-dir for each test
