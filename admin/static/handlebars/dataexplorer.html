@@ -9,40 +9,34 @@
         <h1 class="title small_margin_bottom">Data Explorer</h1>
         <div id="user-alert-space"></div>
         <div class="reason_dataexplorer_broken alert alert-error"></div>
-        <div class="history_container"></div> 
-        <div class="options_codemirror_container"></div> 
+        <div class="toggled_container">
+            <div class="arrow_dataexplorer"></div>
+            <div class="nano_border"></div>
+            <div class="nano">
+                <div class="content">
+                 </div>
+            </div>
+            <div class="nano_border nano_border_bottom"></div>
+        </div>
         <div class="input_query_full_container"></div>
         <div class="results_container"></div>
     </div>
 </script>
 
 <script id="dataexplorer-options-template" type="text/x-handlebars-template">
-    <div class="arrow_dataexplorer arrow_options"></div>
-    <div class="nano_border"></div>
-    <div class="content">
-        <ul class="options_list">
-            <li data-option="suggestions">
-                <div class="checkbox-container"><input type="checkbox" data-option="suggestions" id="suggestions"{{#if suggestions}} checked=true{{/if}}><label for="suggestions" data-option="suggestions"></label></div> 
-                <div class="option_description" data-option="suggestions">Enable suggestions and descriptions (Ctrl/Cmd + Space)</div></li>
-            <li data-option="electric_punctuation">
-                <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div> 
-                <div class="option_description" data-option="electric_punctuation">Enable electric punctuation</div></li>
-
-        </ul>
-     </div>
-    <div class="nano_border nano_border_bottom"></div>
+    <ul class="options_list">
+        <li data-option="suggestions">
+            <div class="checkbox-container"><input type="checkbox" data-option="suggestions" id="suggestions"{{#if suggestions}} checked=true{{/if}}><label for="suggestions" data-option="suggestions"></label></div> 
+            <div class="option_description" data-option="suggestions">Enable suggestions and descriptions (Ctrl/Cmd + Space)</div></li>
+        <li data-option="electric_punctuation">
+            <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div> 
+            <div class="option_description" data-option="electric_punctuation">Enable electric punctuation</div></li>
+    </ul>
 </script>
 
 
 <script id="dataexplorer-history-template" type="text/x-handlebars-template">
-    <div class="arrow_dataexplorer arrow_history"></div>
-    <div class="nano_border"></div>
-    <div class="nano">
-        <div class="content">
-            <ul class="history_list"></ul>
-         </div>
-    </div>
-    <div class="nano_border nano_border_bottom"></div>
+    <ul class="history_list"></ul>
 </script>
 
 <script id="dataexplorer-query_li-template" type="text/x-handlebars-template">
