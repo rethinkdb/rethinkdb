@@ -86,6 +86,12 @@ endif
 ifeq ($(OS),Linux)
   LIBRARY_PATHS += -lrt
 endif
+ifeq ($(OS),FreeBSD)
+  RT_CXXFLAGS += -I/usr/local/include
+  RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
+  RT_LDFLAGS += -L/usr/local/lib
+  LIBRARY_PATHS += -lrt
+endif
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)
