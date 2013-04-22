@@ -20,7 +20,7 @@ module 'DataExplorerView', ->
         size_history: 50
         
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
-        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
+        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -36,6 +36,10 @@ module 'DataExplorerView', ->
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
             'click .toggle_options_link': 'toggle_options'
+            'mousedown .nano_border_bottom': 'start_resize_history'
+
+        start_resize_history: (event) =>
+            @history_view.start_resize event
 
         clear_history_view: (event) =>
             that = @
@@ -43,13 +47,8 @@ module 'DataExplorerView', ->
             @history_view.history = @history
 
             @history_view.clear_history event
-            @history_view.delete_displayed_content()
-            @adjust_secondary_height
-                type: 'history'
-                move_arrow: 'show'
-                is_at_bottom: true
 
-
+        # Method that make sure that the good button is active
         toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
                 @saved_data.history_state = 'visible'
@@ -65,24 +64,38 @@ module 'DataExplorerView', ->
             else
                 @$('.toggle_options_link').removeClass 'active'
 
-        toggle_history: (event) =>
+        # Show/hide the history view
+        toggle_history: (args) =>
             that = @
 
             @deactivate_overflow()
-            if @options_view.state is 'visible'
-                @options_view.state = 'hidden'
+            if args.no_animation is true
+                # We just show the history
                 @history_view.state = 'visible'
+                @$('.content').html @history_view.render(true).$el
+                @move_arrow
+                    type: 'history'
+                    move_arrow: 'show'
+                @adjust_secondary_height
+                    no_animation: true
+                    is_at_bottom: true
+
+            else if @options_view.state is 'visible'
+                @options_view.state = 'hidden'
                 @move_arrow
                     type: 'history'
                     move_arrow: 'animate'
                 @options_view.$el.fadeOut 'fast', ->
                     that.$('.content').html that.history_view.render(false).$el
-                    that.history_view.$el.fadeIn()
+                    that.history_view.state = 'visible'
+                    that.history_view.$el.fadeIn 'fast'
                     that.adjust_secondary_height
                         is_at_bottom: true
+                    that.toggle_pressed_buttons() # Re-execute toggle_pressed_buttons because we delay the fadeIn
             else if @history_view.state is 'hidden'
                 @history_view.state = 'visible'
                 @$('.content').html @history_view.render(true).$el
+                @history_view.delegateEvents()
                 @move_arrow
                     type: 'history'
                     move_arrow: 'show'
@@ -90,38 +103,42 @@ module 'DataExplorerView', ->
                     is_at_bottom: true
             else if @history_view.state is 'visible'
                 @history_view.state = 'hidden'
-                @hide_secondary()
+                @hide_secondary 'history'
 
             @toggle_pressed_buttons()
 
-        toggle_options: (event) =>
+        # Show/hide the options view
+        toggle_options: =>
             that = @
 
             @deactivate_overflow()
             if @history_view.state is 'visible'
                 @history_view.state = 'hidden'
-                @options_view.state = 'visible'
                 @move_arrow
                     type: 'options'
                     move_arrow: 'animate'
                 @history_view.$el.fadeOut 'fast', ->
                     that.$('.content').html that.options_view.render(false).$el
+                    that.options_view.state = 'visible'
                     that.options_view.$el.fadeIn 'fast'
                     that.adjust_secondary_height()
+                    that.toggle_pressed_buttons()
             else if @options_view.state is 'hidden'
                 @options_view.state = 'visible'
                 @$('.content').html @options_view.render(true).$el
+                @options_view.delegateEvents()
                 @move_arrow
                     type: 'options'
                     move_arrow: 'show'
                 @adjust_secondary_height()
             else if @options_view.state is 'visible'
                 @options_view.state = 'hidden'
-                @hide_secondary()
+                @hide_secondary 'options'
 
             @toggle_pressed_buttons()
 
-        hide_secondary: =>
+        # Hide the secondary whether it contains the option or history view
+        hide_secondary: (type) =>
             that = @
             @deactivate_overflow()
             @$('.nano').animate
@@ -129,14 +146,19 @@ module 'DataExplorerView', ->
                 , 200
                 , ->
                     that.activate_overflow()
-                    that.$('.nano_border').hide() # In case the user trigger hide/show really fast
-                    that.$('.arrow_dataexplorer').hide() # In case the user trigger hide/show really fast
-                    that.$('.content').empty()
-                    that.$(@).css 'visibility', 'hidden'
+                    # We don't want to hide the view if the user changed the state of the view while it was being animated
+                    if (type is 'history' and that.history_view.state is 'hidden') or (type is 'options' and that.options_view.state is 'hidden')
+                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                        that.$('.arrow_dataexplorer').hide() # In case the user trigger hide/show really fast
+                        that.$(@).css 'visibility', 'hidden'
             @$('.nano_border').slideUp 'fast'
             @$('.arrow_dataexplorer').slideUp 'fast'
 
+        # Move the arrow. In case the user switch from options to history (or the opposite), we need to animate it
         move_arrow: (args) =>
+            # args =
+            #   type: 'options'/'history'
+            #   move_arrow: 'show'/'animate'
             if args.type is 'options'
                 margin_right = 74
             else if args.type is 'history'
@@ -151,7 +173,7 @@ module 'DataExplorerView', ->
                     , 200
             @$('.nano_border').show()
 
-
+        # Adjust the height of the container of the history/option view
         adjust_secondary_height: (args) =>
             that = @
             if args?.size?
@@ -168,27 +190,42 @@ module 'DataExplorerView', ->
             duration = Math.min duration, 250
             #@$('.nano').stop(true, true).animate
             @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
-            if args?.is_at_bottom is true
-                @$('.nano > .content').animate
-                    scrollTop: @.$('.nano > .content > div').height()
-                    , 200
+            if args?.no_animation is true
+                @$('.nano').height size
+                @$('.nano > .content').scrollTop @$('.nano > .content > div').height()
+                @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                @$('.arrow_dataexplorer').show() # In case the user trigger hide/show really fast
+                @$('.nano_border').show() # In case the user trigger hide/show really fast
+                if args?.no_animation is true
+                    @$('.nano').nanoScroller({preventPageScrolling: true})
+                @activate_overflow()
 
-            @$('.nano').animate
-                height: size
-                , duration
-                , ->
-                    $('body').css 'overflow', 'auto'
-                    that.$(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                    that.$('.arrow_dataexplorer').show() # In case the user trigger hide/show really fast
-                    that.$('.nano_border').show() # In case the user trigger hide/show really fast
-                    that.$(@).nanoScroller({preventPageScrolling: true})
-                    that.activate_overflow()
+            else
+                @$('.nano').animate
+                    height: size
+                    , duration
+                    , ->
+                        that.$(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                        that.$('.arrow_dataexplorer').show() # In case the user trigger hide/show really fast
+                        that.$('.nano_border').show() # In case the user trigger hide/show really fast
+                        that.$(@).nanoScroller({preventPageScrolling: true})
+                        that.activate_overflow()
+                        if args? and args.delay_scroll is true and args.is_at_bottom is true
+                            that.$('.nano > .content').animate
+                                scrollTop: that.$('.nano > .content > div').height()
+                                , 200
+
+                if args? and args.delay_scroll isnt true and args.is_at_bottom is true
+                    that.$('.nano > .content').animate
+                        scrollTop: that.$('.nano > .content > div').height()
+                        , 200
 
 
-        # The 3 secrets of French cuisine is butter, butter and butter
+
         # We deactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
         deactivate_overflow: =>
-            $('body').css 'overflow', 'hidden'
+            if $(window).height() >= $(document).height()
+                $('body').css 'overflow', 'hidden'
 
         activate_overflow: =>
             $('body').css 'overflow', 'auto'
@@ -489,7 +526,7 @@ module 'DataExplorerView', ->
             @draft = @codemirror.getValue()
 
             if @saved_data.history_state is 'visible' # If the history was visible, we show it
-                @open_close_history event,
+                @toggle_history
                     no_animation: true
 
         on_blur: =>
@@ -783,42 +820,12 @@ module 'DataExplorerView', ->
                         @hide_suggestion_and_description()
                         return false
 
-                    if @options.electric_punctuation is true
-                        @pair_char(event, stack) # Pair brackets/quotes
-
-                    # We just look at key up so we don't fire the call 3 times
-                    if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
-                        return false
-                    if event?.which is 16 # We don't do anything with Shift.
-                        return false
-
-                    # Tab is an exception, we let it pass (tab bring back suggestions) - What we want is to catch keydown
-                    if @ignore_tab_keyup is true and event?.which is 9
-                        if event.type is 'keyup'
-                            @ignore_tab_keyup = false
-                        return true
-
                     @current_highlighted_suggestion = -1
                     @current_highlighted_extra_suggestion = -1
                     @.$('.suggestion_name_list').empty()
 
                     # Valid step, let's save the data
                     @query_last_part = query_after_cursor
-
-                    # If a selection is active, we just catch shift+enter
-                    if @codemirror.getSelection() isnt ''
-                        @hide_suggestion_and_description()
-                        if event? and event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey) # If the user hit enter and (Ctrl or Shift or Cmd)
-                            @hide_suggestion_and_description()
-                            if event.type isnt 'keydown'
-                                return true
-                            @execute_query()
-                            return true # We do not replace the selection with a new line
-                        # If the user select something and end somehwere with suggestion
-                        if event?.type isnt 'mouseup'
-                            return false
-                        else
-                            return true
 
                     @current_suggestions = []
                     @current_element = ''
@@ -833,18 +840,6 @@ module 'DataExplorerView', ->
                         #to_complete: undefined
                         #to_describe: undefined
                         
-                    # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
-                    result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
-
-                    if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
-                        result.status = 'break_and_look_for_description'
-                        @hide_suggestion()
-                    else
-                        result_last_char_is_white = @regex.last_char_is_white.exec(query_before_cursor[query_before_cursor.length-1])
-                        if result_last_char_is_white isnt null
-                            result.status = 'break_and_look_for_description'
-                            @hide_suggestion()
-
                     # Create the suggestion/description
                     @create_suggestion
                         stack: stack
@@ -1009,13 +1004,15 @@ module 'DataExplorerView', ->
                                             else if /^\s*"/.test(@current_extra_suggestion) is true
                                                 suggestion = @current_extra_suggestion+'"'
                                     else
+                                        if @options.electric_punctuation is false
+                                            move_outside = true
                                         if /^\s*'/.test(@current_extra_suggestion) is true
                                             string_delimiter = "'"
                                         else if /^\s*"/.test(@current_extra_suggestion) is true
                                             string_delimiter = '"'
                                         else
-                                            move_outside = true
                                             string_delimiter = "'"
+                                            move_outside = true
                                         suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
                                     
                                     @write_suggestion
@@ -1203,10 +1200,10 @@ module 'DataExplorerView', ->
                 else
                     @hide_suggestion()
                 @hide_description()
-            else if result.description? and event?.type isnt 'mouseup'
+            else if result.description?
                 @hide_suggestion()
                 @description = result.description
-                if @options.suggestions is true
+                if @options.suggestions is true and event?.type isnt 'mouseup'
                     @show_description()
                 else
                     @hide_description()
@@ -3211,18 +3208,17 @@ module 'DataExplorerView', ->
 
         events:
             'click .load_query': 'load_query'
-            'mousedown .nano_border_bottom': 'start_resize'
 
         start_resize: (event) =>
             @start_y = event.pageY
-            @start_height = @$('.nano').height()
+            @start_height = @container.$('.nano').height()
             @mouse_down = true
             $('body').toggleClass('resizing', true)
 
         handle_mousemove: (event) =>
             if @mouse_down is true
                 @height_history = Math.max 0, @start_height-@start_y+event.pageY
-                @$('.nano').height @height_history
+                @container.$('.nano').height @height_history
 
         handle_mouseup: (event) =>
             if @mouse_down is true
@@ -3272,8 +3268,15 @@ module 'DataExplorerView', ->
                 id: @history.length-1
                 num: @history.length
 
-            @container.adjust_secondary_height
-                is_at_bottom: is_at_bottom
+            if @$('.no_history').length > 0
+                @$('.no_history').slideUp 'fast', ->
+                    $(@).remove()
+                    that.container.adjust_secondary_height
+                        is_at_bottom: is_at_bottom
+            else if @state is 'visible'
+                @container.adjust_secondary_height
+                    delay_scroll: true
+                    is_at_bottom: is_at_bottom
 
         clear_history: (event) =>
             that = @
@@ -3283,88 +3286,16 @@ module 'DataExplorerView', ->
 
             @$('.query_history').slideUp 'fast', ->
                 $(@).remove()
-            if @$('.no_history').length is 0
-                @$('.history_list').append @dataexplorer_query_li_template
-                    no_query: true
-                    displayed_class: 'hidden'
-                @$('.no_history').slideDown 'fast'
-                if @state is 'visible'
-                    @resize
-                        size: 32
-
-        open_close_history: (args) =>
-            that = @
-            if @state is 'visible'
-                @state = 'hidden'
-                @deactivate_overflow()
-                @$('.nano').animate
-                    height: 0
-                    , 200
-                    , ->
-                        $('body').css 'overflow', 'auto'
-                        that.$(@).css 'visibility', 'hidden'
-                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
-                        that.$('.arrow_history').hide() # In case the user trigger hide/show really fast
-                @$('.nano_border').slideUp 'fast'
-                @$('.arrow_history').slideUp 'fast'
-            else
-                @state = 'visible'
-                @$('.arrow_history').show()
-                @$('.nano_border').show()
-                @resize(args)
-                @$('.nano >.content').scrollTop $('.history_list').height()
-
-
-        # args =
-        #   size: absolute size
-        #   extra: extra size
-        # Note, we can define extra OR extra but not both
-        resize: (args) =>
-            that = @
-            if args?.size?
-                size = args.size
-            else
-                if args?.extra?
-                    size = Math.min @$('.history_list').height()+args.extra, @height_history
-                else
-                    size = Math.min @$('.history_list').height(), @height_history
-            @$('.nano').css 'visibility', 'visible'
-            if args?.no_animation is true
-                @$('.nano').height size
-                @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                @$('.arrow_history').show() # In case the user trigger hide/show really fast
-                @$('.nano_border').show() # In case the user trigger hide/show really fast
-                @$('.nano').nanoScroller({preventPageScrolling: true})
-            else
-                @deactivate_overflow()
-                duration = Math.max 150, size
-                duration = Math.min duration, 250
-                @$('.nano').stop(true, true).animate
-                    height: size
-                    , duration
-                    , ->
-                        $('body').css 'overflow', 'auto'
-                        that.$(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                        that.$('.arrow_history').show() # In case the user trigger hide/show really fast
-                        that.$('.nano_border').show() # In case the user trigger hide/show really fast
-                        that.$(@).nanoScroller({preventPageScrolling: true})
-                        if args?.is_at_bottom is true
-                            that.$('.nano > .content').animate
-                                scrollTop: $('.history_list').height()
-                                , 300
-
-        delete_displayed_content: =>
-            @$('.query_history').slideUp 'fast', ->
-                $(@).remove()
-
-            if @$('.no_history').length is 0
-                @$('.history_list').append @dataexplorer_query_li_template
-                    no_query: true
-                    displayed_class: 'hidden'
-                @$('.no_history').slideDown 'fast'
-                if @state is 'visible'
-                    @container.resize
-                        size: 32
+                if that.$('.no_history').length is 0
+                    that.$('.history_list').append that.dataexplorer_query_li_template
+                        no_query: true
+                        displayed_class: 'hidden'
+                    that.$('.no_history').slideDown 'fast'
+            that.container.adjust_secondary_height
+                size: 40
+                type: 'history'
+                move_arrow: 'show'
+                is_at_bottom: 'true'
 
     class @DriverHandler
         # I don't want that thing in window
