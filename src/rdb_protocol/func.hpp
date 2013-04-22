@@ -103,6 +103,9 @@ public:
         return source;
     }
 
+    std::string debug_str() const {
+        return source.DebugString();
+    }
 private:
     // We cache a separate function for every environment.
     std::map<uuid_u, func_t *> cached_funcs;

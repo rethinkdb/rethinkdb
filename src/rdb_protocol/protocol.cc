@@ -931,11 +931,15 @@ store_t::~store_t() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
         response->response = point_read_response_t();
-        point_read_response_t *res = boost::get<point_read_response_t>(&response->response);
+        point_read_response_t *res =
+            boost::get<point_read_response_t>(&response->response);
         rdb_get(get.key, btree, txn, superblock, res);
     }
 
     void operator()(const rget_read_t &rget) {
+        if (rget.transform.size() != 0 || rget.terminal) {
+            rassert(rget.optargs.size() != 0);
+        }
         ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);

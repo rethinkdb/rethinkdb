@@ -5,25 +5,6 @@ import ql2_pb2 as p
 All top level functions defined here are the starting points for RQL queries
 """
 
-# This is both an external function and one used extensively
-# internally to convert coerce python values to RQL types
-def expr(val):
-    '''
-        Convert a Python primitive into a RQL primitive value
-    '''
-    if isinstance(val, RqlQuery):
-        return val
-    elif isinstance(val, list):
-        return MakeArray(*val)
-    elif isinstance(val, dict):
-        # MakeObj doesn't take the dict as a keyword args to avoid
-        # conflicting with the `self` parameter.
-        return MakeObj(val)
-    elif callable(val):
-        return Func(val)
-    else:
-        return Datum(val)
-
 def js(js_str):
     return JavaScript(js_str)
 
