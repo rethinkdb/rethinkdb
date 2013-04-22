@@ -58,6 +58,9 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 
     // Initialize sindex slices
     {
+        // Since this is the btree constructor, nothing else should be locking these
+        //  things yet, so this should work fairly quickly and does not need a real
+        //  interruptor
         cond_t dummy_interruptor;
         read_token_pair_t token_pair;
         new_read_token_pair(&token_pair);
