@@ -121,6 +121,10 @@ TEST(RDBProtocol, SetupTeardown) {
     run_in_thread_pool_with_namespace_interface(&run_setup_teardown_test, false);
 }
 
+TEST(RDBProtocol, OvershardedSetupTeardown) {
+    run_in_thread_pool_with_namespace_interface(&run_setup_teardown_test, true);
+}
+
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
@@ -156,6 +160,10 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
 
 TEST(RDBProtocol, GetSet) {
     run_in_thread_pool_with_namespace_interface(&run_get_set_test, false);
+}
+
+TEST(RDBProtocol, OvershardedGetSet) {
+    run_in_thread_pool_with_namespace_interface(&run_get_set_test, true);
 }
 
 std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
@@ -334,8 +342,12 @@ void run_sindex_list_test(namespace_interface_t<rdb_protocol_t> *nsi, order_sour
     } // Do it again
 }
 
-TEST(RDBProtocol,SindexList) {
+TEST(RDBProtocol, SindexList) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_list_test, false);
+}
+
+TEST(RDBProtocol, OvershardedSindexList) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_list_test, true);
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
@@ -406,6 +418,10 @@ TEST(RDBProtocol, OverSizedKeys) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, false);
 }
 
+TEST(RDBProtocol, OvershardedOverSizedKeys) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, true);
+}
+
 void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     query_language::backtrace_t b;
     create_sindex(nsi, osource);
@@ -434,6 +450,10 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
 
 TEST(RDBProtocol, MissingAttr) {
     run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, false);
+}
+
+TEST(RDBProtocol, OvershardedMissingAttr) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, true);
 }
 
 }   /* namespace unittest */
