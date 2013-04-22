@@ -79,8 +79,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-            guarantee(it->second.post_construction_complete);
-
             secondary_index_slices.insert(it->first,
                                           new btree_slice_t(cache.get(),
                                                             &perfmon_collection,
