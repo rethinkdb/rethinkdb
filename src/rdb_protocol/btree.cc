@@ -521,6 +521,8 @@ private:
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
+    /* This constructor does a traversal on the primary btree, it's not to be
+     * used with sindexes. The constructor below is for use with sindexes. */
     rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
                                               ql::env_t *_ql_env,
                                               const rdb_protocol_details::transform_t &_transform,
@@ -538,6 +540,14 @@ public:
         init(range);
     }
 
+    /* This constructor is used if you're doing a secondary index get, it takes
+     * an extra key_range_t (_primary_key_range) which is used to filter out
+     * unwanted results. The reason you can get unwanted results is is
+     * oversharding. When we overshard multiple logical shards are stored in
+     * the same physical btree_store_t, this is transparent with all other
+     * operations but their sindex values get mixed together and you wind up
+     * with multiple copies of each. This constructor will filter out the
+     * duplicates. This was issue #606. */
     rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
                                               ql::env_t *_ql_env,
                                               const rdb_protocol_details::transform_t &_transform,
