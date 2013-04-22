@@ -1,0 +1,41 @@
+desc: Tests conversion to and from the RQL array type
+tests:
+    - py: r.expr([])
+      js: ['r.expr([])', 'r([])']
+      rb: r([])
+      ot: []
+
+    - py: r.expr([1])
+      js: r([1])
+      rb: r([1])
+      ot: [1]
+
+    - py: r.expr([1,2,3,4,5])
+      js: r([1,2,3,4,5])
+      rb: r.expr([1,2,3,4,5])
+      ot: [1,2,3,4,5]
+
+    - cd: r.expr([]).type_of()
+      ot: "'ARRAY'"
+
+    # test coercions
+    - cd:
+        - r.expr([1, 2]).coerce_to('string')
+        - r.expr([1, 2]).coerce_to('STRING')
+      ot: "'[1, 2]'"
+
+    - cd: r.expr([1, 2]).coerce_to('array')
+      ot: [1, 2]
+
+    - cd: r.expr([1, 2]).coerce_to('number')
+      ot: err('RqlRuntimeError', 'Cannot coerce ARRAY to NUMBER.', [0])
+
+    - cd: r.expr([['a', 1], ['b', 2]]).coerce_to('object')
+      ot: ({'a':1,'b':2})
+
+    # Nested expression
+    - cd: r.expr([r.expr(1)])
+      ot: [1]
+
+
+

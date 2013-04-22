@@ -1,0 +1,15 @@
+desc: Regression test for issue #619 "Python driver doesn't support inserting objects w/ 'self' as a key"
+
+tests:
+
+    - py: r.expr({"self":"foo"})
+      ot: ({'self':'foo'})
+
+    - py: r.expr(1).do(lambda x:{'self':x})
+      ot: ({'self':1})
+
+    - py: r.expr({"a":{"self":1}})
+      ot: ({"a":{"self":1}})
+
+    - py: r.expr({"self":{"self":{"self":1}}})
+      ot: ({"self":{"self":{"self":1}}})

@@ -15,7 +15,7 @@
 template <class protocol_t>
 struct namespace_repo_t<protocol_t>::namespace_cache_t {
 public:
-    boost::ptr_map<namespace_id_t, namespace_cache_entry_t> entries;
+    boost::ptr_map<namespace_id_t, typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t> entries;
     auto_drainer_t drainer;
 };
 
@@ -34,7 +34,7 @@ namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, namespace_id_t n_id) {
+        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
     for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
                                                                                                     it != ns_directory_metadata.end();
@@ -52,39 +52,25 @@ std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reacto
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::access_t::access_t() :
+base_namespace_repo_t<protocol_t>::access_t::access_t() :
     cache_entry(NULL),
     thread(INVALID_THREAD)
     { }
 
 template<class protocol_t>
-namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, namespace_id_t namespace_id, signal_t *interruptor) :
+base_namespace_repo_t<protocol_t>::access_t::access_t(base_namespace_repo_t *parent, const uuid_u &namespace_id, signal_t *interruptor) :
     thread(get_thread_id())
 {
     {
         ASSERT_FINITE_CORO_WAITING;
-        namespace_cache_t *cache = parent->namespace_caches.get();
-        if (cache->entries.find(namespace_id) == cache->entries.end()) {
-            cache_entry = new namespace_cache_entry_t;
-            cache_entry->ref_count = 0;
-            cache_entry->pulse_when_ref_count_becomes_zero = NULL;
-            cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
-            ref_handler.init(cache_entry);
-            cache->entries.insert(namespace_id, cache_entry);
-            coro_t::spawn_sometime(boost::bind(
-                &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, parent,
-                cache, namespace_id,
-                auto_drainer_t::lock_t(&cache->drainer)));
-        } else {
-            cache_entry = &cache->entries[namespace_id];
-            ref_handler.init(cache_entry);
-        }
+        cache_entry = parent->get_cache_entry(namespace_id);
+        ref_handler.init(cache_entry);
     }
     wait_interruptible(cache_entry->namespace_if.get_ready_signal(), interruptor);
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
+base_namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
     cache_entry(access.cache_entry),
     thread(access.thread)
 {
@@ -95,7 +81,7 @@ namespace_repo_t<protocol_t>::access_t::access_t(const access_t& access) :
 }
 
 template <class protocol_t>
-typename namespace_repo_t<protocol_t>::access_t &namespace_repo_t<protocol_t>::access_t::operator=(const access_t &access) {
+typename base_namespace_repo_t<protocol_t>::access_t &base_namespace_repo_t<protocol_t>::access_t::operator=(const access_t &access) {
     if (this != &access) {
         cache_entry = access.cache_entry;
         ref_handler.reset();
@@ -108,22 +94,22 @@ typename namespace_repo_t<protocol_t>::access_t &namespace_repo_t<protocol_t>::a
 }
 
 template <class protocol_t>
-namespace_interface_t<protocol_t> *namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
+namespace_interface_t<protocol_t> *base_namespace_repo_t<protocol_t>::access_t::get_namespace_if() {
     rassert(thread == get_thread_id());
     return cache_entry->namespace_if.wait();
 }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::access_t::ref_handler_t::ref_handler_t() :
+base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::ref_handler_t() :
     ref_target(NULL) { }
 
 template <class protocol_t>
-namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
+base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::~ref_handler_t() {
     reset();
 }
 
 template <class protocol_t>
-void namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
+void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache_entry_t *_ref_target) {
     ASSERT_NO_CORO_WAITING;
     guarantee(ref_target == NULL);
     ref_target = _ref_target;
@@ -136,7 +122,7 @@ void namespace_repo_t<protocol_t>::access_t::ref_handler_t::init(namespace_cache
 }
 
 template <class protocol_t>
-void namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
+void base_namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
     ASSERT_NO_CORO_WAITING;
     if (ref_target != NULL) {
         ref_target->ref_count--;
@@ -151,13 +137,13 @@ void namespace_repo_t<protocol_t>::access_t::ref_handler_t::reset() {
 template <class protocol_t>
 void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             namespace_cache_t *cache,
-            namespace_id_t namespace_id,
+            const uuid_u &namespace_id,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING{
     keepalive.assert_is_holding(&cache->drainer);
     int thread = get_thread_id();
 
-    namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
+    typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());
 
     /* We need to switch to `home_thread()` to construct
@@ -205,7 +191,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             }
         }
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* We got here because we were interrupted in the startup process. That
         means the `namespace_repo_t` destructor was called, which means there
         mustn't exist any `access_t` objects. So ref_count must be 0. */
@@ -216,10 +202,37 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     cache->entries.erase(namespace_id);
 }
 
+template <class protocol_t>
+typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_repo_t<protocol_t>::get_cache_entry(const uuid_u &ns_id) {
+    typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry;
+    namespace_cache_t *cache = namespace_caches.get();
+    if (cache->entries.find(ns_id) == cache->entries.end()) {
+        cache_entry = new typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t;
+        cache_entry->ref_count = 0;
+        cache_entry->pulse_when_ref_count_becomes_zero = NULL;
+        cache_entry->pulse_when_ref_count_becomes_nonzero = NULL;
+
+        namespace_id_t id(ns_id);
+        cache->entries.insert(id, cache_entry);
+
+        coro_t::spawn_sometime(boost::bind(
+            &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, this,
+            cache, ns_id,
+            auto_drainer_t::lock_t(&cache->drainer)));
+    } else {
+        cache_entry = &cache->entries[ns_id];
+    }
+
+    return cache_entry;
+}
+
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
 #include "rdb_protocol/protocol.hpp"
 
+template class base_namespace_repo_t<mock::dummy_protocol_t>;
+template class base_namespace_repo_t<memcached_protocol_t>;
+template class base_namespace_repo_t<rdb_protocol_t>;
 template class namespace_repo_t<mock::dummy_protocol_t>;
 template class namespace_repo_t<memcached_protocol_t>;
 template class namespace_repo_t<rdb_protocol_t>;

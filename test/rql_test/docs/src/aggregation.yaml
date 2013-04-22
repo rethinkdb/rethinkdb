@@ -1,0 +1,157 @@
+sections:
+  - tag: aggregation
+    name: Aggregation
+    description: These commands are used to compute smaller values from large sequences.
+    order: 7
+
+commands:
+  - tag: reduce
+    section: aggregation
+    description: Produce a single value from a sequence through repeated application
+      of a reduction function.
+
+    body:
+      js: "reductionFunction[, base]"
+      py: "reduction_function[, base]"
+      rb: "[base,] reduction_function"
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: How many enemies have our heroes defeated?
+        code:
+          js: |-
+            r.table('marvel').map(r.row('monstersKilled')).reduce(function(acc, val) {
+                return acc.add(val)
+            }, 0).run(conn, callback)
+          py: |-
+            r.table('marvel').map(r.row['monsters_killed']).reduce(
+                lambda acc, val: acc + val, 0).run(conn)
+          rb: |-
+            r.table('marvel').map {|hero| hero['monstersKilled']}.reduce(0) {
+                |acc, val| acc + val }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: count
+    section: aggregation
+    description: Count the number of elements in the sequence.
+
+    parent: sequence
+    returns: number
+
+    examples:
+      - description: Just how many super heroes are there?
+        code:
+          js: r.table('marvel').count().add(r.table('dc').count()).run(conn, callback)
+          py: (r.table('marvel').count() + r.table('dc').count()).run(conn)
+          rb: (r.table('marvel').count + r.table('dc').count).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: distinct
+    section: aggregation
+    description: Remove duplicate elements from the sequence.
+
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Which unique villains have been vanquished by marvel heroes?
+        code:
+          js: |-
+            r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()
+             .run(conn, callback)
+          py: 'r.table(''marvel'').concat_map(lambda hero: hero[''villainList'']).distinct().run(conn)'
+          rb: r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.run(conn)
+
+    rb:
+      dont_need_parenthesis: true
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: groupedmapreduce
+    section: aggregation
+    description: Partition the sequence into groups based on the <code>grouping</code>
+      function. The elements of each group are then mapped using the <code>mapping</code>
+      function and reduced using the <code>reduction</code> function.<br /><br /><code>grouped_map_reduce</code>
+      is a generalized form of <code>group by</code>.
+
+
+    name: grouped_map_reduce
+    body: grouping, mapping, reduction[, base]
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: It's only fair that heroes be compared against their weight class.
+        code:
+          js: |-
+            r.table('marvel').groupedMapReduce(
+              function(hero) { return hero('weightClass')},  // grouping
+              function(hero) { return hero.pluck('name', 'strength')},  // mapping
+              function(acc, hero) {  // reduction
+                return r.branch(acc('strength').lt(hero('strength')), hero, acc)
+              },
+              {name:'none', strength:0} // reduction base
+            ).run(conn, callback)
+          py: |-
+            r.table('marvel').grouped_map_reduce(
+              lambda hero: hero['weightClass'],  # grouping
+              lambda hero: hero.pluck('name', 'strength'),  # mapping
+              lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),
+              {'name':'none', 'strength':0}  # base
+            ).run(conn)
+          rb: |-
+            r.table('marvel').grouped_map_reduce(
+              lambda {|hero| hero[:weight_class]},  # grouping
+              lambda {|hero| hero.pluck(:name, :strength)},  #  mapping
+              {:name => 'none', :strength => 0},  # reduction base
+              lambda {|acc, hero| r.branch(acc[:strength] < hero[:strength], hero, acc)}
+            ).run(conn)
+
+    js:
+      name: groupedMapReduce
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: group_by
+    section: aggregation
+    description: Groups elements by the values of the given attributes and then applies
+      the given reduction. Though similar to <code>grouped_map_reduce</code>, 
+      groupby takes a standardized object for specifying the reduction. 
+      Can be used with a number of predefined common reductions.
+
+    body: attr1[, attr2...], reduction_object
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: Using a predefined reduction we can easily find the average
+            strength of members of each weight class.
+        code:
+          js: r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn, callback)
+          py: r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
+          rb: r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)
+
+    js:
+      name: groupBy
+      body: attr1[, attr2...], reductionObject
+      examples:
+        0:
+          can_try: true
+          dataset: marvel

@@ -258,13 +258,6 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_acco
 void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
-#ifdef DEBUG_DUMP_WRITES
-    debugf("--- WRITE BEGIN ---\n");
-    debugf("%s", format_backtrace().c_str());
-    print_hd(buf, offset, length);
-    debugf("---- WRITE END ----\n\n");
-#endif
-
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),

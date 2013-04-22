@@ -1,3 +1,78 @@
+# Release 1.4.4 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Improved the documentation
+  * Made the output of `rethinkdb help` and `--help` consistent (#643)
+  * Clarify details about the client protocol (#649)
+* Cap the size of data returned from rgets not just the number of values (#597)
+  * The limit changed from 4000 rows to 1MiB
+* Partial bug fix: Rethinkdb server crashing (#621)
+* Fixed bug: Can't insert objects that use 'self' as a key with Python driver (#619)
+* Fixed bug: [Web UI] Statistics graphs are not plotted correctly in background tabs (#373)
+* Fixed bug: [Web UI] Large JSON Causes Data Explorer to Hang (#536)
+* Fixed bug: Import command doesn't import last row if doesn't have end-of-line (#637)
+* Fixed bug: [Web UI] Cubism doesn't unbind some listeners (#622)
+
+---
+
+# Release 1.4.3 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Improve the networking code in the Python driver
+* Fix a crash triggered by a type error when using concatMap (#568)
+* Fix a crash when running `rethinkdb proxy --help` (#565)
+* Fix a bug in the Python driver that caused it to occasionally return `None` (#564)
+
+---
+
+# Release 1.4.2 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Replace `~` with `About` in the web UI (#485)
+* Add framing documentation to the protobuf spec (#500)
+* Fix crashes triggered by .orderBy().skip() and .reduce(r.js()) (#522, #545)
+* Replace MB with GB in an error message (#526)
+* Remove some semicolons from the protobuf spec (#530)
+* Fix the `rethinkdb import` command (#535)
+* Improve handling of very large queries in the data explorer (#536)
+* Fix variable shadowing in the javascript driver (#546)
+
+---
+
+# Release 1.4.1 (Some Like It Hot) #
+
+## Changes ##
+
+Bug fix update:
+
+* Python driver fix for TCP streams (#495)
+* Web UI fix that reduces the number of AJAX requests (#481)
+* JS driver: added useOutdated to r.table() (#502)
+* RDB protocol performance fix in release mode.
+* Performance fix when using filter with object shortcut syntax.
+* Do not abort when the `runuser` or `rungroup` options are present (#512)
+
+---
+
+# Release 1.4 (Some Like It Hot) #
+
+## Changes ##
+
+* Improved ReQL wire protocol and client drivers
+* New build system
+* Data explorer query history
+
+---
+
 # Release 1.3.2 (Metropolis) #
 
 ## Changes ##

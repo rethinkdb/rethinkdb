@@ -46,7 +46,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(multiplexer->proxies[i], temp_file.name().permanent_path() + strprintf("_%zd", i), GIGABYTE, true, &get_global_perfmon_collection(), NULL));
+        underlying_stores.push_back(
+                new memcached_protocol_t::store_t(multiplexer->proxies[i],
+                    temp_file.name().permanent_path() + strprintf("_%zd", i),
+                    GIGABYTE, true, &get_global_perfmon_collection(), NULL,
+                    io_backender.get(), base_path_t(".")));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
@@ -55,7 +59,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     }
 
     /* Set up namespace interface */
-    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards, stores.c_array(), &order_source);
+    memcached_protocol_t::context_t ctx;
+    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards,
+            stores.c_array(), &order_source, &ctx);
 
     fun(&nsi, &order_source);
 }

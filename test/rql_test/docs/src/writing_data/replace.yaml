@@ -1,0 +1,59 @@
+commands:
+  - tag: replace
+    section: writing_data
+    order: 2
+    description: |
+      Replace documents in a table. Accepts a JSON document or a RQL expression,
+      and replaces the original document with the new one. The new document must have
+      the same primary key as the original document.<br /><br />Replace returns an
+      object that contains one or more of:<ul><li><code>replaced</code> - the number
+      of documents that were replaced;</li><li><code>errors</code> - the number of
+      errors encountered while performing the replace;</li><li><code>first_error</code>
+      - the text of the first error encountered.</li></ul>
+
+    body: json | expr
+    parent: selection
+    returns: query
+
+    examples:
+      - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.
+        code:
+          js: |
+            r.table('marvel').get('superman').replace({ id: 'superman', age: 30 })
+             .run(conn, callback)
+          py: "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)"
+          rb: r.table('marvel').get('superman').replace{ {:id => 'superman', :age => 30} }.run(conn)
+      - description: Allow the server to run non-atomic operations.
+        code:
+          js: |
+            r.table('marvel').get('superman').replace({ id: 'superman', age: r.js('30') },
+              { 'nonAtomic': true }
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').get('superman').replace(
+                { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
+          rb: |
+            r.table('marvel').get('superman').replace(
+               :non_atomic, {:id => 'superman', :age => 30}).run(conn)
+      - description: Mark all Marvel heroes as favorites.
+        code:
+          js: |
+            r.table('heroes').filter(r.row('universe').eq('marvel'))
+             .replace(function(doc) {return doc.merge({is_fav: true})})
+             .run(conn, callback)
+          py: |
+            r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
+                lambda hero: hero.merge({'is_fav': True})).run(conn)
+          rb: |
+            r.table('heroes').filter { |hero| hero[:universe].eq 'marvel'
+             }.replace { |hero| hero.merge(:is_fav => true)
+             }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel

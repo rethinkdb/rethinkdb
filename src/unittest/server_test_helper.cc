@@ -5,10 +5,10 @@
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
-#include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "unittest/mock_file.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -20,9 +20,8 @@ const uint32_t server_test_helper_t::init_value = 0x12345678;
 const uint32_t server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
-    : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }
+    : serializer(NULL), mock_file_opener(NULL) { }
 
-// Destructor defined in the .cc so that thread_pool_t isn't an incomplete type.
 server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
@@ -30,13 +29,8 @@ void server_test_helper_t::run() {
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
-    temp_file_t db_file;
-
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
-
     {
-        filepath_file_opener_t file_opener(db_file.name(), io_backender.get());
+        mock_file_opener_t file_opener;
         standard_serializer_t::create(
             &file_opener,
             standard_serializer_t::static_config_t());
@@ -50,12 +44,14 @@ void server_test_helper_t::setup_server_and_run_tests() {
         serializer_multiplexer_t::create(serializers, 1);
         serializer_multiplexer_t multiplexer(serializers);
 
+        this->mock_file_opener = &file_opener;
         this->serializer = multiplexer.proxies[0];
 
         run_serializer_tests();
-    }
 
-    trace_call(thread_pool->shutdown_thread_pool);
+        this->serializer = NULL;
+        this->mock_file_opener = NULL;
+    }
 }
 
 void server_test_helper_t::run_serializer_tests() {

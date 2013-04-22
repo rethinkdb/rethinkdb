@@ -168,17 +168,11 @@ private:
         EXPECT_EQ(4080, blob::stepsize(cache->get_block_size(), 1));
         EXPECT_EQ(4080 * (4080 / static_cast<int>(sizeof(block_id_t))), blob::stepsize(cache->get_block_size(), 2));
 
-        debugf("small_value_test...\n");
         small_value_test(cache);
-        debugf("small_value_boundary_test...\n");
         small_value_boundary_test(cache);
-        debugf("special_4080_prepend_4081_test...\n");
         special_4080_prepend_4081_test(cache);
-        debugf("special_4161...\n");
         special_4161600_prepend_12484801_test(cache);
-        debugf("combinations_test...\n");
         combinations_test(cache);
-        debugf("finished...\n");
     }
 
     void small_value_test(cache_t *cache) {
@@ -186,7 +180,8 @@ private:
         UNUSED block_size_t block_size = cache->get_block_size();
 
         order_source_t order_source;
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"));
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"),
+                          WRITE_DURABILITY_SOFT);
 
         blob_tracker_t tk(251);
 
@@ -221,7 +216,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("small_value_boundary_test"));
+                          order_source.check_in("small_value_boundary_test"), WRITE_DURABILITY_SOFT);
 
         blob_tracker_t tk(251);
 
@@ -277,7 +272,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4080_prepend_4081_test"));
+                          order_source.check_in("special_4080_prepend_4081_test"), WRITE_DURABILITY_SOFT);
 
         blob_tracker_t tk(251);
 
@@ -295,7 +290,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4161600_prepend_12484801_test"));
+                          order_source.check_in("special_4161600_prepend_12484801_test"), WRITE_DURABILITY_SOFT);
 
         blob_tracker_t tk(251);
 
@@ -317,7 +312,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("general_journey_test"));
+                          order_source.check_in("general_journey_test"), WRITE_DURABILITY_SOFT);
         blob_tracker_t tk(251);
 
         char v = 'A';
@@ -357,7 +352,6 @@ private:
         int n = sizeof(szs) / sizeof(szs[0]);
 
         for (int i = 0; i < n; ++i) {
-            debugf("combinations_test: i = %d\n", i);
             for (int j = 0; j < n; ++j) {
                 SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
                 std::vector<step_t> steps;

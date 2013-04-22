@@ -25,6 +25,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 #include "rpc/directory/read_manager.tcc"
 #include "rpc/directory/write_manager.tcc"
@@ -84,47 +85,15 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
     return true;
 }
 
-/* This is a cluster that is useful for reactor testing... but doesn't actually
- * have a reactor due to the annoyance of needing the peer ids to create a
- * correct blueprint. */
 template<class protocol_t>
-class reactor_test_cluster_t {
-public:
-    explicit reactor_test_cluster_t(int port);
-    ~reactor_test_cluster_t();
-
-    peer_id_t get_me();
-
-    connectivity_cluster_t connectivity_cluster;
-    message_multiplexer_t message_multiplexer;
-
-    message_multiplexer_t::client_t heartbeat_manager_client;
-    heartbeat_manager_t heartbeat_manager;
-    message_multiplexer_t::client_t::run_t heartbeat_manager_client_run;
-
-    message_multiplexer_t::client_t mailbox_manager_client;
-    mailbox_manager_t mailbox_manager;
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
-
-    watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
-    message_multiplexer_t::client_t directory_manager_client;
-    directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
-    directory_write_manager_t<test_cluster_directory_t<protocol_t> > directory_write_manager;
-    message_multiplexer_t::client_t::run_t directory_manager_client_run;
-
-    message_multiplexer_t::run_t message_multiplexer_run;
-    connectivity_cluster_t::run_t connectivity_cluster_run;
-
-    in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
-};
-
-
-template<class protocol_t>
-class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
+class test_reactor_t : private ack_checker_t {
 public:
     test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
+    write_durability_t get_write_durability(const peer_id_t &) const {
+        return WRITE_DURABILITY_SOFT;
+    }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
@@ -223,7 +192,10 @@ test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) : base_pa
         serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
-        stores.push_back(new typename protocol_t::store_t(&serializers[i], files[i].name().permanent_path(), GIGABYTE, true, NULL, &ctx));
+        stores.push_back(
+                new typename protocol_t::store_t(&serializers[i],
+                    files[i].name().permanent_path(), GIGABYTE, true, NULL,
+                    &ctx, io_backender.get(), base_path_t(".")));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(mock::a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
@@ -360,7 +332,7 @@ void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const b
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
             ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         crash("The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.");
     }
 
@@ -374,6 +346,7 @@ void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const s
 
 
 template class test_cluster_group_t<mock::dummy_protocol_t>;
+template class reactor_test_cluster_t<rdb_protocol_t>;
 
 }  // namespace unittest
 

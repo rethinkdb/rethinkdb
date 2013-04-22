@@ -10,29 +10,31 @@
 
 namespace extproc {
 
+// Passed in to a job on the worker process side.
+class job_control_t {
+public:
+    void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0)));
+    void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
+
+    pid_t get_spawner_pid() const;
+
+    unix_socket_stream_t unix_socket;
+
+private:
+    friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
+
+    job_control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);
+
+    const pid_t pid;
+    const pid_t spawner_pid;
+
+    DISABLE_COPYING(job_control_t);
+};
+
 // Abstract base class for jobs.
 class job_t {
-  public:
+public:
     virtual ~job_t() {}
-
-    // Passed in to a job on the worker process side.
-    class control_t : public unix_socket_stream_t {
-      public:
-        void vlog(const char *fmt, va_list ap) __attribute__((format (printf, 2, 0)));
-        void log(const char *fmt, ...) __attribute__((format (printf, 2, 3)));
-
-        pid_t get_spawner_pid() const;
-
-      private:
-        friend void exec_worker(pid_t spawner_pid, fd_t sockfd);
-
-        control_t(pid_t pid, pid_t spawner_pid, scoped_fd_t *fd);
-
-        const pid_t pid;
-        const pid_t spawner_pid;
-
-        DISABLE_COPYING(control_t);
-    };
 
     // Sends us over a stream. The recipient must be a fork()ed child (or
     // grandchild, or parent, etc) of us. Returns 0 on success, -1 on error.
@@ -45,18 +47,18 @@ class job_t {
     // to the accepted job's run_job() method.
     //
     // Returns 0 on success, -1 on failure.
-    static int accept_job(control_t *control, void *extra);
+    static int accept_job(job_control_t *control, void *extra);
 
     /* ----- Pure virtual methods ----- */
 
     // Called on worker process side. `extra` comes from accept_job(); it's a
     // way for job acceptors to pass data to the jobs they accept. (It's quite
     // normal for it to be unused/ignored.)
-    virtual void run_job(control_t *control, void *extra) = 0;
+    virtual void run_job(job_control_t *control, void *extra) = 0;
 
     // Returns a function that deserializes & runs an instance of the
     // appropriate job type. Called on worker process side.
-    typedef void (*func_t)(control_t*, void*);
+    typedef void (*func_t)(job_control_t *, void *);
     virtual func_t job_runner() const = 0;
 
     // Serialization methods. Suggest implementing by invoking
@@ -70,10 +72,10 @@ class job_t {
 // NB. base_job_t had better descend from job_t.
 template <class instance_t, class base_job_t = job_t>
 class auto_job_t : public base_job_t {
-    static void job_runner_func(job_t::control_t *control, void *extra) {
+    static void job_runner_func(job_control_t *control, void *extra) {
         // Get the job instance.
         instance_t job;
-        archive_result_t res = deserialize(control, &job);
+        archive_result_t res = deserialize(&control->unix_socket, &job);
 
         if (res != ARCHIVE_SUCCESS) {
             control->log("Could not deserialize job: %s",

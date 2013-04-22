@@ -25,8 +25,10 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-void run_generic_global_startup_behavior();
+class Term;
+void pb_print(Term *t);
 
+void run_generic_global_startup_behavior();
 
 struct const_charslice {
     const char *beg, *end;
@@ -286,7 +288,8 @@ bool notf(bool x);
 bool hex_to_int(char c, int *out);
 char int_to_hex(int i);
 
-std::string read_file(const char *path);
+std::string blocking_read_file(const char *path);
+bool blocking_read_file(const char *path, std::string *contents_out);
 
 struct path_t {
     std::vector<std::string> nodes;
@@ -328,7 +331,7 @@ int get_num_db_threads();
 template <class T>
 T valgrind_undefined(T value) {
 #ifdef VALGRIND
-    VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
+    UNUSED auto x = VALGRIND_MAKE_MEM_UNDEFINED(&value, sizeof(value));
 #endif
     return value;
 }
@@ -337,12 +340,12 @@ T valgrind_undefined(T value) {
 // Contains the name of the directory in which all data is stored.
 class base_path_t {
 public:
-    explicit base_path_t(const std::string& path) : path_(path) { }
+    explicit base_path_t(const std::string& path);
+    const std::string& path() const;
 
-    const std::string& path() const {
-        guarantee(!path_.empty());
-        return path_;
-    }
+    // Make this base_path_t into an absolute path (useful for daemonizing)
+    // This can only be done if the path already exists, which is why we don't do it at construction
+    void make_absolute();
 private:
     std::string path_;
 };
@@ -381,7 +384,7 @@ private:
     const std::string temporary_path_;
 };
 
-
+void recreate_temporary_directory(const base_path_t& base_path);
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
@@ -405,5 +408,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 #endif
 
 #define NULLPTR (static_cast<void *>(0))
+
+#define DBLPRI "%.20g"
 
 #endif // UTILS_HPP_

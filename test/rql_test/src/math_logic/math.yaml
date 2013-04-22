@@ -1,0 +1,11 @@
+desc: Tests of nested arithmetic expressions
+tests:
+    
+    - py: (((4 + 2 * (r.expr(26) % 18)) / 5) - 3)
+      js: r(4).add(r(2).mul(r(26).mod(18))).div(5).sub(3)
+      rb:
+        - ((((r 4) + (r 2) * ((r 26) % 18)) / 5) -3)
+        - (((4 + 2 * ((r 26) % 18)) / 5) -3)
+      ot: 1
+
+    # Prescedence set by host langauge

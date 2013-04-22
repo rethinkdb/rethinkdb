@@ -41,6 +41,7 @@ struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
     block_id_t stat_block;
+    block_id_t sindex_block;
 
     // We are unnecessarily generous with the amount of space
     // allocated here, but there's nothing else to push out of the
@@ -59,6 +60,12 @@ struct btree_statblock_t {
     btree_statblock_t()
         : population(0)
     { }
+};
+
+struct btree_sindex_block_t {
+    static const int SINDEX_BLOB_MAXREFLEN = 4080;
+
+    char sindex_blob[SINDEX_BLOB_MAXREFLEN];
 };
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
@@ -91,8 +98,6 @@ inline bool is_leaf(const node_t *node) {
     // for different value types.
     return !is_internal(node);
 }
-
-void print(const node_t *node);
 
 bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 

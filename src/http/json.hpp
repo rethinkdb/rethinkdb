@@ -23,10 +23,13 @@ std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_type_to_string(int type);
 
+size_t cJSON_estimate_size(const cJSON *json);
 
 class scoped_cJSON_t {
 private:
     cJSON *val;
+
+    DISABLE_COPYING(scoped_cJSON_t);
 
 public:
     scoped_cJSON_t() : val(NULL) { }

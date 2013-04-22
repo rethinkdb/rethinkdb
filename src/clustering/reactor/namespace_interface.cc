@@ -119,18 +119,19 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
     // RSI: don't use pmap  // TODO: <- WTF are we supposed to use then?
-    pmap(masters_to_contact.size(), boost::bind(&cluster_namespace_interface_t::template perform_immediate_op<op_type,
-                                                fifo_enforcer_token_type,
-                                                op_response_type>,
-                                                this,
-                                                how_to_run_query,
-                                                &masters_to_contact,
-                                                &op,
-                                                &results,
-                                                &failures,
-                                                order_token,
-                                                _1,
-                                                interruptor));
+    pmap(masters_to_contact.size(), boost::bind(
+             &cluster_namespace_interface_t::template perform_immediate_op<op_type,
+             fifo_enforcer_token_type,
+             op_response_type>,
+             this,
+             how_to_run_query,
+             &masters_to_contact,
+             &op,
+             &results,
+             &failures,
+             order_token,
+             _1,
+             interruptor));
 
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -141,7 +142,7 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 template <class protocol_t>
@@ -234,7 +235,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
         }
     }
 
-    op.unshard(results.data(), results.size(), response, ctx);
+    op.unshard(results.data(), results.size(), response, ctx, interruptor);
 }
 
 template <class protocol_t>
@@ -268,9 +269,9 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
         wait_interruptible(&waiter, interruptor);
         direct_reader_to_contact->direct_reader_access->access();   /* throws if `get_failed_signal()->is_pulsed()` */
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         failures->at(i).assign("lost contact with direct reader");
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         guarantee(interruptor->is_pulsed());
         /* Ignore `interrupted_exc_t` and return immediately.
            `read_outdated()` will notice that the interruptor has been pulsed
@@ -431,9 +432,9 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         }
         waiter.wait_lazily_unordered();
 
-    } catch (resource_lost_exc_t e) {
+    } catch (const resource_lost_exc_t &e) {
         /* ignore */
-    } catch (interrupted_exc_t e) {
+    } catch (const interrupted_exc_t &e) {
         /* ignore */
     }
 

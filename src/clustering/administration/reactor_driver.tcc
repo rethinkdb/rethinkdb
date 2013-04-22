@@ -108,7 +108,7 @@ private:
  * a std::pair. This class is used to hold a reactor and a watchable that
  * it's watching. */
 template <class protocol_t>
-class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
+class watchable_and_reactor_t : private ack_checker_t {
 public:
     watchable_and_reactor_t(const base_path_t &_base_path,
                             io_backender_t *io_backender,
@@ -189,16 +189,16 @@ public:
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get().ack_expectations.in_conflict()) return false;
-        std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
+        std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get().ack_expectations.get();
 
         /* The nil uuid represents acks from anywhere. */
-        int extra_acks = 0;
-        for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
+        uint32_t extra_acks = 0;
+        for (std::map<datacenter_id_t, ack_expectation_t>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
-                if (acks_by_dc.count(kt->first) < static_cast<size_t>(kt->second)) {
+                if (acks_by_dc.count(kt->first) < kt->second.expectation()) {
                     return false;
                 }
-                extra_acks += acks_by_dc.count(kt->first) - static_cast<size_t>(kt->second);
+                extra_acks += acks_by_dc.count(kt->first) - kt->second.expectation();
             }
         }
 
@@ -212,7 +212,7 @@ public:
             }
         }
 
-        if (extra_acks < expected_acks[nil_uuid()]) {
+        if (extra_acks < expected_acks[nil_uuid()].expectation()) {
             return false;
         }
         return true;
@@ -220,6 +220,62 @@ public:
 
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
         return compute_is_acceptable_ack_set(acks, namespace_id_, parent_->ack_info->per_thread_ack_info());
+    }
+
+    // Computes what write durability we should use when sending a write to the
+    // given peer, on the given table.  Uses the ack_info parameter to figure
+    // out the answer to this question.  Figures out the answer much like how
+    // compute_is_acceptable_ack_set figures out whether it has the right ack
+    // set.  It figures out what datacenter the peer belongs to, and then, using
+    // the ack_expectations_t for the given namespace, figures out whether we
+    // want hard durability or soft durability for that datacenter.
+    static write_durability_t compute_write_durability(const peer_id_t &peer, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
+        // FML
+        const std::map<peer_id_t, machine_id_t> translation_table_snapshot = ack_info->get_machine_id_translation_table();
+        auto it = translation_table_snapshot.find(peer);
+        if (it == translation_table_snapshot.end()) {
+            // What should we do?  I have no idea.  Default to HARD, let somebody else handle
+            // the peer not existing.
+            return WRITE_DURABILITY_HARD;
+        }
+
+        const machine_id_t machine_id = it->second;
+
+        machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
+        std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::const_iterator machine_map_it
+            = mmd.machines.find(machine_id);
+        if (machine_map_it == mmd.machines.end() || machine_map_it->second.is_deleted()
+            || machine_map_it->second.get().datacenter.in_conflict()) {
+            // Is there something smart to do?  Besides deleting this whole class and
+            // refactoring clustering not to do O(n^2) work per request?  Default to HARD, let
+            // somebody else handle the machine not existing.
+            return WRITE_DURABILITY_HARD;
+        }
+
+        const datacenter_id_t dc = machine_map_it->second.get().datacenter.get();
+
+        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
+
+        typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::const_iterator ns_it
+            = nmd->namespaces.find(namespace_id);
+
+        if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get().ack_expectations.in_conflict()) {
+            // Again, FML, we default to HARD.
+            return WRITE_DURABILITY_HARD;
+        }
+
+        std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get().ack_expectations.get();
+        auto ack_it = ack_expectations.find(dc);
+        if (ack_it == ack_expectations.end()) {
+            // Yet again, FML, we default to HARD.
+            return WRITE_DURABILITY_HARD;
+        }
+
+        return ack_it->second.is_hardly_durable() ? WRITE_DURABILITY_HARD : WRITE_DURABILITY_SOFT;
+    }
+
+    write_durability_t get_write_durability(const peer_id_t &peer) const {
+        return compute_write_durability(peer, namespace_id_, parent_->ack_info->per_thread_ack_info());
     }
 
 private:
@@ -381,7 +437,7 @@ void reactor_driver_t<protocol_t>::on_change() {
 
             try {
                 pbp = it->second.get().blueprint.get();
-            } catch (in_conflict_exc_t) {
+            } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
                 continue;

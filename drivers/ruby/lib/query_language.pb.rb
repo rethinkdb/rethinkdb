@@ -1,1 +1,0 @@
-../../../build/drivers/ruby/query_language.pb.rb

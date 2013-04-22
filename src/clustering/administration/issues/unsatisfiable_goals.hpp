@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_UNSATISFIABLE_GOALS_HPP_
 
@@ -18,7 +18,7 @@ public:
     unsatisfiable_goals_issue_t(
             const namespace_id_t &namespace_id,
             const datacenter_id_t &primary_datacenter,
-            const std::map<datacenter_id_t, int> &replica_affinities,
+            const std::map<datacenter_id_t, int32_t> &replica_affinities,
             const std::map<datacenter_id_t, int> &actual_machines_in_datacenters);
 
     std::string get_description() const;
@@ -27,7 +27,7 @@ public:
 
     namespace_id_t namespace_id;
     datacenter_id_t primary_datacenter;
-    std::map<datacenter_id_t, int> replica_affinities;
+    std::map<datacenter_id_t, int32_t> replica_affinities;
     std::map<datacenter_id_t, int> actual_machines_in_datacenters;
 
 private:

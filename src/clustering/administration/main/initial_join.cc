@@ -100,6 +100,8 @@ static const int grace_period_before_warn_ms = 1000 * 5;
 void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive) {
     try {
         int retry_interval_ms = initial_retry_interval_ms;
+        logINF("Attempting connection to %zu peer%s...",
+               peers_not_heard_from.size(), peers_not_heard_from.size() == 1 ? "" : "s");
         do {
             for (peer_address_set_t::iterator it = peers_not_heard_from.begin(); it != peers_not_heard_from.end(); it++) {
                 cluster_run->join(*it);
@@ -120,7 +122,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             }
             logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
         }
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
     }
 

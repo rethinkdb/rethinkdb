@@ -55,11 +55,12 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        write_token_pair_t token_pair;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-        svs->new_write_token(&write_token);
+        svs->new_write_token_pair(&token_pair);
         chunk_queue->finish_write(chunk_token);
 
-        svs->receive_backfill(chunk, &write_token, interruptor);
+        svs->receive_backfill(chunk, &token_pair, interruptor);
     }
 
     void coro_pool_callback(backfill_queue_entry_t<protocol_t> chunk, signal_t *interruptor) {
@@ -111,7 +112,7 @@ public:
                 done_cond.pulse_if_not_already_pulsed();
             }
 
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* This means that the `coro_pool_t` is being destroyed
                before the queue drains. That can only happen if we are
                being interrupted or if we lost contact with the backfiller.

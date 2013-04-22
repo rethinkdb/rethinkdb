@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_ADMIN_TRACKER_HPP_
 #define CLUSTERING_ADMINISTRATION_ADMIN_TRACKER_HPP_
 
 #include <map>
 
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
 #include "concurrency/watchable.hpp"

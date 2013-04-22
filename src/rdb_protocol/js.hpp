@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_JS_HPP_
 #define RDB_PROTOCOL_JS_HPP_
 
@@ -10,14 +10,18 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/variant/variant.hpp>
 
 #include "arch/timing.hpp"      // signal_timer_t
 #include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
-#include "extproc/job.hpp"
-#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rpc/serialize_macros.hpp"
+
+namespace extproc {
+class pool_t;
+class job_handle_t;
+};
 
 namespace js {
 
@@ -33,7 +37,8 @@ class scoped_id_t {
     friend class runner_t;
 
   public:
-    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID) : parent_(parent), id_(id) {}
+    explicit scoped_id_t(runner_t *parent, id_t id = INVALID_ID)
+        : parent_(parent), id_(id) {}
     ~scoped_id_t();
 
     bool empty() const { return id_ == INVALID_ID; }
@@ -55,12 +60,15 @@ class scoped_id_t {
     DISABLE_COPYING(scoped_id_t);
 };
 
+// JS calls result either in a DATUM return value, a function id (which we can
+// use to call the function later), or an error string
+typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, id_t, std::string> js_result_t;
 
 // A handle to a running "javascript evaluator" job.
-class runner_t : private extproc::job_handle_t {
+class runner_t {
+public:
     friend class run_task_t;
 
-  public:
     runner_t();
     ~runner_t();
 
@@ -70,11 +78,10 @@ class runner_t : private extproc::job_handle_t {
         std::string message;
     };
 
-    bool connected() { return extproc::job_handle_t::connected(); }
+    bool connected();
 
     void begin(extproc::pool_t *pool);
     void finish();
-    void interrupt();
 
     // Invalidates an ID, dereferencing the object it refers to in the
     // javascript evaluator process.
@@ -94,42 +101,36 @@ class runner_t : private extproc::job_handle_t {
 
     static const req_config_t *default_req_config();
 
-    // Returns INVALID_ID on error.
-    // Returned id may only be used in `call`.
     MUST_USE id_t compile(
-        // Argument names
         const std::vector<std::string> &args,
-        // Source for the body of the function, _not_ including opening
-        // "function(...) {" and closing "}".
         const std::string &source,
         std::string *errmsg,
+        const req_config_t *config = NULL) {
+
+        // This is now a Noop
+        (void)args;
+        (void)source;
+        (void)errmsg;
+        (void)config;
+        return INVALID_ID;
+    }
+
+    // Evalute JS source string to either a value or a function ID to call later
+    js_result_t eval(
+        // Source to eval
+        const std::string &source,
         const req_config_t *config = NULL);
 
     // Calls a previously compiled function.
-    boost::shared_ptr<scoped_cJSON_t> call(
+    js_result_t call(
         id_t func_id,
-        // The receiver object ("this") in the function body. *Can* be an empty
-        // pointer (but not an empty scoped_cJSON_t), to indicate a default
-        // empty object receiver.
-        //
-        // Note: if present, *must* be a JSON object, not eg. an integer.
-        boost::shared_ptr<scoped_cJSON_t> object,
         const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
-        std::string *errmsg,
         const req_config_t *config = NULL);
 
     // TODO (rntz): a way to send streams over to javascript.
     // TODO (rntz): a way to get streams back from javascript.
 
-  private:
-    // The actual job that runs all this stuff.
-    class job_t : public extproc::auto_job_t<job_t> {
-      public:
-        job_t() {}
-        virtual void run_job(control_t *control, void *extra);
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
+private:
     class run_task_t : public read_stream_t, public write_stream_t {
       public:
         // Starts running the given task. We can only run one task at a time.
@@ -146,7 +147,6 @@ class runner_t : private extproc::job_handle_t {
         DISABLE_COPYING(run_task_t);
     };
 
-  private:
     // TODO: This function one of those "identity function with assertion" functions.
     void note_id(id_t id) {
         guarantee(connected());
@@ -156,10 +156,13 @@ class runner_t : private extproc::job_handle_t {
         }
     }
 
-  private:
+    scoped_ptr_t<extproc::job_handle_t> job_handle_;
+
     // Used only for assertions and guarantees.
     bool running_task_;
     std::set<id_t> used_ids_;
+
+    DISABLE_COPYING(runner_t);
 };
 
 } // namespace js

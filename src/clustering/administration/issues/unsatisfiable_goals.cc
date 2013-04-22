@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/issues/unsatisfiable_goals.hpp"
 
 #include "rpc/semilattice/view.hpp"
@@ -6,7 +6,7 @@
 unsatisfiable_goals_issue_t::unsatisfiable_goals_issue_t(
         const namespace_id_t &ni,
         const datacenter_id_t &pd,
-        const std::map<datacenter_id_t, int> &ra,
+        const std::map<datacenter_id_t, int32_t> &ra,
         const std::map<datacenter_id_t, int> &am) :
     namespace_id(ni), primary_datacenter(pd), replica_affinities(ra), actual_machines_in_datacenters(am) { }
 
@@ -37,26 +37,22 @@ unsatisfiable_goals_issue_t *unsatisfiable_goals_issue_t::clone() const {
 
 static bool is_satisfiable(
         const datacenter_id_t &primary_datacenter,
-        const std::map<datacenter_id_t, int> &replica_affinities,
+        const std::map<datacenter_id_t, int32_t> &replica_affinities,
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters) {
     //If any of the numbers are negative return false immediately since it's
     //malformed data.
-    for (std::map<datacenter_id_t, int>::const_iterator it  = replica_affinities.begin();
-                                                        it != replica_affinities.end();
-                                                        ++it) {
+    for (auto it = replica_affinities.begin(); it != replica_affinities.end(); ++it) {
         if (it->second < 0) {
             return false;
         }
     }
 
-    std::map<datacenter_id_t, int> machines_needed_in_dc = replica_affinities;
+    std::map<datacenter_id_t, int32_t> machines_needed_in_dc = replica_affinities;
     ++machines_needed_in_dc[primary_datacenter];
 
     std::map<datacenter_id_t, int> unused_machines_in_dc = actual_machines_in_datacenters;
 
-    for (std::map<datacenter_id_t, int>::iterator it  = machines_needed_in_dc.begin();
-                                                  it != machines_needed_in_dc.end();
-                                                  ++it) {
+    for (auto it = machines_needed_in_dc.begin(); it != machines_needed_in_dc.end(); ++it) {
         if (it->first == nil_uuid() || it->second == 0) {
             //We handle this below after we've checked the concrete assignments
             continue;
@@ -69,9 +65,7 @@ static bool is_satisfiable(
     }
 
     int extra_machines = 0;
-    for (std::map<datacenter_id_t, int>::iterator it  = unused_machines_in_dc.begin();
-                                                  it != unused_machines_in_dc.end();
-                                                  ++it) {
+    for (auto it = unused_machines_in_dc.begin(); it != unused_machines_in_dc.end(); ++it) {
         extra_machines += it->second;
     }
 

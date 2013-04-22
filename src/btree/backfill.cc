@@ -158,10 +158,18 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
+        btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
+        agnostic_backfill_callback_t *callback, transaction_t *txn,
+        superblock_t *superblock, buf_lock_t *sindex_block, parallel_traversal_progress_t *p,
+        signal_t *interruptor)
+THROWS_ONLY(interrupted_exc_t) {
+    //Start things off easy with a coro assertion.
     rassert(coro_t::self());
+
+    std::map<std::string, secondary_index_t> sindexes;
+    get_secondary_indexes(txn, sindex_block, &sindexes);
+    callback->on_sindexes(sindexes, interruptor);
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;

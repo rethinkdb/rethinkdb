@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_OPERATIONS_HPP_
 #define BTREE_OPERATIONS_HPP_
 
@@ -6,14 +6,19 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-#include "containers/scoped.hpp"
-#include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/promise.hpp"
+#include "containers/archive/stl_types.hpp"
+#include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
+#include "utils.hpp"
 
 class btree_slice_t;
+
+template <class> class promise_t;
 
 enum cache_snapshotted_t { CACHE_SNAPSHOTTED_NO, CACHE_SNAPSHOTTED_YES };
 
@@ -30,6 +35,9 @@ public:
 
     virtual block_id_t get_stat_block_id() const = 0;
     virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
+
+    virtual block_id_t get_sindex_block_id() const = 0;
+    virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
@@ -53,6 +61,9 @@ public:
     block_id_t get_stat_block_id() const;
     void set_stat_block_id(block_id_t new_stat_block);
 
+    block_id_t get_sindex_block_id() const;
+    void set_sindex_block_id(block_id_t new_block_id);
+
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
@@ -60,58 +71,28 @@ private:
     buf_lock_t sb_buf_;
 };
 
-/* This is for nested btrees, where the "superblock" is really more like a super value.
- It provides an in-memory superblock replacement.
-
- Note for use for nested btrees: If you want to nest a tree into some super value,
- you would probably have a block_id_t nested_root value in the super value. Then,
- before accessing the nested tree, you can construct a virtual_superblock_t
- based on the nested_root value. Once write operations to the nested btree have
- finished, you should check whether the root_block_id has been changed,
- and if it has, use get_root_block_id() to update the nested_root value in the
- super block.
- */
-class virtual_superblock_t : public superblock_t {
-public:
-    explicit virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
-
-    void release() { }
-    block_id_t get_root_block_id() const {
-        return root_block_id_;
-    }
-    void set_root_block_id(const block_id_t new_root_block) {
-        root_block_id_ = new_root_block;
-    }
-
-    block_id_t get_stat_block_id() const {
-        crash("Not implemented\n");
-    }
-
-    void set_stat_block_id(block_id_t) {
-        crash("Not implemented\n");
-    }
-
-    void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
-        // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
-    }
-
-    eviction_priority_t get_eviction_priority() {
-        // TODO Again, actually support the setting and getting of eviction priority in a virtual superblock.
-        return FAKE_EVICTION_PRIORITY;
-    }
-
-private:
-    block_id_t root_block_id_;
-};
-
 class btree_stats_t;
+
+template <class Value>
+class key_modification_callback_t;
 
 template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID), stats(NULL) { }
+    keyvalue_location_t()
+        : superblock(NULL), pass_back_superblock(NULL),
+          there_originally_was_value(false), stat_block(NULL_BLOCK_ID),
+          stats(NULL) { }
+
+    ~keyvalue_location_t() {
+        if (pass_back_superblock != NULL && superblock != NULL) {
+            pass_back_superblock->pulse(superblock);
+        }
+    }
 
     superblock_t *superblock;
+
+    promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;
@@ -229,6 +210,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
 
+// Metainfo functions
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
@@ -247,6 +229,7 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
 
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
+                                  write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out);
 

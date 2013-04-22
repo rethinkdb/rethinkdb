@@ -72,7 +72,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     void write(const char *buffer, size_t bytes) THROWS_NOTHING {
         try {
             interface->write(buffer, bytes, interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* ignore */
         }
     }
@@ -93,7 +93,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     void write_unbuffered(const char *buffer, size_t bytes) THROWS_NOTHING {
         try {
             interface->write_unbuffered(buffer, bytes, interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* ignore */
         }
     }
@@ -146,7 +146,6 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
         write(buffer.data(), buffer.size());
         va_end(args);
         writef("\r\n");
-        debugf("Client request returned SERVER_ERROR %s\n", buffer.data());
     }
 
     void client_error_bad_command_line_format() THROWS_NOTHING {
@@ -164,7 +163,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     void flush_buffer() THROWS_NOTHING {
         try {
             interface->flush_buffer(interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* ignore */
         }
     }
@@ -176,7 +175,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     void read(void *buf, size_t nbytes) THROWS_ONLY(memcached_interface_t::no_more_data_exc_t) {
         try {
             interface->read(buf, nbytes, interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             throw memcached_interface_t::no_more_data_exc_t();
         }
     }
@@ -184,7 +183,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     void read_line(std::vector<char> *dest) THROWS_ONLY(memcached_interface_t::no_more_data_exc_t) {
         try {
             interface->read_line(dest, interruptor);
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             throw memcached_interface_t::no_more_data_exc_t();
         }
     }
@@ -297,7 +296,7 @@ void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, 
     } catch (const cannot_perform_query_exc_t &e) {
         gets[i].error_message = e.what();
         gets[i].ok = false;
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* do nothing */
     }
 }
@@ -836,7 +835,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     try {
         rh->read(dp->buf(), value_size);
         rh->read(crlf_buf, 2);
-    } catch (memcached_interface_t::no_more_data_exc_t) {
+    } catch (const memcached_interface_t::no_more_data_exc_t &) {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
         rh->client_error_bad_data();
@@ -1129,7 +1128,7 @@ void handle_memcache(memcached_interface_t *interface,
         block_pm_duration read_timer(&rh.stats->pm_conns_reading);
         try {
             rh.read_line(&line);
-        } catch (memcached_interface_t::no_more_data_exc_t) {
+        } catch (const memcached_interface_t::no_more_data_exc_t &) {
             break;
         }
         read_timer.end();

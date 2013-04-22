@@ -6,8 +6,6 @@
 #include "utils.hpp"
 #include <boost/make_shared.hpp>
 
-#include "rdb_protocol/query_language.pb.h"
-
 namespace rdb_protocol {
 
 query_http_app_t::query_http_app_t(const boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
@@ -58,7 +56,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     store_key_t key(*it);
                     read.read = rdb_protocol_t::point_read_t(key);
                     ns_access.get_namespace_if()->read(read, &read_res, order_source.check_in("dummy parser"), &on_destruct);
-                } catch (interrupted_exc_t &) {
+                } catch (const interrupted_exc_t &) {
                     return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
                 }
 
@@ -118,7 +116,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     write.write = rdb_protocol_t::point_write_t(key, doc);
 
                     ns_access.get_namespace_if()->write(write, &write_res, order_source.check_in("rdb parser"), &on_destruct);
-                } catch (interrupted_exc_t &) {
+                } catch (const interrupted_exc_t &) {
                     return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
                 }
 
@@ -136,7 +134,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             return http_res_t(HTTP_BAD_REQUEST);
         }
         crash("Unreachable\n");
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         http_res_t res;
         res.set_body("text/plain", e.what());
         return http_res_t(HTTP_INTERNAL_SERVER_ERROR);

@@ -190,8 +190,8 @@ module 'ResolveIssuesView', ->
                     replica_affinities_to_send[datacenter.datacenter_id] = datacenter.num_machines
 
                     ack_expectations_to_send[datacenter.datacenter_id] = @namespace.get('ack_expectations')[datacenter.datacenter_id]
-                    if ack_expectations_to_send[datacenter.datacenter_id] > replica_affinities_to_send[datacenter.datacenter_id]
-                        ack_expectations_to_send[datacenter.datacenter_id] = replica_affinities_to_send[datacenter.datacenter_id]
+                    if ack_expectations_to_send[datacenter.datacenter_id].expectation > replica_affinities_to_send[datacenter.datacenter_id]
+                        ack_expectations_to_send[datacenter.datacenter_id].expectation = replica_affinities_to_send[datacenter.datacenter_id]
 
                     if @namespace.get('primary_uuid') is datacenter.datacenter_id # Since primary is a replica, we lower it by 1 if we are dealing with the primary datacenter
                         replica_affinities_to_send[datacenter.datacenter_id]--
@@ -406,7 +406,7 @@ module 'ResolveIssuesView', ->
 
 
             namespace = namespaces.get(@model.get('namespace_id'))
-            if @model.get('primary_uuid') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
+            if @model.get('primary_datacenter') isnt universe_datacenter.get('id') and not datacenters.get(@model.get('primary_datacenter'))?
                 json.no_primary = true
             else
                 # known issues = issue where replica > number of machines in a datacenter (not universe)
@@ -446,7 +446,7 @@ module 'ResolveIssuesView', ->
                                 datacenter_name: datacenter_name
                                 num_replicas: number_replicas
                                 num_machines: number_machines_in_datacenter
-                                change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
+                                change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
                         # We substract the number of machines used by the datacenter if we solve the issue
                         if datacenter_id isnt universe_datacenter.get('id')
@@ -474,7 +474,7 @@ module 'ResolveIssuesView', ->
                             datacenter_name: datacenters.get(datacenter_id).get('name') # Safe since it cannot be universe
                             num_replicas: number_replicas
                             num_machines: 0
-                            change_ack: namespace.get('ack_expectations')[datacenter_id] > number_machines_in_datacenter
+                            change_ack: namespace.get('ack_expectations')[datacenter_id].expectation > number_machines_in_datacenter
 
 
                 number_machines_requested_by_universe = @model.get('replica_affinities')[universe_datacenter.get('id')]
@@ -503,7 +503,7 @@ module 'ResolveIssuesView', ->
                             datacenter_id: universe_datacenter.get('id')
                             num_replicas: number_replicas
                             num_machines: machines.length
-                            change_ack: namespace.get('ack_expectations')[universe_datacenter.get('id')] > machines.length
+                            change_ack: namespace.get('ack_expectations')[universe_datacenter.get('id')].expectation > machines.length
                     else
                         # We have an unsatisfiable goals now, but we cannot tell the user where the problem comes from
                         json.extra_replicas_accross_cluster =

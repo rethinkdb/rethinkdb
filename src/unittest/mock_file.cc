@@ -83,5 +83,4 @@ void mock_file_opener_t::open_semantic_checking_file(UNUSED int *fd_out) {
 }
 #endif
 
-
 }  // namespace unittest

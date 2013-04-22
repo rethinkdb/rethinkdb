@@ -523,8 +523,8 @@ class ClusterAccess(object):
         assert protocol in ["dummy", "memcached", "rdb"]
         if port is None:
             port = random.randint(10000, 20000)
-        if protocol == "rdb":
-            port = 28015 # all rdb protocols are hosted on the driver port regardless of metadata
+            if protocol == "rdb":
+                port = 0 # port is ignored by the server, but used by get_namespace_host
         if name is None:
             name = str(random.randint(0, 1000000))
         if primary is not None:

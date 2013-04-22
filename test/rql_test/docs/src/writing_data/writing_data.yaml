@@ -1,0 +1,5 @@
+sections:
+  - tag: writing_data
+    name: Writing data
+    description: These commands allow inserting, deleting, and updating data.
+    order: 3

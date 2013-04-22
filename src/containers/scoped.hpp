@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_SCOPED_HPP_
 #define CONTAINERS_SCOPED_HPP_
 
@@ -44,10 +44,12 @@ public:
         other.ptr_ = tmp;
     }
 
-
-
     T *get() const {
         rassert(ptr_);
+        return ptr_;
+    }
+
+    T *get_or_null() const {
         return ptr_;
     }
 
@@ -59,7 +61,6 @@ public:
     bool has() const {
         return ptr_ != NULL;
     }
-
 
 private:
     T *ptr_;

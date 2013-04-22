@@ -37,15 +37,23 @@ public:
         cb_->on_keyvalue(atom, interruptor);
     }
 
+    void on_sindexes(const std::map<std::string, secondary_index_t> &, signal_t *) THROWS_ONLY(interrupted_exc_t) {
+        //Not implemented.
+        //Right now this is a noop because memcached doesn't support secondary
+        //indexes. We don't crash here because we still want the memcached unit
+        //tests to work.
+    }
+
     backfill_callback_t *cb_;
     key_range_t kr_;
 };
 
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                    transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, parallel_traversal_progress_t *p, 
+                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p, interruptor);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
 }
 
 

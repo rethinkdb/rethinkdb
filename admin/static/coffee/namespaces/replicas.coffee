@@ -255,7 +255,7 @@ module 'NamespaceView', ->
                     if @model.get('primary_uuid') is datacenter_id
                         replicas_value++
 
-                    if replicas_value < @model.get('ack_expectations')[datacenter_id]
+                    if replicas_value < @model.get('ack_expectations')[datacenter_id].expectation
                         if datacenters.get(datacenter_id)?
                             datacenter_name = datacenters.get(datacenter_id).get('name')
                         else if datacenter_id is universe_datacenter.get('id')
@@ -528,7 +528,9 @@ module 'NamespaceView', ->
             replica_affinities_to_send = {}
             replica_affinities_to_send[@datacenter.get('id')] = num_replicas
             ack_expectations_to_send = {}
-            ack_expectations_to_send[@datacenter.get('id')] = num_acks
+            ack_expectations_to_send[@datacenter.get('id')] =
+                expectation: num_acks
+                hard_durability: @model.get_durability()
 
             @data_cached =
                 num_replicas: num_replicas
@@ -565,8 +567,10 @@ module 'NamespaceView', ->
             new_replicas[@datacenter.get('id')] = @data_cached.num_replicas
             @model.set('replica_affinities', new_replicas)
 
-            new_acks = @model.get 'ack_expectations'
-            new_acks[@datacenter.get('id')] = @data_cached.num_acks
+            new_acks = DataUtils.deep_copy @model.get 'ack_expectations' # We need a deep copy or .set() is not going to trigger any events
+            new_acks[@datacenter.get('id')] =
+                expectation: @data_cached.num_acks
+                hard_durability: @model.get_durability()
             @model.set('ack_expectations', new_acks)
 
             @current_state = @states[0]
@@ -698,9 +702,11 @@ module 'NamespaceView', ->
             @set_new_primary new_primary, current_primary, @on_success_off, @on_error_off
 
         on_success_off: =>
-            data_to_set =
-                replica_affinities: @model.get('replica_affinities')
-            data_to_set = _.extend @data_cached, data_to_set
+            data_to_set = @data_cached
+            for dc, value of @model.get('replica_affinities')
+                if not data_to_set['replica_affinities'][dc]?
+                    data_to_set['replica_affinities'][dc] = value
+
             @model.set data_to_set
             @model.trigger 'change:primary_uuid'
             # Not working?
@@ -821,9 +827,11 @@ module 'NamespaceView', ->
             else
                 new_replica_affinities[new_primary] = 0
 
-            if (not @model.get('ack_expectations')[new_primary]?) or @model.get('ack_expectations')[new_primary] is 0
-                new_ack = {}
-                new_ack[new_primary] = 1
+            new_ack = @model.get('ack_expectations')
+            if (not @model.get('ack_expectations')[new_primary]?) or @model.get('ack_expectations')[new_primary].expectation is 0
+                new_ack[new_primary] =
+                    expectation: 1
+                    hard_durability: @model.get_durability()
 
 
 
@@ -831,7 +839,7 @@ module 'NamespaceView', ->
                 primary_uuid: new_primary
                 primary_pinnings: primary_pinnings
                 replica_affinities: new_replica_affinities
-                ack_expectations: (new_ack if new_ack?)
+                ack_expectations: new_ack
 
             @data_cached = data
             $.ajax
@@ -845,10 +853,13 @@ module 'NamespaceView', ->
 
 
         on_success_pin: =>
-            data_to_set =
-                replica_affinities: @model.get('replica_affinities')
-            data_to_set = _.extend data_to_set, @data_cached
+            data_to_set = @data_cached
+            for dc, value of @model.get('replica_affinities')
+                if not data_to_set['replica_affinities'][dc]?
+                    data_to_set['replica_affinities'][dc] = value
+
             @model.set data_to_set
+
             @model.trigger 'change:primary_uuid'
             @turn_primary_on()
 

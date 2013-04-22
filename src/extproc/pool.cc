@@ -10,7 +10,7 @@ namespace extproc {
 // ---------- pool_group_t ----------
 const pool_group_t::config_t pool_group_t::DEFAULTS;
 
-pool_group_t::pool_group_t(spawner_t::info_t *info, const config_t &config)
+pool_group_t::pool_group_t(spawner_info_t *info, const config_t &config)
     : spawner_(info), config_(config),
       pool_maker_(this)
 {
@@ -36,7 +36,7 @@ pool_t::~pool_t() {
     guarantee(busy_workers_.empty(), "Busy workers at pool shutdown!");
 
     // Kill worker processes.
-    worker_t *w;
+    pool_worker_t *w;
     while ((w = idle_workers_.head()))
         end_worker(&idle_workers_, w);
 }
@@ -50,7 +50,7 @@ void pool_t::repair_invariants() {
     rassert(num_workers() >= config()->min_workers);
 }
 
-pool_t::worker_t *pool_t::acquire_worker() {
+pool_worker_t *pool_t::acquire_worker() {
     assert_thread();
 
     // We're going to be using up a worker process, so we lock the semaphore.
@@ -72,21 +72,21 @@ pool_t::worker_t *pool_t::acquire_worker() {
     guarantee(!idle_workers_.empty()); // sanity
 
     // Grab an idle worker, move it to the busy list, assign it to `handle`.
-    worker_t *worker = idle_workers_.head();
+    pool_worker_t *worker = idle_workers_.head();
     idle_workers_.remove(worker);
     busy_workers_.push_back(worker);
     return worker;
 }
 
-void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
+void pool_t::release_worker(pool_worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this && worker->attached_);
 
     // If the worker's stream isn't open, something bad has happened.
-    if (!worker->is_read_open() || !worker->is_write_open()) {
+    if (!worker->unix_socket.is_read_open() || !worker->unix_socket.is_write_open()) {
         worker->on_error();
 
-        // TODO(rntz): Currently worker_t::on_error() never returns. If we ever
+        // TODO(rntz): Currently pool_worker_t::on_error() never returns. If we ever
         // change this, some code needs to get written here.
         unreachable();
     }
@@ -99,7 +99,7 @@ void pool_t::release_worker(worker_t *worker) THROWS_NOTHING {
     worker_semaphore_.unlock();
 }
 
-void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
+void pool_t::interrupt_worker(pool_worker_t *worker) THROWS_NOTHING {
     assert_thread();
     rassert(worker && worker->pool_ == this);
 
@@ -109,7 +109,7 @@ void pool_t::interrupt_worker(worker_t *worker) THROWS_NOTHING {
     repair_invariants();
 }
 
-void pool_t::detach_worker(worker_t *worker) {
+void pool_t::detach_worker(pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this && worker->attached_);
     ASSERT_NO_CORO_WAITING;
 
@@ -117,13 +117,14 @@ void pool_t::detach_worker(worker_t *worker) {
     busy_workers_.remove(worker);
     worker_semaphore_.unlock();
 
-    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
+    const int res = ::kill(worker->pid_, SIGKILL);
+    guarantee_err(0 == res, "could not kill worker");
 
     // Alas, we can't call repair_invariants now, since we're not allowed to
     // block.
 }
 
-void pool_t::cleanup_detached_worker(worker_t *worker) {
+void pool_t::cleanup_detached_worker(pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this && !worker->attached_);
     delete worker;
     repair_invariants();
@@ -134,7 +135,7 @@ class job_acceptor_t :
         public auto_job_t<job_acceptor_t>
 {
   public:
-    void run_job(control_t *control, UNUSED void *extra) {
+    void run_job(job_control_t *control, UNUSED void *extra) {
         while (-1 != accept_job(control, NULL)) {}
 
         // The "correct" way for us to die is to be killed by the engine
@@ -155,21 +156,22 @@ void pool_t::spawn_workers(int num) {
     // Spawn off `num` processes.
     scoped_array_t<pid_t> pids(num);
     scoped_array_t<scoped_fd_t> fds(num);
+    scoped_array_t<scoped_fd_t> other_end_of_fds(num);
     {
         on_thread_t switcher(spawner()->home_thread());
         for (int i = 0; i < num; ++i) {
-            pids[i] = spawner()->spawn_process(&fds[i]);
+            pids[i] = spawner()->spawn_process(&fds[i], &other_end_of_fds[i]);
             guarantee(-1 != pids[i], "could not spawn worker process");
         }
     }
 
-    // For every process spawned, create a corresponding worker_t.
+    // For every process spawned, create a corresponding pool_worker_t.
     for (int i = 0; i < num; ++i) {
-        worker_t *worker = new worker_t(this, pids[i], &fds[i]);
+        pool_worker_t *worker = new pool_worker_t(this, pids[i], &fds[i], &other_end_of_fds[i]);
 
         // Send it a job that just loops accepting jobs.
-        guarantee(0 == job_acceptor_t().send_over(worker),
-                  "Could not initialize worker process.");
+        const int res = job_acceptor_t().send_over(&worker->unix_socket);
+        guarantee(0 == res, "Could not initialize worker process.");
 
         // We've successfully spawned one worker.
         guarantee(num_spawning_workers_ > 0); // sanity
@@ -179,37 +181,37 @@ void pool_t::spawn_workers(int num) {
 }
 
 // May only call when we're sure that the worker is not already dead.
-void pool_t::end_worker(workers_t *list, worker_t *worker) {
+void pool_t::end_worker(intrusive_list_t<pool_worker_t> *list, pool_worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     list->remove(worker);
-    guarantee_err(0 == kill(worker->pid_, SIGKILL), "could not kill worker");
+    const int res = ::kill(worker->pid_, SIGKILL);
+    guarantee_err(0 == res, "could not kill worker");
     delete worker;
 }
 
 
-// ---------- pool_t::worker_t ----------
-pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
-    : unix_socket_stream_t(fd),
-      pool_(pool), pid_(pid),
-      attached_(true)
-{
+pool_worker_t::pool_worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd, scoped_fd_t *fd_worker_end)
+    : unix_socket(fd),
+      other_end_of_unix_socket(fd_worker_end->release()),
+      pool_(pool),
+      pid_(pid),
+      attached_(true) {
     guarantee(pid > 1 && fd != NULL); // sanity
 }
 
-pool_t::worker_t::~worker_t() {}
+pool_worker_t::~pool_worker_t() {}
 
-void pool_t::worker_t::on_event(int events) {
+void pool_worker_t::do_on_event(int /*events*/) {
     // NB. We are not in coroutine context when this method is called.
     if (attached_) {
         on_error();
     }
-    unix_socket_stream_t::on_event(events);
 }
 
-void pool_t::worker_t::on_error() {
+void pool_worker_t::on_error() {
     // NB. We may or may not be in coroutine context when this method is called.
-    assert_thread();
+    unix_socket.assert_thread();
 
     // We got an error on our socket to this worker. This shouldn't happen.
     crash_or_trap("Error on worker process socket");
@@ -232,7 +234,6 @@ job_handle_t::~job_handle_t() {
         // have to write try/finally every time you use a job handle in a
         // context where exceptions might be raised.
         logWRN("job handle still connected on destruction");
-        debugf("job handle still connected on destruction, interrupting\n");
         interrupt();
     }
     rassert(!connected(), "job handle still connected on destruction");
@@ -267,8 +268,8 @@ int64_t job_handle_t::read_interruptible(void *p, int64_t n, signal_t *interrupt
     int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
-        res = worker_->read_interruptible(p, n, &wrapper);
-    } catch (interrupted_exc_t) {
+        res = worker_->unix_socket.read_interruptible(p, n, &wrapper);
+    } catch (const interrupted_exc_t &) {
         // We were interrupted, and need to clean up the detached worker created
         // by job_handle_t::interruptor_wrapper_t::run(). We do this by falling
         // through to check_attached(), which will re-raise an interrupted_exc_t
@@ -287,8 +288,8 @@ int64_t job_handle_t::write_interruptible(const void *p, int64_t n, signal_t *in
     int res = -1;
     try {
         interruptor_wrapper_t wrapper(this, interruptor);
-        res = worker_->write_interruptible(p, n, &wrapper);
-    } catch (interrupted_exc_t) {
+        res = worker_->unix_socket.write_interruptible(p, n, &wrapper);
+    } catch (const interrupted_exc_t &) {
         // See comments in read_interruptible.
         rassert(worker_ && !worker_->attached_);
     }

@@ -1,7 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "errors.hpp"
-
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+
+#include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "http/http.hpp"
@@ -82,7 +82,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 /* Fill in the blueprints */
                 try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, (req.find_query_param("prefer_distribution") ? true : false)); //RSI this needs to be a parameter that we get from the request
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, (req.find_query_param("prefer_distribution") ? true : false));
                 } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);

@@ -308,7 +308,7 @@ module 'LogView', ->
                             else
                                 if json_data[group][namespace_id] is null
                                     msg += @log_delete_something_template
-                                        type: 'namespace'
+                                        type: 'table'
                                         id: namespace_id
                                 else
                                     attributes = []
@@ -322,11 +322,15 @@ module 'LogView', ->
                                                     datacenter_name = datacenters.get(datacenter_id).get 'name'
                                                 else
                                                     datacenter_name = 'a removed datacenter'
+                                                if attribute is 'ack_expectations'
+                                                    value = json_data[group][namespace_id][attribute][datacenter_id].expectation
+                                                else
+                                                    value = json_data[group][namespace_id][attribute][datacenter_id]
                                                 data =
                                                     is_universe: datacenter_id is universe_datacenter.get('id')
                                                     datacenter_id: datacenter_id
                                                     datacenter_name: datacenter_name
-                                                    value: json_data[group][namespace_id][attribute][datacenter_id]
+                                                    value: value
                                                 _datacenters.push data
                                             msg += @log_datacenters_values_template
                                                 namespace_id: namespace_id
@@ -498,11 +502,11 @@ module 'LogView', ->
                         for namespace_id of json_data[group]
                             if json_data[group][namespace_id] is null
                                 msg += @log_delete_something_template
-                                    type: 'namespace'
+                                    type: 'table'
                                     id: namespace_id
                             else if namespace_id is 'new'
                                 msg += @log_new_something_small_template
-                                    type: 'namespace'
+                                    type: 'table'
                             else
                                 attributes = []
                                 for attribute of json_data[group][namespace_id]

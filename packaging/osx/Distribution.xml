@@ -6,7 +6,16 @@
 
 <title>RethinkDB</title>
 
-<options customize="never" allow-external-scripts="no" hostArchitectures="x86_64" rootVolumeOnly="yes"/>
+<options customize="never" allow-external-scripts="no" rootVolumeOnly="yes" />
+
+<installation-check script="(function(){
+  if(system.sysctl('hw.machine') != 'x86_64'){
+    my.result.type = 'Fatal';
+    my.result.message = 'x86_64 system required';
+    return false;
+  }
+  return true;
+})()" />
 
 <volume-check>
   <allowed-os-versions>
