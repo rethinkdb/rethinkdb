@@ -2680,44 +2680,51 @@ TODO: retire this
     ----------------------------
 */
 .updates_container{
-    display: block;
-    width: 895px;
-    margin: 20px auto 0px auto;
-    padding: 7px 35px 7px 10px;
-    overflow: auto;
-    .updates{
-        margin-top: 6px;
-        float: left;
-    }
-    .options_container{
-        float: right;
-    }
-    .close{
-        float: right;
+    .settings{
+        display: none;
+        width: 895px;
+        margin: 20px auto 0px auto;
+        padding: 7px 35px 7px 10px;
+        overflow: auto;
+        .updates{
+            margin-top: 6px;
+            float: left;
+        }
+        .options_container{
+            float: right;
+        }
+        .close{
+            float: right;
+        }
     }
 }
 .settings_container {
-    position: relative;
-    background: #fbfbfb;
-    border: 1px solid #cfcfcf;
-    width: 940px;
-    margin: 20px auto 20px auto;
-    .title{
+    display: none;
+    position: absolute;
+    z-index: 10;
+    bottom: 100px;
+    width: 888px;
+    left: 50%;
+    margin: 20px auto 20px -470px;
+    padding: 20px 25px; 
+    border: 1px solid #cfcfcf; // stroke
+    .border-radius(4px); // border radius
+    background-color: #fbfbfb; // layer fill content
+    .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
+    
+    h2.title {
         margin-top: 0;
         font-family: @serif;
         color: #a3a3a3;
         font-size: 19px;
-        margin: 10px 0px;
+        margin-bottom: 20px;
     }
     .settings{
         overflow: auto;
-        width: 895px;
-        padding: 7px 35px 7px 25px;
         .setting{
             padding: 10px 0px 10px 0px;
             border-top: 1px solid #f0f0f0;
         }
-        .border-radius(4px); // border radius
         .content{
             padding-top: 6px;
         }
@@ -2729,7 +2736,6 @@ TODO: retire this
         float: right;
         position: relative;
         float: right;
-        right: -23px;
         font-weight: bold;
         font-size: 24px;
         color: black;

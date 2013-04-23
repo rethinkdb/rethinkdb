@@ -6,34 +6,16 @@
             <button id="pause-application" class="btn">Pause JS</button>
         </div>
         <div id="sidebar"></div>
-        <div class="updates_container alert"> 
-            <div class="updates">
-                Do you want the web interface to check for updates? This setting can be changed later if desired.
-            </div>
-            <a class="close" href="#">&times;</a>
-            <div class="options_container">
-                <button class="btn">No</button>
-                <button class="btn">Yes</button>
-            </div>
+        <div class="updates_container"> 
         </div>
         <div id="main-container">
             <div id="cluster" class="container"></div>
             <div id="modal-dialog"></div>
-            <div class="settings_container"> 
-                <div class="settings">
-                    <h2 class="title">Settings</h2>
-                    <div class="updates setting">
-                        <div class="options_container">
-                            <button class="btn">Turn off</button>
-                        </div>
-                        <div class="content">Check for new version of RethinkDB</div>
-                    </div>
-                </div>
-                <a class="close" href="#">&times;</a>
-            </div>
         </div>
     </div>
     <div id="footer">
+        <div class="settings_container"> 
+        </div>
         <div class="container">
             <ul>
                 <li><a href="http://rethinkdb.com/docs/">Documentation</a></li>
@@ -47,9 +29,39 @@
                         This ensures that data explorer suggestions won't be delayed while loading the font.
                         This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
                 }}
-                <li><a href="#">Settings</a><span class="preload_fonts"> </span></li>
+                <li><a href="#" class="settings_link">Settings</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
+    </div>
+</script>
+
+<script id="has_update-template" type="text/x-handlebars-template">
+    An update is available
+</script>
+
+<script id="settings-template" type="text/x-handlebars-template">
+    <div class="settings">
+        <a class="close" href="#">&times;</a>
+        <h2 class="title">Settings</h2>
+        <div class="updates setting">
+            <div class="options_container">
+                <button class="btn check_updates_btn" data-value="{{check_value}}">Turn {{check_value}}</button>
+            </div>
+            <div class="content">Check for new version of RethinkDB</div>
+        </div>
+    </div>
+</script>
+
+
+
+<script id="alert_settings-template" type="text/x-handlebars-template">
+    <div class="updates">
+        Do you want the web interface to check for updates? This setting can be changed later if desired.
+    </div>
+    <a class="close" href="#">&times;</a>
+    <div class="options_container">
+        <button class="btn no_update_btn" data-value="no">No</button>
+        <button class="btn ok_update_btn" data-value="yes">Yes</button>
     </div>
 </script>
 
