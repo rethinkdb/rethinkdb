@@ -387,7 +387,7 @@ class MakeObj(RqlQuery):
         self.optargs = {}
         for k in obj_dict.keys():
             if not isinstance(k, types.StringTypes):
-                raise RqlDriverError("RQL object keys must be strings.");
+                raise RqlDriverError("Document keys must be strings.");
             self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
