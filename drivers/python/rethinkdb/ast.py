@@ -353,7 +353,15 @@ class Datum(RqlQuery):
         elif datum.type == p.Datum.R_BOOL:
             return datum.r_bool
         elif datum.type == p.Datum.R_NUM:
-            return datum.r_num
+            # Convert to an integer if we think maybe the user might think of this
+            # number as an integer. I have been assured that this is a "temporary"
+            # behavior change until RQL supports native integers.
+            num = datum.r_num
+            if num % 1 == 0:
+                # Then we assume that in the user's data model this floating point
+                # number is meant be an integer and "helpfully" convert types for them.
+                num = int(num)
+            return num
         elif datum.type == p.Datum.R_STR:
             return datum.r_str
         elif datum.type == p.Datum.R_ARRAY:
