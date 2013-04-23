@@ -2,7 +2,7 @@
 #define RDB_PROTOCOL_TERMS_ARR_HPP_
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 class append_term_t : public op_term_t {
@@ -15,7 +15,7 @@ private:
         arr->check_type(datum_t::R_ARRAY);
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         // TODO: this is horrendously inefficient.
-        for (size_t i = 0; i < arr->size(); ++i) out->add(arr->el(i));
+        for (size_t i = 0; i < arr->size(); ++i) out->add(arr->get(i));
         out->add(new_el);
         return new_val(out.release());
     }
@@ -48,7 +48,7 @@ private:
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             const datum_t *arr = v->as_datum();
             size_t real_n = canonicalize(this, n, arr->size());
-            return new_val(arr->el(real_n));
+            return new_val(arr->get(real_n));
         } else {
             datum_stream_t *s = v->as_seq();
             rcheck(n >= -1, strprintf("Cannot use an index < -1 (%d) on a stream.", n));
@@ -92,7 +92,7 @@ private:
             if (!r_oob) {
                 for (size_t i = real_l; i <= real_r; ++i) {
                     if (i >= arr->size()) break;
-                    out->add(arr->el(i));
+                    out->add(arr->get(i));
                 }
             }
             return new_val(out.release());
@@ -109,7 +109,7 @@ private:
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
             datum_stream_t *new_ds = seq->slice(fake_l, fake_r);
-            return t ? new_val(t, new_ds) : new_val(new_ds);
+            return t ? new_val(new_ds, t) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
         unreachable();
@@ -136,7 +136,7 @@ private:
         } else {
             new_ds = ds->slice(0, r-1); // note that both bounds are inclusive
         }
-        return t ? new_val(t, new_ds) : new_val(new_ds);
+        return t ? new_val(new_ds, t) : new_val(new_ds);
     }
     virtual const char *name() const { return "limit"; }
 };

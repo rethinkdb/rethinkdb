@@ -14,9 +14,8 @@ namespace ql {
 
 class datum_stream_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    template<class T>
-    datum_stream_t(env_t *_env, const T *bt_src)
-        : pb_rcheckable_t(bt_src), env(_env) {
+    datum_stream_t(env_t *_env, const pb_rcheckable_t *backtrace_source)
+        : pb_rcheckable_t(backtrace_source), env(_env) {
         guarantee(env);
     }
     virtual ~datum_stream_t() { }
@@ -40,21 +39,26 @@ public:
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     const datum_t *next();
-private:
-    virtual const datum_t *next_impl() = 0;
+
+    // Gets the next elements from the stream.  (Returns zero elements only when
+    // the end of the stream has been reached.  Otherwise, returns at least one
+    // element.)  (Wrapper around `next_batch_impl`.)
+    std::vector<const datum_t *> next_batch();
+
 protected:
     env_t *env;
+
+private:
+    static const size_t MAX_BATCH_SIZE = 100;
+
+    // Returns NULL upon end of stream.
+    virtual const datum_t *next_impl() = 0;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
-    eager_datum_stream_t(env_t *env, datum_stream_t *bt_src)
-        : datum_stream_t(env, bt_src) {
-        note_dummy_frame();
-    }
-    template<class T>
-    eager_datum_stream_t(env_t *env, const T *bt_src)
-        : datum_stream_t(env, bt_src) { }
+    eager_datum_stream_t(env_t *env, const pb_rcheckable_t *backtrace_source)
+        : datum_stream_t(env, backtrace_source) { }
 
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
@@ -69,39 +73,44 @@ public:
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
-        guarantee(f && src);
+    map_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source) {
+        guarantee(f != NULL && source != NULL);
     }
-    virtual const datum_t *next_impl();
+
 private:
+    const datum_t *next_impl();
+
     func_t *f;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src) {
-        guarantee(f && src);
+    filter_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source) {
+        guarantee(f && source);
     }
-    virtual const datum_t *next_impl();
+
 private:
+    const datum_t *next_impl();
+
     func_t *f;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_src)
-        : eager_datum_stream_t(env, _src), f(_f), src(_src), subsrc(0) {
-        guarantee(f && src);
+    concatmap_datum_stream_t(env_t *env, func_t *_f, datum_stream_t *_source)
+        : eager_datum_stream_t(env, _source), f(_f), source(_source), subsource(NULL) {
+        guarantee(f != NULL && source != NULL);
     }
-    virtual const datum_t *next_impl();
 private:
+    const datum_t *next_impl();
+
     func_t *f;
-    datum_stream_t *src;
-    datum_stream_t *subsrc;
+    datum_stream_t *source;
+    datum_stream_t *subsource;
 };
 
 class lazy_datum_stream_t : public datum_stream_t {
@@ -109,16 +118,21 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         const pb_rcheckable_t *bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const datum_t *pval, const std::string &sindex_id,
+                        const pb_rcheckable_t *bt_src);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);
     virtual datum_stream_t *concatmap(func_t *f);
 
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
-    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
-    virtual const datum_t *next_impl();
-    virtual const datum_t *as_array() { return 0; } // cannot be converted implicitly
+    virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *base, func_t *r);
+    virtual const datum_t *as_array() { return NULL; } // cannot be converted implicitly
 private:
+    const datum_t *next_impl();
+
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
@@ -126,42 +140,41 @@ private:
 
     // These are used on the json streams.  They're in the class instead of
     // being locally allocated because it makes debugging easier.
-    rdb_protocol_details::transform_variant_t trans;
-    rdb_protocol_details::terminal_variant_t terminal;
-    query_language::scopes_t _s;
-    query_language::backtrace_t _b;
 
-    template<class T>
-    void run_terminal(T t); // only used in datum_stream.cc
-    std::vector<const datum_t *> shard_data; // used by run_terminal
+    rdb_protocol_t::rget_read_response_t::result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
     array_datum_stream_t(env_t *env, const datum_t *_arr, const pb_rcheckable_t *bt_src);
-    virtual const datum_t *next_impl();
+
 private:
+    const datum_t *next_impl();
+
     size_t index;
     const datum_t *arr;
 };
 
 class slice_datum_stream_t : public eager_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _left, size_t _right, datum_stream_t *_src);
-    virtual const datum_t *next_impl();
+    slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *source);
 private:
+    const datum_t *next_impl();
+
     env_t *env;
-    size_t ind, left, right;
-    datum_stream_t *src;
+    size_t index, left, right;
+    datum_stream_t *source;
 };
 
 class zip_datum_stream_t : public eager_datum_stream_t {
 public:
-    zip_datum_stream_t(env_t *_env, datum_stream_t *_src);
-    virtual const datum_t *next_impl();
+    zip_datum_stream_t(env_t *env, datum_stream_t *source);
+
 private:
+    const datum_t *next_impl();
+
     env_t *env;
-    datum_stream_t *src;
+    datum_stream_t *source;
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There
@@ -178,15 +191,20 @@ public:
         guarantee(src);
         load_data();
     }
-    virtual const datum_t *next_impl() {
+    const datum_t *next_impl() {
         r_sanity_check(data_index >= 0);
-        if (data_index >= static_cast<int>(data.size())) return 0;
-        //                ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
-        return data[data_index++];
+        if (data_index >= static_cast<int>(data.size())) {
+            //            ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
+            return NULL;
+        } else {
+            const datum_t *ret = data[data_index];
+            ++data_index;
+            return ret;
+        }
     }
 private:
     virtual const datum_t *as_array() {
-        return is_arr() ? eager_datum_stream_t::as_array() : 0;
+        return is_arr() ? eager_datum_stream_t::as_array() : NULL;
     }
     bool is_arr() {
         return is_arr_;
@@ -200,7 +218,7 @@ private:
                    strprintf("Can only sort at most %zu elements.",
                              sort_el_limit));
             for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->el(i));
+                data.push_back(arr->get(i));
             }
         } else {
             is_arr_ = false;
@@ -227,8 +245,9 @@ public:
     union_datum_stream_t(env_t *env, const std::vector<datum_stream_t *> &_streams,
                          const pb_rcheckable_t *bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
-    virtual const datum_t *next_impl();
 private:
+    const datum_t *next_impl();
+
     std::vector<datum_stream_t *> streams;
     size_t streams_index;
 };

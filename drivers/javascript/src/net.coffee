@@ -54,9 +54,9 @@ class Connection
 
     _end: -> @close()
 
-    mkAtom = (response) -> DatumTerm.deconstruct response.getResponse 0
+    mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
-    mkSeq = (response) -> (DatumTerm.deconstruct res for res in response.responseArray())
+    mkSeq = (response) -> (DatumTerm::deconstruct res for res in response.responseArray())
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
@@ -89,7 +89,7 @@ class Connection
                 cb mkErr(RqlCompileError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.CLIENT_ERROR
-                cb mkErr(RqlClientErr, response, root)
+                cb mkErr(RqlClientError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.RUNTIME_ERROR
                 cb mkErr(RqlRuntimeError, response, root)

@@ -80,7 +80,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
@@ -168,7 +168,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                                backfill_session_id,
                                interruptor);
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         throw backfiller_lost_exc_t();
     }
 
@@ -254,7 +254,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
         mailbox_callback_mode_inline),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
         mailbox_callback_mode_inline),
     read_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
@@ -380,7 +380,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
             mailbox_manager_,
             broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
             listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox_.get_address())));
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         throw broadcaster_lost_exc_t();
     }
 
@@ -433,7 +433,7 @@ void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &w
         sem_acq.reset();
         send(mailbox_manager_, ack_addr);
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }
@@ -447,7 +447,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained_.pulse_if_not_already_pulsed();
     }
 
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    write_token_pair_t write_token_pair;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink_, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -455,7 +455,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs_->new_write_token(&write_token);
+        svs_->new_write_token_pair(&write_token_pair);
     }
 
 #ifndef NDEBUG
@@ -465,15 +465,17 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
+    // This isn't used for client writes, so we don't want to wait for a disk ack.
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
         &response,
+        WRITE_DURABILITY_SOFT,
         qe.transition_timestamp,
         qe.order_token,
-        &write_token,
+        &write_token_pair,
         interruptor);
 }
 
@@ -482,9 +484,8 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
         transition_timestamp_t transition_timestamp,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
-        THROWS_NOTHING
-{
+        mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+        write_durability_t durability) THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
@@ -492,7 +493,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr,
+        write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
@@ -502,14 +503,13 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
-        auto_drainer_t::lock_t keepalive)
-        THROWS_NOTHING
-{
+        const write_durability_t durability,
+        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         /* Make sure the broadcaster isn't sending us too many writes */
         semaphore_assertion_t::acq_t sem_acq(&enforce_max_outstanding_writes_from_broadcaster_);
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        write_token_pair_t write_token_pair;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -522,7 +522,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-            svs_->new_write_token(&write_token);
+            svs_->new_write_token_pair(&write_token_pair);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -536,16 +536,17 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 #endif
 
         // Perform the operation
-        cond_t non_interruptor;
         typename protocol_t::write_response_t response;
+
         svs_->write(DEBUG_ONLY(metainfo_checker, )
                     region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
                                                             binary_blob_t(version_range_t(version_t(branch_id_, transition_timestamp.timestamp_after())))),
                     write,
                     &response,
+                    durability,
                     transition_timestamp,
                     order_token,
-                    &write_token,
+                    &write_token_pair,
                     keepalive.get_drain_signal());
 
         /* Release the semaphore before sending the response, because the
@@ -553,7 +554,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
         sem_acq.reset();
         send(mailbox_manager_, ack_addr, response);
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }
@@ -584,7 +585,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+        read_token_pair_t read_token_pair;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
@@ -597,7 +598,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
 
             guarantee(current_timestamp_ == expected_timestamp);
 
-            svs_->new_read_token(&read_token);
+            svs_->new_read_token_pair(&read_token_pair);
         }
 
 #ifndef NDEBUG
@@ -612,11 +613,11 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             read,
             &response,
             order_token,
-            &read_token,
+            &read_token_pair,
             keepalive.get_drain_signal());
 
         send(mailbox_manager_, ack_addr, response);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 }

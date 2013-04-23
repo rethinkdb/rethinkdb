@@ -45,9 +45,9 @@ boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
     if (data.empty()) {
         return boost::shared_ptr<scoped_cJSON_t>();
     } else {
-        boost::shared_ptr<scoped_cJSON_t> res = data.front();
+        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
         data.pop_front();
-        return res;
+        return ret;
     }
 }
 
@@ -62,6 +62,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     while (data.empty()) {
         boost::shared_ptr<scoped_cJSON_t> input = stream->next();
         if (!input) {
+            // End of stream reached.
             return boost::shared_ptr<scoped_cJSON_t>();
         }
 
@@ -88,9 +89,9 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
         std::swap(data, accumulator);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> res = data.front();
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
     data.pop_front();
-    return res;
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
@@ -98,24 +99,30 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
     return shared_from_this();
 }
 
-// batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-//                                              signal_t *_interruptor, key_range_t _range,
-//                                              const backtrace_t &_table_scan_backtrace,
-//                                              bool _use_outdated)
-//     : ns_access(_ns_access), interruptor(_interruptor),
-//       range(_range),
-//       finished(false), started(false), use_outdated(_use_outdated),
-//       table_scan_backtrace(_table_scan_backtrace)
-// { }
-
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor, key_range_t _range,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
-      range(_range),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
+      sindex_start_value(NULL), sindex_end_value(NULL),
+      range(_range),
+      table_scan_backtrace()
+{ }
+
+batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+                      signal_t *_interruptor, const std::string &_sindex_id,
+                      const std::map<std::string, ql::wire_func_t> &_optargs,
+                      bool _use_outdated,
+                      const ql::datum_t *_sindex_start_value,
+                      const ql::datum_t *_sindex_end_value)
+    : ns_access(_ns_access), interruptor(_interruptor),
+      sindex_id(_sindex_id),
+      finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
+      sindex_start_value(_sindex_start_value), sindex_end_value(_sindex_end_value),
+      range(rdb_protocol_t::sindex_key_range(sindex_start_value->truncated_secondary(),
+                                             sindex_end_value->truncated_secondary())),
       table_scan_backtrace()
 { }
 
@@ -131,10 +138,10 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
             return boost::shared_ptr<scoped_cJSON_t>();
         }
     }
-    boost::shared_ptr<scoped_cJSON_t> ret = data.front();
-    data.pop_front();
 
-    return ret;
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
+    data.pop_front();
+    return datum;
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
@@ -148,9 +155,7 @@ result_t batched_rget_stream_t::apply_terminal(
     UNUSED ql::env_t *ql_env,
     const scopes_t &scopes,
     const backtrace_t &per_op_backtrace) {
-    rdb_protocol_t::region_t region(range);
-    rdb_protocol_t::rget_read_t rget_read(region);
-    rget_read.transform = transform;
+    rdb_protocol_t::rget_read_t rget_read = get_rget();
     rget_read.terminal = rdb_protocol_details::terminal_t(t, scopes, per_op_backtrace);
     rdb_protocol_t::read_t read(rget_read);
     try {
@@ -173,7 +178,7 @@ result_t batched_rget_stream_t::apply_terminal(
         }
 
         return p_res->result;
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
@@ -184,10 +189,23 @@ result_t batched_rget_stream_t::apply_terminal(
     }
 }
 
+rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
+    if (!sindex_id) {
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
+                                           transform,
+                                           optargs);
+    } else {
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
+                                           *sindex_id,
+                                           sindex_start_value,
+                                           sindex_end_value,
+                                           transform,
+                                           optargs);
+    }
+}
+
 void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::rget_read_t rget_read(
-        rdb_protocol_t::region_t(range), transform, optargs);
-    rdb_protocol_t::read_t read(rget_read);
+    rdb_protocol_t::read_t read(get_rget());
     try {
         guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
@@ -200,10 +218,12 @@ void batched_rget_stream_t::read_more() {
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
+        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
             throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
+        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
+            throw *e3;
         }
 
         // todo: just do a straight copy?
@@ -221,7 +241,7 @@ void batched_rget_stream_t::read_more() {
         if (!range.left.increment()) {
             finished = true;
         }
-    } catch (cannot_perform_query_exc_t e) {
+    } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
@@ -232,28 +252,4 @@ void batched_rget_stream_t::read_more() {
     }
 }
 
-union_stream_t::union_stream_t(const stream_list_t &_streams)
-    : streams(_streams), hd(streams.begin())
-{ }
-
-boost::shared_ptr<scoped_cJSON_t> union_stream_t::next() {
-    while (hd != streams.end()) {
-        if (boost::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
-            return json;
-        } else {
-            ++hd;
-        }
-    }
-    return boost::shared_ptr<scoped_cJSON_t>();
-}
-
-boost::shared_ptr<json_stream_t> union_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
-    for (stream_list_t::iterator it  = streams.begin();
-                                 it != streams.end();
-                                 ++it) {
-        *it = (*it)->add_transformation(t, ql_env, scopes, backtrace);
-    }
-    return shared_from_this();
-}
-
-} //namespace query_language 
+} //namespace query_language

@@ -26,34 +26,50 @@ public:
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
     const datum_t *get_row(const datum_t *pval);
+    datum_stream_t *get_sindex_rows(
+        const datum_t *pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
     datum_t *env_add_ptr(datum_t *d);
 
-    // A wrapper around `do_replace` that does error handling correctly.
-    // TODO: Use a variadic template so we can get rid of
-    // `_so_the_template_matches` above?
-    template<class T>
-    const datum_t *replace(const datum_t *d, T t, bool b) {
-        rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
-        try {
-            return do_replace(d, t, b);
-        } catch (const any_ql_exc_t &e) {
-            datum_t *datum = env_add_ptr(new datum_t(datum_t::R_OBJECT));
-            std::string err = e.what();
-            // TODO why is this bool (which is marked as MUST USE not used?)
-            // T0D0NE: the bool is true if there's a conflict when inserting the
-            // key, but since we just created an empty object above conflicts
-            // are impossible here.  If you want to harden this against future
-            // changes, you could store the bool and `r_sanity_check` that it's
-            // false.
-            UNUSED bool key_in_object =
-                datum->add("first_error", env_add_ptr(new datum_t(err)))
-                || datum->add("errors", env_add_ptr(new datum_t(1.0)));
-            return datum;
-        }
-    }
+    const datum_t *make_error_datum(const base_exc_t &exception);
+
+
+    const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
+    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
+
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<const datum_t *> &original_values,
+        func_t *replacement_generator,
+        bool nondeterministic_replacements_ok);
+
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<const datum_t *> &original_values,
+        const std::vector<const datum_t *> &replacement_values,
+        bool upsert);
+
+    MUST_USE bool sindex_create(const std::string &name, func_t *index_func);
+    MUST_USE bool sindex_drop(const std::string &name);
+    const datum_t *sindex_list();
+
 private:
-    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf,
-                             bool _so_the_template_matches = false);
+    struct datum_func_pair_t {
+        datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
+        datum_func_pair_t(const datum_t *_original_value,
+                          const map_wire_func_t *_replacer)
+            : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
+
+        explicit datum_func_pair_t(const datum_t *_error_value)
+            : original_value(NULL), replacer(NULL), error_value(_error_value) { }
+
+        // One of these datum_t *'s is NULL.
+        const datum_t *original_value;
+        const map_wire_func_t *replacer;
+        const datum_t *error_value;
+    };
+
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<datum_func_pair_t> &replacements);
+
+    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
 
@@ -101,14 +117,14 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
-    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, datum_stream_t *_sequence,
-          const term_t *_parent, env_t *_env);
-    val_t(uuid_u _db, const term_t *_parent, env_t *_env);
-    val_t(func_t *_func, const term_t *_parent, env_t *_env);
+    val_t(const datum_t *_datum, const term_t *_parent);
+    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent);
+    val_t(datum_stream_t *_sequence, const term_t *_parent);
+    val_t(table_t *_table, const term_t *_parent);
+    val_t(table_t *_table, datum_stream_t *_sequence, const term_t *_parent);
+    val_t(uuid_u _db, const term_t *_parent);
+    val_t(func_t *_func, const term_t *_parent);
+    ~val_t();
 
     uuid_u as_db();
     table_t *as_table();
@@ -145,14 +161,20 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
     const term_t *parent;
-    env_t *env;
+    env_t *get_env() { return parent->val_t_get_env(); }
 
     type_t type;
-    uuid_u db;
     table_t *table;
-    datum_stream_t *sequence;
-    const datum_t *datum;
-    func_t *func;
+    union {
+        // We store the db's `uuid_u` in here.
+        uint8_t opaque_db[sizeof(uuid_u)];
+        datum_stream_t *sequence;
+        const datum_t *datum;
+        func_t *func;
+    };
+    uuid_u *db_ptr() {
+        return reinterpret_cast<uuid_u *>(&opaque_db);
+    }
 
     DISABLE_COPYING(val_t);
 };

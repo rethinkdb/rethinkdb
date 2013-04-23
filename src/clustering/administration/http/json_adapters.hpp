@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 
@@ -104,17 +104,12 @@ void apply_json_to(cJSON *, deletable_t<T> *);
 template <class T>
 void erase_json(deletable_t<T> *);
 
-template <class T>
-void on_subfield_change(deletable_t<T> *);
-
 // ctx-less json adapter concept for peer_id_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(peer_id_t *);
 
 cJSON *render_as_json(peer_id_t *);
 
 void apply_json_to(cJSON *, peer_id_t *);
-
-void on_subfield_change(peer_id_t *);
 
 
 // ctx-less json adapter concepto for region map
@@ -126,9 +121,6 @@ cJSON *render_as_json(region_map_t<protocol_t, value_t> *);
 
 template <class protocol_t, class value_t>
 void apply_json_to(cJSON *, region_map_t<protocol_t, value_t> *);
-
-template <class protocol_t, class value_t>
-void on_subfield_change(region_map_t<protocol_t, value_t> *);
 
 #include "clustering/administration/http/json_adapters.tcc"
 

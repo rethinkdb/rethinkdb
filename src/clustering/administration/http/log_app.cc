@@ -69,7 +69,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
             while (*p && *p != '+') p++;
             try {
                 machine_ids.push_back(str_to_uuid(std::string(start, p - start)));
-            } catch (std::runtime_error) {
+            } catch (const std::runtime_error &) {
                 return http_res_t(HTTP_NOT_FOUND);
             }
             if (!*p) {
@@ -140,11 +140,11 @@ void log_http_app_t::fetch_logs(int i,
             max_messages, min_timestamp, max_timestamp,
             interruptor);
         cJSON_AddItemToObject(map_to_fill, key.c_str(), render_as_json(&messages));
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* ignore */
-    } catch (std::runtime_error e) {
+    } catch (const std::runtime_error &e) {
         cJSON_AddItemToObject(map_to_fill, key.c_str(), cJSON_CreateString(e.what()));
-    } catch (resource_lost_exc_t) {
+    } catch (const resource_lost_exc_t &) {
         cJSON_AddItemToObject(map_to_fill, key.c_str(), cJSON_CreateString("lost contact with peer while fetching log"));
     }
 }

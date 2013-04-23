@@ -1,0 +1,37 @@
+commands:
+  - tag: foreach
+    section: control
+    order: 2
+    description: Loop over a sequence, evaluating the given write query for each element.
+
+    body:
+      js: queryFunction
+      py: query_function
+      rb: query_function
+    parent: r
+    returns: query
+
+    examples:
+      - description: Now that our heroes have defeated their villains, we can safely
+          remove them from the villain table.
+        code:
+          js: |-
+            r.table('marvel').forEach(function(hero) {
+             return r.table('villains').get(hero('villainDefeated')).delete()
+            }).run(conn, callback)
+          py: |-
+            r.table('marvel').for_each(
+                lambda hero: r.table('villains').get(hero['villainDefeated']).delete()
+            ).run(conn)
+          rb: |-
+            r.table('marvel').for_each {|hero|
+              r.table('villains').get(hero[:villain_defeated]).delete
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+

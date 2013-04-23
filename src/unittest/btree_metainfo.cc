@@ -63,7 +63,7 @@ void run_metainfo_test() {
     std::map<std::string, std::string> mirror;
     mirror[""] = "";
 
-    btree_slice_t btree(&cache, &get_global_perfmon_collection());
+    btree_slice_t btree(&cache, &get_global_perfmon_collection(), "unittest");
 
     order_source_t order_source;
 
@@ -71,9 +71,10 @@ void run_metainfo_test() {
     for (int i = 0; i < 1000; i++) {
 
         order_token_t otok = order_source.check_in("metainfo unittest");
+
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
         buf_lock_t *sb_buf = superblock->get();
 
         int op = random() % 100;

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 
 #include "btree/operations.hpp"
@@ -7,6 +7,7 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/archive/vector_stream.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
@@ -36,6 +37,19 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
     sb_data->stat_block = new_stat_block;
+}
+
+block_id_t real_superblock_t::get_sindex_block_id() const {
+    rassert(sb_buf_.is_acquired());
+    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+}
+
+void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
+    rassert(sb_buf_.is_acquired());
+
+    rassert(sb_buf_.is_acquired());
+    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+    sb_data->sindex_block = new_sindex_block;
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
@@ -292,7 +306,6 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
-    sb->release(); //XXX it's a little bit weird that we release this from here.
 }
 
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
@@ -310,7 +323,6 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
         temp_lock.set_eviction_priority(stat_block_eviction_priority);
     }
 }
-
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
@@ -471,44 +483,48 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
     got_superblock_out->init(tmp_sb.release());
 }
 
-void get_btree_superblock_and_txn_internal(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp,
-                                           order_token_t token, cache_snapshotted_t snapshotted,
-                                           cache_account_t *cache_account,
-                                           scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                           scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-
-    order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
-
-    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp, pre_begin_txn_token);
-    txn_out->init(txn);
-
-    txn->set_account(cache_account);
-
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        txn->snapshot();
-    }
-
-    get_btree_superblock(txn, access, got_superblock_out);
-}
-
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
+                                  write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out) {
-    get_btree_superblock_and_txn_internal(slice, access, expected_change_count, tstamp, token, CACHE_SNAPSHOTTED_NO, NULL, got_superblock_out, txn_out);
+    slice->assert_thread();
+
+    const order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
+    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp,
+                                           pre_begin_txn_token, durability);
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, access, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<transaction_t> *txn_out) {
-    get_btree_superblock_and_txn_internal(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, CACHE_SNAPSHOTTED_YES, slice->get_backfill_account(), got_superblock_out, txn_out);
+    slice->assert_thread();
+    transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
+                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+    txn->set_account(slice->get_backfill_account());
+
+    txn->snapshot();
+
+    get_btree_superblock(txn, rwi_read_sync, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<transaction_t> *txn_out) {
+    slice->assert_thread();
     rassert(is_read_mode(access));
-    get_btree_superblock_and_txn_internal(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, NULL, got_superblock_out, txn_out);
+    transaction_t *txn = new transaction_t(slice->cache(), access,
+                                           slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
+        txn->snapshot();
+    }
+
+    get_btree_superblock(txn, access, got_superblock_out);
 }

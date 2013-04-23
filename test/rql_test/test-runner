@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-from yaml import load
+import yaml
+import json
 from os import walk
-from sys import argv, stdout
+from sys import argv, stdout, exit
 import types
 import re
 import os
@@ -177,7 +178,7 @@ class TestGroup:
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
-    # Tests may specify generic test strings valid for 
+    # Tests may specify generic test strings valid for
     # all languages or language specific versions
     def get_code(self, obj, lang, index):
 
@@ -185,7 +186,7 @@ class TestGroup:
 
             # Try language specific version first
             if lang in obj:
-                
+
                 lang_specific = obj[lang]
 
                 # lang_specific may be a dict giving a code attribute
@@ -200,7 +201,7 @@ class TestGroup:
 
             else:
                 code = None
-                
+
         else:
 
             # obj itself is the code
@@ -218,7 +219,7 @@ class TestGroup:
         # Construct the appropriate representation for each test in this language
         return map(lambda src: Langs.repr_query_for(lang, src), code)
 
-    # Get the expected result from the test object. Either a generic result or 
+    # Get the expected result from the test object. Either a generic result or
     # a language specific result.
     def get_expected(self, obj, lang):
         if lang in obj and isinstance(obj[lang], dict) and 'ot' in obj[lang]:
@@ -251,13 +252,13 @@ class TestBuilder:
 
         tests = []
         for root, dirs, files in walk(self.root):
-        
+
             # Find the nested group location from the root
             path = root.split('/')[1:]
-            
+
             # Parse and insert the yaml structures
             for name in filter(lambda name: name.endswith('.yaml'), files):
-                test_group = load(open(root+'/'+name))
+                test_group = yaml.load(open(root+'/'+name))
                 leaf = name.partition('.')[0]
                 tests.append(TestGroup(path+[leaf], test_group, self.shard))
 
@@ -278,6 +279,8 @@ class TestBuilder:
                 for group in self.tests:
                     group.write_group(script, lang)
 
+                script.write('the_end()')
+
 def run_tests(lang, servers):
     if lang is 'py':
         interpreter = os.getenv('PYTHON') or 'python'
@@ -292,13 +295,15 @@ def run_tests(lang, servers):
     os.system(interpreter + " --version")
     print ''
     stdout.flush()
-    call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
-    print "Finished running "+lang+" tests\n"
+    res = call([interpreter, 'build/test.'+lang, "UNUSED", str(servers.driver_port()), str(servers.cluster_port()), servers.executable()])
+    if res != 0:
+        exit("Failed %s tests" % lang)
+    print "Successfully Passed "+lang+" tests\n"
     stdout.flush()
 
 # Run all language tests
 def run(build, lang=None):
-    with RethinkDBTestServers(4, server_build=build) as servers:
+    with RethinkDBTestServers(1, server_build_dir=build) as servers:
         if lang:
             run_tests(lang, servers)
         else:

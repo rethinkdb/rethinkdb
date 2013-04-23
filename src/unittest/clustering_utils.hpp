@@ -8,14 +8,27 @@
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
 class memcached_protocol_t;
 
 namespace unittest {
+
+// An ack checker that only expects to get passed to spawn_write.
+class spawn_write_fake_ack_checker_t : public ack_checker_t {
+    bool is_acceptable_ack_set(const std::set<peer_id_t> &) {
+        EXPECT_TRUE(false);
+        return false;
+    }
+    write_durability_t get_write_durability(const peer_id_t &) const {
+        return WRITE_DURABILITY_SOFT;
+    }
+};
 
 struct fake_fifo_enforcement_t {
     fifo_enforcer_source_t source;
@@ -34,10 +47,10 @@ inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t(io_backender_t *io_backender, order_source_t *order_source) :
-            temp_file(),
+    test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
-            store(serializer.get(), temp_file.name().permanent_path(), GIGABYTE, true, &get_global_perfmon_collection(), &ctx) {
+            store(serializer.get(), temp_file.name().permanent_path(), GIGABYTE,
+                    true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;
@@ -50,7 +63,6 @@ public:
 
     temp_file_t temp_file;
     scoped_ptr_t<standard_serializer_t> serializer;
-    typename protocol_t::context_t ctx;
     typename protocol_t::store_t store;
 };
 
@@ -174,7 +186,7 @@ private:
 
                 nap(10, keepalive.get_drain_signal());
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* Break out of loop */
         }
     }

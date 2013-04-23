@@ -1,0 +1,39 @@
+commands:
+  - tag: error
+    section: control
+    order: 3
+    description: Throw a runtime error.
+
+    body: message
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Iron Man can''t possibly have lost a battle:'
+        code:
+          js: |-
+            r.table('marvel').get('IronMan').do(function(ironman) {
+             return r.branch(ironman('victories').lt(ironman('battles')),
+              r.error('impossible code path'),
+              ironman)
+            }).run(conn, callback)
+          py: |-
+            r.table('marvel').get('IronMan').do(
+              lambda ironman: r.branch(ironman['victories'] < ironman['battles'],
+                                        r.error('impossible code path'),
+                                        ironman)
+            ).run(conn)
+          rb: |-
+            r.table('marvel').get('IronMan').do { |ironman|
+              r.branch(ironman[:victories] < ironman[:battles],
+                r.error('impossible code path'),
+                ironman)
+            }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+

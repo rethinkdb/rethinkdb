@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/persistable_blueprint.hpp"
 
 #include <string>
@@ -51,8 +51,6 @@ void apply_json_to(cJSON *change, blueprint_role_t *target) {
     }
 }
 
-void on_subfield_change(blueprint_role_t *) { }
-
 template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
@@ -70,27 +68,21 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
     apply_as_directory(change, target);
 }
 
-template <class protocol_t>
-void on_subfield_change(persistable_blueprint_t<protocol_t> *) { }
-
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template cJSON *render_as_json<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template void apply_json_to<memcached_protocol_t>(cJSON *, persistable_blueprint_t<memcached_protocol_t> *);
-template void on_subfield_change<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template void debug_print<memcached_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<memcached_protocol_t> &x);
 
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template cJSON *render_as_json<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template void apply_json_to<rdb_protocol_t>(cJSON *, persistable_blueprint_t<rdb_protocol_t> *);
-template void on_subfield_change<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template void debug_print<rdb_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<rdb_protocol_t> &x);
 
 #include "mock/dummy_protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(persistable_blueprint_t<mock::dummy_protocol_t> *);
 template cJSON *render_as_json<mock::dummy_protocol_t>(persistable_blueprint_t<mock::dummy_protocol_t> *);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *, persistable_blueprint_t<mock::dummy_protocol_t> *);
-template void on_subfield_change<mock::dummy_protocol_t>(persistable_blueprint_t<mock::dummy_protocol_t> *);
 template void debug_print<mock::dummy_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<mock::dummy_protocol_t> &x);

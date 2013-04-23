@@ -88,7 +88,8 @@ class scc_transaction_t :
     public home_thread_mixin_debug_only_t
 {
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp, order_token_t _order_token, write_durability_t durability);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t order_token);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
@@ -134,6 +135,7 @@ public:
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
+    unsigned int num_blocks();
 
     coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
 

@@ -173,8 +173,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
-        svs->new_read_token(&send_backfill_token);
+        read_token_pair_t send_backfill_token_pair;
+        svs->new_read_token_pair(&send_backfill_token_pair);
 
         backfiller_send_backfill_callback_t<protocol_t>
             send_backfill_cb(&start_point, end_point_cont, mailbox_manager, chunk_cont, &fifo_src, &chunk_semaphore, this);
@@ -187,13 +187,13 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                                                       ),
                      &send_backfill_cb,
                      local_backfill_progress[session_id],
-                     &send_backfill_token,
+                     &send_backfill_token_pair,
                      &interrupted);
 
         /* Send a confirmation */
         send(mailbox_manager, done_cont, fifo_src.enter_write());
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* Ignore. If we were interrupted by the backfillee, then it already
            knows the backfill is cancelled. If we were interrupted by the
            backfiller shutting down, the backfillee will find out via the

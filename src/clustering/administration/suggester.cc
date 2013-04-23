@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/suggester.hpp"
 #include <deque>
 
@@ -32,7 +32,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
     datacenter_id_t primary_datacenter =
         ns_goals.primary_datacenter.get();
 
-    std::map<datacenter_id_t, int> datacenter_affinities =
+    std::map<datacenter_id_t, int32_t> datacenter_affinities =
         ns_goals.replica_affinities.get();
 
     nonoverlapping_regions_t<protocol_t> shards =

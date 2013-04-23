@@ -1,0 +1,85 @@
+sections:
+  - tag: table_admin
+    name: Manipulating tables
+    description: These commands allow table manipulation.
+    order: 2
+
+commands:
+  - tag: table_create
+    section: table_admin
+    description: |
+      Create a table. A RethinkDB table is a collection of JSON documents.<br
+      /><br />If successful, the operation returns an object: <code>{created: 1}</code>.  If
+      a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.
+
+    body: tableName[, options]
+    parent: db
+    returns: json
+
+    examples:
+      - description: |
+          Create a table named 'dc_universe' with the primary key set to field 'id'.
+          If a new document doesn't contain the field 'id', the database will
+          autogenerate a value for it.
+        code: r.db('test').table_create('dc_universe').run(conn)
+      - description: |
+          Create a table named 'dc_universe' using the field 'name'
+          as primary key.
+        code:
+          py: r.db('test').table_create('dc_universe', primary_key='name').run(conn)
+          rb: r.db('test').table_create('dc_universe', :primary_key => 'name').run(conn)
+
+    js:
+      name: tableCreate
+      examples:
+        0:
+          code: r.db('test').tableCreate('dc_universe').run(conn, callback)
+          can_try: true
+          dataset: marvel
+        1:
+          code: r.db('test').tableCreate('dc_universe', {primaryKey:'name'}).run(conn, callback)
+          can_try: true
+          dataset: marvel
+
+  - tag: table_drop
+    section: table_admin
+    description: |
+      Drop a table. The table and all its data will be deleted.<br /><br
+      />If succesful, the operation returns an object: <code>{dropped: 1}</code>.
+      If the specified table doesn''t exist a <code>RqlRuntimeError</code> is thrown.
+
+    body: table_name
+    parent: db
+    returns: json
+
+    examples:
+      - description: Drop a table named 'dc_universe'.
+        code: r.db('test').table_drop('dc_universe').run(conn)
+
+    js:
+      name: tableDrop
+      body: tableName
+      examples:
+        0:
+          code: r.db('test').tableDrop('dc_universe').run(conn, callback)
+          can_try: true
+          dataset: marvel
+
+  - tag: table_list
+    section: table_admin
+    description: List all table names in a database.
+
+    parent: db
+    returns: array
+
+    examples:
+      - description: List all tables of the 'test' database.
+        code: r.db('test').table_list().run(conn)
+
+    js:
+      name: tableList
+      examples:
+        0:
+          code: r.db('test').tableList().run(conn, callback)
+          can_try: true
+          dataset: marvel

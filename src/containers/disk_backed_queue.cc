@@ -9,23 +9,20 @@
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
                                                            const serializer_filepath_t& filename,
                                                            perfmon_collection_t *stats_parent)
-    : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID) {
-    /* We're going to register for writes, however those writes won't be able
-     * to find their way in to the btree until we're done backfilling. Thus we
-     * need to set up a serializer and cache for them to go in to. */
-    //perfmon_collection_t backfill_stats_collection("queue-" + filename, NULL, true, true);
-
+    : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
+      perfmon_membership(stats_parent, &perfmon_collection, filename.permanent_path().c_str())
+{
     filepath_file_opener_t file_opener(filename, io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                               &file_opener,
-                                              stats_parent));
+                                              &perfmon_collection));
 
     /* Remove the file we just created from the filesystem, so that it will
        get deleted as soon as the serializer is destroyed or if the process
-       crashes */
+       crashes. */
     file_opener.unlink_serializer_file();
 
     /* Create the cache. */
@@ -34,16 +31,21 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     mirrored_cache_config_t cache_dynamic_config;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), cache_dynamic_config, stats_parent));
+    cache.init(new cache_t(serializer.get(), cache_dynamic_config, &perfmon_collection));
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
 
-void internal_disk_backed_queue_t::push(const write_message_t& wm) {
+void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
-    //first we need a transaction
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("push"));
+    // First, we need a transaction.
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      2,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("push"),
+                      WRITE_DURABILITY_SOFT /* No need for durability with unlinked dbq file. */);
 
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(&txn);
@@ -65,7 +67,7 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
     blob.write_from_string(sered_data, &txn, 0);
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
-        //The data won't fit in our current head block, so it's time to make a new one
+        // The data won't fit in our current head block, so it's time to make a new one.
         head = NULL;
         _head.reset();
         add_block_to_head(&txn);
@@ -80,10 +82,16 @@ void internal_disk_backed_queue_t::push(const write_message_t& wm) {
 }
 
 void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
+    guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
     char buffer[MAX_REF_SIZE];
-    transaction_t txn(cache.get(), rwi_write, 2, repli_timestamp_t::distant_past, cache_order_source.check_in("pop"));
+    transaction_t txn(cache.get(),
+                      rwi_write,
+                      2,
+                      repli_timestamp_t::distant_past,
+                      cache_order_source.check_in("pop"),
+                      WRITE_DURABILITY_SOFT /* No durability for unlinked dbq file. */);
 
     scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
     queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_write());

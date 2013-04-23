@@ -73,7 +73,7 @@ private:
                     break;
                 }
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             rassert(coro_drain_semaphore_lock.get_drain_signal()->is_pulsed());
         }
         --active_worker_count;

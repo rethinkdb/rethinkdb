@@ -21,9 +21,9 @@ with driver.Metacluster() as metacluster:
     if opts["fast-workload"]:
         print "Fast workload mode--starting processes in release mode."
         process1 = driver.Process(cluster, files1, log_path = "serve-output-1-fast",
-            executable_path = driver.find_rethinkdb_executable("release"))
+            executable_path = driver.find_rethinkdb_executable())
         process2 = driver.Process(cluster, files2, log_path = "serve-output-2-fast",
-            executable_path = driver.find_rethinkdb_executable("release"))
+            executable_path = driver.find_rethinkdb_executable())
     else:
         process1 = driver.Process(cluster, files1, log_path = "serve-output-1",
             executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)

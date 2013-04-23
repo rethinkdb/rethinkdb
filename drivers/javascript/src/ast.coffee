@@ -13,7 +13,7 @@ class TermBase
 
     run: (conn, cb) ->
         useOutdated = undefined
-        if typeof(conn) is 'object' and not (conn instanceof Connection)
+        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
             useOutdated = !!conn.useOutdated
             for own key of conn
                 unless key in ['connection', 'useOutdated']
@@ -81,7 +81,7 @@ class RDBVal extends TermBase
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
     groupBy: (attrs..., collector = null) ->
-        arg_count = attrs.length + (collector && 1 || 0)
+        arg_count = attrs.length + (if collector? then 1 else 0)
         if collector == null
             throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
         new GroupBy {}, @, attrs, collector
@@ -124,7 +124,7 @@ class DatumTerm extends RDBVal
         term.setDatum datum
         return term
 
-    @deconstruct: (datum) ->
+    deconstruct: (datum) ->
         switch datum.getType()
             when Datum.DatumType.R_NULL
                 null
@@ -135,11 +135,11 @@ class DatumTerm extends RDBVal
             when Datum.DatumType.R_STR
                 datum.getRStr()
             when Datum.DatumType.R_ARRAY
-                DatumTerm.deconstruct dt for dt in datum.rArrayArray()
+                DatumTerm::deconstruct dt for dt in datum.rArrayArray()
             when Datum.DatumType.R_OBJECT
                 obj = {}
                 for pair in datum.rObjectArray()
-                    obj[pair.getKey()] = DatumTerm.deconstruct pair.getVal()
+                    obj[pair.getKey()] = DatumTerm::deconstruct pair.getVal()
                 obj
 
 translateOptargs = (optargs) ->
@@ -256,6 +256,9 @@ class Table extends RDBOp
 
     get: ar (key) -> new Get {}, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
+    indexCreate: ar (name, defun) -> new IndexCreate {}, @, name, funcWrap(defun)
+    indexDrop: ar (name) -> new IndexDrop {}, @, name
+    indexList: ar () -> new IndexList {}, @
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
@@ -466,6 +469,18 @@ class TableDrop extends RDBOp
 class TableList extends RDBOp
     tt: Term.TermType.TABLE_LIST
     mt: 'tableList'
+
+class IndexCreate extends RDBOp
+    tt: Term.TermType.INDEX_CREATE
+    mt: 'indexCreate'
+
+class IndexDrop extends RDBOp
+    tt: Term.TermType.INDEX_DROP
+    mt: 'indexDrop'
+
+class IndexList extends RDBOp
+    tt: Term.TermType.INDEX_LIST
+    mt: 'indexList'
 
 class FunCall extends RDBOp
     tt: Term.TermType.FUNCALL

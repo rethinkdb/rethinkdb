@@ -1,0 +1,242 @@
+sections:
+  - tag: module
+    name: Accessing RQL
+    description: All RQL queries begin from the top level module.
+    order: 0
+
+commands:
+  - tag: r
+    section: module
+    description: The toplevel RQL namespace.
+
+    dont_need_parenthesis: true
+    parent: null
+    returns: r
+
+    examples:
+      - description: Setup your top level namespace.
+        validate: false
+        code:
+          js: var r = require('rethinkdb');
+          py: import rethinkdb as r
+          rb: |
+            require 'rethinkdb'
+            include RethinkDB::Shortcuts
+
+  - tag: connect
+    section: module
+    description: |
+      Create a new connection to the database server.<br /><br />If the
+      connection cannot be established, a <code>RqlDriverError</code> exception will
+      be thrown.
+
+    body:
+      js: opts, callback
+      py: host='localhost', port=28015, db='test'
+      rb: host='localhost', port=28015, default_db='test'
+    parent: r
+    returns: connection
+
+    examples:
+      - description: Opens a new connection to the database.
+        validate: false
+        code:
+          js: |
+            r.connect({host:'localhost', port:28015, db:'marvel'},
+                 function(err, conn) { ... })
+          py: conn = r.connect(db='heroes')
+          rb: conn = r.connect('localhost', 28015, 'heroes')
+
+    py:
+      examples:
+        0:
+          description: Opens a connection using the default host and port but specifying the default database.
+
+    rb:
+      examples:
+        0:
+          description: Opens a connection to localhost:28015 with 'heroes' as the default database.
+
+  - tag: repl
+    section: module
+    description: |
+      Set the default connection to make REPL use easier. Allows calling
+      <code>run()</code> without specifying a connection. <br/><br />
+      Connection objects are not thread safe and <code>repl</code> connections
+      should not be used in multi-threaded environments.
+
+    parent: connection
+    returns: null
+
+    examples:
+      - description: |
+            Set the default connection in REPL, and call `run()`
+            without specifying the connection.
+        validate: false
+        code:
+          py: |
+            r.connect().repl()
+            r.table('users').run()
+          rb: |
+            r.connect().repl
+            r.table('users').run
+
+    js: false
+
+  - tag: close
+    section: module
+    description: |
+      Close an open connection. Closing a connection cancels all outstanding
+      requests and frees the memory associated with the open requests.
+
+    parent: connection
+    returns: null
+
+    examples:
+      - description: Close an open connection.
+        validate: false
+        code: conn.close()
+
+    rb:
+      examples:
+        0:
+          code: conn.close
+
+  - tag: reconnect
+    section: module
+    description: |
+      Close and attempt to reopen a connection. Has the effect of canceling
+      any outstanding request while keeping the connection open.
+
+    parent: connection
+    returns: null
+
+    examples:
+      - description: Cancel outstanding requests/queries that are no longer needed.
+        validate: false
+        code:
+          js: conn.reconnect(function(err, conn) { ... })
+          py: conn.reconnect()
+          rb: conn.reconnect
+
+  - tag: use
+    section: module
+    description: Change the default database on this connection.
+
+    body: dbName
+    parent: connection
+    returns: null
+
+    examples:
+      - description: |
+          Change the default database so that we don't need
+          to specify the database when referencing a table.
+        code: conn.use('heroes')
+
+  - tag: run
+    section: module
+    description: Run a query on a connection.
+
+    body:
+      js: conn[, callback]
+      py: conn[, use_outdated=False]
+      rb: conn[, opts]
+
+    parent: query
+    returns: cursor
+
+    examples:
+      - description: |
+          Call run on the connection with a query to execute the query.
+          The callback will get a cursor from which results may be retrieved.
+        validate: false
+        code:
+          js: r.table('marvel').run(conn, function(err, cur) { cur.each(console.log); })
+          py: |
+            for doc in r.table('marvel').run(conn):
+              print doc
+          rb: r.table('marvel').run(conn).each{|x| p x}
+      - description: |
+          If you are OK with potentially out of date data from all the tables
+          involved in this query and want potentially faster reads, pass a flag
+          allowing out of date data in an options object.  Settings for
+          individual tables will supercede this global setting for all tables
+          in the query.
+        validate: false
+        code:
+          js: |
+            r.table('marvel').run({connection:conn, useOutdated:true},
+                                  function (err, cursor) { ... });
+          py: r.table('marvel').run(conn, use_outdated=True)
+          rb: r.table('marvel').run({:connection => conn, :use_outdated => true})
+
+  - tag: next
+    section: module
+    description: Get the next element in the cursor.
+
+    body: callback
+    parent: cursor
+    returns: null
+
+    examples:
+      - description: Let's grab the next element!
+        code: |
+          cur.next(function(err, row) {
+            return processRow(row);
+          });
+
+    py: false
+    rb: false
+
+  - tag: hasNext
+    section: module
+    description: Check if there are more elements in the cursor.
+
+    parent: cursor
+    returns: bool
+
+    examples:
+      - description: Are there more elements in the cursor?
+        code: var hasMore = cur.hasNext();
+
+    py: false
+    rb: false
+
+  - tag: each
+    section: module
+    description: Lazily iterate over the result set one element at a time.
+
+    body: callback
+
+    parent: cursor
+    returns: null
+
+    examples:
+      - description: Let's process all the elements!
+        code: |
+          cur.each(function(err, row) {
+            return processRow(row);
+          });
+
+    py: false
+    rb: false
+
+  - tag: toArray
+    section: module
+    description: Retrieve all results and pass them as an array to the given callback.
+
+    body: callback
+    parent: cursor
+    returns: null
+
+    examples:
+      - description: For small result sets it may be more convenient to process them at once as an array.
+        code: |
+          cur.toArray(function(err, results) {
+            for(var i in results) {
+              processRow(results[i]);
+            }
+          });
+
+    py: false
+    rb: false

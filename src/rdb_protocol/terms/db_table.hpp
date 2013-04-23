@@ -208,7 +208,7 @@ private:
         try {
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
                                          env->interruptor, env->semilattice_metadata);
-        } catch (interrupted_exc_t e) {
+        } catch (const interrupted_exc_t &e) {
             rfail("Query interrupted, probably by user.");
         }
 
@@ -380,13 +380,19 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2, 3)) { }
 private:
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
         const datum_t *pkey = arg(1)->as_datum();
-        const datum_t *row = table->get_row(pkey);
-        return new_val(row, table);
+        if (num_args() == 3) {
+            datum_stream_t *sequence = table->get_sindex_rows(pkey, 
+                    arg(2)->as_datum()->as_str(), this);
+            return new_val(sequence, table);
+        } else {
+            const datum_t *row = table->get_row(pkey);
+            return new_val(row, table);
+        }
     }
     virtual const char *name() const { return "get"; }
 };

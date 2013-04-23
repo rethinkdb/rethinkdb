@@ -16,9 +16,9 @@ class key_tester_t;
 
 class btree_stats_t {
 public:
-    explicit btree_stats_t(perfmon_collection_t *parent)
+    explicit btree_stats_t(perfmon_collection_t *parent, const std::string &identifier)
         : btree_collection(),
-          btree_collection_membership(parent, &btree_collection, "btree"),
+          btree_collection_membership(parent, &btree_collection, "btree-" + identifier),
           pm_keys_read(secs_to_ticks(1)),
           pm_keys_set(secs_to_ticks(1)),
           pm_keys_expired(secs_to_ticks(1)),
@@ -49,7 +49,13 @@ public:
     static void create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
 
     // Blocks
-    btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
+    // Creates a btree_slice_t on a cache with data in it putting the
+    // superblock at the specified location
+    static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
+            const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
+
+    // Blocks
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent, const std::string &identifier, block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
     ~btree_slice_t();
@@ -61,8 +67,11 @@ public:
 
     btree_stats_t stats;
 
+    block_id_t get_superblock_id();
 private:
     cache_t *cache_;
+
+    block_id_t superblock_id_;
 
     // Cache account to be used when backfilling.
     scoped_ptr_t<cache_account_t> backfill_account;

@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 
+#include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
@@ -188,7 +189,7 @@ void home_thread_mixin_debug_only_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread) 
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread)
 #ifndef NDEBUG
     : real_home_thread(specified_home_thread)
 #endif
@@ -647,7 +648,6 @@ path_t parse_as_path(const std::string &path) {
     res.is_absolute = (path[0] == unix_path_separator[0]);
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    typedef tokenizer::iterator tok_iterator;
 
     boost::char_separator<char> sep(unix_path_separator);
     tokenizer tokens(path, sep);
@@ -699,6 +699,50 @@ int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
+int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+    int res = ::remove(path);
+    nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
+    return 0;
+}
+
+void delete_all(const char *path) {
+    // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
+    // depth) and used by Linux to limit the number of file descriptors that are open (by opening
+    // and closing directories extra times if it needs to go deeper than that).
+    const int max_openfd = 128;
+    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
+}
+
+base_path_t::base_path_t(const std::string &path) : path_(path) { }
+
+void base_path_t::make_absolute() {
+    char absolute_path[PATH_MAX];
+    char *res = realpath(path_.c_str(), absolute_path);
+    guarantee_err(res != NULL, "Failed to determine absolute path for '%s'", path_.c_str());
+    path_.assign(absolute_path);
+}
+
+const std::string& base_path_t::path() const {
+    guarantee(!path_.empty());
+    return path_;
+}
+
+std::string temporary_directory_path(const base_path_t& base_path) {
+    return base_path.path() + "/tmp";
+}
+
+void recreate_temporary_directory(const base_path_t& base_path) {
+    const std::string path = temporary_directory_path(base_path);
+
+    delete_all(path.c_str());
+
+    int res;
+    do {
+        res = mkdir(path.c_str(), 0755);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res == 0, "mkdir of temporary directory %s failed", path.c_str());
+}
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
     const uint8_t *p8 = static_cast<const uint8_t *>(p);

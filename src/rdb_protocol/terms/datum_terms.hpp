@@ -44,7 +44,7 @@ private:
         datum_t *acc = env->add_ptr(new datum_t(datum_t::R_OBJECT));
         for (boost::ptr_map<const std::string, term_t>::iterator
                  it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc->add(it->first, it->second->eval(use_cached_val)->as_datum());
+            bool dup = acc->add(it->first, it->second->eval()->as_datum());
             rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
         return new_val(acc);

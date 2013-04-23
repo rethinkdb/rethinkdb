@@ -1,0 +1,38 @@
+commands:
+  - tag: expr
+    section: control
+    order: 4
+    description: Construct a RQL JSON object from a native object.
+
+    body: obj
+    parent: r
+    returns: json
+
+    examples:
+      - description: Objects wrapped with expr can then be manipulated by RQL API functions.
+        code:
+          js: r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn, callback)
+          py: r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(conn)
+          rb: r.expr({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
+
+      - description:
+          js: In JavaScript, you can also do this with just r.
+          rb: In Ruby, you can also do this with just r.
+        code:
+          js: "r({a: 'b'}).merge({b: [1,2,3]}).run(conn, callback)"
+          rb: r({:a => 'b'}).merge({:b => [1,2,3]}).run(conn)
+
+    py:
+      examples:
+        1: {} # This turns off example 1 for python as it does not apply
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+
+
