@@ -992,6 +992,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     res->result = ql::datum_exc_t(
                         strprintf("Index `%s` was not found.",
                                   rget.sindex->c_str()));
+                    return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
                 res->result = ql::datum_exc_t(
