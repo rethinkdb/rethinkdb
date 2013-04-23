@@ -236,10 +236,14 @@ void post_construct_and_drain_queue(
         // indeterminate state and will be cleaned up at a later point.
     }
 
-    {
-        /* If we get here it's either because we were interrupted or the
-         * sindexes we were post constructiing were deleted. Either way we need
-         * to clean up the queue. */
+    if (lock.get_drain_signal()->is_pulsed()) {
+        /* We were interrupted, this means we can't deregister the sindex queue
+         * the standard way because it requires blocks. Use the emergency
+         * method instead. */
+        store->emergency_deregister_sindex_queue(mod_queue.get());
+    } else {
+        /* The sindexes we were post constructing were all deleted. Time to
+         * deregister the queue. */
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
