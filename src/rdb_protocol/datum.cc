@@ -257,9 +257,9 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
 
 std::string datum_t::unprint_secondary(
         const std::string &secondary_and_primary) {
-    size_t seperator = secondary_and_primary.find_last_of('\0');
+    size_t separator = secondary_and_primary.find_last_of('\0');
 
-    return secondary_and_primary.substr(seperator + 1, std::string::npos);
+    return secondary_and_primary.substr(separator + 1, std::string::npos);
 }
 
 // This function returns a store_key_t suitable for searching by a secondary-index.
