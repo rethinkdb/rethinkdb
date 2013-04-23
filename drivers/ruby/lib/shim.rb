@@ -72,7 +72,8 @@ module RethinkDB
     def expr(x)
       unbound_if @body
       return x if x.class == RQL
-      datum_types = [Fixnum, Float, Bignum, String, Symbol, TrueClass, FalseClass, NilClass]
+      datum_types = [Fixnum, Float, Bignum, String, Symbol,
+                     TrueClass, FalseClass, NilClass]
       if datum_types.map{|y| y.hash}.include? x.class.hash
         return RQL.new(Shim.native_to_datum_term(x))
       end
@@ -84,8 +85,17 @@ module RethinkDB
         t.args = x.map{|y| expr(y).to_pb}
       when Hash.hash
         t.type = Term::TermType::MAKE_OBJ
-        t.optargs = x.map{|k,v| ap = Term::AssocPair.new;
-          ap.key = k.to_s; ap.val = expr(v).to_pb; ap}
+        t.optargs = x.map{|k,v|
+          ap = Term::AssocPair.new;
+          if [Symbol, String].include? k.class
+            ap.key = k.to_s
+          else
+            raise RqlDriverError, "Document keys must be strings or symbols." +
+              "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
+          end
+          ap.val = expr(v).to_pb
+          ap
+        }
       when Proc.hash
         t = RQL.new.new_func(&x).to_pb
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
