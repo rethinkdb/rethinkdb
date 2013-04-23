@@ -133,9 +133,11 @@ commands:
       - description: "'zips up' the sequence by merging the left and right fields
           produced by a join."
         code:
-          js: r.table('t1').eqJoin('t2', 'id').zip().run(conn, callback)
-          py: r.table('t1').eq_join('t2', 'id').zip().run(conn)
-          rb: r.table(:t1).eq_join(:t2, :id).zip.run(conn)
+          js: |- 
+            r.table('marvel').eqJoin('main_dc_collaborator', r.table('dc'))
+             .zip().run(conn, callback)
+          py: r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).zip().run(conn)
+          rb: r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).zip.run(conn)
 
     rb:
       dont_need_parenthesis: true

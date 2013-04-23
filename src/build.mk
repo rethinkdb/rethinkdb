@@ -5,8 +5,12 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-RT_CXX := $(CXX)
-LDFLAGS ?= 
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+else
+  RT_CXX := $(CXX)
+endif
+LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
