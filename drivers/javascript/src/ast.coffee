@@ -220,6 +220,8 @@ class MakeObject extends RDBOp
         self = super({})
         self.optargs = {}
         for own key,val of obj
+            if typeof val is 'undefined'
+                throw new RqlDriverError "Object field '#{key}' may not be undefined"
             self.optargs[key] = rethinkdb.expr val
         return self
 
