@@ -55,6 +55,36 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     btree.init(new btree_slice_t(cache.get(), &perfmon_collection, "primary"));
+
+    // Initialize sindex slices
+    {
+        // Since this is the btree constructor, nothing else should be locking these
+        //  things yet, so this should work fairly quickly and does not need a real
+        //  interruptor
+        cond_t dummy_interruptor;
+        read_token_pair_t token_pair;
+        new_read_token_pair(&token_pair);
+
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
+        acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
+                                    &superblock, &dummy_interruptor, false);
+
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
+                                      superblock->get_sindex_block_id(),
+                                      &dummy_interruptor);
+
+        std::map<std::string, secondary_index_t> sindexes;
+        get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
+
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            secondary_index_slices.insert(it->first,
+                                          new btree_slice_t(cache.get(),
+                                                            &perfmon_collection,
+                                                            it->first));
+        }
+    }
 }
 
 template <class protocol_t>

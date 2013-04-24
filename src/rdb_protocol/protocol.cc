@@ -925,7 +925,41 @@ store_t::store_t(serializer_t *serializer,
     btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
-{ }
+{
+    // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
+
+    // This uses a dummy interruptor because this is the only thing using the store at
+    //  the moment (since we are still in the constructor), so things should complete
+    //  rather quickly.
+    cond_t dummy_interruptor;
+    read_token_pair_t token_pair;
+    new_read_token_pair(&token_pair);
+
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
+                                &superblock, &dummy_interruptor, false);
+
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
+                                  superblock->get_sindex_block_id(),
+                                  &dummy_interruptor);
+
+    std::map<std::string, secondary_index_t> sindexes;
+    get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
+
+    std::set<std::string> sindexes_to_update;
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        if (!it->second.post_construction_complete) {
+            sindexes_to_update.insert(it->first);
+        }
+    }
+
+    if (!sindexes_to_update.empty()) {
+        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
+                                                        sindex_block.get(), txn.get());
+    }
+}
 
 store_t::~store_t() {
     assert_thread();
@@ -964,6 +998,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     res->result = ql::datum_exc_t(
                         strprintf("Index `%s` was not found.",
                                   rget.sindex->c_str()));
+                    return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
                 res->result = ql::datum_exc_t(
