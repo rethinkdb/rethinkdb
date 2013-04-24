@@ -48,7 +48,8 @@ module 'DataExplorerView', ->
 
             @history_view.clear_history event
 
-        # Method that make sure that the good button is active
+        # Method that make sure that just one button (history or option) is active
+        # We give this button an "active" class that make it looks like it's pressed.
         toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
                 @saved_data.history_state = 'visible'
@@ -1089,7 +1090,7 @@ module 'DataExplorerView', ->
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
                     return false
 
-            # We catch ctrl, shift, alt and command but don't look for active key
+            # We catch ctrl, shift, alt and command but don't look for active key (active key here refer to ctrl, shift, alt being pressed and hold)
             if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
                 return false
 
