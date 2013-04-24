@@ -68,6 +68,19 @@ bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std
     }
 }
 
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u id, secondary_index_t *sindex_out) {
+    std::map<std::string, secondary_index_t> sindex_map;
+
+    get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
+    for (auto it = sindex_map.begin(); it != sindex_map.end(); ++it) {
+        if (it->second.id == id) {
+            *sindex_out = it->second;
+            return true;
+        }
+    }
+    return false;
+}
+
 void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out) {
     get_secondary_indexes_internal(txn, sindex_block, sindexes_out);
 }
@@ -78,6 +91,19 @@ void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std
 
     /* We insert even if it already exists overwriting the old value. */
     sindex_map[id] = sindex;
+    set_secondary_indexes_internal(txn, sindex_block, sindex_map);
+}
+
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u id, const secondary_index_t &sindex) {
+    std::map<std::string, secondary_index_t> sindex_map;
+    get_secondary_indexes_internal(txn, sindex_block, &sindex_map);
+
+    for (auto it = sindex_map.begin(); it != sindex_map.end(); ++it) {
+        if (it->second.id == id) {
+            guarantee(sindex.id == id, "This shouldn't change the id.");
+            it->second = sindex;
+        }
+    }
     set_secondary_indexes_internal(txn, sindex_block, sindex_map);
 }
 

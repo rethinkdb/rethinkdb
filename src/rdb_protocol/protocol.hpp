@@ -118,7 +118,8 @@ RDB_DECLARE_SERIALIZABLE(terminal_t);
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block,
+        transaction_t *txn)
     THROWS_NOTHING;
 
 } // namespace rdb_protocol_details

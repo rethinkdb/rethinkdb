@@ -249,6 +249,12 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
 
     // Make sure we return an absolute path
     base_path_t abs_path(render_as_path(result));
+
+    if (!check_existence(abs_path)) {
+        throw std::runtime_error(strprintf("ERROR: web assets directory not found '%s'",
+                                           abs_path.path().c_str()).c_str());
+    }
+
     abs_path.make_absolute();
     return abs_path.path();
 }
