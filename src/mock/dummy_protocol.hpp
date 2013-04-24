@@ -80,11 +80,6 @@ public:
         std::string key, value;
         state_timestamp_t timestamp;
 
-        backfill_chunk_t shard(DEBUG_VAR const region_t &r) const THROWS_NOTHING {
-            rassert(r.keys.find(key) != r.keys.end());
-            return *this;
-        }
-
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
