@@ -951,8 +951,10 @@ store_t::store_t(serializer_t *serializer,
         }
     }
 
-    rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                    sindex_block.get(), txn.get());
+    if (!sindexes_to_update.empty()) {
+        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
+                                                        sindex_block.get(), txn.get());
+    }
 }
 
 store_t::~store_t() {
