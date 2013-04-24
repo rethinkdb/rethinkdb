@@ -36,7 +36,16 @@
 </script>
 
 <script id="has_update-template" type="text/x-handlebars-template">
-    An update is available
+    <a class="close" href="#">&times;</a>
+    <strong>Update found:</strong> A new version of RethinkDB is avaiable (version {{last_version}})</br>
+<!--
+{{#if changelog}}
+Changelog:
+<ul class="changeul">
+    {{#each changelog}}<li class="change">-{{this}}</li>{{/each}}
+</ul>
+{{/if}}
+-->
 </script>
 
 <script id="settings-template" type="text/x-handlebars-template">
@@ -45,7 +54,7 @@
         <h2 class="title">Settings</h2>
         <div class="updates setting">
             <div class="options_container">
-                <button class="btn check_updates_btn" data-value="{{check_value}}">Turn {{check_value}}</button>
+                <button class="btn check_updates_btn" data-update="{{check_value}}">Turn {{check_value}}</button>
             </div>
             <div class="content">Check for new version of RethinkDB</div>
         </div>

@@ -8,6 +8,7 @@ render_body = ->
     $('.updates_container').html alert_settings_view.render().$el
 
     settings_view = new Settings
+        alert_view: alert_settings_view
 
 
     # Set up common DOM behavior
@@ -31,6 +32,7 @@ class AlertSettings extends Backbone.View
     events:
         'click .no_update_btn': 'set_settings'
         'click .ok_update_btn': 'set_settings'
+        'click .close': 'close'
 
     initialize: =>
         if window.localStorage?.check_updates?
@@ -40,14 +42,47 @@ class AlertSettings extends Backbone.View
         else
             @check_updates = null
 
+    close: (event) =>
+        event.preventDefault()
+        window.localStorage.ignore_version = JSON.stringify @next_version
+        @$el.slideUp 'fast'
+
+    hide: =>
+        @$el.slideUp 'fast'
+
     check: =>
         # If it's fail, it's fine
-        $.getJSON "http://update.rethinkdb.com/version?callback=?", @render_updates
+
+        version = '1.4.2' #TODO See with Etienne how to set it up during build time
+        $.getJSON "http://newton:5000/update_for/#{version}?callback=?", @render_updates
 
     render_updates: (data) =>
-        if local_version < data.current_version
-            @$el.html @has_update_template
-                features: data.features
+        if data.status is 'need_update'
+            if (not window.localStorage.ignore_version?) or @compare_version(JSON.parse(window.localStorage.ignore_version), data.last_version) < 0
+                @next_version = data.last_version # Save it so users can ignore the update
+                @$el.html @has_update_template
+                    last_version: data.last_version
+                    changelog: data.changelog
+                @$el.slideDown 'fast'
+                @delegateEvents()
+
+
+    compare_version: (v1, v2) =>
+        v1_array_str = v1.split('.')
+        v2_array_str = v2.split('.')
+        v1_array = []
+        for value in v1_array_str
+            v1_array.push parseInt value
+        v2_array = []
+        for value in v2_array_str
+            v2_array.push parseInt value
+
+        for value, index in v1_array
+            if value < v2_array[index]
+                return -1
+            else if value > v2_array[index]
+                return 1
+        return 0
 
    
     render: =>
@@ -81,7 +116,8 @@ class Settings extends Backbone.View
         @$el.parent().hide()
         @$el.remove()
 
-    initialize: =>
+    initialize: (args) =>
+        @alert_view = args.alert_view
         if window.localStorage?.check_updates?
             @check_updates = JSON.parse window.localStorage.check_updates
         else
@@ -90,17 +126,17 @@ class Settings extends Backbone.View
 
     change_settings: (event) =>
         update = @$(event.target).data('update')
-        if update is 'yes'
+        if update is 'on'
             @check_updates = true
-            @$el.slideUp 'fast'
             if window.localStorage?
                 window.localStorage.check_updates = JSON.stringify true
-            @check()
-        else if update is 'no'
+            @alert_view.check()
+        else if update is 'off'
             @check_updates = false
-            @$el.slideUp 'fast'
+            @alert_view.hide()
             if window.localStorage?
                 window.localStorage.check_updates = JSON.stringify false
+                window.localStorage.removeItem('ignore_version')
         @render()
 
     render: =>
