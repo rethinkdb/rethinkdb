@@ -76,7 +76,7 @@ module 'DataExplorerView', ->
                 @move_arrow
                     type: 'history'
                     move_arrow: 'show'
-                @adjust_secondary_height
+                @adjust_collapsible_panel_height
                     no_animation: true
                     is_at_bottom: true
 
@@ -89,7 +89,7 @@ module 'DataExplorerView', ->
                     that.$('.content').html that.history_view.render(false).$el
                     that.history_view.state = 'visible'
                     that.history_view.$el.fadeIn 'fast'
-                    that.adjust_secondary_height
+                    that.adjust_collapsible_panel_height
                         is_at_bottom: true
                     that.toggle_pressed_buttons() # Re-execute toggle_pressed_buttons because we delay the fadeIn
             else if @history_view.state is 'hidden'
@@ -99,11 +99,11 @@ module 'DataExplorerView', ->
                 @move_arrow
                     type: 'history'
                     move_arrow: 'show'
-                @adjust_secondary_height
+                @adjust_collapsible_panel_height
                     is_at_bottom: true
             else if @history_view.state is 'visible'
                 @history_view.state = 'hidden'
-                @hide_secondary 'history'
+                @hide_collapsible_panel 'history'
 
             @toggle_pressed_buttons()
 
@@ -121,7 +121,7 @@ module 'DataExplorerView', ->
                     that.$('.content').html that.options_view.render(false).$el
                     that.options_view.state = 'visible'
                     that.options_view.$el.fadeIn 'fast'
-                    that.adjust_secondary_height()
+                    that.adjust_collapsible_panel_height()
                     that.toggle_pressed_buttons()
             else if @options_view.state is 'hidden'
                 @options_view.state = 'visible'
@@ -130,15 +130,15 @@ module 'DataExplorerView', ->
                 @move_arrow
                     type: 'options'
                     move_arrow: 'show'
-                @adjust_secondary_height()
+                @adjust_collapsible_panel_height()
             else if @options_view.state is 'visible'
                 @options_view.state = 'hidden'
-                @hide_secondary 'options'
+                @hide_collapsible_panel 'options'
 
             @toggle_pressed_buttons()
 
-        # Hide the secondary whether it contains the option or history view
-        hide_secondary: (type) =>
+        # Hide the collapsible_panel whether it contains the option or history view
+        hide_collapsible_panel: (type) =>
             that = @
             @deactivate_overflow()
             @$('.nano').animate
@@ -154,7 +154,7 @@ module 'DataExplorerView', ->
             @$('.nano_border').slideUp 'fast'
             @$('.arrow_dataexplorer').slideUp 'fast'
 
-        # Move the arrow. In case the user switch from options to history (or the opposite), we need to animate it
+        # Move the arrow that points to the active button (on top of the collapsible panel). In case the user switch from options to history (or the opposite), we need to animate it
         move_arrow: (args) =>
             # args =
             #   type: 'options'/'history'
@@ -174,7 +174,12 @@ module 'DataExplorerView', ->
             @$('.nano_border').show()
 
         # Adjust the height of the container of the history/option view
-        adjust_secondary_height: (args) =>
+        # Arguments:
+        #   size: size of the collapsible panel we want // If not specified, we are going to try to figure it out ourselves
+        #   no_animation: boolean (do we need to animate things or just to show it)
+        #   is_at_bottom: boolean (if we were at the bottom, we want to scroll down once we have added elements in)
+        #   delay_scroll: boolean, true if we just added a query - It speficied if we adjust the height then scroll or do both at the same time 
+        adjust_collapsible_panel_height: (args) =>
             that = @
             if args?.size?
                 size = args.size
@@ -803,7 +808,6 @@ module 'DataExplorerView', ->
             if event?.which?
                 if event.which is 27 # ESC
                     event.preventDefault() # Keep focus on code mirror
-                    #@current_suggestions.length = 0 # Let's get rid of suggestions
                     @hide_suggestion_and_description()
                     query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
                     query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
@@ -978,12 +982,6 @@ module 'DataExplorerView', ->
                                         @query_last_part = query.slice end_body
                                     @query_first_part = query.slice 0, @extra_suggestion.start_body
                                     lines = @query_first_part.split('\n')
-                                    ###
-                                    # Because we may have slice before @cursor_for_auto_completion, we re-define it
-                                    @cursor_for_auto_completion =
-                                        line: lines.length-1
-                                        ch: lines[lines.length-1].length
-                                    ###
 
                                     if event.shiftKey is true
                                         @current_highlighted_extra_suggestion--
@@ -1087,10 +1085,11 @@ module 'DataExplorerView', ->
 
             # We are scrolling in history
             if @history_displayed_id isnt 0 and event?
-                # We catch ctrl, shift, alt, 
+                # We catch ctrl, shift, alt and command 
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
                     return false
 
+            # We catch ctrl, shift, alt and command but don't look for active key
             if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
                 return false
 
@@ -3271,10 +3270,10 @@ module 'DataExplorerView', ->
             if @$('.no_history').length > 0
                 @$('.no_history').slideUp 'fast', ->
                     $(@).remove()
-                    that.container.adjust_secondary_height
+                    that.container.adjust_collapsible_panel_height
                         is_at_bottom: is_at_bottom
             else if @state is 'visible'
-                @container.adjust_secondary_height
+                @container.adjust_collapsible_panel_height
                     delay_scroll: true
                     is_at_bottom: is_at_bottom
 
@@ -3291,9 +3290,8 @@ module 'DataExplorerView', ->
                         no_query: true
                         displayed_class: 'hidden'
                     that.$('.no_history').slideDown 'fast'
-            that.container.adjust_secondary_height
+            that.container.adjust_collapsible_panel_height
                 size: 40
-                type: 'history'
                 move_arrow: 'show'
                 is_at_bottom: 'true'
 
