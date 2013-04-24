@@ -410,37 +410,6 @@ region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
 
 namespace {
 
-struct backfill_chunk_shard_visitor_t : public boost::static_visitor<backfill_chunk_t> {
-public:
-    explicit backfill_chunk_shard_visitor_t(const region_t &_region) : region(_region) { }
-    backfill_chunk_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        backfill_chunk_t ret(del);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    backfill_chunk_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        region_t r = region_intersection(del.range, region);
-        rassert(!region_is_empty(r));
-        return backfill_chunk_t(backfill_chunk_t::delete_range_t(r));
-    }
-    backfill_chunk_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        backfill_chunk_t ret(kv);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-private:
-    const region_t &region;
-};
-
-}   /* anonymous namespace */
-
-backfill_chunk_t backfill_chunk_t::shard(const region_t &region) const THROWS_NOTHING {
-    backfill_chunk_shard_visitor_t v(region);
-    return boost::apply_visitor(v, val);
-}
-
-namespace {
-
 struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
 public:
     repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {

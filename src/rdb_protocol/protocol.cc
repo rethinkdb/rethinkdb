@@ -1640,38 +1640,6 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-struct rdb_backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
-public:
-    explicit rdb_backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
-        rdb_protocol_t::backfill_chunk_t ret(del);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
-        rdb_protocol_t::region_t r = region_intersection(del.range, region);
-        rassert(!region_is_empty(r));
-        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
-        rdb_protocol_t::backfill_chunk_t ret(kv);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &s) {
-        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(s.sindexes));
-    }
-private:
-    const rdb_protocol_t::region_t &region;
-
-    DISABLE_COPYING(rdb_backfill_chunk_shard_visitor_t);
-};
-
-rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
-    rdb_backfill_chunk_shard_visitor_t v(region);
-    return boost::apply_visitor(v, val);
-}
-
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
 

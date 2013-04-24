@@ -642,8 +642,6 @@ struct rdb_protocol_t {
 
         region_t get_region() const;
 
-        rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING;
-
         /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 
