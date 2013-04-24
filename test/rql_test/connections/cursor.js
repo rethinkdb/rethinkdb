@@ -56,11 +56,11 @@ r.connect({port:port}, function(err, c) {
             assertNoError(err);
 
             // yes, res is an array that supports array ops
-            res.concat([4,5]);
+            res.push(4, 5);
             res.toArray(function(err, res) {
                 assertNoError(err);
                 assert(res.length == 5);
-                for (var i = 0; i < 5; ++i) {
+                for (var i = 1; i <= 5; ++i) {
                     assert(res[i] = i);
                 }
             });
