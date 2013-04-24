@@ -166,9 +166,9 @@ class TestConnection(TestWithConnection):
 
         c.close()
 
-        # And make sure that was actually the connection we were using
+        # Closing the repl connection resets the global state
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Connection is closed.",
+            r.RqlDriverError, "RqlQuery.run must be given a connection to run on",
             r.expr(1).run)
 
 class TestShutdown(TestWithConnection):

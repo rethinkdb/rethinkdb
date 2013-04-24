@@ -46,7 +46,7 @@ class Connection(object):
         self.host = host
         self.port = port
         self.next_token = 1
-        self.db = None
+        self.db = db
         self.reconnect()
 
     def __enter__(self):
@@ -190,6 +190,8 @@ class Connection(object):
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
+            if len(response.response) < 1:
+                return None
             return Datum.deconstruct(response.response[0])
 
         # Default for unknown response types
