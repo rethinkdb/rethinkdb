@@ -141,7 +141,6 @@ struct read_shard_visitor_t : public boost::static_visitor<void> {
                          std::vector<std::pair<size_t, read_t> > *sharded_reads_out)
         : effective_time(et), regions(_regions), reads_out(sharded_reads_out) { }
 
-    // SAMRSI: I bet some of these could be deduped...
     void operator()(const get_query_t &get) const {
         const uint64_t hash_value = hash_region_hasher(get.key.contents(), get.key.size());
         const size_t regions_size = regions->array_size();
@@ -153,31 +152,27 @@ struct read_shard_visitor_t : public boost::static_visitor<void> {
         }
         crash("get_query_t sharded into nonintersecting set of regions");
     }
-    void operator()(const rget_query_t &rget) const {
+
+    template <class T>
+    void rangey_query(const T &arg) const {
         const size_t regions_size = regions->array_size();
         for (size_t i = 0; i < regions_size; ++i) {
             const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), rget.region);
+                = region_intersection(regions->array_nth(i), arg.region);
             if (!region_is_empty(intersection)) {
-                rget_query_t tmp = rget;
+                T tmp = arg;
                 tmp.region = intersection;
                 reads_out->push_back(std::make_pair(i, read_t(tmp, effective_time)));
             }
         }
-        guarantee(!reads_out->empty(), "rget_query_t sharded into nonintersecting set of regions");
+        guarantee(!reads_out->empty(), "sharded into nonintersecting set of regions");
+    }
+
+    void operator()(const rget_query_t &rget) const {
+        rangey_query(rget);
     }
     void operator()(const distribution_get_query_t &distribution_get) const {
-        const size_t regions_size = regions->array_size();
-        for (size_t i = 0; i < regions_size; ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), distribution_get.region);
-            if (!region_is_empty(intersection)) {
-                distribution_get_query_t tmp = distribution_get;
-                tmp.region = intersection;
-                reads_out->push_back(std::make_pair(i, read_t(tmp, effective_time)));
-            }
-        }
-        guarantee(!reads_out->empty(), "distribution_get_query_t sharded into nonintersecting set of regions");
+        rangey_query(distribution_get);
     }
 
 private:

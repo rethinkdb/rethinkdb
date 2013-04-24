@@ -391,55 +391,47 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
                                    std::vector<std::pair<size_t, read_t> > *_sharded_reads_out)
         : regions(_regions), reads_out(_sharded_reads_out) {}
 
-    void operator()(const point_read_t &pr) const {
-        const uint64_t hash_value = hash_region_hasher(pr.key.contents(), pr.key.size());
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pr.key, hash_value)) {
-                reads_out->push_back(std::make_pair(i, read_t(pr)));
-                return;
-            }
-        }
-        crash("point_read_t sharded into nonintersecting set of regions");
-    }
-
-    void operator()(const rget_read_t &rg) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection(regions->array_nth(i), rg.region);
-            if (!region_is_empty(intersection)) {
-                rget_read_t tmp = rg;
-                tmp.region = intersection;
-                reads_out->push_back(std::make_pair(i, read_t(tmp)));
-            }
-        }
-        guarantee(!reads_out->empty(), "rget_read_t sharded into nonintersecting set of regions");
-    }
-
-    // SAMRSI: Might as well templatize this with rget_read_t.
-    void operator()(const distribution_read_t &dg) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), dg.region);
-            if (!region_is_empty(intersection)) {
-                distribution_read_t tmp = dg;
-                tmp.region = intersection;
-                reads_out->push_back(std::make_pair(i, read_t(tmp)));
-            }
-        }
-        guarantee(!reads_out->empty(), "distribution_read_t sharded into nonintersecting set of regions");
-    }
-
-    // SAMRSI: Dedup this with point_read_t?
-    void operator()(const sindex_list_t &sl) const {
-        const store_key_t key = sindex_list_region_key();
+    // The key was somehow already extracted from the arg.
+    template <class T>
+    void keyed_read(const T &arg, const store_key_t &key) const {
         const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
         for (size_t i = 0; i < regions->array_size(); ++i) {
             if (region_contains_key_with_precomputed_hash(regions->array_nth(i), key, hash_value)) {
-                reads_out->push_back(std::make_pair(i, read_t(sl)));
+                reads_out->push_back(std::make_pair(i, read_t(arg)));
                 return;
             }
         }
+        crash("sharded into a nonintersecting set of regions");
+    }
 
-        crash("sindex_list_t sharded into nonintersecting set of regions");
+    void operator()(const point_read_t &pr) const {
+        keyed_read(pr, pr.key);
+    }
+
+    template <class T>
+    void rangey_read(const T &arg) const {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            const hash_region_t<key_range_t> intersection
+                = region_intersection(regions->array_nth(i), arg.region);
+            if (!region_is_empty(intersection)) {
+                T tmp = arg;
+                tmp.region = intersection;
+                reads_out->push_back(std::make_pair(i, read_t(tmp)));
+            }
+        }
+        guarantee(!reads_out->empty(), "sharded into nonintersecting set of regions");
+    }
+
+    void operator()(const rget_read_t &rg) const {
+        rangey_read(rg);
+    }
+
+    void operator()(const distribution_read_t &dg) const {
+        rangey_read(dg);
+    }
+
+    void operator()(const sindex_list_t &sl) const {
+        keyed_read(sl, sindex_list_region_key());
     }
 
     const array_t<hash_region_t<key_range_t> > *regions;
@@ -836,15 +828,20 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
                           std::vector<std::pair<size_t, write_t> > *_sharded_writes_out)
         : regions(_regions), writes_out(_sharded_writes_out) {}
 
-    void operator()(const point_replace_t &pr) const {
-        const uint64_t hash_value = hash_region_hasher(pr.key.contents(), pr.key.size());
+    template <class T>
+    void keyed_write(const T &arg) const {
+        const uint64_t hash_value = hash_region_hasher(arg.key.contents(), arg.key.size());
         for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pr.key, hash_value)) {
-                writes_out->push_back(std::make_pair(i, write_t(pr)));
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), arg.key, hash_value)) {
+                writes_out->push_back(std::make_pair(i, write_t(arg)));
                 return;
             }
         }
-        crash("point_replace_t sharded into nonintersecting set of regions");
+        crash("sharded into a nonintersecting set of regions");
+    }
+
+    void operator()(const point_replace_t &pr) const {
+        keyed_write(pr);
     }
 
     void operator()(const batched_replaces_t &br) const {
@@ -875,53 +872,33 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &pw) const {
-        // SAMRSI: dedup with point_replace_t version?
-        const uint64_t hash_value = hash_region_hasher(pw.key.contents(), pw.key.size());
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pw.key, hash_value)) {
-                writes_out->push_back(std::make_pair(i, write_t(pw)));
-                return;
-            }
-        }
-        crash("point_write_t sharded into nonintersecting set of regions");
+        keyed_write(pw);
     }
 
     void operator()(const point_delete_t &pd) const {
-        // SAMRSI: dedup with point_replace_t version?
-        const uint64_t hash_value = hash_region_hasher(pd.key.contents(), pd.key.size());
+        keyed_write(pd);
+    }
+
+    template <class T>
+    void rangey_write(const T &arg) const {
         for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pd.key, hash_value)) {
-                writes_out->push_back(std::make_pair(i, write_t(pd)));
-                return;
+            const hash_region_t<key_range_t> intersection
+                = region_intersection(regions->array_nth(i), arg.region);
+            if (!region_is_empty(intersection)) {
+                T tmp = arg;
+                tmp.region = intersection;
+                writes_out->push_back(std::make_pair(i, write_t(tmp)));
             }
         }
-        crash("point_delete_t sharded into nonintersecting set of regions");
+        guarantee(!writes_out->empty(), "sharded into a nonintersecting set of regions");
     }
 
     void operator()(const sindex_create_t &c) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection(regions->array_nth(i), c.region);
-            if (!region_is_empty(intersection)) {
-                sindex_create_t tmp = c;
-                tmp.region = intersection;
-                writes_out->push_back(std::make_pair(i, write_t(tmp)));
-            }
-        }
-        guarantee(!writes_out->empty(), "sindex_create_t sharded into nonintersecting set of regions");
+        rangey_write(c);
     }
 
-    // SAMRSI: Dedup with sindex_create_t version, maybe read version as well...
     void operator()(const sindex_drop_t &d) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), d.region);
-            if (!region_is_empty(intersection)) {
-                sindex_drop_t tmp = d;
-                tmp.region = intersection;
-                writes_out->push_back(std::make_pair(i, write_t(tmp)));
-            }
-        }
-        guarantee(!writes_out->empty(), "sindex_drop_t sharded into nonintersecting set of regions");
+        rangey_write(d);
     }
 
     const array_t<region_t> *regions;
