@@ -135,9 +135,6 @@ public:
         backfill_chunk_t() { }
         explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
 
-        // SAMRSI: Does anybody use get_region?  Or backfill_chunk_t at all?
-        region_t get_region() const THROWS_NOTHING;
-
         /* This is called by `btree_store_t`; it's not part of the ICL protocol
         API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;

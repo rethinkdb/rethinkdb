@@ -640,8 +640,6 @@ struct rdb_protocol_t {
             return backfill_chunk_t(sindexes_t(sindexes));
         }
 
-        region_t get_region() const;
-
         /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
 

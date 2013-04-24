@@ -1392,29 +1392,6 @@ void store_t::protocol_write(const write_t &write,
     boost::apply_visitor(v, write.write);
 }
 
-struct rdb_backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
-    region_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return rdb_protocol_t::monokey_region(del.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        return del.range;
-    }
-
-    region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return rdb_protocol_t::monokey_region(kv.backfill_atom.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::sindexes_t &) {
-        return region_t::universe();
-    }
-};
-
-region_t backfill_chunk_t::get_region() const {
-    rdb_backfill_chunk_get_region_visitor_t v;
-    return boost::apply_visitor(v, val);
-}
-
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
     repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
         return del.recency;

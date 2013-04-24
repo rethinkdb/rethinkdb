@@ -387,29 +387,6 @@ void write_t::unshard(const write_response_t *responses, size_t count, write_res
 
 namespace {
 
-struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
-    region_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return monokey_region(del.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        return del.range;
-    }
-
-    region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return monokey_region(kv.backfill_atom.key);
-    }
-};
-
-}   /* anonymous namespace */
-
-region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
-    backfill_chunk_get_region_visitor_t v;
-    return boost::apply_visitor(v, val);
-}
-
-namespace {
-
 struct backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
 public:
     repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
