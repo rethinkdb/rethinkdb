@@ -136,35 +136,60 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 namespace {
 
-struct read_shard_visitor_t : public boost::static_visitor<read_t> {
-    read_shard_visitor_t(const region_t &r, exptime_t et) :
-        region(r), effective_time(et) { }
+struct read_shard_visitor_t : public boost::static_visitor<void> {
+    read_shard_visitor_t(exptime_t et, const std::vector<region_t> *_regions,
+                         std::vector<std::pair<size_t, read_t> > *sharded_reads_out)
+        : effective_time(et), regions(_regions), reads_out(sharded_reads_out) { }
 
-    const region_t &region;
+    // SAMRSI: I bet some of these could be deduped...
+    void operator()(const get_query_t &get) const {
+        const uint64_t hash_value = hash_region_hasher(get.key.contents(), get.key.size());
+        for (size_t i = 0; i < regions->size(); ++i) {
+            if (region_contains_key_with_precomputed_hash((*regions)[i], get.key, hash_value)) {
+                reads_out->push_back(std::make_pair(i, read_t(get, effective_time)));
+                return;
+            }
+        }
+        crash("get_query_t sharded into nonintersecting set of regions");
+    }
+    void operator()(const rget_query_t &rget) const {
+        for (size_t i = 0; i < regions->size(); ++i) {
+            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], rget.region);
+            if (!region_is_empty(intersection)) {
+                rget_query_t tmp = rget;
+                tmp.region = intersection;
+                reads_out->push_back(std::make_pair(i, read_t(tmp, effective_time)));
+            }
+        }
+        guarantee(!reads_out->empty(), "rget_query_t sharded into nonintersecting set of regions");
+    }
+    void operator()(const distribution_get_query_t &distribution_get) const {
+        for (size_t i = 0; i < regions->size(); ++i) {
+            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], distribution_get.region);
+            if (!region_is_empty(intersection)) {
+                distribution_get_query_t tmp = distribution_get;
+                tmp.region = intersection;
+                reads_out->push_back(std::make_pair(i, read_t(tmp, effective_time)));
+            }
+        }
+        guarantee(!reads_out->empty(), "distribution_get_query_t sharded into nonintersecting set of regions");
+    }
+
+private:
     exptime_t effective_time;
-
-    read_t operator()(get_query_t get) {
-        rassert(region == monokey_region(get.key));
-        return read_t(get, effective_time);
-    }
-    read_t operator()(rget_query_t rget) {
-        rassert(region_is_superset(rget.region, region));
-        rget.region = region;
-        return read_t(rget, effective_time);
-    }
-    read_t operator()(distribution_get_query_t distribution_get) {
-        rassert(region_is_superset(distribution_get.region, region));
-        distribution_get.region = region;
-        return read_t(distribution_get, effective_time);
-    }
+    const std::vector<region_t> *regions;
+    std::vector<std::pair<size_t, read_t> > *reads_out;
 };
 
 }   /* anonymous namespace */
 
-read_t read_t::shard(const region_t &r) const THROWS_NOTHING {
-    read_shard_visitor_t v(r, effective_time);
-    return boost::apply_visitor(v, query);
+void read_t::shard(const std::vector<region_t> &regions,
+                   std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING {
+    boost::apply_visitor(read_shard_visitor_t(effective_time, &regions, sharded_reads_out), query);
 }
+
+
+
 
 /* `read_t::unshard()` */
 
@@ -314,30 +339,37 @@ void read_t::unshard(const read_response_t *responses, size_t count, read_respon
     *response = boost::apply_visitor(v, query);
 }
 
-/* `write_t::get_region()` */
-
-namespace {
-
-struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
+struct write_get_key_visitor_t : public boost::static_visitor<store_key_t> {
     /* All the types of mutation have a member called `key` */
     template<class mutation_t>
-    region_t operator()(mutation_t mut) {
-        return monokey_region(mut.key);
+    store_key_t operator()(const mutation_t &mut) const {
+        return mut.key;
     }
 };
 
-}   /* anonymous namespace */
+store_key_t write_get_key(const write_t &write) {
+    return boost::apply_visitor(write_get_key_visitor_t(), write.mutation);
+}
 
 region_t write_t::get_region() const THROWS_NOTHING {
-    write_get_region_visitor_t v;
-    return boost::apply_visitor(v, mutation);
+    return monokey_region(write_get_key(*this));
 }
 
 /* `write_t::shard()` */
 
-write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
-    rassert(region == get_region());
-    return *this;
+void write_t::shard(const std::vector<region_t> &regions,
+                    std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING {
+    const store_key_t key = write_get_key(*this);
+    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+
+    for (size_t i = 0; i < regions.size(); ++i) {
+        if (region_contains_key_with_precomputed_hash(regions[i], key, hash_value)) {
+            sharded_writes_out->push_back(std::make_pair(i, *this));
+            return;
+        }
+    }
+
+    crash("memcached write_t sharded into nonintersecting set of regions");
 }
 
 /* `write_response_t::unshard()` */

@@ -89,12 +89,17 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
+    std::vector<std::pair<size_t, op_type> > sharded_ops;
     boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > masters_to_contact;
     {
-        region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
-        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
+        // SAMRSI: Expensive copying.  But so what?
+        std::vector<typename protocol_t::region_t> regions = copy_out_regions(relationships);
+        op.shard(regions, &sharded_ops);
+
+        for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
             relationship_t *chosen_relationship = NULL;
-            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
+            const std::set<relationship_t *> *relationship_map = &relationships.get_nth(sub_op->first).second;
+            for (auto jt = relationship_map->begin(); jt != relationship_map->end(); ++jt) {
                 if ((*jt)->master_access) {
                     if (chosen_relationship) {
                         throw cannot_perform_query_exc_t("Too many masters available");
@@ -107,7 +112,6 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
             }
             immediate_op_info_t<fifo_enforcer_token_type> *new_op_info =
                 new immediate_op_info_t<fifo_enforcer_token_type>();
-            new_op_info->region = it->first;
             new_op_info->master_access = chosen_relationship->master_access;
             (new_op_info->master_access->*how_to_make_token)(&new_op_info->enforcement_token);
             new_op_info->keepalive = auto_drainer_t::lock_t(&chosen_relationship->drainer);
@@ -120,13 +124,11 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     std::vector<std::string> failures(masters_to_contact.size());
     // RSI: don't use pmap  // TODO: <- WTF are we supposed to use then?
     pmap(masters_to_contact.size(), boost::bind(
-             &cluster_namespace_interface_t::template perform_immediate_op<op_type,
-             fifo_enforcer_token_type,
-             op_response_type>,
+             &cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>,
              this,
              how_to_run_query,
              &masters_to_contact,
-             &op,
+             &sharded_ops,
              &results,
              &failures,
              order_token,
@@ -150,7 +152,7 @@ template<class op_type, class fifo_enforcer_token_type, class op_response_type>
 void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
     boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > *masters_to_contact,
-    const op_type *operation,
+    const std::vector<std::pair<size_t, op_type> > *sharded_ops,
     std::vector<op_response_type> *results,
     std::vector<std::string> *failures,
     order_token_t order_token,
@@ -159,12 +161,9 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     THROWS_NOTHING
 {
     immediate_op_info_t<fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
-    op_type sharded_op = operation->shard(master_to_contact->region);
-    rassert(region_is_superset(master_to_contact->region, sharded_op.get_region()));
-    rassert(region_is_superset(operation->get_region(), sharded_op.get_region()));
 
     try {
-        (master_to_contact->master_access->*how_to_run_query)(sharded_op,
+        (master_to_contact->master_access->*how_to_run_query)((*sharded_ops)[i].second,
                                                               &results->at(i),
                                                               order_token,
                                                               &master_to_contact->enforcement_token,
@@ -181,6 +180,17 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     }
 }
 
+// Copies out the regions, preserving their order.  Region maps have their
+// regions in an order!  Oh god.
+template <class protocol_t, class T>
+std::vector<typename protocol_t::region_t> copy_out_regions(const region_map_t<protocol_t, T> &m) {
+    std::vector<typename protocol_t::region_t> regions;
+    for (auto it = m.begin(); it != m.end(); ++it) {
+        regions.push_back(it->first);
+    }
+    return regions;
+}
+
 template <class protocol_t>
 void
 cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename protocol_t::read_t &op,
@@ -190,13 +200,19 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
+    std::vector<std::pair<size_t, typename protocol_t::read_t> > sharded_ops;
     boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
     {
-        region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
-        for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
+        // SAMRSI: Expensive copying.  But so what?
+        std::vector<typename protocol_t::region_t> regions = copy_out_regions(relationships);
+        op.shard(regions, &sharded_ops);
+
+        for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
-            for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
+
+            const std::set<relationship_t *> *relationship_map = &relationships.get_nth(sub_op->first).second;
+            for (auto jt = relationship_map->begin(); jt != relationship_map->end(); ++jt) {
                 if ((*jt)->direct_reader_access) {
                     if ((*jt)->is_local) {
                         chosen_relationship = *jt;
@@ -215,7 +231,6 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
                 throw cannot_perform_query_exc_t("No direct reader available");
             }
             outdated_read_info_t *new_op_info = new outdated_read_info_t();
-            new_op_info->region = it->first;
             new_op_info->direct_reader_access = chosen_relationship->direct_reader_access;
             new_op_info->keepalive = auto_drainer_t::lock_t(&chosen_relationship->drainer);
             direct_readers_to_contact.push_back(new_op_info);
@@ -225,7 +240,7 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
     std::vector<typename protocol_t::read_response_t> results(direct_readers_to_contact.size());
     std::vector<std::string> failures(direct_readers_to_contact.size());
     pmap(direct_readers_to_contact.size(), boost::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
-                                                       &direct_readers_to_contact, &op, &results, &failures, _1, interruptor));
+                                                       &direct_readers_to_contact, &sharded_ops, &results, &failures, _1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -247,7 +262,7 @@ void outdated_read_store_result(typename protocol_t::read_response_t *result_out
 template <class protocol_t>
 void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
-    const typename protocol_t::read_t *operation,
+    const std::vector<std::pair<size_t, typename protocol_t::read_t> > *sharded_ops,
     std::vector<typename protocol_t::read_response_t> *results,
     std::vector<std::string> *failures,
     int i,
@@ -255,9 +270,6 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     THROWS_NOTHING
 {
     outdated_read_info_t *direct_reader_to_contact = &(*direct_readers_to_contact)[i];
-    typename protocol_t::read_t sharded_op = operation->shard(direct_reader_to_contact->region);
-    rassert(region_is_superset(direct_reader_to_contact->region, sharded_op.get_region()));
-    rassert(region_is_superset(operation->get_region(), sharded_op.get_region()));
 
     try {
         cond_t done;
@@ -265,7 +277,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
                                                                    boost::bind(&outdated_read_store_result<protocol_t>, &results->at(i), _1, &done),
                                                                    mailbox_callback_mode_inline);
 
-        send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, sharded_op, cont.get_address());
+        send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, (*sharded_ops)[i].second, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
         wait_interruptible(&waiter, interruptor);
         direct_reader_to_contact->direct_reader_access->access();   /* throws if `get_failed_signal()->is_pulsed()` */

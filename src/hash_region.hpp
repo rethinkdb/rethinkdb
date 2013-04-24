@@ -17,6 +17,7 @@
 #include "utils.hpp"
 
 struct key_range_t;
+struct store_key_t;
 
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;
@@ -125,6 +126,11 @@ bool all_have_same_inner(const std::vector< hash_region_t<inner_region_t> > &vec
 
 MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_range_t> > &vec,
                                           hash_region_t<key_range_t> *out);
+
+// hash_value must equal hash_region_hasher(key.contents(), key.size()).
+bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> &region,
+                                               const store_key_t &key,
+                                               uint64_t hash_value);
 
 
 template <class inner_region_t>

@@ -50,8 +50,11 @@ public:
     class read_t {
     public:
         region_t get_region() const;
-        read_t shard(region_t region) const;
+        // SAMRSI: You'll have to reimplement this.
+        void shard(const std::vector<region_t> &regions,
+                   std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const;
         void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
+        // SAMRSI: Get rid of multistore_unshard?
         void multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
@@ -67,8 +70,11 @@ public:
     class write_t {
     public:
         region_t get_region() const;
-        write_t shard(region_t region) const;
+        // SAMRSI: You'll have to implement this.
+        void shard(const std::vector<region_t> &regions,
+                   std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const;
         void unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *) const;
+        // SAMRSI: Get rid of multistore_unshard?
         void multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);

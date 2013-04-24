@@ -56,12 +56,17 @@ dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }
 
-dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region),
-        "Parameter to `shard()` should be a subset of read's region.");
-    read_t r;
-    r.keys = region_intersection(region, keys);
-    return r;
+void dummy_protocol_t::read_t::shard(const std::vector<region_t> &regions,
+                                     std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const {
+    for (size_t i = 0; i < regions.size(); ++i) {
+        region_t intersection = region_intersection(regions[i], keys);
+        if (!region_is_empty(intersection)) {
+            read_t r;
+            r.keys = intersection;
+            sharded_reads_out->push_back(std::make_pair(i, r));
+        }
+    }
+    guarantee(!sharded_reads_out->empty(), "dummy_protocol_t::read_t sharded into nonintersection regions");
 }
 
 void dummy_protocol_t::read_t::unshard(const read_response_t *resps, size_t
@@ -94,17 +99,22 @@ dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     return region;
 }
 
-dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region),
-        "Parameter to `shard()` should be a subset of the write's region.");
-    write_t w;
-    for (std::map<std::string, std::string>::const_iterator it = values.begin();
-            it != values.end(); it++) {
-        if (region.keys.count(it->first) != 0) {
-            w.values[it->first] = it->second;
+void dummy_protocol_t::write_t::shard(const std::vector<region_t> &regions,
+                                      std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const {
+    for (size_t i = 0; i < regions.size(); ++i) {
+        std::map<std::string, std::string> tmp;
+        for (auto it = values.begin(); it != values.end(); ++it) {
+            if (regions[i].keys.find(it->first) != regions[i].keys.end()) {
+                tmp.insert(*it);
+            }
+        }
+        if (!tmp.empty()) {
+            write_t write;
+            write.values.swap(tmp);
+            sharded_writes_out->push_back(std::make_pair(i, write));
         }
     }
-    return w;
+    guarantee(!sharded_writes_out->empty(), "dummy_protocol_t::write_t sharded into nonintersecting set of regions");
 }
 
 void dummy_protocol_t::write_t::unshard(const write_response_t* resps, size_t count, write_response_t *response, DEBUG_VAR context_t *ctx, signal_t *) const {

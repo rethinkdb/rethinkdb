@@ -222,3 +222,16 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
 
     return REGION_JOIN_OK;
 }
+
+
+
+// hash_value must equal hash_region_hasher(key.contents(), key.size()).
+bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> &region,
+                                               const store_key_t &key,
+                                               uint64_t hash_value) {
+    if (region.beg <= hash_value && hash_value < region.end) {
+        return region.inner.contains_key(key);
+    } else {
+        return false;
+    }
+}
