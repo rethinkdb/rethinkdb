@@ -71,7 +71,7 @@ public:
         typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
 
         region_t get_region() const THROWS_NOTHING;
-        void shard(const std::vector<region_t> &regions,
+        void shard(const array_t<region_t> &regions,
                    std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING;
         void unshard(const read_response_t *responses, size_t count, read_response_t *response, context_t *ctx, signal_t *) const THROWS_NOTHING;
 
@@ -98,7 +98,7 @@ public:
     struct write_t {
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         region_t get_region() const THROWS_NOTHING;
-        void shard(const std::vector<region_t> &regions,
+        void shard(const array_t<region_t> &regions,
                    std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *ctx, signal_t *) const THROWS_NOTHING;
 
@@ -136,6 +136,7 @@ public:
         explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> _val) : val(_val) { }
 
         region_t get_region() const THROWS_NOTHING;
+        // SAMRSI: What is this shard function?  Fix it.
         backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;
 
         /* This is called by `btree_store_t`; it's not part of the ICL protocol

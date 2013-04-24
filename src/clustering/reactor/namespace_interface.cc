@@ -74,6 +74,23 @@ cluster_namespace_interface_t<protocol_t>::get_sharding_scheme() THROWS_ONLY(can
     return std::set<typename protocol_t::region_t>(s.begin(), s.end());
 }
 
+template <class protocol_t>
+class relationships_region_array_t : public array_t<typename protocol_t::region_t> {
+public:
+    relationships_region_array_t(region_map_t<protocol_t, std::set<typename cluster_namespace_interface_t<protocol_t>::relationship_t *> > *relationships)
+        : relationships_(relationships) { }
+
+    const typename protocol_t::region_t &array_nth(size_t n) const {
+        return relationships_->get_nth(n).first;
+    }
+
+    size_t array_size() const {
+        return relationships_->size();
+    }
+
+private:
+    region_map_t<protocol_t, std::set<typename cluster_namespace_interface_t<protocol_t>::relationship_t *> > *relationships_;
+};
 
 template <class protocol_t>
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
@@ -90,12 +107,10 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<std::pair<size_t, op_type> > sharded_ops;
+    op.shard(relationships_region_array_t<protocol_t>(&relationships), &sharded_ops);
+
     boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > masters_to_contact;
     {
-        // SAMRSI: Expensive copying.  But so what?
-        std::vector<typename protocol_t::region_t> regions = copy_out_regions(relationships);
-        op.shard(regions, &sharded_ops);
-
         for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
             relationship_t *chosen_relationship = NULL;
             const std::set<relationship_t *> *relationship_map = &relationships.get_nth(sub_op->first).second;
@@ -180,17 +195,6 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     }
 }
 
-// Copies out the regions, preserving their order.  Region maps have their
-// regions in an order!  Oh god.
-template <class protocol_t, class T>
-std::vector<typename protocol_t::region_t> copy_out_regions(const region_map_t<protocol_t, T> &m) {
-    std::vector<typename protocol_t::region_t> regions;
-    for (auto it = m.begin(); it != m.end(); ++it) {
-        regions.push_back(it->first);
-    }
-    return regions;
-}
-
 template <class protocol_t>
 void
 cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename protocol_t::read_t &op,
@@ -201,12 +205,10 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     std::vector<std::pair<size_t, typename protocol_t::read_t> > sharded_ops;
+    op.shard(relationships_region_array_t<protocol_t>(&relationships), &sharded_ops);
+
     boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
     {
-        // SAMRSI: Expensive copying.  But so what?
-        std::vector<typename protocol_t::region_t> regions = copy_out_regions(relationships);
-        op.shard(regions, &sharded_ops);
-
         for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;

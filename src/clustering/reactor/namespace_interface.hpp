@@ -55,10 +55,10 @@ private:
     value_t value;
 };
 
+template <class protocol_t> class relationships_region_array_t;
+
 template <class protocol_t>
-class cluster_namespace_interface_t :
-    public namespace_interface_t<protocol_t>
-{
+class cluster_namespace_interface_t : public namespace_interface_t<protocol_t> {
 public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
@@ -84,6 +84,8 @@ public:
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
 
 private:
+    friend class relationships_region_array_t<protocol_t>;
+
     class relationship_t {
     public:
         bool is_local;

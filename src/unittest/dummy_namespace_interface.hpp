@@ -134,13 +134,19 @@ public:
         typename protocol_t::region_t region;
     };
 
-    static std::vector<typename protocol_t::region_t> shard_regions(const std::vector<shard_t> &shards) {
-        std::vector<typename protocol_t::region_t> ret;
-        for (auto it = shards.begin(); it != shards.end(); ++it) {
-            ret.push_back(it->region);
+    class shard_region_array_t : public array_t<typename protocol_t::region_t> {
+    public:
+        shard_region_array_t(const std::vector<shard_t> *s) : shards_(s) { }
+        virtual size_t array_size() const {
+            return shards_->size();
         }
-        return ret;
-    }
+        virtual const typename protocol_t::region_t &array_nth(size_t n) const {
+            return (*shards_)[n].region;
+        }
+
+    private:
+        const std::vector<shard_t> *shards_;
+    };
 
     explicit dummy_sharder_t(std::vector<shard_t> _shards,
                              typename protocol_t::context_t *_ctx)
@@ -150,7 +156,7 @@ public:
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
         std::vector<std::pair<size_t, typename protocol_t::read_t> > subreads;
-        read.shard(shard_regions(shards), &subreads);
+        read.shard(shard_region_array_t(&shards), &subreads);
 
         std::vector<typename protocol_t::read_response_t> responses;
         for (auto it = subreads.begin(); it != subreads.end(); ++it) {
@@ -167,7 +173,7 @@ public:
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
         std::vector<std::pair<size_t, typename protocol_t::read_t> > subreads;
-        read.shard(shard_regions(shards), &subreads);
+        read.shard(shard_region_array_t(&shards), &subreads);
 
         std::vector<typename protocol_t::read_response_t> responses;
         for (auto it = subreads.begin(); it != subreads.end(); ++it) {
@@ -184,7 +190,7 @@ public:
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
         std::vector<std::pair<size_t, typename protocol_t::write_t> > subwrites;
-        write.shard(shard_regions(shards), &subwrites);
+        write.shard(shard_region_array_t(&shards), &subwrites);
 
         std::vector<typename protocol_t::write_response_t> responses;
         for (auto it = subwrites.begin(); it != subwrites.end(); ++it) {

@@ -387,14 +387,14 @@ bool region_contains_key(const hash_region_t<key_range_t> &region, const store_k
 }
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
-    explicit rdb_r_shard_visitor_t(const std::vector<hash_region_t<key_range_t> > *_regions,
+    explicit rdb_r_shard_visitor_t(const array_t<hash_region_t<key_range_t> > *_regions,
                                    std::vector<std::pair<size_t, read_t> > *_sharded_reads_out)
         : regions(_regions), reads_out(_sharded_reads_out) {}
 
     void operator()(const point_read_t &pr) const {
         const uint64_t hash_value = hash_region_hasher(pr.key.contents(), pr.key.size());
-        for (size_t i = 0; i < regions->size(); ++i) {
-            if (region_contains_key_with_precomputed_hash((*regions)[i], pr.key, hash_value)) {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pr.key, hash_value)) {
                 reads_out->push_back(std::make_pair(i, read_t(pr)));
                 return;
             }
@@ -403,8 +403,8 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rg) const {
-        for (size_t i = 0; i < regions->size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], rg.region);
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            const hash_region_t<key_range_t> intersection = region_intersection(regions->array_nth(i), rg.region);
             if (!region_is_empty(intersection)) {
                 rget_read_t tmp = rg;
                 tmp.region = intersection;
@@ -416,8 +416,9 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
 
     // SAMRSI: Might as well templatize this with rget_read_t.
     void operator()(const distribution_read_t &dg) const {
-        for (size_t i = 0; i < regions->size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], dg.region);
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            const hash_region_t<key_range_t> intersection
+                = region_intersection(regions->array_nth(i), dg.region);
             if (!region_is_empty(intersection)) {
                 distribution_read_t tmp = dg;
                 tmp.region = intersection;
@@ -431,8 +432,8 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_list_t &sl) const {
         const store_key_t key = sindex_list_region_key();
         const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
-        for (size_t i = 0; i < regions->size(); ++i) {
-            if (region_contains_key_with_precomputed_hash((*regions)[i], key, hash_value)) {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), key, hash_value)) {
                 reads_out->push_back(std::make_pair(i, read_t(sl)));
                 return;
             }
@@ -441,11 +442,11 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
         crash("sindex_list_t sharded into nonintersecting set of regions");
     }
 
-    const std::vector<hash_region_t<key_range_t> > *regions;
+    const array_t<hash_region_t<key_range_t> > *regions;
     std::vector<std::pair<size_t, read_t> > *reads_out;
 };
 
-void read_t::shard(const std::vector<hash_region_t<key_range_t> > &regions,
+void read_t::shard(const array_t<hash_region_t<key_range_t> > &regions,
                    std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING {
     rassert(sharded_reads_out->empty());
     boost::apply_visitor(rdb_r_shard_visitor_t(&regions, sharded_reads_out), read);
@@ -831,14 +832,14 @@ region_t write_t::get_region() const THROWS_NOTHING {
 /* write_t::shard implementation */
 
 struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
-    rdb_w_shard_visitor_t(const std::vector<region_t> *_regions,
+    rdb_w_shard_visitor_t(const array_t<region_t> *_regions,
                           std::vector<std::pair<size_t, write_t> > *_sharded_writes_out)
         : regions(_regions), writes_out(_sharded_writes_out) {}
 
     void operator()(const point_replace_t &pr) const {
         const uint64_t hash_value = hash_region_hasher(pr.key.contents(), pr.key.size());
-        for (size_t i = 0; i < regions->size(); ++i) {
-            if (region_contains_key_with_precomputed_hash((*regions)[i], pr.key, hash_value)) {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pr.key, hash_value)) {
                 writes_out->push_back(std::make_pair(i, write_t(pr)));
                 return;
             }
@@ -847,12 +848,12 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_replaces_t &br) const {
-        std::vector<std::vector<std::pair<int64_t, point_replace_t> > > sharded_replaces(regions->size());
+        std::vector<std::vector<std::pair<int64_t, point_replace_t> > > sharded_replaces(regions->array_size());
 
         for (auto it = br.point_replaces.begin(); it != br.point_replaces.end(); ++it) {
             const uint64_t hash_value = hash_region_hasher(it->second.key.contents(), it->second.key.size());
-            for (size_t i = 0; i < regions->size(); ++i) {
-                if (region_contains_key_with_precomputed_hash((*regions)[i], it->second.key, hash_value)) {
+            for (size_t i = 0; i < regions->array_size(); ++i) {
+                if (region_contains_key_with_precomputed_hash(regions->array_nth(i), it->second.key, hash_value)) {
                     sharded_replaces[i].push_back(*it);
                     goto found_region;
                 }
@@ -876,8 +877,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_write_t &pw) const {
         // SAMRSI: dedup with point_replace_t version?
         const uint64_t hash_value = hash_region_hasher(pw.key.contents(), pw.key.size());
-        for (size_t i = 0; i < regions->size(); ++i) {
-            if (region_contains_key_with_precomputed_hash((*regions)[i], pw.key, hash_value)) {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pw.key, hash_value)) {
                 writes_out->push_back(std::make_pair(i, write_t(pw)));
                 return;
             }
@@ -888,8 +889,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_delete_t &pd) const {
         // SAMRSI: dedup with point_replace_t version?
         const uint64_t hash_value = hash_region_hasher(pd.key.contents(), pd.key.size());
-        for (size_t i = 0; i < regions->size(); ++i) {
-            if (region_contains_key_with_precomputed_hash((*regions)[i], pd.key, hash_value)) {
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), pd.key, hash_value)) {
                 writes_out->push_back(std::make_pair(i, write_t(pd)));
                 return;
             }
@@ -898,8 +899,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) const {
-        for (size_t i = 0; i < regions->size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], c.region);
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            const hash_region_t<key_range_t> intersection = region_intersection(regions->array_nth(i), c.region);
             if (!region_is_empty(intersection)) {
                 sindex_create_t tmp = c;
                 tmp.region = intersection;
@@ -911,8 +912,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
 
     // SAMRSI: Dedup with sindex_create_t version, maybe read version as well...
     void operator()(const sindex_drop_t &d) const {
-        for (size_t i = 0; i < regions->size(); ++i) {
-            const hash_region_t<key_range_t> intersection = region_intersection((*regions)[i], d.region);
+        for (size_t i = 0; i < regions->array_size(); ++i) {
+            const hash_region_t<key_range_t> intersection
+                = region_intersection(regions->array_nth(i), d.region);
             if (!region_is_empty(intersection)) {
                 sindex_drop_t tmp = d;
                 tmp.region = intersection;
@@ -922,11 +924,11 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
         guarantee(!writes_out->empty(), "sindex_drop_t sharded into nonintersecting set of regions");
     }
 
-    const std::vector<region_t> *regions;
+    const array_t<region_t> *regions;
     std::vector<std::pair<size_t, write_t> > *writes_out;
 };
 
-void write_t::shard(const std::vector<region_t> &regions,
+void write_t::shard(const array_t<region_t> &regions,
                     std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING {
     boost::apply_visitor(rdb_w_shard_visitor_t(&regions, sharded_writes_out), write);
 }

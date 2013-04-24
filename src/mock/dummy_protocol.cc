@@ -56,10 +56,10 @@ dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }
 
-void dummy_protocol_t::read_t::shard(const std::vector<region_t> &regions,
+void dummy_protocol_t::read_t::shard(const array_t<region_t> &regions,
                                      std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const {
-    for (size_t i = 0; i < regions.size(); ++i) {
-        region_t intersection = region_intersection(regions[i], keys);
+    for (size_t i = 0; i < regions.array_size(); ++i) {
+        region_t intersection = region_intersection(regions.array_nth(i), keys);
         if (!region_is_empty(intersection)) {
             read_t r;
             r.keys = intersection;
@@ -99,12 +99,12 @@ dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     return region;
 }
 
-void dummy_protocol_t::write_t::shard(const std::vector<region_t> &regions,
+void dummy_protocol_t::write_t::shard(const array_t<region_t> &regions,
                                       std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const {
-    for (size_t i = 0; i < regions.size(); ++i) {
+    for (size_t i = 0; i < regions.array_size(); ++i) {
         std::map<std::string, std::string> tmp;
         for (auto it = values.begin(); it != values.end(); ++it) {
-            if (regions[i].keys.find(it->first) != regions[i].keys.end()) {
+            if (regions.array_nth(i).keys.find(it->first) != regions.array_nth(i).keys.end()) {
                 tmp.insert(*it);
             }
         }

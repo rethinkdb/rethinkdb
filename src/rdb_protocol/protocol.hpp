@@ -395,7 +395,7 @@ struct rdb_protocol_t {
 
         region_t get_region() const THROWS_NOTHING;
         // Returns read_t's with indexes into regions vector.
-        void shard(const std::vector<region_t> &regions,
+        void shard(const array_t<region_t> &regions,
                    std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING;
         void unshard(read_response_t *responses, size_t count, read_response_t *response,
                 context_t *ctx, signal_t *interruptor) const
@@ -568,7 +568,7 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         // Returns a vector of sharded writes with the indexes into the array of
         // regions.
-        void shard(const std::vector<region_t> &regions,
+        void shard(const array_t<region_t> &regions,
                    std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
