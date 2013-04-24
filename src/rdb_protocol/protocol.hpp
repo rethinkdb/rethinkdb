@@ -28,6 +28,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/serializable_environment.hpp"
+#include "utils.hpp"
 
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
@@ -117,7 +118,8 @@ RDB_DECLARE_SERIALIZABLE(terminal_t);
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block,
+        transaction_t *txn)
     THROWS_NOTHING;
 
 } // namespace rdb_protocol_details
@@ -126,16 +128,18 @@ void bring_sindexes_up_to_date(
 class cluster_semilattice_metadata_t;
 
 struct rdb_protocol_t {
+    static const size_t MAX_PRIMARY_KEY_SIZE = 128;
+
     static const std::string protocol_name;
     typedef hash_region_t<key_range_t> region_t;
 
     // Construct a region containing only the specified key
     static region_t monokey_region(const store_key_t &k);
 
-    // Constructs a region which will query an sindex for matches to a specific
-    // key
+    // Constructs a region which will query an sindex for matches to a specific key
     // TODO consider relocating this
-    static key_range_t sindex_key_range(const store_key_t &k);
+    static key_range_t sindex_key_range(const store_key_t &start,
+                                        const store_key_t &end);
 
     struct context_t {
         context_t();
@@ -267,46 +271,73 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        explicit rget_read_t(const region_t &_region)
-            : region(_region) { }
 
-        rget_read_t(const store_key_t &key,
-                    const std::string &_sindex)
-            : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(key)) { }
+        explicit rget_read_t(const region_t &_region,
+                             const std::map<std::string, ql::wire_func_t> &_optargs)
+            : region(_region), optargs(_optargs) {
+        }
 
-        rget_read_t(const region_t &_sindex_region,
-                    const std::string &_sindex)
+        rget_read_t(const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region) { }
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
+              sindex_region(rdb_protocol_t::sindex_key_range(_sindex_start_value->truncated_secondary(),
+                                                             _sindex_end_value->truncated_secondary())) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value)
+            : region(region_t::universe()), sindex(_sindex),
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
+              sindex_region(_sindex_region) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
+
+        rget_read_t(const region_t &_sindex_region,
+                    const std::string &_sindex,
+                    const ql::datum_t *_sindex_start_value,
+                    const ql::datum_t *_sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_start_value(_sindex_start_value),
+              sindex_end_value(_sindex_end_value),
               sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs) { }
+              transform(_transform), optargs(_optargs) {
+            sindex_start_value->finalize();
+            sindex_end_value->finalize();
+        }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform), optargs(_optargs)
-        { }
+            : region(_region), transform(_transform), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         rget_read_t(const region_t &_region,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), terminal(_terminal), optargs(_optargs)
-        { }
+            : region(_region), terminal(_terminal), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(_region), transform(_transform),
-              terminal(_terminal), optargs(_optargs)
-        { }
+              terminal(_terminal), optargs(_optargs) {
+            rassert(optargs.size() != 0);
+        }
 
         /* This region is in the primary indexe's keyspace. */
         region_t region;
@@ -319,6 +350,11 @@ struct rdb_protocol_t {
 
         /* The sindex from which we're reading. */
         boost::optional<std::string> sindex;
+
+        /* The actual sindex values to use for bounds, since the sindex key may
+        have been truncated due to excessive length */
+        boost::optional<ql::wire_datum_t> sindex_start_value;
+        boost::optional<ql::wire_datum_t> sindex_end_value;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -674,10 +710,10 @@ namespace rdb_protocol_details {
 originally necessary because in v1.1.x the hashing scheme might be different
 between the source and destination machines. */
 struct range_key_tester_t : public key_tester_t {
-    explicit range_key_tester_t(const rdb_protocol_t::region_t& _delete_range) : delete_range(_delete_range) { }
+    explicit range_key_tester_t(const rdb_protocol_t::region_t *_delete_range) : delete_range(_delete_range) { }
     bool key_should_be_erased(const btree_key_t *key);
 
-    const rdb_protocol_t::region_t& delete_range;
+    const rdb_protocol_t::region_t *delete_range;
 };
 } //namespace rdb_protocol_details 
 

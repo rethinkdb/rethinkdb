@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
@@ -111,24 +111,16 @@ void apply_json_to(cJSON *change, directory_echo_wrapper_t<T> *target) {
     apply_json_to(change, &target->internal);
 }
 
-template <typename T>
-void on_subfield_change(directory_echo_wrapper_t<T> *target) {
-    on_subfield_change(&target->internal);
-}
-
-
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target);
 cJSON *render_as_json(cluster_directory_metadata_t *target);
 void apply_json_to(cJSON *change, cluster_directory_metadata_t *target);
-void on_subfield_change(cluster_directory_metadata_t *);
 
 
 // ctx-less json adapter for cluster_directory_peer_type_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *);
 cJSON *render_as_json(cluster_directory_peer_type_t *peer_type);
 void apply_json_to(cJSON *, cluster_directory_peer_type_t *);
-void on_subfield_change(cluster_directory_peer_type_t *);
 
 enum metadata_search_status_t {
     METADATA_SUCCESS, METADATA_ERR_NONE, METADATA_ERR_MULTIPLE, METADATA_CONFLICT

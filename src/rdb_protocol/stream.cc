@@ -105,18 +105,24 @@ batched_rget_stream_t::batched_rget_stream_t(
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
-      range(_range),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
+      sindex_start_value(NULL), sindex_end_value(NULL),
+      range(_range),
       table_scan_backtrace()
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, key_range_t _range, const std::string &_sindex_id,
+                      signal_t *_interruptor, const std::string &_sindex_id,
                       const std::map<std::string, ql::wire_func_t> &_optargs,
-                      bool _use_outdated)
+                      bool _use_outdated,
+                      const ql::datum_t *_sindex_start_value,
+                      const ql::datum_t *_sindex_end_value)
     : ns_access(_ns_access), interruptor(_interruptor),
-      range(_range), sindex_id(_sindex_id),
+      sindex_id(_sindex_id),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
+      sindex_start_value(_sindex_start_value), sindex_end_value(_sindex_end_value),
+      range(rdb_protocol_t::sindex_key_range(sindex_start_value->truncated_secondary(),
+                                             sindex_end_value->truncated_secondary())),
       table_scan_backtrace()
 { }
 
@@ -185,9 +191,16 @@ result_t batched_rget_stream_t::apply_terminal(
 
 rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
     if (!sindex_id) {
-        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range), transform, optargs);
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
+                                           transform,
+                                           optargs);
     } else {
-        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range), *sindex_id, transform, optargs);
+        return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
+                                           *sindex_id,
+                                           sindex_start_value,
+                                           sindex_end_value,
+                                           transform,
+                                           optargs);
     }
 }
 

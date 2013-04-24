@@ -470,14 +470,15 @@ module 'ServerView', ->
         remove_responsabilities: =>
             namespaces_to_update = {}
             for namespace in namespaces.models
-
                 # Create the new replica affinities (done by setting the value for @datacenter to 0)
                 new_replica_affinities = namespace.get('replica_affinities')
                 new_replica_affinities[@datacenter.get('id')] = 0
 
                 # The same with acks now
                 new_ack_expectations = namespace.get('ack_expectations')
-                new_ack_expectations[@datacenter.get('id')] = 0
+                new_ack_expectations[@datacenter.get('id')] =
+                    expectation: 0
+                    hard_durability: namespace.get_durability()
 
                 # Set Universe as new primary if @datacenter was the primary of a table
                 if namespace.get('primary_uuid') is @datacenter.get('id')
@@ -490,8 +491,10 @@ module 'ServerView', ->
                 if namespace.get('primary_uuid') is @datacenter.get('id')
                     if not new_replica_affinities[universe_datacenter.get('id')]?
                         new_replica_affinities[universe_datacenter.get('id')] = 0
-                     if not new_ack_expectations[universe_datacenter.get('id')]? or new_ack_expectations[universe_datacenter.get('id')] is 0
-                        new_ack_expectations[universe_datacenter.get('id')] = 1
+                     if not new_ack_expectations[universe_datacenter.get('id')]? or new_ack_expectations[universe_datacenter.get('id')].expectation is 0
+                        new_ack_expectations[universe_datacenter.get('id')] =
+                            expectation: 1
+                            hard_durability: namespace.get_durability()
                    
                 namespaces_to_update[namespace.get('id')]['replica_affinities'] = new_replica_affinities
                 namespaces_to_update[namespace.get('id')]['ack_expectations'] = new_ack_expectations

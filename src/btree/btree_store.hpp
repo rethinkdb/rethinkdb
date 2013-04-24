@@ -90,6 +90,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             typename protocol_t::write_response_t *response,
+            write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
             write_token_pair_t *token_pair,
@@ -114,6 +115,7 @@ public:
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             write_token_pair_t *token_pair,
+            write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -121,15 +123,15 @@ public:
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void deregister_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void sindex_queue_push(
             const write_message_t& value,
-            mutex_t::acq_t *acq);
+            const mutex_t::acq_t *acq);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
@@ -184,6 +186,12 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
+    bool mark_index_up_to_date(
+        uuid_u id,
+        transaction_t *txn,
+        buf_lock_t *sindex_block)
+    THROWS_NOTHING;
+
     bool drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
@@ -204,12 +212,18 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 
     void get_sindexes(
-        std::map<std::string, secondary_index_t> *sindexes_out,
         read_token_pair_t *token_pair,
         transaction_t *txn,
         superblock_t *super_block,
+        std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
+
+    void get_sindexes(
+        buf_lock_t *sindex_block,
+        transaction_t *txn,
+        std::map<std::string, secondary_index_t> *sindexes_out)
+    THROWS_NOTHING;
 
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
@@ -217,6 +231,7 @@ public:
             read_token_pair_t *token_pair,
             transaction_t *txn_out,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            std::vector<char> *opaque_definition_out, // Optional, may be NULL
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
@@ -273,6 +288,13 @@ public:
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            buf_lock_t *sindex_block,
+            transaction_t *txn,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+
+    bool acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
@@ -344,6 +366,7 @@ public:
             access_t access,
             repli_timestamp_t timestamp,
             int expected_change_count,
+            write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
@@ -354,13 +377,13 @@ public:
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
         transaction_t *txn,
-        real_superblock_t *superbloc) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         transaction_t *txn,
-        real_superblock_t *superbloc) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;

@@ -18,15 +18,11 @@
 
 writeback_t::writeback_t(
         mc_cache_t *_cache,
-        bool _wait_for_flush,
         unsigned int _flush_timer_ms,
         unsigned int _flush_threshold,
         unsigned int _max_dirty_blocks,
-        unsigned int _flush_waiting_threshold,
         unsigned int _max_concurrent_flushes
         ) :
-    wait_for_flush(_wait_for_flush),
-    flush_waiting_threshold(_flush_waiting_threshold),
     max_concurrent_flushes(_max_concurrent_flushes),
     max_dirty_blocks(_max_dirty_blocks),
     flush_time_randomizer(_flush_timer_ms),
@@ -47,7 +43,7 @@ writeback_t::~writeback_t() {
     rassert(!writeback_in_progress);
     rassert(active_flushes == 0);
     rassert(sync_callbacks.size() == 0);
-    if (flush_timer) {
+    if (flush_timer != NULL) {
         cancel_timer(flush_timer);
         flush_timer = NULL;
     }
@@ -63,38 +59,39 @@ void writeback_t::local_buf_t::reset() {
 }
 
 
-bool writeback_t::sync(sync_callback_t *callback) {
+void writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
-    // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
+    // Have to check active_flushes too, because a sync callback has to guarantee that changes handled
     // by previous flushes are also on disk. If these are still running, we must initiate a new flush
-    // even if there are no dirty blocks to make sure that the callbacks get called only
+    // even if there are no dirty blocks, to make sure that the callbacks get called only
     // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
-    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0)
-        return true;
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0) {
+        if (callback != NULL) {
+            callback->pulse();
+        }
+        return;
+    }
 
-    if (callback)
+    if (callback != NULL) {
         sync_callbacks.push_back(callback);
+    }
 
     if (!writeback_in_progress && active_flushes < max_concurrent_flushes) {
         /* Start the writeback process immediately */
         start_concurrent_flush();
-        return false;
     } else {
         /* There is a writeback currently in progress, but sync() has been called, so there is
-        more data that needs to be flushed that didn't become part of the current sync. So we
-        start another sync right after this one. */
+           more data that needs to be flushed that didn't become part of the current sync. So we
+           start another sync right after this one. */
         start_next_sync_immediately = true;
-
-        return false;
     }
 }
 
-bool writeback_t::sync_patiently(sync_callback_t *callback) {
-    if (callback)
+void writeback_t::sync_patiently(sync_callback_t *callback) {
+    if (callback != NULL) {
         sync_callbacks.push_back(callback);
-
-    return false;
+    }
 }
 
 void writeback_t::begin_transaction(mc_transaction_t *txn) {
@@ -127,7 +124,6 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
 
 void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
-
         dirty_block_semaphore.unlock(txn->expected_change_count);
 
         flush_lock.unlock();
@@ -138,11 +134,13 @@ void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
             sync(NULL);
         } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
             sync(NULL);
-        } else if (sync_callbacks.size() >= flush_waiting_threshold) {
+        } else if (!sync_callbacks.empty()) {
             sync(NULL);
         }
 
-        if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
+        if (flush_timer == NULL
+            && !flush_time_randomizer.is_never_flush()
+            && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
             flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), this);
@@ -403,7 +401,7 @@ void writeback_t::do_concurrent_flush() {
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();
         current_sync_callbacks.remove(cb);
-        cb->on_sync();
+        cb->pulse();
     }
 
     cache->stats->pm_flushes_writing.end(&start_time);

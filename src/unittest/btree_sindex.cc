@@ -46,7 +46,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
 
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
@@ -67,7 +67,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
         set_secondary_index(txn.get(), &sindex_block, id, s);
@@ -77,7 +77,7 @@ void run_sindex_low_level_operations_test() {
         order_token_t otok = order_source.check_in("sindex unittest");
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
         buf_lock_t sindex_block(txn.get(), superblock->get_sindex_block_id(), rwi_write);
 
         std::map<std::string, secondary_index_t> sindexes;
@@ -132,7 +132,8 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                               1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+                                               1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                               &txn, &super_block, &dummy_interuptor);
 
             UNUSED bool b =store.add_sindex(
                 &token_pair,
@@ -151,7 +152,8 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                               1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+                                               1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                               &txn, &super_block, &dummy_interuptor);
 
             scoped_ptr_t<buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
@@ -170,7 +172,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(rwi_write,
-                    repli_timestamp_t::invalid, 1,
+                    repli_timestamp_t::invalid, 1, WRITE_DURABILITY_SOFT,
                     &token_pair.main_write_token, &txn, &super_block,
                     &dummy_interuptor);
 
@@ -211,7 +213,8 @@ void run_sindex_btree_store_api_test() {
 
             bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(), &token_pair,
-                    txn.get(), &sindex_super_block, &dummy_interuptor);
+                    txn.get(), &sindex_super_block,
+                    static_cast<std::vector<char>*>(NULL), &dummy_interuptor);
             ASSERT_TRUE(sindex_exists);
 
             point_read_response_t response;
@@ -236,7 +239,8 @@ void run_sindex_btree_store_api_test() {
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, &token_pair.main_write_token, &txn, &super_block, &dummy_interuptor);
+                                           1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                           &txn, &super_block, &dummy_interuptor);
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
 

@@ -648,7 +648,6 @@ path_t parse_as_path(const std::string &path) {
     res.is_absolute = (path[0] == unix_path_separator[0]);
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    typedef tokenizer::iterator tok_iterator;
 
     boost::char_separator<char> sep(unix_path_separator);
     tokenizer tokens(path, sep);

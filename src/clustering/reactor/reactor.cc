@@ -24,7 +24,7 @@ reactor_t<protocol_t>::reactor_t(
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
-        typename master_t<protocol_t>::ack_checker_t *ack_checker_,
+        ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,

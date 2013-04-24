@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
 #include "utils.hpp"
@@ -11,6 +11,8 @@
 #include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+// TODO: Make us not include master.hpp -- we do it only for the ack_checker_t type.
+#include "clustering/immediate_consistency/query/master.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -362,27 +364,6 @@ void store_listener_response(response_t *result_out, const response_t &result_in
 }
 
 template<class protocol_t>
-void listener_writeread(
-        mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
-        const typename protocol_t::write_t &w, typename protocol_t::write_response_t *response, transition_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_write_token_t token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t)
-{
-    cond_t resp_cond;
-    mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
-        mailbox_manager,
-        boost::bind(&store_listener_response<typename protocol_t::write_response_t>, response, _1, &resp_cond),
-        mailbox_callback_mode_inline);
-
-    send(mailbox_manager, writeread_mailbox,
-         w, ts, order_token, token, resp_mailbox.get_address());
-
-    wait_interruptible(&resp_cond, interruptor);
-}
-
-template<class protocol_t>
 void listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
@@ -442,7 +423,12 @@ void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, ty
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &write, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &write,
+                                            fifo_enforcer_sink_t::exit_write_t *lock,
+                                            order_token_t order_token,
+                                            write_callback_t *cb,
+                                            signal_t *interruptor,
+                                            const ack_checker_t *ack_checker) THROWS_ONLY(interrupted_exc_t) {
 
     order_token.assert_write_mode();
 
@@ -481,7 +467,7 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
     /* As long as we hold the lock, take a snapshot of the dispatchee map
     and grab order tokens */
     for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
-            it != dispatchees.end(); it++) {
+         it != dispatchees.end(); ++it) {
         /* Once we call `enter_write()`, we have committed to sending
         the write to every dispatchee. In particular, it's important
         that we don't check `interruptor` until the write is on its way
@@ -489,7 +475,7 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
-                it->first, it->second, write_ref, order_token, fifo_enforcer_token));
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token, ack_checker->get_write_durability(it->first->get_peer())));
         } else {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token));
@@ -528,16 +514,24 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
     try {
-        typename protocol_t::write_response_t resp;
-        listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
-                                       write_ref.get()->write, &resp, write_ref.get()->timestamp, order_token, token,
-                                       mirror_lock.get_drain_signal());
+        cond_t response_cond;
+        typename protocol_t::write_response_t response;
+        mailbox_t<void(typename protocol_t::write_response_t)> response_mailbox(
+            mailbox_manager,
+            boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond),
+            mailbox_callback_mode_inline);
 
+        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), durability);
+
+        wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
+
+        // TODO: Require that everybody provide a callback.
         if (write_ref.get()->callback) {
-            write_ref.get()->callback->on_response(mirror->get_peer(), resp);
+            write_ref.get()->callback->on_response(mirror->get_peer(), response);
         }
+
     } catch (const interrupted_exc_t &) {
         return;
     }

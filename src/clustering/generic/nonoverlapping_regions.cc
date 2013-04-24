@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/generic/nonoverlapping_regions.hpp"
 
 #include "protocol_api.hpp"
@@ -94,9 +94,6 @@ void apply_json_to(cJSON *change, nonoverlapping_regions_t<protocol_t> *target) 
     *target = res;
 }
 
-template <class protocol_t>
-void on_subfield_change(UNUSED nonoverlapping_regions_t<protocol_t> *target) { }
-
 
 
 #include "mock/dummy_protocol.hpp"
@@ -105,7 +102,6 @@ template class nonoverlapping_regions_t<mock::dummy_protocol_t>;
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
 template cJSON *render_as_json<mock::dummy_protocol_t>(nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
-template void on_subfield_change<mock::dummy_protocol_t>(nonoverlapping_regions_t<mock::dummy_protocol_t> *target);
 
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
@@ -113,12 +109,10 @@ template class nonoverlapping_regions_t<memcached_protocol_t>;
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(nonoverlapping_regions_t<memcached_protocol_t> *target);
 template cJSON *render_as_json<memcached_protocol_t>(nonoverlapping_regions_t<memcached_protocol_t> *target);
 template void apply_json_to<memcached_protocol_t>(cJSON *change, nonoverlapping_regions_t<memcached_protocol_t> *target);
-template void on_subfield_change<memcached_protocol_t>(nonoverlapping_regions_t<memcached_protocol_t> *target);
 
 #include "rdb_protocol/protocol.hpp"
 template class nonoverlapping_regions_t<rdb_protocol_t>;
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(nonoverlapping_regions_t<rdb_protocol_t> *target);
 template cJSON *render_as_json<rdb_protocol_t>(nonoverlapping_regions_t<rdb_protocol_t> *target);
 template void apply_json_to<rdb_protocol_t>(cJSON *change, nonoverlapping_regions_t<rdb_protocol_t> *target);
-template void on_subfield_change<rdb_protocol_t>(nonoverlapping_regions_t<rdb_protocol_t> *target);
 

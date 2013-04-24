@@ -1,9 +1,8 @@
 import inspect, os, commands
 
-# TODO: a better way to get the path to rehtinkdb-unittest
 where = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
-unit_exec = os.path.join(where, '../../build/debug/rethinkdb-unittest')
+build_dir = os.getenv('RETHINKDB_BUILD_DIR') or os.path.join(where, '../../build/debug/')
+unit_exec = os.path.join(build_dir, 'rethinkdb-unittest')
 
 list = commands.getoutput(unit_exec + " --gtest_list_tests | grep '\.$'")
 list = list.split('\n')
@@ -11,6 +10,6 @@ list = [t[:-1] for t in list]
 
 for test in list:
     generate_test(
-        "$RETHINKDB/build/debug/rethinkdb-unittest --gtest_filter='%s.*'" % test,
+        "%s --gtest_filter='%s.*'" % (unit_exec, test),
         name = test
         )

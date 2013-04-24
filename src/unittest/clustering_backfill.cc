@@ -91,7 +91,9 @@ void run_backfill_test() {
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
-                w, &response, ts,
+                w,
+                &response, WRITE_DURABILITY_SOFT,
+                ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,
                 &non_interruptor);

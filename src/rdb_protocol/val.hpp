@@ -36,13 +36,15 @@ public:
     const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
     const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
 
-    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
-                                               func_t *replacement_generator,
-                                               bool nondeterministic_replacements_ok);
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<const datum_t *> &original_values,
+        func_t *replacement_generator,
+        bool nondeterministic_replacements_ok);
 
-    std::vector<const datum_t *> batch_replace(const std::vector<const datum_t *> &original_values,
-                                               const std::vector<const datum_t *> &replacement_values,
-                                               bool upsert);
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<const datum_t *> &original_values,
+        const std::vector<const datum_t *> &replacement_values,
+        bool upsert);
 
     MUST_USE bool sindex_create(const std::string &name, func_t *index_func);
     MUST_USE bool sindex_drop(const std::string &name);
@@ -51,7 +53,8 @@ public:
 private:
     struct datum_func_pair_t {
         datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
-        datum_func_pair_t(const datum_t *_original_value, const map_wire_func_t *_replacer)
+        datum_func_pair_t(const datum_t *_original_value,
+                          const map_wire_func_t *_replacer)
             : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
 
         explicit datum_func_pair_t(const datum_t *_error_value)
@@ -63,7 +66,8 @@ private:
         const datum_t *error_value;
     };
 
-    std::vector<const datum_t *> batch_replace(const std::vector<datum_func_pair_t> &replacements);
+    std::vector<const datum_t *> batch_replace(
+        const std::vector<datum_func_pair_t> &replacements);
 
     const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
     const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
@@ -113,14 +117,14 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(const datum_t *_datum, const term_t *_parent, env_t *_env);
-    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(datum_stream_t *_sequence, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, const term_t *_parent, env_t *_env);
-    val_t(table_t *_table, datum_stream_t *_sequence,
-          const term_t *_parent, env_t *_env);
-    val_t(uuid_u _db, const term_t *_parent, env_t *_env);
-    val_t(func_t *_func, const term_t *_parent, env_t *_env);
+    val_t(const datum_t *_datum, const term_t *_parent);
+    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent);
+    val_t(datum_stream_t *_sequence, const term_t *_parent);
+    val_t(table_t *_table, const term_t *_parent);
+    val_t(table_t *_table, datum_stream_t *_sequence, const term_t *_parent);
+    val_t(uuid_u _db, const term_t *_parent);
+    val_t(func_t *_func, const term_t *_parent);
+    ~val_t();
 
     uuid_u as_db();
     table_t *as_table();
@@ -157,14 +161,20 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
     const term_t *parent;
-    env_t *env;
+    env_t *get_env() { return parent->val_t_get_env(); }
 
     type_t type;
-    uuid_u db;
     table_t *table;
-    datum_stream_t *sequence;
-    const datum_t *datum;
-    func_t *func;
+    union {
+        // We store the db's `uuid_u` in here.
+        uint8_t opaque_db[sizeof(uuid_u)];
+        datum_stream_t *sequence;
+        const datum_t *datum;
+        func_t *func;
+    };
+    uuid_u *db_ptr() {
+        return reinterpret_cast<uuid_u *>(&opaque_db);
+    }
 
     DISABLE_COPYING(val_t);
 };

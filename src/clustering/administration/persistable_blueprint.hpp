@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
 
@@ -15,7 +15,6 @@ such as `blueprint_t`, should not be persisted. */
 json_adapter_if_t::json_adapter_map_t get_json_subfields(blueprint_role_t *);
 cJSON *render_as_json(blueprint_role_t *);
 void apply_json_to(cJSON *, blueprint_role_t *);
-void on_subfield_change(blueprint_role_t *);
 
 template<class protocol_t>
 class persistable_blueprint_t {
@@ -48,8 +47,5 @@ cJSON *render_as_json(persistable_blueprint_t<protocol_t> *);
 
 template <class protocol_t>
 void apply_json_to(cJSON *, persistable_blueprint_t<protocol_t> *);
-
-template <class protocol_t>
-void on_subfield_change(persistable_blueprint_t<protocol_t> *);
 
 #endif /* CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_ */

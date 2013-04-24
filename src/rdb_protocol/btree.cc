@@ -292,13 +292,15 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
                                        rdb_modification_report_cb_t *sindex_cb) {
+    fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
                                       sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
-    fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    exiter.wait();
     sindex_cb->on_mod_report(mod_report);
 }
 
@@ -310,13 +312,16 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out,
                          rdb_modification_report_cb_t *sindex_cb) {
+    fifo_enforcer_source_t batched_replaces_fifo_source;
+    fifo_enforcer_sink_t batched_replaces_fifo_sink;
+
+    // Note the destructor ordering: We have to drain write operations before
+    // destructing the batched_replaces_fifo_sink, because the coroutines being
+    // drained use said fifo.
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
     scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-
-    fifo_enforcer_source_t batched_replaces_fifo_source;
-    fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
@@ -521,15 +526,19 @@ private:
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-    rdb_rget_depth_first_traversal_callback_t(
-        transaction_t *txn,
-        ql::env_t *_ql_env,
-        const rdb_protocol_details::transform_t &_transform,
-        boost::optional<rdb_protocol_details::terminal_t> _terminal,
-        const key_range_t &range,
-        rget_read_response_t *_response)
-        : bad_init(false), transaction(txn), response(_response), cumulative_size(0),
-          ql_env(_ql_env), transform(_transform), terminal(_terminal)
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
+                                              ql::env_t *_ql_env,
+                                              const rdb_protocol_details::transform_t &_transform,
+                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
+                                              const key_range_t &range,
+                                              rget_read_response_t *_response) :
+        bad_init(false),
+        transaction(txn),
+        response(_response),
+        cumulative_size(0),
+        ql_env(_ql_env),
+        transform(_transform),
+        terminal(_terminal)
     {
         try {
             response->last_considered_key = range.left;
@@ -557,7 +566,9 @@ public:
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
-        if (bad_init) return false;
+        if (bad_init) {
+            return false;
+        }
         try {
             store_key_t store_key(key);
             if (response->last_considered_key < store_key) {
@@ -569,7 +580,7 @@ public:
             json_list_t data;
             data.push_back(get_data(rdb_value, transaction));
 
-            //Apply transforms to the data
+            // Apply transforms to the data
             {
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
@@ -815,7 +826,7 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
-/* A target for pmap. Used below by rdb_update_sindexes. */
+/* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         const rdb_modification_report_t *modification,
@@ -921,7 +932,7 @@ class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
-            const std::set<std::string> &sindexes_to_post_construct,
+            const std::set<uuid_u> &sindexes_to_post_construct,
             cond_t *interrupt_myself,
             signal_t *interruptor
             )
@@ -941,10 +952,14 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
+            // We want soft durability because having a partially constructed secondary index is
+            // okay -- we wipe it and rebuild it, if it has not been marked completely
+            // constructed.
             store_->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
+                WRITE_DURABILITY_SOFT,
                 &token_pair.main_write_token,
                 &wtxn,
                 &superblock,
@@ -972,7 +987,7 @@ public:
             return;
         }
 
-        const leaf_node_t *leaf_node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
         leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
         const btree_key_t *key;
@@ -984,7 +999,7 @@ public:
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
             mod_report.info.added = get_data(rdb_value, txn);
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
@@ -1004,14 +1019,14 @@ public:
     access_t btree_node_mode() { return rwi_read; }
 
     btree_store_t<rdb_protocol_t> *store_;
-    const std::set<std::string> &sindexes_to_post_construct_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
     signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<std::string> &sindexes_to_post_construct,
+        const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     cond_t local_interruptor;
@@ -1034,6 +1049,7 @@ void post_construct_secondary_indexes(
         &superblock,
         interruptor,
         true /* USE_SNAPSHOT */);
+
     btree_parallel_traversal(txn.get(), superblock.get(),
             store->btree.get(), &helper, &wait_any);
 }

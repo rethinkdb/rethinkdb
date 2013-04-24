@@ -52,6 +52,7 @@ public:
     virtual bool is_deterministic() const;
 
     const Term *get_src() const;
+    env_t *val_t_get_env() const { return env; } // Only `val_t` should call this.
 protected:
     env_t *env;
 

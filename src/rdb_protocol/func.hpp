@@ -98,6 +98,14 @@ public:
     const Backtrace *get_bt() const {
         return &source.GetExtension(ql2::extension::backtrace);
     }
+
+    Term get_term() const {
+        return source;
+    }
+
+    std::string debug_str() const {
+        return source.DebugString();
+    }
 private:
     // We cache a separate function for every environment.
     std::map<uuid_u, func_t *> cached_funcs;

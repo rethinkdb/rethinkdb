@@ -164,8 +164,6 @@ void apply_json_to(cJSON *change, bool *target) {
     *target = get_bool(change);
 }
 
-void on_subfield_change(bool *) { }
-
 namespace std {
 
 // ctx-less JSON adapter for std::string
@@ -181,8 +179,6 @@ cJSON *render_as_json(std::string *target) {
 void apply_json_to(cJSON *change, std::string *target) {
     *target = get_string(change);
 }
-
-void on_subfield_change(std::string *) { }
 
 std::string to_string_for_json_key(const std::string *s) {
     return *s;
@@ -212,8 +208,6 @@ void apply_json_to(cJSON *change, uuid_u *uuid) {
     }
 }
 
-void on_subfield_change(uuid_u *) { }
-
 std::string to_string_for_json_key(const uuid_u *uuid) {
     return uuid_to_str(*uuid);
 }
@@ -232,8 +226,6 @@ void apply_json_to(cJSON *change, unsigned long long *target) {  // NOLINT(runti
     *target = get_int(change, 0, ULLONG_MAX);
 }
 
-void on_subfield_change(unsigned long long *) { }  // NOLINT(runtime/int)
-
 // ctx-less JSON adapter for long long.
 json_adapter_if_t::json_adapter_map_t get_json_subfields(long long *) {  // NOLINT(runtime/int)
     return json_adapter_if_t::json_adapter_map_t();
@@ -248,8 +240,6 @@ void apply_json_to(cJSON *change, long long *target) {  // NOLINT(runtime/int)
     *target = get_int(change, LLONG_MIN, LLONG_MAX);
 }
 
-void on_subfield_change(long long *) { }  // NOLINT(runtime/int)
-
 // ctx-less JSON adapter for unsigned long.
 json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned long *) {  // NOLINT(runtime/int)
     return json_adapter_if_t::json_adapter_map_t();
@@ -263,8 +253,6 @@ cJSON *render_as_json(unsigned long *target) {  // NOLINT(runtime/int)
 void apply_json_to(cJSON *change, unsigned long *target) {  // NOLINT(runtime/int)
     *target = get_int(change, 0, ULONG_MAX);
 }
-
-void on_subfield_change(unsigned long *) { }  // NOLINT(runtime/int)
 
 
 // ctx-less JSON adapter for long.
@@ -281,22 +269,6 @@ void apply_json_to(cJSON *change, long *target) {  // NOLINT(runtime/int)
     *target = get_int(change, LONG_MIN, LONG_MAX);
 }
 
-void on_subfield_change(long *) { }  // NOLINT(runtime/int)
-
-// ctx-less JSON adapter for unsigned int
-json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *) {
-    return json_adapter_if_t::json_adapter_map_t();
-}
-
-cJSON *render_as_json(unsigned int *target) {
-    return cJSON_CreateNumber(*target);
-}
-
-void apply_json_to(cJSON *change, unsigned int *target) {
-    *target = get_int(change, INT_MIN, INT_MAX);
-}
-
-void on_subfield_change(unsigned int *) { }
 
 // ctx-less JSON adapter for int
 json_adapter_if_t::json_adapter_map_t get_json_subfields(int *) {
@@ -312,5 +284,18 @@ void apply_json_to(cJSON *change, int *target) {
     *target = get_int(change, INT_MIN, INT_MAX);
 }
 
-void on_subfield_change(int *) { }
 
+
+// ctx-less JSON adapter for unsigned int
+json_adapter_if_t::json_adapter_map_t get_json_subfields(unsigned int *) {
+    return json_adapter_if_t::json_adapter_map_t();
+}
+
+cJSON *render_as_json(unsigned int *target) {
+    // TODO: Should we not fail when we cannot convert to double (or when we go outside 53-bit range?)
+    return cJSON_CreateNumber(*target);
+}
+
+void apply_json_to(cJSON *change, unsigned int *target) {
+    *target = get_int(change, 0, UINT_MAX);
+}

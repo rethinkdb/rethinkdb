@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor_json_adapters.hpp"
 
 #include <string>
@@ -26,8 +26,6 @@ void apply_json_to(cJSON *, backfill_location_t *) {
     throw permission_denied_exc_t("Can't write to backfill_location_t objects.\n");
 }
 
-void on_subfield_change(backfill_location_t *) { }
-
 
 // ctx-less json adapter for primary_when_safe
 template <class protocol_t>
@@ -47,9 +45,6 @@ template <class protocol_t>
 void apply_json_to(cJSON *, primary_when_safe_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to primary_when_safe_t objects.\n");
 }
-
-template <class protocol_t>
-void on_subfield_change(primary_when_safe_t<protocol_t> *) { }
 
 
 // ctx-less json adapter for primary
@@ -74,8 +69,6 @@ void apply_json_to(cJSON *, primary_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to primary_when_safe_t objects.\n");
 }
 
-template <class protocol_t>
-void on_subfield_change(primary_t<protocol_t> *) { }
 
 // ctx-less json adapter for secondary_up_to_date
 template <class protocol_t>
@@ -97,9 +90,6 @@ template <class protocol_t>
 void apply_json_to(cJSON *, secondary_up_to_date_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to primary_safe_t objects.\n");
 }
-
-template <class protocol_t>
-void on_subfield_change(secondary_up_to_date_t<protocol_t> *) { }
 
 
 // ctx-less json adapter for secondary_without_primary
@@ -123,8 +113,6 @@ void apply_json_to(cJSON *, secondary_without_primary_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to primary_when_safe_t objects.\n");
 }
 
-template <class protocol_t>
-void on_subfield_change(secondary_without_primary_t<protocol_t> *) { }
 
 // ctx-less json adapter for secondary_backfilling
 template <class protocol_t>
@@ -145,8 +133,6 @@ void apply_json_to(cJSON *, secondary_backfilling_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to secondary_backfilling objects.\n");
 }
 
-template <class protocol_t>
-void on_subfield_change(secondary_backfilling_t<protocol_t> *) { }
 
 // ctx-less json adapter for nothing_when_safe_t
 template <class protocol_t>
@@ -170,9 +156,6 @@ void apply_json_to(cJSON *, nothing_when_safe_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to nothing_when_safe_t objects.\n");
 }
 
-template <class protocol_t>
-void on_subfield_change(nothing_when_safe_t<protocol_t> *) { }
-
 
 // ctx-less json adapter for nothing_t
 template <class protocol_t>
@@ -192,9 +175,6 @@ void apply_json_to(cJSON *, nothing_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to nothing_t objects.\n");
 }
 
-template <class protocol_t>
-void on_subfield_change(nothing_t<protocol_t> *) { }
-
 
 // ctx-less json adapter for nothing_when_done_erasing_t
 template <class protocol_t>
@@ -213,10 +193,6 @@ template <class protocol_t>
 void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *) {
     throw permission_denied_exc_t("Can't write to nothing_when_done_erasing_t objects.\n");
 }
-
-template <class protocol_t>
-void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *) { }
-
 
 
 } //namespace reactor_business_card_details
@@ -251,10 +227,6 @@ void apply_json_to(cJSON *change, reactor_activity_entry_t<protocol_t> *target) 
     apply_json_to(second, &target->activity);
 }
 
-template <class protocol_t>
-void on_subfield_change(reactor_activity_entry_t<protocol_t> *) { }
-
-
 
 // ctx-less json adapter for reactor_business_card_t
 template <class protocol_t>
@@ -274,26 +246,20 @@ void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target) {
     apply_as_directory(change, target);
 }
 
-template <class protocol_t>
-void on_subfield_change(reactor_business_card_t<protocol_t> *) { }
-
 
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
 template cJSON *render_as_json<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *target);
 template void apply_json_to<memcached_protocol_t>(cJSON *change, reactor_business_card_t<memcached_protocol_t> *target);
-template void on_subfield_change<memcached_protocol_t>(reactor_business_card_t<memcached_protocol_t> *);
 
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
 template cJSON *render_as_json<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *target);
 template void apply_json_to<rdb_protocol_t>(cJSON *change, reactor_business_card_t<rdb_protocol_t> *target);
-template void on_subfield_change<rdb_protocol_t>(reactor_business_card_t<rdb_protocol_t> *);
 
 #include "mock/dummy_protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
 template cJSON *render_as_json<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *target);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *change, reactor_business_card_t<mock::dummy_protocol_t> *target);
-template void on_subfield_change<mock::dummy_protocol_t>(reactor_business_card_t<mock::dummy_protocol_t> *);
 

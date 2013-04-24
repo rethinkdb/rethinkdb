@@ -8,7 +8,7 @@ var spawn = require('child_process').spawn
 var assert = require('assert');
 
 var r = require('../../../drivers/javascript/build/rethinkdb');
-var build = process.env.BUILD || 'debug'
+var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
 var port = Math.floor(Math.random()*(65535 - 1025)+1025)
@@ -95,7 +95,7 @@ describe('Javascript connection API', function(){
             server_out_log = fs.openSync('build/server-log.txt', 'a');
             server_err_log = fs.openSync('build/server-log.txt', 'a');
             cpp_server = spawn(
-                '../../build/'+build+'/rethinkdb',
+                build_dir + '/rethinkdb',
                 ['--driver-port', port, '--http-port', '0', '--cluster-port', '0'],
                 {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(done, 1000);

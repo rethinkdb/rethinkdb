@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_NONOVERLAPPING_REGIONS_HPP_
 #define CLUSTERING_GENERIC_NONOVERLAPPING_REGIONS_HPP_
 
@@ -61,9 +61,6 @@ cJSON *render_as_json(nonoverlapping_regions_t<protocol_t> *target);
 
 template <class protocol_t>
 void apply_json_to(cJSON *change, nonoverlapping_regions_t<protocol_t> *target) THROWS_ONLY(schema_mismatch_exc_t);
-
-template <class protocol_t>
-void on_subfield_change(nonoverlapping_regions_t<protocol_t> *target);
 
 
 

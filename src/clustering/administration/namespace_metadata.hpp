@@ -39,6 +39,30 @@ typedef uuid_u namespace_id_t;
 /* If you change this data structure, you must also update
 `clustering/administration/issues/vector_clock_conflict.hpp`. */
 
+class ack_expectation_t {
+public:
+    ack_expectation_t() : expectation_(0), hard_durability_(true) { }
+
+    explicit ack_expectation_t(uint32_t expectation, bool hard_durability) :
+        expectation_(expectation),
+        hard_durability_(hard_durability) { }
+
+    uint32_t expectation() const { return expectation_; }
+    bool is_hardly_durable() const { return hard_durability_; }
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+
+    bool operator==(ack_expectation_t other) const;
+
+private:
+    friend json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
+
+    uint32_t expectation_;
+    bool hard_durability_;
+};
+
+void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x);
+
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
@@ -46,8 +70,8 @@ public:
 
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
-    vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
-    vclock_t<std::map<datacenter_id_t, int> > ack_expectations;
+    vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
+    vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;
     vclock_t<nonoverlapping_regions_t<protocol_t> > shards;
     vclock_t<name_string_t> name;
     vclock_t<int> port;
@@ -100,8 +124,8 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.primary_key        = make_vclock(key, machine);
     ns.port               = make_vclock(port, machine);
 
-    std::map<uuid_u, int> ack_expectations;
-    ack_expectations[datacenter] = 1;
+    std::map<uuid_u, ack_expectation_t> ack_expectations;
+    ack_expectations[datacenter] = ack_expectation_t(1, true);
     ns.ack_expectations = make_vclock(ack_expectations, machine);
 
     nonoverlapping_regions_t<protocol_t> shards;
@@ -126,6 +150,11 @@ RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, b
 
 template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+
+// ctx-less json adapter concept for ack_expectation_t
+json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);
+cJSON *render_as_json(ack_expectation_t *target);
+void apply_json_to(cJSON *change, ack_expectation_t *target);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class protocol_t>
@@ -193,8 +222,5 @@ cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target);
 
 template <class protocol_t>
 void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target);
-
-template <class protocol_t>
-void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target);
 
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

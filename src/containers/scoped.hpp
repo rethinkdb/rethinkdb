@@ -49,6 +49,10 @@ public:
         return ptr_;
     }
 
+    T *get_or_null() const {
+        return ptr_;
+    }
+
     T *operator->() const {
         rassert(ptr_);
         return ptr_;

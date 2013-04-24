@@ -68,8 +68,6 @@ private:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     std::vector<char> semantic_checking_file_;
 #endif
-
-    DISABLE_COPYING(mock_file_opener_t);
 };
 
 }  // namespace unittest

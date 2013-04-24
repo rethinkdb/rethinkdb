@@ -38,7 +38,13 @@ def find_subpath(subpath):
             return path
     raise RuntimeError("Can't find path %s.  Tried these paths: %s" % (subpath, paths))
 
-def find_rethinkdb_executable(mode = "debug"):
+def find_rethinkdb_executable(mode = ""):
+    if mode == "":
+        build_dir = os.getenv('RETHINKDB_BUILD_DIR')
+        if build_dir:
+            return os.path.join(build_dir, 'rethinkdb')
+        else:
+            mode = 'debug'
     return find_subpath("build/%s/rethinkdb" % mode)
 
 def get_namespace_host(namespace_port, processes):
@@ -170,7 +176,7 @@ class Files(object):
         assert db_path is None or isinstance(db_path, str)
 
         if executable_path is None:
-            executable_path = find_rethinkdb_executable("debug")
+            executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.id_number = metacluster.files_counter
@@ -206,7 +212,7 @@ class _Process(object):
                    "local_cluster_port port_offset logfile_path".split())
 
         if executable_path is None:
-            executable_path = find_rethinkdb_executable("debug")
+            executable_path = find_rethinkdb_executable()
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         for other_cluster in cluster.metacluster.clusters:
