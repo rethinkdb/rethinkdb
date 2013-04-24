@@ -109,7 +109,6 @@ private:
 
     class outdated_read_info_t {
     public:
-        typename protocol_t::read_t subop;
         resource_access_t<direct_reader_business_card_t<protocol_t> > *direct_reader_access;
         auto_drainer_t::lock_t keepalive;
     };
