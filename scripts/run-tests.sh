@@ -161,7 +161,7 @@ fi
 
 # Find or create the output_dir and list_dir
 if $list_only; then
-    list_dir=`mktemp -d "$TMPDIR/run-tests.XXXXXXXX"`
+    list_dir=`mktemp -d "${TMPDIR:-/tmp}/run-tests.XXXXXXXX"`
 else
     if [[ -z "$dir" ]]; then
         if ! dir=$(mktemp -d "test_results.XXXXX"); then
