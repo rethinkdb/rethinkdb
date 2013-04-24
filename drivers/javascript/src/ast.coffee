@@ -69,7 +69,7 @@ class RDBVal extends TermBase
     eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
-    typeOf: -> new TypeOf {}, @
+    typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: ar () -> new Delete {}, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
