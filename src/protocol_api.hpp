@@ -65,7 +65,6 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-// SAMRSI: Move this to some other file.
 template <class T>
 struct array_t {
     virtual const T &array_nth(size_t n) const = 0;
@@ -86,7 +85,7 @@ private:
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
-    
+
     /* I got the ypedefs like a std::map. */
     typedef typename protocol_t::region_t key_type;
     typedef value_t mapped_type;
