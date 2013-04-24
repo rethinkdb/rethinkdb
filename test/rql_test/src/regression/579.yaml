@@ -6,14 +6,14 @@ tests:
 
   - cd: tbl.insert({'name':'Jim Brown'})
 
-  - js: tbl.sindex_create("579", function(rec){return r.js("1")})
-    py: tbl.sindex_create("579", lambda rec:r.js("1"))
-    rb: tbl.sindex_create("579") {|rec| r.js("1")}
+  - js: tbl.index_create("579", function(rec){return r.js("1")})
+    py: tbl.index_create("579", lambda rec:r.js("1"))
+    rb: tbl.index_create("579") {|rec| r.js("1")}
     ot: err("RqlRuntimeError", "Could not prove function deterministic.  Index functions must be deterministic.", [])
 
-  - js: tbl.sindex_create("579", function(rec){return tbl.get(0)})
-    py: tbl.sindex_create("579", lambda rec:tbl.get(0))
-    rb: tbl.sindex_create("579") {|rec| tbl.get(0)}
+  - js: tbl.index_create("579", function(rec){return tbl.get(0)})
+    py: tbl.index_create("579", lambda rec:tbl.get(0))
+    rb: tbl.index_create("579") {|rec| tbl.get(0)}
     ot: err("RqlRuntimeError", "Could not prove function deterministic.  Index functions must be deterministic.", [])
 
   - cd: r.db('test').table_drop('579')

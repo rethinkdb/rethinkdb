@@ -168,7 +168,7 @@ public:
     unsigned int size() const { return _size; }
 
 #ifndef NDEBUG
-    void validate() {
+    void validate() const {
         node_t *last_node = NULL;
         unsigned int count = 0;
         for (node_t *node = _head; node; node = static_cast<intrusive_list_node_t<node_t> *>(node)->next) {

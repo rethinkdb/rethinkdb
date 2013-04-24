@@ -34,7 +34,8 @@ public:
     datum_stream_t *slice(size_t l, size_t r);
     datum_stream_t *zip();
 
-    // Returns NULL if stream is lazy.
+    // Returns false or NULL respectively if stream is lazy.
+    virtual bool is_array() = 0;
     virtual const datum_t *as_array() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
@@ -68,7 +69,21 @@ public:
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *d, func_t *r);
 
+    virtual bool is_array() { return true; }
     virtual const datum_t *as_array();
+};
+
+class wrapper_datum_stream_t : public eager_datum_stream_t {
+public:
+    wrapper_datum_stream_t(env_t *env, datum_stream_t *_src)
+        : eager_datum_stream_t(env, _src), src(_src) { }
+    virtual bool is_array() { return src->is_array(); }
+    virtual const datum_t *as_array() {
+        return is_array() ? eager_datum_stream_t::as_array() : NULL;
+    }
+    datum_stream_t *src_stream() { return src; }
+private:
+    datum_stream_t *src;
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
@@ -129,6 +144,7 @@ public:
     virtual const datum_t *count();
     virtual const datum_t *reduce(val_t *base_val, func_t *f);
     virtual const datum_t *gmr(func_t *g, func_t *m, const datum_t *base, func_t *r);
+    virtual bool is_array() { return false; }
     virtual const datum_t *as_array() { return NULL; } // cannot be converted implicitly
 private:
     const datum_t *next_impl();
@@ -155,26 +171,21 @@ private:
     const datum_t *arr;
 };
 
-class slice_datum_stream_t : public eager_datum_stream_t {
+class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *source);
+    slice_datum_stream_t(env_t *env, size_t left, size_t right, datum_stream_t *src);
 private:
     const datum_t *next_impl();
-
     env_t *env;
     size_t index, left, right;
-    datum_stream_t *source;
 };
 
-class zip_datum_stream_t : public eager_datum_stream_t {
+class zip_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    zip_datum_stream_t(env_t *env, datum_stream_t *source);
-
+    zip_datum_stream_t(env_t *env, datum_stream_t *src);
 private:
     const datum_t *next_impl();
-
     env_t *env;
-    datum_stream_t *source;
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There

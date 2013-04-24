@@ -96,7 +96,6 @@ void linux_event_watcher_t::remask() {
 }
 
 void linux_event_watcher_t::on_event(int event) {
-
     int error_mask = poll_event_err | poll_event_hup;
 #ifdef __linux
     error_mask |= poll_event_rdhup;
@@ -114,22 +113,22 @@ void linux_event_watcher_t::on_event(int event) {
 #else
         error_handler->on_event(event & error_mask);
 #endif  // __linux
-
-        /* The error handler might have cancelled some watches, which would
-        cause `remask()` to be run. We filter again to maintain the
-        invariant that `event` only contains events that we are watching
-        for. */
-        event &= old_mask;
     }
 
-    if (event & poll_event_in) {
-        rassert(in_watcher);
-        if (!in_watcher->is_pulsed()) in_watcher->pulse();
+    // An error condition could cause spurious wakeups of in and out watchers,
+    // but that's okay because they're supposed to be able to handle spurious
+    // wakeups.  (They'll just get EAGAIN.)
+
+    if ((event & poll_event_in) || (event & error_mask)) {
+        if (in_watcher != NULL && !in_watcher->is_pulsed()) {
+            in_watcher->pulse();
+        }
     }
 
-    if (event & poll_event_out) {
-        rassert(out_watcher);
-        if (!out_watcher->is_pulsed()) out_watcher->pulse();
+    if ((event & poll_event_out) || (event & error_mask)) {
+        if (out_watcher != NULL && !out_watcher->is_pulsed()) {
+            out_watcher->pulse();
+        }
     }
 }
 
