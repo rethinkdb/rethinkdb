@@ -14,8 +14,6 @@
         </div>
     </div>
     <div id="footer">
-        <div class="settings_container"> 
-        </div>
         <div class="container">
             <ul>
                 <li><a href="http://rethinkdb.com/docs/">Documentation</a></li>
@@ -29,7 +27,6 @@
                         This ensures that data explorer suggestions won't be delayed while loading the font.
                         This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
                 }}
-                <li><a href="#" class="settings_link">Settings</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>
@@ -37,41 +34,7 @@
 
 <script id="has_update-template" type="text/x-handlebars-template">
     <a class="close" href="#">&times;</a>
-    <strong>Update found:</strong> A new version of RethinkDB is avaiable (version {{last_version}})</br>
-<!--
-{{#if changelog}}
-Changelog:
-<ul class="changeul">
-    {{#each changelog}}<li class="change">-{{this}}</li>{{/each}}
-</ul>
-{{/if}}
--->
-</script>
-
-<script id="settings-template" type="text/x-handlebars-template">
-    <div class="settings">
-        <a class="close" href="#">&times;</a>
-        <h2 class="title">Settings</h2>
-        <div class="updates setting">
-            <div class="options_container">
-                <button class="btn check_updates_btn" data-update="{{check_value}}">Turn {{check_value}}</button>
-            </div>
-            <div class="content">Check for new version of RethinkDB</div>
-        </div>
-    </div>
-</script>
-
-
-
-<script id="alert_settings-template" type="text/x-handlebars-template">
-    <div class="updates">
-        Do you want the web interface to check for updates? This setting can be changed later if desired.
-    </div>
-    <a class="close" href="#">&times;</a>
-    <div class="options_container">
-        <button class="btn no_update_btn" data-value="no">No</button>
-        <button class="btn ok_update_btn" data-value="yes">Yes</button>
-    </div>
+    <p><strong>Update found:</strong> A new version of RethinkDB is avaiable (version {{last_version}}), see the <a href="{{link_changelog}}" target="_blank">changelog</a></p>
 </script>
 
 <script id="is_disconnected-template" type="text/x-handlebars-template">

@@ -4,11 +4,8 @@ render_body = ->
 
     $('body').html(template())
 
-    alert_settings_view = new AlertSettings
-    $('.updates_container').html alert_settings_view.render().$el
-
-    settings_view = new Settings
-        alert_view: alert_settings_view
+    alert_update_view = new AlertUpdates
+    $('.updates_container').html alert_update_view.render().$el
 
 
     # Set up common DOM behavior
@@ -19,53 +16,51 @@ render_body = ->
     # Set actions on developer tools
     $('#dev-tools #pause-application').on 'click', (event) -> debugger
 
-    $('.settings_link').click (event) ->
-        event.preventDefault()
-        $('.settings_container').html settings_view.render().$el
-        $('.settings_container').show()
-
-class AlertSettings extends Backbone.View
-    alert_settings_template: Handlebars.templates['alert_settings-template']
+class AlertUpdates extends Backbone.View
     has_update_template: Handlebars.templates['has_update-template']
-
     className: 'settings alert'
+
     events:
-        'click .no_update_btn': 'set_settings'
-        'click .ok_update_btn': 'set_settings'
+        'click .no_update_btn': 'deactivate_update'
         'click .close': 'close'
 
     initialize: =>
-        if window.localStorage?.check_updates?
-            @check_updates = JSON.parse window.localStorage.check_updates
-            if @check_updates is true
+        if window.localStorage?
+            try
+                check_updates = JSON.parse window.localStorage.check_updates
+                if check_updates isnt false
+                    @check()
+            catch err
+                # Non valid json doc in check_updates. Let's reset the setting
+                window.localStorage.check_updates = JSON.stringify true
                 @check()
         else
-            @check_updates = null
+            # No localstorage, let's just check for updates
+            @check()
 
     close: (event) =>
         event.preventDefault()
-        window.localStorage.ignore_version = JSON.stringify @next_version
-        @$el.slideUp 'fast'
-
-    hide: =>
+        if @next_version?
+            window.localStorage.ignore_version = JSON.stringify @next_version
         @$el.slideUp 'fast'
 
     check: =>
-        # If it's fail, it's fine
-
+        # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
         version = '1.4.2' #TODO See with Etienne how to set it up during build time
         $.getJSON "http://newton:5000/update_for/#{version}?callback=?", @render_updates
 
     render_updates: (data) =>
         if data.status is 'need_update'
-            if (not window.localStorage.ignore_version?) or @compare_version(JSON.parse(window.localStorage.ignore_version), data.last_version) < 0
+            try
+                ignored_version = JSON.parse(window.localStorage.ignore_version)
+            catch err
+                ignored_version = null
+            if (not ignored_version) or @compare_version(ignored_version, data.last_version) < 0
                 @next_version = data.last_version # Save it so users can ignore the update
                 @$el.html @has_update_template
                     last_version: data.last_version
-                    changelog: data.changelog
+                    link_changelog: data.link_changelog
                 @$el.slideDown 'fast'
-                @delegateEvents()
-
 
     compare_version: (v1, v2) =>
         v1_array_str = v1.split('.')
@@ -86,24 +81,12 @@ class AlertSettings extends Backbone.View
 
    
     render: =>
-        if @check_updates is null
-            @$el.html @alert_settings_template()
-            @$el.show()
         return @
 
-    set_settings: (event) ->
-        update = @$(event.target).data('value')
-        if update is 'yes'
-            @check_updates = true
-            @$el.slideUp 'fast'
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify true
-            @check()
-        else if update is 'no'
-            @check_updates = false
-            @$el.slideUp 'fast'
-            if window.localStorage?
-                window.localStorage.check_updates = JSON.stringify false
+    deactivate_update: =>
+        @$el.slideUp 'fast'
+        if window.localStorage?
+            window.localStorage.check_updates = JSON.stringify false
 
 class Settings extends Backbone.View
     settings_template: Handlebars.templates['settings-template']
