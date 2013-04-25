@@ -29,9 +29,6 @@ commands:
              hero[:combat_power] + hero[:compassion_power] * 2
             }.run(conn)
 
-    rb:
-      dont_need_parenthesis: true
-
     js:
       body: mappingFunction
       examples:

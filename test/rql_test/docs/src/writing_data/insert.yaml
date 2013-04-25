@@ -17,7 +17,7 @@ commands:
       py: json | [json][, upsert=False]
       rb: json | [json][, :upsert]
     parent: table
-    returns: query
+    returns: json
 
     examples:
       - description: Insert a row into a table named 'marvel'.
