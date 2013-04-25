@@ -12,8 +12,8 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
-DIST_FILE_LIST_REL := admin assets bench demos docs docs_internal drivers external lib mk packaging scripts src test
-DIST_FILE_LIST_REL += configure COPYRIGHT DEPENDENCIES Makefile NOTES README README.md
+DIST_FILE_LIST_REL := admin bench demos docs drivers external lib mk packaging scripts src test
+DIST_FILE_LIST_REL += configure COPYRIGHT DEPENDENCIES Makefile NOTES README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
 
