@@ -807,7 +807,12 @@ module 'DataExplorerView', ->
 
             # Look for special commands
             if event?.which?
-                if event.which is 27 # ESC
+                if event.type isnt 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32)
+                    # Because on event.type == 'keydown' we are going to change the state (hidden or displayed) of @$('.suggestion_description') and @.$('.suggestion_name_list'), we don't want to fire this event a second time
+                    return true
+
+                if event.which is 27 or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') isnt 'none' or @.$('.suggestion_name_list').css('display') isnt 'none'))
+                    # We caugh ESC or (Ctrl/Cmd+space with suggestion/description being displayed)
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
                     query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
@@ -877,7 +882,8 @@ module 'DataExplorerView', ->
                                 @codemirror.indentLine cursor.line+1, 'smart'
                                 @codemirror.setCursor cursor
                                 return false
-                else if event.which is 9 or ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) # If the user hit tab or ctrl/cmd+space, we switch the highlighted suggestion
+                else if event.which is 9  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
+                    # If the user hit tab  or (Ctrl/Cmd+space with suggestion/description being hidden) we switch the highlighted suggestion
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return false
