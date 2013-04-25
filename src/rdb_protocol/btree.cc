@@ -292,13 +292,15 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
                                        rdb_modification_report_cb_t *sindex_cb) {
+    fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
                                       sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
-    fifo_enforcer_sink_t::exit_write_t exiter(batched_replaces_fifo_sink, batched_replaces_fifo_token);
+    exiter.wait();
     sindex_cb->on_mod_report(mod_report);
 }
 
@@ -310,13 +312,16 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
                          batched_replaces_response_t *response_out,
                          rdb_modification_report_cb_t *sindex_cb) {
+    fifo_enforcer_source_t batched_replaces_fifo_source;
+    fifo_enforcer_sink_t batched_replaces_fifo_sink;
+
+    // Note the destructor ordering: We have to drain write operations before
+    // destructing the batched_replaces_fifo_sink, because the coroutines being
+    // drained use said fifo.
     auto_drainer_t drainer;
 
     // Note the destructor ordering: We release the superblock before draining on all the write operations.
     scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-
-    fifo_enforcer_source_t batched_replaces_fifo_source;
-    fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
     response_out->point_replace_responses.resize(replaces.size());
     for (size_t i = 0; i < replaces.size(); ++i) {
@@ -521,6 +526,8 @@ private:
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
+    /* This constructor does a traversal on the primary btree, it's not to be
+     * used with sindexes. The constructor below is for use with sindexes. */
     rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
                                               ql::env_t *_ql_env,
                                               const rdb_protocol_details::transform_t &_transform,
@@ -535,6 +542,36 @@ public:
         transform(_transform),
         terminal(_terminal)
     {
+        init(range);
+    }
+
+    /* This constructor is used if you're doing a secondary index get, it takes
+     * an extra key_range_t (_primary_key_range) which is used to filter out
+     * unwanted results. The reason you can get unwanted results is is
+     * oversharding. When we overshard multiple logical shards are stored in
+     * the same physical btree_store_t, this is transparent with all other
+     * operations but their sindex values get mixed together and you wind up
+     * with multiple copies of each. This constructor will filter out the
+     * duplicates. This was issue #606. */
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
+                                              ql::env_t *_ql_env,
+                                              const rdb_protocol_details::transform_t &_transform,
+                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
+                                              const key_range_t &range,
+                                              const key_range_t &_primary_key_range,
+                                              rget_read_response_t *_response) :
+        bad_init(false),
+        transaction(txn),
+        response(_response),
+        cumulative_size(0),
+        ql_env(_ql_env),
+        transform(_transform),
+        terminal(_terminal),
+        primary_key_range(_primary_key_range)
+    {
+        init(range);
+    }
+    void init(const key_range_t &range) {
         try {
             response->last_considered_key = range.left;
 
@@ -558,11 +595,19 @@ public:
                                  terminal->variant);
             bad_init = true;
         }
+
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
         if (bad_init) {
             return false;
+        }
+        if (primary_key_range) {
+            std::string pk = ql::datum_t::unprint_secondary(
+                    key_to_unescaped_str(store_key_t(key)));
+            if (!primary_key_range->contains_key(store_key_t(pk))) {
+                return true;
+            }
         }
         try {
             store_key_t store_key(key);
@@ -653,6 +698,9 @@ public:
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
+
+    /* Only present if we're doing a sindex read.*/
+    boost::optional<key_range_t> primary_key_range;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -685,6 +733,25 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+
+    if (callback.cumulative_size >= rget_max_chunk_size) {
+        response->truncated = true;
+    } else {
+        response->truncated = false;
+    }
+
+    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+}
+
+void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
+                    transaction_t *txn, superblock_t *superblock,
+                    ql::env_t *ql_env,
+                    const rdb_protocol_details::transform_t &transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    const key_range_t &pk_range,
+                    rget_read_response_t *response) {
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
@@ -927,7 +994,7 @@ class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
             btree_store_t<rdb_protocol_t> *store,
-            const std::set<std::string> &sindexes_to_post_construct,
+            const std::set<uuid_u> &sindexes_to_post_construct,
             cond_t *interrupt_myself,
             signal_t *interruptor
             )
@@ -1014,14 +1081,14 @@ public:
     access_t btree_node_mode() { return rwi_read; }
 
     btree_store_t<rdb_protocol_t> *store_;
-    const std::set<std::string> &sindexes_to_post_construct_;
+    const std::set<uuid_u> &sindexes_to_post_construct_;
     cond_t *interrupt_myself_;
     signal_t *interruptor_;
 };
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,
-        const std::set<std::string> &sindexes_to_post_construct,
+        const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     cond_t local_interruptor;

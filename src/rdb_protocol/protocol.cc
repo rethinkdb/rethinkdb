@@ -98,7 +98,7 @@ RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
 RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
 
 void post_construct_and_drain_queue(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
@@ -108,7 +108,8 @@ void post_construct_and_drain_queue(
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block,
+        transaction_t *txn)
     THROWS_NOTHING
 {
     /* We register our modification queue here. An important point about
@@ -131,9 +132,19 @@ void bring_sindexes_up_to_date(
         store->register_sindex_queue(mod_queue.get(), &acq);
     }
 
+    std::map<std::string, secondary_index_t> sindexes;
+    store->get_sindexes(sindex_block, txn, &sindexes);
+    std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
+
+    for (auto it = sindexes_to_bring_up_to_date.begin(); 
+         it != sindexes_to_bring_up_to_date.end(); ++it) {
+        guarantee(std_contains(sindexes, *it));
+        sindexes_to_bring_up_to_date_uuid.insert(sindexes[*it].id);
+    }
+
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
-                sindexes_to_bring_up_to_date,
+                sindexes_to_bring_up_to_date_uuid,
                 store,
                 mod_queue,
                 auto_drainer_t::lock_t(&store->drainer)));
@@ -143,7 +154,7 @@ void bring_sindexes_up_to_date(
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro. */
 void post_construct_and_drain_queue(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
@@ -225,10 +236,14 @@ void post_construct_and_drain_queue(
         // indeterminate state and will be cleaned up at a later point.
     }
 
-    {
-        /* If we get here it's either because we were interrupted or the sindex
-         * we were post constructiing was deleted. Either way we need to clean
-         * up the queue. */
+    if (lock.get_drain_signal()->is_pulsed()) {
+        /* We were interrupted, this means we can't deregister the sindex queue
+         * the standard way because it requires blocks. Use the emergency
+         * method instead. */
+        store->emergency_deregister_sindex_queue(mod_queue.get());
+    } else {
+        /* The sindexes we were post constructing were all deleted. Time to
+         * deregister the queue. */
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
@@ -910,7 +925,41 @@ store_t::store_t(serializer_t *serializer,
     btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
-{ }
+{
+    // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
+
+    // This uses a dummy interruptor because this is the only thing using the store at
+    //  the moment (since we are still in the constructor), so things should complete
+    //  rather quickly.
+    cond_t dummy_interruptor;
+    read_token_pair_t token_pair;
+    new_read_token_pair(&token_pair);
+
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
+                                &superblock, &dummy_interruptor, false);
+
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
+                                  superblock->get_sindex_block_id(),
+                                  &dummy_interruptor);
+
+    std::map<std::string, secondary_index_t> sindexes;
+    get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
+
+    std::set<std::string> sindexes_to_update;
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        if (!it->second.post_construction_complete) {
+            sindexes_to_update.insert(it->first);
+        }
+    }
+
+    if (!sindexes_to_update.empty()) {
+        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
+                                                        sindex_block.get(), txn.get());
+    }
+}
 
 store_t::~store_t() {
     assert_thread();
@@ -920,11 +969,15 @@ store_t::~store_t() {
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
         response->response = point_read_response_t();
-        point_read_response_t *res = boost::get<point_read_response_t>(&response->response);
+        point_read_response_t *res =
+            boost::get<point_read_response_t>(&response->response);
         rdb_get(get.key, btree, txn, superblock, res);
     }
 
     void operator()(const rget_read_t &rget) {
+        if (rget.transform.size() != 0 || rget.terminal) {
+            rassert(rget.optargs.size() != 0);
+        }
         ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
@@ -945,6 +998,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     res->result = ql::datum_exc_t(
                         strprintf("Index `%s` was not found.",
                                   rget.sindex->c_str()));
+                    return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
                 res->result = ql::datum_exc_t(
@@ -996,10 +1050,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                                                scopes_t(),
                                                                                backtrace_t()));
 
-            rdb_rget_slice(store->get_sindex_slice(*rget.sindex),
-                           rget.sindex_region->inner,
-                           txn, sindex_sb.get(), &ql_env, sindex_transform,
-                           rget.terminal, res);
+            rdb_rget_secondary_slice(
+                    store->get_sindex_slice(*rget.sindex),
+                    rget.sindex_region->inner,
+                    txn, sindex_sb.get(), &ql_env, sindex_transform,
+                    rget.terminal, rget.region.inner, res);
         }
     }
 
@@ -1030,7 +1085,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
         std::map<std::string, secondary_index_t> sindexes;
-        store->get_sindexes(&sindexes, token_pair, txn, superblock, &interruptor);
+        store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1160,7 +1215,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
             rdb_protocol_details::bring_sindexes_up_to_date(
-                sindexes, store, sindex_block.get());
+                sindexes, store, sindex_block.get(), txn);
         }
 
         response->response = res;
@@ -1432,7 +1487,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 &sindexes);
 
         rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                sindex_block.get());
+                sindex_block.get(), txn);
     }
 
 private:

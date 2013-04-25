@@ -12,6 +12,7 @@
 #include "concurrency/mutex.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
+#include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
 class io_backender_t;
@@ -54,6 +55,8 @@ private:
 
     // Serves more as sanity-checking for the cache than this type's ordering.
     order_source_t cache_order_source;
+    perfmon_collection_t perfmon_collection;
+    perfmon_membership_t perfmon_membership;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

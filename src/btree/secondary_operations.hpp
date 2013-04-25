@@ -11,7 +11,8 @@
 
 struct secondary_index_t {
     secondary_index_t()
-        : superblock(NULL_BLOCK_ID), post_construction_complete(false)
+        : superblock(NULL_BLOCK_ID), post_construction_complete(false),
+          id(generate_uuid())
     { }
 
     /* A virtual superblock. */
@@ -32,13 +33,19 @@ struct secondary_index_t {
     /* An opaque blob that describes the index */
     opaque_definition_t opaque_definition;
 
+    /* Sindexes contain a uuid_u to prevent a rapid deletion and recreation of
+     * a sindex with the same name from tricking a post construction in to
+     * switching targets. This issue is described in more detail here:
+     * https://github.com/rethinkdb/rethinkdb/issues/657 */
+    uuid_u id;
+
     /* Used in unit tests. */
     bool operator==(const secondary_index_t & other) const {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_3(superblock, opaque_definition, post_construction_complete);
+    RDB_MAKE_ME_SERIALIZABLE_4(superblock, opaque_definition, post_construction_complete, id);
 };
 
 //Secondary Index functions
@@ -50,10 +57,15 @@ void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *superblock);
 
 bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, secondary_index_t *sindex_out);
 
+bool get_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u id, secondary_index_t *sindex_out);
+
 void get_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out);
 
 /* Overwrites existing values with the same id. */
 void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, const std::string &id, const secondary_index_t &sindex);
+
+/* Must be used to overwrite an already existing sindex. */
+void set_secondary_index(transaction_t *txn, buf_lock_t *sindex_block, uuid_u id, const secondary_index_t &sindex);
 
 //XXX note this just drops the entry. It doesn't cleanup the btree that it
 //points to. drop_secondary_index. Does both and should be used publicly.

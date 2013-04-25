@@ -255,6 +255,13 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     return s;
 }
 
+std::string datum_t::unprint_secondary(
+        const std::string &secondary_and_primary) {
+    size_t separator = secondary_and_primary.find_last_of('\0');
+
+    return secondary_and_primary.substr(separator + 1, std::string::npos);
+}
+
 // This function returns a store_key_t suitable for searching by a secondary-index.
 //  This is needed because secondary indexes may be truncated, but the amount truncated
 //  depends on the length of the primary key.  Since we do not know how much was truncated,
