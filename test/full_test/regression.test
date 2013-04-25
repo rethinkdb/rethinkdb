@@ -17,3 +17,8 @@ generate_test(
     "$RETHINKDB/test/regression/issue_852.py '$RETHINKDB/bench/stress-client/stress -s sockmemcached,$HOST:$PORT -w 0/0/1/0 -d 10000q'",
     name = '852'
     )
+
+generate_test(
+    "$RETHINKDB/test/regression/issue_607.py",
+    name = '607'
+    )

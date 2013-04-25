@@ -301,7 +301,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([k+'='+v for k,v in optargs.items()])
+        restargs.extend([k+'='+str(v) for k,v in optargs.items()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
