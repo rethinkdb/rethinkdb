@@ -61,7 +61,7 @@ r.connect({port:port}, function(err, c) {
                 assertNoError(err);
                 assert(res.length == 5);
                 for (var i = 1; i <= 5; ++i) {
-                    assert(res[i] = i);
+                    assert(res[i - 1] == i);
                 }
             });
         });
