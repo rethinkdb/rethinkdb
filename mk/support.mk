@@ -53,12 +53,6 @@ V8_INT_LIB := $(V8_INT_DIR)/libv8.a
 support: $(foreach v,$(shell echo $(FETCH_LIST) | tr a-z A-Z), \
             $(patsubst %,$($(v)),$(filter-out undefined,$(origin $(v)))))
 
-DISTCLEAN += $(SUPPORT_DIR)
-.PHONY: distclean-$(SUPPORT_DIR)
-distclean-$(SUPPORT_DIR):
-	$P RM $(SUPPORT_DIR)
-	rm -rf $(SUPPORT_DIR)
-
 $(shell mkdir -p $(SUPPORT_DIR) $(TOOLCHAIN_DIR) $(TC_BUILD_DIR) $(TC_SRC_DIR))
 
 ifeq (0,$(VERBOSE))
