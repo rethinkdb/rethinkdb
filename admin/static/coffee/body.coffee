@@ -4,8 +4,8 @@ render_body = ->
 
     $('body').html(template())
 
-    alert_update_view = new AlertUpdates
-    $('.updates_container').html alert_update_view.render().$el
+    window.alert_update_view = new AlertUpdates
+    $('.updates_container').html window.alert_update_view.render().$el
 
 
     # Set up common DOM behavior
@@ -42,7 +42,11 @@ class AlertUpdates extends Backbone.View
         event.preventDefault()
         if @next_version?
             window.localStorage.ignore_version = JSON.stringify @next_version
+        @hide()
+
+    hide: =>
         @$el.slideUp 'fast'
+
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.

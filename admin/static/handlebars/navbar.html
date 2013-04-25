@@ -6,6 +6,19 @@
         <li id="nav-servers"><a href="#servers">Servers</a></li>
         <li id="nav-dataexplorer"><a href="#dataexplorer">Data Explorer</a></li>
         <li id="nav-logs"><a href="#logs">Logs</a></li>
+        <li id="nav-options"><a href="#" class="options_link"><img src="images/cog_white_16x16.png" class="cog_icon" /></a>
+            <div class="options_container_arrow"></div>
+            <div class="options_container_arrow_overlay"></div>
+            <div class="options_container">
+                <a class="close" href="#">&times;</a>
+                <h2 class="title">Options</h2>
+                <p>RethinkDB version: 1.4.4-0ubuntu1~precise (GCC 4.6.3)</p>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="check_updates" {{#if check_update}}checked{{/if}}></input><label for="check_updates"></label>    
+                </div>
+                <p>Check for updates:</p>
+            </div>
+        </li>
     </ul>
     <div class="right-nav">
         <div class="divider"></div>

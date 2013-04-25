@@ -6,9 +6,14 @@ class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
     template: Handlebars.templates['navbar_view-template']
+    events:
+        'click .options_link': 'show_options'
+        'click .close': 'show_options'
+        'click #check_updates': 'toggle_updates'
 
     initialize: =>
         @first_render = true
+        @options_state = 'hidden' # can be 'hidden' or 'visible'
 
     init_typeahead: => # Has to be called after we have injected the template
         @.$('input.search-box').typeahead
@@ -36,7 +41,8 @@ class NavBarView extends Backbone.View
 
     render: (route) =>
         log_render '(rendering) NavBarView'
-        @.$el.html @template()
+        @.$el.html @template
+            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else false
         # set active tab
         @set_active_tab route
 
@@ -60,3 +66,27 @@ class NavBarView extends Backbone.View
                 when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
                 when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
                 when 'route:logs'               then @.$('li#nav-logs').addClass('active')
+
+    show_options: (event) =>
+        event.preventDefault()
+        if @options_state is 'visible'
+            @options_state = 'hidden'
+            @$('.options_container_arrow').hide()
+            @$('.options_container_arrow_overlay').hide()
+            @$('.options_container').hide()
+            @$('.cog_icon').removeClass 'active'
+        else
+            @options_state = 'visible'
+            @$('.options_container_arrow').show()
+            @$('.options_container_arrow_overlay').show()
+            @$('.options_container').show()
+            @$('.cog_icon').addClass 'active'
+            @delegateEvents()
+
+    toggle_updates: (event) =>
+        window.localStorage.check_updates = JSON.stringify @$('#check_updates').is(':checked')
+        if @$('#check_updates').is(':checked') is true
+            window.localStorage.removeItem('ignore_version')
+            window.alert_update_view.check()
+        else
+            window.alert_update_view.hide()
