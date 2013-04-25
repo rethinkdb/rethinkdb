@@ -113,7 +113,7 @@ def cmp_test(one, two)
                     two.items.sort{ |a, b| cmp_test a, b })
 
   when "Int"
-    return cmp_test([Fixnum, two.i], [one.class, one])
+    return cmp_test([Fixnum.name, two.i], [one.class.name, one])
 
   when "Floatable"
     return cmp_test([Float, two.i], [one.class, one])
