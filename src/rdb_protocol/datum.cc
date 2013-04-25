@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 
 namespace ql {
@@ -25,14 +25,68 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
     rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(const std::string &_str) : type(R_STR), r_str(_str) { }
-datum_t::datum_t(const char *cstr) : type(R_STR), r_str(cstr) { }
+datum_t::datum_t(const std::string &_str)
+    : type(R_STR), r_str(new std::string(_str)) { }
+datum_t::datum_t(const char *cstr)
+    : type(R_STR), r_str(new std::string(cstr)) { }
 datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
-    : type(R_ARRAY), r_array(_array) { }
+    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(_array)) { }
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
-    : type(R_OBJECT), r_object(_object) { }
+    : type(R_OBJECT),
+      r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) { }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
+    switch (type) {
+    case R_NULL: {
+        r_str = NULL; // Zeroing here is probably good for debugging.
+    } break;
+    case R_BOOL: // fallthru
+    case R_NUM: // fallthru
+    case R_STR: unreachable();
+    case R_ARRAY: {
+        r_array = new std::vector<counted_t<const datum_t> >();
+    } break;
+    case R_OBJECT: {
+        r_object = new std::map<std::string, counted_t<const datum_t> >();
+    } break;
+    default: unreachable();
+    }
+}
+
+datum_t::~datum_t() {
+    switch (type) {
+    case R_NULL: //fallthru
+    case R_BOOL: //fallthru
+    case R_NUM: break;
+    case R_STR: {
+        r_sanity_check(r_str != NULL);
+        delete r_str;
+    } break;
+    case R_ARRAY: {
+        r_sanity_check(r_array != NULL);
+        delete r_array;
+    } break;
+    case R_OBJECT: {
+        r_sanity_check(r_object != NULL);
+        delete r_object;
+    } break;
+    default: unreachable();
+    }
+}
+
+void datum_t::init_str() {
+    type = R_STR;
+    r_str = new std::string();
+}
+
+void datum_t::init_array() {
+    type = R_ARRAY;
+    r_array = new std::vector<counted_t<const datum_t> >();
+}
+
+void datum_t::init_object() {
+    type = R_OBJECT;
+    r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
 void datum_t::init_json(cJSON *json, env_t *env) {
@@ -55,17 +109,17 @@ void datum_t::init_json(cJSON *json, env_t *env) {
         r_sanity_check(isfinite(r_num));
     } break;
     case cJSON_String: {
-        type = R_STR;
-        r_str = json->valuestring;
+        init_str();
+        *r_str = json->valuestring;
     } break;
     case cJSON_Array: {
-        type = R_ARRAY;
+        init_array();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             add(make_counted<datum_t>(cJSON_GetArrayItem(json, i), env));
         }
     } break;
     case cJSON_Object: {
-        type = R_OBJECT;
+        init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
             bool b = add(el->string, make_counted<datum_t>(el, env));
@@ -130,45 +184,144 @@ std::string datum_t::print() const {
     return as_json()->Print();
 }
 
+void datum_t::num_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_NUM);
+    str_out->append("N");
+    union {
+        double d;
+        uint64_t u;
+    } packed;
+    guarantee(sizeof(packed.d) == sizeof(packed.u));
+    packed.d = as_num();
+    // Mangle the value so that lexicographic ordering matches double ordering
+    if (packed.u & (1ULL << 63)) {
+        // If we have a negative double, flip all the bits.  Flipping the
+        // highest bit causes the negative doubles to sort below the
+        // positive doubles (which will also have their highest bit
+        // flipped), and flipping all the other bits causes more negative
+        // doubles to sort below less negative doubles.
+        packed.u = ~packed.u;
+    } else {
+        // If we have a non-negative double, flip the highest bit so that it
+        // sorts higher than all the negative doubles (which had their
+        // highest bit flipped as well).
+        packed.u ^= (1ULL << 63);
+    }
+    // The formatting here is sensitive.  Talk to mlucy before changing it.
+    str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
+    str_out->append(strprintf("#" DBLPRI, as_num()));
+}
+
+void datum_t::str_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_STR);
+    str_out->append("S");
+    str_out->append(as_str());
+}
+
+// The key for an array is stored as a string of all its elements, each separated by a
+//  null character, with another null character at the end to signify the end of the
+//  array (this is necessary to prevent ambiguity when nested arrays are involved).
+void datum_t::array_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_ARRAY);
+    str_out->append("A");
+
+    for (size_t i = 0; i < size(); ++i) {
+        counted_t<const datum_t> item = get(i, NOTHROW);
+        r_sanity_check(item != NULL);
+
+        if (item->type == R_NUM) {
+            item->num_to_str_key(str_out);
+        } else if (item->type == R_STR) {
+            item->str_to_str_key(str_out);
+        } else if (item->type == R_ARRAY) {
+            item->array_to_str_key(str_out);
+        } else {
+            rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+                  item->print().c_str(), datum_type_name(item->type));
+        }
+
+        str_out->append(std::string(1, '\0'));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     if (type == R_NUM) {
-        s += "N";
-        union {
-            double d;
-            uint64_t u;
-        } packed;
-        guarantee(sizeof(packed.d) == sizeof(packed.u));
-        packed.d = as_num();
-        // Mangle the value so that lexicographic ordering matches double ordering
-        if (packed.u & (1ULL << 63)) {
-            // If we have a negative double, flip all the bits.  Flipping the
-            // highest bit causes the negative doubles to sort below the
-            // positive doubles (which will also have their highest bit
-            // flipped), and flipping all the other bits causes more negative
-            // doubles to sort below less negative doubles.
-            packed.u = ~packed.u;
-        } else {
-            // If we have a non-negative double, flip the highest bit so that it
-            // sorts higher than all the negative doubles (which had their
-            // highest bit flipped as well).
-            packed.u ^= (1ULL << 63);
-        }
-        // The formatting here is sensitive.  Talk to mlucy before changing it.
-        s += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
-        s += strprintf("#" DBLPRI, as_num());
+        num_to_str_key(&s);
     } else if (type == R_STR) {
-        s += "S";
-        s += as_str();
+        str_to_str_key(&s);
     } else {
         rfail("Primary keys must be either a number or a string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
-    if (s.size() > MAX_KEY_SIZE) {
-        rfail("Primary key too long (max %d characters): %s",
-              MAX_KEY_SIZE - 1, print().c_str());
+    if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
+        rfail("Primary key too long (max %zu characters): %s",
+              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
     return s;
+}
+
+std::string datum_t::print_secondary(const store_key_t &primary_key) const {
+    std::string s;
+    std::string primary_key_string = key_to_unescaped_str(primary_key);
+
+    if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
+        rfail("Primary key too long (max %zu characters): %s",
+              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, key_to_debug_str(primary_key).c_str());
+    }
+
+    if (type == R_NUM) {
+        num_to_str_key(&s);
+    } else if (type == R_STR) {
+        str_to_str_key(&s);
+    } else if (type == R_ARRAY) {
+        array_to_str_key(&s);
+    } else {
+        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+
+    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
+        std::string(1, '\0') + primary_key_string;
+
+    return s;
+}
+
+std::string datum_t::unprint_secondary(
+        const std::string &secondary_and_primary) {
+    size_t separator = secondary_and_primary.find_last_of('\0');
+
+    return secondary_and_primary.substr(separator + 1, std::string::npos);
+}
+
+// This function returns a store_key_t suitable for searching by a secondary-index.
+//  This is needed because secondary indexes may be truncated, but the amount truncated
+//  depends on the length of the primary key.  Since we do not know how much was truncated,
+//  we have to truncate the maximum amount, then return all matches and filter them out later.
+store_key_t datum_t::truncated_secondary() const {
+    std::string s;
+    if (type == R_NUM) {
+        num_to_str_key(&s);
+    } else if (type == R_STR) {
+        str_to_str_key(&s);
+    } else if (type == R_ARRAY) {
+        array_to_str_key(&s);
+    } else {
+        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+              print().c_str(), datum_type_name(type));
+    }
+
+    const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+
+    // If the key does not need truncation, add a null byte at the end to filter out more
+    //  potential results
+    if (s.length() < max_trunc_size) {
+        s += std::string(1, '\0');
+    } else {
+        s.erase(max_trunc_size);
+    }
+
+    return store_key_t(s);
 }
 
 void datum_t::check_type(type_t desired) const {
@@ -199,27 +352,26 @@ int64_t datum_t::as_int() const {
 }
 const std::string &datum_t::as_str() const {
     check_type(R_STR);
-    return r_str;
+    return *r_str;
 }
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     check_type(R_ARRAY);
-    return r_array;
+    return *r_array;
 }
 size_t datum_t::size() const {
     return as_array().size();
 }
 
-counted_t<const datum_t> datum_t::el(size_t index, throw_bool_t throw_bool) const {
+counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) const {
     if (index < size()) return as_array()[index];
     if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
     return counted_t<const datum_t>();
 }
 
-counted_t<const datum_t> datum_t::el(const std::string &key, throw_bool_t throw_bool) const {
-    auto it = as_object().find(key);
-    if (it != as_object().end()) {
-        return it->second;
-    }
+counted_t<const datum_t> datum_t::get(const std::string &key, throw_bool_t throw_bool) const {
+    std::map<std::string, counted_t<const datum_t> >::const_iterator it
+        = as_object().find(key);
+    if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
         rfail("No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
     }
@@ -228,7 +380,7 @@ counted_t<const datum_t> datum_t::el(const std::string &key, throw_bool_t throw_
 
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
-    return r_object;
+    return *r_object;
 }
 
 cJSON *datum_t::as_raw_json() const {
@@ -261,18 +413,15 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-scoped_ptr_t<datum_stream_t> datum_t::as_datum_stream(
-    // BT_SRC should be a pointer to whatever part of the term tree we want the
-    // resulting stream to be associated with (i.e. what part of the tree we
-    // should highlight in the backtrace if that stream exhibits an error).
-    env_t *env, const pb_rcheckable_t *bt_src) const {
+counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env, const pb_rcheckable_t *backtrace_src) const {
     switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
-    case R_ARRAY: return make_scoped_ptr<array_datum_stream_t>(env, this->counted_from_this(), bt_src);
+    case R_ARRAY:
+        return make_counted<array_datum_stream_t>(env, this->counted_from_this(), backtrace_src);
     default: unreachable();
     }
     unreachable();
@@ -281,20 +430,20 @@ scoped_ptr_t<datum_stream_t> datum_t::as_datum_stream(
 void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val);
-    r_array.push_back(val);
+    r_array->push_back(val);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     r_sanity_check(val);
-    bool key_in_obj = r_object.count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) r_object[key] = val;
+    bool key_in_obj = r_object->count(key) > 0;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
     return key_in_obj;
 }
 
 MUST_USE bool datum_t::delete_key(const std::string &key) {
-    return r_object.erase(key);
+    return r_object->erase(key);
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
@@ -305,11 +454,12 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     }
     return counted_t<const datum_t>(d.release());
 }
+
 counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs, merge_res_f f) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (counted_t<const datum_t> l = el(it->first, NOTHROW)) {
+        if (counted_t<const datum_t> l = get(it->first, NOTHROW)) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
@@ -390,23 +540,23 @@ datum_t::datum_t(const Datum *d, env_t *env) {
         r_num = d->r_num();
     } break;
     case Datum_DatumType_R_STR: {
-        type = R_STR;
-        r_str = d->r_str();
+        init_str();
+        *r_str = d->r_str();
     } break;
     case Datum_DatumType_R_ARRAY: {
-        type = R_ARRAY;
+        init_array();
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array.push_back(make_counted<datum_t>(&d->r_array(i), env));
+            r_array->push_back(make_counted<datum_t>(&d->r_array(i), env));
         }
     } break;
     case Datum_DatumType_R_OBJECT: {
-        type = R_OBJECT;
+        init_object();
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            rcheck(r_object.count(key) == 0,
+            rcheck(r_object->count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            r_object[key] = make_counted<datum_t>(&ap->val(), env);
+            (*r_object)[key] = make_counted<datum_t>(&ap->val(), env);
         }
     } break;
     default: unreachable();
@@ -428,45 +578,25 @@ void datum_t::write_to_protobuf(Datum *d) const {
     } break;
     case R_STR: {
         d->set_type(Datum_DatumType_R_STR);
-        d->set_r_str(r_str);
+        d->set_r_str(*r_str);
     } break;
     case R_ARRAY: {
         d->set_type(Datum_DatumType_R_ARRAY);
-        for (size_t i = 0; i < r_array.size(); ++i) {
-            r_array[i]->write_to_protobuf(d->add_r_array());
+        for (size_t i = 0; i < r_array->size(); ++i) {
+            (*r_array)[i]->write_to_protobuf(d->add_r_array());
         }
     } break;
     case R_OBJECT: {
         d->set_type(Datum_DatumType_R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
         for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
-                 it = r_object.rbegin(); it != r_object.rend(); ++it) {
+                 it = r_object->rbegin(); it != r_object->rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
             it->second->write_to_protobuf(ap->mutable_val());
         }
     } break;
     default: unreachable();
-    }
-}
-
-void datum_t::iter(bool (*callback)(counted_t<const datum_t> , env_t *), env_t *env) const {
-    if (callback(this->counted_from_this(), env)) {
-        switch (get_type()) {
-        case R_NULL: // fallthru
-        case R_BOOL: // fallthru
-        case R_NUM:  // fallthru
-        case R_STR:  break;
-        case R_ARRAY: {
-            for (size_t i = 0; i < as_array().size(); ++i) el(i)->iter(callback, env);
-        } break;
-        case R_OBJECT: {
-            for (auto it = as_object().begin(); it != as_object().end(); ++it) {
-                it->second->iter(callback, env);
-            }
-        } break;
-        default: unreachable();
-        }
     }
 }
 
@@ -489,11 +619,13 @@ counted_t<const datum_t> wire_datum_t::compile(env_t *env) {
     return ptr;
 }
 void wire_datum_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) {
+        return;
+    }
     r_sanity_check(state == COMPILED);
     ptr->write_to_protobuf(&ptr_pb);
     ptr.reset();
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
@@ -522,7 +654,7 @@ void wire_datum_map_t::compile(env_t *env) {
     state = COMPILED;
 }
 void wire_datum_map_t::finalize() {
-    if (state == JUST_READ) return;
+    if (state == SERIALIZABLE) return;
     r_sanity_check(state == COMPILED);
     while (!map.empty()) {
         map_pb.push_back(std::make_pair(Datum(), Datum()));
@@ -530,7 +662,7 @@ void wire_datum_map_t::finalize() {
         map.begin()->second->write_to_protobuf(&map_pb.back().second);
         map.erase(map.begin());
     }
-    state = READY_TO_WRITE;
+    state = SERIALIZABLE;
 }
 
 counted_t<const datum_t> wire_datum_map_t::to_arr() const {

@@ -1,0 +1,13 @@
+desc: fix type of `limit` and `zip` on streams (#678)
+tests:
+
+  - cd: r.db('test').table_create('678')
+    def: tbl = r.table('678')
+
+  - rb: tbl.map{|x| x}.limit(1).typeof
+    ot: ("STREAM")
+
+  - rb: r([1]).map{|x| x}.limit(1).typeof
+    ot: ("ARRAY")
+
+  - cd: r.db('test').table_drop('678')

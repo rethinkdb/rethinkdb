@@ -1,0 +1,79 @@
+commands:
+  - tag: insert
+    section: writing_data
+    order: 0
+    description: |
+      Insert JSON documents into a table. Accepts a single JSON document
+      or an array of documents. <br /><br />Insert returns an object that contains
+      one or more of:<ul><li><code>inserted</code> - the number of documents that
+      were succesfully inserted;</li><li><code>replaced</code> - the number of documents
+      that were updated when <code>upsert</code> is used;</li><li><code>errors</code>
+      - the number of errors encountered while inserting;</li><li><code>first_error</code>
+      - the text of the first error encountered;</li><li>it can also contain a field
+      <code>generated_keys</code> providing a list of generated primary key values.</li></ul>
+
+    body:
+      js: json | [json][, {upsert:true}]
+      py: json | [json][, upsert=False]
+      rb: json | [json][, :upsert]
+    parent: table
+    returns: query
+
+    examples:
+      - description: Insert a row into a table named 'marvel'.
+        code:
+          js: |
+            r.table('marvel').insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+             .run(conn, callback)
+          py: |
+            r.table('marvel').insert(
+                { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)
+          rb: |
+            r.table('marvel').insert(
+                { :superhero => 'Iron Man', :superpower => 'Arc Reactor' }).run(conn)
+      - description: Insert multiple rows into a table named 'marvel'.
+        code:
+          js: |
+            r.table('marvel').insert([
+              { superhero: 'Wolverine', superpower: 'Adamantium' },
+              { superhero: 'Spiderman', superpower: 'spidy sense' }
+            ]).run(conn, callback)
+          py: |
+            r.table('marvel').insert([
+              { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },
+              { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }
+            ]).run(conn)
+          rb: |
+            r.table('marvel').insert([
+              {:superhero => 'Wolverine', :superpower => 'Adamantium'},
+              {:superhero => 'Spiderman', :superpower => 'spidy sense'}
+            ]).run(conn)
+      - description: Insert a row into a table named 'marvel', overwriting if the document already exists.
+        code:
+          js: |
+            r.table('marvel').insert(
+              { superhero: 'Iron Man', superpower: 'Arc Reactor' },
+              {upsert: true}
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').insert(
+              { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },
+              upsert=True
+            ).run(conn)
+          rb: |
+            r.table('marvel').insert(
+              {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
+              :upsert
+            ).run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+        2:
+          can_try: true
+          dataset: marvel

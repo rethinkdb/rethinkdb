@@ -109,6 +109,7 @@ public:
     };
     typedef void booleanesque_t(hidden_t);
 
+    // SAMRSI: Get rid of this.
     operator booleanesque_t*() const {
         return p_ ? &counted_t<T>::dummy_method : 0;
     }

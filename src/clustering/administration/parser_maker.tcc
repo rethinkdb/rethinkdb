@@ -111,7 +111,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name,
         interruptor.wait_lazily_unordered();
 
         logINF("Stopped listening for queries for the namespace '%s' %s on port %d.\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* pass */
     }
 

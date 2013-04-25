@@ -112,7 +112,7 @@ private:
                 memory_queue.push_back(value);
                 available_control.set_available(true);
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* ignore */
         }
     }

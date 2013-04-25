@@ -10,7 +10,7 @@ namespace ql {
 class datum_term_t : public term_t {
 public:
     datum_term_t(env_t *env, const Term *t)
-        : term_t(env, t), raw_val(new_val(make_counted<datum_t>(&t->datum(), env))) {
+        : term_t(env, t), raw_val(new_val(make_counted<const datum_t>(&t->datum(), env))) {
         guarantee(raw_val);
     }
 private:
@@ -43,7 +43,7 @@ private:
     virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
         for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc->add(it->first, it->second->eval(use_cached_val)->as_datum());
+            bool dup = acc->add(it->first, it->second->eval()->as_datum());
             rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
         return new_val(counted_t<const datum_t>(acc.release()));

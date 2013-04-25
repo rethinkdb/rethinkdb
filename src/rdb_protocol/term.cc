@@ -11,22 +11,21 @@
 #include "rdb_protocol/terms/db_table.hpp"
 #include "rdb_protocol/terms/error.hpp"
 #include "rdb_protocol/terms/gmr.hpp"
+#include "rdb_protocol/terms/js.hpp"
 #include "rdb_protocol/terms/obj.hpp"
 #include "rdb_protocol/terms/obj_or_seq.hpp"
 #include "rdb_protocol/terms/pred.hpp"
 #include "rdb_protocol/terms/rewrites.hpp"
 #include "rdb_protocol/terms/seq.hpp"
+#include "rdb_protocol/terms/sindex.hpp"
 #include "rdb_protocol/terms/sort.hpp"
 #include "rdb_protocol/terms/type_manip.hpp"
 #include "rdb_protocol/terms/var.hpp"
 #include "rdb_protocol/terms/writes.hpp"
-#include "rdb_protocol/terms/js.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
-
-// #define INSTRUMENT 1
 
 counted_t<term_t> compile_term(env_t *env, const Term *t) {
     switch (t->type()) {
@@ -89,6 +88,9 @@ counted_t<term_t> compile_term(env_t *env, const Term *t) {
     case Term_TermType_TABLE_CREATE:       return make_counted<table_create_term_t>(env, t);
     case Term_TermType_TABLE_DROP:         return make_counted<table_drop_term_t>(env, t);
     case Term_TermType_TABLE_LIST:         return make_counted<table_list_term_t>(env, t);
+    case Term_TermType_INDEX_CREATE:       return make_counted<sindex_create_term_t>(env, t);
+    case Term_TermType_INDEX_DROP:         return make_counted<sindex_drop_term_t>(env, t);
+    case Term_TermType_INDEX_LIST:         return make_counted<sindex_list_term_t>(env, t);
     case Term_TermType_FUNCALL:            return make_counted<funcall_term_t>(env, t);
     case Term_TermType_BRANCH:             return make_counted<branch_term_t>(env, t);
     case Term_TermType_ANY:                return make_counted<any_term_t>(env, t);
@@ -106,7 +108,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
-    } catch (const any_ql_exc_t &e) {
+    } catch (const base_exc_t &e) {
         fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
         return;
     }
@@ -158,7 +160,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         }
 
         try {
-            counted_t<val_t> val = root_term->eval(false);
+            counted_t<val_t> val = root_term->eval();
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
@@ -200,14 +202,15 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *src)
-    : pb_rcheckable_t(src), use_cached_val(false), env(_env), cached_val(0) {
+term_t::term_t(env_t *_env, const Term *_src)
+    : pb_rcheckable_t(_src), env(_env), src(_src) {
     guarantee(env);
 }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
 // you are in query execution when something goes wrong).
+// #define INSTRUMENT 1
 
 #ifdef INSTRUMENT
 __thread int DBG_depth = 0;
@@ -230,23 +233,28 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
-counted_t<val_t> term_t::eval(bool _use_cached_val) {
+const Term *term_t::get_src() const {
+    return src;
+}
+
+counted_t<val_t> term_t::eval() {
+    // This is basically a hook for unit tests to change things mid-query
+    DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     try {
-        use_cached_val = _use_cached_val;
         try {
-            if (!cached_val || !use_cached_val) cached_val = eval_impl();
+            counted_t<val_t> ret = eval_impl();
+            DEC_DEPTH;
+            DBG("%s returned %s\n", name(), ret->print().c_str());
+            return ret;
         } catch (const datum_exc_t &e) {
+            DEC_DEPTH;
             DBG("%s THREW\n", name());
             rfail("%s", e.what());
         }
-
-        DEC_DEPTH;
-        DBG("%s returned %s\n", name(), cached_val->print().c_str());
-        return cached_val;
     } catch (...) {
         DEC_DEPTH;
         DBG("%s THREW OUTER\n", name());
@@ -254,38 +262,30 @@ counted_t<val_t> term_t::eval(bool _use_cached_val) {
     }
 }
 
-counted_t<val_t> term_t::new_val(counted_t<datum_t> d) {
-    counted_t<const datum_t> d2(std::move(d));
-    return new_val(d2);
-}
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
-    return make_counted<val_t>(d, this, env);
-}
-counted_t<val_t> term_t::new_val(counted_t<datum_t> d, counted_t<table_t> t) {
-    counted_t<const datum_t> d2(std::move(d));
-    return new_val(d2, t);
+    return make_counted<val_t>(d, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return make_counted<val_t>(d, t, this, env);
+    return make_counted<val_t>(d, t, this);
 }
 
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(s, this, env);
+    return make_counted<val_t>(s, this);
 }
-counted_t<val_t> term_t::new_val(counted_t<table_t> d, counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(d, s, this, env);
+counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
+    return make_counted<val_t>(d, s, this);
 }
 counted_t<val_t> term_t::new_val(uuid_u db) {
     return env->new_val(db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
-    return make_counted<val_t>(t, this, env);
+    return make_counted<val_t>(t, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
-    return make_counted<val_t>(f, this, env);
+    return make_counted<val_t>(f, this);
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {
-    return new_val(make_counted<datum_t>(datum_t::R_BOOL, b));
+    return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 
 } //namespace ql

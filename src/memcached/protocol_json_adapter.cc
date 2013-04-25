@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/protocol_json_adapter.hpp"
 
 #include <string>
@@ -27,8 +27,6 @@ void apply_json_to(cJSON *change, store_key_t *target) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
 }
-
-void on_subfield_change(store_key_t *) { }
 
 std::string to_string_for_json_key(const store_key_t *target) {
     return percent_escaped_string(key_to_unescaped_str(*target));
@@ -101,8 +99,6 @@ void apply_json_to(cJSON *change, key_range_t *target) {
     }
 }
 
-void on_subfield_change(key_range_t *) { }
-
 
 
 
@@ -134,6 +130,4 @@ void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target) {
     target->beg = 0;
     target->end = target->inner.is_empty() ? 0 : HASH_REGION_HASH_SIZE;
 }
-
-void on_subfield_change(hash_region_t<key_range_t> *) { }
 

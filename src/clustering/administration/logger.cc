@@ -264,7 +264,7 @@ private:
 
     bool write(const log_message_t &msg, std::string *error_out);
     void initiate_write(log_level_t level, const std::string &message);
-    std::string filename;
+    base_path_t filename;
     struct timespec uptime_reference;
     struct flock filelock, fileunlock;
     scoped_fd_t fd;
@@ -272,7 +272,8 @@ private:
     DISABLE_COPYING(fallback_log_writer_t);
 } fallback_log_writer;
 
-fallback_log_writer_t::fallback_log_writer_t() {
+fallback_log_writer_t::fallback_log_writer_t() :
+    filename("-") {
     uptime_reference = clock_monotonic();
 
     filelock.l_type = F_WRLCK;
@@ -289,17 +290,23 @@ fallback_log_writer_t::fallback_log_writer_t() {
 }
 
 void fallback_log_writer_t::install(const std::string &logfile_name) {
-    guarantee(filename == "", "Attempted to install a fallback_log_writer_t that was already installed.");
-    filename = logfile_name;
+    guarantee(filename.path() == "-", "Attempted to install a fallback_log_writer_t that was already installed.");
+    filename = base_path_t(logfile_name);
 
     // It's ok if the file couldn't be opened -- we create a local
     // issue for it later
     int res;
     do {
-        res = open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
+        res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
     } while (res == -1 && errno == EINTR);
 
     fd.reset(res);
+
+    if (fd.get() != -1) {
+        // Get the absolute path for the log file, so it will still be valid if
+        //  the working directory changes
+        filename.make_absolute();
+    }
 }
 
 bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_out) {
@@ -453,7 +460,7 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
 
 void thread_pool_log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
-        file_reverse_reader_t reader(fallback_log_writer.filename);
+        file_reverse_reader_t reader(fallback_log_writer.filename.path());
         std::string line;
         while (messages_out->size() < static_cast<size_t>(max_lines) && reader.get_next(&line) && !*cancel) {
             if (line == "" || line[line.length() - 1] != '\n') {

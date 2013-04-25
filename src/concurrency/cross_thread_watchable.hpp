@@ -4,7 +4,6 @@
 
 #include "concurrency/watchable.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "timestamps.hpp" //RSI
 #include "concurrency/queue/single_value_producer.hpp"
 #include "concurrency/coro_pool.hpp"
 
@@ -63,8 +62,6 @@ private:
     rwi_lock_assertion_t rwi_lock_assertion;
     value_t value;
     w_t watchable;
-
-    //state_timestamp_t watchable_thread_timestamp, dest_thread_timestamp;
 
     int watchable_thread, dest_thread;
 

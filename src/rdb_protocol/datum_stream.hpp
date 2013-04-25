@@ -34,15 +34,26 @@ public:
     counted_t<datum_stream_t> slice(size_t l, size_t r);
     counted_t<datum_stream_t> zip();
 
-    // Returns NULL if stream is lazy.
+    // Returns false or NULL respectively if stream is lazy.
+    virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     counted_t<const datum_t> next();
-private:
-    virtual counted_t<const datum_t> next_impl() = 0;
+
+    // Gets the next elements from the stream.  (Returns zero elements only when
+    // the end of the stream has been reached.  Otherwise, returns at least one
+    // element.)  (Wrapper around `next_batch_impl`.)
+    std::vector<counted_t<const datum_t> > next_batch();
+
 protected:
     env_t *env;
+
+private:
+    static const size_t MAX_BATCH_SIZE = 100;
+
+    // Returns NULL upon end of stream.
+    virtual counted_t<const datum_t> next_impl() = 0;
 };
 
 counted_t<datum_stream_t> slice(env_t *env, counted_t<datum_stream_t> slicee, size_t left, size_t right);
@@ -61,51 +72,74 @@ public:
     virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
     virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
 
+    virtual bool is_array() { return true; }
     virtual counted_t<const datum_t> as_array();
+};
+
+// SAMRSI: What the fuck is this wrapper_datum_stream_t?
+class wrapper_datum_stream_t : public eager_datum_stream_t {
+public:
+    wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
+        : eager_datum_stream_t(env, _src.get() /* SAMRSI: acceptable? */), src(_src) { }
+    virtual bool is_array() { return src->is_array(); }
+    virtual counted_t<const datum_t> as_array() {
+        return is_array() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
+    }
+    counted_t<datum_stream_t> src_stream() { return src; }
+private:
+    counted_t<datum_stream_t> src;
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
-        : eager_datum_stream_t(env, _src.get()), f(_f), src(_src) {
-        guarantee(f && src);
+    map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        guarantee(f && source);
     }
-    virtual counted_t<const datum_t> next_impl();
 private:
+    counted_t<const datum_t> next_impl();
+
     counted_t<func_t> f;
-    counted_t<datum_stream_t> src;
+    counted_t<datum_stream_t> source;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
-        : eager_datum_stream_t(env, _src.get()), f(_f), src(_src) {
-        guarantee(f && src);
+    filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        guarantee(f && source);
     }
-    virtual counted_t<const datum_t> next_impl();
+
 private:
+    counted_t<const datum_t> next_impl();
+
     counted_t<func_t> f;
-    counted_t<datum_stream_t> src;
+    counted_t<datum_stream_t> source;
 };
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _src)
-        : eager_datum_stream_t(env, _src.get()), f(_f), src(_src), subsrc(0) {
-        guarantee(f && src);
+    concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        guarantee(f && source);
     }
-    virtual counted_t<const datum_t> next_impl();
-private:
-    counted_t<func_t> f;
-    counted_t<datum_stream_t> src;
-    counted_t<datum_stream_t> subsrc;
-};
 
+private:
+    counted_t<const datum_t> next_impl();
+
+    counted_t<func_t> f;
+    counted_t<datum_stream_t> source;
+    counted_t<datum_stream_t> subsource;
+};
 
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const pb_rcheckable_t *bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        counted_t<const datum_t> pval, const std::string &sindex_id,
                         const pb_rcheckable_t *bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
@@ -113,53 +147,46 @@ public:
 
     virtual counted_t<const datum_t> count();
     virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
-    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
-    virtual counted_t<const datum_t> next_impl();
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> base, counted_t<func_t> r);
+    virtual bool is_array() { return false; }
     virtual counted_t<const datum_t> as_array() { return counted_t<const datum_t>(); } // cannot be converted implicitly
 private:
+    counted_t<const datum_t> next_impl();
+
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
     boost::shared_ptr<query_language::json_stream_t> json_stream;
 
-    // These are used on the json streams.  They're in the class instead of
-    // being locally allocated because it makes debugging easier.
-    rdb_protocol_details::transform_variant_t trans;
-    rdb_protocol_details::terminal_variant_t terminal;
-    query_language::scopes_t _s;
-    query_language::backtrace_t _b;
-
-    template<class T>
-    void run_terminal(T t); // only used in datum_stream.cc
-    std::vector<counted_t<const datum_t> > shard_data; // used by run_terminal
+    rdb_protocol_t::rget_read_response_t::result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
     array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr, const pb_rcheckable_t *bt_src);
-    virtual counted_t<const datum_t> next_impl();
+
 private:
+    counted_t<const datum_t> next_impl();
+
     size_t index;
     counted_t<const datum_t> arr;
 };
 
-class slice_datum_stream_t : public eager_datum_stream_t {
+class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *_env, size_t _l, size_t _r, counted_t<datum_stream_t> _src);
-    virtual counted_t<const datum_t> next_impl();
+    slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
+    counted_t<const datum_t> next_impl();
     env_t *env;
-    size_t ind, l, r;
-    counted_t<datum_stream_t> src;
+    size_t index, left, right;
 };
 
-class zip_datum_stream_t : public eager_datum_stream_t {
+class zip_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    zip_datum_stream_t(env_t *_env, counted_t<datum_stream_t> _src);
-    virtual counted_t<const datum_t> next_impl();
+    zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> src);
 private:
+    counted_t<const datum_t> next_impl();
     env_t *env;
-    counted_t<datum_stream_t> src;
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There
@@ -174,24 +201,28 @@ public:
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
           src(_src), data_index(-1), is_arr_(false) {
         guarantee(src);
+        load_data();
     }
-    virtual counted_t<const datum_t> next_impl() {
-        maybe_load_data();
+
+    counted_t<const datum_t> next_impl() {
         r_sanity_check(data_index >= 0);
-        // RSI this static cast, data_index is an int
-        if (data_index >= static_cast<int>(data.size())) return counted_t<const datum_t>();
-        //                ^^^^^^^^^^^^^^^^ this is safe because of `maybe_load_data`
-        return data[data_index++];
+        if (data_index >= static_cast<int>(data.size())) {
+            //            ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
+            return counted_t<const datum_t>();
+        } else {
+            counted_t<const datum_t> ret = data[data_index];
+            ++data_index;
+            return ret;
+        }
     }
 private:
     virtual counted_t<const datum_t> as_array() {
         return is_arr() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
     }
     bool is_arr() {
-        maybe_load_data();
         return is_arr_;
     }
-    void maybe_load_data() {
+    void load_data() {
         if (data_index != -1) return;
         data_index = 0;
         if (counted_t<const datum_t> arr = src->as_array()) {
@@ -200,7 +231,7 @@ private:
                    strprintf("Can only sort at most %zu elements.",
                              sort_el_limit));
             for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->el(i));
+                data.push_back(arr->get(i));
             }
         } else {
             is_arr_ = false;
@@ -227,8 +258,9 @@ public:
     union_datum_stream_t(env_t *env, const std::vector<counted_t<datum_stream_t> > &_streams,
                          const pb_rcheckable_t *bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
-    virtual counted_t<const datum_t> next_impl();
 private:
+    counted_t<const datum_t> next_impl();
+
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;
 };

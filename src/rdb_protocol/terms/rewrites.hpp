@@ -4,7 +4,7 @@
 #include <string>
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -29,13 +29,12 @@ public:
         for (int i = 0; i < in->optargs_size(); ++i) {
             *out.add_optargs() = in->optargs(i);
         }
-        //debugf("%s\n--->\n%s\n", in->DebugString().c_str(), out.DebugString().c_str());
         real = compile_term(env, &out);
     }
 private:
 
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual counted_t<val_t> eval_impl() { return real->eval(use_cached_val); }
+    virtual counted_t<val_t> eval_impl() { return real->eval(); }
     const Term *in;
     Term out;
 
@@ -80,7 +79,6 @@ private:
               N2(CONTAINS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
-        // debugf("%s\n", arg->DebugString().c_str());
     }
     static void map_fn(env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {
@@ -146,21 +144,21 @@ public:
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *l = &in->args(0);
-        const Term *r = &in->args(1);
-        const Term *f = &in->args(2);
+        const Term *left = &in->args(0);
+        const Term *right = &in->args(1);
+        const Term *func = &in->args(2);
         int n = env->gensym();
         int m = env->gensym();
 
         Term *arg = out;
-        // `l`.concatmap { |n|
-        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, n);
-           // `r`.concatmap { |m|
-           N2(CONCATMAP, *arg = *r, arg = pb::set_func(arg, m);
+        // `left`.concatmap { |n|
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, n);
+           // `right`.concatmap { |m|
+           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, m);
               // r.branch(
               N3(BRANCH,
-                 // r.funcall(`f`, n, m),
-                 N3(FUNCALL, *arg = *f, NVAR(n), NVAR(m)),
+                 // r.funcall(`func`, n, m),
+                 N3(FUNCALL, *arg = *func, NVAR(n), NVAR(m)),
                  // [{:left => n, :right => m}],
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                  // [])}}
@@ -175,13 +173,15 @@ public:
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
     static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *l = &in->args(0), *r = &in->args(1), *f = &in->args(2);
+        const Term *left = &in->args(0);
+        const Term *right = &in->args(1);
+        const Term *func = &in->args(2);
         int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
 
         Term *arg = out;
 
-        // `l`.concatmap { |n|
-        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, n);
+        // `left`.concatmap { |n|
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, n);
            // r.funcall(lambda { |lst
            N2(FUNCALL, arg = pb::set_func(arg, lst);
               // r.branch(
@@ -194,12 +194,12 @@ public:
                  N1(MAKE_ARRAY, OPT1(MAKE_OBJ, "left", NVAR(n)))),
               // r.coerce_to(
               N2(COERCE_TO,
-                 // `r`.concatmap { |m|
-                 N2(CONCATMAP, *arg = *r, arg = pb::set_func(arg, m);
+                 // `right`.concatmap { |m|
+                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, m);
                     // r.branch(
                     N3(BRANCH,
-                       // r.funcall(`f`, n, m),
-                       N3(FUNCALL, *arg = *f, NVAR(n), NVAR(m)),
+                       // r.funcall(`func`, n, m),
+                       N3(FUNCALL, *arg = *func, NVAR(n), NVAR(m)),
                        // [{:left => n, :right => m}],
                        N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                        // [])},
@@ -217,12 +217,14 @@ public:
 private:
     static void rewrite(env_t *env, const Term *in, Term *out,
                         UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *l = &in->args(0), *lattr = &in->args(1), *r = &in->args(2);
+        const Term *left = &in->args(0);
+        const Term *left_attr = &in->args(1);
+        const Term *right = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
         Term *arg = out;
-        // `l`.concat_map { |row|
-        N2(CONCATMAP, *arg = *l, arg = pb::set_func(arg, row);
+        // `left`.concat_map { |row|
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
            // r.funcall(lambda { |v|
            N2(FUNCALL, arg = pb::set_func(arg, v);
               // r.branch(
@@ -233,8 +235,8 @@ private:
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
                  // []),
                  N0(MAKE_ARRAY)),
-              // `r`.get(l[`lattr`]))}
-              N2(GET, *arg = *r, N2(GETATTR, NVAR(row), *arg = *lattr))));
+              // `right`.get(left[`left_attr`]))}
+              N2(GET, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr))));
     }
     virtual const char *name() const { return "inner_join"; }
 };

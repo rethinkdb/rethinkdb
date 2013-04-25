@@ -10,8 +10,8 @@
 #include "containers/ptr_bag.hpp"
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/err.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
@@ -26,18 +26,13 @@ public:
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    counted_t<val_t> eval(bool _use_cached_val);
-
-    // TODO: this templating/shadowing logic is terrible (I hate implicit
-    // conversions) and doesn't save that much typing.  Rip it out.
+    counted_t<val_t> eval();
 
     // Allocates a new value in the current environment.
-    counted_t<val_t> new_val(counted_t<datum_t> d); // shadow vvv // RSI
     counted_t<val_t> new_val(counted_t<const datum_t> d);
-    counted_t<val_t> new_val(counted_t<datum_t> d, counted_t<table_t> t); // shadow vvv  // RSI
     counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s);
-    counted_t<val_t> new_val(counted_t<table_t> t, counted_t<datum_stream_t> s);
+    counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t);
     counted_t<val_t> new_val(uuid_u db);
     counted_t<val_t> new_val(counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<func_t> f);
@@ -45,17 +40,15 @@ public:
 
     virtual bool is_deterministic() const;
 
+    const Term *get_src() const;
+    env_t *val_t_get_env() const { return env; } // Only `val_t` should call this.
 protected:
-    // `use_cached_val` once had a reason to exist (as did the corresponding
-    // argument to `eval`), but it has since disappeared (people are required
-    // not to evaluate a term twice unless they want to execute it twice).  This
-    // should go away in a future refactor.
-    bool use_cached_val;
     env_t *env;
+
 private:
     virtual counted_t<val_t> eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
-    counted_t<val_t> cached_val;
+    const Term *src;
 };
 
 counted_t<term_t> compile_term(env_t *env, const Term *t);

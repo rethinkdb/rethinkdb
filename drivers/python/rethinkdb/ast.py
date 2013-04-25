@@ -1,8 +1,28 @@
 import ql2_pb2 as p
 import types
 import sys
+from threading import Lock
 from errors import *
-from net import Connection
+import repl # For the repl connection
+
+# This is both an external function and one used extensively
+# internally to convert coerce python values to RQL types
+def expr(val):
+    '''
+        Convert a Python primitive into a RQL primitive value
+    '''
+    if isinstance(val, RqlQuery):
+        return val
+    elif isinstance(val, list):
+        return MakeArray(*val)
+    elif isinstance(val, dict):
+        # MakeObj doesn't take the dict as a keyword args to avoid
+        # conflicting with the `self` parameter.
+        return MakeObj(val)
+    elif callable(val):
+        return Func(val)
+    else:
+        return Datum(val)
 
 class RqlQuery(object):
 
@@ -12,18 +32,18 @@ class RqlQuery(object):
 
         self.optargs = {}
         for k in optargs.keys():
-            if optargs[k] is ():
+            if not isinstance(optargs[k], RqlQuery) and optargs[k] == ():
                 continue
             self.optargs[k] = expr(optargs[k])
 
     # Send this query to the server to be executed
     def run(self, c=None, **global_opt_args):
         if not c:
-            if Connection.repl_connection:
-                c = Connection.repl_connection
+            if repl.default_connection:
+                c = repl.default_connection
             else:
                 raise RqlDriverError("RqlQuery.run must be given a connection to run on.")
-            
+
         return c._start(self, **global_opt_args)
 
     def __str__(self):
@@ -224,9 +244,9 @@ class RqlQuery(object):
     def between(self, left_bound=None, right_bound=None):
         # This is odd and inconsistent with the rest of the API. Blame a
         # poorly thought out spec.
-        if left_bound is None:
+        if left_bound == None:
             left_bound = ()
-        if right_bound is None:
+        if right_bound == None:
             right_bound = ()
         return Between(self, left_bound=left_bound, right_bound=right_bound)
 
@@ -309,7 +329,7 @@ class Datum(RqlQuery):
     def build(self, term):
         term.type = p.Term.DATUM
 
-        if self.data is None:
+        if self.data == None:
             term.datum.type = p.Datum.R_NULL
         elif isinstance(self.data, bool):
             term.datum.type = p.Datum.R_BOOL
@@ -328,23 +348,23 @@ class Datum(RqlQuery):
 
     @staticmethod
     def deconstruct(datum):
-        if datum.type is p.Datum.R_NULL:
+        if datum.type == p.Datum.R_NULL:
             return None
-        elif datum.type is p.Datum.R_BOOL:
+        elif datum.type == p.Datum.R_BOOL:
             return datum.r_bool
-        elif datum.type is p.Datum.R_NUM:
+        elif datum.type == p.Datum.R_NUM:
             return datum.r_num
-        elif datum.type is p.Datum.R_STR:
+        elif datum.type == p.Datum.R_STR:
             return datum.r_str
-        elif datum.type is p.Datum.R_ARRAY:
+        elif datum.type == p.Datum.R_ARRAY:
             return [Datum.deconstruct(e) for e in datum.r_array]
-        elif datum.type is p.Datum.R_OBJECT:
+        elif datum.type == p.Datum.R_OBJECT:
             obj = {}
             for pair in datum.r_object:
                 obj[pair.key] = Datum.deconstruct(pair.val)
             return obj
         else:
-            raise RuntimeError("type not handled")
+            raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
 
 class MakeArray(RqlQuery):
     tt = p.Term.MAKE_ARRAY
@@ -357,6 +377,18 @@ class MakeArray(RqlQuery):
 
 class MakeObj(RqlQuery):
     tt = p.Term.MAKE_OBJ
+
+    # We cannot inherit from RqlQuery because of potential conflicts with
+    # the `self` parameter. This is not a problem for other RqlQuery sub-
+    # classes unless we add a 'self' optional argument to one of them.
+    def __init__(self, obj_dict):
+        self.args = []
+
+        self.optargs = {}
+        for k in obj_dict.keys():
+            if not isinstance(k, types.StringTypes):
+                raise RqlDriverError("RQL object keys must be strings.");
+            self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
         return T('{', T(*[T(repr(name), ': ', optargs[name]) for name in optargs.keys()], intsp=', '), '}')
@@ -515,6 +547,15 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
+    def index_create(self, name, fundef):
+        return IndexCreate(self, name, func_wrap(fundef))
+
+    def index_drop(self, name):
+        return IndexDrop(self, name)
+
+    def index_list(self):
+        return IndexList(self)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', args[1], ')')
@@ -635,6 +676,18 @@ class TableList(RqlMethodQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
+class IndexCreate(RqlMethodQuery):
+    tt = p.Term.INDEX_CREATE
+    st = 'index_create'
+
+class IndexDrop(RqlMethodQuery):
+    tt = p.Term.INDEX_DROP
+    st = 'index_drop'
+
+class IndexList(RqlMethodQuery):
+    tt = p.Term.INDEX_LIST
+    st = 'index_list'
+
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
     st = "branch"
@@ -675,6 +728,7 @@ def func_wrap(val):
 
 class Func(RqlQuery):
     tt = p.Term.FUNC
+    lock = Lock()
     nextVarId = 1
 
     def __init__(self, lmbd):
@@ -683,7 +737,9 @@ class Func(RqlQuery):
         for i in xrange(lmbd.func_code.co_argcount):
             vrs.append(Var(Func.nextVarId))
             vrids.append(Func.nextVarId)
+            Func.lock.acquire()
             Func.nextVarId += 1
+            Func.lock.release()
 
         self.vrs = vrs
         self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
@@ -699,5 +755,3 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
-
-from query import expr

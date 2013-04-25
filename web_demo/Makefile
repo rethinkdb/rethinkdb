@@ -1,11 +1,6 @@
 
 RETHINKDB_HOME=..
 
-SERVER_DIR=$(RETHINKDB_HOME)/rqljs
-SERVER_MAKE_DIR=$(SERVER_DIR)/src
-SERVER_MAKE_TARGET=$(SERVER_DIR)/build/rqljs
-SERVER_SRC_ROOT=$(SERVER_DIR)/build/coffee
-
 DRIVER_DIR=$(RETHINKDB_HOME)/drivers/javascript2
 DRIVER_MAKE_DIR=$(DRIVER_DIR)/src
 DRIVER_MAKE_TARGET=$(DRIVER_DIR)/build/rethinkdb.js
@@ -35,9 +30,6 @@ EMBEDDED=$(BUILD)/rethinkdb-web-demo.js
 
 all: $(EMBEDDED)
 
-server-files: $(SERVER_MAKE_TARGET)
-	$(MAKE) -C $(SERVER_MAKE_DIR) $(SERVER_MAKE_TARGET)
-
 driver-files: $(DRIVER_MAKE_TARGET)
 	$(MAKE) -C $(DRIVER_MAKE_DIR) $(DRIVER_MAKE_TARGET)
 
@@ -50,7 +42,6 @@ $(PB_JS_FILE): $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 $(EMBEDDED): $(PB_JS_FILE)
 	$(CLOSURE_BUILDER) \
 		--root=$(CLOSURE_LIB) \
-		--root=$(SERVER_SRC_ROOT) \
 		--root=$(DRIVER_SRC_ROOT) \
 		--root=$(BUILD) \
 		--root=$(SRC) \
@@ -61,4 +52,4 @@ $(EMBEDDED): $(PB_JS_FILE)
 clean:
 	rm $(EMBEDDED)
 
-.PHONY: all server-files driver-files clean
+.PHONY: all driver-files clean

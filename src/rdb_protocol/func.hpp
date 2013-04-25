@@ -35,16 +35,16 @@ public:
 
     void dump_scope(std::map<int64_t, Datum> *out) const;
     bool is_deterministic() const;
+    void assert_deterministic(const char *extra_msg) const;
 
 private:
     // Pointers to this function's arguments.
-    std::vector<counted_t<const datum_t> > argptrs;
+    scoped_array_t<counted_t<const datum_t> > argptrs;
     counted_t<term_t> body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
     friend class wire_func_t;
     const Term *source;
-    bool implicit_bound;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int64_t, counted_t<const datum_t> *> scope;
@@ -87,68 +87,59 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
 
+    const Backtrace *get_bt() const {
+        return &source.GetExtension(ql2::extension::backtrace);
+    }
+
+    Term get_term() const {
+        return source;
+    }
+
+    std::string debug_str() const {
+        return source.DebugString();
+    }
 private:
     // We cache a separate function for every environment.
-    std::map<env_t *, counted_t<func_t> > cached_funcs;
+    std::map<uuid_u, counted_t<func_t> > cached_funcs;
 
     Term source;
     std::map<int64_t, Datum> scope;
 };
 
-class map_wire_func_t {
+// SAMRSI: Why does this now inherit from wire_func_t?  Make sure this isn't something stupid.
+class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    explicit map_wire_func_t(Args... args) : wire_func(args...) { }
-
-    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
-
-private:
-    wire_func_t wire_func;
+    explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-class filter_wire_func_t {
+class filter_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    explicit filter_wire_func_t(Args... args) : wire_func(args...) { }
-
-    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
-
-private:
-    wire_func_t wire_func;
+    explicit filter_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-class reduce_wire_func_t {
+class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    explicit reduce_wire_func_t(Args... args) : wire_func(args...) { }
-
-    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
-
-private:
-    wire_func_t wire_func;
+    explicit reduce_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-class concatmap_wire_func_t {
+class concatmap_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
-    explicit concatmap_wire_func_t(Args... args) : wire_func(args...) { }
-
-    counted_t<func_t> compile(env_t *env) { return wire_func.compile(env); }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(wire_func);
-
-private:
-    wire_func_t wire_func;
+    explicit concatmap_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
 // Count is a fake function because we don't need to send anything.
-struct count_wire_func_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+class count_wire_func_t {
+public:
+    RDB_MAKE_ME_SERIALIZABLE_0()
+    const Backtrace *get_bt() const {
+        r_sanity_check(false); // Server should never crash here.
+        unreachable();
+    }
+};
 
 // Grouped Map Reduce
 class gmr_wire_func_t {
@@ -159,6 +150,12 @@ public:
     counted_t<func_t> compile_group(env_t *env) { return group.compile(env); }
     counted_t<func_t> compile_map(env_t *env) { return map.compile(env); }
     counted_t<func_t> compile_reduce(env_t *env) { return reduce.compile(env); }
+
+    const Backtrace *get_bt() const {
+        // If this goes wrong at the toplevel, it goes wrong in reduce.
+        return reduce.get_bt();
+    }
+
 private:
     map_wire_func_t group;
     map_wire_func_t map;

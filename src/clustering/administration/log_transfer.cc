@@ -25,9 +25,9 @@ void log_server_t::handle_request(int max_lines, struct timespec min_timestamp,
             writer->tail(max_lines, min_timestamp, max_timestamp, keepalive.get_drain_signal());
         send(mailbox_manager, cont, boost::variant<std::vector<log_message_t>, std::string>(messages));
         return;
-    } catch (std::runtime_error e) {
+    } catch (const std::runtime_error &e) {
         error = e.what();
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* don't respond; we'll shut down in a moment */
         return;
     }

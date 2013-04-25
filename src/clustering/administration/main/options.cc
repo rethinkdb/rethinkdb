@@ -216,7 +216,7 @@ void verify_option_counts(const std::vector<option_t> &options,
         auto entry = names_by_values.find(option_name);
         if (entry == names_by_values.end()) {
             if (option->min_appearances > 0) {
-                throw option_count_error_t(entry->second.source, option_name,
+                throw option_count_error_t("command line", option_name,
                                            option->min_appearances, option->max_appearances, 0);
             }
         } else {

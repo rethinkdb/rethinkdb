@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
 
 #include "clustering/administration/issues/json.hpp"
@@ -24,5 +24,3 @@ cJSON *render_as_json(issue_json_t *target) {
 void apply_json_to(cJSON *change, issue_json_t *target) {
     apply_as_directory(change, target);
 }
-
-void on_subfield_change(issue_json_t *) { }

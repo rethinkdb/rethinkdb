@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
@@ -47,7 +47,7 @@ private:
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(2)), src_term(term) { }
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);
@@ -55,14 +55,12 @@ private:
         counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
-            return new_val(ts.first, ts.second->filter(f));
+            return new_val(ts.second->filter(f), ts.first);
         } else {
             return new_val(v0->as_seq()->filter(f));
         }
     }
     virtual const char *name() const { return "filter"; }
-
-    const Term *src_term;
 };
 
 static const char *const reduce_optargs[] = {"base"};
@@ -103,7 +101,7 @@ private:
         std::pair<counted_t<table_t>, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
         counted_t<val_t> lb = optarg("left_bound", counted_t<val_t>());
         counted_t<val_t> rb = optarg("right_bound", counted_t<val_t>());
-        if (!lb && !rb) return new_val(sel.first, sel.second);
+        if (!lb && !rb) return new_val(sel.second, sel.first);
 
         counted_t<table_t> tbl = sel.first;
         const std::string &pk = tbl->get_pkey();
@@ -120,8 +118,7 @@ private:
         }
 
         guarantee(filter_func.has());
-        //debugf("%s\n", filter_func->DebugString().c_str());
-        return new_val(tbl, seq->filter(env->new_func(filter_func.get())));
+        return new_val(seq->filter(env->new_func(filter_func.get())), tbl);
     }
     virtual const char *name() const { return "between"; }
 

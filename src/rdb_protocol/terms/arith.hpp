@@ -2,7 +2,7 @@
 #define RDB_PROTOCOL_TERMS_ARITH_HPP_
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 
@@ -20,53 +20,55 @@ public:
         }
         guarantee(namestr && op);
     }
+
     virtual counted_t<val_t> eval_impl() {
-        // I'm not sure what I was smoking when I wrote this.  I think I was
-        // trying to avoid undue allocations or something.
-        datum_t acc(datum_t::R_NULL);
-        acc.copy_from(*arg(0)->as_datum());
+        counted_t<const datum_t> acc = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            acc = (this->*op)(acc, *arg(i)->as_datum());
+            acc = (this->*op)(acc, arg(i)->as_datum());
         }
-        return new_val(make_counted<datum_t>(std::move(acc)));
+        return new_val(acc);
     }
+
     virtual const char *name() const { return namestr; }
+
 private:
-    datum_t add(const datum_t &lhs, const datum_t &rhs) {
-        if (lhs.get_type() == datum_t::R_NUM) {
-            rhs.check_type(datum_t::R_NUM);
-            return datum_t(lhs.as_num() + rhs.as_num());
-        } else if (lhs.get_type() == datum_t::R_STR) {
-            rhs.check_type(datum_t::R_STR);
-            return datum_t(lhs.as_str() + rhs.as_str());
+    counted_t<const datum_t> add(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+        if (lhs->get_type() == datum_t::R_NUM) {
+            rhs->check_type(datum_t::R_NUM);
+            return make_counted<datum_t>(lhs->as_num() + rhs->as_num());
+        } else if (lhs->get_type() == datum_t::R_STR) {
+            rhs->check_type(datum_t::R_STR);
+            return make_counted<datum_t>(lhs->as_str() + rhs->as_str());
         }
 
         // If we get here lhs is neither number nor string
         // so we'll just error saying we expect a number
-        lhs.check_type(datum_t::R_NUM);
+        lhs->check_type(datum_t::R_NUM);
 
         unreachable();
     }
 
-    datum_t sub(const datum_t &lhs, const datum_t &rhs) {
-        lhs.check_type(datum_t::R_NUM);
-        rhs.check_type(datum_t::R_NUM);
-        return datum_t(lhs.as_num() - rhs.as_num());
+    counted_t<const datum_t> sub(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+        lhs->check_type(datum_t::R_NUM);
+        rhs->check_type(datum_t::R_NUM);
+        return make_counted<datum_t>(lhs->as_num() - rhs->as_num());
     }
-    datum_t mul(const datum_t &lhs, const datum_t &rhs) {
-        lhs.check_type(datum_t::R_NUM);
-        rhs.check_type(datum_t::R_NUM);
-        return datum_t(lhs.as_num() * rhs.as_num());
+    counted_t<const datum_t> mul(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+        lhs->check_type(datum_t::R_NUM);
+        rhs->check_type(datum_t::R_NUM);
+        return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
     }
-    datum_t div(const datum_t &lhs, const datum_t &rhs) {
-        lhs.check_type(datum_t::R_NUM);
-        rhs.check_type(datum_t::R_NUM);
-        rcheck(rhs.as_num() != 0, "Cannot divide by zero.");
-        return datum_t(lhs.as_num() / rhs.as_num()); // throws on non-finite values
+    counted_t<const datum_t> div(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+        lhs->check_type(datum_t::R_NUM);
+        rhs->check_type(datum_t::R_NUM);
+        rcheck(rhs->as_num() != 0, "Cannot divide by zero.");
+        // throws on non-finite values
+        // SAMRSI: What odes the above comment mean? ^^  the result could certainly be a non-finite value.
+        return make_counted<datum_t>(lhs->as_num() / rhs->as_num());
     }
 
     const char *namestr;
-    datum_t (arith_term_t::*op)(const datum_t &lhs, const datum_t &rhs);
+    counted_t<const datum_t> (arith_term_t::*op)(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs);
 };
 
 class mod_term_t : public op_term_t {
@@ -77,10 +79,9 @@ private:
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
         rcheck(i1, "Cannot take a number modulo 0.");
-        // Sam says this is a floating-point exception
         rcheck(!(i0 == INT64_MIN && i1 == -1),
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
-        return new_val(make_counted<datum_t>(static_cast<double>(i0 % i1)));
+        return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
     }
     virtual const char *name() const { return "mod"; }
 };

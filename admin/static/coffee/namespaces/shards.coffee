@@ -234,7 +234,7 @@ module 'NamespaceView', ->
                 shards[shard] =
                     master: null
                     machines_not_ready: {}
-                    acks_expected: _.extend {}, @model.get('ack_expectations')
+                    acks_expected: _.extend {}, @model.get('ack_expectations').expectation
                 if (not (shards[shard]['acks_expected'][@model.get('primary_uuid')]?)) or shards[shard]['acks_expected'][@model.get('primary_uuid')] is 0
                     shards[shard]['acks_expected'][@model.get('primary_uuid')] = 1
         

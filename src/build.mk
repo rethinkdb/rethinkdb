@@ -5,8 +5,12 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-RT_CXX := $(CXX)
-LDFLAGS ?= 
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+else
+  RT_CXX := $(CXX)
+endif
+LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
@@ -327,8 +331,9 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
-.SECONDARY: $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE)
 $(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE): $(PROTO_DIR)/.protocppgen2
+	true
+
 $(PROTO_DIR)/.protocppgen2: $(QL2_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
 	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^

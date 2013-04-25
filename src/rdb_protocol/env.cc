@@ -70,7 +70,7 @@ void env_t::pop_implicit() {
     implicit_var.pop();
 }
 
-size_t env_t::num_checkpoints() {
+size_t env_t::num_checkpoints() const {
     return bags.size()-1;
 }
 bool env_t::some_bag_has(const ptr_baggable_t *p) {
@@ -99,18 +99,15 @@ ptr_bag_t **env_t::current_bag_ptr() {
 }
 
 void env_t::push_var(int var, counted_t<const datum_t> *val) {
-    // debugf("%p VAR push %d -> %p\n", this, var, val);
     vars[var].push(val);
 }
+
 counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
-    // if (vars[var].empty()) debugf("%p VAR top %d -> FAILED\n", this, var);
     rcheck_target(caller, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
-    // debugf("%p VAR top %d -> %p\n", this, var, vars[var].top());
     return vars[var].top();
 }
 void env_t::pop_var(int var) {
-    // debugf("%p VAR pop %d (%p)\n", this, var, vars[var].top());
     vars[var].pop();
 }
 void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
@@ -130,7 +127,6 @@ void env_t::push_scope(std::map<int64_t, Datum> *in) {
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        // debugf("%p -> %p\n",
         //        &scope_stack.top()[i].second,
         //        scope_stack.top()[i].second);
         push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
@@ -145,18 +141,42 @@ void env_t::pop_scope() {
     // pointer too early.
 }
 
-env_checkpoint_t::env_checkpoint_t(env_t *_env, void (env_t::*_f)())
-    : env(_env) , f(_f) {
+void env_t::set_eval_callback(eval_callback_t *callback) {
+    eval_callback = callback;
+}
+
+void env_t::do_eval_callback() {
+    if (eval_callback != NULL) {
+        eval_callback->eval_callback();
+    }
+}
+
+env_checkpoint_t::env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op)
+    : env(_env), destructor_op(_destructor_op) {
     env->checkpoint();
 }
-env_checkpoint_t::~env_checkpoint_t() { (env->*f)(); }
-void env_checkpoint_t::reset(void (env_t::*_f)()) {
-    f = _f;
+env_checkpoint_t::~env_checkpoint_t() {
+    switch (destructor_op) {
+    case MERGE: {
+        env->merge_checkpoint();
+    } break;
+    case DISCARD: {
+        env->discard_checkpoint();
+    } break;
+    default: unreachable();
+    }
+}
+void env_checkpoint_t::reset(destructor_op_t new_destructor_op) {
+    destructor_op = new_destructor_op;
 }
 
 // We GC more frequently (~ every 16 data) in debug mode to help with testing.
-const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024)
-    DEBUG_ONLY(* 0 + (sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16));
+#ifndef NDEBUG
+const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF =
+    sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16;
+#else
+const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024);
+#endif // NDEBUG
 const int env_gc_checkpoint_t::DEFAULT_GEN2_SIZE_MULTIPLIER = 8;
 
 env_gc_checkpoint_t::env_gc_checkpoint_t(env_t *_env, size_t _gen1, size_t _gen2)
@@ -174,6 +194,7 @@ env_gc_checkpoint_t::~env_gc_checkpoint_t() {
         env->merge_checkpoint();
     }
 }
+
 counted_t<const datum_t> env_gc_checkpoint_t::finalize(counted_t<const datum_t> root) {
     r_sanity_check(!finalized);
     finalized = true;
@@ -210,9 +231,17 @@ void env_t::join_and_wait_to_propagate(
     }
 }
 
+boost::shared_ptr<js::runner_t> env_t::get_js_runner() {
+    r_sanity_check(pool != NULL && get_thread_id() == pool->home_thread());
+    if (!js_runner->connected()) {
+        js_runner->begin(pool);
+    }
+    return js_runner;
+}
+
 env_t::env_t(
     extproc::pool_group_t *_pool_group,
-    namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
     _namespaces_semilattice_metadata,
@@ -226,7 +255,8 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : optargs(_optargs),
+  : uuid(generate_uuid()),
+    optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
     pool(_pool_group->get()),
@@ -236,12 +266,26 @@ env_t::env_t(
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
     js_runner(_js_runner),
+    DEBUG_ONLY(eval_callback(NULL),)
     interruptor(_interruptor),
     this_machine(_this_machine) {
 
     guarantee(js_runner);
     bags.push_back(new ptr_bag_t());
 
+}
+
+env_t::env_t(signal_t *_interruptor)
+  : uuid(generate_uuid()),
+    next_gensym_val(-2),
+    implicit_depth(0),
+    pool(NULL),
+    ns_repo(NULL),
+    directory_read_manager(NULL),
+    DEBUG_ONLY(eval_callback(NULL),)
+    interruptor(_interruptor)
+{
+    bags.push_back(new ptr_bag_t());
 }
 
 env_t::~env_t() {

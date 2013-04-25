@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "mock/dummy_protocol_json_adapter.hpp"
 
 #include <set>
@@ -42,14 +42,12 @@ void apply_json_to(cJSON *change, dummy_protocol_t::region_t *target) {
         }
         *target = dummy_protocol_t::region_t(region_spec[0], region_spec[2]);
         return; //if we make it here we found a shortcut so don't proceed
-    } catch (schema_mismatch_exc_t) {
+    } catch (const schema_mismatch_exc_t &) {
         //do nothing
     }
 #endif
     apply_json_to(change, &target->keys);
 }
-
-void on_subfield_change(dummy_protocol_t::region_t *) { }
 
 
 }  // namespace mock

@@ -77,13 +77,18 @@ public:
         other.ptr_ = tmp;
     }
 
-    T &operator*() const { 
+    // SAMRSI: Get rid of this?
+    T &operator*() const {
         rassert(ptr_);
         return *ptr_;
     }
 
     T *get() const {
         rassert(ptr_);
+        return ptr_;
+    }
+
+    T *get_or_null() const {
         return ptr_;
     }
 
@@ -95,7 +100,6 @@ public:
     bool has() const {
         return ptr_ != NULL;
     }
-
 
 private:
     T *ptr_;

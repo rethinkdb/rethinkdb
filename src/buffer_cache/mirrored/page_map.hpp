@@ -26,6 +26,10 @@ public:
         return array.get(block_id);
     }
 
+    unsigned int size() {
+        return array.size();
+    }
+
 private:
     two_level_array_t<inner_buf_t*, MAX_BLOCK_ID> array;
 

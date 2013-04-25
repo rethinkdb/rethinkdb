@@ -6,43 +6,41 @@
 #include <vector>
 
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
 
 // Specifies the range of normal arguments a function can take.
-struct argspec_t {
-    explicit argspec_t(int n) : min(n), max(n) { }
-    argspec_t(int _min, int _max) : min(_min), max(_max) { }
-    std::string print() {
-        if (min == max) {
-            return strprintf("%d argument(s)", min);
-        } else if (max == -1) {
-            return strprintf("%d or more argument(s)", min);
-        } else {
-            return strprintf("between %d and %d arguments", min, max);
-        }
-    }
-    bool contains(int n) const { return min <= n && (max < 0 || n <= max); }
+class argspec_t {
+public:
+    explicit argspec_t(int n);
+    argspec_t(int _min, int _max);
+    std::string print();
+    bool contains(int n) const;
+private:
     int min, max; // max may be -1 for unbounded
 };
 
 // Specifies the optional arguments a function can take.
 struct optargspec_t {
-    static optargspec_t make_object() { return optargspec_t(-1, 0); }
-    optargspec_t(int n, const char *const *c) : num_legal_args(n), legal_args(c) { }
+public:
+    optargspec_t(int num_args, const char *const *args) { init(num_args, args); }
     template<int n>
-    optargspec_t(const char *const (&arr)[n]) : num_legal_args(n), legal_args(arr) { }
-    bool contains(const std::string &key) const {
-        r_sanity_check(!is_make_object());
-        for (int i = 0; i < num_legal_args; ++i) if (key == legal_args[i]) return true;
-        return false;
-    }
-    bool is_make_object() const { return num_legal_args < 0; }
-    int num_legal_args;
-    const char *const *legal_args;
+    optargspec_t(const char *const (&arg_array)[n]) { init(n, arg_array); }
+
+    static optargspec_t make_object();
+    bool is_make_object() const;
+
+    bool contains(const std::string &key) const;
+
+private:
+    void init(int num_args, const char *const *args);
+    explicit optargspec_t(bool _is_make_object_val);
+    bool is_make_object_val;
+
+    std::set<std::string> legal_args;
 };
 
 // Almost all terms will inherit from this and use its member functions to

@@ -18,10 +18,14 @@ BUILD = sys.argv[4]
 
 # -- utilities --
 
+failure_count = 0
+
 def print_test_failure(test_name, test_src, message):
+    global failure_count
+    failure_count = failure_count + 1
     print ''
-    print "TEST FAILURE: %s" % test_name
-    print "TEST BODY: %s" % test_src
+    print "TEST FAILURE: %s" % test_name.encode('utf-8')
+    print "TEST BODY: %s" % test_src.encode('utf-8')
     print message
     print ''
 
@@ -61,7 +65,8 @@ class Bag(Lst):
             return False
 
         for i in xrange(len(self.lst)):
-            if not (self.lst[i] == other[i]):
+            fun = eq(self.lst[i])
+            if not fun(other[i]):
                 return False
 
         return True
@@ -77,7 +82,8 @@ class Dct:
         for key in self.dct.keys():
             if not key in other.keys():
                 return False
-            if not (self.dct[key] == other[key]):
+            fun = eq(self.dct[key])
+            if not fun(other[key]):
                 return False
         return True
 
@@ -88,7 +94,7 @@ class Err:
     def __init__(self, err_type=None, err_msg=None, err_frames=None, regex=False):
         self.etyp = err_type
         self.emsg = err_msg
-        self.frames = None #err_frames # Do not test frames for now, not until they're ready for prime time on the C++ server
+        self.frames = None #err_frames # TODO: test frames
         self.regex = regex
 
     def __eq__(self, other):
@@ -105,10 +111,11 @@ class Err:
 
             # Strip "offending object" from the error message
             other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
+            other.message = re.sub("\nFailed assertion:.*", "", other.message, flags=re.M|re.S)
 
             if self.emsg and self.emsg != other.message:
                 return False
-            
+
             if self.frames and self.frames != other.frames:
                 return False
 
@@ -159,6 +166,9 @@ def eq(exp):
         exp = Dct(exp)
 
     def sub(val):
+        if isinstance(val, str):
+            # Remove additional error info that creeps in in debug mode
+            val = re.sub("\nFailed assertion:.*", "", val, flags=re.M|re.S)
         if not (val == exp):
             return False
         else:
@@ -228,27 +238,6 @@ class PyTestDriver:
                         (repr(err), repr(exp_val))
                 )
 
-        """
-        try:
-            jsres = query.run(self.js_conn)
-
-            # And comparing the expected result
-            if not eq(exp_val)(jsres):
-                print_test_failure(name, src,
-                    "JS result is not equal to expected result:\n\tVALUE: %s\n\tEXPECTED: %s" %
-                        (repr(jsres), repr(exp_val))
-                )
-
-        except Exception as err:
-            if not isinstance(exp_val, Err):
-                print_test_failure(name, src, "Error running test on JS server:\n\t%s" % repr(err))
-            elif not eq(exp_val)(err):
-                print_test_failure(name, src,
-                    "Error running test on JS server not equal to expected err:\n\tERROR: %s\n\tEXPECTED: %s" %
-                        (repr(err), repr(exp_val))
-                )
-        """
-
 driver = PyTestDriver()
 driver.connect()
 
@@ -281,3 +270,8 @@ def uuid():
 
 def shard(table_name):
     shard_table(CLUSTER_PORT, BUILD, table_name)
+
+def the_end():
+    global failure_count
+    if failure_count > 0:
+        sys.exit("Failed %d tests" % failure_count)

@@ -1,6 +1,43 @@
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
+argspec_t::argspec_t(int n) : min(n), max(n) { }
+argspec_t::argspec_t(int _min, int _max) : min(_min), max(_max) { }
+std::string argspec_t::print() {
+    if (min == max) {
+        return strprintf("%d argument(s)", min);
+    } else if (max == -1) {
+        return strprintf("%d or more argument(s)", min);
+    } else {
+        return strprintf("between %d and %d arguments", min, max);
+    }
+}
+bool argspec_t::contains(int n) const {
+    return min <= n && (max < 0 || n <= max);
+}
+
+optargspec_t::optargspec_t(bool _is_make_object_val)
+    : is_make_object_val(_is_make_object_val) { }
+
+void optargspec_t::init(int num_args, const char *const *args) {
+    is_make_object_val = false;
+    for (int i = 0; i < num_args; ++i) {
+        legal_args.insert(args[i]);
+    }
+}
+
+optargspec_t optargspec_t::make_object() {
+    return optargspec_t(true);
+}
+bool optargspec_t::is_make_object() const {
+    return is_make_object_val;
+}
+bool optargspec_t::contains(const std::string &key) const {
+    r_sanity_check(!is_make_object());
+    return legal_args.count(key) != 0;
+}
+
+
 op_term_t::op_term_t(env_t *env, const Term *term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(env, term) {
@@ -32,13 +69,13 @@ op_term_t::~op_term_t() { }
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(size_t i) {
     rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
-    return args[i]->eval(use_cached_val);
+    return args[i]->eval();
 }
 
 counted_t<val_t> op_term_t::optarg(const std::string &key, counted_t<val_t> default_value) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
-        return it->second->eval(use_cached_val);
+        return it->second->eval();
     }
     counted_t<val_t> v = env->get_optarg(key);
     return v ? v : default_value;

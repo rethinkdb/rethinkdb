@@ -38,7 +38,11 @@ public:
     };
 
     void assert_not_draining() {
-        rassert(!draining.is_pulsed());
+        guarantee(!draining.is_pulsed());
+    }
+
+    void assert_draining() {
+        guarantee(draining.is_pulsed());
     }
 
     void rethread(int new_thread) {
@@ -76,7 +80,7 @@ private:
             signal_t *interruptor = keepalive.get_drain_signal();
             try {
                 serve_queries_until_interrupted(conn, interruptor);
-            } catch (interrupted_exc_t) {
+            } catch (const interrupted_exc_t &) {
                 // Ignore
             }
         }

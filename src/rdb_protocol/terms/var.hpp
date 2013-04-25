@@ -2,7 +2,7 @@
 #define RDB_PROTOCOL_TERMS_VAR_HPP_
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/err.hpp"
+#include "rdb_protocol/error.hpp"
 
 namespace ql {
 
@@ -15,7 +15,6 @@ public:
 private:
     counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
     virtual counted_t<val_t> eval_impl() {
-        // debugf("VARTERM %p -> %p\n", datum_val, *datum_val);
         return new_val(*datum_val);
     }
     virtual const char *name() const { return "var"; }
@@ -32,7 +31,7 @@ private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(*datum_val);
     }
-    virtual const char *name() const { return "var"; }
+    virtual const char *name() const { return "implicit_var"; }
 };
 
 

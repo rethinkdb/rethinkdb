@@ -1,0 +1,37 @@
+# Test the query language
+
+make = "make -C $RETHINKDB/test/rql_test BUILD_DIR=$RETHINKDB_BUILD_DIR "
+
+generate_test(
+    make + "js_connect",
+    name = "js-connect")
+
+generate_test(
+    make + "py_connect",
+    name = "py-connect")
+
+generate_test(
+    make + "js_cursor",
+    name = "js-cursor")
+
+generate_test(
+    make + "py_cursor",
+    name = "py-cursor")
+
+generate_test(
+    make + "-B js_polyglot",
+    name = "js-polyglot")
+
+generate_test(
+    make + "-B py_polyglot",
+    name = "py-polyglot")
+
+generate_test(
+    make + "-B rb_polyglot",
+    name = "rb-polyglot")
+
+# Validate the API documentation examples
+generate_test(
+    "make -C $RETHINKDB/test/rql_test/docs validate",
+    name = "validate-examples"
+    )

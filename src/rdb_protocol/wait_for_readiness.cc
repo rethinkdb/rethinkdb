@@ -13,7 +13,7 @@
 
 
 
-void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
+void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   uuid_u namespace_id,
                                   signal_t *interruptor,
                                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t) {
@@ -27,7 +27,9 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
     // It must be an rget to make sure that access is available to all shards.
 
     const int poll_ms = 10;
-    rdb_protocol_t::rget_read_t empty_rget_read(hash_region_t<key_range_t>::universe());
+    rdb_protocol_t::rget_read_t empty_rget_read(
+        hash_region_t<key_range_t>::universe(),
+        std::map<std::string, ql::wire_func_t>());
     rdb_protocol_t::read_t empty_read(empty_rget_read);
     for (;;) {
         signal_timer_t start_poll(poll_ms);
@@ -45,11 +47,11 @@ void wait_for_rdb_table_readiness(namespace_repo_t<rdb_protocol_t> *ns_repo,
                 if (nsi->second.is_deleted()) throw interrupted_exc_t();
             }
 
-            namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
+            base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
             ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
-        } catch (cannot_perform_query_exc_t e) { } //continue loop
+        } catch (const cannot_perform_query_exc_t &e) { } //continue loop
     }
 }

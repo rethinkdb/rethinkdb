@@ -26,33 +26,50 @@ public:
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
+    counted_t<datum_stream_t> get_sindex_rows(
+        counted_t<const datum_t> pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
 
-    // A wrapper around `do_replace` that does error handling correctly.
-    // TODO: Use a variadic template so we can get rid of
-    // `_so_the_template_matches` above?
-    template<class T>
-    counted_t<const datum_t> replace(counted_t<const datum_t> d, T t, bool b) {
-        rcheck(!use_outdated, "Cannot perform write operations on outdated tables.");
-        try {
-            return do_replace(d, t, b);
-        } catch (const any_ql_exc_t &e) {
-            scoped_ptr_t<datum_t> datum(new datum_t(datum_t::R_OBJECT));
-            std::string err = e.what();
-            // TODO why is this bool (which is marked as MUST USE not used?)
-            // T0D0NE: the bool is true if there's a conflict when inserting the
-            // key, but since we just created an empty object above conflicts
-            // are impossible here.  If you want to harden this against future
-            // changes, you could store the bool and `r_sanity_check` that it's
-            // false.
-            UNUSED bool key_in_object =
-                datum->add("first_error", make_counted<datum_t>(err))
-                || datum->add("errors", make_counted<datum_t>(1.0));
-            return counted_t<const datum_t>(datum.release());
-        }
-    }
+    counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
+
+
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
+
+    std::vector<counted_t<const datum_t> > batch_replace(
+        const std::vector<counted_t<const datum_t> > &original_values,
+        counted_t<func_t> replacement_generator,
+        bool nondeterministic_replacements_ok);
+
+    std::vector<counted_t<const datum_t> > batch_replace(
+        const std::vector<counted_t<const datum_t> > &original_values,
+        const std::vector<counted_t<const datum_t> > &replacement_values,
+        bool upsert);
+
+    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_drop(const std::string &name);
+    counted_t<const datum_t> sindex_list();
+
 private:
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf,
-                                        bool _so_the_template_matches = false);
+    struct datum_func_pair_t {
+        datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
+        datum_func_pair_t(counted_t<const datum_t> _original_value,
+                          const map_wire_func_t *_replacer)
+            : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
+
+        explicit datum_func_pair_t(counted_t<const datum_t> _error_value)
+            : original_value(NULL), replacer(NULL), error_value(_error_value) { }
+
+        // One of these counted_t<const datum_t>'s is empty.
+        counted_t<const datum_t> original_value;
+        // SAMRSI: Should this be counted_t?
+        const map_wire_func_t *replacer;
+        counted_t<const datum_t> error_value;
+    };
+
+    std::vector<counted_t<const datum_t> > batch_replace(
+        const std::vector<datum_func_pair_t> &replacements);
+
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
 
@@ -103,14 +120,14 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, const term_t *_parent, env_t *_env);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent, env_t *_env);
-    val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent, env_t *_env);
-    val_t(counted_t<table_t> _table, const term_t *_parent, env_t *_env);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
-          const term_t *_parent, env_t *_env);
-    val_t(uuid_u _db, const term_t *_parent, env_t *_env);
-    val_t(counted_t<func_t> _func, const term_t *_parent, env_t *_env);
+    val_t(counted_t<const datum_t> _datum, const term_t *_parent);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent);
+    val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent);
+    val_t(counted_t<table_t> _table, const term_t *_parent);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *_parent);
+    val_t(uuid_u _db, const term_t *_parent);
+    val_t(counted_t<func_t> _func, const term_t *_parent);
+    ~val_t();
 
     uuid_u as_db();
     counted_t<table_t> as_table();
@@ -147,14 +164,23 @@ private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
     const term_t *parent;
-    env_t *env;
+    env_t *get_env() { return parent->val_t_get_env(); }
 
     type_t type;
-    uuid_u db;
     counted_t<table_t> table;
+
+    // SAMRSI: We don't want a memory usage regression, do we?
+    // union {
+    // We store the db's `uuid_u` in here.
+    uint8_t opaque_db[sizeof(uuid_u)];
     counted_t<datum_stream_t> sequence;
     counted_t<const datum_t> datum;
     counted_t<func_t> func;
+    // };  // SAMRSI: end union
+
+    uuid_u *db_ptr() {
+        return reinterpret_cast<uuid_u *>(&opaque_db);
+    }
 
     DISABLE_COPYING(val_t);
 };

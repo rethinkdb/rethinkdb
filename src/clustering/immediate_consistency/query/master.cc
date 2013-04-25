@@ -43,7 +43,7 @@ void master_t<protocol_t>::client_t::perform_request(
 
             fifo_enforcer_sink_t::exit_read_t exiter(&fifo_sink, read->fifo_token);
             parent->broadcaster->read(read->read, &resp, &exiter, read->order_token, interruptor);
-        } catch (cannot_perform_query_exc_t e) {
+        } catch (const cannot_perform_query_exc_t &e) {
             reply = e.what();
         }
         send(parent->mailbox_manager, read->cont_addr, reply);
@@ -86,7 +86,7 @@ void master_t<protocol_t>::client_t::perform_request(
         }
 
         fifo_enforcer_sink_t::exit_write_t exiter(&fifo_sink, write->fifo_token);
-        parent->broadcaster->spawn_write(write->write, &exiter, write->order_token, &write_callback, interruptor);
+        parent->broadcaster->spawn_write(write->write, &exiter, write->order_token, &write_callback, interruptor, parent->ack_checker);
 
         wait_any_t waiter(&write_callback.done_cond, write_callback.response_promise.get_ready_signal());
         /* Now that we've called `spawn_write()`, we've added another entry to

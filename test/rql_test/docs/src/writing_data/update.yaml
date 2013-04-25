@@ -1,0 +1,55 @@
+commands:
+  - tag: update
+    section: writing_data
+    order: 1
+    description: |
+      Update JSON documents in a table. Accepts a JSON document, a RQL
+      expression, or a combination of the two.<br /><br />Update returns an object
+      that contains one or more of:<ul><li><code>replaced</code> - the number of documents
+      that were updated;</li><li><code>errors</code> - the number of errors encountered
+      while performing the update;</li><li><code>first_error</code> - the text of
+      the first error encountered.</li></ul>
+
+    body: json | expr
+    parent: selection
+    returns: query
+
+    examples:
+      - description: |
+          Update Superman's age to 30. If attribute 'age' doesn't
+          exist, adds it to the document.
+        code:
+          js: "r.table('marvel').get('superman').update({ age: 30 }).run(conn, callback)"
+          py: "r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)"
+          rb: r.table('marvel').get('superman').update{ {:age => 30} }.run(conn)
+      - description: |
+          Increment every superhero's age. If age doesn't exist, throws an error.
+        code:
+          js: "r.table('marvel').update({ age: r.row('age').add(1) }).run(conn, callback)"
+          py: "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run(conn)"
+          rb: r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run(conn)
+      - description: Allow the server to run non-atomic operations.
+        code:
+          js: |
+            r.table('marvel').update(
+              { age: r.row('age').add(r.js('1')) },
+              {'nonAtomic':true}
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').update(
+                lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
+          rb: |
+            r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}
+             }.run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+        1:
+          can_try: true
+          dataset: marvel
+        2:
+          can_try: true
+          dataset: marvel
