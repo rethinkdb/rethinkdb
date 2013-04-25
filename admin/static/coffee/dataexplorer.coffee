@@ -883,7 +883,12 @@ module 'DataExplorerView', ->
                                 @codemirror.setCursor cursor
                                 return false
                 else if event.which is 9  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
-                    # If the user hit tab  or (Ctrl/Cmd+space with suggestion/description being hidden) we switch the highlighted suggestion
+                    # If the user just hit tab, we are going to show the suggestions if they are hidden
+                    # or if they suggestions are already shown, we are going to cycle through them.
+                    #
+                    # If the user just hit Ctrl/Cmd+space with suggestion/description being hidden we show the suggestions
+                    # Note that the user cannot cycle through suggestions because we make sure in the IF condition that suggestion/description are hidden
+                    # If the suggestions/description are visible, the event will be caught earlier with ESC
                     event.preventDefault()
                     if event.type isnt 'keydown'
                         return false
