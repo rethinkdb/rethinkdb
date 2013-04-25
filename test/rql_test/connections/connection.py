@@ -7,9 +7,9 @@ from subprocess import Popen
 from time import sleep
 from sys import path, exit
 import unittest
-path.append('.')
+path.insert(0, '.')
 from test_util import RethinkDBTestServers
-path.append("../../drivers/python")
+path.insert(0, "../../drivers/python")
 
 # We import the module both ways because this used to crash and we
 # need to test for it
