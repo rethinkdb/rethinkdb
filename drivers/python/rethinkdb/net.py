@@ -68,8 +68,6 @@ class Connection(object):
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
 
     def close(self):
-        if repl.default_connection is self:
-            repl.default_connection = None
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
