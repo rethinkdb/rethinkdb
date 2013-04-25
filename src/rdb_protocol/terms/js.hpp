@@ -40,7 +40,7 @@ private:
             js::js_result_t result = js->eval(source, &config);
             return boost::apply_visitor(js_result_visitor_t(env, this), result);
         } catch (const interrupted_exc_t &e) {
-            rfail("JavaScript query timed out after %.2G seconds", timeout_s);
+            rfail("JavaScript query \"%s\" timed out after "DBLPRI" seconds", source.c_str(), timeout_s);
         }
 
     }
