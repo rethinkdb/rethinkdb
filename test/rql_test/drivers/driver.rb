@@ -19,6 +19,8 @@ NoError = "nope"
 AnyUUID = "<any uuid>"
 Err = Struct.new(:type, :message, :backtrace, :regex)
 Bag = Struct.new(:items)
+Int = Struct.new(:i)
+Floatable = Struct.new(:i)
 
 def bag list
   Bag.new(list)
@@ -42,6 +44,14 @@ end
 
 def eq_test(one, two)
   return cmp_test(one, two) == 0
+end
+
+def int_cmp i
+    Int.new i
+end
+
+def float_cmp i
+    Floatable.new i
 end
 
 def cmp_test(one, two)
@@ -101,7 +111,13 @@ def cmp_test(one, two)
   when "Bag"
     return cmp_test(one.sort{ |a, b| cmp_test a, b },
                     two.items.sort{ |a, b| cmp_test a, b })
-    
+
+  when "Int"
+    return cmp_test([Fixnum, two.i], [one.class, one])
+
+  when "Floatable"
+    return cmp_test([Float, two.i], [one.class, one])
+
   else
     begin
       cmp = one <=> two
