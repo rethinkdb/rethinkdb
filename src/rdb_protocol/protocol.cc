@@ -1050,10 +1050,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                                                                                scopes_t(),
                                                                                backtrace_t()));
 
-            rdb_rget_slice(store->get_sindex_slice(*rget.sindex),
-                           rget.sindex_region->inner,
-                           txn, sindex_sb.get(), &ql_env, sindex_transform,
-                           rget.terminal, res);
+            rdb_rget_secondary_slice(
+                    store->get_sindex_slice(*rget.sindex),
+                    rget.sindex_region->inner,
+                    txn, sindex_sb.get(), &ql_env, sindex_transform,
+                    rget.terminal, rget.region.inner, res);
         }
     }
 
