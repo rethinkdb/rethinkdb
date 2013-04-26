@@ -25,6 +25,8 @@ tests:
 
   - rb: tbl.get(true)
     ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+  - rb: tbl.get([])
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got [] of type ARRAY).", [])'
   - rb: tbl.get(-1)
     ot: nil
   - rb: tbl.get(1)[:id]
@@ -46,7 +48,19 @@ tests:
     ot: ('SELECTION')
   - rb: tbl.get_all(1).update{nil}
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
+
+  - rb: tbl.get_all(true, :index => :id)
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+  - rb: tbl.get_all([], :index => :id)
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got [] of type ARRAY).", [])'
+  - rb: tbl.get_all(true, :index => :idi)
+    ot: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got true of type BOOL).", [])'
+  - rb: tbl.get_all([], :index => :idi)
+    ot: []
+
   - rb: tbl.get_all(1, :index => :id)[0][:id]
+    ot: 1
+  - rb: tbl.get_all(1, :index => :idi)[0][:id]
     ot: 1
   - rb: tbl.get_all(1, :index => :ai)
     ot: []
@@ -58,8 +72,6 @@ tests:
     ot: ('SELECTION')
   - rb: tbl.get_all(1, :index => :ci).update{nil}
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0})
-  - rb: tbl.get_all(1, :index => :idi)[0][:id]
-    ot: 1
   - rb: tbl.get_all(1, :index => :brokeni)
     ot: []
 
