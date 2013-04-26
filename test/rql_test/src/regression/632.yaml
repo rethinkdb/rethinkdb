@@ -3,4 +3,5 @@ tests:
 
     #TODO Add other languages when we implement the fix there
     - py: r.expr({1:'a'})
-      ot: err_regex("RqlDriverError", "RQL object keys must be strings.")
+      rb: r({1 => 'a'})
+      ot: err_regex("RqlDriverError", "Document keys must be strings.")
