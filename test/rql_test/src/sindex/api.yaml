@@ -1,0 +1,25 @@
+desc: sindex api (#602)
+tests:
+
+  - cd: r.db('test').table_create('sindex_api')
+    def: tbl = r.table('sindex_api')
+
+  - rb: tbl.insert([{:id => 0, :a => 0, :b => 0, :c => 0},
+                    {:id => 1, :a => 0, :b => 0, :c => 0},
+                    {:id => 2, :a => 0, :b => 0, :c => 1},
+                    {:id => 3, :a => 0, :b => 1, :c => 1}])
+    ot: ({'deleted':0,'inserted':4,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
+
+  - rb: tbl.index_create('ai') {|row| row[:a]}
+    ot: ({'created':1})
+
+  - rb: tbl.index_create('bi') {|row| row[:b]}
+    ot: ({'created':1})
+
+  - rb: tbl.index_create('ci') {|row| row[:c]}
+    ot: ({'created':1})
+
+  - rb: tbl.index_create('idi') {|row| row[:id]}
+    ot: ({'created':1})
+
+  - cd: r.db('test').table_drop('sindex_api')
