@@ -52,3 +52,9 @@ tests:
     - py: r.expr({'a':{12:'b'}})
       rb: r({:a => {12 => 'b'} })
       ot: err_regex("RqlDriverError", "Document keys must be strings")
+
+    - js: r({'a':undefined})
+      ot: err_regex("RqlDriverError", "Object field 'a' may not be undefined")
+
+    - js: r({'a':{'b':undefined}})
+      ot: err_regex("RqlDriverError", "Object field 'b' may not be undefined")
