@@ -115,10 +115,8 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
         }
     }
 
-    // RSI: don't use vector
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
-    // RSI: don't use pmap  // TODO: <- WTF are we supposed to use then?
     pmap(masters_to_contact.size(), boost::bind(
              &cluster_namespace_interface_t::template perform_immediate_op<op_type,
              fifo_enforcer_token_type,
