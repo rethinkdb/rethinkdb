@@ -96,4 +96,15 @@ tests:
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :brokeni)
     ot: []
 
+  - rb: tbl.eq_join(:c, tbl, :index => :bi).orderby(:right, :left).coerce_to(:array)
+    ot: ([{'left':{'id':0,'a':0,'b':0,'c':0},'right':{'id':0,'a':0,'b':0,'c':0}},
+          {'left':{'id':1,'a':0,'b':0,'c':0},'right':{'id':0,'a':0,'b':0,'c':0}},
+          {'left':{'id':0,'a':0,'b':0,'c':0},'right':{'id':1,'a':0,'b':0,'c':0}},
+          {'left':{'id':1,'a':0,'b':0,'c':0},'right':{'id':1,'a':0,'b':0,'c':0}},
+          {'left':{'id':0,'a':0,'b':0,'c':0},'right':{'id':2,'a':0,'b':0,'c':1}},
+          {'left':{'id':1,'a':0,'b':0,'c':0},'right':{'id':2,'a':0,'b':0,'c':1}},
+          {'left':{'id':2,'a':0,'b':0,'c':1},'right':{'id':3,'a':0,'b':1,'c':1}},
+          {'left':{'id':3,'a':0,'b':1,'c':1},'right':{'id':3,'a':0,'b':1,'c':1}}])
+
+
   - cd: r.db('test').table_drop('sindex_api')
