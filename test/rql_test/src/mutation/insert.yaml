@@ -14,31 +14,31 @@ tests:
 
     # Single doc insert
     - cd: tbl.insert({'id':0,'a':0})
-      ot: ({'inserted':1})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
     - cd: tbl.count()
       ot: 1
     - cd: tbl.insert({'id':1,'a':1})
-      ot: ({'inserted':1})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
     - cd: tbl.count()
       ot: 2
 
     # Multi doc insert
     - cd: tbl.insert([{'id':2,'a':2}, {'id':3,'a':3}])
-      ot: ({'inserted':2})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':2})
 
     # Stream insert
     - cd: tbl2.insert(tbl)
-      ot: ({'inserted':4})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':4})
 
     # test pkey clash error
     - cd: tbl.insert({'id':2,'b':20})
-      ot: ({'first_error':'Duplicate primary key.','errors':1})
+      ot: ({'first_error':'Duplicate primary key.','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
     # test upsert option (object exists)
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
       rb: tbl.insert({:id => 2, :b => 20}, :upsert)
-      ot: ({'replaced':1})
+      ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - cd: tbl.get(2)
       ot: ({'id':2,'b':20})
@@ -47,7 +47,7 @@ tests:
     - py: tbl.insert({'id':20,'b':20}, upsert=True)
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
       rb: tbl.insert({:id => 20, :b => 20}, :upsert)
-      ot: ({'inserted':1})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: tbl.get(20)
       ot: ({'id':20,'b':20})
@@ -61,7 +61,7 @@ tests:
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({})
-      ot: ({'inserted':1,'generated_keys':arrlen(1,uuid())})
+      ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: tblpkey
       ot: ([{'foo':uuid()}])
@@ -70,7 +70,7 @@ tests:
     - py: tblpkey.insert({'b':20}, upsert=True)
       js: tblpkey.insert({'b':20}, {upsert:true})
       rb: tblpkey.insert({:b => 20}, :upsert)
-      ot: ({'inserted':1,'generated_keys':arrlen(1,uuid())})
+      ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: r.db('test').table_drop('testpkey')
       ot: "({'dropped':1})"
@@ -79,7 +79,7 @@ tests:
     - py: "tbl.for_each(lambda  row:          tbl2.insert(row.merge({'id':row['id']  +  100 }))   )"
       js: "tbl.forEach(function(row) { return tbl2.insert(row.merge({'id':row('id').add(100)})); })"
       rb: tbl.for_each(proc {  |row|          tbl2.insert(row.merge({'id'=>row['id']  +  100 }))  })
-      ot: ({'inserted':5})
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':5})
 
     # clean up
     - cd: r.db('test').table_drop('test1')

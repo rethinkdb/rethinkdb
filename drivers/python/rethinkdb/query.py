@@ -93,3 +93,6 @@ def all(*args):
 
 def any(*args):
     return Any(*args)
+
+def type_of(val):
+    return TypeOf(val)

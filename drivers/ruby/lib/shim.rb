@@ -4,7 +4,7 @@ module RethinkDB
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
       case d.type
-      when dt::R_NUM then d.r_num
+      when dt::R_NUM then d.r_num == d.r_num.to_i ? d.r_num.to_i : d.r_num
       when dt::R_STR then d.r_str
       when dt::R_BOOL then d.r_bool
       when dt::R_NULL then nil

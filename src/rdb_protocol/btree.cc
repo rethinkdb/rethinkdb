@@ -526,6 +526,8 @@ private:
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
+    /* This constructor does a traversal on the primary btree, it's not to be
+     * used with sindexes. The constructor below is for use with sindexes. */
     rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
                                               ql::env_t *_ql_env,
                                               const rdb_protocol_details::transform_t &_transform,
@@ -540,6 +542,36 @@ public:
         transform(_transform),
         terminal(_terminal)
     {
+        init(range);
+    }
+
+    /* This constructor is used if you're doing a secondary index get, it takes
+     * an extra key_range_t (_primary_key_range) which is used to filter out
+     * unwanted results. The reason you can get unwanted results is is
+     * oversharding. When we overshard multiple logical shards are stored in
+     * the same physical btree_store_t, this is transparent with all other
+     * operations but their sindex values get mixed together and you wind up
+     * with multiple copies of each. This constructor will filter out the
+     * duplicates. This was issue #606. */
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
+                                              ql::env_t *_ql_env,
+                                              const rdb_protocol_details::transform_t &_transform,
+                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
+                                              const key_range_t &range,
+                                              const key_range_t &_primary_key_range,
+                                              rget_read_response_t *_response) :
+        bad_init(false),
+        transaction(txn),
+        response(_response),
+        cumulative_size(0),
+        ql_env(_ql_env),
+        transform(_transform),
+        terminal(_terminal),
+        primary_key_range(_primary_key_range)
+    {
+        init(range);
+    }
+    void init(const key_range_t &range) {
         try {
             response->last_considered_key = range.left;
 
@@ -563,11 +595,19 @@ public:
                                  terminal->variant);
             bad_init = true;
         }
+
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
         if (bad_init) {
             return false;
+        }
+        if (primary_key_range) {
+            std::string pk = ql::datum_t::unprint_secondary(
+                    key_to_unescaped_str(store_key_t(key)));
+            if (!primary_key_range->contains_key(store_key_t(pk))) {
+                return true;
+            }
         }
         try {
             store_key_t store_key(key);
@@ -658,6 +698,9 @@ public:
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
+
+    /* Only present if we're doing a sindex read.*/
+    boost::optional<key_range_t> primary_key_range;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -690,6 +733,25 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+
+    if (callback.cumulative_size >= rget_max_chunk_size) {
+        response->truncated = true;
+    } else {
+        response->truncated = false;
+    }
+
+    boost::apply_visitor(result_finalizer_visitor_t(), response->result);
+}
+
+void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
+                    transaction_t *txn, superblock_t *superblock,
+                    ql::env_t *ql_env,
+                    const rdb_protocol_details::transform_t &transform,
+                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    const key_range_t &pk_range,
+                    rget_read_response_t *response) {
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
