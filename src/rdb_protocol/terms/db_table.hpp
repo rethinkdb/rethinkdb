@@ -411,7 +411,7 @@ private:
         if (row->get_type() != datum_t::R_NULL) {
             arr->add(row);
         }
-        return new_val(arr, table);
+        return new_val(new array_datum_stream_t(env, arr, this), table);
     }
     virtual const char *name() const { return "get_all"; }
 };

@@ -223,20 +223,30 @@ private:
         int row = env->gensym(), v = env->gensym();
 
         Term *arg = out;
-        // `left`.concat_map { |row|
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
-           // r.funcall(lambda { |v|
-           N2(FUNCALL, arg = pb::set_func(arg, v);
-              // r.branch(
-              N3(BRANCH,
-                 // r.ne(v, nil),
-                 N2(NE, NVAR(v), NDATUM(datum_t::R_NULL)),
-                 // [{:left => row, :right => v}],
-                 N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
-                 // []),
-                 N0(MAKE_ARRAY)),
-              // `right`.get(left[`left_attr`]))}
-              N2(GET, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr))));
+           N2(MAP,
+              for (int i = 0; i < in->optargs_size(); ++i) {
+                  *arg->add_optargs() = in->optargs(i);
+              }
+              N2(GET_ALL, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr)),
+
+              arg = pb::set_func(arg, v);
+              OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
+
+        // // `left`.concat_map { |row|
+        // N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
+        //    // r.funcall(lambda { |v|
+        //    N2(FUNCALL, arg = pb::set_func(arg, v);
+        //       // r.branch(
+        //       N3(BRANCH,
+        //          // r.ne(v, nil),
+        //          N2(NE, NVAR(v), NDATUM(datum_t::R_NULL)),
+        //          // [{:left => row, :right => v}],
+        //          N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
+        //          // []),
+        //          N0(MAKE_ARRAY)),
+        //       // `right`.get(left[`left_attr`]))}
+        //       N2(GET, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr))));
     }
     virtual const char *name() const { return "inner_join"; }
 };

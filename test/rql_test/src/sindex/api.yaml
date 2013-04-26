@@ -25,6 +25,10 @@ tests:
     ot: nil
   - rb: tbl.get(1)[:id]
     ot: 1
+  - rb: tbl.get(1).typeof
+    ot: ('SINGLE_SELECTION')
+  - rb: tbl.get(1).update{nil}
+    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
   - rb: tbl.get(1, :ai)
     ot: 'err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])'
 
@@ -34,6 +38,10 @@ tests:
     ot: []
   - rb: tbl.get_all(1)[0][:id]
     ot: 1
+  - rb: tbl.get_all(1).typeof
+    ot: ('SELECTION')
+  - rb: tbl.get_all(1).update{nil}
+    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
   - rb: tbl.get_all(1, :index => :id)[0][:id]
     ot: 1
   - rb: tbl.get_all(1, :index => :ai)
@@ -42,5 +50,9 @@ tests:
     ot: [3]
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     ot: [2, 3]
+  - rb: tbl.get_all(1, :index => :ci).typeof
+    ot: ('SELECTION')
+  - rb: tbl.get_all(1, :index => :ci).update{nil}
+    ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0})
 
   - cd: r.db('test').table_drop('sindex_api')
