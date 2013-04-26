@@ -53,7 +53,6 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
 counted_t<const datum_t> eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
-        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         if (!next()) break;
         ++i;
     }
@@ -194,11 +193,10 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
             env, query_language::scopes_t(), query_language::backtrace_t());
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
-    env_gc_checkpoint_t gc_checkpoint(env);
     dm->compile(env);
     counted_t<const datum_t> dm_arr = dm->to_arr();
     if (!base) {
-        return gc_checkpoint.finalize(dm_arr);
+        return dm_arr;
     } else {
         wire_datum_map_t map;
 
@@ -208,7 +206,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
             r_sanity_check(!map.has(key));
             map.set(key, r->call(base, val)->as_datum());
         }
-        return gc_checkpoint.finalize(map.to_arr());
+        return map.to_arr();
     }
 }
 
@@ -245,18 +243,13 @@ counted_t<const datum_t> map_datum_stream_t::next_impl() {
 // FILTER_DATUM_STREAM_T
 counted_t<const datum_t> filter_datum_stream_t::next_impl() {
     for (;;) {
-        env_checkpoint_t outer_checkpoint(env, env_checkpoint_t::DISCARD);
-
         counted_t<const datum_t> arg = source->next();
 
         if (!arg) {
             return counted_t<const datum_t>();
         }
 
-        env_checkpoint_t inner_checkpoint(env, env_checkpoint_t::DISCARD);
-
         if (f->filter_call(arg)) {
-            outer_checkpoint.reset(env_checkpoint_t::MERGE);
             return arg;
         }
     }
@@ -294,7 +287,6 @@ counted_t<const datum_t> slice_datum_stream_t::next_impl() {
     }
 
     while (index < left) {
-        env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
         counted_t<const datum_t> discard = src_stream()->next();
         if (!discard) {
             return counted_t<const datum_t>();

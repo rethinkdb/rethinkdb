@@ -19,13 +19,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
             counted_t<val_t> v = arg(i);
-            if (!v->as_bool()) {
-                ect.reset(env_checkpoint_t::MERGE);
-                return v;
-            } else if (i == num_args() - 1) {
-                ect.reset(env_checkpoint_t::MERGE);
+            if (!v->as_bool() || i == num_args() - 1) {
                 return v;
             }
         }
@@ -41,10 +36,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
             counted_t<val_t> v = arg(i);
             if (v->as_bool()) {
-                ect.reset(env_checkpoint_t::MERGE);
                 return v;
             }
         }
@@ -58,11 +51,7 @@ public:
     branch_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        bool b;
-        {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-            b = arg(0)->as_bool();
-        }
+        bool b = arg(0)->as_bool();
         return b ? arg(1) : arg(2);
     }
     virtual const char *name() const { return "branch"; }

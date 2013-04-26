@@ -73,34 +73,6 @@ void env_t::pop_implicit() {
     implicit_var.pop();
 }
 
-size_t env_t::num_checkpoints() const {
-    return bags.size()-1;
-}
-bool env_t::some_bag_has(const ptr_baggable_t *p) {
-    for (size_t i = 0; i < bags.size(); ++i) if (bags[i]->has(p)) return true;
-    return false;
-}
-void env_t::checkpoint() {
-    bags.push_back(new ptr_bag_t());
-}
-
-void env_t::merge_checkpoint() {
-    r_sanity_check(bags.size() >= 2);
-    bags[bags.size()-2]->add(bags[bags.size()-1]);
-    bags.pop_back();
-}
-void env_t::discard_checkpoint() {
-    r_sanity_check(bags.size() >= 2);
-    delete bags[bags.size()-1];
-    bags.pop_back();
-}
-
-ptr_bag_t *env_t::current_bag() { return *current_bag_ptr(); }
-ptr_bag_t **env_t::current_bag_ptr() {
-    r_sanity_check(bags.size() > 0);
-    return &bags[bags.size()-1];
-}
-
 void env_t::push_var(int var, counted_t<const datum_t> *val) {
     vars[var].push(val);
 }
@@ -152,58 +124,6 @@ void env_t::do_eval_callback() {
     if (eval_callback != NULL) {
         eval_callback->eval_callback();
     }
-}
-
-env_checkpoint_t::env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op)
-    : env(_env), destructor_op(_destructor_op) {
-    env->checkpoint();
-}
-env_checkpoint_t::~env_checkpoint_t() {
-    switch (destructor_op) {
-    case MERGE: {
-        env->merge_checkpoint();
-    } break;
-    case DISCARD: {
-        env->discard_checkpoint();
-    } break;
-    default: unreachable();
-    }
-}
-void env_checkpoint_t::reset(destructor_op_t new_destructor_op) {
-    destructor_op = new_destructor_op;
-}
-
-// We GC more frequently (~ every 16 data) in debug mode to help with testing.
-#ifndef NDEBUG
-const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF =
-    sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16;
-#else
-const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024);
-#endif // NDEBUG
-const int env_gc_checkpoint_t::DEFAULT_GEN2_SIZE_MULTIPLIER = 8;
-
-env_gc_checkpoint_t::env_gc_checkpoint_t(env_t *_env, size_t _gen1, size_t _gen2)
-    : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
-    r_sanity_check(env);
-    if (!gen1) gen1 = DEFAULT_GEN1_CUTOFF;
-    if (!gen2) gen2 = DEFAULT_GEN2_SIZE_MULTIPLIER * gen1;
-    env->checkpoint(); // gen2
-    env->checkpoint(); // gen1
-}
-env_gc_checkpoint_t::~env_gc_checkpoint_t() {
-    // We might not be finalized if e.g. an exception was thrown.
-    if (!finalized) {
-        env->merge_checkpoint();
-        env->merge_checkpoint();
-    }
-}
-
-counted_t<const datum_t> env_gc_checkpoint_t::finalize(counted_t<const datum_t> root) {
-    r_sanity_check(!finalized);
-    finalized = true;
-    env->merge_checkpoint();
-    env->merge_checkpoint();
-    return root;
 }
 
 void env_t::join_and_wait_to_propagate(
@@ -274,8 +194,6 @@ env_t::env_t(
     this_machine(_this_machine) {
 
     guarantee(js_runner);
-    bags.push_back(new ptr_bag_t());
-
 }
 
 env_t::env_t(signal_t *_interruptor)
@@ -286,14 +204,8 @@ env_t::env_t(signal_t *_interruptor)
     ns_repo(NULL),
     directory_read_manager(NULL),
     DEBUG_ONLY(eval_callback(NULL),)
-    interruptor(_interruptor)
-{
-    bags.push_back(new ptr_bag_t());
-}
+    interruptor(_interruptor) { }
 
-env_t::~env_t() {
-    guarantee(bags.size() == 1);
-    delete bags[0];
-}
+env_t::~env_t() { }
 
 } // namespace ql

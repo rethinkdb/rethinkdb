@@ -74,24 +74,8 @@ private:
 
     // Allocation Functions
 public:
-    template<class T>
-    T *add_ptr(T *p) {
-        assert_thread();
-        r_sanity_check(bags.size() > 0);
-        if (some_bag_has(p)) return p;
-        bags[bags.size()-1]->add(p);
-        return p;
-    }
     counted_t<func_t> new_func(const Term *term) {
         return make_counted<func_t>(this, term);
-    }
-    template<class T>
-    counted_t<val_t> new_val(T *ptr, term_t *parent) {
-        return make_counted<val_t>(add_ptr(ptr), parent);
-    }
-    template<class T, class U>
-    counted_t<val_t> new_val(T *ptr, U *ptr2, term_t *parent) {
-        return make_counted<val_t>(add_ptr(ptr), add_ptr(ptr2), parent);
     }
     counted_t<val_t> new_val(uuid_u db, term_t *parent) {
         return make_counted<val_t>(db, parent);
@@ -99,25 +83,6 @@ public:
     counted_t<term_t> new_term(const Term *source) {
         return compile_term(this, source);
     }
-
-    // Checkpoint code (most of the logic is in `env_checkpoint_t` and
-    // env_gc_checkpoint_t` below).  Checkpoints should be created by
-    // constructing a `*_checkpoint_t`, which is why the `checkpoint` function
-    // is private.
-public:
-    void merge_checkpoint(); // Merge in all allocations since checkpoint
-    void discard_checkpoint(); // Discard all allocations since checkpoint
-    size_t num_checkpoints() const; // number of checkpoints
-private:
-    void checkpoint(); // create a new checkpoint
-    friend class env_checkpoint_t;
-    friend class env_gc_checkpoint_t;
-    bool some_bag_has(const ptr_baggable_t *p);
-
-private:
-    ptr_bag_t *current_bag(); // gets the top bag
-    ptr_bag_t **current_bag_ptr();
-    std::vector<ptr_bag_t *> bags;
 
 public:
     // This is copied basically verbatim from old code.
@@ -204,38 +169,6 @@ public:
 
 private:
     DISABLE_COPYING(env_t);
-};
-
-// Construct this to checkpoint the environment.  You should pass it a pointer
-// to either `env_t::merge_checkpoint` or `env_t::discard_checkpoint`, which
-// will be its default action when deconstructed.  You can change this action
-// with `reset`.
-class env_checkpoint_t {
-public:
-    enum destructor_op_t { MERGE, DISCARD };
-    env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op);
-    ~env_checkpoint_t();
-    void reset(destructor_op_t new_destructor_op);
-
-private:
-    env_t *env;
-    destructor_op_t destructor_op;
-};
-
-// This is a checkpoint (as above) that also does shitty generational garbage
-// collection for `reduce` and `gmr` queries.
-class env_gc_checkpoint_t {
-    static const int DEFAULT_GEN1_CUTOFF;
-    static const int DEFAULT_GEN2_SIZE_MULTIPLIER;
-public:
-    env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
-    ~env_gc_checkpoint_t();
-    counted_t<const datum_t> finalize(counted_t<const datum_t> root);
-private:
-    bool finalized;
-    env_t *env;
-    size_t gen1;
-    size_t gen2;
 };
 
 }  // namespace ql

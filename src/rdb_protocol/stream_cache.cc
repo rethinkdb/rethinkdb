@@ -31,7 +31,6 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // This is a hack.  Some streams have an interruptor that is invalid by
         // the time we reach here, so we just reset it to a good one.
         entry->env->interruptor = interruptor;
-        env_checkpoint_t(entry->env.get(), env_checkpoint_t::DISCARD);
 
         int chunk_size = 0;
         if (entry->next_datum.has()) {
