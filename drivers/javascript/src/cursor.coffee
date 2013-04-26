@@ -2,7 +2,33 @@ goog.provide("rethinkdb.cursor")
 
 goog.require("rethinkdb.base")
 
-class Cursor
+class IterableResult
+    hasNext: -> throw "Abstract Method"
+    next: -> throw "Abstract Method"
+
+    each: ar (cb) ->
+        n = =>
+            @next (err, row) =>
+                cb(err, row)
+                if @hasNext()
+                    n()
+        if @hasNext()
+            n()
+
+    toArray: ar (cb) ->
+        arr = []
+        if not @hasNext()
+            cb null, arr
+        @each (err, row) =>
+            if err?
+                cb err
+            else
+                arr.push(row)
+
+            if not @hasNext()
+                cb null, arr
+
+class Cursor extends IterableResult
     constructor: (conn, token) ->
         @_conn = conn
         @_token = token
@@ -73,7 +99,7 @@ class Cursor
             @_contFlag = true
 
 
-    ## The public API
+    ## Implement IterableResult
 
     hasNext: ar () -> !@_endFlag || @_chunks[0]?
 
@@ -81,30 +107,20 @@ class Cursor
         @_cbQueue.push cb
         @_promptNext()
 
-    each: ar (cb) ->
-        n = =>
-            @next (err, row) =>
-                cb(err, row)
-                if @hasNext()
-                    n()
-        if @hasNext()
-            n()
-
-    toArray: ar (cb) ->
-        arr = []
-        if not @hasNext()
-            cb null, arr
-        @each (err, row) =>
-            if err?
-                cb err
-            else
-                arr.push(row)
-
-            if not @hasNext()
-                cb null, arr
-
     close: ar () ->
         unless @_endFlag
             @_conn._end(@_token)
 
     toString: ar () -> "[object Cursor]"
+
+# Used to wrap array results so they support the same iterable result
+# API as cursors.
+class ArrayResult extends IterableResult
+    constructor: (array) ->
+        # Mixin the Iterable result behavior into the array
+        array[name] = method for name, method of @
+        array.__index = 0
+        return array
+
+    hasNext: ar () -> (@__index < @.length)
+    next: ar (cb) -> cb(null, @[@__index++])
