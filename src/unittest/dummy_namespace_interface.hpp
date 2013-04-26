@@ -155,15 +155,18 @@ public:
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
-        std::vector<std::pair<size_t, typename protocol_t::read_t> > subreads;
-        read.shard(shard_region_array_t(&shards), &subreads);
-
         std::vector<typename protocol_t::read_response_t> responses;
-        for (auto it = subreads.begin(); it != subreads.end(); ++it) {
-            typename protocol_t::read_response_t subresponse;
-            shards[it->first].timestamper->read(it->second, &subresponse, tok, interruptor);
-            responses.push_back(subresponse);
-            if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::read_t subread;
+            if (read.shard(it->region, &subread)) {
+                responses.push_back(typename protocol_t::read_response_t());
+                it->timestamper->read(subread, &responses.back(), tok, interruptor);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+            }
         }
 
         read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
@@ -172,15 +175,18 @@ public:
     void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
-        std::vector<std::pair<size_t, typename protocol_t::read_t> > subreads;
-        read.shard(shard_region_array_t(&shards), &subreads);
-
         std::vector<typename protocol_t::read_response_t> responses;
-        for (auto it = subreads.begin(); it != subreads.end(); ++it) {
-            typename protocol_t::read_response_t subresponse;
-            shards[it->first].performer->read_outdated(it->second, &subresponse, interruptor);
-            responses.push_back(subresponse);
-            if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::read_t subread;
+            if (read.shard(it->region, &subread)) {
+                responses.push_back(typename protocol_t::read_response_t());
+                it->performer->read_outdated(subread, &responses.back(), interruptor);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+            }
         }
 
         read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
@@ -189,16 +195,20 @@ public:
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
-        std::vector<std::pair<size_t, typename protocol_t::write_t> > subwrites;
-        write.shard(shard_region_array_t(&shards), &subwrites);
-
         std::vector<typename protocol_t::write_response_t> responses;
-        for (auto it = subwrites.begin(); it != subwrites.end(); ++it) {
-            typename protocol_t::write_response_t subresponse;
-            shards[it->first].timestamper->write(it->second, &subresponse, tok);
-            responses.push_back(subresponse);
-            if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::write_t subwrite;
+            if (write.shard(it->region, &subwrite)) {
+                responses.push_back(typename protocol_t::write_response_t());
+                it->timestamper->write(subwrite, &responses.back(), tok);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+            }
         }
+
         write.unshard(responses.data(), responses.size(), response, ctx, interruptor);
     }
 

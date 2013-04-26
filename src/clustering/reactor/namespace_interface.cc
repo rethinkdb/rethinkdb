@@ -106,14 +106,12 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    std::vector<std::pair<size_t, op_type> > sharded_ops;
-    op.shard(relationships_region_array_t<protocol_t>(&relationships), &sharded_ops);
-
-    boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > masters_to_contact;
-    {
-        for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
+    boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > masters_to_contact;
+    scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > new_op_info(new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
+    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
+        if (op.shard(it->first, &new_op_info->sharded_op)) {
             relationship_t *chosen_relationship = NULL;
-            const std::set<relationship_t *> *relationship_map = &relationships.get_nth(sub_op->first).second;
+            const std::set<relationship_t *> *relationship_map = &it->second;
             for (auto jt = relationship_map->begin(); jt != relationship_map->end(); ++jt) {
                 if ((*jt)->master_access) {
                     if (chosen_relationship) {
@@ -125,25 +123,21 @@ void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
             if (!chosen_relationship) {
                 throw cannot_perform_query_exc_t("No master available");
             }
-            immediate_op_info_t<fifo_enforcer_token_type> *new_op_info =
-                new immediate_op_info_t<fifo_enforcer_token_type>();
             new_op_info->master_access = chosen_relationship->master_access;
             (new_op_info->master_access->*how_to_make_token)(&new_op_info->enforcement_token);
             new_op_info->keepalive = auto_drainer_t::lock_t(&chosen_relationship->drainer);
-            masters_to_contact.push_back(new_op_info);
+            masters_to_contact.push_back(new_op_info.release());
+            new_op_info.init(new immediate_op_info_t<op_type, fifo_enforcer_token_type>());
         }
     }
 
-    // RSI: don't use vector
     std::vector<op_response_type> results(masters_to_contact.size());
     std::vector<std::string> failures(masters_to_contact.size());
-    // RSI: don't use pmap  // TODO: <- WTF are we supposed to use then?
     pmap(masters_to_contact.size(), boost::bind(
              &cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>,
              this,
              how_to_run_query,
              &masters_to_contact,
-             &sharded_ops,
              &results,
              &failures,
              order_token,
@@ -166,8 +160,7 @@ template <class protocol_t>
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
 void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-    boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > *masters_to_contact,
-    const std::vector<std::pair<size_t, op_type> > *sharded_ops,
+    boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *masters_to_contact,
     std::vector<op_response_type> *results,
     std::vector<std::string> *failures,
     order_token_t order_token,
@@ -175,10 +168,10 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
     signal_t *interruptor)
     THROWS_NOTHING
 {
-    immediate_op_info_t<fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
+    immediate_op_info_t<op_type, fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
 
     try {
-        (master_to_contact->master_access->*how_to_run_query)((*sharded_ops)[i].second,
+        (master_to_contact->master_access->*how_to_run_query)(master_to_contact->sharded_op,
                                                               &results->at(i),
                                                               order_token,
                                                               &master_to_contact->enforcement_token,
@@ -204,16 +197,15 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-    std::vector<std::pair<size_t, typename protocol_t::read_t> > sharded_ops;
-    op.shard(relationships_region_array_t<protocol_t>(&relationships), &sharded_ops);
-
     boost::ptr_vector<outdated_read_info_t> direct_readers_to_contact;
-    {
-        for (auto sub_op = sharded_ops.begin(); sub_op != sharded_ops.end(); ++sub_op) {
+
+    scoped_ptr_t<outdated_read_info_t> new_op_info(new outdated_read_info_t());
+    for (auto it = relationships.begin(); it != relationships.end(); ++it) {
+        if (op.shard(it->first, &new_op_info->sharded_op)) {
             std::vector<relationship_t *> potential_relationships;
             relationship_t *chosen_relationship = NULL;
 
-            const std::set<relationship_t *> *relationship_map = &relationships.get_nth(sub_op->first).second;
+            const std::set<relationship_t *> *relationship_map = &it->second;
             for (auto jt = relationship_map->begin(); jt != relationship_map->end(); ++jt) {
                 if ((*jt)->direct_reader_access) {
                     if ((*jt)->is_local) {
@@ -232,17 +224,17 @@ cluster_namespace_interface_t<protocol_t>::dispatch_outdated_read(const typename
                    readers, there won't be any masters either. */
                 throw cannot_perform_query_exc_t("No direct reader available");
             }
-            outdated_read_info_t *new_op_info = new outdated_read_info_t();
             new_op_info->direct_reader_access = chosen_relationship->direct_reader_access;
             new_op_info->keepalive = auto_drainer_t::lock_t(&chosen_relationship->drainer);
-            direct_readers_to_contact.push_back(new_op_info);
+            direct_readers_to_contact.push_back(new_op_info.release());
+            new_op_info.init(new outdated_read_info_t());
         }
     }
 
     std::vector<typename protocol_t::read_response_t> results(direct_readers_to_contact.size());
     std::vector<std::string> failures(direct_readers_to_contact.size());
     pmap(direct_readers_to_contact.size(), boost::bind(&cluster_namespace_interface_t::perform_outdated_read, this,
-                                                       &direct_readers_to_contact, &sharded_ops, &results, &failures, _1, interruptor));
+                                                       &direct_readers_to_contact, &results, &failures, _1, interruptor));
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -264,7 +256,6 @@ void outdated_read_store_result(typename protocol_t::read_response_t *result_out
 template <class protocol_t>
 void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
-    const std::vector<std::pair<size_t, typename protocol_t::read_t> > *sharded_ops,
     std::vector<typename protocol_t::read_response_t> *results,
     std::vector<std::string> *failures,
     int i,
@@ -279,7 +270,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
                                                                    boost::bind(&outdated_read_store_result<protocol_t>, &results->at(i), _1, &done),
                                                                    mailbox_callback_mode_inline);
 
-        send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, (*sharded_ops)[i].second, cont.get_address());
+        send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);
         wait_interruptible(&waiter, interruptor);
         direct_reader_to_contact->direct_reader_access->access();   /* throws if `get_failed_signal()->is_pulsed()` */

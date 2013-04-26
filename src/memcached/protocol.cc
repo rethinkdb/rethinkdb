@@ -136,56 +136,54 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 namespace {
 
-struct read_shard_visitor_t : public boost::static_visitor<void> {
-    read_shard_visitor_t(exptime_t et, const array_t<region_t> *_regions,
-                         std::vector<std::pair<size_t, read_t> > *sharded_reads_out)
-        : effective_time(et), regions(_regions), reads_out(sharded_reads_out) { }
+struct read_shard_visitor_t : public boost::static_visitor<bool> {
+    read_shard_visitor_t(exptime_t et, const region_t *_region,
+                         read_t *_read_out)
+        : effective_time(et), region(_region), read_out(_read_out) { }
 
-    void operator()(const get_query_t &get) const {
-        const uint64_t hash_value = hash_region_hasher(get.key.contents(), get.key.size());
-        const size_t regions_size = regions->array_size();
-        for (size_t i = 0; i < regions_size; ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), get.key, hash_value)) {
-                reads_out->push_back(std::make_pair(i, read_t(get, effective_time)));
-                return;
-            }
+    bool operator()(const get_query_t &get) const {
+        const bool ret = region_contains_key(*region, get.key);
+        if (ret) {
+            *read_out = read_t(get, effective_time);
         }
-        crash("get_query_t sharded into nonintersecting set of regions");
+        return ret;
     }
 
     template <class T>
-    void rangey_query(const T &arg) const {
-        const size_t regions_size = regions->array_size();
-        for (size_t i = 0; i < regions_size; ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), arg.region);
-            if (!region_is_empty(intersection)) {
-                T tmp = arg;
-                tmp.region = intersection;
-                reads_out->push_back(std::make_pair(i, read_t(tmp, effective_time)));
-            }
+    bool rangey_query(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *read_out = read_t(tmp, effective_time);
+            return true;
+        } else {
+            return false;
         }
-        guarantee(!reads_out->empty(), "sharded into nonintersecting set of regions");
     }
 
-    void operator()(const rget_query_t &rget) const {
-        rangey_query(rget);
+    bool operator()(const rget_query_t &rget) const {
+        return rangey_query(rget);
     }
-    void operator()(const distribution_get_query_t &distribution_get) const {
-        rangey_query(distribution_get);
+
+    bool operator()(const distribution_get_query_t &distribution_get) const {
+        return rangey_query(distribution_get);
     }
 
 private:
-    exptime_t effective_time;
-    const array_t<region_t> *regions;
-    std::vector<std::pair<size_t, read_t> > *reads_out;
+    const exptime_t effective_time;
+    const region_t *region;
+    read_t *read_out;
 };
 
 }   /* anonymous namespace */
 
-void read_t::shard(const array_t<region_t> &regions,
-                   std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING {
-    boost::apply_visitor(read_shard_visitor_t(effective_time, &regions, sharded_reads_out), query);
+// SAMRSI: Get rid of array_t.
+
+bool read_t::shard(const region_t &region,
+                   read_t *read_out) const THROWS_NOTHING {
+    return boost::apply_visitor(read_shard_visitor_t(effective_time, &region, read_out), query);
 }
 
 
@@ -357,19 +355,13 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 /* `write_t::shard()` */
 
-void write_t::shard(const array_t<region_t> &regions,
-                    std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING {
-    const store_key_t key = write_get_key(*this);
-    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
-
-    for (size_t i = 0; i < regions.array_size(); ++i) {
-        if (region_contains_key_with_precomputed_hash(regions.array_nth(i), key, hash_value)) {
-            sharded_writes_out->push_back(std::make_pair(i, *this));
-            return;
-        }
+bool write_t::shard(const region_t &region, write_t *write_out) const THROWS_NOTHING {
+    if (region_contains_key(region, write_get_key(*this))) {
+        *write_out = *this;
+        return true;
+    } else {
+        return false;
     }
-
-    crash("memcached write_t sharded into nonintersecting set of regions");
 }
 
 /* `write_response_t::unshard()` */

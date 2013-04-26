@@ -381,67 +381,59 @@ region_t read_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(rdb_r_get_region_visitor(), read);
 }
 
-bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
-    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
-    return region_contains_key_with_precomputed_hash(region, key, hash_value);
-}
-
-struct rdb_r_shard_visitor_t : public boost::static_visitor<void> {
-    explicit rdb_r_shard_visitor_t(const array_t<hash_region_t<key_range_t> > *_regions,
-                                   std::vector<std::pair<size_t, read_t> > *_sharded_reads_out)
-        : regions(_regions), reads_out(_sharded_reads_out) {}
+struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
+    explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
+                                   read_t *_read_out)
+        : region(_region), read_out(_read_out) {}
 
     // The key was somehow already extracted from the arg.
     template <class T>
-    void keyed_read(const T &arg, const store_key_t &key) const {
-        const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), key, hash_value)) {
-                reads_out->push_back(std::make_pair(i, read_t(arg)));
-                return;
-            }
+    bool keyed_read(const T &arg, const store_key_t &key) const {
+        if (region_contains_key(*region, key)) {
+            *read_out = read_t(arg);
+            return true;
+        } else {
+            return false;
         }
-        crash("sharded into a nonintersecting set of regions");
     }
 
-    void operator()(const point_read_t &pr) const {
-        keyed_read(pr, pr.key);
+    bool operator()(const point_read_t &pr) const {
+        return keyed_read(pr, pr.key);
     }
 
     template <class T>
-    void rangey_read(const T &arg) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), arg.region);
-            if (!region_is_empty(intersection)) {
-                T tmp = arg;
-                tmp.region = intersection;
-                reads_out->push_back(std::make_pair(i, read_t(tmp)));
-            }
+    bool rangey_read(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *read_out = read_t(tmp);
+            return true;
+        } else {
+            return false;
         }
-        guarantee(!reads_out->empty(), "sharded into nonintersecting set of regions");
     }
 
-    void operator()(const rget_read_t &rg) const {
-        rangey_read(rg);
+    bool operator()(const rget_read_t &rg) const {
+        return rangey_read(rg);
     }
 
-    void operator()(const distribution_read_t &dg) const {
-        rangey_read(dg);
+    bool operator()(const distribution_read_t &dg) const {
+        return rangey_read(dg);
     }
 
-    void operator()(const sindex_list_t &sl) const {
-        keyed_read(sl, sindex_list_region_key());
+    bool operator()(const sindex_list_t &sl) const {
+        return keyed_read(sl, sindex_list_region_key());
     }
 
-    const array_t<hash_region_t<key_range_t> > *regions;
-    std::vector<std::pair<size_t, read_t> > *reads_out;
+    const hash_region_t<key_range_t> *region;
+    read_t *read_out;
 };
 
-void read_t::shard(const array_t<hash_region_t<key_range_t> > &regions,
-                   std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const THROWS_NOTHING {
-    rassert(sharded_reads_out->empty());
-    boost::apply_visitor(rdb_r_shard_visitor_t(&regions, sharded_reads_out), read);
+bool read_t::shard(const hash_region_t<key_range_t> &region,
+                   read_t *read_out) const THROWS_NOTHING {
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
 
 /* read_t::unshard implementation */
@@ -823,91 +815,81 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 /* write_t::shard implementation */
 
-struct rdb_w_shard_visitor_t : public boost::static_visitor<void> {
-    rdb_w_shard_visitor_t(const array_t<region_t> *_regions,
-                          std::vector<std::pair<size_t, write_t> > *_sharded_writes_out)
-        : regions(_regions), writes_out(_sharded_writes_out) {}
+struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
+    rdb_w_shard_visitor_t(const region_t *_region,
+                          write_t *_write_out)
+        : region(_region), write_out(_write_out) {}
 
     template <class T>
-    void keyed_write(const T &arg) const {
-        const uint64_t hash_value = hash_region_hasher(arg.key.contents(), arg.key.size());
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            if (region_contains_key_with_precomputed_hash(regions->array_nth(i), arg.key, hash_value)) {
-                writes_out->push_back(std::make_pair(i, write_t(arg)));
-                return;
-            }
+    bool keyed_write(const T &arg) const {
+        if (region_contains_key(*region, arg.key)) {
+            *write_out = write_t(arg);
+            return true;
+        } else {
+            return false;
         }
-        crash("sharded into a nonintersecting set of regions");
     }
 
-    void operator()(const point_replace_t &pr) const {
-        keyed_write(pr);
+    bool operator()(const point_replace_t &pr) const {
+        return keyed_write(pr);
     }
 
-    void operator()(const batched_replaces_t &br) const {
-        std::vector<std::vector<std::pair<int64_t, point_replace_t> > > sharded_replaces(regions->array_size());
+    bool operator()(const batched_replaces_t &br) const {
+        std::vector<std::pair<int64_t, point_replace_t> > sharded_replaces;
 
         for (auto it = br.point_replaces.begin(); it != br.point_replaces.end(); ++it) {
-            const uint64_t hash_value = hash_region_hasher(it->second.key.contents(), it->second.key.size());
-            for (size_t i = 0; i < regions->array_size(); ++i) {
-                if (region_contains_key_with_precomputed_hash(regions->array_nth(i), it->second.key, hash_value)) {
-                    sharded_replaces[i].push_back(*it);
-                    goto found_region;
-                }
+            if (region_contains_key(*region, it->second.key)) {
+                sharded_replaces.push_back(*it);
             }
-            crash("a point_write_t (in a batched_replaces_t) sharded into nonintersecting set of regions");
-
-        found_region:
-            /* nothing to do */;
         }
 
-        writes_out->reserve(sharded_replaces.size());
-        for (size_t i = 0; i < sharded_replaces.size(); ++i) {
-            if (!sharded_replaces[i].empty()) {
-                writes_out->push_back(std::make_pair(i, write_t(batched_replaces_t())));
-                write_t *write = &writes_out->back().second;
-                boost::get<batched_replaces_t>(&write->write)->point_replaces.swap(sharded_replaces[i]);
-            }
+        if (!sharded_replaces.empty()) {
+            *write_out = write_t(batched_replaces_t());
+            batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
+            batched->point_replaces.swap(sharded_replaces);
+            return true;
+        } else {
+            return false;
         }
     }
 
-    void operator()(const point_write_t &pw) const {
-        keyed_write(pw);
+    bool operator()(const point_write_t &pw) const {
+        return keyed_write(pw);
     }
 
-    void operator()(const point_delete_t &pd) const {
-        keyed_write(pd);
+    bool operator()(const point_delete_t &pd) const {
+        return keyed_write(pd);
     }
 
     template <class T>
-    void rangey_write(const T &arg) const {
-        for (size_t i = 0; i < regions->array_size(); ++i) {
-            const hash_region_t<key_range_t> intersection
-                = region_intersection(regions->array_nth(i), arg.region);
-            if (!region_is_empty(intersection)) {
-                T tmp = arg;
-                tmp.region = intersection;
-                writes_out->push_back(std::make_pair(i, write_t(tmp)));
-            }
+    bool rangey_write(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *write_out = write_t(tmp);
+            return true;
+        } else {
+            return false;
         }
-        guarantee(!writes_out->empty(), "sharded into a nonintersecting set of regions");
     }
 
-    void operator()(const sindex_create_t &c) const {
-        rangey_write(c);
+    bool operator()(const sindex_create_t &c) const {
+        return rangey_write(c);
     }
 
-    void operator()(const sindex_drop_t &d) const {
-        rangey_write(d);
+    bool operator()(const sindex_drop_t &d) const {
+        return rangey_write(d);
     }
 
-    const array_t<region_t> *regions;
-    std::vector<std::pair<size_t, write_t> > *writes_out;
+    const region_t *region;
+    write_t *write_out;
 };
 
-void write_t::shard(const array_t<region_t> &regions,
-                    std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const THROWS_NOTHING {
-    boost::apply_visitor(rdb_w_shard_visitor_t(&regions, sharded_writes_out), write);
+bool write_t::shard(const region_t &region,
+                    write_t *write_out) const THROWS_NOTHING {
+    return boost::apply_visitor(rdb_w_shard_visitor_t(&region, write_out), write);
 }
 
 template <class T>

@@ -132,6 +132,7 @@ bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> 
                                                const store_key_t &key,
                                                uint64_t hash_value);
 
+bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key);
 
 template <class inner_region_t>
 bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_t<inner_region_t> &r2) {

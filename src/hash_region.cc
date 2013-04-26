@@ -235,3 +235,8 @@ bool region_contains_key_with_precomputed_hash(const hash_region_t<key_range_t> 
         return false;
     }
 }
+
+bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
+    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+    return region_contains_key_with_precomputed_hash(region, key, hash_value);
+}

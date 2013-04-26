@@ -465,6 +465,8 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
+    rassert(region_is_superset(svs_->get_region(), qe.write.get_region()));
+
     // This isn't used for client writes, so we don't want to wait for a disk ack.
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )

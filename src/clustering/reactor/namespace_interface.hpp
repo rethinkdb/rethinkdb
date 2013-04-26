@@ -99,9 +99,10 @@ private:
     handling writes, so it's factored out into the `dispatch_immediate_op()`
     function. */
 
-    template<class fifo_enforcer_token_type>
+    template <class op_type, class fifo_enforcer_token_type>
     class immediate_op_info_t {
     public:
+        op_type sharded_op;
         master_access_t<protocol_t> *master_access;
         fifo_enforcer_token_type enforcement_token;
         auto_drainer_t::lock_t keepalive;
@@ -109,11 +110,12 @@ private:
 
     class outdated_read_info_t {
     public:
+        typename protocol_t::read_t sharded_op;
         resource_access_t<direct_reader_business_card_t<protocol_t> > *direct_reader_access;
         auto_drainer_t::lock_t keepalive;
     };
 
-    template<class op_type, class fifo_enforcer_token_type, class op_response_type>
+    template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void dispatch_immediate_op(
             /* `how_to_make_token` and `how_to_run_query` have type pointer-to-member-function. */
             void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),  // NOLINT
@@ -124,11 +126,10 @@ private:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
 
-    template<class op_type, class fifo_enforcer_token_type, class op_response_type>
+    template <class op_type, class fifo_enforcer_token_type, class op_response_type>
     void perform_immediate_op(
             void (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
-            boost::ptr_vector<immediate_op_info_t<fifo_enforcer_token_type> > *masters_to_contact,
-            const std::vector<std::pair<size_t, op_type> > *sharded_ops,
+            boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *masters_to_contact,
             std::vector<op_response_type> *results,
             std::vector<std::string> *failures,
             order_token_t order_token,
@@ -144,7 +145,6 @@ private:
 
     void perform_outdated_read(
             boost::ptr_vector<outdated_read_info_t> *direct_readers_to_contact,
-            const std::vector<std::pair<size_t, typename protocol_t::read_t> > *sharded_ops,
             std::vector<typename protocol_t::read_response_t> *results,
             std::vector<std::string> *failures,
             int i,
