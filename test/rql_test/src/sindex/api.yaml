@@ -79,5 +79,21 @@ tests:
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :id)
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :idi)
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :ai).orderby(:right)
+    ot: [{"right":{"id":0,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":1,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":2,"a":0,"b":0,"c":1},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":3,"a":0,"b":1,"c":1},"left":{"id":0,"a":0,"b":0,"c":0}}]
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :bi).orderby(:right)
+    ot: [{"right":{"id":0,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":1,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":2,"a":0,"b":0,"c":1},"left":{"id":0,"a":0,"b":0,"c":0}}]
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :ci).orderby(:right)
+    ot: [{"right":{"id":0,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}},
+         {"right":{"id":1,"a":0,"b":0,"c":0},"left":{"id":0,"a":0,"b":0,"c":0}}]
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :brokeni)
+    ot: []
 
   - cd: r.db('test').table_drop('sindex_api')
