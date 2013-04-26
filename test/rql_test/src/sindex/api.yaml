@@ -49,6 +49,11 @@ tests:
   - rb: tbl.get_all(1).update{nil}
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':1,'errors':0,'inserted':0})
 
+  - rb: tbl.get_all(0, :index => :fake)
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found.", [])'
+  - rb: tbl.get_all(0, :index => false)
+    ot: 'err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])'
+
   - rb: tbl.get_all(true, :index => :id)
     ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
   - rb: tbl.get_all([], :index => :id)
@@ -75,6 +80,11 @@ tests:
   - rb: tbl.get_all(1, :index => :brokeni)
     ot: []
 
+  - rb: tbl.eq_join(:id, tbl, :index => :fake)
+    ot: 'err("RqlRuntimeError", "Index `fake` was not found.", [])'
+  - rb: tbl.eq_join(:id, tbl, :index => false)
+    ot: 'err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])'
+
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl)
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :id)
@@ -96,7 +106,7 @@ tests:
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :brokeni)
     ot: []
 
-  - rb: tbl.eq_join(:c, tbl, :index => :bi).orderby(:right, :left).coerce_to(:array)
+  - rb: tbl.eq_join(:c, tbl, :index => :bi).orderby(:right, :left)
     ot: ([{'left':{'id':0,'a':0,'b':0,'c':0},'right':{'id':0,'a':0,'b':0,'c':0}},
           {'left':{'id':1,'a':0,'b':0,'c':0},'right':{'id':0,'a':0,'b':0,'c':0}},
           {'left':{'id':0,'a':0,'b':0,'c':0},'right':{'id':1,'a':0,'b':0,'c':0}},
