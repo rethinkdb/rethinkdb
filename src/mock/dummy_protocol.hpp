@@ -50,8 +50,10 @@ public:
     class read_t {
     public:
         region_t get_region() const;
-        void shard(const array_t<region_t> &regions,
-                   std::vector<std::pair<size_t, read_t> > *sharded_reads_out) const;
+        // Returns true if the read had any applicability to the region, and a non-empty
+        // read was written to read_out.
+        bool shard(const region_t &region,
+                   read_t *read_out) const;
         void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
@@ -67,8 +69,10 @@ public:
     class write_t {
     public:
         region_t get_region() const;
-        void shard(const array_t<region_t> &regions,
-                   std::vector<std::pair<size_t, write_t> > *sharded_writes_out) const;
+        // Returns true if the write had any applicability to the region, and a non-empty
+        // write was written to write_out.
+        bool shard(const region_t &region,
+                   write_t *write_out) const;
         void unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
