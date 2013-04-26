@@ -97,7 +97,6 @@ public:
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
-
     // Use of `get` is preferred to `as_object` when possible.
     const std::map<std::string, counted_t<const datum_t> > &as_object() const;
     // Returns true if `key` was already in object.

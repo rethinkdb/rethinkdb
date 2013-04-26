@@ -46,14 +46,14 @@ counted_t<const datum_t> pure_merge(UNUSED env_t *env, UNUSED const std::string 
     return counted_t<const datum_t>();
 }
 
-static const datum_t *new_stats_object(env_t *env) {
-    datum_t *stats = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+counted_t<const datum_t> new_stats_object() {
+    scoped_ptr_t<datum_t> stats(new datum_t(datum_t::R_OBJECT));
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
-        UNUSED bool b = stats->add(keys[i], env->add_ptr(new datum_t(0.0)));
+        UNUSED bool b = stats->add(keys[i], make_counted<datum_t>(0.0));
     }
-    return stats;
+    return counted_t<datum_t>(stats.release());
 }
 
 static const char *const insert_optargs[] = { "upsert" };
@@ -83,7 +83,7 @@ private:
         bool upsert = upsert_val ? upsert_val->as_bool() : false;
 
         bool done = false;
-        counted_t<const datum_t> stats = new_stats_object(env);
+        counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
         counted_t<val_t> v1 = arg(1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -159,7 +159,7 @@ private:
         }
 
         counted_t<val_t> v0 = arg(0);
-        counted_t<const datum_t> stats = new_stats_object(env);
+        counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow = v0->as_single_selection();
             counted_t<const datum_t> result = tblrow.first->replace(tblrow.second, f, nondet_ok);

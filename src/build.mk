@@ -278,8 +278,8 @@ endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
-UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest-1.6.0/make/gtest.a
-UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest-1.6.0/include
+UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
+UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
 RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -324,7 +324,7 @@ endif
 
 $(UNIT_STATIC_LIBRARY_PATH):
 	$P MAKE $@
-	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest-1.6.0/make gtest.a
+	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest/make gtest.a
 
 .PHONY: unit
 unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
