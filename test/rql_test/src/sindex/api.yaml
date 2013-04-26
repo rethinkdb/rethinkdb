@@ -12,14 +12,35 @@ tests:
 
   - rb: tbl.index_create('ai') {|row| row[:a]}
     ot: ({'created':1})
-
   - rb: tbl.index_create('bi') {|row| row[:b]}
     ot: ({'created':1})
-
   - rb: tbl.index_create('ci') {|row| row[:c]}
     ot: ({'created':1})
-
   - rb: tbl.index_create('idi') {|row| row[:id]}
     ot: ({'created':1})
+
+  - rb: tbl.get(true)
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+  - rb: tbl.get(-1)
+    ot: nil
+  - rb: tbl.get(1)[:id]
+    ot: 1
+  - rb: tbl.get(1, :ai)
+    ot: 'err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])'
+
+  - rb: tbl.get_all(true)
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+  - rb: tbl.get_all(-1)
+    ot: []
+  - rb: tbl.get_all(1)[0][:id]
+    ot: 1
+  - rb: tbl.get_all(1, :index => :id)[0][:id]
+    ot: 1
+  - rb: tbl.get_all(1, :index => :ai)
+    ot: []
+  - rb: tbl.get_all(1, :index => :bi).orderby(:id).map{|x| x[:id]}
+    ot: [3]
+  - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
 
   - cd: r.db('test').table_drop('sindex_api')

@@ -219,6 +219,8 @@ message Term {
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
                     // Table, STRING, STRING -> StreamSelection | Table, NUMBER, STRING -> StreamSelection |
+        GET_ALL = 78; // Table, JSON => ARRAY |
+                      // Table, JSON, !STRING => ARRAY
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
