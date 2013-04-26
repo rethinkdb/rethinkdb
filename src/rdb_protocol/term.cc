@@ -148,7 +148,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = env->new_term(t);
+            root_term = compile_term(env, t);
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace);
@@ -280,7 +280,7 @@ counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t>
     return make_counted<val_t>(d, s, this);
 }
 counted_t<val_t> term_t::new_val(uuid_u db) {
-    return env->new_val(db, this);
+    return make_counted<val_t>(db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
     return make_counted<val_t>(t, this);

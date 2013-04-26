@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENV_HPP_
 #define RDB_PROTOCOL_ENV_HPP_
 
@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+// SAMRSI: Can we drop some of these includes?
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -66,22 +67,11 @@ public:
     void push_implicit(counted_t<const datum_t> *val);
     counted_t<const datum_t> *top_implicit(const rcheckable_t *caller);
     void pop_implicit();
+
 private:
     friend class implicit_binder_t;
     int implicit_depth;
     std::stack<counted_t<const datum_t> *> implicit_var;
-
-    // Allocation Functions
-public:
-    counted_t<func_t> new_func(const Term *term) {
-        return make_counted<func_t>(this, term);
-    }
-    counted_t<val_t> new_val(uuid_u db, term_t *parent) {
-        return make_counted<val_t>(db, parent);
-    }
-    counted_t<term_t> new_term(const Term *source) {
-        return compile_term(this, source);
-    }
 
 public:
     // This is copied basically verbatim from old code.

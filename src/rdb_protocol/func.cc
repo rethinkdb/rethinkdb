@@ -62,7 +62,7 @@ func_t::func_t(env_t *env, const Term *_source)
     }
 
     const Term *body_source = &t->args(1);
-    body = env->new_term(body_source);
+    body = compile_term(env, body_source);
 
     for (size_t i = 0; i < args.size(); ++i) {
         env->pop_var(args[i]);
@@ -177,7 +177,7 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
 }
 
 func_term_t::func_term_t(env_t *env, const Term *term)
-    : term_t(env, term), func(env->new_func(term)) { }
+    : term_t(env, term), func(make_counted<func_t>(env, term)) { }
 counted_t<val_t> func_term_t::eval_impl() {
     return new_val(func);
 }

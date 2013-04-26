@@ -118,7 +118,7 @@ private:
         }
 
         guarantee(filter_func.has());
-        return new_val(seq->filter(env->new_func(filter_func.get())), tbl);
+        return new_val(seq->filter(make_counted<func_t>(env, filter_func.get())), tbl);
     }
     virtual const char *name() const { return "between"; }
 
