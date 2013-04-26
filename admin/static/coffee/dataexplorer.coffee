@@ -91,18 +91,17 @@ module 'DataExplorerView', ->
                         description: command['description']
                         examples: command['langs']['js']['examples']
 
-            parent = command['parent']
-            if tag is 'run'
-                parent = 'query'
+            parents = command['parent']?.split(' | ')
+            if parents?
+                for parent in parents
+                    if parent is null
+                        parent = ''
+                    if not suggestions[parent]?
+                        suggestions[parent] = []
+                    if tag isnt '' # We don't want to save ()
+                        suggestions[parent].push full_tag
 
-            if parent is null
-                parent = ''
-            if not suggestions[parent]?
-                suggestions[parent] = []
-            if tag isnt '' # We don't want to save ()
-                suggestions[parent].push full_tag
-
-            @map_state[full_tag] = command['returns'] # We use full_tag because we need to differentiate between r. and r(
+            @map_state[full_tag] = command['returns']?.split(' | ') # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
         # TODO update the set of ignored commands for 1.4
@@ -119,8 +118,6 @@ module 'DataExplorerView', ->
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
-            # Create the suggestions table
-            suggestions = {}
             for group in data['sections']
                 for command in group['commands']
                     tag = command['langs']['js']['name']
@@ -131,28 +128,36 @@ module 'DataExplorerView', ->
                         new_command['langs']['js']['dont_need_parenthesis'] = false
                         new_command['langs']['js']['body'] = 'attr'
                         new_command['description'] = 'Return the attribute of the currently visited document'
-                        @set_doc_description new_command, tag, suggestions
+                        @set_doc_description new_command, tag, @suggestions
                     if tag is '()'
                         tag = ''
-                    @set_doc_description command, tag, suggestions
+                    @set_doc_description command, tag, @suggestions
 
-            # Deep copy of suggestions
-            for group of suggestions
-                @suggestions[group] = []
-                for suggestion in suggestions[group]
-                    @suggestions[group].push suggestion
-            
             relations = data['types']
 
             # For each element, we add its parent's functions to it suggestions
-            for element of relations
-                if not @suggestions[element]?
-                    @suggestions[element] = []
-                parent = relations[element]['parent']
-                while parent? and suggestions[parent]
-                    for suggestion in suggestions[parent]
-                        @suggestions[element].push suggestion
-                    parent = relations[parent]['parent']
+            # We require the hierarchy to be a DAG else it's going to loop for ever
+            done = false
+            while done is false
+                done = true
+                for element of relations
+                    if not @suggestions[element]?
+                        @suggestions[element] = []
+                    if relations[element]['parents']?
+                        done = false
+
+                        index = 0
+                        while index < relations[element]['parents'].length
+                            parent = relations[element]['parents'][index]
+                            if not relations[parent]['parents']? # parent has all its method available
+                                if @suggestions[parent]?
+                                    for suggestion in @suggestions[parent]
+                                        @suggestions[element].push suggestion
+                                relations[element]['parents'].splice(index, 1)
+                            else # The suggestions for `parent` are not ready yet
+                                index++
+                        if relations[element]['parents'].length is 0
+                            relations[element]['parents'] = null
 
             for state of @suggestions
                 @suggestions[state].sort()
@@ -1701,10 +1706,15 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_state'
                     if element.type is 'function' and element.complete is true
                         result.state = element.name
-                        if @suggestions[@map_state[element.name]]?
-                            for suggestion in @suggestions[@map_state[element.name]]
-                                if result.suggestions_regex.test(suggestion) is true
-                                    result.suggestions.push suggestion
+                        if @map_state[element.name]
+                            hash_suggestions = {} # To avoid redundancy. add() can returns string OR number, and add() works on both
+                            for state in @map_state[element.name]
+                                if @suggestions[state]?
+                                    for suggestion in @suggestions[state]
+                                        if result.suggestions_regex.test(suggestion) is true
+                                            hash_suggestions[suggestion] = true
+                            for suggestion of hash_suggestions
+                                result.suggestions.push suggestion
                         #else # This is a non valid ReQL function.
                         # It may be a personalized function defined in the data explorer...
                         result.status = 'done'

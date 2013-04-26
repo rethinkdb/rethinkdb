@@ -1,62 +1,49 @@
 {
-  "data": {
-    "women": {
-      "db_test": {
-        "table_test": [
-          {"id": 1, "name": "Superwoman"},
-          {"id": 2, "name": "Spiderwoman"},
-          {"id": 3, "name": "Ironwoman"}
-        ]
-      }
-    },
-    "marvel": {
-      "test": {
-        "marvel": [
-          {"id": 1, "name": "Superman", "abilities": {"super-strength": true}},
-          {"id": 2, "name": "Spiderman", "abilities": {"thread": true}},
-          {"id": 3, "name": "Ironman", "abilities": {"toys": true}}
-        ]
-      }
-    }
-  },
   "types": {
     "r": {
-      "parent": null
+      "parents": null
     },
     "query": {
-      "parent": null
+      "parents": null
+    },
+    "error": {
+      "parents": null
+    },
+    "connection": {
+      "parents": null
+    },
+    "cursor": {
+      "parents": null
     },
     "sequence": {
-      "parent": "query",
-      "children": [
-        "selection",
-        "json"
-      ]
+      "parents": ["query"]
     },
     "selection": {
-      "parent": "sequence",
-      "children": [
-        "table"
-      ]
+      "parents": ["sequence"]
     },
     "table": {
-      "parent": "selection"
+      "parents": ["selection"]
     },
     "db": {
-      "parent": null
-    },
-    "json": {
-      "parent": "sequence",
-      "children": [
-        "bool",
-        "number"
-      ]
+      "parents": null
     },
     "bool": {
-      "parent": "json"
+        "parents": ["json"]
     },
     "number": {
-      "parent": "json"
+        "parents": ["json"]
+    },
+    "array": {
+        "parents": ["sequence"]
+    },
+    "null": {
+        "parents": ["json"]
+    },
+    "object": {
+        "parents": ["json"]
+    },
+    "json": {
+      "parents": null 
     }
   }
 }
