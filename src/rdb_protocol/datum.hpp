@@ -12,7 +12,6 @@
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
-#include "containers/ptr_bag.hpp"
 #include "containers/scoped.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"

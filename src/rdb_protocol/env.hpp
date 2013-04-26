@@ -11,7 +11,6 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "containers/ptr_bag.hpp"
 #include "containers/counted.hpp"
 #include "extproc/pool.hpp"
 #include "rdb_protocol/datum.hpp"

@@ -7,7 +7,6 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "containers/ptr_bag.hpp"
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"

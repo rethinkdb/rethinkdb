@@ -8,7 +8,6 @@
 
 #include "utils.hpp"
 
-#include "containers/ptr_bag.hpp"
 #include "containers/counted.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/js.hpp"
