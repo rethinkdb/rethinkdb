@@ -290,9 +290,9 @@ const datum_t *concatmap_datum_stream_t::next_impl() {
 
 // SLICE_DATUM_STREAM_T
 slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _right,
-                                           datum_stream_t *_source)
-    : eager_datum_stream_t(_env, _source), env(_env), index(0),
-      left(_left), right(_right), source(_source) { }
+                                           datum_stream_t *_src)
+    : wrapper_datum_stream_t(_env, _src), env(_env), index(0),
+      left(_left), right(_right) { }
 
 const datum_t *slice_datum_stream_t::next_impl() {
     if (left > right || index > right) {
@@ -301,14 +301,14 @@ const datum_t *slice_datum_stream_t::next_impl() {
 
     while (index < left) {
         env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-        const datum_t *discard = source->next();
+        const datum_t *discard = src_stream()->next();
         if (discard == NULL) {
             return NULL;
         }
         ++index;
     }
 
-    const datum_t *datum = source->next();
+    const datum_t *datum = src_stream()->next();
     if (datum != NULL) {
         ++index;
     }
@@ -316,11 +316,11 @@ const datum_t *slice_datum_stream_t::next_impl() {
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_source)
-    : eager_datum_stream_t(_env, _source), env(_env), source(_source) { }
+zip_datum_stream_t::zip_datum_stream_t(env_t *_env, datum_stream_t *_src)
+    : wrapper_datum_stream_t(_env, _src), env(_env) { }
 
 const datum_t *zip_datum_stream_t::next_impl() {
-    const datum_t *datum = source->next();
+    const datum_t *datum = src_stream()->next();
     if (datum == NULL) {
         return NULL;
     }

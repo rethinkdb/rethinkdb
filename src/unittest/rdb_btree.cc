@@ -134,6 +134,32 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
             &dummy_interuptor);
 }
 
+void bring_sindexes_up_to_date(
+        btree_store_t<rdb_protocol_t> *store, std::string sindex_id) {
+    cond_t dummy_interruptor;
+    write_token_pair_t token_pair;
+    store->new_write_token_pair(&token_pair);
+
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> super_block;
+    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+                                        1, WRITE_DURABILITY_SOFT,
+                                        &token_pair.main_write_token, &txn, &super_block, &dummy_interruptor);
+
+    scoped_ptr_t<buf_lock_t> sindex_block;
+    store->acquire_sindex_block_for_write(
+            &token_pair, txn.get(), &sindex_block,
+            super_block->get_sindex_block_id(),
+            &dummy_interruptor);
+
+    std::set<std::string> created_sindexes;
+    created_sindexes.insert(sindex_id);
+
+    rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+            sindex_block.get(), txn.get());
+    nap(1000);
+}
+
 void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id, cond_t *background_inserts_done) {
     cond_t dummy_interruptor;
@@ -358,7 +384,7 @@ TEST(RDBBtree, SindexEraseRange) {
     run_in_thread_pool(&run_erase_range_test);
 }
 
-void run_sindex_interruption_test() {
+void run_sindex_interruption_via_drop_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
@@ -399,8 +425,51 @@ void run_sindex_interruption_test() {
     background_inserts_done.wait();
 }
 
-TEST(RDBBtree, SindexInterruption) {
-    run_in_thread_pool(&run_sindex_interruption_test);
+TEST(RDBBtree, SindexInterruptionViaDrop) {
+    run_in_thread_pool(&run_sindex_interruption_via_drop_test);
+}
+
+void run_sindex_interruption_via_store_delete() {
+    recreate_temporary_directory(base_path_t("."));
+    temp_file_t temp_file;
+
+    scoped_ptr_t<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
+    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    standard_serializer_t::create(
+        &file_opener,
+        standard_serializer_t::static_config_t());
+
+    standard_serializer_t serializer(
+        standard_serializer_t::dynamic_config_t(),
+        &file_opener,
+        &get_global_perfmon_collection());
+
+    scoped_ptr_t<rdb_protocol_t::store_t> store(
+            new rdb_protocol_t::store_t(
+            &serializer,
+            "unit_test_store",
+            GIGABYTE,
+            true,
+            &get_global_perfmon_collection(),
+            NULL,
+            io_backender.get(),
+            base_path_t(".")));
+
+    cond_t dummy_interuptor;
+
+    insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
+
+    std::string sindex_id = create_sindex(store.get());
+
+    bring_sindexes_up_to_date(store.get(), sindex_id);
+
+    store.reset();
+}
+
+TEST(RDBBtree, SindexInterruptionViaStoreDelete) {
+    run_in_thread_pool(&run_sindex_interruption_via_store_delete);
 }
 
 } //namespace unittest

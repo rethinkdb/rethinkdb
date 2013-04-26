@@ -44,7 +44,7 @@
 .dropdown-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 7px;
   z-index: @zindexDropdown;
   float: left;
   display: none; // none by default, but block on "open" of the menu
@@ -104,12 +104,17 @@
   // IE7's z-index only goes to the nearest positioned ancestor, which would
   // make the menu appear below buttons that appeared later on the page
   *z-index: @zindexDropdown;
-
-  .dropdown-toggle {
-    color: @white;
-    background: #ccc;
-    background: rgba(0,0,0,.3);
+  
+  .dropdown-toggle, .dropdown-toggle:hover{
+    // Same style as btn.active
+    background-image: none;
+    @shadow: inset 0 2px 4px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.05);
+    .box-shadow(@shadow);
+    background-color: darken(@white, 10%);
+    background-color: darken(@white, 15%) e("\9");
+    outline: 0;
   }
+
   .dropdown-menu {
     display: block;
   }

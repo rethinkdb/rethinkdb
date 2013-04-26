@@ -25,26 +25,35 @@
 namespace unittest {
 namespace {
 
-void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t *)> fun) {
+void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t *)> fun, bool oversharding) {
     recreate_temporary_directory(base_path_t("."));
 
     order_source_t order_source;
 
     /* Pick shards */
-    std::vector<rdb_protocol_t::region_t> shards;
-    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
-    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
+    std::vector<rdb_protocol_t::region_t> store_shards;
+    if (oversharding) {
+        store_shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::none, store_key_t())));
+    } else {
+        store_shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+        store_shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
+    }
+
+    std::vector<rdb_protocol_t::region_t> nsi_shards;
+
+    nsi_shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(),  key_range_t::open, store_key_t("n"))));
+    nsi_shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t() )));
 
     boost::ptr_vector<temp_file_t> temp_files;
-    for (size_t i = 0; i < shards.size(); ++i) {
+    for (size_t i = 0; i < store_shards.size(); ++i) {
         temp_files.push_back(new temp_file_t);
     }
 
     scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
-    scoped_array_t<scoped_ptr_t<serializer_t> > serializers(shards.size());
-    for (size_t i = 0; i < shards.size(); ++i) {
+    scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
+    for (size_t i = 0; i < store_shards.size(); ++i) {
         filepath_file_opener_t file_opener(temp_files[i].name(), io_backender.get());
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
@@ -74,7 +83,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
-    for (size_t i = 0; i < shards.size(); ++i) {
+    for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
                 new rdb_protocol_t::store_t(serializers[i].get(),
                     temp_files[i].name().permanent_path(), GIGABYTE, true,
@@ -83,18 +92,22 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;
-    for (size_t i = 0; i < shards.size(); ++i) {
-        stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[i], shards[i]));
+    for (size_t i = 0; i < nsi_shards.size(); ++i) {
+        if (oversharding) {
+            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[0], nsi_shards[i]));
+        } else {
+            stores.push_back(new store_subview_t<rdb_protocol_t>(&underlying_stores[i], nsi_shards[i]));
+        }
     }
 
     /* Set up namespace interface */
-    dummy_namespace_interface_t<rdb_protocol_t> nsi(shards, stores.c_array(), &order_source, &ctx);
+    dummy_namespace_interface_t<rdb_protocol_t> nsi(nsi_shards, stores.c_array(), &order_source, &ctx);
 
     fun(&nsi, &order_source);
 }
 
-void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun) {
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
+    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun, oversharded));
 }
 
 }   /* anonymous namespace */
@@ -105,7 +118,11 @@ void run_setup_teardown_test(UNUSED namespace_interface_t<rdb_protocol_t> *nsi, 
     /* Do nothing */
 }
 TEST(RDBProtocol, SetupTeardown) {
-    run_in_thread_pool_with_namespace_interface(&run_setup_teardown_test);
+    run_in_thread_pool_with_namespace_interface(&run_setup_teardown_test, false);
+}
+
+TEST(RDBProtocol, OvershardedSetupTeardown) {
+    run_in_thread_pool_with_namespace_interface(&run_setup_teardown_test, true);
 }
 
 /* `GetSet` tests basic get and set operations */
@@ -142,7 +159,11 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
 }
 
 TEST(RDBProtocol, GetSet) {
-    run_in_thread_pool_with_namespace_interface(&run_get_set_test);
+    run_in_thread_pool_with_namespace_interface(&run_get_set_test, false);
+}
+
+TEST(RDBProtocol, OvershardedGetSet) {
+    run_in_thread_pool_with_namespace_interface(&run_get_set_test, true);
 }
 
 std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
@@ -273,7 +294,11 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {
-    run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test);
+    run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test, false);
+}
+
+TEST(RDBProtocol, OvershardedSindexCreateDrop) {
+    run_in_thread_pool_with_namespace_interface(&run_create_drop_sindex_test, true);
 }
 
 std::set<std::string> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
@@ -317,8 +342,12 @@ void run_sindex_list_test(namespace_interface_t<rdb_protocol_t> *nsi, order_sour
     } // Do it again
 }
 
-TEST(RDBProtocol,SindexList) {
-    run_in_thread_pool_with_namespace_interface(&run_sindex_list_test);
+TEST(RDBProtocol, SindexList) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_list_test, false);
+}
+
+TEST(RDBProtocol, OvershardedSindexList) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_list_test, true);
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
@@ -386,7 +415,11 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 }
 
 TEST(RDBProtocol, OverSizedKeys) {
-    run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test);
+    run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, false);
+}
+
+TEST(RDBProtocol, OvershardedOverSizedKeys) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_oversized_keys_test, true);
 }
 
 void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
@@ -416,7 +449,11 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
 }
 
 TEST(RDBProtocol, MissingAttr) {
-    run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test);
+    run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, false);
+}
+
+TEST(RDBProtocol, OvershardedMissingAttr) {
+    run_in_thread_pool_with_namespace_interface(&run_sindex_missing_attr_test, true);
 }
 
 }   /* namespace unittest */

@@ -4,7 +4,7 @@ tests:
     # Remove the stupid test database
     - cd: r.db_drop('test')
       ot: ({'dropped':1})
-    
+
     - py: r.expr([1,2,3]).for_each(r.db_create('db_' + r.row.coerce_to('string')))
       ot: ({'created':3})
 
@@ -14,7 +14,7 @@ tests:
                 r.db(db_name).table_create('tbl_' + i.coerce_to('string'))))
       ot: ({'created':9})
 
-    - cd: r.db_list().for_each(r.db_drop(r.row))
+    - py: r.db_list().for_each(r.db_drop(r.row))
       ot: ({'dropped':3})
 
     # Re-add stupid 'test' database

@@ -409,7 +409,7 @@ module 'DataExplorerView', ->
                     return true
 
                 char_to_insert = String.fromCharCode event.which
-                if char_to_insert?
+                if char_to_insert? and event.which isnt 91 # 91 map to [ on OS X
                     if @codemirror.getSelection() isnt ''
                         if (char_to_insert of @matching_opening_bracket or char_to_insert of @matching_closing_bracket)
                             @codemirror.replaceSelection ''

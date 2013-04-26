@@ -69,7 +69,7 @@ class RDBVal extends TermBase
     eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
-    typeOf: -> new TypeOf {}, @
+    typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: ar () -> new Delete {}, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
@@ -135,7 +135,7 @@ class DatumTerm extends RDBVal
             when Datum.DatumType.R_STR
                 datum.getRStr()
             when Datum.DatumType.R_ARRAY
-                DatumTerm::deconstruct dt for dt in datum.rArrayArray()
+                new ArrayResult(DatumTerm::deconstruct dt for dt in datum.rArrayArray())
             when Datum.DatumType.R_OBJECT
                 obj = {}
                 for pair in datum.rObjectArray()
@@ -220,6 +220,8 @@ class MakeObject extends RDBOp
         self = super({})
         self.optargs = {}
         for own key,val of obj
+            if typeof val is 'undefined'
+                throw new RqlDriverError "Object field '#{key}' may not be undefined"
             self.optargs[key] = rethinkdb.expr val
         return self
 
