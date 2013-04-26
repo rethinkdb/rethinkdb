@@ -46,9 +46,9 @@ tests:
 
     # Error cases
     - py: r.expr({12:'a'})
-      rb: r {12 => 'a'}
-      ot: err_regex("RqlDriverError", "Object keys must be strings")
+      rb: r({12 => 'a'})
+      ot: err_regex("RqlDriverError", "Document keys must be strings")
 
     - py: r.expr({'a':{12:'b'}})
-      rb: r {:a => {12 => 'b'} }
-      ot: err_regex("RqlDriverError", "Object keys must be strings")
+      rb: r({:a => {12 => 'b'} })
+      ot: err_regex("RqlDriverError", "Document keys must be strings")

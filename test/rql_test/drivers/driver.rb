@@ -38,7 +38,7 @@ def err(type, message, backtrace)
   Err.new(type, message, backtrace, false)
 end
 
-def err_regex(type, message, backtrace)
+def err_regex(type, message, backtrace=[])
   Err.new(type, message, backtrace, true)
 end
 
