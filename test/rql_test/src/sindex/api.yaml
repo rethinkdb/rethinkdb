@@ -12,11 +12,15 @@ tests:
 
   - rb: tbl.index_create('ai') {|row| row[:a]}
     ot: ({'created':1})
+  - rb: tbl.index_create('ai') {|row| row[:a]}
+    ot: 'err("RqlRuntimeError", "Index `ai` already exists.", [])'
   - rb: tbl.index_create('bi') {|row| row[:b]}
     ot: ({'created':1})
   - rb: tbl.index_create('ci') {|row| row[:c]}
     ot: ({'created':1})
   - rb: tbl.index_create('idi') {|row| row[:id]}
+    ot: ({'created':1})
+  - rb: tbl.index_create('brokeni') {|row| row[:broken]}
     ot: ({'created':1})
 
   - rb: tbl.get(true)
@@ -54,5 +58,9 @@ tests:
     ot: ('SELECTION')
   - rb: tbl.get_all(1, :index => :ci).update{nil}
     ot: ({'replaced':0,'skipped':0,'deleted':0,'unchanged':2,'errors':0,'inserted':0})
+  - rb: tbl.get_all(1, :index => :idi)[0][:id]
+    ot: 1
+  - rb: tbl.get_all(1, :index => :brokeni)
+    ot: []
 
   - cd: r.db('test').table_drop('sindex_api')
