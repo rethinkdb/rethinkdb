@@ -238,11 +238,6 @@ private:
     size_t gen2;
 };
 
-template<class T>
-struct env_wrapper_t : public ptr_baggable_t {
-    T t;
-};
-
 }  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_

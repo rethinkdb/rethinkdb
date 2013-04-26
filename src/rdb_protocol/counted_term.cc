@@ -4,6 +4,11 @@
 
 namespace ql {
 
+void deref_term_t::operator=(const Term &assignee) const {
+    *pointee = assignee;
+}
+
+
 counted_term_t::counted_term_t(Term *pointee, intptr_t *refcount, Term *destructee)
     : pointee_(pointee), refcount_(refcount), destructee_(destructee) { }
 

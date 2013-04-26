@@ -1,5 +1,6 @@
 #include "rdb_protocol/func.hpp"
 
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -208,11 +209,13 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
 
 counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                             const pb_rcheckable_t *bt_src) {
-    env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
-    Term *arg = &twrap->t;
-        N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
-    bt_src->propagate(&twrap->t);
-    return make_counted<func_t>(env, &twrap->t);
+    counted_term_t twrap = counted_term_t::make(new Term);
+    Term *const arg = twrap.get();
+    N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+    // SAMRSI: Make sure propagate lifetiming is okay.
+    bt_src->propagate(twrap.get());
+    // SAMRSI: Check lifetime of func_t here... heh.
+    return make_counted<func_t>(env, arg);
 }
 
 

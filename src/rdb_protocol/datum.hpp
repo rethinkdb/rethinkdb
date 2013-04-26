@@ -1,5 +1,6 @@
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
+
 #include <map>
 #include <string>
 #include <utility>

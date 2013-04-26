@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
+
+#include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
 
@@ -134,12 +136,14 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                     !conflict,
                     strprintf("Duplicate global optarg: %s", ap.key().c_str()));
             }
-            env_wrapper_t<Term> *ewt = env->add_ptr(new env_wrapper_t<Term>());
-            Term *arg = &ewt->t;
+            counted_term_t ewt = counted_term_t::make(new Term);
+            Term *const arg = ewt.get();
 
             N1(DB, NDATUM("test"));
 
+            // SAMRSI: Check term_walker_t lifetiming (wtf is up with this magic constructor call?)
             term_walker_t(arg, t_bt); // duplicate toplevel backtrace
+            // SAMRSI: Check add_optarg lifetiming.
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 

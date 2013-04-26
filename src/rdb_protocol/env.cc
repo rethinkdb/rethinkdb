@@ -1,4 +1,6 @@
 #include "rdb_protocol/env.hpp"
+
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
@@ -18,11 +20,12 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
-    env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
-    Term *arg = &ewt->t;
+    counted_term_t arg = counted_term_t::make(new Term);
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
-    term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, 0);
+    // SAMRSI: Check term_walker_t lifetiming.
+    term_walker_t(arg.get(), &val.GetExtension(ql2::extension::backtrace));
+    // SAMRSI: Check wire_func_t lifetiming.
+    optargs[key] = wire_func_t((*arg).undo_deref(), 0);
     return false;
 }
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
