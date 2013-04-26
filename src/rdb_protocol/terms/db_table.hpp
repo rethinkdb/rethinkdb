@@ -166,7 +166,7 @@ private:
         }
 
         bool hard_durability = true;
-        if (val_t *v = optarg("hard_durability", 0)) {
+        if (val_t *v = optarg("hard_durability", NULL)) {
             hard_durability = v->as_datum()->as_bool();
         }
 
