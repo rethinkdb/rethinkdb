@@ -165,7 +165,6 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                                        promise_t<superblock_t *> *superblock_promise_or_null,
                                        Datum *response_out,
                                        rdb_modification_info_t *mod_info) {
-    // SAMRSI: Anybody using num_1?
     scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
@@ -178,14 +177,14 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<const ql::datum_t>(old_val_json, ql_env);
+            old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
         }
         guarantee(old_val);
 
@@ -211,9 +210,9 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
-                conflict = resp->add("skipped", make_counted<const ql::datum_t>(1.0));
+                conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0));
             } else {
-                conflict = resp->add("inserted", make_counted<const ql::datum_t>(1.0));
+                conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
@@ -222,16 +221,15 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
             }
         } else {
             if (ended_empty) {
-                conflict = resp->add("deleted", make_counted<const ql::datum_t>(1.0));
+                conflict = resp->add("deleted", make_counted<ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
                 if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
                     if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged", make_counted<const ql::datum_t>(1.0));
+                        conflict = resp->add("unchanged", make_counted<ql::datum_t>(1.0));
                     } else {
-                        // SAMRSI: make_counted<ql::datum_t>
-                        conflict = resp->add("replaced", make_counted<const ql::datum_t>(1.0));
+                        conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
                         r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
                         boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                             = new_val->as_json();
@@ -252,8 +250,8 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
         guarantee(!conflict); // message never added twice
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
-        bool b = resp->add("errors", make_counted<const ql::datum_t>(1.0))
-            || resp->add("first_error", make_counted<const ql::datum_t>(msg));
+        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
+            || resp->add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
     }
     resp->write_to_protobuf(response_out);
