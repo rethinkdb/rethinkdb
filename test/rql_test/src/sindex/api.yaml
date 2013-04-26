@@ -75,4 +75,9 @@ tests:
   - rb: tbl.get_all(1, :index => :brokeni)
     ot: []
 
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl)
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+  - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :id)
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
   - cd: r.db('test').table_drop('sindex_api')
