@@ -38,7 +38,11 @@ public:
     };
 
     void assert_not_draining() {
-        rassert(!draining.is_pulsed());
+        guarantee(!draining.is_pulsed());
+    }
+
+    void assert_draining() {
+        guarantee(draining.is_pulsed());
     }
 
     void rethread(int new_thread) {

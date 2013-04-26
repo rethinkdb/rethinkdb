@@ -2,10 +2,10 @@ from sys import argv
 from random import randint
 from subprocess import call
 from sys import path, exit
-path.append(".")
+path.insert(0, ".")
 from test_util import RethinkDBTestServers
 
-path.append("../../drivers/python")
+path.insert(0, "../../drivers/python")
 import rethinkdb as r
 
 server_build_dir = argv[1]

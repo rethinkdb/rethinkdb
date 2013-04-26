@@ -129,6 +129,9 @@ public:
             internal_disk_backed_queue_t *disk_backed_queue,
             const mutex_t::acq_t *acq);
 
+    void emergency_deregister_sindex_queue(
+            internal_disk_backed_queue_t *disk_backed_queue);
+
     void sindex_queue_push(
             const write_message_t& value,
             const mutex_t::acq_t *acq);

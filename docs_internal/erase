@@ -1,7 +1,0 @@
-
--- Set a password --
-hdparm --user-master u --security-set-pass [PASSWORD] /dev/sd[X]
-
--- Issue erase command --
-hdparm --user-master u --security-erase [PASSWORD] /dev/sd[X]
-

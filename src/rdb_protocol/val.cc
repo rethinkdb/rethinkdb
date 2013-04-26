@@ -147,13 +147,10 @@ std::vector<const datum_t *> table_t::batch_replace(
             if (upsert) {
                 replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
             } else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
                 N3(BRANCH,
                    N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
                    NDATUM(replacement_values[i]),
                    N1(ERROR, NDATUM("Duplicate primary key.")));
-#pragma GCC diagnostic pop
             }
 
             propagate(&t);
