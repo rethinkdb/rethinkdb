@@ -20,6 +20,7 @@ public:
         Term *body = pb::set_func(&map_func, varnum);
         *body = *term;
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
+        prop_bt(&map_func);
     }
 private:
     virtual val_t *obj_eval() = 0;

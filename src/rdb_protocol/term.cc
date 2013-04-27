@@ -238,6 +238,10 @@ const Term *term_t::get_src() const {
     return src;
 }
 
+void term_t::prop_bt(Term *t) const {
+    term_walker_t(t, &get_src()->GetExtension(ql2::extension::backtrace));
+}
+
 val_t *term_t::eval() {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());

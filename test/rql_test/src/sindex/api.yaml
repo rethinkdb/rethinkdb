@@ -116,5 +116,22 @@ tests:
           {'left':{'id':2,'a':0,'b':0,'c':1},'right':{'id':3,'a':0,'b':1,'c':1}},
           {'left':{'id':3,'a':0,'b':1,'c':1},'right':{'id':3,'a':0,'b':1,'c':1}}])
 
+  - rb: tbl.index_create('id')
+    ot: 'err("RqlRuntimeError", "Index name conflict: `id` is the name of the primary key.", [])'
+
+  - rb: tbl.index_create('c')
+    ot: ({'created':1})
+  - rb: tbl.index_create('broken')
+    ot: ({'created':1})
+
+  - rb: tbl.get_all(1, :index => 'c').orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
+  - rb: tbl.get_all(1, :index => 'broken').orderby(:broken).map{|x| x[:id]}
+    ot: []
+
+  - rb: tbl.index_create('nil') {nil}
+    ot: ({'created':1})
+  - rb: tbl.get_all(nil, :index => :nil)
+    ot: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got nu""ll of type NULL).", [])'
 
   - cd: r.db('test').table_drop('sindex_api')
