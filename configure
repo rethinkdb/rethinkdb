@@ -280,6 +280,7 @@ EOF
   --disable-<option>      Enable or disable a build option
                             drivers          Build the client drivers (default: true)
                             precompiled-web  Use precompiled web assets located in precompiled/web (default: false)
+  --ccache                Speed up the build using ccache
 EOF
 }
 

@@ -44,8 +44,14 @@ MAKE_CMD_LINE += --no-builtin-rules
 MAKE_CMD_LINE += --no-builtin-variables
 MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
 
+# Makefiles can override the goals by setting OVERRIDE_GOALS=<goal>=<replacement>
+OVERRIDE_GOALS ?=
+NEW_MAKECMDGOALS := $(MAKECMDGOALS)
+comma := ,
+$(foreach _, $(OVERRIDE_GOALS), $(eval NEW_MAKECMDGOALS := $$(patsubst $(subst =,$(comma),$_), $$(NEW_MAKECMDGOALS))))
+
 # Call fixpath on all goals that aren't phony
-MAKE_GOALS = $(foreach goal,$(filter-out $(PHONY_LIST),$(MAKECMDGOALS)),$(call fixpath,$(goal))) $(filter $(PHONY_LIST),$(MAKECMDGOALS))
+MAKE_GOALS = $(foreach goal,$(filter-out $(PHONY_LIST),$(NEW_MAKECMDGOALS)),$(call fixpath,$(goal))) $(filter $(PHONY_LIST),$(NEW_MAKECMDGOALS))
 
 # Delegate the build to mk/main.mk
 .PHONY: make
