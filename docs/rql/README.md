@@ -76,4 +76,4 @@ certain kinds of API usage errors. It cannot catch errors that would otherwise b
 reported by the server though since the queries go into a black hole.
 
 To run the validation script simply run `make validate` in this directory or
-`make validate -C <rethinkdb-src>/test/rql_test/docs/`.
+`make validate -C <rethinkdb-src>/docs/rql/`.
