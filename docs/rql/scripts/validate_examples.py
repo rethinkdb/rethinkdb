@@ -9,7 +9,7 @@ import SocketServer
 import struct
 import pdb
 
-sys.path.insert(0, '../../../drivers/python/rethinkdb')
+sys.path.insert(0, '../../drivers/python/rethinkdb')
 import ql2_pb2 as p
 
 # tree of YAML documents defining documentation
@@ -32,14 +32,14 @@ def validate_for(lang, port):
         if lang == 'py':
             out.write("""
 from sys import path
-path.insert(0, '../../../drivers/python')
+path.insert(0, '../../drivers/python')
 import rethinkdb as r
 conn = r.connect(port=%d)
 print 'Running python validation.'
 """ % port)
         elif lang == 'js':
             out.write("""
-var r = require("../../../../drivers/javascript/build/rethinkdb");
+var r = require("../../../drivers/javascript/build/rethinkdb");
 var callback = (function() { });
 var cur = {next:(function(){}), hasNext:(function(){}), each:(function(){}), toArray:(function(){})};
 r.connect({port:%d}, function(err, conn) {
@@ -47,7 +47,7 @@ console.log("Running Javascript validation.");
             """ % port)
         elif lang == 'rb':
             out.write("""
-$LOAD_PATH.unshift('../../../drivers/ruby/lib')
+$LOAD_PATH.unshift('../../drivers/ruby/lib')
 require 'rethinkdb.rb'
 include RethinkDB::Shortcuts
 conn = r.connect('localhost', %d)

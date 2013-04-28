@@ -9,6 +9,9 @@ src_dir = sys.argv[1]
 # JSON output file of the old format
 dest_file = sys.argv[2]
 
+# The contents of this file are prepended to the dest_file
+header_file = sys.argv[3]
+
 # Merged list of all sections defined in the input files
 sections = []
 # Merged list of all commands defined in the input files
@@ -150,7 +153,7 @@ for section in sections:
 out_obj['sections'].sort(key=lambda section: section['order'])
 
 # And add header information
-out_obj = dict(json.load(open("header.json", "r")).items() + out_obj.items())
+out_obj = dict(json.load(open(header_file, "r")).items() + out_obj.items())
 
 # Serialize and write the output
 out_file = file(dest_file, 'w')
