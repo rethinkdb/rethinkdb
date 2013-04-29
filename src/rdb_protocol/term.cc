@@ -151,7 +151,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             root_term = compile_term(env, t);
             // TODO: handle this properly
         } catch (const exc_t &e) {
-            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
             return;
         }
 
@@ -159,7 +159,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(!stream_cache2->contains(token),
                 strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
 
@@ -178,7 +178,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                                "(got %s).", val->get_type().name());
             }
         } catch (const exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
             return;
         }
     } break;
@@ -188,7 +188,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(b, strprintf("Token %" PRIi64 " not in stream cache.",
                                          token));
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
     } break;
@@ -198,7 +198,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                 strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
     } break;

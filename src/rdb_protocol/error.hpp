@@ -97,7 +97,7 @@ public:
     explicit backtrace_t(const Backtrace *bt) {
         if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
-            push_back(bt->frames(i));
+            push_back(frame_t(bt->frames(i)));
         }
     }
     backtrace_t() { }
@@ -162,10 +162,6 @@ private:
         r_sanity_check(f.is_valid());
         frames.push_back(f);
     }
-    template<class T>
-    void push_back(T t) {
-        push_back(frame_t(t));
-    }
 
     std::list<frame_t> frames;
 };
@@ -182,33 +178,28 @@ public:
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
-    exc_t() : exc_msg("UNINITIALIZED") { }
-    exc_t(const std::string &_exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
-        : exc_msg(_exc_msg) {
-        // SAMRSI: Stupid null pointer arg.
+    exc_t() : exc_msg_("UNINITIALIZED") { }
+    exc_t(const std::string &exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
+        : exc_msg_(exc_msg) {
         if (bt_src != NULL) {
-            set_backtrace(backtrace_t(bt_src));
+            backtrace_ = backtrace_t(bt_src);
         }
-        backtrace.delete_frames(dummy_frames);
+        backtrace_.delete_frames(dummy_frames);
     }
-    exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace,
+    exc_t(const std::string &exc_msg, const backtrace_t &backtrace,
           int dummy_frames = 0)
-        : backtrace(_backtrace), exc_msg(_exc_msg) {
-        backtrace.delete_frames(dummy_frames);
+        : backtrace_(backtrace), exc_msg_(exc_msg) {
+        backtrace_.delete_frames(dummy_frames);
     }
     virtual ~exc_t() throw () { }
-    const char *what() const throw () { return exc_msg.c_str(); }
-    RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 
-    // SAMRSI: Rename to init_backtrace.
-    void set_backtrace(const backtrace_t &bt) {
-        r_sanity_check(backtrace.is_empty());
-        backtrace = bt;
-    }
+    const char *what() const throw () { return exc_msg_.c_str(); }
+    const backtrace_t &backtrace() const { return backtrace_; }
 
-    backtrace_t backtrace;
+    RDB_MAKE_ME_SERIALIZABLE_2(backtrace_, exc_msg_);
 private:
-    std::string exc_msg;
+    backtrace_t backtrace_;
+    std::string exc_msg_;
 };
 
 // A datum exception is like a normal RQL exception, except it doesn't

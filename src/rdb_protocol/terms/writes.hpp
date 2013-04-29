@@ -213,7 +213,7 @@ private:
                     }
                 }
             } catch (const exc_t &e) {
-                throw exc_t(fail_msg, e.backtrace);
+                throw exc_t(fail_msg, e.backtrace());
             } catch (const datum_exc_t &de) {
                 rfail_target(v, "%s", fail_msg);
             }
