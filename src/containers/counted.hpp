@@ -104,19 +104,7 @@ public:
         return counted_t_use_count(p_) == 1;
     }
 
-    class hidden_t {
-        hidden_t();
-    };
-    typedef void booleanesque_t(hidden_t);
-
-    // SAMRSI: Get rid of this.
-    operator booleanesque_t*() const {
-        return p_ ? &counted_t<T>::dummy_method : 0;
-    }
-
 private:
-    static void dummy_method(hidden_t) { }
-
     T *p_;
 };
 

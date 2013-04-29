@@ -101,7 +101,9 @@ private:
         std::pair<counted_t<table_t>, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
         counted_t<val_t> lb = optarg("left_bound", counted_t<val_t>());
         counted_t<val_t> rb = optarg("right_bound", counted_t<val_t>());
-        if (!lb && !rb) return new_val(sel.second, sel.first);
+        if (!lb.has() && !rb.has()) {
+            return new_val(sel.second, sel.first);
+        }
 
         counted_t<table_t> tbl = sel.first;
         const std::string &pk = tbl->get_pkey();
@@ -112,9 +114,13 @@ private:
             int varnum = env->gensym();
             Term *body = pb::set_func(filter_func.get(), varnum);
             std::vector<Term *> args;
-            pb::set(body, Term_TermType_ALL, &args, !!lb + !!rb);
-            if (lb) set_cmp(args[0], varnum, pk, Term_TermType_GE, lb->as_datum());
-            if (rb) set_cmp(args[!!lb], varnum, pk, Term_TermType_LE, rb->as_datum());
+            pb::set(body, Term_TermType_ALL, &args, lb.has() + rb.has());
+            if (lb.has()) {
+                set_cmp(args[0], varnum, pk, Term_TermType_GE, lb->as_datum());
+            }
+            if (rb.has()) {
+                set_cmp(args[lb.has() ? 1 : 0], varnum, pk, Term_TermType_LE, rb->as_datum());
+            }
         }
 
         guarantee(filter_func.has());

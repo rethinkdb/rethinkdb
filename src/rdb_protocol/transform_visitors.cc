@@ -24,7 +24,8 @@ void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
     counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
-    while (counted_t<const ql::datum_t> d = ds->next()) {
+    counted_t<const ql::datum_t> d;
+    while ((d = ds->next(), d.has())) {
         out->push_back(d->as_json());
     }
 }

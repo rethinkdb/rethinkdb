@@ -78,7 +78,7 @@ counted_t<val_t> op_term_t::optarg(const std::string &key, counted_t<val_t> defa
         return it->second->eval();
     }
     counted_t<val_t> v = env->get_optarg(key);
-    return v ? v : default_value;
+    return v.has() ? v : default_value;
 }
 
 bool op_term_t::is_deterministic_impl() const {

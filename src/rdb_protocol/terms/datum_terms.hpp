@@ -11,7 +11,7 @@ class datum_term_t : public term_t {
 public:
     datum_term_t(env_t *env, const Term *t)
         : term_t(env, t), raw_val(new_val(make_counted<const datum_t>(&t->datum(), env))) {
-        guarantee(raw_val);
+        guarantee(raw_val.has());
     }
 private:
     virtual bool is_deterministic_impl() const { return true; }

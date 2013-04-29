@@ -504,7 +504,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 }
 
                 // Write new token to index, or remove from index as appropriate.
-                if (token) {
+                if (token.has()) {
                     ls_block_token_pointee_t *ls_token = token.get();
                     rassert(ls_token);
                     std::map<ls_block_token_pointee_t *, int64_t>::const_iterator to_it = token_offsets.find(ls_token);

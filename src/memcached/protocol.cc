@@ -44,7 +44,7 @@ typedef memcached_protocol_t::backfill_chunk_t backfill_chunk_t;
 const std::string memcached_protocol_t::protocol_name("memcached");
 
 write_message_t &operator<<(write_message_t &msg, const counted_t<data_buffer_t> &buf) {
-    if (buf) {
+    if (buf.has()) {
         bool exists = true;
         msg << exists;
         int64_t size = buf->size();

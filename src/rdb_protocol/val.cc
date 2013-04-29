@@ -186,12 +186,12 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
     for (size_t i = 0; i < replacements.size(); ++i) {
         try {
-            if (replacements[i].error_value != NULL) {
-                r_sanity_check(replacements[i].original_value == NULL);
+            if (replacements[i].error_value.has()) {
+                r_sanity_check(!replacements[i].original_value.has());
                 ret[i] = replacements[i].error_value;
             } else {
                 counted_t<const datum_t> orig = replacements[i].original_value;
-                r_sanity_check(orig != NULL);
+                r_sanity_check(orig.has());
 
                 if (orig->get_type() == datum_t::R_NULL) {
                     // TODO: We copy this for some reason, possibly no reason.
@@ -233,7 +233,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
     size_t j = 0;
     for (size_t i = 0; i < ret.size(); ++i) {
-        if (ret[i] == NULL) {
+        if (!ret[i].has()) {
             r_sanity_check(j < datums->size());
             ret[i] = make_counted<datum_t>(&(*datums)[j].second, env);
             ++j;
@@ -424,7 +424,7 @@ val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent)
       parent(_parent),
       type(type_t::DATUM),
       datum(_datum) {
-    guarantee(datum);
+    guarantee(datum.has());
     // SAMRSI: Do the non-lazy thing and construct a uuid_u, copy that.  Or something.
     memset(opaque_db, 0, sizeof(opaque_db));
 }
@@ -434,8 +434,8 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const t
       type(type_t::SINGLE_SELECTION),
       table(_table),
       datum(_datum) {
-    guarantee(table);
-    guarantee(datum);
+    guarantee(table.has());
+    guarantee(datum.has());
     // SAMRSI: Do the non-lazy thing.
     memset(opaque_db, 0, sizeof(opaque_db));
 }
@@ -444,10 +444,10 @@ val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent)
       parent(_parent),
       type(type_t::SEQUENCE),
       sequence(_sequence) {
-    guarantee(sequence);
+    guarantee(sequence.has());
     // Some streams are really arrays in disguise.
     counted_t<const datum_t> arr = sequence->as_array();
-    if (arr) {
+    if (arr.has()) {
         type = type_t::DATUM;
         datum = arr;
     }
@@ -460,8 +460,8 @@ val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
       type(type_t::SELECTION),
       table(_table),
       sequence(_sequence) {
-    guarantee(table);
-    guarantee(sequence);
+    guarantee(table.has());
+    guarantee(sequence.has());
 }
 
 val_t::val_t(counted_t<table_t> _table, const term_t *_parent)
@@ -469,14 +469,14 @@ val_t::val_t(counted_t<table_t> _table, const term_t *_parent)
       parent(_parent),
       type(type_t::TABLE),
       table(_table) {
-    guarantee(table);
+    guarantee(table.has());
 }
 val_t::val_t(uuid_u _db, const term_t *_parent)
     : pb_rcheckable_t(_parent),
       parent(_parent),
       type(type_t::DB),
       table(NULL) {
-    guarantee(table == NULL);
+    guarantee(!table.has());
     *db_ptr() = _db;
 }
 val_t::val_t(counted_t<func_t> _func, const term_t *_parent)
@@ -484,7 +484,7 @@ val_t::val_t(counted_t<func_t> _func, const term_t *_parent)
       parent(_parent),
       type(type_t::FUNC),
       func(_func) {
-    guarantee(func);
+    guarantee(func.has());
 }
 
 val_t::~val_t() {
@@ -536,7 +536,7 @@ std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_select
 
 counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
-        r_sanity_check(func);
+        r_sanity_check(func.has());
         return func;
     }
 
@@ -571,7 +571,7 @@ uuid_u val_t::as_db() {
 bool val_t::as_bool() {
     try {
         counted_t<const datum_t> d = as_datum();
-        r_sanity_check(d);
+        r_sanity_check(d.has());
         return d->as_bool();
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
@@ -581,7 +581,7 @@ bool val_t::as_bool() {
 double val_t::as_num() {
     try {
         counted_t<const datum_t> d = as_datum();
-        r_sanity_check(d);
+        r_sanity_check(d.has());
         return d->as_num();
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
@@ -591,7 +591,7 @@ double val_t::as_num() {
 int64_t val_t::as_int() {
     try {
         counted_t<const datum_t> d = as_datum();
-        r_sanity_check(d);
+        r_sanity_check(d.has());
         return d->as_int();
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
@@ -601,7 +601,7 @@ int64_t val_t::as_int() {
 const std::string &val_t::as_str() {
     try {
         counted_t<const datum_t> d = as_datum();
-        r_sanity_check(d);
+        r_sanity_check(d.has());
         return d->as_str();
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());

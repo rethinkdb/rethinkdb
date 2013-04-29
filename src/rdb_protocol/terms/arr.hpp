@@ -56,8 +56,8 @@ private:
             counted_t<const datum_t> last_d;
             for (int32_t i = 0; ; ++i) {
                 counted_t<const datum_t> d = s->next();
-                if (!d) {
-                    rcheck(n == -1 && last_d, strprintf("Index out of bounds: %d", n));
+                if (!d.has()) {
+                    rcheck(n == -1 && last_d.has(), strprintf("Index out of bounds: %d", n));
                     return new_val(last_d);
                 }
                 if (i == n) return new_val(d);
@@ -110,7 +110,7 @@ private:
             rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
             rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
             counted_t<datum_stream_t> new_ds = seq->slice(fake_l, fake_r);
-            return t ? new_val(new_ds, t) : new_val(new_ds);
+            return t.has() ? new_val(new_ds, t) : new_val(new_ds);
         }
         rfail("Cannot slice non-sequences.");
         unreachable();
@@ -137,7 +137,7 @@ private:
         } else {
             new_ds = ds->slice(0, r-1); // note that both bounds are inclusive
         }
-        return t ? new_val(new_ds, t) : new_val(new_ds);
+        return t.has() ? new_val(new_ds, t) : new_val(new_ds);
     }
     virtual const char *name() const { return "limit"; }
 };

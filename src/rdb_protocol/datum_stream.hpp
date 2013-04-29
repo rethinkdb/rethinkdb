@@ -94,7 +94,7 @@ class map_datum_stream_t : public eager_datum_stream_t {
 public:
     map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
-        guarantee(f && source);
+        guarantee(f.has() && source.has());
     }
 private:
     counted_t<const datum_t> next_impl();
@@ -107,7 +107,7 @@ class filter_datum_stream_t : public eager_datum_stream_t {
 public:
     filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
-        guarantee(f && source);
+        guarantee(f.has() && source.has());
     }
 
 private:
@@ -121,7 +121,7 @@ class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
     concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
-        guarantee(f && source);
+        guarantee(f.has() && source.has());
     }
 
 private:
@@ -200,7 +200,7 @@ public:
                         const pb_rcheckable_t *bt_src)
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
           src(_src), data_index(-1), is_arr_(false) {
-        guarantee(src);
+        guarantee(src.has());
         load_data();
     }
 
@@ -225,7 +225,8 @@ private:
     void load_data() {
         if (data_index != -1) return;
         data_index = 0;
-        if (counted_t<const datum_t> arr = src->as_array()) {
+        counted_t<const datum_t> arr;
+        if ((arr = src->as_array(), arr.has())) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    strprintf("Can only sort at most %zu elements.",
@@ -236,7 +237,8 @@ private:
         } else {
             is_arr_ = false;
             size_t sort_els = 0;
-            while (counted_t<const datum_t> d = src->next()) {
+            counted_t<const datum_t> d;
+            while ((d = src->next(), d.has())) {
                 rcheck(++sort_els <= sort_el_limit,
                        strprintf("Can only sort at most %zu elements.",
                                  sort_el_limit));

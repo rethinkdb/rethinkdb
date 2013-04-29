@@ -37,10 +37,10 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
         std::vector<counted_t<const datum_t> > batch;
         for (;;) {
             counted_t<const datum_t> datum = next_impl();
-            if (datum != NULL) {
+            if (datum.has()) {
                 batch.push_back(datum);
             }
-            if (datum == NULL || batch.size() == MAX_BATCH_SIZE) {
+            if (!datum.has() || batch.size() == MAX_BATCH_SIZE) {
                 return batch;
             }
         }
@@ -53,17 +53,19 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
 counted_t<const datum_t> eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
-        if (!next()) break;
+        counted_t<const datum_t> value = next();
+        if (!value.has()) { break; }
         ++i;
     }
     return make_counted<datum_t>(static_cast<double>(i));
 }
 
 counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {
-    counted_t<const datum_t> base = base_val ? base_val->as_datum() : next();
-    rcheck(base, "Cannot reduce over an empty stream with no base.");
+    counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
+    rcheck(base.has(), "Cannot reduce over an empty stream with no base.");
 
-    while (counted_t<const datum_t> rhs = next()){
+    counted_t<const datum_t> rhs;
+    while ((rhs = next(), rhs.has())){
         base = f->call(base, rhs)->as_datum();
     }
     return base;
@@ -72,11 +74,12 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
 counted_t<const datum_t> eager_datum_stream_t::gmr(
     counted_t<func_t> group, counted_t<func_t> map, counted_t<const datum_t> base, counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
-    while (counted_t<const datum_t> el = next()) {
+    counted_t<const datum_t> el;
+    while ((el = next(), el.has())) {
         counted_t<const datum_t> el_group = group->call(el)->as_datum();
         counted_t<const datum_t> el_map = map->call(el)->as_datum();
         if (!wd_map.has(el_group)) {
-            wd_map.set(el_group, base ? reduce->call(base, el_map)->as_datum() : el_map);
+            wd_map.set(el_group, base.has() ? reduce->call(base, el_map)->as_datum() : el_map);
         } else {
             wd_map.set(el_group, reduce->call(wd_map.get(el_group), el_map)->as_datum());
         }
@@ -96,7 +99,8 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 
 counted_t<const datum_t> eager_datum_stream_t::as_array() {
     scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-    while (counted_t<const datum_t> d = next()) {
+    counted_t<const datum_t> d;
+    while ((d = next(), d.has())) {
         arr->add(d);
     }
     return counted_t<const datum_t>(arr.release());
@@ -170,14 +174,14 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val, 
 
     if (wire_datum_t *wire_datum = boost::get<wire_datum_t>(&res)) {
         counted_t<const datum_t> datum = wire_datum->compile(env);
-        if (base_val) {
+        if (base_val.has()) {
             return f->call(base_val->as_datum(), datum)->as_datum();
         } else {
             return datum;
         }
     } else {
         r_sanity_check(boost::get<rdb_protocol_t::rget_read_response_t::empty_t>(&res));
-        if (base_val) {
+        if (base_val.has()) {
             return base_val->as_datum();
         } else {
             rfail("Cannot reduce over an empty stream with no base.");
@@ -195,7 +199,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
     r_sanity_check(dm);
     dm->compile(env);
     counted_t<const datum_t> dm_arr = dm->to_arr();
-    if (!base) {
+    if (!base.has()) {
         return dm_arr;
     } else {
         wire_datum_map_t map;
@@ -222,8 +226,8 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, counted_t<const datum_t> 
 
 counted_t<const datum_t> array_datum_stream_t::next_impl() {
     counted_t<const datum_t> datum = arr->get(index, NOTHROW);
-    if (!datum) {
-        return counted_t<const datum_t>();;
+    if (!datum.has()) {
+        return counted_t<const datum_t>();
     } else {
         ++index;
         return datum;
@@ -233,7 +237,7 @@ counted_t<const datum_t> array_datum_stream_t::next_impl() {
 // MAP_DATUM_STREAM_T
 counted_t<const datum_t> map_datum_stream_t::next_impl() {
     counted_t<const datum_t> arg = source->next();
-    if (!arg) {
+    if (!arg.has()) {
         return counted_t<const datum_t>();
     } else {
         return f->call(arg)->as_datum();
@@ -245,7 +249,7 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl() {
     for (;;) {
         counted_t<const datum_t> arg = source->next();
 
-        if (!arg) {
+        if (!arg.has()) {
             return counted_t<const datum_t>();
         }
 
@@ -258,16 +262,16 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl() {
 // CONCATMAP_DATUM_STREAM_T
 counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
     for (;;) {
-        if (subsource == NULL) {
+        if (!subsource.has()) {
             counted_t<const datum_t> arg = source->next();
-            if (!arg) {
+            if (!arg.has()) {
                 return counted_t<const datum_t>();
             }
             subsource = f->call(arg)->as_seq();
         }
 
         counted_t<const datum_t> datum = subsource->next();
-        if (datum) {
+        if (datum.has()) {
             return datum;
         }
 
@@ -288,14 +292,14 @@ counted_t<const datum_t> slice_datum_stream_t::next_impl() {
 
     while (index < left) {
         counted_t<const datum_t> discard = src_stream()->next();
-        if (!discard) {
+        if (!discard.has()) {
             return counted_t<const datum_t>();
         }
         ++index;
     }
 
     counted_t<const datum_t> datum = src_stream()->next();
-    if (datum) {
+    if (datum.has()) {
         ++index;
     }
     return datum;
@@ -307,14 +311,14 @@ zip_datum_stream_t::zip_datum_stream_t(env_t *_env, counted_t<datum_stream_t> _s
 
 counted_t<const datum_t> zip_datum_stream_t::next_impl() {
     counted_t<const datum_t> datum = src_stream()->next();
-    if (!datum) {
+    if (!datum.has()) {
         return counted_t<const datum_t>();
     }
 
     counted_t<const datum_t> left = datum->get("left", NOTHROW);
     counted_t<const datum_t> right = datum->get("right", NOTHROW);
-    rcheck(left != NULL, "ZIP can only be called on the result of a join.");
-    return right != NULL ? left->merge(right) : left;
+    rcheck(left.has(), "ZIP can only be called on the result of a join.");
+    return right.has() ? left->merge(right) : left;
 }
 
 
@@ -322,7 +326,7 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
 counted_t<const datum_t> union_datum_stream_t::next_impl() {
     for (; streams_index < streams.size(); ++streams_index) {
         counted_t<const datum_t> datum = streams[streams_index]->next();
-        if (datum) {
+        if (datum.has()) {
             return datum;
         }
     }

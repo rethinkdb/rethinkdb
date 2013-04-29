@@ -362,7 +362,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
         /* If res.value is NULL that means the value was not found so we don't write
            anything */
-        if (res.value) {
+        if (res.value.has()) {
             /* If the write half of the connection has been closed, there's no point in trying
                to send anything */
             if (rh->is_write_open()) {

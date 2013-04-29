@@ -189,7 +189,8 @@ private:
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-                while (counted_t<const datum_t> el = ds->next()) {
+                counted_t<const datum_t> el;
+                while ((el = ds->next(), el.has())) {
                     arr->add(el);
                 }
                 return new_val(counted_t<const datum_t>(arr.release()));
@@ -199,7 +200,8 @@ private:
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
-                    while (counted_t<const datum_t> pair = ds->next()) {
+                    counted_t<const datum_t> pair;
+                    while ((pair = ds->next(), pair.has())) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj->add(key, keyval);

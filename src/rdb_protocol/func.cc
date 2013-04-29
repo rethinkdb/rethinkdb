@@ -76,8 +76,8 @@ func_t::func_t(env_t *env, const Term *_source)
 
 counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) {
     try {
-        if (js_parent != NULL) {
-            r_sanity_check(!body && source && js_env);
+        if (js_parent.has()) {
+            r_sanity_check(!body.has() && source && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
             for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
@@ -89,13 +89,13 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
 
             return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
         } else {
-            r_sanity_check(body && source && !js_env);
+            r_sanity_check(body.has() && source && !js_env);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
             for (ssize_t i = 0; i < argptrs.size(); ++i) {
-                r_sanity_check(args[i]);
+                r_sanity_check(args[i].has());
                 argptrs[i] = args[i];
             }
             return body->eval();
@@ -127,12 +127,12 @@ counted_t<val_t> func_t::call(counted_t<const datum_t> arg1, counted_t<const dat
 void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
     for (std::map<int64_t, counted_t<const datum_t> *>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
-        if (!*it->second) continue;
+        if (!it->second->has()) continue;
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
     }
 }
 bool func_t::is_deterministic() const {
-    return body ? body->is_deterministic() : false;
+    return body.has() ? body->is_deterministic() : false;
 }
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
@@ -190,9 +190,9 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
     if (d->get_type() == datum_t::R_OBJECT) {
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second != NULL);
+            r_sanity_check(it->second.has());
             counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
-            if (elt == NULL) {
+            if (!elt.has()) {
                 rfail("No attribute `%s` in object.", it->first.c_str());
             } else if (*elt != *it->second) {
                 return false;

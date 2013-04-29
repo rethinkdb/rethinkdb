@@ -55,11 +55,19 @@ private:
                 attrname.erase(0, 1);
                 counted_t<const datum_t> lattr = l->get(attrname, NOTHROW);
                 counted_t<const datum_t> rattr = r->get(attrname, NOTHROW);
-                if (!lattr && !rattr) continue;
-                if (!lattr) return static_cast<bool>(true ^ invert);
-                if (!rattr) return static_cast<bool>(false ^ invert);
+                if (!lattr.has() && !rattr.has()) {
+                    continue;
+                }
+                if (!lattr.has()) {
+                    return static_cast<bool>(true ^ invert);
+                }
+                if (!rattr.has()) {
+                    return static_cast<bool>(false ^ invert);
+                }
                 // TODO: use datum_t::cmp instead to be faster
-                if (*lattr == *rattr) continue;
+                if (*lattr == *rattr) {
+                    continue;
+                }
                 return static_cast<bool>((*lattr < *rattr) ^ invert);
             }
             return false;
@@ -92,7 +100,7 @@ private:
             seq = v0->as_seq();
         }
         counted_t<datum_stream_t> s(new sort_datum_stream_t<lt_cmp_t>(env, lt_cmp, seq, this));
-        return tbl ? new_val(s, tbl) : new_val(s);
+        return tbl.has() ? new_val(s, tbl) : new_val(s);
     }
     virtual const char *name() const { return "orderby"; }
 
@@ -110,8 +118,9 @@ private:
         scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), this));
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next()) {
-            if (last && *last == *d) continue;
+        counted_t<const datum_t> d;
+        while ((d = s->next(), d.has())) {
+            if (last.has() && *last == *d) continue;
             last = d;
             arr->add(last);
         }

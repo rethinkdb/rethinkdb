@@ -71,7 +71,7 @@ public:
         counted_t<ql::func_t> group = f.compile_group(ql_env);
         counted_t<ql::func_t> map = f.compile_map(ql_env);
         counted_t<ql::func_t> reduce = f.compile_reduce(ql_env);
-        guarantee(group != NULL && map != NULL && reduce != NULL);
+        guarantee(group.has() && map.has() && reduce.has());
         *out = ql::wire_datum_map_t();
     }
 
@@ -81,7 +81,7 @@ public:
 
     void operator()(ql::reduce_wire_func_t &f) const {
         counted_t<ql::func_t> reduce = f.compile(ql_env);
-        guarantee(reduce != NULL);
+        guarantee(reduce.has());
         *out = rget_read_response_t::empty_t();
     }
 

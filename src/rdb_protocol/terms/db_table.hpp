@@ -13,7 +13,7 @@
 namespace ql {
 
 name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
-    r_sanity_check(val);
+    r_sanity_check(val.has());
     std::string raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
@@ -153,27 +153,47 @@ public:
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
-        if (counted_t<val_t> v = optarg("datacenter", counted_t<val_t>())) {
-            name_string_t name = get_name(v, this);
-            {
-                rethreading_metadata_accessor_t meta(this);
-                dc_id = meta_get_uuid(
-                    &meta.dc_searcher, name,
-                    strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
-                    this);
+        {
+            // SAMRSI: Deindent this.
+            counted_t<val_t> v = optarg("datacenter", counted_t<val_t>());
+            if (v.has()) {
+                name_string_t name = get_name(v, this);
+                {
+                    rethreading_metadata_accessor_t meta(this);
+                    dc_id = meta_get_uuid(
+                                          &meta.dc_searcher, name,
+                                          strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
+                                          this);
+                }
             }
         }
 
         bool hard_durability = true;
-        if (counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>())) {
-            hard_durability = v->as_datum()->as_bool();
+        {
+            // SAMRSI: Deindent this.
+            counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>());
+            if (v.has()) {
+                hard_durability = v->as_datum()->as_bool();
+            }
         }
 
         std::string primary_key = "id";
-        if (counted_t<val_t> v = optarg("primary_key", counted_t<val_t>())) primary_key = v->as_str();
+        {
+            // SAMRSI: Deindent this.
+            counted_t<val_t> v = optarg("primary_key", counted_t<val_t>());
+            if (v.has()) {
+                primary_key = v->as_str();
+            }
+        }
 
         int cache_size = 1073741824;
-        if (counted_t<val_t> v = optarg("cache_size", counted_t<val_t>())) cache_size = v->as_int<int>();
+        {
+            // SAMRSI: Deindent this.
+            counted_t<val_t> v = optarg("cache_size", counted_t<val_t>());
+            if (v.has()) {
+                cache_size = v->as_int<int>();
+            }
+        }
 
         uuid_u db_id = arg(0)->as_db();
 
@@ -372,12 +392,12 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
-        bool use_outdated = t ? t->as_bool() : false;
+        bool use_outdated = t.has() ? t->as_bool() : false;
         uuid_u db;
         std::string name;
         if (num_args() == 1) {
             counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
-            r_sanity_check(dbv);
+            r_sanity_check(dbv.has());
             db = dbv->as_db();
             name = arg(0)->as_str();
         } else {

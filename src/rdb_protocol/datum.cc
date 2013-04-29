@@ -227,7 +227,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 
     for (size_t i = 0; i < size(); ++i) {
         counted_t<const datum_t> item = get(i, NOTHROW);
-        r_sanity_check(item != NULL);
+        r_sanity_check(item.has());
 
         if (item->type == R_NUM) {
             item->num_to_str_key(str_out);
@@ -429,14 +429,14 @@ counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env, const pb_rcheckab
 
 void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
-    r_sanity_check(val);
+    r_sanity_check(val.has());
     r_array->push_back(val);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
-    r_sanity_check(val);
+    r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
     return key_in_obj;
@@ -459,7 +459,8 @@ counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        if (counted_t<const datum_t> l = get(it->first, NOTHROW)) {
+        counted_t<const datum_t> l;
+        if ((l = get(it->first, NOTHROW), l.has())) {
             bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {

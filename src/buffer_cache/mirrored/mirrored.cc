@@ -42,7 +42,7 @@ public:
             data.swap(buf->data);
         }
 
-        rassert(data.has() || token, "creating buf snapshot without data or block token");
+        rassert(data.has() || token.has(), "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 
@@ -70,7 +70,7 @@ public:
         if (data.has()) {
             return data.get();
         }
-        rassert(token, "buffer snapshot lacks both token and data");
+        rassert(token.has(), "buffer snapshot lacks both token and data");
 
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
@@ -107,7 +107,7 @@ public:
     // We are safe to unload if we are saved to disk and have no mc_buf_lock_ts actively referencing us.
     bool safe_to_unload() {
         cache->assert_thread();
-        return token && !active_refcount;
+        return token.has() && !active_refcount;
     }
 
     void unload() {
@@ -164,7 +164,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
-        guarantee(data_token);
+        guarantee(data_token.has());
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
@@ -437,7 +437,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const counted_t<sta
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
-        rassert(!data_token, "data token already up-to-date");
+        rassert(!data_token.has(), "data token already up-to-date");
         data_token = token;
         return;
     }
@@ -446,7 +446,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const counted_t<sta
         if (!snap->data.equals(the_data)) {
             continue;
         }
-        rassert(!snap->token, "snapshot data token already up-to-date");
+        rassert(!snap->token.has(), "snapshot data token already up-to-date");
         snap->token = token;
         return;
     }

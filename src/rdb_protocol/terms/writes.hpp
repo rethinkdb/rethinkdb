@@ -66,7 +66,7 @@ private:
     void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
                             counted_t<const datum_t> *datum_out) {
-        if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW)) {
+        if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(key));
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
@@ -80,7 +80,7 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
         const counted_t<val_t> upsert_val = optarg("upsert", counted_t<val_t>());
-        bool upsert = upsert_val ? upsert_val->as_bool() : false;
+        bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
@@ -150,8 +150,12 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
-            nondet_ok = v->as_bool();
+        {
+            // SAMRSI: Deindent this.
+            counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>());
+            if (v.has()) {
+                nondet_ok = v->as_bool();
+            }
         }
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         if (!nondet_ok) {
@@ -201,7 +205,8 @@ private:
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        while (counted_t<const datum_t> row = ds->next()) {
+        counted_t<const datum_t> row;
+        while ((row = ds->next(), row.has())) {
             counted_t<val_t> v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();

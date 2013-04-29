@@ -186,7 +186,7 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
             old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
         }
-        guarantee(old_val);
+        guarantee(old_val.has());
 
         counted_t<const ql::datum_t> new_val = f->compile(ql_env)->call(old_val)->as_datum();
         if (new_val->get_type() == ql::datum_t::R_NULL) {
@@ -194,7 +194,7 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
             rcheck_target(
-                new_val, new_val->get(primary_key, ql::NOTHROW),
+                new_val, new_val->get(primary_key, ql::NOTHROW).has(),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
         } else {
@@ -213,7 +213,7 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                 conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0));
             } else {
                 conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0));
-                r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
+                r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
                                 slice, timestamp, txn);
@@ -230,7 +230,7 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
                         conflict = resp->add("unchanged", make_counted<ql::datum_t>(1.0));
                     } else {
                         conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
-                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW));
+                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                         boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                             = new_val->as_json();
                         kv_location_set(&kv_location, key, new_val_as_json,
