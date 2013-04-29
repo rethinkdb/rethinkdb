@@ -5,8 +5,8 @@ import ql2_pb2 as p
 All top level functions defined here are the starting points for RQL queries
 """
 
-def js(js_str):
-    return JavaScript(js_str)
+def js(js_str, timeout=()):
+    return JavaScript(js_str, timeout=timeout)
 
 def error(msg):
     return UserError(msg)

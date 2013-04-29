@@ -65,6 +65,17 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
+template <class T>
+struct array_t {
+    virtual const T &array_nth(size_t n) const = 0;
+    virtual size_t array_size() const = 0;
+    virtual ~array_t() { }
+
+    array_t() { }
+
+    DISABLE_COPYING(array_t);
+};
+
 /* Regions contained in region_map_t must never intersect. */
 template<class protocol_t, class value_t>
 class region_map_t {
@@ -74,7 +85,7 @@ private:
 public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
-    
+
     /* I got the ypedefs like a std::map. */
     typedef typename protocol_t::region_t key_type;
     typedef value_t mapped_type;
@@ -162,6 +173,13 @@ public:
 
     size_t size() const {
         return regions_and_values.size();
+    }
+
+    // A region map now has an order!  And it's indexable!  The order is
+    // guaranteed to stay the same as long as you don't modify the map.
+    // Hopefully this horribleness is only temporary.
+    const std::pair<typename protocol_t::region_t, value_t> &get_nth(size_t n) const {
+        return regions_and_values[n];
     }
 
 private:

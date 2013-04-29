@@ -90,7 +90,7 @@ module RethinkDB
           if [Symbol, String].include? k.class
             ap.key = k.to_s
           else
-            raise RqlDriverError, "Document keys must be strings or symbols." +
+            raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
           ap.val = expr(v).to_pb

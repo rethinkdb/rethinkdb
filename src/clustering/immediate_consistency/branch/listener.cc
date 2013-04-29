@@ -465,12 +465,14 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 
     typename protocol_t::write_response_t response;
 
+    rassert(region_is_superset(svs_->get_region(), qe.write.get_region()));
+
     // This isn't used for client writes, so we don't want to wait for a disk ack.
     svs_->write(
         DEBUG_ONLY(metainfo_checker, )
         region_map_t<protocol_t, binary_blob_t>(svs_->get_region(),
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
-        qe.write.shard(region_intersection(qe.write.get_region(), svs_->get_region())),
+        qe.write,
         &response,
         WRITE_DURABILITY_SOFT,
         qe.transition_timestamp,
