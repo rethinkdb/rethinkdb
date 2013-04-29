@@ -11,6 +11,7 @@
             <div class="options_container_arrow_overlay"></div>
             <div class="options_container">
                 <a class="close" href="#">&times;</a>
+                <h2 class="title">Settings</h2>
                 <div class="toggle-primary">
                     <div class="switch">
                         <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
@@ -20,8 +21,8 @@
                         <span class="switch-selection"></span>
                     </div>
                 </div>
-                <p>Check for updates:</p>
-                <p>RethinkDB version: {{version}}</p>
+                <p>Check updates for RethinkDB:</p>
+                <p>RethinkDB {{version}}</p>
             </div>
         </li>
     </ul>

@@ -11,6 +11,7 @@ class NavBarView extends Backbone.View
         'click .close': 'show_options'
         'click label[for=updates_yes]': 'turn_updates_on'
         'click label[for=updates_no]': 'turn_updates_off'
+        'click .options_container': 'stop_propagation'
 
 
     initialize: =>
@@ -70,20 +71,33 @@ class NavBarView extends Backbone.View
                 when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
                 when 'route:logs'               then @.$('li#nav-logs').addClass('active')
 
+    # Stop propagation of the event when the user click on $('.options_container')
+    stop_propagation: (event) =>
+        event.stopPropagation()
+
+    # Hide the options view
+    hide: (event) =>
+        event.preventDefault()
+        @options_state = 'hidden'
+        @$('.options_container_arrow').hide()
+        @$('.options_container_arrow_overlay').hide()
+        @$('.options_container').hide()
+        @$('.cog_icon').removeClass 'active'
+        $(window).unbind 'click', @hide
+
+    # Show the options view
     show_options: (event) =>
         event.preventDefault()
+        event.stopPropagation()
         if @options_state is 'visible'
-            @options_state = 'hidden'
-            @$('.options_container_arrow').hide()
-            @$('.options_container_arrow_overlay').hide()
-            @$('.options_container').hide()
-            @$('.cog_icon').removeClass 'active'
+            @hide event
         else
             @options_state = 'visible'
             @$('.options_container_arrow').show()
             @$('.options_container_arrow_overlay').show()
             @$('.options_container').show()
             @$('.cog_icon').addClass 'active'
+            $(window).click @hide
             @delegateEvents()
 
     turn_updates_on: (event) =>
