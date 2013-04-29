@@ -9,7 +9,9 @@ class NavBarView extends Backbone.View
     events:
         'click .options_link': 'show_options'
         'click .close': 'show_options'
-        'click #check_updates': 'toggle_updates'
+        'click label[for=updates_yes]': 'turn_updates_on'
+        'click label[for=updates_no]': 'turn_updates_off'
+
 
     initialize: =>
         @first_render = true
@@ -43,6 +45,7 @@ class NavBarView extends Backbone.View
         log_render '(rendering) NavBarView'
         @.$el.html @template
             check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else false
+            version: window.VERSION
         # set active tab
         @set_active_tab route
 
@@ -83,10 +86,11 @@ class NavBarView extends Backbone.View
             @$('.cog_icon').addClass 'active'
             @delegateEvents()
 
-    toggle_updates: (event) =>
-        window.localStorage.check_updates = JSON.stringify @$('#check_updates').is(':checked')
-        if @$('#check_updates').is(':checked') is true
-            window.localStorage.removeItem('ignore_version')
-            window.alert_update_view.check()
-        else
-            window.alert_update_view.hide()
+    turn_updates_on: (event) =>
+        window.localStorage.check_updates = JSON.stringify true
+        window.localStorage.removeItem('ignore_version')
+        window.alert_update_view.check()
+
+    turn_updates_off: (event) =>
+        window.localStorage.check_updates = JSON.stringify false
+        window.alert_update_view.hide()

@@ -437,7 +437,7 @@ TODO: retire this
                 position: absolute;
                 width: 450px;
                 margin: 10px 0px 0px -188px;
-                padding: 20px 15px 10px 15px ;
+                padding: 20px 15px 15px 15px ;
 
                 // csshat
                 border: 1px solid #cfcfcf; // stroke
@@ -478,33 +478,9 @@ TODO: retire this
                     }
                     cursor: pointer;
                 }
-
-
-
-                .checkbox-container {
+                .toggle-primary{
                     float: right;
-                    label {
-                        display: inline;
-                        margin: 4px;
-                    }
-                    input[type="checkbox"] { display: none; }
-
-                    input[type="checkbox"] + label {
-                        border: thin solid #cfcfcf;
-                        .border-radius(3px);
-                        padding: 7px;
-                        display: inline-block;
-                        position: relative;
-                        &:active { .box-shadow(~"0 1px 2px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.1)"); }
-                    }
-                    input[type="checkbox"]:checked + label:after {
-                        content: '\2714';
-                        font-size: 15px;
-                        position: absolute;
-                        top: -2px;
-                        left: 1px;
-                        color: #7c7c7c;
-                    }
+                    margin-right: 10px;
                 }
             }
 

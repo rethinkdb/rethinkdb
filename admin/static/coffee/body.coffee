@@ -50,8 +50,7 @@ class AlertUpdates extends Backbone.View
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
-        version = '1.4.2' #TODO See with Etienne how to set it up during build time
-        $.getJSON "http://newton:5000/update_for/#{version}?callback=?", @render_updates
+        $.getJSON "http://update.rethinkdb.com/update_for/#{window.VERSION}?callback=?", @render_updates
 
     render_updates: (data) =>
         if data.status is 'need_update'
