@@ -6,6 +6,8 @@
             <button id="pause-application" class="btn">Pause JS</button>
         </div>
         <div id="sidebar"></div>
+        <div class="updates_container"> 
+        </div>
         <div id="main-container">
             <div id="cluster" class="container"></div>
             <div id="modal-dialog"></div>
@@ -18,16 +20,21 @@
                 <li><a href="http://rethinkdb.com/api/">API</a></li>
                 <li><a href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
                 <li><a href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
-                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github project</a></li>
+                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github</a></li>
+                <li><a href="http://rethinkdb.com/community/">Community</a></li>
                 {{!
                         We use an invisible span with no content to preload the monospace font for the data explorer:
                         This ensures that data explorer suggestions won't be delayed while loading the font.
                         This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
                 }}
-                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>
+</script>
+
+<script id="has_update-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
+    <p><strong>Update found:</strong> A new version of RethinkDB is avaiable (version {{last_version}}), see the <a href="{{link_changelog}}" target="_blank">changelog</a></p>
 </script>
 
 <script id="is_disconnected-template" type="text/x-handlebars-template">

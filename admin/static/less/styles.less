@@ -335,8 +335,11 @@ TODO: retire this
         list-style-type: none;
         li {
             display: inline-block;
-            margin-right: 64px;
+            margin-right: 63px;
             a { color: #a3a3a3; }
+            &:last-child{
+                margin-right: 0px
+            }
         }
     }
 
@@ -374,7 +377,7 @@ TODO: retire this
                 text-shadow: @text_shadow;
                 margin-left: -3px;
                 a {
-                    padding: 21px 24px;
+                    padding: 21px 22px;
                     color: #ababab;
                     display: block;
                     &:hover {
@@ -398,6 +401,90 @@ TODO: retire this
                     a { color: white; }
                 }
             }
+            .cog_icon{
+                .opacity(0.4);
+            }
+            .cog_icon:hover, .cog_icon.active{
+                .opacity(0.9);
+            }
+            #nav-options{
+                position: relative;
+            }
+            .options_container_arrow{
+                display: none;
+                position: absolute;
+                z-index: 201;
+                width: 0; 
+                height: 0; 
+                margin: 1px 0px 0px 20px;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent; 
+                border-bottom:10px solid #bbb; 
+            }
+            .options_container_arrow_overlay{
+                display: none;
+                position: absolute;
+                z-index: 202;
+                width: 0; 
+                height: 0; 
+                margin: 1px 0px 0px 20px;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent; 
+                border-bottom:10px solid #fff; 
+            }
+            .options_container{
+                display: none;
+                position: absolute;
+                width: 450px;
+                margin: 10px 0px 0px -188px;
+                padding: 15px 15px 15px 15px ;
+
+                // csshat
+                border: 1px solid #cfcfcf; // stroke
+                .border-radius(4px); // border radius
+                background-color: #fbfbfb; // layer fill content
+                .box-shadow(~"0 2px 1px rgba(0,0,0,.04), inset 0 -1px 2px rgba(0,0,0,.05)"); // drop shadow and inner shadow
+
+                font-family: @sans;
+                font-size: 14px;
+                line-height: 22px;
+                color: #4c4c4c;
+
+                z-index: 20;
+                text-shadow: none;
+                h2.title{
+                    margin: 0px 0px 10px 0px;
+                    font-family: @serif;
+                    color: #a3a3a3;
+                    font-size: 16px;
+                    -webkit-font-smoothing: antialiased;
+                    margin-bottom: 5px;
+                }
+                p{
+                    margin: 3px 0px;
+                    border-top: thin solid #f0f0f0;
+                    padding: 6px 0px 2px 0px;
+                }
+                .close {
+                    float: right;
+                    margin-top: -6px;
+                    padding: 0px;
+                    font-weight: bold;
+                    font-size: 24px;
+                    color: black;
+                    .opacity(0.2);
+                    &:hover {
+                        .opacity(0.4);
+                        text-decoration: none;
+                    }
+                    cursor: pointer;
+                }
+                .toggle-primary{
+                    float: right;
+                    margin: 6px 10px 0px 0px;
+                }
+            }
+
         }
         /* right nav (search) */
         .right-nav {
@@ -2748,4 +2835,48 @@ TODO: retire this
     right: 0;
     width: 190px;
     z-index: 1000;
+}
+
+
+/*
+    ----------------------------
+    Updates
+    ----------------------------
+*/
+.updates_container{
+    .settings{
+        display: none;
+        width: 895px;
+        margin: 20px auto 0px auto;
+        padding: 7px 35px 7px 10px;
+        overflow: auto;
+        .updates{
+            margin-top: 6px;
+            float: left;
+        }
+        .options_container{
+            float: right;
+        }
+        .close{
+            float: right;
+        }
+        a{
+            font-weight: bold;
+            color: #bf9947;
+        }
+        .btn{
+            float: right;
+            padding: 4px 14px 4px;
+            margin-right: 20px;
+        }
+    }
+    .changeul{
+        padding: 0px;
+        margin: 0px;
+        list-style: none;
+        .change{
+            padding: 0px;
+            margin: 0px 0px 0px 20px;
+        }
+    }
 }

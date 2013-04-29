@@ -6,9 +6,17 @@ class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
     template: Handlebars.templates['navbar_view-template']
+    events:
+        'click .options_link': 'show_options'
+        'click .close': 'show_options'
+        'click label[for=updates_yes]': 'turn_updates_on'
+        'click label[for=updates_no]': 'turn_updates_off'
+        'click .options_container': 'stop_propagation'
+
 
     initialize: =>
         @first_render = true
+        @options_state = 'hidden' # can be 'hidden' or 'visible'
 
     init_typeahead: => # Has to be called after we have injected the template
         @.$('input.search-box').typeahead
@@ -36,7 +44,9 @@ class NavBarView extends Backbone.View
 
     render: (route) =>
         log_render '(rendering) NavBarView'
-        @.$el.html @template()
+        @.$el.html @template
+            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else false
+            version: window.VERSION
         # set active tab
         @set_active_tab route
 
@@ -60,3 +70,41 @@ class NavBarView extends Backbone.View
                 when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
                 when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
                 when 'route:logs'               then @.$('li#nav-logs').addClass('active')
+
+    # Stop propagation of the event when the user click on $('.options_container')
+    stop_propagation: (event) =>
+        event.stopPropagation()
+
+    # Hide the options view
+    hide: (event) =>
+        event.preventDefault()
+        @options_state = 'hidden'
+        @$('.options_container_arrow').hide()
+        @$('.options_container_arrow_overlay').hide()
+        @$('.options_container').hide()
+        @$('.cog_icon').removeClass 'active'
+        $(window).unbind 'click', @hide
+
+    # Show the options view
+    show_options: (event) =>
+        event.preventDefault()
+        event.stopPropagation()
+        if @options_state is 'visible'
+            @hide event
+        else
+            @options_state = 'visible'
+            @$('.options_container_arrow').show()
+            @$('.options_container_arrow_overlay').show()
+            @$('.options_container').show()
+            @$('.cog_icon').addClass 'active'
+            $(window).click @hide
+            @delegateEvents()
+
+    turn_updates_on: (event) =>
+        window.localStorage.check_updates = JSON.stringify true
+        window.localStorage.removeItem('ignore_version')
+        window.alert_update_view.check()
+
+    turn_updates_off: (event) =>
+        window.localStorage.check_updates = JSON.stringify false
+        window.alert_update_view.hide()
