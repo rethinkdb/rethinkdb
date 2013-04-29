@@ -77,7 +77,6 @@ public:
         other.ptr_ = tmp;
     }
 
-    // SAMRSI: Get rid of this?
     T &operator*() const {
         rassert(ptr_);
         return *ptr_;

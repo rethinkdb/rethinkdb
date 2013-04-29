@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-// SAMRSI: Can we drop some of these includes?
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"

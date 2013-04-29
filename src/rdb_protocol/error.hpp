@@ -53,14 +53,10 @@ public:
     void propagate(Term *t) const;
 
 protected:
-    // SAMRSI: What uses this?
-    void copy_from(const pb_rcheckable_t *other) {
-        bt_src = other->bt_src;
-    }
-
     void note_dummy_frame() {
         dummy_frames += 1;
     }
+
 private:
     const Backtrace *bt_src;
     int dummy_frames;

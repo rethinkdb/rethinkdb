@@ -284,8 +284,8 @@ counted_t<const datum_t> table_t::sindex_list() {
         rdb_protocol_t::sindex_list_response_t *s_res = boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
 
-        for (auto it = s_res->sindexes.begin(); it != s_res->sindexes.end(); ++it) {
-            // SAMRSI: What is the type of *it?
+        for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
+             it != s_res->sindexes.end(); ++it) {
             array->add(make_counted<datum_t>(*it));
         }
     } catch (const cannot_perform_query_exc_t &ex) {
@@ -425,8 +425,8 @@ val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent)
       type(type_t::DATUM),
       datum(_datum) {
     guarantee(datum.has());
-    // SAMRSI: Do the non-lazy thing and construct a uuid_u, copy that.  Or something.
-    memset(opaque_db, 0, sizeof(opaque_db));
+    uuid_u nil = nil_uuid();
+    memcpy(opaque_db, nil.data(), uuid_u::static_size());
 }
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent)
     : pb_rcheckable_t(_parent),
@@ -436,8 +436,8 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const t
       datum(_datum) {
     guarantee(table.has());
     guarantee(datum.has());
-    // SAMRSI: Do the non-lazy thing.
-    memset(opaque_db, 0, sizeof(opaque_db));
+    uuid_u nil = nil_uuid();
+    memcpy(opaque_db, nil.data(), uuid_u::static_size());
 }
 val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent)
     : pb_rcheckable_t(_parent),

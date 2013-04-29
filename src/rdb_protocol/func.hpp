@@ -53,7 +53,6 @@ private:
     js::id_t js_id;
 };
 
-// SAMRSI: Anybody using this besides func.cc?
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
     js_result_visitor_t(env_t *_env, counted_t<term_t> _parent) : env(_env), parent(_parent) { }

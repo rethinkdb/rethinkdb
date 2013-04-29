@@ -150,18 +150,6 @@ datum_t &datum_t::operator=(datum_t &&other) {
     return *this;
 }
 
-void datum_t::copy_from(const datum_t &other) {
-    type = other.type;
-
-    r_bool = other.r_bool;
-    r_num = other.r_num;
-    r_str = other.r_str;
-    r_array = other.r_array;
-    r_object = other.r_object;
-}
-
-
-
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
     switch (type) {

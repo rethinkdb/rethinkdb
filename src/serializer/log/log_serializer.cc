@@ -985,10 +985,10 @@ void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
     }
 }
 
-void counted_t_add_ref(ls_block_token_pointee_t *p) {
+void counted_add_ref(ls_block_token_pointee_t *p) {
     adjust_ref(p, 1);
 }
 
-void counted_t_release(ls_block_token_pointee_t *p) {
+void counted_release(ls_block_token_pointee_t *p) {
     adjust_ref(p, -1);
 }

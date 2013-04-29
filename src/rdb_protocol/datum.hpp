@@ -70,7 +70,6 @@ public:
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
     datum_t &operator=(datum_t &&other);
-    void copy_from(const datum_t &other);
 
     ~datum_t();
 

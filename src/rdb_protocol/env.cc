@@ -25,7 +25,7 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     // SAMRSI: Check term_walker_t lifetiming.
     term_walker_t(arg.get(), &val.GetExtension(ql2::extension::backtrace));
     // SAMRSI: Check wire_func_t lifetiming.
-    optargs[key] = wire_func_t((*arg).undo_deref(), 0);
+    optargs[key] = wire_func_t(*arg, 0);
     return false;
 }
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {

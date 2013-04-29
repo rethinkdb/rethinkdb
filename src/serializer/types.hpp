@@ -73,8 +73,8 @@ class ls_block_token_pointee_t {
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
-void counted_t_add_ref(ls_block_token_pointee_t *p);
-void counted_t_release(ls_block_token_pointee_t *p);
+void counted_add_ref(ls_block_token_pointee_t *p);
+void counted_release(ls_block_token_pointee_t *p);
 
 template <>
 struct serializer_traits_t<log_serializer_t> {
@@ -137,21 +137,21 @@ struct scs_block_token_t {
     counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
     template <class T>
-    friend void counted_t_add_ref(scs_block_token_t<T> *p);
+    friend void counted_add_ref(scs_block_token_t<T> *p);
     template <class T>
-    friend void counted_t_release(scs_block_token_t<T> *p);
+    friend void counted_release(scs_block_token_t<T> *p);
 private:
     intptr_t ref_count_;
 };
 
 template <class inner_serializer_t>
-void counted_t_add_ref(scs_block_token_t<inner_serializer_t> *p) {
+void counted_add_ref(scs_block_token_t<inner_serializer_t> *p) {
     UNUSED const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
 template <class inner_serializer_t>
-void counted_t_release(scs_block_token_t<inner_serializer_t> *p) {
+void counted_release(scs_block_token_t<inner_serializer_t> *p) {
     const intptr_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {

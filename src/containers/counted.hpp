@@ -13,7 +13,7 @@
 // not be the case in the future.
 
 // Now it supports .unique(), and in order to use it, your type needs
-// to provide an counted_t_use_count implementation.
+// to provide an counted_use_count implementation.
 
 template <class T>
 class counted_t {
@@ -23,11 +23,11 @@ public:
 
     counted_t() : p_(NULL) { }
     explicit counted_t(T *p) : p_(p) {
-        if (p_) { counted_t_add_ref(p_); }
+        if (p_) { counted_add_ref(p_); }
     }
 
     counted_t(const counted_t &copyee) : p_(copyee.p_) {
-        if (p_) { counted_t_add_ref(p_); }
+        if (p_) { counted_add_ref(p_); }
     }
 
     // TODO: Add noexcept on versions of compilers that support it.  noexcept is
@@ -44,7 +44,7 @@ public:
     }
 
     ~counted_t() {
-        if (p_) { counted_t_release(p_); }
+        if (p_) { counted_release(p_); }
     }
 
     void swap(counted_t &other) {
@@ -101,7 +101,7 @@ public:
     }
 
     bool unique() const {
-        return counted_t_use_count(p_) == 1;
+        return counted_use_count(p_) == 1;
     }
 
     class hidden_t {
@@ -127,11 +127,11 @@ counted_t<T> make_counted(Args&&... args) {
 template <class> class single_threaded_shared_mixin_t;
 
 template <class T>
-inline void counted_t_add_ref(const single_threaded_shared_mixin_t<T> *p);
+inline void counted_add_ref(const single_threaded_shared_mixin_t<T> *p);
 template <class T>
-inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p);
+inline void counted_release(const single_threaded_shared_mixin_t<T> *p);
 template <class T>
-inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p);
+inline intptr_t counted_use_count(const single_threaded_shared_mixin_t<T> *p);
 
 template <class T>
 class single_threaded_shared_mixin_t {
@@ -152,22 +152,22 @@ protected:
     ~single_threaded_shared_mixin_t() { }
 
 private:
-    friend void counted_t_add_ref<T>(const single_threaded_shared_mixin_t<T> *p);
-    friend void counted_t_release<T>(const single_threaded_shared_mixin_t<T> *p);
-    friend intptr_t counted_t_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
+    friend void counted_add_ref<T>(const single_threaded_shared_mixin_t<T> *p);
+    friend void counted_release<T>(const single_threaded_shared_mixin_t<T> *p);
+    friend intptr_t counted_use_count<T>(const single_threaded_shared_mixin_t<T> *p);
 
     mutable intptr_t refcount_;
     DISABLE_COPYING(single_threaded_shared_mixin_t);
 };
 
 template <class T>
-inline void counted_t_add_ref(const single_threaded_shared_mixin_t<T> *p) {
+inline void counted_add_ref(const single_threaded_shared_mixin_t<T> *p) {
     p->refcount_ += 1;
     rassert(p->refcount_ > 0);
 }
 
 template <class T>
-inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p) {
+inline void counted_release(const single_threaded_shared_mixin_t<T> *p) {
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
@@ -176,7 +176,7 @@ inline void counted_t_release(const single_threaded_shared_mixin_t<T> *p) {
 }
 
 template <class T>
-inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p) {
+inline intptr_t counted_use_count(const single_threaded_shared_mixin_t<T> *p) {
     return p->refcount_;
 }
 
@@ -188,11 +188,11 @@ inline intptr_t counted_t_use_count(const single_threaded_shared_mixin_t<T> *p) 
 template <class> class slow_shared_mixin_t;
 
 template <class T>
-inline void counted_t_add_ref(slow_shared_mixin_t<T> *p);
+inline void counted_add_ref(slow_shared_mixin_t<T> *p);
 template <class T>
-inline void counted_t_release(slow_shared_mixin_t<T> *p);
+inline void counted_release(slow_shared_mixin_t<T> *p);
 template <class T>
-inline intptr_t counted_t_use_count(const slow_shared_mixin_t<T> *p);
+inline intptr_t counted_use_count(const slow_shared_mixin_t<T> *p);
 
 template <class T>
 class slow_shared_mixin_t {
@@ -203,22 +203,22 @@ protected:
     ~slow_shared_mixin_t() { }
 
 private:
-    friend void counted_t_add_ref<T>(slow_shared_mixin_t<T> *p);
-    friend void counted_t_release<T>(slow_shared_mixin_t<T> *p);
-    friend intptr_t counted_t_use_count<T>(const slow_shared_mixin_t<T> *p);
+    friend void counted_add_ref<T>(slow_shared_mixin_t<T> *p);
+    friend void counted_release<T>(slow_shared_mixin_t<T> *p);
+    friend intptr_t counted_use_count<T>(const slow_shared_mixin_t<T> *p);
 
     intptr_t refcount_;
     DISABLE_COPYING(slow_shared_mixin_t);
 };
 
 template <class T>
-inline void counted_t_add_ref(slow_shared_mixin_t<T> *p) {
+inline void counted_add_ref(slow_shared_mixin_t<T> *p) {
     DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
     rassert(res > 0);
 }
 
 template <class T>
-inline void counted_t_release(slow_shared_mixin_t<T> *p) {
+inline void counted_release(slow_shared_mixin_t<T> *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
@@ -227,7 +227,7 @@ inline void counted_t_release(slow_shared_mixin_t<T> *p) {
 }
 
 template <class T>
-inline intptr_t counted_t_use_count(const slow_shared_mixin_t<T> *p) {
+inline intptr_t counted_use_count(const slow_shared_mixin_t<T> *p) {
     // Finally a practical use for volatile.
     intptr_t tmp = static_cast<const volatile intptr_t&>(p->refcount_);
     rassert(tmp > 0);

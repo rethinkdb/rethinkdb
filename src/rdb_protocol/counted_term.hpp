@@ -9,20 +9,6 @@ class Term;
 
 namespace ql {
 
-// SAMRSI: This type should probably go.  It exists to make sure existing code
-// doesn't use an addressof operator on certain values to lessen ways that
-// introducing counted_term_t could break something.
-struct deref_term_t {
-    explicit deref_term_t(Term *_pointee) : pointee(_pointee) {
-        rassert(pointee != NULL);
-    }
-    Term *pointee;
-    void operator=(const Term &assignee) const;
-    Term &undo_deref() const {
-        return *pointee;
-    }
-};
-
 // A single-threaded shared pointer that points at a Term.
 class counted_term_t {
 public:
@@ -39,7 +25,7 @@ public:
 
     counted_term_t &operator=(const counted_term_t &assignee);
 
-    deref_term_t operator*() const { return deref_term_t(get()); }
+    Term &operator*() const { return *get(); }
 
     Term *get() const {
         rassert(pointee_ != NULL);
