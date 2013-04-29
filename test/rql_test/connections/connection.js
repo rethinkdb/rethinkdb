@@ -17,6 +17,7 @@ var assertErr = function(err, type, msg) {
     assertNotNull(err);
     assert.equal(err.constructor.name, type);
     var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+    _msg = err.message.replace(/\nFailed assertion:(.|\n)*/m, "")
     assert.equal(_msg, msg);
 };
 

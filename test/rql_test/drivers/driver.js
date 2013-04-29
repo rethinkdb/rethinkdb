@@ -38,6 +38,9 @@ function eq_test(one, two) {
         // TODO: eq_test({},{foo:4}) will return true
         // Recurse on each property of object
         for (var key in one) {
+            if(typeof one[key] === 'string'){
+                one[key] = one[key].replace(/\nFailed assertion([\r\n]|.)*/m, "");
+            }
             if (one.hasOwnProperty(key)) {
                 if (!eq_test(one[key], two[key])) return false;
             }
@@ -105,7 +108,8 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                     runopts = testPair[3];
 
                     try {
-                        var exp_fun = eval(testPair[1]);
+                        var exp_val = testPair[1];
+                        var exp_fun = eval(exp_val);
                     } catch (err) {
                         // Oops, this shouldn't have happened
                         console.log(testName);
