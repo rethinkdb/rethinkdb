@@ -59,7 +59,6 @@ private:
 };
 
 /* A visitor for setting the result type based on a terminal. */
-// SAMRSI: Why the hell is this in the header file?
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
