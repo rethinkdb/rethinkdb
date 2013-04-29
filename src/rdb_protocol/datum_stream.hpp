@@ -76,7 +76,6 @@ public:
     virtual counted_t<const datum_t> as_array();
 };
 
-// SAMRSI: What the fuck is this wrapper_datum_stream_t?
 class wrapper_datum_stream_t : public eager_datum_stream_t {
 public:
     wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
