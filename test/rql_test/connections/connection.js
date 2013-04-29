@@ -11,7 +11,7 @@ var r = require('../../../drivers/javascript/build/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
-var port = Math.floor(Math.random()*(65535 - 1025)+1025)
+var port = null;
 
 var assertErr = function(err, type, msg) {
     assertNotNull(err);
@@ -92,6 +92,7 @@ describe('Javascript connection API', function(){
         var server_err_log
 
         beforeEach(function(done){
+            port = Math.floor(Math.random()*(65535 - 1025)+1025)
             server_out_log = fs.openSync('run/server-log.txt', 'a');
             server_err_log = fs.openSync('run/server-error-log.txt', 'a');
             cpp_server = spawn(
