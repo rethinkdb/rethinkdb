@@ -185,7 +185,10 @@ public:
     exc_t() : exc_msg("UNINITIALIZED") { }
     exc_t(const std::string &_exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
         : exc_msg(_exc_msg) {
-        if (bt_src) set_backtrace(bt_src);
+        // SAMRSI: Stupid null pointer arg.
+        if (bt_src != NULL) {
+            set_backtrace(backtrace_t(bt_src));
+        }
         backtrace.delete_frames(dummy_frames);
     }
     exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace,
@@ -197,10 +200,10 @@ public:
     const char *what() const throw () { return exc_msg.c_str(); }
     RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 
-    template<class T>
-    void set_backtrace(const T *t) {
+    // SAMRSI: Rename to init_backtrace.
+    void set_backtrace(const backtrace_t &bt) {
         r_sanity_check(backtrace.is_empty());
-        backtrace = backtrace_t(t);
+        backtrace = bt;
     }
 
     backtrace_t backtrace;
