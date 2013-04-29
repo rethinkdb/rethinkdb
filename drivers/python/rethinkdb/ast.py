@@ -395,7 +395,7 @@ class MakeObj(RqlQuery):
         self.optargs = {}
         for k in obj_dict.keys():
             if not isinstance(k, types.StringTypes):
-                raise RqlDriverError("Document keys must be strings.");
+                raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
@@ -524,8 +524,8 @@ class DB(RqlTopLevelQuery):
     def table_list(self):
         return TableList(self)
 
-    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=()):
-        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size)
+    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), hard_durability=()):
+        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, hard_durability=hard_durability)
 
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
