@@ -39,14 +39,14 @@ public:
 class pb_rcheckable_t : public rcheckable_t {
 public:
     explicit pb_rcheckable_t(const Term *t)
-        : bt_src(&t->GetExtension(ql2::extension::backtrace)), dummy_frames(0) { }
+        : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
 
     explicit pb_rcheckable_t(const pb_rcheckable_t *rct)
-        : bt_src(rct->bt_src), dummy_frames(rct->dummy_frames) { }
+        : bt_src(rct->bt_src) { }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg, bt_src, dummy_frames);
+        ql::runtime_check(test, file, line, pred, msg, bt_src);
     }
 
     // Propagate the associated backtrace through the rewrite term.
@@ -54,7 +54,6 @@ public:
 
 private:
     const Backtrace *bt_src;
-    int dummy_frames;
 };
 
 // Use these macros to return errors to users.
