@@ -274,7 +274,11 @@ module 'DataExplorerView', ->
                         description: command['description']
                         examples: command['langs']['js']['examples']
 
-            parents = command['parent']?.split(' | ')
+            if command['parent']?
+                parents = command['parent']?.split(' | ')
+            else
+                parents = [null]
+
             if parents?
                 for parent in parents
                     if parent is null
