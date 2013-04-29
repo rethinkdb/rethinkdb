@@ -136,7 +136,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                     !conflict,
                     strprintf("Duplicate global optarg: %s", ap.key().c_str()));
             }
-            counted_term_t ewt = counted_term_t::make(new Term);
+            protob_t<Term> ewt = make_counted_term();
             Term *const arg = ewt.get();
 
             N1(DB, NDATUM("test"));

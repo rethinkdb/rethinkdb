@@ -20,7 +20,7 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
-    counted_term_t arg = counted_term_t::make(new Term);
+    protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     // SAMRSI: Check term_walker_t lifetiming.
     term_walker_t(arg.get(), &val.GetExtension(ql2::extension::backtrace));

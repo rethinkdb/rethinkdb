@@ -9,58 +9,63 @@ class Term;
 
 namespace ql {
 
-// A single-threaded shared pointer that points at a Term.
-class counted_term_t {
-public:
-    // Makes a counted_term using an unowned Term on the heap.
-    static counted_term_t make(Term *term);
+class protob_destructable_t {
+protected:
+    template <class T> friend class protob_t;
+    protob_destructable_t(intptr_t *refcount, Term *destructee);
+    protob_destructable_t(const protob_destructable_t &copyee);
+    ~protob_destructable_t();
 
-    // Makes a counted_term using a _child_ of an existing counted_term_t.  Since the child is
-    // really part of the parent, this adds a reference count to the _parent_, not the child.
-    static counted_term_t make_child(counted_term_t parent, Term *child);
+    protob_destructable_t &operator=(const protob_destructable_t &assignee);
 
-    counted_term_t(const counted_term_t &copyee);
+    void swap(protob_destructable_t &other);
 
-    ~counted_term_t();
-
-    counted_term_t &operator=(const counted_term_t &assignee);
-
-    Term &operator*() const { return *get(); }
-
-    Term *get() const {
-        rassert(pointee_ != NULL);
-        return pointee_;
-    }
-
-    Term *operator->() const {
-        rassert(pointee_ != NULL);
-        return pointee_;
-    }
-
-    void swap(counted_term_t &other);
-
-private:
-    counted_term_t(Term *pointee, intptr_t *refcount, Term *destructee);
-
-    // RSI should this be const?
-
-    // The value we point at.  We never destruct this (directly).
-    Term *pointee_;
-
-    // The reference count, stored on the heap.
     intptr_t *refcount_;
-
-    // The value we destruct, when the refcount hits zero.  This equals pointee_ or points to a
-    // Term that owns pointee_.
     Term *destructee_;
 };
 
+template <class T>
+class protob_t {
+public:
+    template <class U>
+    protob_t<U> make_child(U *child) const {
+        return protob_t<U>(destructable_, child);
+    }
 
+    T *get() const {
+        rassert(pointee_ != NULL);
+        return pointee_;
+    }
 
+    T &operator*() const { return *get(); }
 
+    T *operator->() const {
+        return get();
+    }
 
+    void swap(protob_t &other) {
+        T *tmp = pointee_;
+        pointee_ = other.pointee_;
+        other.pointee_ = tmp;
+        destructable_.swap(other.destructable_);
+    }
 
+private:
+    protob_t(const protob_destructable_t &destructable, T *pointee)
+        : destructable_(destructable), pointee_(pointee) { }
 
+    friend protob_t<Term> make_counted_term();
+
+    // Used by make_counted_term.
+    protob_t(intptr_t *refcount, Term *destructee, T *pointee)
+        : destructable_(refcount, destructee), pointee_(pointee) { }
+
+    protob_destructable_t destructable_;
+    T *pointee_;
+};
+
+// Makes a protob_t<Term>.
+protob_t<Term> make_counted_term();
 
 }  // namespace ql
 

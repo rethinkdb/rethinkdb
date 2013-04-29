@@ -4,26 +4,16 @@
 
 namespace ql {
 
-counted_term_t::counted_term_t(Term *pointee, intptr_t *refcount, Term *destructee)
-    : pointee_(pointee), refcount_(refcount), destructee_(destructee) { }
+protob_destructable_t::protob_destructable_t(intptr_t *refcount, Term *destructee)
+    : refcount_(refcount), destructee_(destructee) { }
 
-counted_term_t counted_term_t::make(Term *term) {
-    return counted_term_t(term, new intptr_t(1), term);
-}
-
-counted_term_t counted_term_t::make_child(counted_term_t parent, Term *child) {
-    rassert(*parent.refcount_ > 0);
-    ++*parent.refcount_;
-    return counted_term_t(child, parent.refcount_, parent.destructee_);
-}
-
-counted_term_t::counted_term_t(const counted_term_t &copyee)
-    : pointee_(copyee.pointee_), refcount_(copyee.refcount_), destructee_(copyee.destructee_) {
+protob_destructable_t::protob_destructable_t(const protob_destructable_t &copyee)
+    : refcount_(copyee.refcount_), destructee_(copyee.destructee_) {
     rassert(*copyee.refcount_ > 0);
     ++*refcount_;
 }
 
-counted_term_t::~counted_term_t() {
+protob_destructable_t::~protob_destructable_t() {
     rassert(*refcount_ > 0);
     --*refcount_;
     if (*refcount_ == 0) {
@@ -31,16 +21,20 @@ counted_term_t::~counted_term_t() {
     }
 }
 
-counted_term_t &counted_term_t::operator=(const counted_term_t &assignee) {
-    counted_term_t tmp(assignee);
+protob_destructable_t &protob_destructable_t::operator=(const protob_destructable_t &assignee) {
+    protob_destructable_t tmp(assignee);
     swap(tmp);
     return *this;
 }
 
-void counted_term_t::swap(counted_term_t &other) {
-    std::swap(pointee_, other.pointee_);
+void protob_destructable_t::swap(protob_destructable_t &other) {
     std::swap(refcount_, other.refcount_);
     std::swap(destructee_, other.destructee_);
+}
+
+protob_t<Term> make_counted_term() {
+    Term *term = new Term;
+    return protob_t<Term>(new intptr_t(1), term, term);
 }
 
 }  // namespace ql

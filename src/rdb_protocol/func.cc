@@ -209,7 +209,7 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
 
 counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                             const pb_rcheckable_t *bt_src) {
-    counted_term_t twrap = counted_term_t::make(new Term);
+    protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     // SAMRSI: Make sure propagate lifetiming is okay.
