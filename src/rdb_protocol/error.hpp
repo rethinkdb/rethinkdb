@@ -52,11 +52,6 @@ public:
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-protected:
-    void note_dummy_frame() {
-        dummy_frames += 1;
-    }
-
 private:
     const Backtrace *bt_src;
     int dummy_frames;
