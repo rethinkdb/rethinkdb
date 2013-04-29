@@ -352,6 +352,12 @@ key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start, const sto
                        key_range_t::open, end_key);
 }
 
+// Returns the key identifying the monokey region used for sindex_list_t
+// operations.
+store_key_t sindex_list_region_key() {
+    return store_key_t();
+}
+
 /* read_t::get_region implementation */
 struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
@@ -367,7 +373,7 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     }
 
     region_t operator()(UNUSED const sindex_list_t &sl) const {
-        return rdb_protocol_t::monokey_region(store_key_t());
+        return rdb_protocol_t::monokey_region(sindex_list_region_key());
     }
 };
 
@@ -375,39 +381,59 @@ region_t read_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(rdb_r_get_region_visitor(), read);
 }
 
-struct rdb_r_shard_visitor : public boost::static_visitor<read_t> {
-    explicit rdb_r_shard_visitor(const region_t &_region)
-        : region(_region)
-    { }
+struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
+    explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
+                                   read_t *_read_out)
+        : region(_region), read_out(_read_out) {}
 
-    read_t operator()(const point_read_t &pr) const {
-        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
-        return read_t(pr);
+    // The key was somehow already extracted from the arg.
+    template <class T>
+    bool keyed_read(const T &arg, const store_key_t &key) const {
+        if (region_contains_key(*region, key)) {
+            *read_out = read_t(arg);
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    read_t operator()(const rget_read_t &rg) const {
-        rassert(region_is_superset(rg.region, region));
-        rget_read_t _rg(rg);
-        _rg.region = region;
-        return read_t(_rg);
+    bool operator()(const point_read_t &pr) const {
+        return keyed_read(pr, pr.key);
     }
 
-    read_t operator()(const distribution_read_t &dg) const {
-        rassert(region_is_superset(dg.region, region));
-        distribution_read_t _dg(dg);
-        _dg.region = region;
-        return read_t(_dg);
+    template <class T>
+    bool rangey_read(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *read_out = read_t(tmp);
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    read_t operator()(const sindex_list_t &sl) const {
-        return read_t(sl);
+    bool operator()(const rget_read_t &rg) const {
+        return rangey_read(rg);
     }
 
-    const region_t &region;
+    bool operator()(const distribution_read_t &dg) const {
+        return rangey_read(dg);
+    }
+
+    bool operator()(const sindex_list_t &sl) const {
+        return keyed_read(sl, sindex_list_region_key());
+    }
+
+    const hash_region_t<key_range_t> *region;
+    read_t *read_out;
 };
 
-read_t read_t::shard(const region_t &region) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor(region), read);
+bool read_t::shard(const hash_region_t<key_range_t> &region,
+                   read_t *read_out) const THROWS_NOTHING {
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
 
 /* read_t::unshard implementation */
@@ -789,67 +815,81 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 /* write_t::shard implementation */
 
-bool region_contains_key(const hash_region_t<key_range_t> &region, const store_key_t &key) {
-    const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
-    if (region.beg <= hash_value && hash_value < region.end) {
-        return region.inner.contains_key(key);
-    } else {
-        return false;
-    }
-}
+struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
+    rdb_w_shard_visitor_t(const region_t *_region,
+                          write_t *_write_out)
+        : region(_region), write_out(_write_out) {}
 
-struct rdb_w_shard_visitor : public boost::static_visitor<write_t> {
-    explicit rdb_w_shard_visitor(const region_t &_region)
-        : region(_region)
-    { }
-
-    write_t operator()(const point_replace_t &pr) const {
-        rassert(rdb_protocol_t::monokey_region(pr.key) == region);
-        return write_t(pr);
+    template <class T>
+    bool keyed_write(const T &arg) const {
+        if (region_contains_key(*region, arg.key)) {
+            *write_out = write_t(arg);
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    write_t operator()(const batched_replaces_t &br) const {
-        write_t ret;
-        ret.write = batched_replaces_t();
-        batched_replaces_t *replaces = boost::get<batched_replaces_t>(&ret.write);
+    bool operator()(const point_replace_t &pr) const {
+        return keyed_write(pr);
+    }
 
-        for (auto point_replace = br.point_replaces.begin(); point_replace != br.point_replaces.end(); ++point_replace) {
-            if (region_contains_key(region, point_replace->second.key)) {
-                replaces->point_replaces.push_back(*point_replace);
+    bool operator()(const batched_replaces_t &br) const {
+        std::vector<std::pair<int64_t, point_replace_t> > sharded_replaces;
+
+        for (auto it = br.point_replaces.begin(); it != br.point_replaces.end(); ++it) {
+            if (region_contains_key(*region, it->second.key)) {
+                sharded_replaces.push_back(*it);
             }
         }
 
-        return ret;
+        if (!sharded_replaces.empty()) {
+            *write_out = write_t(batched_replaces_t());
+            batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
+            batched->point_replaces.swap(sharded_replaces);
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    write_t operator()(const point_write_t &pw) const {
-        rassert(rdb_protocol_t::monokey_region(pw.key) == region);
-        return write_t(pw);
+    bool operator()(const point_write_t &pw) const {
+        return keyed_write(pw);
     }
 
-    write_t operator()(const point_delete_t &pd) const {
-        rassert(rdb_protocol_t::monokey_region(pd.key) == region);
-        return write_t(pd);
+    bool operator()(const point_delete_t &pd) const {
+        return keyed_write(pd);
     }
 
-    write_t operator()(const sindex_create_t &c) const {
-        sindex_create_t cpy = c;
-        cpy.region = region;
-        return write_t(cpy);
+    template <class T>
+    bool rangey_write(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *write_out = write_t(tmp);
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    write_t operator()(const sindex_drop_t &d) const {
-        sindex_drop_t cpy = d;
-        cpy.region = region;
-        return write_t(cpy);
+    bool operator()(const sindex_create_t &c) const {
+        return rangey_write(c);
     }
 
-    const region_t &region;
+    bool operator()(const sindex_drop_t &d) const {
+        return rangey_write(d);
+    }
+
+    const region_t *region;
+    write_t *write_out;
 };
 
-
-write_t write_t::shard(const region_t &region) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_w_shard_visitor(region), write);
+bool write_t::shard(const region_t &region,
+                    write_t *write_out) const THROWS_NOTHING {
+    return boost::apply_visitor(rdb_w_shard_visitor_t(&region, write_out), write);
 }
 
 template <class T>
@@ -1312,29 +1352,6 @@ void store_t::protocol_write(const write_t &write,
     boost::apply_visitor(v, write.write);
 }
 
-struct rdb_backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
-    region_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return rdb_protocol_t::monokey_region(del.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        return del.range;
-    }
-
-    region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return rdb_protocol_t::monokey_region(kv.backfill_atom.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::sindexes_t &) {
-        return region_t::universe();
-    }
-};
-
-region_t backfill_chunk_t::get_region() const {
-    rdb_backfill_chunk_get_region_visitor_t v;
-    return boost::apply_visitor(v, val);
-}
-
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
     repli_timestamp_t operator()(const backfill_chunk_t::delete_key_t &del) {
         return del.recency;
@@ -1558,38 +1575,6 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
 
     return region_t(beg, end, key_range_t::universe());
-}
-
-struct rdb_backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
-public:
-    explicit rdb_backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
-        rdb_protocol_t::backfill_chunk_t ret(del);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
-        rdb_protocol_t::region_t r = region_intersection(del.range, region);
-        rassert(!region_is_empty(r));
-        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
-        rdb_protocol_t::backfill_chunk_t ret(kv);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::sindexes_t &s) {
-        return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::sindexes_t(s.sindexes));
-    }
-private:
-    const rdb_protocol_t::region_t &region;
-
-    DISABLE_COPYING(rdb_backfill_chunk_shard_visitor_t);
-};
-
-rdb_protocol_t::backfill_chunk_t rdb_protocol_t::backfill_chunk_t::shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
-    rdb_backfill_chunk_shard_visitor_t v(region);
-    return boost::apply_visitor(v, val);
 }
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);

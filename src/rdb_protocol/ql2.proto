@@ -330,7 +330,7 @@ message Term {
         // Lists all the databases by name.  (Takes no arguments)
         DB_LIST      = 59; // -> ARRAY
         // Creates a table with a particular name in a particular database.
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
         // Drops a table with a particular name from a particular database.
         TABLE_DROP   = 61; // Database, STRING -> OBJECT
         // Lists all the tables in a particular database.

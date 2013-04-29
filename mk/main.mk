@@ -13,9 +13,6 @@ default-goal: real-default-goal
 .PHONY: all
 all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 
-.PHONY: clean
-clean: $(TOP)/admin/clean $(TOP)/src/clean
-
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
 
@@ -66,5 +63,8 @@ include $(TOP)/test/build.mk
 
 # Generate local Makefiles
 include $(TOP)/mk/local.mk
+
+.PHONY: clean
+clean: build-clean js-clean
 
 endif # CONFIGURE_STATUS = success

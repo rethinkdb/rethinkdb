@@ -329,10 +329,9 @@ unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
-$(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE): $(PROTO_DIR)/.protocppgen2
-	true
+.PRECIOUS: $(PROTO_DIR)/. $(QL2_PROTO_HEADERS) $(QL2_PROTO_SOURCES)
 
-$(PROTO_DIR)/.protocppgen2: $(QL2_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
+$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto | $(PROTOC_DEP) $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
 	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
 	touch $@
@@ -369,15 +368,6 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-depclean:
-	$P RM "$(BUILD_ROOT_DIR)/*.d"
-	if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
-
-.PHONY: $(TOP)/src/clean
-$(TOP)/src/clean:
-	$P RM $(BUILD_DIR)
-	rm -rf $(BUILD_DIR)
-
 $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
 	$P CC $< -o $@
@@ -390,3 +380,9 @@ $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROT
 	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
 
 -include $(DEPS)
+
+.PHONY: build-clean
+build-clean:
+	$P RM $(BUILD_ROOT_DIR)
+	rm -rf $(BUILD_ROOT_DIR)
+
