@@ -218,7 +218,6 @@ osx:
 .PHONY: reset-dist-dir
 reset-dist-dir: FORCE | web-assets
 	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
-# TODO: have a seperate external-clean phony target
 	rm -rf $(PROTOC_JS_PLUGIN)
 	$(EXTERN_MAKE) -C $(TOP)/external/gtest/make clean
 	$(EXTERN_MAKE) -C $(TOP)/external/protobuf-plugin-closure clean
