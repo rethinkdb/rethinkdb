@@ -153,46 +153,30 @@ public:
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
-        {
-            // SAMRSI: Deindent this.
-            counted_t<val_t> v = optarg("datacenter", counted_t<val_t>());
-            if (v.has()) {
-                name_string_t name = get_name(v, this);
-                {
-                    rethreading_metadata_accessor_t meta(this);
-                    dc_id = meta_get_uuid(
-                                          &meta.dc_searcher, name,
-                                          strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
-                                          this);
-                }
+        if (counted_t<val_t> v = optarg("datacenter", counted_t<val_t>())) {
+            name_string_t name = get_name(v, this);
+            {
+                rethreading_metadata_accessor_t meta(this);
+                dc_id = meta_get_uuid(
+                                      &meta.dc_searcher, name,
+                                      strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
+                                      this);
             }
         }
 
         bool hard_durability = true;
-        {
-            // SAMRSI: Deindent this.
-            counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>());
-            if (v.has()) {
-                hard_durability = v->as_datum()->as_bool();
-            }
+        if (counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>())) {
+            hard_durability = v->as_datum()->as_bool();
         }
 
         std::string primary_key = "id";
-        {
-            // SAMRSI: Deindent this.
-            counted_t<val_t> v = optarg("primary_key", counted_t<val_t>());
-            if (v.has()) {
-                primary_key = v->as_str();
-            }
+        if (counted_t<val_t> v = optarg("primary_key", counted_t<val_t>())) {
+            primary_key = v->as_str();
         }
 
         int cache_size = 1073741824;
-        {
-            // SAMRSI: Deindent this.
-            counted_t<val_t> v = optarg("cache_size", counted_t<val_t>());
-            if (v.has()) {
-                cache_size = v->as_int<int>();
-            }
+        if (counted_t<val_t> v = optarg("cache_size", counted_t<val_t>())) {
+            cache_size = v->as_int<int>();
         }
 
         uuid_u db_id = arg(0)->as_db();

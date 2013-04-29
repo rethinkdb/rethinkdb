@@ -225,8 +225,7 @@ private:
     void load_data() {
         if (data_index != -1) return;
         data_index = 0;
-        counted_t<const datum_t> arr;
-        if ((arr = src->as_array(), arr.has())) {
+        if (counted_t<const datum_t> arr = src->as_array()) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    strprintf("Can only sort at most %zu elements.",
@@ -237,8 +236,7 @@ private:
         } else {
             is_arr_ = false;
             size_t sort_els = 0;
-            counted_t<const datum_t> d;
-            while ((d = src->next(), d.has())) {
+            while (counted_t<const datum_t> d = src->next()) {
                 rcheck(++sort_els <= sort_el_limit,
                        strprintf("Can only sort at most %zu elements.",
                                  sort_el_limit));

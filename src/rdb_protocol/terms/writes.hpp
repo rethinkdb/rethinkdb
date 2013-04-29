@@ -150,12 +150,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
-        {
-            // SAMRSI: Deindent this.
-            counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>());
-            if (v.has()) {
-                nondet_ok = v->as_bool();
-            }
+        if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
+            nondet_ok = v->as_bool();
         }
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         if (!nondet_ok) {
@@ -205,8 +201,7 @@ private:
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        counted_t<const datum_t> row;
-        while ((row = ds->next(), row.has())) {
+        while (counted_t<const datum_t> row = ds->next()) {
             counted_t<val_t> v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();

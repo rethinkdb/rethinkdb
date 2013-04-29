@@ -64,8 +64,7 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
     counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
     rcheck(base.has(), "Cannot reduce over an empty stream with no base.");
 
-    counted_t<const datum_t> rhs;
-    while ((rhs = next(), rhs.has())){
+    while (counted_t<const datum_t> rhs = next()) {
         base = f->call(base, rhs)->as_datum();
     }
     return base;
@@ -74,8 +73,7 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
 counted_t<const datum_t> eager_datum_stream_t::gmr(
     counted_t<func_t> group, counted_t<func_t> map, counted_t<const datum_t> base, counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
-    counted_t<const datum_t> el;
-    while ((el = next(), el.has())) {
+    while (counted_t<const datum_t> el = next()) {
         counted_t<const datum_t> el_group = group->call(el)->as_datum();
         counted_t<const datum_t> el_map = map->call(el)->as_datum();
         if (!wd_map.has(el_group)) {
@@ -99,8 +97,7 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 
 counted_t<const datum_t> eager_datum_stream_t::as_array() {
     scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-    counted_t<const datum_t> d;
-    while ((d = next(), d.has())) {
+    while (counted_t<const datum_t> d = next()) {
         arr->add(d);
     }
     return counted_t<const datum_t>(arr.release());

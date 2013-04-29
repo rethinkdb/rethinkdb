@@ -459,9 +459,8 @@ counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        counted_t<const datum_t> l;
-        if ((l = get(it->first, NOTHROW), l.has())) {
-            bool b = d->add(it->first, f(env, it->first, l, it->second, this), CLOBBER);
+        if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
+            bool b = d->add(it->first, f(env, it->first, left, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d->add(it->first, it->second);

@@ -118,9 +118,10 @@ private:
         scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), this));
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         counted_t<const datum_t> last;
-        counted_t<const datum_t> d;
-        while ((d = s->next(), d.has())) {
-            if (last.has() && *last == *d) continue;
+        while (counted_t<const datum_t> d = s->next()) {
+            if (last.has() && *last == *d) {
+                continue;
+            }
             last = d;
             arr->add(last);
         }
