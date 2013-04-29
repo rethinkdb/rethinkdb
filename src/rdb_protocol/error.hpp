@@ -178,7 +178,7 @@ public:
     virtual ~base_exc_t() throw () { }
 };
 
-// A RQL exception.  In the future it will be tagged.
+// A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
