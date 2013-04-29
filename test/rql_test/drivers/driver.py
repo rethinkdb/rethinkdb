@@ -65,8 +65,7 @@ class Bag(Lst):
             return False
 
         for i in xrange(len(self.lst)):
-            fun = eq(self.lst[i])
-            if not fun(other[i]):
+            if not self.lst[i] == other[i]:
                 return False
 
         return True
@@ -82,8 +81,12 @@ class Dct:
         for key in self.dct.keys():
             if not key in other.keys():
                 return False
-            fun = eq(self.dct[key])
-            if not fun(other[key]):
+            val = other[key]
+            if isinstance(val, str) or isinstance(val, unicode):
+                # Remove additional error info that creeps in in debug mode
+                val = re.sub("\nFailed assertion:.*", "", val, flags=re.M|re.S)
+            other[key] = val
+            if not self.dct[key] == other[key]:
                 return False
         return True
 
@@ -180,9 +183,6 @@ def eq(exp):
         exp = Dct(exp)
 
     def sub(val):
-        if isinstance(val, str):
-            # Remove additional error info that creeps in in debug mode
-            val = re.sub("\nFailed assertion:.*", "", val, flags=re.M|re.S)
         if not (val == exp):
             return False
         else:
@@ -212,12 +212,7 @@ class PyTestDriver:
             exp_val = eval(expected, dict(globals().items() + self.scope.items()))
         else:
             # This test might not have come with an expected result, we'll just ensure it doesn't fail
-            #exp_fun = lambda v: True
             exp_val = ()
-
-        # If left off the comparison function is equality by default
-        #if not isinstance(exp_fun, types.FunctionType):
-        #    exp_fun = eq(exp_fun)
 
         # Try to build the test
         try:
