@@ -69,8 +69,9 @@ test-js: $(JS_DRIVER_LIB)
 testWeb: $(JS_DRIVER_LIB)
 	cd $(TOP); python -m SimpleHTTPServer
 
-.PHONY: clean
-clean:
+.PHONY: js-clean
+js-clean:
+	$P RM $(JS_BUILD_DIR)
 	rm -rf $(JS_BUILD_DIR)
 
 .PHONY: js-driver

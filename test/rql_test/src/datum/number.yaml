@@ -57,10 +57,24 @@ tests:
 
     - cd: r.expr(1).type_of()
       ot: "'NUMBER'"
-      
+
     # test coercions
     - cd: r.expr(1).coerce_to('string')
       ot: "'1'"
-      
+
     - cd: r.expr(1).coerce_to('number')
       ot: 1
+
+    # The drivers now convert to an int (where relevant) if we think the result
+    # looks like an int (result % 1.0 == 0.0)
+    - py: r.expr(1.0)
+      rb: r 1.0
+      ot: int_cmp(1)
+
+    - py: r.expr(45)
+      rb: r 45
+      ot: int_cmp(45)
+
+    - py: r.expr(1.2)
+      rb: r 1.2
+      ot: float_cmp(1.2)

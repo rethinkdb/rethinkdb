@@ -138,7 +138,7 @@ void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
                                                    region_map_t<protocol_t, binary_blob_t> *out)
     THROWS_ONLY(interrupted_exc_t) {
 
-    // RSI: this is kind of awkward
+    // This is kind of awkward.
     int count = num_stores();
     scoped_array_t<switch_read_token_t> internal_tokens(count);
 

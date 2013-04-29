@@ -32,15 +32,29 @@ tests:
 
     - cd: r.expr({'a':1}).type_of()
       ot: "'OBJECT'"
-      
+
     # test coercions
     - cd: r.expr({'a':1}).coerce_to('string')
       rb: [] # The ruby test driver can't parse the expected value
       ot: ('{\n\t"a":\t1\n}')
-      
+
     - cd: r.expr({'a':1}).coerce_to('object')
       ot: ({'a':1})
-      
+
     - cd: r.expr({'a':1}).coerce_to('array')
       ot: [['a',1]]
-      
+
+    # Error cases
+    - py: r.expr({12:'a'})
+      rb: r({12 => 'a'})
+      ot: err_regex("RqlDriverError", "Object keys must be strings")
+
+    - py: r.expr({'a':{12:'b'}})
+      rb: r({:a => {12 => 'b'} })
+      ot: err_regex("RqlDriverError", "Object keys must be strings")
+
+    - js: r({'a':undefined})
+      ot: err("RqlDriverError", "Object field 'a' may not be undefined")
+
+    - js: r({'a':{'b':undefined}})
+      ot: err("RqlDriverError", "Object field 'b' may not be undefined")
