@@ -199,6 +199,19 @@ module 'DatabaseView', ->
             #@.$('.btn-primary').focus()
 
         on_submit: =>
+            if @$('.verification_name').val() isnt @database_to_delete.get('name')
+                @.$('.alert_modal').html @error_template
+                    fail_to_confirm_name: true
+                    type: 'database'
+
+                if @.$('.alert_modal_content').css('display') is 'none'
+                    @.$('.alert_modal_content').slideDown('fast')
+                else
+                    @.$('.alert_modal_content').css('display', 'none')
+                    @.$('.alert_modal_content').fadeIn()
+                @reset_buttons()
+                return true
+
             super
 
             # We remove the database
