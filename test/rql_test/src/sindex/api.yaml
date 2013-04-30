@@ -250,4 +250,221 @@ tests:
          {'right':{'id':3,'a':0,'b':1,'c':1},'left':{'id':1,'a':0,'b':0,'c':0}},
          {'right':{'id':4,'a':4,'b':4,'c':4},'left':{'id':4,'a':4,'b':4,'c':4}}]
 
+  - rb: tbl.between(nil, nil).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, nil).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, 4).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, 4).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(-1, 5).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(5, 5).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(5, nil).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(-1, -1).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(nil, -1).orderby(:id).map{|x| x[:id]}
+    ot: []
+
+  - rb: tbl.between(nil, nil, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, nil, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, 4, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, 4, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(-1, 5, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(5, 5, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(5, nil, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(-1, -1, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(nil, -1, :index => :id).orderby(:id).map{|x| x[:id]}
+    ot: []
+
+  - rb: tbl.between(nil, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, 4, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, 4, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(-1, 5, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(5, 5, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(5, nil, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(-1, -1, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(nil, -1, :index => :idi).orderby(:id).map{|x| x[:id]}
+    ot: []
+
+  - rb: tbl.between(nil, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, 4, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, 4, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(0, 5, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+
+  - rb: tbl.between(0, 3, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(0, 1, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(0, 0, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(-1, 2, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+
+  - rb: tbl.between(1, 1, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(1, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [4]
+  - rb: tbl.between(5, nil, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(nil, 0, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(-1, -1, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between(nil, -1, :index => :ai).orderby(:id).map{|x| x[:id]}
+    ot: []
+
+  - rb: tbl.between(0, 1, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(-1, 1, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(nil, 1, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(0, nil, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(-1, nil, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, nil, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(1, nil, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3, 4]
+  - rb: tbl.between(1, 1, :index => :c).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
+
+  - rb: tbl.index_create('bc') {|row| [row[:b], row[:c]]}
+    ot: ({'created':1})
+  - rb: tbl.index_create('cb') {|row| [row[:c], row[:b]]}
+    ot: ({'created':1})
+
+  - rb: tbl.between(nil, [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between(nil, [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between(nil, [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between(nil, [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between(nil, [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between(nil, [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between(nil, [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(nil, [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between(nil, nil, :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, nil, :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+
+  - rb: tbl.between([0, 0], [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between([0, 0], [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between([0, 0], [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between([0, 0], [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1]
+  - rb: tbl.between([0, 0], [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between([0, 0], [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2]
+  - rb: tbl.between([0, 0], [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between([0, 0], [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3]
+  - rb: tbl.between([0, 0], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between([0, 0], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [0, 1, 2, 3, 4]
+
+  - rb: tbl.between([0, 1], [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([0, 1], [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([0, 1], [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [2]
+  - rb: tbl.between([0, 1], [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([0, 1], [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [2]
+  - rb: tbl.between([0, 1], [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2]
+  - rb: tbl.between([0, 1], [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
+  - rb: tbl.between([0, 1], [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
+  - rb: tbl.between([0, 1], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3, 4]
+  - rb: tbl.between([0, 1], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3, 4]
+
+  - rb: tbl.between([1, 0], [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 0], [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 0], [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 0], [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 0], [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 0], [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2]
+  - rb: tbl.between([1, 0], [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [3]
+  - rb: tbl.between([1, 0], [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3]
+  - rb: tbl.between([1, 0], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [3, 4]
+  - rb: tbl.between([1, 0], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [2, 3, 4]
+
+  - rb: tbl.between([1, 1], [0, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [0, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [0, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [0, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [1, 0], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [1, 0], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: []
+  - rb: tbl.between([1, 1], [1, 1], :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [3]
+  - rb: tbl.between([1, 1], [1, 1], :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [3]
+  - rb: tbl.between([1, 1], nil, :index => :bc).orderby(:id).map{|x| x[:id]}
+    ot: [3, 4]
+  - rb: tbl.between([1, 1], nil, :index => :cb).orderby(:id).map{|x| x[:id]}
+    ot: [3, 4]
+
   - cd: r.db('test').table_drop('sindex_api')

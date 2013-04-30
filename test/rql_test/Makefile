@@ -39,7 +39,7 @@ build/.stub: $(YAML_FILES) $(DRIVER_FILES)
 
 .PHONY: list
 list:
-	cd src && find -name \*.yaml | sed 's|^./||; s|/|-|g; s|.yaml$$||'
+	cd src && find . -name \*.yaml | sed 's|^./||; s|/|-|g; s|.yaml$$||'
 
 .PHONY: polyglot
 polyglot: py_polyglot js_polyglot rb_polyglot

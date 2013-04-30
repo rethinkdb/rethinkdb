@@ -153,6 +153,7 @@ translateOptargs = (optargs) ->
             when 'cacheSize' then 'cache_size'
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
+            when 'hardDurability' then 'hard_durability'
             else key
 
         if key is undefined or val is undefined then continue

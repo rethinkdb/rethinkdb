@@ -32,6 +32,15 @@ tests:
     - cd: db.table_list()
       ot: []
 
+    # Table create options
+    - py: db.table_create('ab', primary_key='bar', cache_size=123, hard_durability=False)
+      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, hard_durability:false})
+      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :hard_durability => false})
+      ot: ({'created':1})
+
+    - cd: db.table_drop('ab')
+      ot: ({'dropped':1})
+
     # Table errors
     - cd: db.table_create('foo')
       ot: ({'created':1})
@@ -68,4 +77,3 @@ tests:
       py: db.table_create('nonsense2', cache_size='bar')
       rb: db.table_create('nonsense2', :cache_size => 'bar')
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
-

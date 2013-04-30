@@ -17,10 +17,10 @@ module 'DataExplorerView', ->
         # Constants
         limit: 40 # How many results we display per page // Final for now
         line_height: 13 # Define the height of a line (used for a line is too long)
-        size_history: 100
+        size_history: 50
         
         max_size_stack: 100 # If the stack of the query (including function, string, object etc. is greater than @max_size_stack, we stop parsing the query
-        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characters too
+        max_size_query: 1000 # If the query is more than 1000 char, we don't show suggestion (codemirror doesn't highlight/parse if the query is more than 1000 characdd_ters too
 
         events:
             'mouseup .CodeMirror': 'handle_click'
@@ -34,25 +34,208 @@ module 'DataExplorerView', ->
             'click .more_valid_results': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
-            'click .close_queries_link': 'open_close_history'
+            'click .close_queries_link': 'toggle_history'
+            'click .toggle_options_link': 'toggle_options'
+            'mousedown .nano_border_bottom': 'start_resize_history'
+
+        start_resize_history: (event) =>
+            @history_view.start_resize event
 
         clear_history_view: (event) =>
-            @history_view.clear_history event
-            @clear_history()
+            that = @
+            @clear_history() # Delete from localstorage
+            @history_view.history = @history
 
-        open_close_history: (event, args) =>
-            @history_view.open_close_history(args)
+            @history_view.clear_history event
+
+        # Method that make sure that just one button (history or option) is active
+        # We give this button an "active" class that make it looks like it's pressed.
+        toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
                 @saved_data.history_state = 'visible'
-                if args?.no_animation is true
-                    @$('.clear_queries_link').show()
-                else
-                    @$('.clear_queries_link').fadeIn 'fast'
+                @$('.clear_queries_link').fadeIn 'fast'
                 @$('.close_queries_link').addClass 'active'
             else
                 @saved_data.history_state = 'hidden'
                 @$('.clear_queries_link').fadeOut 'fast'
                 @$('.close_queries_link').removeClass 'active'
+
+            if @options_view.state is 'visible'
+                @$('.toggle_options_link').addClass 'active'
+            else
+                @$('.toggle_options_link').removeClass 'active'
+
+        # Show/hide the history view
+        toggle_history: (args) =>
+            that = @
+
+            @deactivate_overflow()
+            if args.no_animation is true
+                # We just show the history
+                @history_view.state = 'visible'
+                @$('.content').html @history_view.render(true).$el
+                @move_arrow
+                    type: 'history'
+                    move_arrow: 'show'
+                @adjust_collapsible_panel_height
+                    no_animation: true
+                    is_at_bottom: true
+
+            else if @options_view.state is 'visible'
+                @options_view.state = 'hidden'
+                @move_arrow
+                    type: 'history'
+                    move_arrow: 'animate'
+                @options_view.$el.fadeOut 'fast', ->
+                    that.$('.content').html that.history_view.render(false).$el
+                    that.history_view.state = 'visible'
+                    that.history_view.$el.fadeIn 'fast'
+                    that.adjust_collapsible_panel_height
+                        is_at_bottom: true
+                    that.toggle_pressed_buttons() # Re-execute toggle_pressed_buttons because we delay the fadeIn
+            else if @history_view.state is 'hidden'
+                @history_view.state = 'visible'
+                @$('.content').html @history_view.render(true).$el
+                @history_view.delegateEvents()
+                @move_arrow
+                    type: 'history'
+                    move_arrow: 'show'
+                @adjust_collapsible_panel_height
+                    is_at_bottom: true
+            else if @history_view.state is 'visible'
+                @history_view.state = 'hidden'
+                @hide_collapsible_panel 'history'
+
+            @toggle_pressed_buttons()
+
+        # Show/hide the options view
+        toggle_options: =>
+            that = @
+
+            @deactivate_overflow()
+            if @history_view.state is 'visible'
+                @history_view.state = 'hidden'
+                @move_arrow
+                    type: 'options'
+                    move_arrow: 'animate'
+                @history_view.$el.fadeOut 'fast', ->
+                    that.$('.content').html that.options_view.render(false).$el
+                    that.options_view.state = 'visible'
+                    that.options_view.$el.fadeIn 'fast'
+                    that.adjust_collapsible_panel_height()
+                    that.toggle_pressed_buttons()
+            else if @options_view.state is 'hidden'
+                @options_view.state = 'visible'
+                @$('.content').html @options_view.render(true).$el
+                @options_view.delegateEvents()
+                @move_arrow
+                    type: 'options'
+                    move_arrow: 'show'
+                @adjust_collapsible_panel_height()
+            else if @options_view.state is 'visible'
+                @options_view.state = 'hidden'
+                @hide_collapsible_panel 'options'
+
+            @toggle_pressed_buttons()
+
+        # Hide the collapsible_panel whether it contains the option or history view
+        hide_collapsible_panel: (type) =>
+            that = @
+            @deactivate_overflow()
+            @$('.nano').animate
+                height: 0
+                , 200
+                , ->
+                    that.activate_overflow()
+                    # We don't want to hide the view if the user changed the state of the view while it was being animated
+                    if (type is 'history' and that.history_view.state is 'hidden') or (type is 'options' and that.options_view.state is 'hidden')
+                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                        that.$('.arrow_dataexplorer').hide() # In case the user trigger hide/show really fast
+                        that.$(@).css 'visibility', 'hidden'
+            @$('.nano_border').slideUp 'fast'
+            @$('.arrow_dataexplorer').slideUp 'fast'
+
+        # Move the arrow that points to the active button (on top of the collapsible panel). In case the user switch from options to history (or the opposite), we need to animate it
+        move_arrow: (args) =>
+            # args =
+            #   type: 'options'/'history'
+            #   move_arrow: 'show'/'animate'
+            if args.type is 'options'
+                margin_right = 74
+            else if args.type is 'history'
+                margin_right = 154
+
+            if args.move_arrow is 'show'
+                @$('.arrow_dataexplorer').css 'margin-right', margin_right
+                @$('.arrow_dataexplorer').show()
+            else if args.move_arrow is 'animate'
+                @$('.arrow_dataexplorer').animate
+                    'margin-right': margin_right
+                    , 200
+            @$('.nano_border').show()
+
+        # Adjust the height of the container of the history/option view
+        # Arguments:
+        #   size: size of the collapsible panel we want // If not specified, we are going to try to figure it out ourselves
+        #   no_animation: boolean (do we need to animate things or just to show it)
+        #   is_at_bottom: boolean (if we were at the bottom, we want to scroll down once we have added elements in)
+        #   delay_scroll: boolean, true if we just added a query - It speficied if we adjust the height then scroll or do both at the same time 
+        adjust_collapsible_panel_height: (args) =>
+            that = @
+            if args?.size?
+                size = args.size
+            else
+                if args?.extra?
+                    size = Math.min @$('.content > div').height()+args.extra, @history_view.height_history
+                else
+                    size = Math.min @$('.content > div').height(), @history_view.height_history
+
+            @deactivate_overflow()
+
+            duration = Math.max 150, size
+            duration = Math.min duration, 250
+            #@$('.nano').stop(true, true).animate
+            @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
+            if args?.no_animation is true
+                @$('.nano').height size
+                @$('.nano > .content').scrollTop @$('.nano > .content > div').height()
+                @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                @$('.arrow_dataexplorer').show() # In case the user trigger hide/show really fast
+                @$('.nano_border').show() # In case the user trigger hide/show really fast
+                if args?.no_animation is true
+                    @$('.nano').nanoScroller({preventPageScrolling: true})
+                @activate_overflow()
+
+            else
+                @$('.nano').animate
+                    height: size
+                    , duration
+                    , ->
+                        that.$(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
+                        that.$('.arrow_dataexplorer').show() # In case the user trigger hide/show really fast
+                        that.$('.nano_border').show() # In case the user trigger hide/show really fast
+                        that.$(@).nanoScroller({preventPageScrolling: true})
+                        that.activate_overflow()
+                        if args? and args.delay_scroll is true and args.is_at_bottom is true
+                            that.$('.nano > .content').animate
+                                scrollTop: that.$('.nano > .content > div').height()
+                                , 200
+
+                if args? and args.delay_scroll isnt true and args.is_at_bottom is true
+                    that.$('.nano > .content').animate
+                        scrollTop: that.$('.nano > .content > div').height()
+                        , 200
+
+
+
+        # We deactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
+        deactivate_overflow: =>
+            if $(window).height() >= $(document).height()
+                $('body').css 'overflow', 'hidden'
+
+        activate_overflow: =>
+            $('body').css 'overflow', 'auto'
+
 
         displaying_full_view: false # Boolean for the full view (true if full view)
 
@@ -188,7 +371,15 @@ module 'DataExplorerView', ->
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
-            # We do not load data from localStorage.
+            # Load options from local storage
+            if window.localStorage?.options?
+                @options = JSON.parse window.localStorage.options
+            else
+                @options =
+                    suggestions: true
+                    electric_punctuation: false # False by default
+
+            # We do not load the rest of data from localStorage.
             if not DataExplorerView.Container.prototype.saved_data?
                 DataExplorerView.Container.prototype.saved_data =
                     current_query: null
@@ -201,6 +392,7 @@ module 'DataExplorerView', ->
                     history_state: 'hidden'
                     last_keys: []
                     last_columns_size: {}
+                    options: @options
 
             # Load history, keep it in memory for the session
             if not DataExplorerView.Container.prototype.history?
@@ -245,6 +437,10 @@ module 'DataExplorerView', ->
                 limit: @limit
                 view: @saved_data.view
 
+            @options_view = new DataExplorerView.OptionsView
+                container: @
+                options: @saved_data.options
+
             @history_view = new DataExplorerView.HistoryView
                 container: @
                 history: @history
@@ -257,7 +453,6 @@ module 'DataExplorerView', ->
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
             $(window).mouseup @handle_mouseup
-
             @id_execution = 0
 
             @render()
@@ -306,7 +501,6 @@ module 'DataExplorerView', ->
             if @driver_connected is false
                 @error_on_connect()
     
-            @$('.history_container').html @history_view.render().$el
             return @
 
         # This method has to be called AFTER the el element has been inserted in the DOM tree, mostly for codemirror
@@ -340,7 +534,7 @@ module 'DataExplorerView', ->
             @draft = @codemirror.getValue()
 
             if @saved_data.history_state is 'visible' # If the history was visible, we show it
-                @open_close_history event,
+                @toggle_history
                     no_animation: true
 
         on_blur: =>
@@ -615,9 +809,64 @@ module 'DataExplorerView', ->
 
             # Look for special commands
             if event?.which?
-                if event.which is 27 # ESC
+                if event.type isnt 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32)
+                    # Because on event.type == 'keydown' we are going to change the state (hidden or displayed) of @$('.suggestion_description') and @.$('.suggestion_name_list'), we don't want to fire this event a second time
+                    return true
+
+                if event.which is 27 or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') isnt 'none' or @.$('.suggestion_name_list').css('display') isnt 'none'))
+                    # We caugh ESC or (Ctrl/Cmd+space with suggestion/description being displayed)
                     event.preventDefault() # Keep focus on code mirror
                     @hide_suggestion_and_description()
+                    query_before_cursor = @codemirror.getRange {line: 0, ch: 0}, @codemirror.getCursor()
+                    query_after_cursor = @codemirror.getRange @codemirror.getCursor(), {line:@codemirror.lineCount()+1, ch: 0}
+
+                    # Compute the structure of the query written by the user.
+                    # We compute it earlier than before because @pair_char also listen on keydown and needs stack
+                    stack = @extract_data_from_query
+                        size_stack: 0
+                        query: query_before_cursor
+                        position: 0
+
+                    if stack is null # Stack is null if the query was too big for us to parse
+                        @ignore_tab_keyup = false
+                        @hide_suggestion_and_description()
+                        return false
+
+                    @current_highlighted_suggestion = -1
+                    @current_highlighted_extra_suggestion = -1
+                    @.$('.suggestion_name_list').empty()
+
+                    # Valid step, let's save the data
+                    @query_last_part = query_after_cursor
+
+                    @current_suggestions = []
+                    @current_element = ''
+                    @current_extra_suggestion = ''
+                    @written_suggestion = null
+                    @cursor_for_auto_completion = @codemirror.getCursor()
+                    @description = null
+
+                    result =
+                        status: null
+                        # create_suggestion is going to fill to_complete and to_describe
+                        #to_complete: undefined
+                        #to_describe: undefined
+                        
+                    # Create the suggestion/description
+                    @create_suggestion
+                        stack: stack
+                        query: query_before_cursor
+                        result: result
+
+                    if result.suggestions?.length > 0
+                        for suggestion, i in result.suggestions
+                            @current_suggestions.push suggestion
+                            @.$('.suggestion_name_list').append @template_suggestion_name
+                                id: i
+                                suggestion: suggestion
+                    else if result.description?
+                        @description = result.description
+
                     return true
                 else if event.which is 13 and (event.shiftKey is false and event.ctrlKey is false and event.metaKey is false)
                     if event.type is 'keydown'
@@ -635,9 +884,17 @@ module 'DataExplorerView', ->
                                 @codemirror.indentLine cursor.line+1, 'smart'
                                 @codemirror.setCursor cursor
                                 return false
-                else if event.which is 9 # If the user hit tab, we switch the highlighted suggestion
+                else if event.which is 9  or (event.type is 'keydown' and ((event.ctrlKey is true or event.metaKey is true) and event.which is 32) and (@$('.suggestion_description').css('display') is 'none' and @.$('.suggestion_name_list').css('display') is 'none'))
+                    # If the user just hit tab, we are going to show the suggestions if they are hidden
+                    # or if they suggestions are already shown, we are going to cycle through them.
+                    #
+                    # If the user just hit Ctrl/Cmd+space with suggestion/description being hidden we show the suggestions
+                    # Note that the user cannot cycle through suggestions because we make sure in the IF condition that suggestion/description are hidden
+                    # If the suggestions/description are visible, the event will be caught earlier with ESC
                     event.preventDefault()
-                    if event.type is 'keydown'
+                    if event.type isnt 'keydown'
+                        return false
+                    else
                         if @current_suggestions?.length > 0
                             if @$('.suggestion_name_list').css('display') is 'none'
                                 @show_suggestion()
@@ -702,78 +959,81 @@ module 'DataExplorerView', ->
                                         suggestion_to_write: @current_suggestions[@current_highlighted_suggestion] # Auto complete with the highlighted suggestion
                                     @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
                                     return true
-                        else if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
-                            # Trim suggestion
-                            if @extra_suggestion?.body?[0]?.type is 'string'
-                                if @extra_suggestion.body[0].complete is true
-                                    @extra_suggestions = []
-                                else
-                                    # Remove quotes around the table/db name
-                                    current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
-                                    regex = @create_safe_regex current_name
-                                    new_extra_suggestions = []
-                                    for suggestion in @extra_suggestions
-                                        if regex.test(suggestion) is true
-                                            new_extra_suggestions.push suggestion
-                                    @extra_suggestions = new_extra_suggestions
+                        else if @description?
+                            if @$('.suggestion_description').css('display') is 'none'
+                                # We show it once only because we don't want to move the cursor around
+                                @show_description()
+                                return true
 
-                            if @extra_suggestions.length > 0 # If there are still some valid suggestions
-                                query = @codemirror.getValue()
-
-                                # We did not parse what is after the cursor, so let's take a look
-                                start_search = @extra_suggestion.start_body
-                                if @extra_suggestion.body?[0]?.name.length?
-                                    start_search += @extra_suggestion.body[0].name.length
-
-                                # Define @query_first_part and @query_last_part
-                                # Note that ) is not a valid character for a db/table name
-                                end_body = query.indexOf ')', start_search
-                                @query_last_part = ''
-                                if end_body isnt -1
-                                    @query_last_part = query.slice end_body
-                                @query_first_part = query.slice 0, @extra_suggestion.start_body
-                                lines = @query_first_part.split('\n')
-                                # Because we may have slice before @cursor_for_auto_completion, we re-define it
-                                @cursor_for_auto_completion =
-                                    line: lines.length-1
-                                    ch: lines[lines.length-1].length
-
-                                if event.shiftKey is true
-                                    @current_highlighted_extra_suggestion--
-                                else
-                                    @current_highlighted_extra_suggestion++
-                                    
-                                if @current_highlighted_extra_suggestion >= @extra_suggestions.length
-                                    @current_highlighted_extra_suggestion = -1
-                                else if @current_highlighted_extra_suggestion < -1
-                                    @current_highlighted_extra_suggestion = @extra_suggestions.length-1
-
-                                # Create the next suggestion
-                                suggestion = ''
-                                if @current_highlighted_extra_suggestion is -1
-                                    if @current_extra_suggestion?
-                                        if /^\s*'/.test(@current_extra_suggestion) is true
-                                            suggestion = @current_extra_suggestion+"'"
-                                        else if /^\s*"/.test(@current_extra_suggestion) is true
-                                            suggestion = @current_extra_suggestion+'"'
-                                else
-                                    if /^\s*'/.test(@current_extra_suggestion) is true
-                                        string_delimiter = "'"
-                                    else if /^\s*"/.test(@current_extra_suggestion) is true
-                                        string_delimiter = '"'
+                            if @extra_suggestions? and @extra_suggestions.length > 0 and @extra_suggestion.start_body is @extra_suggestion.start_body
+                                # Trim suggestion
+                                if @extra_suggestion?.body?[0]?.type is 'string'
+                                    if @extra_suggestion.body[0].complete is true
+                                        @extra_suggestions = []
                                     else
-                                        move_outside = true
-                                        string_delimiter = "'"
-                                    suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
-                                
-                                @write_suggestion
-                                    move_outside: move_outside
-                                    suggestion_to_write: suggestion
-                                @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
+                                        # Remove quotes around the table/db name
+                                        current_name = @extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
+                                        regex = @create_safe_regex current_name
+                                        new_extra_suggestions = []
+                                        for suggestion in @extra_suggestions
+                                            if regex.test(suggestion) is true
+                                                new_extra_suggestions.push suggestion
+                                        @extra_suggestions = new_extra_suggestions
 
+                                if @extra_suggestions.length > 0 # If there are still some valid suggestions
+                                    query = @codemirror.getValue()
+
+                                    # We did not parse what is after the cursor, so let's take a look
+                                    start_search = @extra_suggestion.start_body
+                                    if @extra_suggestion.body?[0]?.name.length?
+                                        start_search += @extra_suggestion.body[0].name.length
+
+                                    # Define @query_first_part and @query_last_part
+                                    # Note that ) is not a valid character for a db/table name
+                                    end_body = query.indexOf ')', start_search
+                                    @query_last_part = ''
+                                    if end_body isnt -1
+                                        @query_last_part = query.slice end_body
+                                    @query_first_part = query.slice 0, @extra_suggestion.start_body
+                                    lines = @query_first_part.split('\n')
+
+                                    if event.shiftKey is true
+                                        @current_highlighted_extra_suggestion--
+                                    else
+                                        @current_highlighted_extra_suggestion++
+                                        
+                                    if @current_highlighted_extra_suggestion >= @extra_suggestions.length
+                                        @current_highlighted_extra_suggestion = -1
+                                    else if @current_highlighted_extra_suggestion < -1
+                                        @current_highlighted_extra_suggestion = @extra_suggestions.length-1
+
+                                    # Create the next suggestion
+                                    suggestion = ''
+                                    if @current_highlighted_extra_suggestion is -1
+                                        if @current_extra_suggestion?
+                                            if /^\s*'/.test(@current_extra_suggestion) is true
+                                                suggestion = @current_extra_suggestion+"'"
+                                            else if /^\s*"/.test(@current_extra_suggestion) is true
+                                                suggestion = @current_extra_suggestion+'"'
+                                    else
+                                        if @options.electric_punctuation is false
+                                            move_outside = true
+                                        if /^\s*'/.test(@current_extra_suggestion) is true
+                                            string_delimiter = "'"
+                                        else if /^\s*"/.test(@current_extra_suggestion) is true
+                                            string_delimiter = '"'
+                                        else
+                                            string_delimiter = "'"
+                                            move_outside = true
+                                        suggestion = string_delimiter+@extra_suggestions[@current_highlighted_extra_suggestion]+string_delimiter
+                                    
+                                    @write_suggestion
+                                        move_outside: move_outside
+                                        suggestion_to_write: suggestion
+                                    @ignore_tab_keyup = true # If we are switching suggestion, we don't want to do anything else related to tab
 
                 # If the user hit enter and (Ctrl or Shift)
-                else if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
+                if event.which is 13 and (event.shiftKey or event.ctrlKey or event.metaKey)
                     @hide_suggestion_and_description()
                     event.preventDefault()
                     if event.type isnt 'keydown'
@@ -839,9 +1099,14 @@ module 'DataExplorerView', ->
 
             # We are scrolling in history
             if @history_displayed_id isnt 0 and event?
-                # We catch ctrl, shift, alt, 
+                # We catch ctrl, shift, alt and command 
                 if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
                     return false
+
+            # We catch ctrl, shift, alt and command but don't look for active key (active key here refer to ctrl, shift, alt being pressed and hold)
+            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
+                return false
+
 
             # Avoid arrows+home+end+page down+pageup
             # if event? and (event.which is 24 or event.which is ..)
@@ -868,7 +1133,9 @@ module 'DataExplorerView', ->
                 @ignore_tab_keyup = false
                 @hide_suggestion_and_description()
                 return false
-            @pair_char(event, stack) # Pair brackets/quotes
+
+            if @options.electric_punctuation is true
+                @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
             if event?.type? and event.type isnt 'keyup' and event.which isnt 9 and event.type isnt 'mouseup'
@@ -909,6 +1176,7 @@ module 'DataExplorerView', ->
             @current_extra_suggestion = ''
             @written_suggestion = null
             @cursor_for_auto_completion = @codemirror.getCursor()
+            @description = null
 
             result =
                 status: null
@@ -940,21 +1208,26 @@ module 'DataExplorerView', ->
                     @.$('.suggestion_name_list').append @template_suggestion_name
                         id: i
                         suggestion: suggestion
-                @show_suggestion()
+                if @options.suggestions is true
+                    @show_suggestion()
+                else
+                    @hide_suggestion()
                 @hide_description()
-            else if result.description? and event?.type isnt 'mouseup'
+            else if result.description?
                 @hide_suggestion()
-                @show_description result.description
+                @description = result.description
+                if @options.suggestions is true and event?.type isnt 'mouseup'
+                    @show_description()
+                else
+                    @hide_description()
             else
                 @hide_suggestion_and_description()
-
             if event?.which is 9 # Catch tab
                 # If you're in a string, you add a TAB. If you're at the beginning of a newline with preceding whitespace, you add a TAB. If it's any other case do nothing.
                 if @last_element_type_if_incomplete(stack) isnt 'string' and @regex.white_or_empty.test(@codemirror.getLine(@codemirror.getCursor().line).slice(0, @codemirror.getCursor().ch)) isnt true
                     return true
                 else
                     return false
-           
             return true
 
         # Extract information from the current query
@@ -1739,14 +2012,14 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').show()
 
         # Show description and determine where to put it
-        show_description: (fn) =>
-            if @descriptions[fn]? # Just for safety
+        show_description: =>
+            if @descriptions[@description]? # Just for safety
                 margin = (parseInt(@.$('.CodeMirror-cursor').css('top').replace('px', ''))+@line_height)+'px'
 
                 @.$('.suggestion_full_container').css 'margin-top', margin
                 @.$('.arrow').css 'margin-top', margin
 
-                @.$('.suggestion_description').html @description_template @extend_description fn
+                @.$('.suggestion_description').html @description_template @extend_description @description
 
                 @.$('.suggestion_description').show()
                 @move_suggestion()
@@ -1805,18 +2078,30 @@ module 'DataExplorerView', ->
             move_outside = args.move_outside is true # So default value is false
 
             ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
-            if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
-                @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
-                @written_suggestion = suggestion_to_write+')'
+
+            if @options.electric_punctuation is true
+                if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
+                    @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
+                    @written_suggestion = suggestion_to_write+')'
+                else
+                    @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
+                    @written_suggestion = suggestion_to_write
+                    if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
+                        ch--
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+                @codemirror.setCursor
+                    line: @cursor_for_auto_completion.line
+                    ch:ch
             else
                 @codemirror.setValue @query_first_part+suggestion_to_write+@query_last_part
                 @written_suggestion = suggestion_to_write
                 if (move_outside is false) and (suggestion_to_write[suggestion_to_write.length-1] is '"' or suggestion_to_write[suggestion_to_write.length-1] is "'")
                     ch--
-            @codemirror.focus() # Useful if the user used the mouse to select a suggestion
-            @codemirror.setCursor
-                line: @cursor_for_auto_completion.line
-                ch:ch
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+                @codemirror.setCursor
+                    line: @cursor_for_auto_completion.line
+                    ch:ch
+
 
         # Select the suggestion. Called by mousdown .suggestion_name_li
         select_suggestion: (event) =>
@@ -2350,7 +2635,6 @@ module 'DataExplorerView', ->
             $(window).off 'resize', @display_full
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
-
 
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
@@ -2962,10 +3246,58 @@ module 'DataExplorerView', ->
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
 
+    class @OptionsView extends Backbone.View
+        dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
+        className: 'options_view'
+
+        events:
+            'click li': 'toggle_option'
+
+        initialize: (args) =>
+            @container = args.container
+            @options = args.options
+            @state = 'hidden'
+
+        toggle_option: (event) =>
+            event.preventDefault()
+            new_target = @$(event.target).data('option')
+            @$('#'+new_target).prop 'checked', !@options[new_target]
+            if event.target.nodeName isnt 'INPUT' # Label we catch if for us
+                new_value = @$('#'+new_target).is(':checked')
+                @options[new_target] = new_value
+                if window.localStorage?
+                    window.localStorage.options = JSON.stringify @options
+
+        toggle_suggestions: =>
+            @options.suggestions = not @options.suggestions
+            if @$('.content').css('display') is 'block'
+                @$('#suggestions').prop 'checked', @options.suggestions
+
+        toggle_view: =>
+            that = @
+            if @state is 'visible'
+                @state = 'hidden'
+                @$('.content').slideUp 'fast', ->
+                    if that.state is 'hidden'
+                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
+                        that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
+            else
+                @state = 'visible'
+                @$('.arrow_options').show()
+                @$('.nano_border').show()
+                @$('.content').slideDown 'fast'
+
+        render: (displayed) =>
+            @$el.html @dataexplorer_options_template @options
+            if displayed is true
+                @$el.show()
+            @delegateEvents()
+            return @
+
     class @HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
-        className: 'history'
+        className: 'history_container'
         
         size_history_displayed: 300
         state: 'hidden' # hidden, visible
@@ -2973,18 +3305,17 @@ module 'DataExplorerView', ->
 
         events:
             'click .load_query': 'load_query'
-            'mousedown .nano_border_bottom': 'start_resize'
 
         start_resize: (event) =>
             @start_y = event.pageY
-            @start_height = @$('.nano').height()
+            @start_height = @container.$('.nano').height()
             @mouse_down = true
             $('body').toggleClass('resizing', true)
 
         handle_mousemove: (event) =>
             if @mouse_down is true
                 @height_history = Math.max 0, @start_height-@start_y+event.pageY
-                @$('.nano').height @height_history
+                @container.$('.nano').height @height_history
 
         handle_mouseup: (event) =>
             if @mouse_down is true
@@ -2997,8 +3328,10 @@ module 'DataExplorerView', ->
             @history = args.history
             @height_history = 204
 
-        render: =>
+        render: (displayed) =>
             @$el.html @dataexplorer_history_template()
+            if displayed is true
+                @$el.show()
             if @history.length is 0
                 @$('.history_list').append @dataexplorer_query_li_template
                     no_query: true
@@ -3022,27 +3355,25 @@ module 'DataExplorerView', ->
         add_query: (args) =>
             query = args.query
             broken_query = args.broken_query
+
             that = @
-            is_at_bottom = @$('.history_list').height() is @$('.nano > .content').scrollTop()+@$('.nano').height()
+            is_at_bottom = @$('.history_list').height() is $('.nano > .content').scrollTop()+$('.nano').height()
+
             @$('.history_list').append @dataexplorer_query_li_template
                 query: query
                 broken_query: broken_query
                 id: @history.length-1
                 num: @history.length
-            if @state is 'visible'
-                if @$('.no_history').length isnt 0
-                    @$('.no_history').slideUp 'fast', ->
-                        $(@).remove()
-                    that.resize
-                        extra: -32
+
+            if @$('.no_history').length > 0
+                @$('.no_history').slideUp 'fast', ->
+                    $(@).remove()
+                    that.container.adjust_collapsible_panel_height
                         is_at_bottom: is_at_bottom
-                else
-                    @resize
-                        is_at_bottom: is_at_bottom
-            else
-                if @$('.no_history').length isnt 0
-                    @$('.no_history').remove()
- 
+            else if @state is 'visible'
+                @container.adjust_collapsible_panel_height
+                    delay_scroll: true
+                    is_at_bottom: is_at_bottom
 
         clear_history: (event) =>
             that = @
@@ -3052,80 +3383,15 @@ module 'DataExplorerView', ->
 
             @$('.query_history').slideUp 'fast', ->
                 $(@).remove()
-            if @$('.no_history').length is 0
-                @$('.history_list').append @dataexplorer_query_li_template
-                    no_query: true
-                    displayed_class: 'hidden'
-                @$('.no_history').slideDown 'fast'
-                if @state is 'visible'
-                    @resize
-                        size: 32
-
-        open_close_history: (args) =>
-            that = @
-            if @state is 'visible'
-                @state = 'hidden'
-                @deactivate_overflow()
-                @$('.nano').animate
-                    height: 0
-                    , 200
-                    , ->
-                        $('body').css 'overflow', 'auto'
-                        $(@).css 'visibility', 'hidden'
-                        $('.nano_border').hide() # In case the user trigger hide/show really fast
-                        $('.arrow_history').hide() # In case the user trigger hide/show really fast
-                @$('.nano_border').slideUp 'fast'
-                @$('.arrow_history').slideUp 'fast'
-            else
-                @state = 'visible'
-                @$('.arrow_history').show()
-                @$('.nano_border').show()
-                @resize(args)
-                @$('.nano >.content').scrollTop $('.history_list').height()
-
-
-        # args =
-        #   size: absolute size
-        #   extra: extra size
-        # Note, we can define extra OR extra but not both
-        resize: (args) =>
-            if args?.size?
-                size = args.size
-            else
-                if args?.extra?
-                    size = Math.min @$('.history_list').height()+args.extra, @height_history
-                else
-                    size = Math.min @$('.history_list').height(), @height_history
-            @$('.nano').css 'visibility', 'visible'
-            if args?.no_animation is true
-                @$('.nano').height size
-                @$('.nano').css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                @$('.arrow_history').show() # In case the user trigger hide/show really fast
-                @$('.nano_border').show() # In case the user trigger hide/show really fast
-                @$('.nano').nanoScroller({preventPageScrolling: true})
-            else
-                @deactivate_overflow()
-                duration = Math.max 150, size
-                duration = Math.min duration, 250
-                @$('.nano').stop(true, true).animate
-                    height: size
-                    , duration
-                    , ->
-                        $('body').css 'overflow', 'auto'
-                        $(@).css 'visibility', 'visible' # In case the user trigger hide/show really fast
-                        $('.arrow_history').show() # In case the user trigger hide/show really fast
-                        $('.nano_border').show() # In case the user trigger hide/show really fast
-                        $(@).nanoScroller({preventPageScrolling: true})
-                        if args?.is_at_bottom is true
-                            $('.nano >.content').animate
-                                scrollTop: $('.history_list').height()
-                                , 300
-
-        # The 3 secrets of French cuisine is butter, butter and butter
-        # We deactivate the scrollbar (if there isn't) while animating to have a smoother experience. We´ll put back the scrollbar once the animation is done.
-        deactivate_overflow: =>
-            if $(window).height() >= $(document).height()
-                $('body').css 'overflow', 'hidden'
+                if that.$('.no_history').length is 0
+                    that.$('.history_list').append that.dataexplorer_query_li_template
+                        no_query: true
+                        displayed_class: 'hidden'
+                    that.$('.no_history').slideDown 'fast'
+            that.container.adjust_collapsible_panel_height
+                size: 40
+                move_arrow: 'show'
+                is_at_bottom: 'true'
 
     class @DriverHandler
         # I don't want that thing in window

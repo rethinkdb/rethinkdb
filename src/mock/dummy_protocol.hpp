@@ -50,9 +50,11 @@ public:
     class read_t {
     public:
         region_t get_region() const;
-        read_t shard(region_t region) const;
+        // Returns true if the read had any applicability to the region, and a non-empty
+        // read was written to read_out.
+        bool shard(const region_t &region,
+                   read_t *read_out) const;
         void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
-        void multistore_unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
@@ -67,9 +69,11 @@ public:
     class write_t {
     public:
         region_t get_region() const;
-        write_t shard(region_t region) const;
+        // Returns true if the write had any applicability to the region, and a non-empty
+        // write was written to write_out.
+        bool shard(const region_t &region,
+                   write_t *write_out) const;
         void unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *) const;
-        void multistore_unshard(const write_response_t *resps, size_t count, write_response_t *response, context_t *cache, signal_t *interruptor) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;
@@ -79,17 +83,6 @@ public:
     public:
         std::string key, value;
         state_timestamp_t timestamp;
-
-        region_t get_region() const THROWS_NOTHING {
-            region_t r;
-            r.keys.insert(key);
-            return r;
-        }
-
-        backfill_chunk_t shard(DEBUG_VAR const region_t &r) const THROWS_NOTHING {
-            rassert(r.keys.find(key) != r.keys.end());
-            return *this;
-        }
 
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
