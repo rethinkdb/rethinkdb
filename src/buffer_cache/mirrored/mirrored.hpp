@@ -216,6 +216,8 @@ private:
     DISABLE_COPYING(mc_buf_lock_t);
 };
 
+struct write_token_pair_t;
+
 /* Transaction class. */
 class mc_transaction_t :
     public home_thread_mixin_debug_only_t
@@ -242,6 +244,8 @@ public:
     void snapshot();
 
     void set_account(mc_cache_account_t *cache_account);
+
+    void set_token_pair(write_token_pair_t *_token_pair);
 
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
@@ -271,6 +275,8 @@ private:
     const bool is_writeback_transaction;
 
     const write_durability_t durability;
+
+    write_token_pair_t *token_pair; /* Used in assertions. */
 
     DISABLE_COPYING(mc_transaction_t);
 };

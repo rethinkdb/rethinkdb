@@ -180,7 +180,7 @@ void post_construct_and_drain_queue(
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
-                &token_pair.main_write_token,
+                &token_pair,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
@@ -255,7 +255,7 @@ void post_construct_and_drain_queue(
             repli_timestamp_t::distant_past,
             2,
             WRITE_DURABILITY_HARD,
-            &token_pair.main_write_token,
+            &token_pair,
             &queue_txn,
             &queue_superblock,
             lock.get_drain_signal());

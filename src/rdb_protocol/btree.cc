@@ -1022,7 +1022,7 @@ public:
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
-                &token_pair.main_write_token,
+                &token_pair,
                 &wtxn,
                 &superblock,
                 interruptor_);
