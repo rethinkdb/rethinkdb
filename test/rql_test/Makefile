@@ -22,19 +22,27 @@ run: $(TEST_FILES) cursor connect
 py: py_connect py_cursor py_polyglot
 
 .PHONY: js
-js: js_connect js_cursor py_polyglot
+js: js_connect js_cursor js_polyglot
 
 .PHONY: rb
 rb: rb_polyglot
 
-.PHONY: py_polyglot js_polyglot rb_polyglot
-py_polyglot js_polyglot rb_polyglot: $(TEST_FILES)
-	./test-runner run \"$(BUILD_DIR)\" \"$(shell echo $@ | cut -b 1-2)\"
+.PHONY: py_polyglot
+py_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"py\"
+
+.PHONY: js_polyglot
+js_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"js\"
+
+.PHONY: rb_polyglot
+rb_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"rb\"
 
 $(TEST_FILES): build/.stub
 build/.stub: $(YAML_FILES) $(DRIVER_FILES)
 	mkdir -p build
-	RQL_TEST=$(TEST) ./test-runner build_test_scripts $(SHARD)
+	RQL_TEST='$(TEST)' ./test-runner build_test_scripts $(SHARD)
 	touch $@
 
 .PHONY: list
@@ -50,6 +58,7 @@ py_connect: connections/connection.py
 
 .PHONY: js_connect
 js_connect: connections/connection.js
+	mkdir -p run
 	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
 
@@ -70,4 +79,4 @@ connect: js_connect py_connect
 
 .PHONY: clean
 clean:
-	rm -r build
+	rm -rfv build run
