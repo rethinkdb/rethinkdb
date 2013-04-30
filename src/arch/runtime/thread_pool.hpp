@@ -133,7 +133,7 @@ void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
         thread_pool->generic_blocker_pool->do_job(&job);
 
         // Give up execution, to be resumed when the done callback is made
-        coro_t::wait();
+        coro_t::wait(NULL);
     } else {
         // Thread pool has not been created, just block the current thread, since we won't be
         //  screwing up any coroutines

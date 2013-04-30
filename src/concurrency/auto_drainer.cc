@@ -10,7 +10,7 @@ auto_drainer_t::~auto_drainer_t() {
     if (refcount != 0) {
         when_done = coro_t::self();
         draining.pulse();
-        coro_t::wait();
+        coro_t::wait(lock_holders);
     }
     rassert(refcount == 0);
 }
@@ -59,12 +59,14 @@ auto_drainer_t::lock_t::~lock_t() {
 
 void auto_drainer_t::incref() {
     assert_thread();
+    lock_holders.insert(coro_t::self());
     refcount++;
 }
 
 void auto_drainer_t::decref() {
     assert_thread();
     refcount--;
+    lock_holders.erase(coro_t::self());
     if (refcount == 0 && draining.is_pulsed()) {
         when_done->notify_sometime();
     }

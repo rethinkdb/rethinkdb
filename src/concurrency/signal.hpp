@@ -4,6 +4,7 @@
 
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete
@@ -81,7 +82,7 @@ public:
     }
 
 protected:
-    signal_t() : pulsed(false) { }
+    signal_t() : pulsed(false), owner(coro_t::self()) { }
     ~signal_t() { }
 
     void pulse() THROWS_NOTHING {
@@ -99,6 +100,7 @@ private:
     bool pulsed;
     publisher_controller_t<subscription_t *> publisher_controller;
     mutex_assertion_t lock;
+    coro_t *owner;
     DISABLE_COPYING(signal_t);
 };
 

@@ -2,6 +2,8 @@
 #ifndef ARCH_RUNTIME_COROUTINES_HPP_
 #define ARCH_RUNTIME_COROUTINES_HPP_
 
+#include <set>
+
 #ifndef NDEBUG
 #include <string>
 #endif
@@ -55,7 +57,9 @@ public:
     }
 
     /* Pauses the current coroutine until it is notified */
-    static void wait();
+    static void wait(coro_t *waiting_on);
+
+    static void wait(const std::set<coro_t *> &waiting_on);
 
     /* Gives another coroutine a chance to run, but schedules this coroutine to
     be run at some point in the future. Might not preserve order; two calls to
@@ -148,6 +152,7 @@ private:
     // Sanity check variables
     bool notified_;
     bool waiting_;
+    std::set<coro_t *> waiting_on_;
 
     callable_action_wrapper_t action_wrapper;
 

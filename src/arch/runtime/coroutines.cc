@@ -210,10 +210,14 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    return cglobals->current_coro;
+    if (cglobals) {
+        return cglobals->current_coro;
+    } else {
+        return reinterpret_cast<coro_t *>(-2);
+    }
 }
 
-void coro_t::wait() {   /* class method */
+void coro_t::wait(coro_t *waiting_on) {   /* class method */
     rassert(self(), "Not in a coroutine context");
     rassert(cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
@@ -225,6 +229,37 @@ void coro_t::wait() {   /* class method */
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
+    self()->waiting_on_.insert(waiting_on);
+
+#ifndef NDEBUG
+        // Pet the watchdog to reset it before execution moves
+        pet_watchdog();
+#endif
+
+    if (cglobals->prev_coro) {
+        context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
+    } else {
+        context_switch(&self()->stack.context, &cglobals->scheduler);
+    }
+
+    rassert(self());
+    rassert(self()->waiting_);
+    self()->waiting_ = false;
+}
+
+void coro_t::wait(const std::set<coro_t *> &waiting_on) {   /* class method */
+    rassert(self(), "Not in a coroutine context");
+    rassert(cglobals->assert_finite_coro_waiting_counter == 0,
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
+        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second);
+
+    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
+        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second);
+
+    rassert(!self()->waiting_);
+    self()->waiting_ = true;
+    self()->waiting_on_ = waiting_on;
 
 #ifndef NDEBUG
         // Pet the watchdog to reset it before execution moves
@@ -245,7 +280,7 @@ void coro_t::wait() {   /* class method */
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
     self()->notify_later_ordered();
-    self()->wait();
+    self()->wait(NULL);
 }
 
 void coro_t::notify_now_deprecated() {
@@ -316,7 +351,7 @@ void coro_t::move_to_thread(int thread) {
     }
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
-    wait();
+    wait(NULL);
 }
 
 void coro_t::on_thread_switch() {

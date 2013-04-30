@@ -33,7 +33,7 @@ public:
         DISABLE_COPYING(acq_t);
     };
 
-    mutex_t() : locked(false) { }
+    mutex_t() : locked(false), currently_running_coro(NULL) { }
     ~mutex_t() { rassert(!locked); }
 
     bool is_locked() {
@@ -46,6 +46,7 @@ public:
 private:
     bool locked;
     std::deque<coro_t *> waiters;
+    coro_t *currently_running_coro;
 
     DISABLE_COPYING(mutex_t);
 };
