@@ -75,31 +75,31 @@ private:
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
-static const char *const between_optargs[] = {"left_bound", "right_bound", "index"};
+static const char *const between_optargs[] = {"index"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
 private:
     virtual val_t *eval_impl() {
         table_t *tbl = arg(0)->as_table();
-        val_t *lb = optarg("left_bound", 0);
-        const datum_t *lb_dat = lb != NULL ? lb->as_datum() : NULL;
-        val_t *rb = optarg("right_bound", 0);
-        const datum_t *rb_dat = rb != NULL ? rb->as_datum() : NULL;
-        val_t *sindex = optarg("index", 0);
+        const datum_t *lb = arg(1)->as_datum();
+        lb = (lb->get_type() != datum_t::R_NULL) ? lb : NULL;
+        const datum_t *rb = arg(2)->as_datum();
+        rb = (rb->get_type() != datum_t::R_NULL) ? rb : NULL;
         if (!lb && !rb) {
             return new_val(tbl->as_datum_stream(), tbl);
         }
 
+        val_t *sindex = optarg("index", 0);
         if (sindex != NULL) {
             std::string sid = sindex->as_str();
             if (sid != tbl->get_pkey()) {
-                return new_val(tbl->get_sindex_rows(lb_dat, rb_dat, sid, this), tbl);
+                return new_val(tbl->get_sindex_rows(lb, rb, sid, this), tbl);
             }
         }
 
-        return new_val(tbl->get_rows(lb_dat, rb_dat, this), tbl);
+        return new_val(tbl->get_rows(lb, rb, this), tbl);
     }
     virtual const char *name() const { return "between"; }
 
