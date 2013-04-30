@@ -4,6 +4,7 @@
 
 #include "errors.hpp"
 #include "concurrency/signal.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 /* A cond_t is the simplest form of signal. It just exposes the pulse() method
 directly. It is safe to call pulse() on any thread. */
@@ -23,7 +24,7 @@ private:
 
 class one_waiter_cond_t {
 public:
-    one_waiter_cond_t() : pulsed_(false), waiter_(NULL) { }
+    one_waiter_cond_t() : pulsed_(false), waiter_(NULL), owner_(coro_t::self()) { }
     ~one_waiter_cond_t() {
         rassert(pulsed_);
         rassert(!waiter_);
@@ -36,6 +37,7 @@ public:
 private:
     bool pulsed_;
     coro_t *waiter_;
+    coro_t *owner_;
 
     DISABLE_COPYING(one_waiter_cond_t);
 };
