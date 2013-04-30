@@ -136,35 +136,58 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 namespace {
 
-struct read_shard_visitor_t : public boost::static_visitor<read_t> {
-    read_shard_visitor_t(const region_t &r, exptime_t et) :
-        region(r), effective_time(et) { }
+struct read_shard_visitor_t : public boost::static_visitor<bool> {
+    read_shard_visitor_t(exptime_t et, const region_t *_region,
+                         read_t *_read_out)
+        : effective_time(et), region(_region), read_out(_read_out) { }
 
-    const region_t &region;
-    exptime_t effective_time;
+    bool operator()(const get_query_t &get) const {
+        const bool ret = region_contains_key(*region, get.key);
+        if (ret) {
+            *read_out = read_t(get, effective_time);
+        }
+        return ret;
+    }
 
-    read_t operator()(get_query_t get) {
-        rassert(region == monokey_region(get.key));
-        return read_t(get, effective_time);
+    template <class T>
+    bool rangey_query(const T &arg) const {
+        const hash_region_t<key_range_t> intersection
+            = region_intersection(*region, arg.region);
+        if (!region_is_empty(intersection)) {
+            T tmp = arg;
+            tmp.region = intersection;
+            *read_out = read_t(tmp, effective_time);
+            return true;
+        } else {
+            return false;
+        }
     }
-    read_t operator()(rget_query_t rget) {
-        rassert(region_is_superset(rget.region, region));
-        rget.region = region;
-        return read_t(rget, effective_time);
+
+    bool operator()(const rget_query_t &rget) const {
+        return rangey_query(rget);
     }
-    read_t operator()(distribution_get_query_t distribution_get) {
-        rassert(region_is_superset(distribution_get.region, region));
-        distribution_get.region = region;
-        return read_t(distribution_get, effective_time);
+
+    bool operator()(const distribution_get_query_t &distribution_get) const {
+        return rangey_query(distribution_get);
     }
+
+private:
+    const exptime_t effective_time;
+    const region_t *region;
+    read_t *read_out;
 };
 
 }   /* anonymous namespace */
 
-read_t read_t::shard(const region_t &r) const THROWS_NOTHING {
-    read_shard_visitor_t v(r, effective_time);
-    return boost::apply_visitor(v, query);
+// SAMRSI: Get rid of array_t.
+
+bool read_t::shard(const region_t &region,
+                   read_t *read_out) const THROWS_NOTHING {
+    return boost::apply_visitor(read_shard_visitor_t(effective_time, &region, read_out), query);
 }
+
+
+
 
 /* `read_t::unshard()` */
 
@@ -314,30 +337,31 @@ void read_t::unshard(const read_response_t *responses, size_t count, read_respon
     *response = boost::apply_visitor(v, query);
 }
 
-/* `write_t::get_region()` */
-
-namespace {
-
-struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
+struct write_get_key_visitor_t : public boost::static_visitor<store_key_t> {
     /* All the types of mutation have a member called `key` */
     template<class mutation_t>
-    region_t operator()(mutation_t mut) {
-        return monokey_region(mut.key);
+    store_key_t operator()(const mutation_t &mut) const {
+        return mut.key;
     }
 };
 
-}   /* anonymous namespace */
+store_key_t write_get_key(const write_t &write) {
+    return boost::apply_visitor(write_get_key_visitor_t(), write.mutation);
+}
 
 region_t write_t::get_region() const THROWS_NOTHING {
-    write_get_region_visitor_t v;
-    return boost::apply_visitor(v, mutation);
+    return monokey_region(write_get_key(*this));
 }
 
 /* `write_t::shard()` */
 
-write_t write_t::shard(DEBUG_VAR const region_t &region) const THROWS_NOTHING {
-    rassert(region == get_region());
-    return *this;
+bool write_t::shard(const region_t &region, write_t *write_out) const THROWS_NOTHING {
+    if (region_contains_key(region, write_get_key(*this))) {
+        *write_out = *this;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /* `write_response_t::unshard()` */
@@ -346,60 +370,6 @@ void write_t::unshard(const write_response_t *responses, size_t count, write_res
     /* TODO: Make sure the request type matches the response type */
     guarantee(count == 1);
     *response = responses[0];
-}
-
-namespace {
-
-struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
-    region_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        return monokey_region(del.key);
-    }
-
-    region_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        return del.range;
-    }
-
-    region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        return monokey_region(kv.backfill_atom.key);
-    }
-};
-
-}   /* anonymous namespace */
-
-region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
-    backfill_chunk_get_region_visitor_t v;
-    return boost::apply_visitor(v, val);
-}
-
-namespace {
-
-struct backfill_chunk_shard_visitor_t : public boost::static_visitor<backfill_chunk_t> {
-public:
-    explicit backfill_chunk_shard_visitor_t(const region_t &_region) : region(_region) { }
-    backfill_chunk_t operator()(const backfill_chunk_t::delete_key_t &del) {
-        backfill_chunk_t ret(del);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-    backfill_chunk_t operator()(const backfill_chunk_t::delete_range_t &del) {
-        region_t r = region_intersection(del.range, region);
-        rassert(!region_is_empty(r));
-        return backfill_chunk_t(backfill_chunk_t::delete_range_t(r));
-    }
-    backfill_chunk_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-        backfill_chunk_t ret(kv);
-        rassert(region_is_superset(region, ret.get_region()));
-        return ret;
-    }
-private:
-    const region_t &region;
-};
-
-}   /* anonymous namespace */
-
-backfill_chunk_t backfill_chunk_t::shard(const region_t &region) const THROWS_NOTHING {
-    backfill_chunk_shard_visitor_t v(region);
-    return boost::apply_visitor(v, val);
 }
 
 namespace {

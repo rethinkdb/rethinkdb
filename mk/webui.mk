@@ -70,7 +70,6 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN) $(LESSC) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P LESSC $@
-	@echo "    LESSC $@"
 	$(LESSC) $(LESS_MAIN) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) | $(WEB_ASSETS_BUILD_DIR)/.
@@ -92,9 +91,5 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
-
-$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(WEB_ASSETS_BUILD_DIR)/js
-	$P make -C $(TOP)/test/rql_test/docs/
-	$(EXTERN_MAKE) -C $(TOP)/test/rql_test/docs/ JSON_OUT=$(abspath $@)
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1

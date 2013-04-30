@@ -12,7 +12,7 @@ commands:
 
     body: json | expr
     parent: selection
-    returns: query
+    returns: json
 
     examples:
       - description: |

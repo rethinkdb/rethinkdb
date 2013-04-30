@@ -110,7 +110,7 @@ commands:
     description: Merge two objects together to construct a new object with properties
       from both. Gives preference to attributes from other when there is a conflict.
 
-    body: other
+    body: json
     parent: json
     returns: json
 

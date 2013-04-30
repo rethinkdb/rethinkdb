@@ -67,10 +67,12 @@ commands:
 
   - tag: table_list
     section: table_admin
-    description: List all table names in a database.
+    description: | 
+      List all table names in a database.<br /><br />
+      The result is a list of strings.
 
     parent: db
-    returns: array
+    returns: sequence
 
     examples:
       - description: List all tables of the 'test' database.
@@ -83,3 +85,6 @@ commands:
           code: r.db('test').tableList().run(conn, callback)
           can_try: true
           dataset: marvel
+
+    rb:
+      dont_need_parenthesis: true

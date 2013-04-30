@@ -19,7 +19,8 @@ class RqlCompileError(RqlError):
     pass
 
 class RqlRuntimeError(RqlError):
-    pass
+    def __str__(self):
+        return self.message+" in:\n"+self.query_printer.print_query()+'\n'+self.query_printer.print_carrots()
 
 class RqlDriverError(Exception):
     def __init__(self, message):

@@ -106,7 +106,11 @@ commands:
 
   - tag: filter
     section: select
-    description: Get all the documents for which the given predicate is true.
+    description: | 
+      Get all the documents for which the given predicate is true.<br /><br />
+      <code>filter</code> can be called on a sequence, selection, or a
+      field containing an array of elements. The return type is the
+      same as the type on which the function was called on.
 
     body: predicate
     parent: selection
@@ -136,9 +140,22 @@ commands:
             r.table('marvel').filter {|hero|
               hero[:abilities].contains('super-strength')
             }.run(conn)
-
-    rb:
-      dont_need_parenthesis: true
+      - description: Select all documents where the field 'powers' containing an array has an element equal to 10.
+        code:
+          js: |
+            r.table('marvel').filter(
+              r.row('poweres').filter(
+                function(powers_el) { return powers_el.eq(10) }
+              ).count().gt(0)
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').filter(
+              r.row['powers'].filter(lambda el: el == 10).count() > 0
+            ).run(conn)
+          rb: |
+            r.table('marvel').filter { |hero| 
+              hero[:powers].filter { |power_rank| power_rank == 10 }.count() > 0
+            }.run(conn)
 
     js:
       examples:

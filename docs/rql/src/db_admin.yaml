@@ -40,7 +40,7 @@ commands:
 
     body: db_name
     parent: r
-    returns: object
+    returns: json
 
     examples:
       - description: Drop a database named 'superheroes'.
@@ -57,10 +57,12 @@ commands:
 
   - tag: db_list
     section: db_admin
-    description: List all database names in the system.
+    description: | 
+      List all database names in the system.<br /><br />
+      The result is a list of strings.
 
     parent: r
-    returns: array
+    returns: sequence
 
     examples:
       - description: List all databases.

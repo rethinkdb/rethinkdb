@@ -6,7 +6,7 @@ commands:
 
     body: message
     parent: r
-    returns: query
+    returns: error
 
     examples:
       - description: 'Iron Man can''t possibly have lost a battle:'

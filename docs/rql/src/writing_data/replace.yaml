@@ -13,7 +13,7 @@ commands:
 
     body: json | expr
     parent: selection
-    returns: query
+    returns: json
 
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.

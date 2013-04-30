@@ -204,7 +204,8 @@ message Term {
         // libraries, and because it's more efficient on the wire.)
         VAR          = 10; // !NUMBER -> DATUM
         // Takes some javascript code and executes it.
-        JAVASCRIPT   = 11; // STRING -> DATUM | STRING -> Function(*)
+        JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
+                           // STRING {timeout: !NUMBER} -> Function(*)
         // Takes a string and throws an error with that message.
         ERROR        = 12; // STRING -> Error
         // Takes nothing and returns a reference to the implicit variable.

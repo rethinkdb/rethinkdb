@@ -46,7 +46,7 @@ MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
 
 # Makefiles can override the goals by setting OVERRIDE_GOALS=<goal>=<replacement>
 OVERRIDE_GOALS ?=
-NEW_MAKECMDGOALS := $(MAKECMDGOALS)
+NEW_MAKECMDGOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),default-goal)
 comma := ,
 $(foreach _, $(OVERRIDE_GOALS), $(eval NEW_MAKECMDGOALS := $$(patsubst $(subst =,$(comma),$_), $$(NEW_MAKECMDGOALS))))
 

@@ -351,11 +351,13 @@ rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
 	$P LD $@
 	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
-ifeq ($(NO_TCMALLOC),0)
-# TODO: c++filt is not available everywhere
+ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
+ifeq ($(filter -ltcmalloc%, $(LIBRARY_PATHS)),) # and it's not dynamic
+# TODO: c++filt may not be installed
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
 		false)
+endif
 endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
