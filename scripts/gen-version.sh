@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 #
 # Command line arguments:
@@ -45,7 +45,7 @@ done
 
 start_dir="$(pwd)"
 
-if [ -n "$(/bin/bash -c 'echo $VERSION_FILE')" ]; then # If VERSION_FILE is set, use it
+if [ -n "$(bash -c 'echo $VERSION_FILE')" ]; then # If VERSION_FILE is set, use it
     version_file="$VERSION_FILE"
 elif [ -f "$(dirname "$0")/../VERSION.OVERRIDE" ]; then
     version_file="$(dirname "$0")/../VERSION.OVERRIDE"

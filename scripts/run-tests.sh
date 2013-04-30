@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 start_time=$(date +%s)
 
@@ -108,6 +108,11 @@ fi
 
 # Run a single test
 run_single_test () {
+    if $TIME_CAN_OUTPUT_TO_FILE; then
+        timeo () { /usr/bin/time -o "$@"; }
+    else
+        timeo () { shift; /usr/bin/time "$@"; }
+    fi
     test=$1
     index=$2
     cmd=$3
@@ -124,9 +129,9 @@ run_single_test () {
         ( $run_elsewhere && cd "$elsewhere"
           mkdir files-$index
           if $verbose; then
-              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > >(tee stdout-$index) 2> >(tee stderr-$index)
+              timeo time-$index bash -c "cd files-$index; $cmd" > >(tee stdout-$index) 2> >(tee stderr-$index)
           else
-              /usr/bin/time --output time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
+              timeo time-$index bash -c "cd files-$index; $cmd" > stdout-$index 2> stderr-$index
           fi
           echo $? >> return-code-$index
         )
@@ -146,6 +151,12 @@ run_single_test () {
 if [[ -n "$single_test" ]]; then
     run_single_test "$single_test" "$repeats" "$*"
     exit $?
+fi
+
+if /usr/bin/time -o /dev/null 2>/dev/null; then
+    export TIME_CAN_OUTPUT_TO_FILE=true
+else
+    export TIME_CAN_OUTPUT_TO_FILE=false
 fi
 
 # Remaining arguments are test filters
@@ -302,10 +313,10 @@ $run_elsewhere && args="$args -d $(printf %q "$run_dir")"
 ! $colorful && args="$args -c"
 for i in `seq $repeats`; do
     for item in "${list[@]}"; do
-        echo "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
+        echo -n "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
         printf '\0'
     done
-done | xargs -0 -n 1 --max-procs=$parallel_tasks -I@ bash -c @
+done | xargs -0 -n 1 -P $parallel_tasks bash -c
 trap - INT
 
 gen_report () {
