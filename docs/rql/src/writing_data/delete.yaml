@@ -9,7 +9,7 @@ commands:
       documents from the selection that were not deleted.</li></ul>
 
     parent: selection
-    returns: query
+    returns: json
 
     examples:
       - description: Delete superman from the database.

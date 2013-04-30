@@ -143,9 +143,9 @@ commands:
     description: Compute the logical and of two values.
 
     name: '&'
-    body: other
+    body: bool
     is_operator: true
-    parent: json
+    parent: bool
     returns: bool
 
     examples:
@@ -169,9 +169,9 @@ commands:
     description: Compute the logical or of two values.
 
     name: '|'
-    body: other
+    body: bool
     is_operator: true
-    parent: json
+    parent: bool
     returns: bool
 
     examples:
@@ -347,7 +347,7 @@ commands:
     description: Compute the logical inverse (not).
 
     is_operator: true
-    parent: json
+    parent: bool
     returns: bool
 
     examples:
@@ -359,6 +359,7 @@ commands:
 
     rb:
       dont_need_parenthesis: true
+      is_operator: false
 
     py:
       name: '~'

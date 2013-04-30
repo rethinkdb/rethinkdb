@@ -6,7 +6,7 @@ commands:
 
     body: jsstring
     parent: r
-    returns: js
+    returns: json
 
     examples:
       - description: Concatenate two strings using Javascript'

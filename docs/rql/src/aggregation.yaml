@@ -7,8 +7,13 @@ sections:
 commands:
   - tag: reduce
     section: aggregation
-    description: Produce a single value from a sequence through repeated application
-      of a reduction function.
+    description: | 
+      Produce a single value from a sequence through repeated application
+      of a reduction function.<br /><br />
+      The <code>reduce</code> function gets invoked repeatedly not only 
+      for the input values but also for results of previous reduce invocations. 
+      The type and format of the object that is passed in to reduce must be 
+      the same with the one returned from reduce.
 
     body:
       js: "reductionFunction[, base]"

@@ -2,12 +2,14 @@ commands:
   - tag: do
     section: control
     order: 0
-    description: Evaluate the <code>inExpr</code> in the context of one or more value
-      bindings.
+    description: | 
+      Evaluate the <code>inExpr</code> in the context of one or more value
+      bindings.<br /><br />
+      The type of the result is the type of the value returned from <code>inExpr</code>.
 
     body: arg, [args*, ]inExpr
     parent: r
-    returns: json
+    returns: query
 
     examples:
       - description: The object(s) passed to do() can be bound to name(s). The

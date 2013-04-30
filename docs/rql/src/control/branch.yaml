@@ -2,7 +2,12 @@ commands:
   - tag: branch
     section: control
     order: 1
-    description: Evaluate one of two control paths based on the value of an expression.
+    description: |
+      Evaluate one of two control paths based on the value of an expression. 
+      <code>branch</code> is effectively an <code>if</code> renamed due to
+      language constraints.<br /><br />
+      The type of the result is determined by the type of the branch that
+      gets executed.
 
     body:
       js: test, trueBranch, falseBranch
