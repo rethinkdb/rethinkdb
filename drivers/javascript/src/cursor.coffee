@@ -116,11 +116,5 @@ class Cursor extends IterableResult
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
 class ArrayResult extends IterableResult
-    constructor: (array) ->
-        # Mixin the Iterable result behavior into the array
-        array[name] = method for name, method of @
-        array.__index = 0
-        return array
-
     hasNext: ar () -> (@__index < @.length)
     next: ar (cb) -> cb(null, @[@__index++])
