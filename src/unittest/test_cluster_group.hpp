@@ -114,6 +114,7 @@ public:
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
 
     message_multiplexer_t::run_t message_multiplexer_run;
+
     connectivity_cluster_t::run_t connectivity_cluster_run;
 
     in_memory_branch_history_manager_t<protocol_t> branch_history_manager;

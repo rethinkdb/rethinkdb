@@ -661,9 +661,9 @@ void linux_nonthrowing_tcp_listener_t::init_sockets() {
 }
 
 bool linux_nonthrowing_tcp_listener_t::bind_sockets() {
-    if (port == 0) {
+    if (port == ANY_PORT) {
         // It may take multiple attempts to get all the sockets onto the same port
-        int port_out = 0;
+        int port_out = ANY_PORT;
         for (uint32_t bind_attempts = 0; bind_attempts < MAX_BIND_ATTEMPTS && !bound; ++bind_attempts) {
             bound = bind_sockets_internal(&port_out);
         }
@@ -705,7 +705,7 @@ bool linux_nonthrowing_tcp_listener_t::bind_sockets_internal(int *port_out) {
         }
 
         // If we were told to let the kernel assign the port, figure out what was assigned
-        if (*port_out == 0) {
+        if (*port_out == ANY_PORT) {
             rassert(i == 0); // This should only happen on the first loop
             struct sockaddr_in sa;
             socklen_t sa_len(sizeof(sa));
