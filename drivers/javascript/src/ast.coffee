@@ -66,7 +66,7 @@ class RDBVal extends TermBase
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, left_attr, right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
@@ -257,8 +257,13 @@ class Table extends RDBOp
     tt: Term.TermType.TABLE
 
     get: ar (key) -> new Get {}, @, key
+    getAll: aropt (key, opts) -> new GetAll opts, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
-    indexCreate: ar (name, defun) -> new IndexCreate {}, @, name, funcWrap(defun)
+    indexCreate: (name, defun) ->
+        if defun?
+            new IndexCreate {}, @, name, funcWrap(defun)
+        else
+            new IndexCreate {}, @, name
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
 
@@ -271,6 +276,10 @@ class Table extends RDBOp
 class Get extends RDBOp
     tt: Term.TermType.GET
     mt: 'get'
+
+class GetAll extends RDBOp
+    tt: Term.TermType.GET_ALL
+    mt: 'getAll'
 
 class Eq extends RDBOp
     tt: Term.TermType.EQ
