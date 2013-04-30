@@ -10,7 +10,7 @@ namespace ql {
 
 class sindex_create_term_t : public op_term_t {
 public:
-    sindex_create_term_t(env_t *env, const Term *term)
+    sindex_create_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(3)) { }
 
     virtual counted_t<val_t> eval_impl() {
@@ -33,7 +33,7 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(env_t *env, const Term *term)
+    sindex_drop_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     virtual counted_t<val_t> eval_impl() {
@@ -54,7 +54,7 @@ public:
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(env_t *env, const Term *term)
+    sindex_list_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     virtual counted_t<val_t> eval_impl() {

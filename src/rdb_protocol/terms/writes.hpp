@@ -59,7 +59,7 @@ counted_t<const datum_t> new_stats_object() {
 static const char *const insert_optargs[] = { "upsert" };
 class insert_term_t : public op_term_t {
 public:
-    insert_term_t(env_t *env, const Term *term)
+    insert_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
 
 private:
@@ -144,7 +144,7 @@ private:
 static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(env_t *env, const Term *term)
+    replace_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
 
 private:
@@ -192,7 +192,7 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(env_t *env, const Term *term)
+    foreach_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:

@@ -18,6 +18,8 @@
 
 class Datum;
 
+RDB_DECLARE_SERIALIZABLE(Datum);
+
 namespace ql {
 class datum_stream_t;
 class env_t;
@@ -62,11 +64,8 @@ public:
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
 
     // These construct a datum from an equivalent representation.
-    explicit datum_t(const Datum *d); // Undefined, need to pass `env` below.
     datum_t(const Datum *d, env_t *env);
-    explicit datum_t(cJSON *json);
     datum_t(cJSON *json, env_t *env);
-    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
     datum_t &operator=(datum_t &&other);
@@ -158,7 +157,6 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
-RDB_DECLARE_SERIALIZABLE(Datum);
 // A `wire_datum_t` is necessary to serialize data over the wire.
 class wire_datum_t {
 public:

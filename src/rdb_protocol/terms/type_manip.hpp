@@ -125,7 +125,8 @@ static int merge_types(int supertype, int subtype) {
 
 class coerce_term_t : public op_term_t {
 public:
-    coerce_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    coerce_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> val = arg(0);
@@ -223,7 +224,8 @@ private:
 
 class typeof_term_t : public op_term_t {
 public:
-    typeof_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    typeof_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);

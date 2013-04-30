@@ -38,11 +38,11 @@ bool optargspec_t::contains(const std::string &key) const {
 }
 
 
-op_term_t::op_term_t(env_t *env, const Term *term,
+op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(env, term) {
     for (int i = 0; i < term->args_size(); ++i) {
-        counted_t<term_t> t = compile_term(env, &term->args(i));
+        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
@@ -60,7 +60,7 @@ op_term_t::op_term_t(env_t *env, const Term *term,
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
                          ap->key().c_str()));
-        counted_t<term_t> t = compile_term(env, &ap->val());
+        counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()));
         optargs.insert(std::make_pair(ap->key(), t));
     }
 }

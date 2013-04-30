@@ -8,12 +8,12 @@ bool stream_cache2_t::contains(int64_t key) {
     return streams.find(key) != streams.end();
 }
 
-void stream_cache2_t::insert(Query *q, int64_t key,
+void stream_cache2_t::insert(int64_t key,
                              scoped_ptr_t<env_t> *val_env,
                              counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res =
-        streams.insert(key, new entry_t(time(0), val_env, val_stream, q));
+        streams.insert(key, new entry_t(time(0), val_env, val_stream));
     guarantee(res.second);
 }
 
@@ -67,20 +67,10 @@ void stream_cache2_t::maybe_evict() {
     // We never evict right now.
 }
 
-bool valid_chunk_size(int64_t chunk_size) {
-    // TODO: when users can specify chunk sizes, pick a better bound than INT_MAX.
-    return 0 <= chunk_size && chunk_size <= INT_MAX;
-}
-bool valid_age(int64_t age) { return 0 <= age; }
-
 stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
-                                  counted_t<datum_stream_t> _stream, UNUSED Query *q)
-    : last_activity(_last_activity), env(env_ptr->release() /*!!!*/), stream(_stream),
-      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE)
-{
-    // TODO: Once we actually support setting chunk size and age in the clients,
-    // parse the possible non-default values out of `q` here.
-}
+                                  counted_t<datum_stream_t> _stream)
+    : last_activity(_last_activity), env(env_ptr->release()), stream(_stream),
+      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
 

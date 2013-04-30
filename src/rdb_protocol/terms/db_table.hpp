@@ -28,11 +28,11 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // including the thread switching.
 class meta_op_t : public op_term_t {
 public:
-    meta_op_t(env_t *env, const Term *term, argspec_t argspec)
+    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
           metadata_home_thread(env->semilattice_metadata->home_thread()) { }
-    meta_op_t(env_t *env, const Term *term, argspec_t argspec, optargspec_t optargspec)
+    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
           metadata_home_thread(env->semilattice_metadata->home_thread()) { }
@@ -66,9 +66,9 @@ private:
 
 class meta_write_op_t : public meta_op_t {
 public:
-    meta_write_op_t(env_t *env, const Term *term, argspec_t argspec)
+    meta_write_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : meta_op_t(env, term, argspec) { init(); }
-    meta_write_op_t(env_t *env, const Term *term,
+    meta_write_op_t(env_t *env, protob_t<const Term> term,
                     argspec_t argspec, optargspec_t optargspec)
         : meta_op_t(env, term, argspec, optargspec) { init(); }
 private:
@@ -94,7 +94,7 @@ protected:
 
 class db_term_t : public meta_op_t {
 public:
-    db_term_t(env_t *env, const Term *term) : meta_op_t(env, term, argspec_t(1)) { }
+    db_term_t(env_t *env, protob_t<const Term> term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
@@ -112,7 +112,7 @@ private:
 
 class db_create_term_t : public meta_write_op_t {
 public:
-    db_create_term_t(env_t *env, const Term *term) :
+    db_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -148,7 +148,7 @@ static const char *const table_create_optargs[] =
     {"datacenter", "primary_key", "cache_size", "hard_durability"};
 class table_create_term_t : public meta_write_op_t {
 public:
-    table_create_term_t(env_t *env, const Term *term) :
+    table_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(2), optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -236,7 +236,7 @@ private:
 
 class db_drop_term_t : public meta_write_op_t {
 public:
-    db_drop_term_t(env_t *env, const Term *term) :
+    db_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -281,7 +281,7 @@ private:
 
 class table_drop_term_t : public meta_write_op_t {
 public:
-    table_drop_term_t(env_t *env, const Term *term) :
+    table_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(2)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -316,7 +316,7 @@ private:
 
 class db_list_term_t : public meta_op_t {
 public:
-    db_list_term_t(env_t *env, const Term *term) :
+    db_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -342,7 +342,7 @@ private:
 
 class table_list_term_t : public meta_op_t {
 public:
-    table_list_term_t(env_t *env, const Term *term) :
+    table_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -371,7 +371,7 @@ private:
 static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
-    table_term_t(env_t *env, const Term *term)
+    table_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -397,7 +397,7 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2, 3)) { }
+    get_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2, 3)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();

@@ -10,7 +10,7 @@ namespace ql {
 static const char *const gmr_optargs[] = {"base"};
 class gmr_term_t : public op_term_t {
 public:
-    gmr_term_t(env_t *env, const Term *term)
+    gmr_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(4), optargspec_t(gmr_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {

@@ -5,6 +5,7 @@
 
 #include "errors.hpp"
 
+class Query;
 class Term;
 
 namespace ql {
@@ -12,6 +13,7 @@ namespace ql {
 class protob_destructable_t {
 protected:
     template <class T> friend class protob_t;
+    protob_destructable_t();
     protob_destructable_t(intptr_t *refcount, Term *destructee);
     protob_destructable_t(const protob_destructable_t &copyee);
     ~protob_destructable_t();
@@ -27,6 +29,12 @@ protected:
 template <class T>
 class protob_t {
 public:
+    protob_t() : pointee_(NULL) { }
+
+    template <class U>
+    protob_t(const protob_t<U> &other)
+        : destructable_(other.destructable_), pointee_(other.pointee_) { }
+
     template <class U>
     protob_t<U> make_child(U *child) const {
         return protob_t<U>(destructable_, child);
@@ -50,13 +58,21 @@ public:
         destructable_.swap(other.destructable_);
     }
 
+    bool has() const {
+        return pointee_ != NULL;
+    }
+
 private:
+    template <class U>
+    friend class protob_t;
+
     protob_t(const protob_destructable_t &destructable, T *pointee)
         : destructable_(destructable), pointee_(pointee) { }
 
-    friend protob_t<Term> make_counted_term();
+    friend protob_t<Term> make_counted_term_copy(const Term &copyee);
+    friend protob_t<Query> special_noncounting_query_protob(Query *query);
 
-    // Used by make_counted_term.
+    // Used by make_counted_term_copy.
     protob_t(intptr_t *refcount, Term *destructee, T *pointee)
         : destructable_(refcount, destructee), pointee_(pointee) { }
 
@@ -64,8 +80,14 @@ private:
     T *pointee_;
 };
 
-// Makes a protob_t<Term>.
+// Makes a protob_t<Term> by deep-copying copyee!  Oof.
+protob_t<Term> make_counted_term_copy(const Term &copyee);
+
+// Makes a protob_t<Term> with default-constructed Term.
 protob_t<Term> make_counted_term();
+
+// Makes a protob_t<Query> that doesn't do any reference counting.
+protob_t<Query> special_noncounting_query_protob(Query *query);
 
 }  // namespace ql
 

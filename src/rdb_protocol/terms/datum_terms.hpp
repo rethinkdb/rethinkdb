@@ -9,7 +9,7 @@ namespace ql {
 
 class datum_term_t : public term_t {
 public:
-    datum_term_t(env_t *env, const Term *t)
+    datum_term_t(env_t *env, protob_t<const Term> t)
         : term_t(env, t), raw_val(new_val(make_counted<const datum_t>(&t->datum(), env))) {
         guarantee(raw_val.has());
     }
@@ -22,7 +22,7 @@ private:
 
 class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(env_t *env, const Term *term)
+    make_array_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -37,7 +37,7 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(env_t *env, const Term *term)
+    make_obj_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual counted_t<val_t> eval_impl() {

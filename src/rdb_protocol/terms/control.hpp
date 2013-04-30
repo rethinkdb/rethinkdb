@@ -14,7 +14,7 @@ namespace ql {
 
 class all_term_t : public op_term_t {
 public:
-    all_term_t(env_t *env, const Term *term)
+    all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -31,7 +31,7 @@ private:
 
 class any_term_t : public op_term_t {
 public:
-    any_term_t(env_t *env, const Term *term)
+    any_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -48,7 +48,7 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         bool b = arg(0)->as_bool();
@@ -60,7 +60,7 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(env_t *env, const Term *term)
+    funcall_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {

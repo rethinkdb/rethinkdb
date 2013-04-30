@@ -14,11 +14,14 @@ namespace ql {
 // from it just need to implement evaluation on objects (`obj_eval`).
 class obj_or_seq_op_term_t : public op_term_t {
 public:
-    obj_or_seq_op_term_t(env_t *env, const Term *term, argspec_t argspec)
-        : op_term_t(env, term, argspec) {
+    // SAMRSI: Does op_term_t (and term_t) really need a protob_t<>?  It would be cool if it didn't.
+    obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
+        : op_term_t(env, term, argspec), map_func(make_counted_term()) {
         int varnum = env->gensym();
-        Term *body = pb::set_func(&map_func, varnum);
+        // SAMRSI: Check the pb::set_func lifetiming here...
+        Term *body = pb::set_func(map_func.get(), varnum);
         *body = *term;
+        // SAMRSI: Check the lifetiming here too.
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
     }
 private:
@@ -29,18 +32,18 @@ private:
             if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
         }
         if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            return new_val(v0->as_seq()->map(make_counted<func_t>(env, &map_func)));
+            return new_val(v0->as_seq()->map(make_counted<func_t>(env, map_func)));
         }
         rfail("Cannot perform %s on a non-object non-sequence.", name());
         unreachable();
     }
 
-    Term map_func;
+    protob_t<Term> map_func;
 };
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
-    pluck_term_t(env_t *env, const Term *term) :
+    pluck_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
@@ -63,7 +66,7 @@ private:
 
 class without_term_t : public obj_or_seq_op_term_t {
 public:
-    without_term_t(env_t *env, const Term *term) :
+    without_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
@@ -82,7 +85,7 @@ private:
 
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
-    merge_term_t(env_t *env, const Term *term) :
+    merge_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {

@@ -19,7 +19,7 @@ namespace ql {
 class func_t : public single_threaded_shared_mixin_t<func_t>, public pb_rcheckable_t {
 public:
     func_t(env_t *env, js::id_t id, counted_t<term_t> parent);
-    func_t(env_t *env, const Term *_source);
+    func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
@@ -43,7 +43,7 @@ private:
 
     // This is what's serialized over the wire.
     friend class wire_func_t;
-    const Term *source;
+    protob_t<const Term> source;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int64_t, counted_t<const datum_t> *> scope;
@@ -71,10 +71,6 @@ private:
     counted_t<term_t> parent;
 };
 
-RDB_MAKE_PROTOB_SERIALIZABLE(Term);
-RDB_MAKE_PROTOB_SERIALIZABLE(Datum);
-
-
 // Used to serialize a function (or gmr) over the wire.
 class wire_func_t {
 public:
@@ -84,24 +80,29 @@ public:
 
     counted_t<func_t> compile(env_t *env);
 
-    RDB_MAKE_ME_SERIALIZABLE_2(source, scope);
-
-    const Backtrace *get_bt() const {
-        return &source.GetExtension(ql2::extension::backtrace);
+    protob_t<const Backtrace> get_bt() const {
+        return source.make_child(&source->GetExtension(ql2::extension::backtrace));
     }
 
+    // Remove all callers of this function, returning a Term by value is absurd.
     Term get_term() const {
-        return source;
+        return *source;
     }
 
     std::string debug_str() const {
-        return source.DebugString();
+        return source->DebugString();
     }
+
+    // They're manually implemented because source is now a protob_t<Term>.
+    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
+    archive_result_t rdb_deserialize(read_stream_t *stream);
+
 private:
     // We cache a separate function for every environment.
     std::map<uuid_u, counted_t<func_t> > cached_funcs;
 
-    Term source;
+    // source is never null, even when wire_func_t is default-constructed.
+    protob_t<Term> source;
     std::map<int64_t, Datum> scope;
 };
 
@@ -134,7 +135,7 @@ public:
 class count_wire_func_t {
 public:
     RDB_MAKE_ME_SERIALIZABLE_0()
-    const Backtrace *get_bt() const {
+    protob_t<const Backtrace> get_bt() const {
         r_sanity_check(false); // Server should never crash here.
         unreachable();
     }
@@ -150,7 +151,7 @@ public:
     counted_t<func_t> compile_map(env_t *env) { return map.compile(env); }
     counted_t<func_t> compile_reduce(env_t *env) { return reduce.compile(env); }
 
-    const Backtrace *get_bt() const {
+    protob_t<const Backtrace> get_bt() const {
         // If this goes wrong at the toplevel, it goes wrong in reduce.
         return reduce.get_bt();
     }
@@ -166,7 +167,7 @@ public:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(env_t *env, const Term *term);
+    func_term_t(env_t *env, protob_t<const Term> term);
 private:
     virtual bool is_deterministic_impl() const;
     virtual counted_t<val_t> eval_impl();

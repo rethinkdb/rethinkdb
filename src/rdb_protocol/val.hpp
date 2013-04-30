@@ -111,10 +111,11 @@ public:
 
         // RSI
         raw_type_t get_raw_type() const { return raw_type; }
+        const char *name() const;
+
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
-        const char *name() const;
         raw_type_t raw_type;
     };
     type_t get_type() const;

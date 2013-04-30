@@ -47,7 +47,7 @@ private:
 // access their arguments.
 class op_term_t : public term_t {
 public:
-    op_term_t(env_t *env, const Term *term,
+    op_term_t(env_t *env, protob_t<const Term> term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
     virtual ~op_term_t();
 protected:

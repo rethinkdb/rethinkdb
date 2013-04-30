@@ -7,6 +7,7 @@
 #include "utils.hpp"
 
 #include "containers/archive/stl_types.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 #include "rpc/serialize_macros.hpp"
@@ -38,22 +39,22 @@ public:
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    explicit pb_rcheckable_t(const Term *t)
-        : bt_src(&t->GetExtension(ql2::extension::backtrace)) { }
+    explicit pb_rcheckable_t(protob_t<const Term> t)
+        : bt_src(t.make_child(&t->GetExtension(ql2::extension::backtrace))) { }
 
     explicit pb_rcheckable_t(const pb_rcheckable_t *rct)
         : bt_src(rct->bt_src) { }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg, bt_src);
+        ql::runtime_check(test, file, line, pred, msg, bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
 private:
-    const Backtrace *bt_src;
+    protob_t<const Backtrace> bt_src;
 };
 
 // Use these macros to return errors to users.
@@ -69,7 +70,7 @@ private:
     } while (0)
 
 #define rcheck(pred, msg) rcheck_target(this, pred, msg)
-#define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
+#define rcheck_toplevel(pred, msg) rcheck_src(NULL, pred, msg)
 
 #define rfail_target(target, args...) do {              \
         rcheck_target(target, false, strprintf(args));  \

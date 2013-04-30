@@ -15,7 +15,8 @@ namespace ql {
 
 class count_term_t : public op_term_t {
 public:
-    count_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    count_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->count());
@@ -25,7 +26,8 @@ private:
 
 class map_term_t : public op_term_t {
 public:
-    map_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    map_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
@@ -35,7 +37,7 @@ private:
 
 class concatmap_term_t : public op_term_t {
 public:
-    concatmap_term_t(env_t *env, const Term *term)
+    concatmap_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -46,7 +48,7 @@ private:
 
 class filter_term_t : public op_term_t {
 public:
-    filter_term_t(env_t *env, const Term *term)
+    filter_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -66,7 +68,7 @@ private:
 static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
-    reduce_term_t(env_t *env, const Term *term) :
+    reduce_term_t(env_t *env, protob_t<const Term> term) :
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -79,7 +81,7 @@ private:
 static const char *const between_optargs[] = {"left_bound", "right_bound"};
 class between_term_t : public op_term_t {
 public:
-    between_term_t(env_t *env, const Term *term)
+    between_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
 private:
 
@@ -110,8 +112,9 @@ private:
         counted_t<datum_stream_t> seq = sel.second;
 
         if (!filter_func.has()) {
-            filter_func.init(new Term());
+            filter_func = make_counted_term();
             int varnum = env->gensym();
+            // SAMRSI: Check filter_func.get() lifetime
             Term *body = pb::set_func(filter_func.get(), varnum);
             std::vector<Term *> args;
             pb::set(body, Term_TermType_ALL, &args, lb.has() + rb.has());
@@ -124,16 +127,16 @@ private:
         }
 
         guarantee(filter_func.has());
-        return new_val(seq->filter(make_counted<func_t>(env, filter_func.get())), tbl);
+        return new_val(seq->filter(make_counted<func_t>(env, filter_func)), tbl);
     }
     virtual const char *name() const { return "between"; }
 
-    scoped_ptr_t<Term> filter_func;
+    protob_t<Term> filter_func;
 };
 
 class union_term_t : public op_term_t {
 public:
-    union_term_t(env_t *env, const Term *term)
+    union_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -149,7 +152,8 @@ private:
 
 class zip_term_t : public op_term_t {
 public:
-    zip_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    zip_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->zip());

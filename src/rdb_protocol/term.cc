@@ -29,7 +29,7 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(env_t *env, const Term *t) {
+counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
     case Term_TermType_DATUM:              return make_counted<datum_term_t>(env, t);
     case Term_TermType_MAKE_ARRAY:         return make_counted<make_array_term_t>(env, t);
@@ -106,7 +106,7 @@ counted_t<term_t> compile_term(env_t *env, const Term *t) {
     unreachable();
 }
 
-void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
@@ -148,7 +148,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = compile_term(env, t);
+            root_term = compile_term(env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
@@ -170,7 +170,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(q, token, env_ptr, val->as_seq());
+                stream_cache2->insert(token, env_ptr, val->as_seq());
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
@@ -206,7 +206,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *_src)
+term_t::term_t(env_t *_env, protob_t<const Term> _src)
     : pb_rcheckable_t(_src), env(_env), src(_src) {
     guarantee(env);
 }
@@ -237,7 +237,7 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
-const Term *term_t::get_src() const {
+protob_t<const Term> term_t::get_src() const {
     return src;
 }
 

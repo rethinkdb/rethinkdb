@@ -7,7 +7,7 @@
 namespace ql {
 class append_term_t : public op_term_t {
 public:
-    append_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    append_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr = arg(0)->as_datum();
@@ -40,7 +40,7 @@ size_t canonicalize(const term_t *t, int32_t index, size_t size, bool *oob_out =
 
 class nth_term_t : public op_term_t {
 public:
-    nth_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    nth_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
@@ -72,7 +72,7 @@ private:
 // TODO: this kinda sucks.
 class slice_term_t : public op_term_t {
 public:
-    slice_term_t(env_t *env, const Term *term)
+    slice_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -120,7 +120,7 @@ private:
 
 class limit_term_t : public op_term_t {
 public:
-    limit_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    limit_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);

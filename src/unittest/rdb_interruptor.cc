@@ -1,11 +1,14 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include <stdexcept>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include "unittest/unittest_utils.hpp"
+
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/rdb_env.hpp"
-#include <stdexcept>
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -137,7 +140,7 @@ public:
     virtual bool verify(test_rdb_env_t::instance_t*) = 0;
 };
 
-void count_evals(test_rdb_env_t *test_env, Term *term, uint32_t *count_out,
+void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
                  verify_callback_t *verify_callback) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
     test_env->make_env(&env_instance);
@@ -153,7 +156,7 @@ void count_evals(test_rdb_env_t *test_env, Term *term, uint32_t *count_out,
 }
 
 void interrupt_test(test_rdb_env_t *test_env,
-                    Term *term,
+                    ql::protob_t<const Term> term,
                     uint32_t interrupt_phase,
                     verify_callback_t *verify_callback) {
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
@@ -194,21 +197,27 @@ private:
 };
 
 TEST(RdbInterrupt, InsertOp) {
-    Term insert_proto;
+    ql::protob_t<Term> insert_proto = ql::make_counted_term();
     uint32_t eval_count;
 
-    insert_proto.set_type(Term::INSERT);
-    add_table_arg(&insert_proto, "db", "table");
-    Datum *object = add_object_arg(&insert_proto);
-    add_object_str(object, "id", "key");
-    add_object_str(object, "value", "stuff");
+    insert_proto->set_type(Term::INSERT);
+    // SAMRSI: Check lifetime of insert_proto.get()
+    add_table_arg(insert_proto.get(), "db", "table");
+
+    {
+        // SAMRSI: Check lifetime of insert_proto.get()
+        Datum *object = add_object_arg(insert_proto.get());
+        // SAMRSI: Check lifetime of object in add_object_str.
+        add_object_str(object, "id", "key");
+        add_object_str(object, "value", "stuff");
+    }
 
     {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, true, "key");
-        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, &insert_proto, &eval_count,
+        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, insert_proto, &eval_count,
                                                  &verify_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
@@ -216,7 +225,7 @@ TEST(RdbInterrupt, InsertOp) {
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", std::set<std::map<std::string, std::string> >());
         exists_verify_callback_t verify_callback(ns_id, false, "key");
-        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, &insert_proto, i, 
+        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, insert_proto, i,
                                                  &verify_callback));
     }
 }
@@ -230,7 +239,7 @@ public:
 };
 
 TEST(RdbInterrupt, GetOp) {
-    Term get_proto;
+    ql::protob_t<Term> get_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;
 
@@ -239,16 +248,17 @@ TEST(RdbInterrupt, GetOp) {
     target_object["value"] = std::string("stuff");
     initial_data.insert(target_object);
 
-    get_proto.set_type(Term::GET);
-    add_table_arg(&get_proto, "db", "table");
-    add_string_arg(&get_proto, "key");
+    get_proto->set_type(Term::GET);
+    // SAMRSI: Get lifetime of get_proto.get() in add_table_arg and add_string_arg.
+    add_table_arg(get_proto.get(), "db", "table");
+    add_string_arg(get_proto.get(), "key");
 
     {
         test_rdb_env_t test_env;
         dummy_callback_t dummy_callback;
         database_id_t db_id = test_env.add_database("db");
         test_env.add_table("table", db_id, "id", initial_data);
-        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, &get_proto, &eval_count,
+        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, get_proto, &eval_count,
                                                  &dummy_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
@@ -256,13 +266,13 @@ TEST(RdbInterrupt, GetOp) {
         dummy_callback_t dummy_callback;
         database_id_t db_id = test_env.add_database("db");
         test_env.add_table("table", db_id, "id", initial_data);
-        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, &get_proto, i,
+        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, get_proto, i,
                                                  &dummy_callback));
     }
 }
 
 TEST(RdbInterrupt, DeleteOp) {
-    Term delete_proto;
+    ql::protob_t<Term> delete_proto = ql::make_counted_term();
     uint32_t eval_count;
     std::set<std::map<std::string, std::string> > initial_data;
 
@@ -271,17 +281,20 @@ TEST(RdbInterrupt, DeleteOp) {
     target_object["value"] = std::string("stuff");
     initial_data.insert(target_object);
 
-    delete_proto.set_type(Term::DELETE);
-    Term *get_term = add_term_arg(&delete_proto, Term::GET);
-    add_table_arg(get_term, "db", "table");
-    add_string_arg(get_term, "key");
+    delete_proto->set_type(Term::DELETE);
+    {
+        // SAMRSI: Check object lifetiming of delete_proto and get_term in these.
+        Term *get_term = add_term_arg(delete_proto.get(), Term::GET);
+        add_table_arg(get_term, "db", "table");
+        add_string_arg(get_term, "key");
+    }
 
     {
         test_rdb_env_t test_env;
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
         exists_verify_callback_t verify_callback(ns_id, false, "key");
-        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, &delete_proto, &eval_count,
+        unittest::run_in_thread_pool(boost::bind(count_evals, &test_env, delete_proto, &eval_count,
                                                  &verify_callback));
     }
     for (uint64_t i = 0; i <= eval_count; ++i) {
@@ -289,7 +302,7 @@ TEST(RdbInterrupt, DeleteOp) {
         database_id_t db_id = test_env.add_database("db");
         namespace_id_t ns_id = test_env.add_table("table", db_id, "id", initial_data);
         exists_verify_callback_t verify_callback(ns_id, true, "key");
-        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, &delete_proto, i,
+        unittest::run_in_thread_pool(boost::bind(interrupt_test, &test_env, delete_proto, i,
                                                  &verify_callback));
     }
 }

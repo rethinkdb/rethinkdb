@@ -21,7 +21,8 @@ namespace ql {
 
 class asc_term_t : public op_term_t {
 public:
-    asc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    asc_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
@@ -31,7 +32,8 @@ private:
 
 class desc_term_t : public op_term_t {
 public:
-    desc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    desc_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
@@ -41,7 +43,7 @@ private:
 
 class orderby_term_t : public op_term_t {
 public:
-    orderby_term_t(env_t *env, const Term *term)
+    orderby_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
     class lt_cmp_t {
@@ -105,12 +107,12 @@ private:
     virtual const char *name() const { return "orderby"; }
 
 private:
-    const Term *src_term;
+    protob_t<const Term> src_term;
 };
 
 class distinct_term_t : public op_term_t {
 public:
-    distinct_term_t(env_t *env, const Term *term)
+    distinct_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }

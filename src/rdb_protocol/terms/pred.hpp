@@ -7,7 +7,7 @@ namespace ql {
 
 class predicate_term_t : public op_term_t {
 public:
-    predicate_term_t(env_t *env, const Term *term)
+    predicate_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
         int predtype = term->type();
         switch(predtype) {
@@ -60,7 +60,7 @@ private:
 
 class not_term_t : public op_term_t {
 public:
-    not_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    not_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() { return new_val_bool(!arg(0)->as_bool()); }
     virtual const char *name() const { return "not"; }

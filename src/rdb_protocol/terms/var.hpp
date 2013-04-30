@@ -8,7 +8,8 @@ namespace ql {
 
 class var_term_t : public op_term_t {
 public:
-    var_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) {
+    var_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) {
         int var = arg(0)->as_int<int>();
         datum_val = env->top_var(var, this);
     }
@@ -22,7 +23,7 @@ private:
 
 class implicit_var_term_t : public op_term_t {
 public:
-    implicit_var_term_t(env_t *env, const Term *term) :
+    implicit_var_term_t(env_t *env, protob_t<const Term> term) :
         op_term_t(env, term, argspec_t(0)) {
         datum_val = env->top_implicit(this);
     }

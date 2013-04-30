@@ -15,10 +15,10 @@ func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
     env->dump_scope(&scope);
 }
 
-func_t::func_t(env_t *env, const Term *_source)
+func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), body(0), source(_source),
       js_parent(0), js_env(0), js_id(js::INVALID_ID) {
-    const Term *t = _source;
+    protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
     rcheck(t->args_size() == 2, strprintf("Func takes exactly two arguments (got %d)",
@@ -61,7 +61,7 @@ func_t::func_t(env_t *env, const Term *_source)
         guarantee(env->top_var(args[0], this) == &argptrs[0]);
     }
 
-    const Term *body_source = &t->args(1);
+    protob_t<const Term> body_source = t.make_child(&t->args(1));
     body = compile_term(env, body_source);
 
     for (size_t i = 0; i < args.size(); ++i) {
@@ -77,7 +77,7 @@ func_t::func_t(env_t *env, const Term *_source)
 counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) {
     try {
         if (js_parent.has()) {
-            r_sanity_check(!body.has() && source && js_env);
+            r_sanity_check(!body.has() && source.has() && js_env);
             // Convert datum args to cJSON args for the JS runner
             std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
             for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
@@ -89,7 +89,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
 
             return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
         } else {
-            r_sanity_check(body.has() && source && !js_env);
+            r_sanity_check(body.has() && source.has() && !js_env);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
                    strprintf("Expected %zd argument(s) but found %zu.",
@@ -154,8 +154,9 @@ counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
     return parent->new_val(make_counted<func_t>(env, id_val, parent));
 }
 
-wire_func_t::wire_func_t() { }
-wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func) : source(*func->source) {
+wire_func_t::wire_func_t() : source(make_counted_term()) { }
+wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
+    : source(make_counted_term_copy(*func->source)) {
     if (env) {
         cached_funcs[env->uuid] = func;
     }
@@ -163,24 +164,41 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func) : source(*func->sou
     func->dump_scope(&scope);
 }
 wire_func_t::wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope)
-    : source(_source) {
-    if (_scope) scope = *_scope;
+    : source(make_counted_term_copy(_source)) {
+    if (_scope) {
+        scope = *_scope;
+    }
 }
 
 counted_t<func_t> wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env->uuid) == 0) {
         env->push_scope(&scope);
-        cached_funcs[env->uuid] = compile_term(env, &source)->eval()->as_func();
+        cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
         env->pop_scope();
     }
     return cached_funcs[env->uuid];
 }
 
-func_term_t::func_term_t(env_t *env, const Term *term)
+void wire_func_t::rdb_serialize(write_message_t &msg) const {
+    guarantee(source.has());
+    msg << *source;
+    msg << scope;
+}
+
+archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
+    guarantee(source.has());
+    archive_result_t res = deserialize(stream, source.get());
+    if (res != ARCHIVE_SUCCESS) { return res; }
+    return deserialize(stream, &scope);
+}
+
+func_term_t::func_term_t(env_t *env, protob_t<const Term> term)
     : term_t(env, term), func(make_counted<func_t>(env, term)) { }
+
 counted_t<val_t> func_term_t::eval_impl() {
     return new_val(func);
 }
+
 bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
@@ -214,10 +232,7 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     // SAMRSI: Make sure propagate lifetiming is okay.
     bt_src->propagate(twrap.get());
-    // SAMRSI: Check lifetime of func_t here... heh.
-    return make_counted<func_t>(env, arg);
+    return make_counted<func_t>(env, twrap);
 }
-
-
 
 } // namespace ql

@@ -21,7 +21,7 @@ class val_t;
 class table_t;
 class term_t : public single_threaded_shared_mixin_t<term_t>, public pb_rcheckable_t {
 public:
-    explicit term_t(env_t *_env, const Term *_src);
+    explicit term_t(env_t *_env, protob_t<const Term> _src);
     virtual ~term_t();
 
     virtual const char *name() const = 0;
@@ -39,7 +39,7 @@ public:
 
     virtual bool is_deterministic() const;
 
-    const Term *get_src() const;
+    protob_t<const Term> get_src() const;
     env_t *val_t_get_env() const { return env; } // Only `val_t` should call this.
 protected:
     env_t *env;
@@ -47,10 +47,10 @@ protected:
 private:
     virtual counted_t<val_t> eval_impl() = 0;
     virtual bool is_deterministic_impl() const = 0;
-    const Term *src;
+    protob_t<const Term> src;
 };
 
-counted_t<term_t> compile_term(env_t *env, const Term *t);
+counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t);
 
 } // namespace ql
 

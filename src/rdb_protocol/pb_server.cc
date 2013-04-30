@@ -6,6 +6,7 @@
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -32,6 +33,7 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
+// SAMRSI: Could Query be const?  In ql::run?
 Response query2_server_t::handle(Query *q, context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
@@ -52,7 +54,8 @@ Response query2_server_t::handle(Query *q, context_t *query2_context) {
                 js_runner, interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
-        ql::run(q, &env, &res, stream_cache2);
+        ql::protob_t<Query> query = ql::special_noncounting_query_protob(q);
+        ql::run(query, &env, &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(&res, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

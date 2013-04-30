@@ -22,7 +22,7 @@ public:
         : exc(_exc), res_out(_res_out) { }
     template<class T>
     void operator()(const T &func) const {
-        *res_out =  exc_t(exc.what(), func.get_bt(), 1);
+        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
     }
 private:
     const datum_exc_t exc;
