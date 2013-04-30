@@ -30,7 +30,7 @@ all: driver-ruby
 $(RUBY_PBDIR):
 	$(QUIET) mkdir -p $(RUBY_PBDIR)
 
-driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE) $(RUBY_PBDIR)/$(RUBY_PBFILE2)
+driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE2)
 PROTOFILE2:=$(SOURCE_DIR)/rdb_protocol/ql2.proto
 PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
 $(RUBY_PBDIR)/$(RUBY_PBFILE2): $(RUBY_PBDIR) $(PROTOFILE2) $(TC_RPROTOC_EXE)
