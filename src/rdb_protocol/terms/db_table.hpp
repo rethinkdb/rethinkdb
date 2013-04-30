@@ -402,7 +402,8 @@ private:
         const datum_t *pkey = arg(1)->as_datum();
         if (val_t *v = optarg("index", NULL)) {
             if (v->as_str() != table->get_pkey()) {
-                datum_stream_t *seq = table->get_sindex_rows(pkey, v->as_str(), this);
+                datum_stream_t *seq =
+                    table->get_sindex_rows(pkey, pkey, v->as_str(), this);
                 return new_val(seq, table);
             }
         }

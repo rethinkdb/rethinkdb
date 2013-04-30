@@ -277,16 +277,29 @@ struct rdb_protocol_t {
             : region(_region), optargs(_optargs) {
         }
 
+        void init_sindexes(const ql::datum_t *start, const ql::datum_t *end) {
+            if (start) {
+                sindex_start_value = ql::wire_datum_t(start);
+                sindex_start_value->finalize();
+            }
+            if (end) {
+                sindex_end_value = ql::wire_datum_t(end);
+                sindex_end_value->finalize();
+            }
+        }
+
         rget_read_t(const std::string &_sindex,
                     const ql::datum_t *_sindex_start_value,
                     const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_start_value(_sindex_start_value),
-              sindex_end_value(_sindex_end_value),
-              sindex_region(rdb_protocol_t::sindex_key_range(_sindex_start_value->truncated_secondary(),
-                                                             _sindex_end_value->truncated_secondary())) {
-            sindex_start_value->finalize();
-            sindex_end_value->finalize();
+              sindex_region(rdb_protocol_t::sindex_key_range(
+                                _sindex_start_value != NULL
+                                  ? _sindex_start_value->truncated_secondary()
+                                  : store_key_t::min(),
+                                _sindex_end_value != NULL
+                                  ? _sindex_end_value->truncated_secondary()
+                                  : store_key_t::max())) {
+            init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_sindex_region,
@@ -294,11 +307,8 @@ struct rdb_protocol_t {
                     const ql::datum_t *_sindex_start_value,
                     const ql::datum_t *_sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_start_value(_sindex_start_value),
-              sindex_end_value(_sindex_end_value),
               sindex_region(_sindex_region) {
-            sindex_start_value->finalize();
-            sindex_end_value->finalize();
+            init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_sindex_region,
@@ -308,12 +318,9 @@ struct rdb_protocol_t {
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_start_value(_sindex_start_value),
-              sindex_end_value(_sindex_end_value),
               sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs) {
-            sindex_start_value->finalize();
-            sindex_end_value->finalize();
+            init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_region,
