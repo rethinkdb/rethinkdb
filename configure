@@ -16,6 +16,7 @@ init () {
     min_gcc_version=$(read_version 4.4.3)
     min_clang_version=0
     min_icc_version=0
+    invalid_coffee_versions="1.5.0 1.6 1.6.1"
 
     required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
@@ -79,6 +80,10 @@ configure () {
         for bin in $web_assets_deps; do
             check_bin $bin
         done
+        if ! contains "$fetch_list" coffee; then
+            require CoffeeScript version
+            check_coffee_version
+        fi
     fi
     for bin in $required_bin_deps; do
         check_bin $bin
@@ -467,7 +472,7 @@ check_cxx () {
         fi
     fi
     local description=$($full_CXX --version 2>/dev/null)$($full_CXX --help 2>/dev/null)
-    local version_string=$(echo "$description" | egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?'| head -n 1)
+    local version_string=$(echo "$description" | extract_version_string)
     local type=$(echo "$description" | egrep -io 'gcc|g\+\+|clang|icc' | head -n 1)
     case "$(uc $type)" in
         GCC|G++) min_version=$min_gcc_version
@@ -490,6 +495,12 @@ check_cxx () {
     show "$(uc $type) $version_string ($full_CXX)"
     var COMPILER "$(uc $type)"
     var CXX "$full_CXX"
+}
+
+# foo --version | extract_version_string
+# find a version string in the output of foo --version
+extract_version_string () {
+    egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1
 }
 
 # read_version "1.2.3" -> 10203
@@ -519,10 +530,10 @@ test_version_gt () {
     fi
 }
 
-# contains <needle> <haystack>
+# contains <haystack> <needle>
 # Test if the space-seperated list haystack contains needle
 contains () {
-    d=" $1 "
+    local d=" $1 "
     [[ "${d% $2 *}" != "$d" ]]
 }
 
@@ -730,6 +741,15 @@ niceabspath () {
         echo "$1"
     else
         echo "$(pwd)/$1"
+    fi
+}
+
+check_coffee_version () {
+    local version=`$COFFEE --version | extract_version_string`
+    if contains "$invalid_coffee_versions" "$version"; then
+        error "CoffeeScript $version is broken. Upgrade to a newer version, or configure with --allow-fetch"
+    else
+        show $version
     fi
 }
 
