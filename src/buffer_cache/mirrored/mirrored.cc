@@ -971,15 +971,17 @@ mc_transaction_t::~mc_transaction_t() {
     assert_thread();
 
 
-    /* If the below is failing then something insane is happening because at
-     * the time of writing this was destroyed in the function that gave you a
-     * transaction. */
-    guarantee(!token_pair->main_write_token.has());
+    if (token_pair) {
+        /* If the below is failing then something insane is happening because at
+         * the time of writing this was destroyed in the function that gave you a
+         * transaction. */
+        guarantee(!token_pair->main_write_token.has());
 
-    /* If the below is failing then someone has gotten a token pair and not
-     * used the sindex portion of it. This is a crash because otherwise it's
-     * likely to be a deadlock. */
-    guarantee(!token_pair->sindex_write_token.has());
+        /* If the below is failing then someone has gotten a token pair and not
+         * used the sindex portion of it. This is a crash because otherwise it's
+         * likely to be a deadlock. */
+        guarantee(!token_pair->sindex_write_token.has());
+    }
 
     cache->stats->pm_transactions_active.end(&start_time);
 
