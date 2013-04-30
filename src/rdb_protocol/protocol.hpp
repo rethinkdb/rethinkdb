@@ -401,7 +401,11 @@ struct rdb_protocol_t {
         boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
 
         region_t get_region() const THROWS_NOTHING;
-        read_t shard(const region_t &region) const THROWS_NOTHING;
+        // Returns true if the read has any operation for this region.  Returns false if
+        // read_out has not been touched.
+        bool shard(const region_t &region,
+                   read_t *read_out) const THROWS_NOTHING;
+
         void unshard(read_response_t *responses, size_t count, read_response_t *response,
                 context_t *ctx, signal_t *interruptor) const
             THROWS_ONLY(interrupted_exc_t);
@@ -501,7 +505,9 @@ struct rdb_protocol_t {
     public:
         batched_replaces_t() { }
         batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
-            : point_replaces(_point_replaces) { }
+            : point_replaces(_point_replaces) {
+            guarantee(!_point_replaces.empty());
+        }
 
         // The replaces are numbered so that unshard can sort them back in order.
         std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
@@ -569,7 +575,10 @@ struct rdb_protocol_t {
                        sindex_drop_t> write;
 
         region_t get_region() const THROWS_NOTHING;
-        write_t shard(const region_t &region) const THROWS_NOTHING;
+        // Returns true if the write had any side effects applicable to the region, and a
+        // non-empty write was written to write_out.
+        bool shard(const region_t &region,
+                   write_t *write_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
         write_t() { }
@@ -639,10 +648,6 @@ struct rdb_protocol_t {
         static backfill_chunk_t sindexes(const std::map<std::string, secondary_index_t> &sindexes) {
             return backfill_chunk_t(sindexes_t(sindexes));
         }
-
-        region_t get_region() const;
-
-        rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING;
 
         /* This is for `btree_store_t`; it's not part of the ICL protocol API. */
         repli_timestamp_t get_btree_repli_timestamp() const THROWS_NOTHING;
