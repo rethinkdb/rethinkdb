@@ -267,8 +267,8 @@ class RqlQuery(object):
     def outer_join(self, other, predicate):
         return OuterJoin(self, other, predicate)
 
-    def eq_join(self, left_attr, other):
-        return EqJoin(self, left_attr, other)
+    def eq_join(self, left_attr, other, index=()):
+        return EqJoin(self, left_attr, other, index=index)
 
     def zip(self):
         return Zip(self)
@@ -555,8 +555,14 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
-    def index_create(self, name, fundef):
-        return IndexCreate(self, name, func_wrap(fundef))
+    def get_all(self, key, index=()):
+        return GetAll(self, key, index=index)
+
+    def index_create(self, name, fundef=None):
+        if fundef:
+            return IndexCreate(self, name, func_wrap(fundef))
+        else:
+            return IndexCreate(self, name)
 
     def index_drop(self, name):
         return IndexDrop(self, name)
@@ -573,6 +579,10 @@ class Table(RqlQuery):
 class Get(RqlMethodQuery):
     tt = p.Term.GET
     st = 'get'
+
+class GetAll(RqlMethodQuery):
+    tt = p.Term.GET_ALL
+    st = 'get_all'
 
 class Reduce(RqlMethodQuery):
     tt = p.Term.REDUCE
