@@ -18,7 +18,6 @@ counted_t<datum_stream_t> datum_stream_t::zip() {
 }
 
 counted_t<const datum_t> datum_stream_t::next() {
-    // SAMRSI: What the fuck?  Unit tests aren't debug-only.
     // This is a hook for unit tests to change things mid-query.
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
