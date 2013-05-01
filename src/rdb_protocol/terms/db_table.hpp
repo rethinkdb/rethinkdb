@@ -150,7 +150,8 @@ static const char *const table_create_optargs[] =
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, const Term *term) :
-        meta_write_op_t(env, term, argspec_t(2), optargspec_t(table_create_optargs)) { }
+        meta_write_op_t(env, term, argspec_t(1, 2),
+                        optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
@@ -176,9 +177,17 @@ private:
         int cache_size = 1073741824;
         if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int<int>();
 
-        uuid_u db_id = arg(0)->as_db();
-
-        name_string_t tbl_name = get_name(arg(1), this);
+        uuid_u db_id;
+        name_string_t tbl_name;
+        if (num_args() == 1) {
+            val_t *dbv = optarg("db", 0);
+            r_sanity_check(dbv);
+            db_id = dbv->as_db();
+            tbl_name = get_name(arg(0), this);
+        } else {
+            db_id = arg(0)->as_db();
+            tbl_name = get_name(arg(1), this);
+        }
         // Ensure table doesn't already exist.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
@@ -279,11 +288,20 @@ private:
 class table_drop_term_t : public meta_write_op_t {
 public:
     table_drop_term_t(env_t *env, const Term *term) :
-        meta_write_op_t(env, term, argspec_t(2)) { }
+        meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual std::string write_eval_impl() {
-        uuid_u db_id = arg(0)->as_db();
-        name_string_t tbl_name = get_name(arg(1), this);
+        uuid_u db_id;
+        name_string_t tbl_name;
+        if (num_args() == 1) {
+            val_t *dbv = optarg("db", 0);
+            r_sanity_check(dbv);
+            db_id = dbv->as_db();
+            tbl_name = get_name(arg(0), this);
+        } else {
+            db_id = arg(0)->as_db();
+            tbl_name = get_name(arg(1), this);
+        }
 
         rethreading_metadata_accessor_t meta(this);
 
