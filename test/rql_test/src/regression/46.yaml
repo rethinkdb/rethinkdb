@@ -1,0 +1,8 @@
+desc: Issue #45 -- bare table_create and table_drop
+tests:
+
+  - cd: r.table_create('665')
+    ot: ({'created':1})
+
+  - cd: r.table_drop('665')
+    ot: ({'dropped':1})
