@@ -29,7 +29,6 @@ counted_t<const datum_t> datum_stream_t::next() {
     }
 }
 
-// SAMRSI: Fixed this batched stuff.
 std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
     env->throw_if_interruptor_pulsed();
     try {
@@ -137,14 +136,14 @@ counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f)),
-        env, query_language::scopes_t(), query_language::backtrace_t());  // SAMRSI: Make sure next passes the same scopes and backtrace value.
+        env, query_language::scopes_t(), query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f)),
-        env, query_language::scopes_t(), query_language::backtrace_t());  // SAMRSI: Make sure next passes the same scopes and backtrace value here, too.
+        env, query_language::scopes_t(), query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 
