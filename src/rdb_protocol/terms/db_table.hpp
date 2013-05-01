@@ -180,7 +180,7 @@ private:
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            val_t *dbv = optarg("db", 0);
+            val_t *dbv = optarg("db", NULL);
             r_sanity_check(dbv);
             db_id = dbv->as_db();
             tbl_name = get_name(arg(0), this);
@@ -294,7 +294,7 @@ private:
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            val_t *dbv = optarg("db", 0);
+            val_t *dbv = optarg("db", NULL);
             r_sanity_check(dbv);
             db_id = dbv->as_db();
             tbl_name = get_name(arg(0), this);
