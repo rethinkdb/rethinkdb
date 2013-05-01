@@ -179,8 +179,6 @@ private:
 
 }   /* anonymous namespace */
 
-// SAMRSI: Get rid of array_t.
-
 bool read_t::shard(const region_t &region,
                    read_t *read_out) const THROWS_NOTHING {
     return boost::apply_visitor(read_shard_visitor_t(effective_time, &region, read_out), query);

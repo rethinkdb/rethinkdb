@@ -134,20 +134,6 @@ public:
         typename protocol_t::region_t region;
     };
 
-    class shard_region_array_t : public array_t<typename protocol_t::region_t> {
-    public:
-        shard_region_array_t(const std::vector<shard_t> *s) : shards_(s) { }
-        virtual size_t array_size() const {
-            return shards_->size();
-        }
-        virtual const typename protocol_t::region_t &array_nth(size_t n) const {
-            return (*shards_)[n].region;
-        }
-
-    private:
-        const std::vector<shard_t> *shards_;
-    };
-
     explicit dummy_sharder_t(std::vector<shard_t> _shards,
                              typename protocol_t::context_t *_ctx)
         : shards(_shards), ctx(_ctx) { }

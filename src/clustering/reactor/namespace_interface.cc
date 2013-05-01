@@ -75,24 +75,6 @@ cluster_namespace_interface_t<protocol_t>::get_sharding_scheme() THROWS_ONLY(can
 }
 
 template <class protocol_t>
-class relationships_region_array_t : public array_t<typename protocol_t::region_t> {
-public:
-    relationships_region_array_t(region_map_t<protocol_t, std::set<typename cluster_namespace_interface_t<protocol_t>::relationship_t *> > *relationships)
-        : relationships_(relationships) { }
-
-    const typename protocol_t::region_t &array_nth(size_t n) const {
-        return relationships_->get_nth(n).first;
-    }
-
-    size_t array_size() const {
-        return relationships_->size();
-    }
-
-private:
-    region_map_t<protocol_t, std::set<typename cluster_namespace_interface_t<protocol_t>::relationship_t *> > *relationships_;
-};
-
-template <class protocol_t>
 template<class op_type, class fifo_enforcer_token_type, class op_response_type>
 void cluster_namespace_interface_t<protocol_t>::dispatch_immediate_op(
     /* `how_to_make_token` and `how_to_run_query` have type pointer-to-

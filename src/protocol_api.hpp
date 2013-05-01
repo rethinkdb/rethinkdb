@@ -65,17 +65,6 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-template <class T>
-struct array_t {
-    virtual const T &array_nth(size_t n) const = 0;
-    virtual size_t array_size() const = 0;
-    virtual ~array_t() { }
-
-    array_t() { }
-
-    DISABLE_COPYING(array_t);
-};
-
 /* Regions contained in region_map_t must never intersect. */
 template<class protocol_t, class value_t>
 class region_map_t {
