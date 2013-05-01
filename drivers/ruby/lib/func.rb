@@ -27,6 +27,7 @@ module RethinkDB
       :type_of => :typeof
     }
     def method_missing(m, *a, &b)
+      unbound_if(m.to_s.downcase != m.to_s, m)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
       if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
         a.each {|arg|
