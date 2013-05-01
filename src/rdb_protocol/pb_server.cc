@@ -33,7 +33,6 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
-// SAMRSI: Could Query be const?  In ql::run?
 Response query2_server_t::handle(Query *q, context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
