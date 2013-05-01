@@ -447,7 +447,7 @@ message Term {
 //                           }]];
 //             },
 //             Term {
-//               type = R_ARRAY;
+//               type = MAKE_ARRAY;
 //               args = [Term {
 //                         type = DATUM;
 //                         datum = Datum { type = R_OBJECT; r_object = [["id", 0]]; };
