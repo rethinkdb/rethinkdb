@@ -29,7 +29,7 @@ template <class> class function;
 class peer_address_t {
 public:
     peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
-    peer_address_t() : port(0) { } // For deserialization
+    peer_address_t() : port(ANY_PORT) { } // For deserialization
     ip_address_t primary_ip() const {
         guarantee(ips.begin() != ips.end());
         return *ips.begin();

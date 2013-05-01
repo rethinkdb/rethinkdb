@@ -47,10 +47,9 @@ void assign(T *target, T value) {
 /* `SingleMetadata` tests metadata's properties on a single node. */
 
 void run_single_metadata_test() {
-    int port = randport();
     connectivity_cluster_t c;
     semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
 
     /* Make sure that metadata works properly when passed to the constructor */
     EXPECT_EQ(2u, slm.get_root_view()->get().i);
@@ -68,11 +67,10 @@ TEST(RPCSemilatticeTest, SingleMetadata) {
 nodes. */
 
 void run_metadata_exchange_test() {
-    int port = randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), port, &slm1, 0, NULL);
-    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), port+1, &slm2, 0, NULL);
+    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), ANY_PORT, &slm1, 0, NULL);
+    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), ANY_PORT, &slm2, 0, NULL);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -121,11 +119,10 @@ TEST(RPCSemilatticeTest, MetadataExchange) {
 }
 
 void run_sync_from_test() {
-    int port = randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
-    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), port, &slm1, 0, NULL);
-    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), port+1, &slm2, 0, NULL);
+    connectivity_cluster_t::run_t run1(&cluster1, get_unittest_addresses(), ANY_PORT, &slm1, 0, NULL);
+    connectivity_cluster_t::run_t run2(&cluster2, get_unittest_addresses(), ANY_PORT, &slm2, 0, NULL);
 
     EXPECT_EQ(1u, slm1.get_root_view()->get().i);
     EXPECT_EQ(2u, slm2.get_root_view()->get().i);
@@ -175,10 +172,9 @@ TEST(RPCSemilatticeTest, SyncFrom) {
 changes. */
 
 void run_watcher_test() {
-    int port = randport();
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
-    connectivity_cluster_t::run_t run(&cluster, get_unittest_addresses(), port, &slm, 0, NULL);
+    connectivity_cluster_t::run_t run(&cluster, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
