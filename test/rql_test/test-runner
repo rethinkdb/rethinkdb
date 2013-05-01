@@ -314,6 +314,26 @@ def run(build, lang=None):
             servers.restart()
             run_tests('rb', servers)
 
+def attach(driver_port, cluster_port, rethinkdb_executable, lang='js'):
+    server = RethinkDBRunningServer(
+        driver_port, cluster_port, rethinkdb_executable)
+    run_tests(lang, server)
+
+class RethinkDBRunningServer:
+    def __init__(self, driver_port, cluster_port, rethinkdb_executable):
+        self.driver_port_ = driver_port
+        self.cluster_port_ = cluster_port
+        self.rethinkdb_executable_ = rethinkdb_executable
+
+    def driver_port(self):
+        return self.driver_port_
+
+    def cluster_port(self):
+        return self.cluster_port_
+
+    def executable(self):
+        return self.rethinkdb_executable_
+
 def build_test_scripts(shard):
     TestBuilder('src', shard)
 
