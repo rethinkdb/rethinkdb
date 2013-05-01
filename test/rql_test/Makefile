@@ -12,6 +12,13 @@ TEST=.*
 
 SHELL=/bin/bash
 
+DEFAULT_LANGUAGE :=
+
+PORT_OFFSET ?= 0
+DRIVER_PORT ?= 28015+$(PORT_OFFSET)
+CLUSTER_PORT ?= 29015+$(PORT_OFFSET)
+EXECUTABLE := $(BUILD_DIR)/rethinkdb
+
 .SILENT:
 
 .PHONY: run
@@ -22,20 +29,32 @@ run: $(TEST_FILES) cursor connect
 py: py_connect py_cursor py_polyglot
 
 .PHONY: js
-js: js_connect js_cursor py_polyglot
+js: js_connect js_cursor js_polyglot
 
 .PHONY: rb
 rb: rb_polyglot
 
-.PHONY: py_polyglot js_polyglot rb_polyglot
-py_polyglot js_polyglot rb_polyglot: $(TEST_FILES)
-	./test-runner run \"$(BUILD_DIR)\" \"$(shell echo $@ | cut -b 1-2)\"
+.PHONY: py_polyglot
+py_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"py\"
 
-$(TEST_FILES): build/.stub
-build/.stub: $(YAML_FILES) $(DRIVER_FILES)
+.PHONY: js_polyglot
+js_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"js\"
+
+.PHONY: rb_polyglot
+rb_polyglot: $(TEST_FILES)
+	./test-runner run \"$(BUILD_DIR)\" \"rb\"
+
+.PHONY: attach
+attach: $(TEST_FILES)
+	./test-runner attach $(DRIVER_PORT) $(CLUSTER_PORT) '"$(EXECUTABLE)"' $(if $(DEFAULT_LANGUAGE),"'$(DEFAULT_LANGUAGE)'")
+
+.PHONY: build_test_scripts
+$(TEST_FILES): build_test_scripts
+build_test_scripts: $(YAML_FILES) $(DRIVER_FILES)
 	mkdir -p build
-	RQL_TEST=$(TEST) ./test-runner build_test_scripts $(SHARD)
-	touch $@
+	RQL_TEST='$(TEST)' ./test-runner build_test_scripts $(SHARD)
 
 .PHONY: list
 list:
@@ -50,6 +69,7 @@ py_connect: connections/connection.py
 
 .PHONY: js_connect
 js_connect: connections/connection.js
+	mkdir -p run
 	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
 
@@ -70,4 +90,4 @@ connect: js_connect py_connect
 
 .PHONY: clean
 clean:
-	rm -r build
+	rm -rfv build run

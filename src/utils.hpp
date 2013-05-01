@@ -411,4 +411,6 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 #define DBLPRI "%.20g"
 
+#define ANY_PORT 0
+
 #endif // UTILS_HPP_
