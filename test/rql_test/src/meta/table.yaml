@@ -38,6 +38,9 @@ tests:
       rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :hard_durability => false})
       ot: ({'created':1})
 
+    - cd: db.table_drop('ab')
+      ot: ({'dropped':1})
+
     # Table errors
     - cd: db.table_create('foo')
       ot: ({'created':1})

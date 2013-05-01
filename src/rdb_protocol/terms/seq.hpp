@@ -75,49 +75,31 @@ private:
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
-static const char *const between_optargs[] = {"left_bound", "right_bound"};
+static const char *const between_optargs[] = {"index"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
 private:
-
-    static void set_cmp(Term *out, int varnum, const std::string &pk,
-                        Term::TermType cmp_fn, const datum_t *cmp_to) {
-        std::vector<Term *> cmp_args;
-        pb::set(out, cmp_fn, &cmp_args, 2); {
-            std::vector<Term *> ga_args;
-            pb::set(cmp_args[0], Term_TermType_GETATTR, &ga_args, 2); {
-                pb::set_var(ga_args[0], varnum);
-                scoped_ptr_t<datum_t> pkd(new datum_t(pk));
-                pkd->write_to_protobuf(pb::set_datum(ga_args[1]));
-            }
-            cmp_to->write_to_protobuf(pb::set_datum(cmp_args[1]));
-        }
-    }
-
     virtual val_t *eval_impl() {
-        std::pair<table_t *, datum_stream_t *> sel = arg(0)->as_selection();
-        val_t *lb = optarg("left_bound", 0);
-        val_t *rb = optarg("right_bound", 0);
-        if (!lb && !rb) return new_val(sel.second, sel.first);
-
-        table_t *tbl = sel.first;
-        const std::string &pk = tbl->get_pkey();
-        datum_stream_t *seq = sel.second;
-
-        if (!filter_func.has()) {
-            filter_func.init(new Term());
-            int varnum = env->gensym();
-            Term *body = pb::set_func(filter_func.get(), varnum);
-            std::vector<Term *> args;
-            pb::set(body, Term_TermType_ALL, &args, !!lb + !!rb);
-            if (lb) set_cmp(args[0], varnum, pk, Term_TermType_GE, lb->as_datum());
-            if (rb) set_cmp(args[!!lb], varnum, pk, Term_TermType_LE, rb->as_datum());
+        table_t *tbl = arg(0)->as_table();
+        const datum_t *lb = arg(1)->as_datum();
+        lb = (lb->get_type() != datum_t::R_NULL) ? lb : NULL;
+        const datum_t *rb = arg(2)->as_datum();
+        rb = (rb->get_type() != datum_t::R_NULL) ? rb : NULL;
+        if (!lb && !rb) {
+            return new_val(tbl->as_datum_stream(), tbl);
         }
 
-        guarantee(filter_func.has());
-        return new_val(seq->filter(env->new_func(filter_func.get())), tbl);
+        val_t *sindex = optarg("index", 0);
+        if (sindex != NULL) {
+            std::string sid = sindex->as_str();
+            if (sid != tbl->get_pkey()) {
+                return new_val(tbl->get_sindex_rows(lb, rb, sid, this), tbl);
+            }
+        }
+
+        return new_val(tbl->get_rows(lb, rb, this), tbl);
     }
     virtual const char *name() const { return "between"; }
 
