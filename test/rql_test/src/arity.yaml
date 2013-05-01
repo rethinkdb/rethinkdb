@@ -151,7 +151,7 @@ tests:
     - cd: tbl.eq_join(1,2,3,4)
       ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 4.", [])
-        rb: err("RqlCompileError", "Expected 3 argument(s) but found 4.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 5.", [])
         py: err_regex('TypeError', ".*takes at most 4 arguments \(5 given\)", [])
 
     - ot:
