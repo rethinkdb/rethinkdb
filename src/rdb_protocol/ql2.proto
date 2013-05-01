@@ -407,6 +407,9 @@ message Term {
         ASC = 73; // !STRING -> Ordering
         // Indicates to ORDER_BY that this attribute is to be sorted in descending order.
         DESC = 74; // !STRING -> Ordering
+
+        // Gets the primary key of a table.
+        PKEY = 78; // TABLE -> STRING
     }
     optional TermType type = 1;
 

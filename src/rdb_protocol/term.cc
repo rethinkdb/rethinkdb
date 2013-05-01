@@ -99,6 +99,7 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_FUNC:               return new func_term_t(env, t);
     case Term_TermType_ASC:                return new asc_term_t(env, t);
     case Term_TermType_DESC:               return new desc_term_t(env, t);
+    case Term_TermType_PKEY:               return new pkey_term_t(env, t);
     default: unreachable();
     }
     unreachable();

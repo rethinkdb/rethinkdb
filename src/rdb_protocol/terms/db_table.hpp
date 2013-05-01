@@ -400,7 +400,7 @@ private:
         table_t *table = arg(0)->as_table();
         const datum_t *pkey = arg(1)->as_datum();
         if (num_args() == 3) {
-            datum_stream_t *sequence = table->get_sindex_rows(pkey, 
+            datum_stream_t *sequence = table->get_sindex_rows(pkey,
                     arg(2)->as_datum()->as_str(), this);
             return new_val(sequence, table);
         } else {
@@ -409,6 +409,17 @@ private:
         }
     }
     virtual const char *name() const { return "get"; }
+};
+
+class pkey_term_t : public op_term_t {
+public:
+    pkey_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        table_t *table = arg(0)->as_table();
+        return new_val(table->get_pkey());
+    }
+    virtual const char *name() const { return "pkey"; }
 };
 
 } // namespace ql

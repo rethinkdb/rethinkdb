@@ -1,0 +1,16 @@
+desc: Issue #469: add pkey term
+tests:
+
+  - cd: r.db('test').table_create('469')
+    ot: ({'created':1})
+  - cd: r.table('469').pkey
+    ot: ("id")
+  - cd: r.db('test').table_drop('469')
+    ot: ({'dropped':1})
+
+  - cd: r.db('test').table_create('469', :primary_key => 'id2')
+    ot: ({'created':1})
+  - cd: r.table('469').pkey
+    ot: ("id2")
+  - cd: r.db('test').table_drop('469')
+    ot: ({'dropped':1})
