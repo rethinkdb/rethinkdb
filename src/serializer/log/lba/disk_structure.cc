@@ -225,13 +225,19 @@ struct reader_t
     // reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
+    // This is set to true once the object's been destructed, in a desparate attempt to
+    // check for use-after-free errors.
+    bool destructed;
+
     reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
-        : ds(_ds), index(_index), rcb(cb)
+        : ds(_ds), index(_index), rcb(cb), destructed(false)
     {
         for (lba_disk_extent_t *e = ds->extents_in_superblock.head(); e; e = ds->extents_in_superblock.next(e)) {
             new extent_reader_t(this, e);
+            rassert(!destructed);
         }
         if (ds->last_extent) new extent_reader_t(this, ds->last_extent);
+        rassert(!destructed);
 
         /* The constructor for extent_reader_t pushed them onto our 'readers' vector. So now we
         have a vector with an extent_reader_t object for each extent we need to read, but none
@@ -239,6 +245,7 @@ struct reader_t
 
         if (readers.empty()) {
             done();
+            rassert(destructed);
         } else {
             next_reader = 0;
             active_readers = 0;
@@ -246,10 +253,18 @@ struct reader_t
         }
     }
 
+    ~reader_t() {
+        rassert(!destructed);
+        destructed = true;
+    }
+
     void start_more_readers() {
+        rassert(!destructed);
         int limit = std::max<int>(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1);
         while (next_reader != static_cast<int>(readers.size()) && active_readers < limit) {
+            rassert(!destructed);
             readers[next_reader++]->start_reading();
+            rassert(!destructed);
         }
     }
 
