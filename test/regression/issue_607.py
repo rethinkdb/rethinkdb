@@ -32,7 +32,7 @@ with driver.Metacluster() as metacluster:
     http.check_no_issues()
 
     connection = r.connect("localhost", process.driver_port, db = "test")
-    
+
     # Insert a few tens of thousands of keys
     data = []
     for i in xrange(10):
