@@ -1,6 +1,9 @@
 <script id="body-structure-template" type="text/x-handlebars-template">
     <div id="sticky-wrap">
         <div id="navbar-container"></div>
+        <div class="options_background">
+        </div>
+
         <div id="dev-tools">
             <h3>Development tools</h3>
             <button id="pause-application" class="btn">Pause JS</button>
@@ -61,5 +64,28 @@
         <h2 class="title">Error</h1>
         <p>{{capitalize type}} {{id}} could not be found.</p>
         <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    </div>
+</script>
+
+
+
+<script id="options_view-template" type="text/x-handlebars-template">
+    <div class="options_container_arrow"></div>
+    <div class="options_container_arrow_overlay"></div>
+    <div class="options_container">
+        <a class="close" href="#">&times;</a>
+        <h2 class="title">Settings</h2>
+        <div class="text">Automatically look for updates for RethinkDB:
+            <div class="toggle-primary">
+                <div class="switch">
+                    <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
+                    <label for="updates_yes" class="switch-label switch-label-off">Yes</label>
+                    <input type="radio" class="switch-input" name="updates" value="no" id="updates_no" {{#unless check_update}}checked{{/unless}}>
+                    <label for="updates_no" class="switch-label switch-label-on">No</label>
+                    <span class="switch-selection"></span>
+                </div>
+            </div>
+        </div>
+        <div class="text">RethinkDB {{version}}</div>
     </div>
 </script>

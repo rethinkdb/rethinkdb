@@ -6,25 +6,7 @@
         <li id="nav-servers"><a href="#servers">Servers</a></li>
         <li id="nav-dataexplorer"><a href="#dataexplorer">Data Explorer</a></li>
         <li id="nav-logs"><a href="#logs">Logs</a></li>
-        <li id="nav-options"><a href="#" class="options_link"><img src="images/cog_white_16x16.png" class="cog_icon" /></a>
-            <div class="options_container_arrow"></div>
-            <div class="options_container_arrow_overlay"></div>
-            <div class="options_container">
-                <a class="close" href="#">&times;</a>
-                <h2 class="title">Settings</h2>
-                <div class="toggle-primary">
-                    <div class="switch">
-                        <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
-                        <label for="updates_yes" class="switch-label switch-label-off">Yes</label>
-                        <input type="radio" class="switch-input" name="updates" value="no" id="updates_no" {{#unless check_update}}checked{{/unless}}>
-                        <label for="updates_no" class="switch-label switch-label-on">No</label>
-                        <span class="switch-selection"></span>
-                    </div>
-                </div>
-                <p>Check updates for RethinkDB:</p>
-                <p>RethinkDB {{version}}</p>
-            </div>
-        </li>
+        <li id="nav-options"><a href="#" class="options_link"><img src="images/cog_white_16x16.png" class="cog_icon" /></a></li>
     </ul>
     <div class="right-nav">
         <div class="divider"></div>

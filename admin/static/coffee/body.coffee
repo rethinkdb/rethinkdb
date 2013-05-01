@@ -2,7 +2,12 @@
 render_body = ->
     template = Handlebars.templates['body-structure-template']
 
-    $('body').html(template())
+    $('body').html template()
+
+
+    window.options_view = new OptionsView
+    $('.options_background').html options_view.render().$el
+
 
     window.alert_update_view = new AlertUpdates
     $('.updates_container').html window.alert_update_view.render().$el
@@ -16,6 +21,54 @@ render_body = ->
     # Set actions on developer tools
     $('#dev-tools #pause-application').on 'click', (event) -> debugger
 
+class OptionsView extends Backbone.View
+    className: 'options_full_container'
+    template: Handlebars.templates['options_view-template']
+
+    events:
+        'click .close': 'show_options'
+        'click label[for=updates_yes]': 'turn_updates_on'
+        'click label[for=updates_no]': 'turn_updates_off'
+
+    render: =>
+        @$el.html @template
+            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else false
+            version: window.VERSION
+        return @
+
+
+    # Hide the options view
+    hide: (event) =>
+        event.preventDefault()
+        @options_state = 'hidden'
+        #$('.options_container_arrow').hide()
+        $('.options_container_arrow_overlay').hide()
+        $('.options_container').slideUp 'fast', ->
+            $('.options_background').hide()
+        @$('.cog_icon').removeClass 'active'
+
+    # Show the options view
+    show_options: (event) =>
+        event.preventDefault()
+        event.stopPropagation()
+        if @options_state is 'visible'
+            @hide event
+        else
+            @options_state = 'visible'
+            $('.options_background').show()
+            #$('.options_container_arrow').show()
+            $('.options_container_arrow_overlay').show()
+            $('.options_container').slideDown 'fast'
+            @delegateEvents()
+
+    turn_updates_on: (event) =>
+        window.localStorage.check_updates = JSON.stringify true
+        window.localStorage.removeItem('ignore_version')
+        window.alert_update_view.check()
+
+    turn_updates_off: (event) =>
+        window.localStorage.check_updates = JSON.stringify false
+        window.alert_update_view.hide()
 class AlertUpdates extends Backbone.View
     has_update_template: Handlebars.templates['has_update-template']
     className: 'settings alert'
