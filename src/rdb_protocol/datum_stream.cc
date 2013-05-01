@@ -277,9 +277,9 @@ counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(env_t *_env, size_t _left, size_t _right,
+slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _right,
                                            counted_t<datum_stream_t> _src)
-    : wrapper_datum_stream_t(_env, _src), index(0),
+    : wrapper_datum_stream_t(env, _src), index(0),
       left(_left), right(_right) { }
 
 counted_t<const datum_t> slice_datum_stream_t::next_impl() {
@@ -303,8 +303,8 @@ counted_t<const datum_t> slice_datum_stream_t::next_impl() {
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *_env, counted_t<datum_stream_t> _src)
-    : wrapper_datum_stream_t(_env, _src), env(_env) { }
+zip_datum_stream_t::zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
+    : wrapper_datum_stream_t(env, _src) { }
 
 counted_t<const datum_t> zip_datum_stream_t::next_impl() {
     counted_t<const datum_t> datum = src_stream()->next();

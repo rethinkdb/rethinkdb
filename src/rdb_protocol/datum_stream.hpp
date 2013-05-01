@@ -184,7 +184,6 @@ public:
     zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> src);
 private:
     counted_t<const datum_t> next_impl();
-    env_t *env;
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There
