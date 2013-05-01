@@ -208,7 +208,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
 term_t::term_t(env_t *_env, protob_t<const Term> _src)
     : pb_rcheckable_t(_src), env(_env), src(_src) {
-    guarantee(env);
+    guarantee(env != NULL);
 }
 term_t::~term_t() { }
 
