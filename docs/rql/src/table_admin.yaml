@@ -93,7 +93,7 @@ commands:
     section: table_admin
     description: Create a new secondary index on this table.
 
-    body: indexName, indexFunction
+    body: indexName[, indexFunction]
     parent: table
     returns: json
 
@@ -104,7 +104,6 @@ commands:
           heros by name with the primary index but to do the same based on hero
           code names we'll have to create a secondary index based on that
           attribute.
-
         code:
           py: "r.table('dc').index_create('code_name', lambda hero: hero['code_name'])"
           js: r.table('dc').indexCreate('code_name', function(hero) { return hero('code_name'); })
@@ -125,6 +124,10 @@ commands:
             r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
             }
+      - description: |
+          As a shortcut you can create a secondary index based on the value of an existing
+          field by naming the index after that field and leaving off the index function.
+        code: r.table('dc').index_create('home_town')
 
   - tag: index_drop
     section: table_admin
