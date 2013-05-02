@@ -112,13 +112,20 @@ commands:
     section: select
     description: Get all documents between two primary keys (both keys are inclusive).
 
-    body: lower_key, upper_key
+    body: lower_key, upper_key[, index]
     parent: selection
     returns: selection
 
     examples:
         - description: Find all users with primary keys between 10 and 20, inclusive.
           code: r.table('marvel').between(10, 20).run(conn)
+        - description: |
+            Between can be used on secondary indexes too. Just pass an optional index
+            argument giving the secondary index to query.
+          code:
+            py: r.table('marvel').between('dark_knight', 'man_of_steel', index='code_name')
+            js: r.table('marvel').between('dark_knight', 'man_of_steel', {index:'code_name'})
+            rb: r.table('marvel').between('dark_knight', 'man_of_steel', index => 'code_name')
 
     js:
       examples:
