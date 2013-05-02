@@ -139,6 +139,11 @@ void func_t::assert_deterministic(const char *extra_msg) const {
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
+std::string func_t::print_src() const {
+    r_sanity_check(source);
+    return source->DebugString();
+}
+
 wire_func_t::wire_func_t() { }
 wire_func_t::wire_func_t(env_t *env, func_t *func) : source(*func->source) {
     if (env) {

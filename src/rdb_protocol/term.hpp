@@ -16,11 +16,14 @@
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
-class env_t;
+
 class datum_stream_t;
+class db_t;
+class env_t;
 class func_t;
-class val_t;
 class table_t;
+class val_t;
+
 class term_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
     explicit term_t(env_t *_env, const Term *_src);
@@ -39,7 +42,8 @@ public:
     val_t *new_val(const datum_t *d, table_t *t);
     val_t *new_val(datum_stream_t *s);
     val_t *new_val(datum_stream_t *s, table_t *t);
-    val_t *new_val(uuid_u db);
+    val_t *new_val(db_t *db); // shadow vvv
+    val_t *new_val(const db_t *db);
     val_t *new_val(table_t *t);
     val_t *new_val(func_t *f);
     val_t *new_val_bool(bool b);

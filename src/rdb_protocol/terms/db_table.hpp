@@ -106,7 +106,7 @@ private:
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
         }
-        return new_val(uuid);
+        return new_val(new db_t(uuid, db_name.str()));
     }
     virtual const char *name() const { return "db"; }
 };
@@ -176,7 +176,7 @@ private:
         int cache_size = 1073741824;
         if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int<int>();
 
-        uuid_u db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db()->id;
 
         name_string_t tbl_name = get_name(arg(1), this);
         // Ensure table doesn't already exist.
@@ -282,7 +282,7 @@ public:
         meta_write_op_t(env, term, argspec_t(2)) { }
 private:
     virtual std::string write_eval_impl() {
-        uuid_u db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db()->id;
         name_string_t tbl_name = get_name(arg(1), this);
 
         rethreading_metadata_accessor_t meta(this);
@@ -344,7 +344,7 @@ public:
 private:
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        uuid_u db_id = arg(0)->as_db();
+        uuid_u db_id = arg(0)->as_db()->id;
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
@@ -374,7 +374,7 @@ private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
         bool use_outdated = t ? t->as_bool() : false;
-        uuid_u db;
+        const db_t *db;
         std::string name;
         if (num_args() == 1) {
             val_t *dbv = optarg("db", 0);
@@ -409,17 +409,6 @@ private:
         }
     }
     virtual const char *name() const { return "get"; }
-};
-
-class pkey_term_t : public op_term_t {
-public:
-    pkey_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
-private:
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
-        return new_val(table->get_pkey());
-    }
-    virtual const char *name() const { return "pkey"; }
 };
 
 } // namespace ql

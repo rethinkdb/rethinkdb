@@ -408,8 +408,8 @@ message Term {
         // Indicates to ORDER_BY that this attribute is to be sorted in descending order.
         DESC = 74; // !STRING -> Ordering
 
-        // Gets the primary key of a table.
-        PKEY = 78; // TABLE -> STRING
+        // Gets info about anythin; most useful for tables.
+        INFO = 78; // Top -> OBJECT
     }
     optional TermType type = 1;
 
