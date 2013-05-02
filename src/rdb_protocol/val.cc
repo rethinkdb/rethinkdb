@@ -431,34 +431,32 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<const term_t> _parent)
     : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::DATUM),
-      datum(_datum) {
-    guarantee(datum.has());
-    uuid_u nil = nil_uuid();
-    memcpy(opaque_db, nil.data(), uuid_u::static_size());
+      u(_datum) {
+    guarantee(datum().has());
 }
+
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
              counted_t<const term_t> _parent)
     : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::SINGLE_SELECTION),
       table(_table),
-      datum(_datum) {
+      u(_datum) {
     guarantee(table.has());
-    guarantee(datum.has());
-    uuid_u nil = nil_uuid();
-    memcpy(opaque_db, nil.data(), uuid_u::static_size());
+    guarantee(datum().has());
 }
+
 val_t::val_t(counted_t<datum_stream_t> _sequence, counted_t<const term_t> _parent)
     : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::SEQUENCE),
-      sequence(_sequence) {
-    guarantee(sequence.has());
+      u(_sequence) {
+    guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence->as_array();
+    counted_t<const datum_t> arr = sequence()->as_array();
     if (arr.has()) {
         type = type_t::DATUM;
-        datum = arr;
+        u = arr;
     }
 }
 
@@ -468,9 +466,9 @@ val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
       parent(_parent),
       type(type_t::SELECTION),
       table(_table),
-      sequence(_sequence) {
+      u(_sequence) {
     guarantee(table.has());
-    guarantee(sequence.has());
+    guarantee(sequence().has());
 }
 
 val_t::val_t(counted_t<table_t> _table, counted_t<const term_t> _parent)
@@ -492,8 +490,8 @@ val_t::val_t(counted_t<func_t> _func, counted_t<const term_t> _parent)
     : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::FUNC),
-      func(_func) {
-    guarantee(func.has());
+      u(_func) {
+    guarantee(func().has());
 }
 
 val_t::~val_t() {
@@ -511,7 +509,7 @@ counted_t<const datum_t> val_t::as_datum() {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
         rcheck_literal_type(type_t::DATUM);
     }
-    return datum;
+    return datum();
 }
 
 counted_t<table_t> val_t::as_table() {
@@ -521,11 +519,11 @@ counted_t<table_t> val_t::as_table() {
 
 counted_t<datum_stream_t> val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
-        return sequence;
+        return sequence();
     } else if (type.raw_type == type_t::TABLE) {
         return table->as_datum_stream();
     } else if (type.raw_type == type_t::DATUM) {
-        return datum->as_datum_stream(get_env(), parent->backtrace());
+        return datum()->as_datum_stream(get_env(), parent->backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
@@ -540,13 +538,13 @@ std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection() 
 
 std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
     rcheck_literal_type(type_t::SINGLE_SELECTION);
-    return std::make_pair(table, datum);
+    return std::make_pair(table, datum());
 }
 
 counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
-        r_sanity_check(func.has());
-        return func;
+        r_sanity_check(func().has());
+        return func();
     }
 
     if (shortcut == NO_SHORTCUT) {

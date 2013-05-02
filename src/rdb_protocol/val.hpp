@@ -171,17 +171,17 @@ private:
     type_t type;
     counted_t<table_t> table;
 
-    // SAMRSI: We don't want a memory usage regression, do we?
-    // union {
-    // We store the db's `uuid_u` in here.
-    uint8_t opaque_db[sizeof(uuid_u)];
-    counted_t<datum_stream_t> sequence;
-    counted_t<const datum_t> datum;
-    counted_t<func_t> func;
-    // };  // SAMRSI: end union
+    // We pretend that this variant is a union -- it doesn't come with type
+    // information.  The sequence, datum, func, and db_ptr functions get the
+    // fields of the variant.
+    boost::variant<uuid_u, counted_t<datum_stream_t>, counted_t<const datum_t>, counted_t<func_t> > u;
+
+    counted_t<datum_stream_t> &sequence() { return boost::get<counted_t<datum_stream_t> >(u); }
+    counted_t<const datum_t> &datum() { return boost::get<counted_t<const datum_t> >(u); }
+    counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 
     uuid_u *db_ptr() {
-        return reinterpret_cast<uuid_u *>(&opaque_db);
+        return &boost::get<uuid_u>(u);
     }
 
     DISABLE_COPYING(val_t);
