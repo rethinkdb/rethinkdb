@@ -63,7 +63,6 @@ private:
         rhs->check_type(datum_t::R_NUM);
         rcheck(rhs->as_num() != 0, "Cannot divide by zero.");
         // throws on non-finite values
-        // SAMRSI: What odes the above comment mean? ^^  the result could certainly be a non-finite value.
         return make_counted<datum_t>(lhs->as_num() / rhs->as_num());
     }
 

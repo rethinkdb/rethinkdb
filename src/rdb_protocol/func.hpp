@@ -105,7 +105,6 @@ private:
     std::map<int64_t, Datum> scope;
 };
 
-// SAMRSI: Why does this now inherit from wire_func_t?  Make sure this isn't something stupid.
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>

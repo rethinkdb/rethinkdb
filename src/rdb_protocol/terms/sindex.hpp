@@ -27,11 +27,11 @@ public:
         } else {
             protob_t<Term> func_term = make_counted_term();
             int x = env->gensym();
-            // SAMRSI: What is with this set_func function's return value?
-            // SAMRSI: What about the lifetime of func_term in set_func?
-            Term *arg = pb::set_func(func_term.get(), x);
-            N2(GETATTR, NVAR(x), NDATUM(name_datum));
-            // SAMRSI: Lifetiming here?
+            {
+                Term *arg = pb::set_func(func_term.get(), x);
+                N2(GETATTR, NVAR(x), NDATUM(name_datum));
+            }
+
             prop_bt(func_term.get());
             index_func = make_counted<func_t>(env, func_term);
         }
