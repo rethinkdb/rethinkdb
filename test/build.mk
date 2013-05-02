@@ -5,7 +5,9 @@ $/bench/stress-client/stress:
 
 .PHONY: test-deps
 test-deps: $(BUILD_DIR)/rethinkdb $(BUILD_DIR)/rethinkdb-unittest $/bench/stress-client/stress web-assets
-#	$(EXTERN_MAKE) -C $/drivers/ruby -s
+	$P MAKE -C $/drivers/ruby
+	$(EXTERN_MAKE) -C $/drivers/ruby -s
+	$P MAKE -C $/drivers/python
 	$(EXTERN_MAKE) -C $/drivers/python -s
 
 .PHONY: test
