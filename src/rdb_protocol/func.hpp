@@ -84,7 +84,6 @@ public:
         return source.make_child(&source->GetExtension(ql2::extension::backtrace));
     }
 
-    // Remove all callers of this function, returning a Term by value is absurd.
     Term get_term() const {
         return *source;
     }
