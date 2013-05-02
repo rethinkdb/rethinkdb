@@ -117,7 +117,7 @@ class Cursor extends IterableResult
 # API as cursors.
 class ArrayResult extends IterableResult
     hasNext: ar () -> (@__index < @.length)
-    next: ar (cb) -> cb(null, @[@__index++])
+    next: ar (cb) -> cb(null, @[@__proto__.__index++])
 
     makeIterable: (response) ->
         for name, method of ArrayResult.prototype
