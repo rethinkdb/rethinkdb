@@ -4,6 +4,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/term_walker.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -226,12 +227,11 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
 }
 
 counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
-                                            const pb_rcheckable_t *bt_src) {
+                                            const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
-    // SAMRSI: Make sure propagate lifetiming is okay.
-    bt_src->propagate(twrap.get());
+    term_walker_t(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
 }
 

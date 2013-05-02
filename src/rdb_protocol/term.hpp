@@ -40,7 +40,6 @@ public:
     virtual bool is_deterministic() const;
 
     protob_t<const Term> get_src() const;
-    // SAMRSI: Should this prob_bt function be changed?  (Yes.)
     void prop_bt(Term *t) const;
     env_t *val_t_get_env() const { return env; } // Only `val_t` should call this.
 

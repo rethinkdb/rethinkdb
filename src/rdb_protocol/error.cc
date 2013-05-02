@@ -92,7 +92,6 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
 }
 
 void pb_rcheckable_t::propagate(Term *t) const {
-    // SAMRSI: Make sure that term_walker_t _copies_ from bt_src.
     term_walker_t(t, bt_src.get());
 }
 

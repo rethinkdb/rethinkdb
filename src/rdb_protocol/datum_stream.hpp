@@ -78,7 +78,6 @@ public:
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
 public:
-    // SAMRSI: Rename this src stuff to 'source'.
     wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(env, _source->backtrace()), source(_source) { }
     virtual bool is_array() { return source->is_array(); }

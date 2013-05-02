@@ -23,7 +23,7 @@ public:
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
-                                               const pb_rcheckable_t *root);
+                                               const protob_t<const Backtrace> &root);
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
 
     // Prefer these versions of call.

@@ -94,7 +94,6 @@ void run(counted_t<const datum_t> d, U arg) {
     run(*d, arg);
 }
 
-// SAMRSI: git rid of this shit
 template<class T, class U>
 void run(T t, U arg) { run(datum_t(t), arg); }
 template<class A, class B, class U>
