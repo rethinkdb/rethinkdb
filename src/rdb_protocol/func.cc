@@ -90,7 +90,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
 
             return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
         } else {
-            r_sanity_check(body.has() && source.has() && js_env != NULL);
+            r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
                    strprintf("Expected %zd argument(s) but found %zu.",
