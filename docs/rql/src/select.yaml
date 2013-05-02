@@ -89,33 +89,42 @@ commands:
     section: select
     description: Get all documents where the given value matches the value of the requested index.
 
-    body: key[, index]
+    body:
+      py: key[, index='id']
+      rb: key[, :index => 'id']
+      js: key[, {index:'id'}]
     parent: table
     returns: selection
 
     examples:
         - description: |
-            Secondary index keys are not guaranteed to be unique so we have to
-            query via `get_all` when using a secondary index.
+            Secondary index keys are not guaranteed to be unique so we cannot
+            query via "get" when using a secondary index.
           code:
-            py: r.table('marvel').get_all('man_of_steel', index='code_name')
-            js: r.table('marvel').getAll('man_of_steel', {index:'code_name'})
-            rb: r.table('marvel').get_all('man_of_steel', :index => 'code_name')
+            py: r.table('marvel').get_all('man_of_steel', index='code_name').run(conn)
+            js: r.table('marvel').getAll('man_of_steel', {index:'code_name'}).run(conn, callback)
+            rb: r.table('marvel').get_all('man_of_steel', :index => 'code_name').run(conn)
         - description: |
-            Without an index argument, `get_all` defaults to the primary index. While
-            `get` will either return the document or `null` when no document with such
-            a primary key value exists, `get_all` will return either a one or zero
-            length stream.
+            Without an index argument, we default to the primary index. While
+            `get` will either return the document or `null` when no document
+            with such a primary key value exists, this will return either a one
+            or zero length stream.
           code:
-            py: r.table('dc').get_all('superman')
-            js: r.table('dc').getAll('superman')
-            rb: r.table('dc').get_all('superman')
+            py: r.table('dc').get_all('superman').run(conn)
+            js: r.table('dc').getAll('superman').run(conn, callback)
+            rb: r.table('dc').get_all('superman').run(conn)
+
+    js:
+      name: getAll
 
   - tag: between
     section: select
     description: Get all documents between two primary keys (both keys are inclusive).
 
-    body: lower_key, upper_key[, index]
+    body:
+      py: lower_key, upper_key[, index='id']
+      rb: lower_key, upper_key[, :index => 'id']
+      js: lowerKey, upperKey[, {index:'id'}]
     parent: selection
     returns: selection
 
@@ -126,9 +135,9 @@ commands:
             Between can be used on secondary indexes too. Just pass an optional index
             argument giving the secondary index to query.
           code:
-            py: r.table('dc').between('dark_knight', 'man_of_steel', index='code_name')
-            js: r.table('dc').between('dark_knight', 'man_of_steel', {index:'code_name'})
-            rb: r.table('dc').between('dark_knight', 'man_of_steel', :index => 'code_name')
+            py: r.table('dc').between('dark_knight', 'man_of_steel', index='code_name').run(conn)
+            js: r.table('dc').between('dark_knight', 'man_of_steel', {index:'code_name'}).run(conn, callback)
+            rb: r.table('dc').between('dark_knight', 'man_of_steel', :index => 'code_name').run(conn)
 
     js:
       examples:
@@ -139,7 +148,7 @@ commands:
 
   - tag: filter
     section: select
-    description: | 
+    description: |
       Get all the documents for which the given predicate is true.<br /><br />
       <code>filter</code> can be called on a sequence, selection, or a
       field containing an array of elements. The return type is the
