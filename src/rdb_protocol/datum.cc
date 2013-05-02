@@ -11,13 +11,6 @@
 
 namespace ql {
 
-datum_t::datum_t(datum_t &&other)
-    : type(other.type), r_bool(std::move(other.r_bool)),
-      r_num(std::move(other.r_num)), r_str(std::move(other.r_str)),
-      r_array(std::move(other.r_array)), r_object(std::move(other.r_object)) {
-    other.type = datum_t::R_BOOL;
-}
-
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }

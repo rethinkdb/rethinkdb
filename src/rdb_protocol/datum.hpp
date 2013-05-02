@@ -47,8 +47,6 @@ public:
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
     explicit datum_t(type_t _type);
 
-    datum_t(datum_t &&other);
-
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit
     // conversions.
@@ -145,15 +143,14 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     type_t type;
-    // SAMRSI: For fuck's sake, fucking use inheritance.
-    // union {
+    union {
         bool r_bool;
         double r_num;
         // TODO: Make this a char vector
         std::string *r_str;
         std::vector<counted_t<const datum_t> > *r_array;
         std::map<std::string, counted_t<const datum_t> > *r_object;
-    // };
+    };
 
     DISABLE_COPYING(datum_t);
 };
