@@ -67,4 +67,4 @@ class NavBarView extends Backbone.View
 
     update_cog_icon: (event) =>
         @$('.cog_icon').toggleClass 'active'
-        window.options_view.show_options event
+        window.options_view.toggle_options event

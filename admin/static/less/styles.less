@@ -68,96 +68,81 @@ body:before {
 }
 .options_background{
     display: none;
-    background: #fff;
+    position: absolute;
     width: 100%;
+    background: #fafafa;
     border-bottom: 1px solid #ccc;
-    padding: 10px 0px;
+    padding: 0px;
+    height: 86px;
+    border-bottom: 2px solid #ddd;
+}
+.options_container_arrow_overlay{
+    display: none;
+    position: absolute;
+    z-index: 201;
+    left: 50%;
+    top: 51px;
+    width: 0; 
+    height: 0; 
+    margin: 1px 0px 0px 173px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent; 
+    border-bottom:10px solid #F6F0E3; 
 }
 .options_full_container{
     position: relative;
-    width: 940px;
     margin: 0px auto;
-    .options_container_arrow{
-        display: none;
-        position: absolute;
-        z-index: 200;
-        margin-left: 500px;
-        width: 0; 
-        height: 0; 
-        margin: 1px 0px 0px 20px;
-        border-left: 10px solid transparent;
-        border-right: 10px solid transparent; 
-        border-bottom:10px solid #bbb; 
-    }
-    .options_container_arrow_overlay{
-        display: none;
-        position: absolute;
-        z-index: 201;
-        left: 644px;
-        top: -20px;
-        width: 0; 
-        height: 0; 
-        margin: 1px 0px 0px 20px;
-        border-left: 10px solid transparent;
-        border-right: 10px solid transparent; 
-        border-bottom:10px solid #fff; 
-    }
-    .options_container{
-        display: none;
-        margin: 0px;
-        padding: 15px 15px 15px 15px ;
+    text-shadow: none;
+    padding: 0px;
+    .title{
+        width: 100%;
+        background: #F6F0E3;
+        border-top: 1px solid #F0E6D1;
+        border-bottom: 1px solid #F0E6D1;
 
-        // csshat
-        border: 1px solid #cfcfcf; // stroke
-        .border-radius(4px); // border radius
-        background-color: #f7f7f7; // layer fill content
-        .gradient(~"linear-gradient(bottom, rgba(247,247,247,1), rgba(250,250,250, 1))"); // gradient overlay
-        .box-shadow(~"0 2px 1px rgba(0,0,0,.05)"); // drop shadow
-
-
-        font-family: @sans;
-        font-size: 14px;
-        line-height: 22px;
-        color: #4c4c4c;
-
-        z-index: 20;
-        text-shadow: none;
-        h2.title{
-            margin: 0px 0px 10px 0px;
-            font-family: @serif;
-            color: #a3a3a3;
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            margin-bottom: 5px;
-        }
-        .text{
-            clear: both;
-            margin: 3px 0px;
-            border-top: thin solid #f0f0f0;
-            padding: 6px 0px 2px 0px;
-            .toggle-primary{
-                margin: 2px 0px 3px 0px;
-                .switch{
-                    float: none;
+        overflow: auto;
+        .title_content {
+            width: 940px;
+            margin: 0px auto;
+            color: #666;
+            padding: 9px 0px 2px 0px;
+            .title_text{
+                font-family: @serif;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            .version{
+                float: right;
+                margin: 0px 0px 7px 0px;
+                font-family: @sans;
+                font-size: 13px;
+                -webkit-font-smoothing: antialiased;
+                .layers{
+                    float: left;
+                    display: block;
+                    margin: 3px 8px 0px 0px;
+                    opacity: 0.7;
                 }
             }
         }
-        .close {
-            float: right;
-            margin-top: -6px;
-            padding: 0px;
-            font-weight: bold;
-            font-size: 24px;
-            color: black;
-            .opacity(0.2);
-            &:hover {
-                .opacity(0.4);
-                text-decoration: none;
-            }
-            cursor: pointer;
-        }
+    }
+    .options_content{
+        width: 940px;
+        margin: 3px auto;
+        padding: 8px 0px 0px 0px;
+        overflow: auto;
         .toggle-primary{
-            margin: 2px 0px 10px 0px;
+            float: left;
+            margin: 2px 0px 3px 0px;
+            .switch{
+                float: none;
+            }
+        }
+        .description{
+            margin: 5px 0px 0px 120px;
+            font-family: @sans;
+            font-size: 14px;
+            color: #666;
         }
     }
 }
@@ -468,11 +453,12 @@ TODO: retire this
             li {
                 font-size: 15px;
                 display: inline-block;
+                text-align: center;
                 vertical-align: middle;
                 text-shadow: @text_shadow;
                 margin-left: -3px;
                 a {
-                    padding: 21px 20px;
+                    padding: 21px 0px;
                     color: #ababab;
                     display: block;
                     &:hover {
@@ -481,7 +467,8 @@ TODO: retire this
                     }
                 }
                 &#nav-logo {
-                    padding-left: 0;
+                    width: 131px;
+                    text-align: left;
                     a {
                         font-family: @serif;
                         font-size: 22px;
@@ -495,6 +482,26 @@ TODO: retire this
                 &.active {
                     a { color: white; }
                 }
+            }
+            /* Fonts are not rendered on the same way on Linux and OS X, making the menu having different sizes.
+            We fix this problem by specifying the witdth of our blocks. */
+            #nav-dashboard{
+                width: 116px;
+            }
+            #nav-namespaces{
+                width: 84px;
+            }
+            #nav-servers{
+                width: 91px;
+            }
+            #nav-dataexplorer{
+                width: 134px;
+            }
+            #nav-logs{
+                width: 72px;
+            }
+            #nav-options{
+                width: 56px;
             }
             .cog_icon{
                 .opacity(0.4);

@@ -38,13 +38,6 @@ HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \
 .PHONY: $(TOP)/admin/all
 $(TOP)/admin/all: web-assets
 
-.PHONY: $(TOP)/admin/clean
-$(TOP)/admin/clean:
-	$P RM $(WEB_ASSETS_BUILD_DIR)
-	rm -rf $(WEB_ASSETS_BUILD_DIR)
-	$P RM $(WEB_ASSETS_OBJ_DIR)
-	rm -rf $(WEB_ASSETS_OBJ_DIR)
-
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
 

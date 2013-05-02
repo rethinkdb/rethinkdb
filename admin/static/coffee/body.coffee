@@ -5,8 +5,10 @@ render_body = ->
     $('body').html template()
 
 
-    window.options_view = new OptionsView
-    $('.options_background').html options_view.render().$el
+
+    options_view_container = $('.options_background')
+    window.options_view = new OptionsView options_view_container
+    options_view_container.html options_view.render().$el
 
 
     window.alert_update_view = new AlertUpdates
@@ -26,9 +28,12 @@ class OptionsView extends Backbone.View
     template: Handlebars.templates['options_view-template']
 
     events:
-        'click .close': 'show_options'
+        'click .close': 'toggle_options'
         'click label[for=updates_yes]': 'turn_updates_on'
         'click label[for=updates_no]': 'turn_updates_off'
+
+    initialize: (main_container) ->
+        @main_container = main_container
 
     render: =>
         @$el.html @template
@@ -41,24 +46,20 @@ class OptionsView extends Backbone.View
     hide: (event) =>
         event.preventDefault()
         @options_state = 'hidden'
-        #$('.options_container_arrow').hide()
         $('.options_container_arrow_overlay').hide()
-        $('.options_container').slideUp 'fast', ->
+        @main_container.slideUp 'fast', ->
             $('.options_background').hide()
         @$('.cog_icon').removeClass 'active'
 
-    # Show the options view
-    show_options: (event) =>
+    # Show/hide the options view
+    toggle_options: (event) =>
         event.preventDefault()
-        event.stopPropagation()
         if @options_state is 'visible'
             @hide event
         else
             @options_state = 'visible'
-            $('.options_background').show()
-            #$('.options_container_arrow').show()
             $('.options_container_arrow_overlay').show()
-            $('.options_container').slideDown 'fast'
+            @main_container.slideDown 'fast'
             @delegateEvents()
 
     turn_updates_on: (event) =>
@@ -69,6 +70,7 @@ class OptionsView extends Backbone.View
     turn_updates_off: (event) =>
         window.localStorage.check_updates = JSON.stringify false
         window.alert_update_view.hide()
+
 class AlertUpdates extends Backbone.View
     has_update_template: Handlebars.templates['has_update-template']
     className: 'settings alert'
@@ -90,7 +92,8 @@ class AlertUpdates extends Backbone.View
         else
             # No localstorage, let's just check for updates
             @check()
-
+    
+    # If the user close the alert, we hide the alert + save the version so we can ignore it
     close: (event) =>
         event.preventDefault()
         if @next_version?
@@ -100,11 +103,11 @@ class AlertUpdates extends Backbone.View
     hide: =>
         @$el.slideUp 'fast'
 
-
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
         $.getJSON "http://update.rethinkdb.com/update_for/#{window.VERSION}?callback=?", @render_updates
 
+    # Callback on the ajax request
     render_updates: (data) =>
         if data.status is 'need_update'
             try
@@ -118,6 +121,7 @@ class AlertUpdates extends Backbone.View
                     link_changelog: data.link_changelog
                 @$el.slideDown 'fast'
 
+    # Compare version with the format %d.%d.%d
     compare_version: (v1, v2) =>
         v1_array_str = v1.split('.')
         v2_array_str = v2.split('.')
