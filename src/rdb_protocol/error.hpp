@@ -91,7 +91,7 @@ private:
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) runtime_sanity_check(test)
+#define r_sanity_check(test) do { ::ql::runtime_sanity_check(test); } while (0)
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
