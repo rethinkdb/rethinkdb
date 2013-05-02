@@ -85,6 +85,29 @@ commands:
           dataset: marvel
           code: r.table('marvel').get('superman').run(conn, callback)
 
+  - tag: get_all
+    section: select
+    description: Get all documents where the given value matches the value of the requested index.
+
+    body: key[, index]
+    parent: table
+    returns: selection
+
+    examples:
+        - description: |
+            Secondary index keys are not guaranteed to be unique so we have to
+            query via `get_all` when using a secondary index.
+          code:
+            py: r.table('marvel').get_all('man_of_steel', index='code_name')
+            js: r.table('marvel').getAll('man_of_steel', {index:'code_name'})
+            py: r.table('marvel').get_all('man_of_steel', index => :code_name)
+        - description: |
+            Without an index argument, `get_all` defaults to the primary index. While
+            `get` will either return the document or `null` when no document with such
+            a primary key value exists, `get_all` will return either a one or zero
+            length stream.
+          code: r.table('marvel').get_all('superman')
+
   - tag: between
     section: select
     description: Get all documents between two primary keys (both keys are inclusive).

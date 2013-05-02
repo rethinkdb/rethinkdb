@@ -100,11 +100,15 @@ commands:
     examples:
       - description: |
           To efficiently query our heros by name we can create a secondary
-          index based on the value of that field.
+          index based on the value of that field. We can already quickly query
+          heros by name with the primary index but to do the same based on hero
+          code names we'll have to create a secondary index based on that
+          attribute.
+
         code:
-          py: "r.table('marvel').index_create('name', lambda hero: hero['name'])"
-          js: r.table('marvel').indexCreate('name', function(hero) { return hero('name'); })
-          rb: r.table('marvel').index_create('name') {|hero| hero['name'] }
+          py: "r.table('marvel').index_create('code_name', lambda hero: hero['code_name'])"
+          js: r.table('marvel').indexCreate('code_name', function(hero) { return hero('code_name'); })
+          rb: r.table('marvel').index_create('code_name') {|hero| hero['code_name'] }
       - description: |
           We can create a compound index simply by returning an array of values when creating
           the index.
