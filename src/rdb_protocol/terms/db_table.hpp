@@ -402,17 +402,41 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
-        if (num_args() == 3) {
-            counted_t<datum_stream_t> sequence = table->get_sindex_rows(pkey,
-                                                                        arg(2)->as_datum()->as_str(),
-                                                                        backtrace());
-            return new_val(sequence, table);
-        } else {
-            counted_t<const datum_t> row = table->get_row(pkey);
-            return new_val(row, table);
-        }
+        counted_t<const datum_t> row = table->get_row(pkey);
+        return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }
+};
+
+static const char *const get_all_optargs[] = { "index" };
+
+class get_all_term_t : public op_term_t {
+public:
+    get_all_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
+        counted_t<const datum_t> pkey = arg(1)->as_datum();
+        if (counted_t<val_t> v = optarg("index", counted_t<val_t>())) {
+            if (v->as_str() != table->get_pkey()) {
+                counted_t<datum_stream_t> seq =
+                    table->get_sindex_rows(pkey, pkey, v->as_str(), backtrace());
+                return new_val(seq, table);
+            }
+        }
+        counted_t<const datum_t> row = table->get_row(pkey);
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        if (row->get_type() != datum_t::R_NULL) {
+            arr->add(row);
+        }
+
+        counted_t<datum_stream_t> stream
+            = make_counted<array_datum_stream_t>(env, counted_t<datum_t>(arr.release()),
+                                                 backtrace());
+        return new_val(stream, table);
+    }
+    virtual const char *name() const { return "get_all"; }
 };
 
 } // namespace ql

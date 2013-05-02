@@ -1,6 +1,6 @@
 desc: Regression tests for issue #370, calling `map` after `db_list` or `table_list`
 tests:
-    
+
     # Set up a stream
     - cd: r.db('test').table_create('t370')
       def: d = r.db('test')

@@ -41,6 +41,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term_TermType_DB:                 return make_counted<db_term_t>(env, t);
     case Term_TermType_TABLE:              return make_counted<table_term_t>(env, t);
     case Term_TermType_GET:                return make_counted<get_term_t>(env, t);
+    case Term_TermType_GET_ALL:            return make_counted<get_all_term_t>(env, t);
     case Term_TermType_EQ:                 // fallthru
     case Term_TermType_NE:                 // fallthru
     case Term_TermType_LT:                 // fallthru
@@ -239,6 +240,10 @@ bool term_t::is_deterministic() const {
 
 protob_t<const Term> term_t::get_src() const {
     return src;
+}
+
+void term_t::prop_bt(Term *t) const {
+    term_walker_t(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
 counted_t<val_t> term_t::eval() {

@@ -330,10 +330,10 @@ region_t rdb_protocol_t::monokey_region(const store_key_t &k) {
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
-key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start, const store_key_t &end) {
-    std::string start_key_str(key_to_unescaped_str(start));
-    std::string end_key_str(key_to_unescaped_str(end));
+key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start,
+                                             const store_key_t &end) {
     store_key_t end_key;
+    std::string end_key_str(key_to_unescaped_str(end));
 
     // Need to make the next largest store_key_t without making the key longer
     while (end_key_str.length() > 0 &&
@@ -347,9 +347,7 @@ key_range_t rdb_protocol_t::sindex_key_range(const store_key_t &start, const sto
         ++end_key_str[end_key_str.length() - 1];
         end_key = store_key_t(end_key_str);
     }
-
-    return key_range_t(key_range_t::closed, store_key_t(start_key_str),
-                       key_range_t::open, end_key);
+    return key_range_t(key_range_t::closed, start, key_range_t::open, end_key);
 }
 
 // Returns the key identifying the monokey region used for sindex_list_t
@@ -1047,10 +1045,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             guarantee(rget.sindex_region, "If an rget has a sindex specified "
                       "it should also have a sindex_region.");
-            guarantee(rget.sindex_start_value, "If an rget has a sindex specified "
-                      "it should also have a start_sindex_value.");
-            guarantee(rget.sindex_end_value, "If an rget has a sindex specified "
-                      "it should also have an end_sindex_value.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1068,24 +1062,32 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             Term *arg = ql::pb::set_func(&filter_term, arg1);
             N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
                N2(ALL,
-                  N2(GE, NVAR(sindex_val),
-                     *ql::pb::set_datum(arg) =rget.sindex_start_value->get_datum()),
-                  N2(LE, NVAR(sindex_val),
-                     *ql::pb::set_datum(arg) = rget.sindex_end_value->get_datum())),
+                  if (rget.sindex_start_value) {
+                      N2(GE, NVAR(sindex_val),
+                         *ql::pb::set_datum(arg) =rget.sindex_start_value->get_datum());
+                  } else {
+                      NDATUM_BOOL(true);
+                  },
+                  if (rget.sindex_end_value) {
+                      N2(LE, NVAR(sindex_val),
+                         *ql::pb::set_datum(arg) = rget.sindex_end_value->get_datum());
+                  } else {
+                      NDATUM_BOOL(true);
+                  }),
                N2(FUNCALL,
                   *arg = sindex_mapping.get_term(),
                   NVAR(arg1)));
 
             Backtrace dummy_backtrace;
             ql::term_walker_t(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(filter_term,
-                                                 static_cast<std::map<int64_t, Datum>*>(NULL));
+            ql::filter_wire_func_t sindex_filter(
+                filter_term,
+                static_cast<std::map<int64_t, Datum>*>(NULL));
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(sindex_filter,
-                                                                               scopes_t(),
-                                                                               backtrace_t()));
+            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
+                                            sindex_filter, scopes_t(), backtrace_t()));
 
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),

@@ -97,9 +97,12 @@ void run(counted_t<const datum_t> d, U arg) {
 // SAMRSI: git rid of this shit
 template<class T, class U>
 void run(T t, U arg) { run(datum_t(t), arg); }
+template<class A, class B, class U>
+void run(A a, B b, U arg) { run(datum_t(a, b), arg); }
 } // namespace ndatum_impl
 
 #define NDATUM(val) ql::pb::ndatum_impl::run(val, arg)
+#define NDATUM_BOOL(val) ql::pb::ndatum_impl::run(ql::datum_t::R_BOOL, val, arg)
 
 // SAMRSI: What the fuck is up with OPT1 and OPT2?  They modify the variable arg!
 

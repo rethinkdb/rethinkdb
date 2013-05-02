@@ -3,20 +3,39 @@
 
 #include <string>
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
 
 class sindex_create_term_t : public op_term_t {
 public:
     sindex_create_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(3)) { }
+        : op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
-        std::string name = arg(1)->as_datum()->as_str();
-        counted_t<func_t> index_func = arg(2)->as_func();
+        counted_t<const datum_t> name_datum = arg(1)->as_datum();
+        std::string name = name_datum->as_str();
+        rcheck(name != table->get_pkey(),
+               strprintf("Index name conflict: `%s` is the name of the primary key.",
+                         name.c_str()));
+        counted_t<func_t> index_func;
+        if (num_args() == 3) {
+            index_func = arg(2)->as_func();
+        } else {
+            protob_t<Term> func_term = make_counted_term();
+            int x = env->gensym();
+            // SAMRSI: What is with this set_func function's return value?
+            // SAMRSI: What about the lifetime of func_term in set_func?
+            Term *arg = pb::set_func(func_term.get(), x);
+            N2(GETATTR, NVAR(x), NDATUM(name_datum));
+            // SAMRSI: Lifetiming here?
+            prop_bt(func_term.get());
+            index_func = make_counted<func_t>(env, func_term);
+        }
+        r_sanity_check(index_func.has());
 
         bool success = table->sindex_create(name, index_func);
         if (success) {
@@ -68,4 +87,4 @@ public:
 
 } // namespace ql
 
-#endif
+#endif  // RDB_PROTOCOL_TERMS_SINDEX_HPP_

@@ -107,18 +107,29 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, key_range_t::universe(),
+                      *ns_access, env->interruptor, counted_t<datum_t>(), counted_t<datum_t>(),
                       env->get_all_optargs(), use_outdated))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> pval, const std::string &sindex_id,
+    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+    const protob_t<const Backtrace> &bt_src)
+    : datum_stream_t(env, bt_src),
+      json_stream(new query_language::batched_rget_stream_t(
+                      *ns_access, env->interruptor, left_bound, right_bound,
+                      env->get_all_optargs(), use_outdated))
+{ }
+
+lazy_datum_stream_t::lazy_datum_stream_t(
+    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+    const std::string &sindex_id,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
-                      env->get_all_optargs(), use_outdated, pval, pval))
+                      env->get_all_optargs(), use_outdated, left_bound, right_bound))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)

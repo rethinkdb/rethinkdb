@@ -23,6 +23,8 @@ public:
         *body = *term;
         // SAMRSI: Check the lifetiming here too.
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
+        // SAMRSI: Also check the lifetiming here.
+        prop_bt(map_func.get());
     }
 private:
     virtual counted_t<val_t> obj_eval() = 0;

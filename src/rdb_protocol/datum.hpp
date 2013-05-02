@@ -229,17 +229,9 @@ private:
 
 public:
     friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == SERIALIZABLE);
-        msg << map_pb;
-    }
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
     friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        archive_result_t res = deserialize(s, &map_pb);
-        if (res) return res;
-        state = SERIALIZABLE;
-        return ARCHIVE_SUCCESS;
-    }
+    archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
     enum { SERIALIZABLE, COMPILED } state;

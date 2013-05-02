@@ -364,11 +364,19 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     return make_counted<datum_t>(p_res->data, env);
 }
 
-counted_t<datum_stream_t> table_t::get_sindex_rows(counted_t<const datum_t> pval,
+counted_t<datum_stream_t> table_t::get_rows(counted_t<const datum_t> left_bound,
+                                            counted_t<const datum_t> right_bound,
+                                            const protob_t<const Backtrace> &bt) {
+    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
+                                             left_bound, right_bound, bt);
+}
+
+counted_t<datum_stream_t> table_t::get_sindex_rows(counted_t<const datum_t> left_bound,
+                                                   counted_t<const datum_t> right_bound,
                                                    const std::string &sindex_id,
                                                    const protob_t<const Backtrace> &bt) {
     return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
-                                             pval, sindex_id, bt);
+                                             left_bound, right_bound, sindex_id, bt);
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream() {

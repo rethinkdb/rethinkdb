@@ -14,21 +14,23 @@ namespace ql {
 // This file implements terms that are rewritten into other terms.  See
 // pb_utils.hpp for explanations of the macros.
 
+// SAMRSI: Take another look at all the Term *'s in this file.
+
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec,
-                   void (*rewrite)(env_t *, protob_t<const Term> , Term *,
-                                   const pb_rcheckable_t *))
+                   Term *(*rewrite)(env_t *, protob_t<const Term>, Term *,
+                                    const pb_rcheckable_t *))
         : term_t(env, term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
-        rewrite(env, in, out.get(), this);
+        Term *optarg_inheritor = rewrite(env, in, out.get(), this);
         // SAMRSI: What is this propagate function?
         propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
         for (int i = 0; i < in->optargs_size(); ++i) {
-            *out->add_optargs() = in->optargs(i);
+            *optarg_inheritor->add_optargs() = in->optargs(i);
         }
         real = compile_term(env, out);
     }
@@ -47,8 +49,8 @@ public:
     groupby_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        const pb_rcheckable_t *bt_src) {
+    static Term * rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                          const pb_rcheckable_t *bt_src) {
         std::string dc;
         const Term *dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
@@ -59,6 +61,7 @@ public:
            group_fn(env, arg, &in->args(1)),
            map_fn(env, arg, dc, dc_arg),
            reduce_fn(env, arg, dc, dc_arg));
+        return out;
     }
 
 private:
@@ -145,8 +148,9 @@ class inner_join_term_t : public rewrite_term_t {
 public:
     inner_join_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         const Term *left = &in->args(0);
         const Term *right = &in->args(1);
         const Term *func = &in->args(2);
@@ -166,6 +170,7 @@ public:
                  N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
                  // [])}}
                  N0(MAKE_ARRAY))));
+        return out;
     }
     virtual const char *name() const { return "inner_join"; }
 };
@@ -174,8 +179,9 @@ class outer_join_term_t : public rewrite_term_t {
 public:
     outer_join_term_t(env_t *env, protob_t<const Term> term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         const Term *left = &in->args(0);
         const Term *right = &in->args(1);
         const Term *func = &in->args(2);
@@ -209,6 +215,7 @@ public:
                        N0(MAKE_ARRAY))),
                  // "ARRAY"))}
                  NDATUM("ARRAY"))));
+        return out;
     }
     virtual const char *name() const { return "outer_join"; }
 };
@@ -218,28 +225,25 @@ public:
     eq_join_term_t(env_t *env, protob_t<const Term> term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         const Term *left = &in->args(0);
         const Term *left_attr = &in->args(1);
         const Term *right = &in->args(2);
         int row = env->gensym(), v = env->gensym();
 
         Term *arg = out;
-        // `left`.concat_map { |row|
+        Term *optarg_inheritor = NULL;
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
-           // r.funcall(lambda { |v|
-           N2(FUNCALL, arg = pb::set_func(arg, v);
-              // r.branch(
-              N3(BRANCH,
-                 // r.ne(v, nil),
-                 N2(NE, NVAR(v), NDATUM(datum_t::R_NULL)),
-                 // [{:left => row, :right => v}],
-                 N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))),
-                 // []),
-                 N0(MAKE_ARRAY)),
-              // `right`.get(left[`left_attr`]))}
-              N2(GET, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr))));
+           N2(MAP,
+              optarg_inheritor = arg;
+              N2(GET_ALL, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr)),
+
+              arg = pb::set_func(arg, v);
+              OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
+        r_sanity_check(optarg_inheritor != NULL);
+        return optarg_inheritor;
     }
     virtual const char *name() const { return "inner_join"; }
 };
@@ -249,12 +253,14 @@ public:
     delete_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         int x = env->gensym();
 
         Term *arg = out;
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
+        return out;
      }
      virtual const char *name() const { return "delete"; }
 };
@@ -264,8 +270,9 @@ public:
     update_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static void rewrite(env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
         int old_row = env->gensym(false);
         int new_row = env->gensym(false);
@@ -281,6 +288,7 @@ private:
                     NVAR(old_row),
                     N2(MERGE, NVAR(old_row), NVAR(new_row))),
                  N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
+        return out;
     }
     virtual const char *name() const { return "update"; }
 };
@@ -290,10 +298,12 @@ public:
     skip_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static void rewrite(UNUSED env_t *env, protob_t<const Term> in, Term *out,
-                        UNUSED const pb_rcheckable_t *bt_src) {
+
+    static Term *rewrite(UNUSED env_t *env, protob_t<const Term> in, Term *out,
+                         UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out;
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
+        return out;
      }
      virtual const char *name() const { return "skip"; }
 };

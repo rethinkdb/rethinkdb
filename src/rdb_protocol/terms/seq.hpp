@@ -78,56 +78,35 @@ private:
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
-static const char *const between_optargs[] = {"left_bound", "right_bound"};
+static const char *const between_optargs[] = {"index"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
 private:
-
-    static void set_cmp(Term *out, int varnum, const std::string &pk,
-                        Term::TermType cmp_fn, counted_t<const datum_t> cmp_to) {
-        std::vector<Term *> cmp_args;
-        pb::set(out, cmp_fn, &cmp_args, 2); {
-            std::vector<Term *> ga_args;
-            pb::set(cmp_args[0], Term_TermType_GETATTR, &ga_args, 2); {
-                pb::set_var(ga_args[0], varnum);
-                scoped_ptr_t<datum_t> pkd(new datum_t(pk));
-                pkd->write_to_protobuf(pb::set_datum(ga_args[1]));
-            }
-            cmp_to->write_to_protobuf(pb::set_datum(cmp_args[1]));
-        }
-    }
-
     virtual counted_t<val_t> eval_impl() {
-        std::pair<counted_t<table_t>, counted_t<datum_stream_t> > sel = arg(0)->as_selection();
-        counted_t<val_t> lb = optarg("left_bound", counted_t<val_t>());
-        counted_t<val_t> rb = optarg("right_bound", counted_t<val_t>());
+        counted_t<table_t> tbl = arg(0)->as_table();
+        counted_t<const datum_t> lb = arg(1)->as_datum();
+        if (lb->get_type() == datum_t::R_NULL) {
+            lb.reset();
+        }
+        counted_t<const datum_t> rb = arg(2)->as_datum();
+        if (rb->get_type() == datum_t::R_NULL) {
+            rb.reset();
+        }
         if (!lb.has() && !rb.has()) {
-            return new_val(sel.second, sel.first);
+            return new_val(tbl->as_datum_stream(), tbl);
         }
 
-        counted_t<table_t> tbl = sel.first;
-        const std::string &pk = tbl->get_pkey();
-        counted_t<datum_stream_t> seq = sel.second;
-
-        if (!filter_func.has()) {
-            filter_func = make_counted_term();
-            int varnum = env->gensym();
-            // SAMRSI: Check filter_func.get() lifetime
-            Term *body = pb::set_func(filter_func.get(), varnum);
-            std::vector<Term *> args;
-            pb::set(body, Term_TermType_ALL, &args, lb.has() + rb.has());
-            if (lb.has()) {
-                set_cmp(args[0], varnum, pk, Term_TermType_GE, lb->as_datum());
-            }
-            if (rb.has()) {
-                set_cmp(args[lb.has() ? 1 : 0], varnum, pk, Term_TermType_LE, rb->as_datum());
+        counted_t<val_t> sindex = optarg("index", counted_t<val_t>());
+        if (sindex.has()) {
+            std::string sid = sindex->as_str();
+            if (sid != tbl->get_pkey()) {
+                return new_val(tbl->get_sindex_rows(lb, rb, sid, backtrace()), tbl);
             }
         }
 
-        guarantee(filter_func.has());
-        return new_val(seq->filter(make_counted<func_t>(env, filter_func)), tbl);
+        return new_val(tbl->get_rows(lb, rb, backtrace()), tbl);
     }
     virtual const char *name() const { return "between"; }
 
