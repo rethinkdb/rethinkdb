@@ -12,7 +12,8 @@ module RethinkDB
     }
     @@opt_off = {
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
-      :table => -1, :table_create => -1
+      :table => -1, :table_create => -1,
+      :get_all => -1, :eq_join => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -27,6 +28,7 @@ module RethinkDB
       :type_of => :typeof
     }
     def method_missing(m, *a, &b)
+      unbound_if(m.to_s.downcase != m.to_s, m)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
       if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
         a.each {|arg|
@@ -112,10 +114,6 @@ module RethinkDB
     def grouped_map_reduce(*a, &b)
       a << {:base => a.delete_at(-2)} if a.size >= 2 && a[-2].class != Proc
       super(*a, &b)
-    end
-
-    def between(l=nil, r=nil)
-      super(Hash[(l ? [['left_bound', l]] : []) + (r ? [['right_bound', r]] : [])])
     end
 
     def -@; RQL.new.sub(0, self); end

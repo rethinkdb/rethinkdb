@@ -15,3 +15,15 @@ def time(f = PP.method(:pp))
     return t2 - t1
   end
 end
+
+
+time {
+  (0...10).map {
+    c = r.connect('localhost', $port_offset + 28015)
+    (0...10).map {
+      Thread.new {
+        r.table('test').run(c)
+      }
+    }
+  }.flatten.each {|t| t.join}
+}

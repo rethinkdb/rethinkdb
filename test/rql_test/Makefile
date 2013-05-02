@@ -12,6 +12,13 @@ TEST=.*
 
 SHELL=/bin/bash
 
+DEFAULT_LANGUAGE :=
+
+PORT_OFFSET ?= 0
+DRIVER_PORT ?= 28015+$(PORT_OFFSET)
+CLUSTER_PORT ?= 29015+$(PORT_OFFSET)
+EXECUTABLE := $(BUILD_DIR)/rethinkdb
+
 .SILENT:
 
 .PHONY: run
@@ -39,11 +46,15 @@ js_polyglot: $(TEST_FILES)
 rb_polyglot: $(TEST_FILES)
 	./test-runner run \"$(BUILD_DIR)\" \"rb\"
 
-$(TEST_FILES): build/.stub
-build/.stub: $(YAML_FILES) $(DRIVER_FILES)
+.PHONY: attach
+attach: $(TEST_FILES)
+	./test-runner attach $(DRIVER_PORT) $(CLUSTER_PORT) '"$(EXECUTABLE)"' $(if $(DEFAULT_LANGUAGE),"'$(DEFAULT_LANGUAGE)'")
+
+.PHONY: build_test_scripts
+$(TEST_FILES): build_test_scripts
+build_test_scripts: $(YAML_FILES) $(DRIVER_FILES)
 	mkdir -p build
 	RQL_TEST='$(TEST)' ./test-runner build_test_scripts $(SHARD)
-	touch $@
 
 .PHONY: list
 list:

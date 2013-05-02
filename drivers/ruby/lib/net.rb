@@ -98,6 +98,7 @@ module RethinkDB
       wait q.token
     end
     def run(msg, opts)
+      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::START
       q.query = msg

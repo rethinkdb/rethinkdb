@@ -219,7 +219,7 @@ message Term {
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
-                    // Table, STRING, STRING -> StreamSelection | Table, NUMBER, STRING -> StreamSelection |
+        GET_ALL = 78; // Table, JSON {index:!STRING} => ARRAY
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -261,7 +261,7 @@ message Term {
 
         // Sequence Ops
         // Get all elements of a sequence between two values.
-        BETWEEN   = 36; // StreamSelection, {left_bound:DATUM, right_bound:DATUM} -> StreamSelection
+        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
         FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
@@ -293,7 +293,7 @@ message Term {
         INNER_JOIN         = 48; // Sequence, Sequence, Function(2) -> Sequence
         OUTER_JOIN         = 49; // Sequence, Sequence, Function(2) -> Sequence
         // An inner-join that does an equality comparison on two attributes.
-        EQ_JOIN            = 50; // Sequence, !STRING, Sequence -> Sequence
+        EQ_JOIN            = 50; // Sequence, !STRING, Sequence, {index:!STRING} -> Sequence
         ZIP                = 72; // Sequence -> Sequence
 
 
@@ -409,7 +409,7 @@ message Term {
         DESC = 74; // !STRING -> Ordering
 
         // Gets info about anythin; most useful for tables.
-        INFO = 78; // Top -> OBJECT
+        INFO = 79; // Top -> OBJECT
     }
     optional TermType type = 1;
 
