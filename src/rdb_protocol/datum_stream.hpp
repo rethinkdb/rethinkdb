@@ -79,15 +79,15 @@ public:
 class wrapper_datum_stream_t : public eager_datum_stream_t {
 public:
     // SAMRSI: Rename this src stuff to 'source'.
-    wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
-        : eager_datum_stream_t(env, _src->backtrace()), src(_src) { }
-    virtual bool is_array() { return src->is_array(); }
+    wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source->backtrace()), source(_source) { }
+    virtual bool is_array() { return source->is_array(); }
     virtual counted_t<const datum_t> as_array() {
         return is_array() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
     }
-    counted_t<datum_stream_t> src_stream() { return src; }
-private:
-    counted_t<datum_stream_t> src;
+
+protected:
+    const counted_t<datum_stream_t> source;
 };
 
 class map_datum_stream_t : public eager_datum_stream_t {

@@ -286,14 +286,14 @@ counted_t<const datum_t> slice_datum_stream_t::next_impl() {
     }
 
     while (index < left) {
-        counted_t<const datum_t> discard = src_stream()->next();
+        counted_t<const datum_t> discard = source->next();
         if (!discard.has()) {
             return counted_t<const datum_t>();
         }
         ++index;
     }
 
-    counted_t<const datum_t> datum = src_stream()->next();
+    counted_t<const datum_t> datum = source->next();
     if (datum.has()) {
         ++index;
     }
@@ -305,7 +305,7 @@ zip_datum_stream_t::zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> _sr
     : wrapper_datum_stream_t(env, _src) { }
 
 counted_t<const datum_t> zip_datum_stream_t::next_impl() {
-    counted_t<const datum_t> datum = src_stream()->next();
+    counted_t<const datum_t> datum = source->next();
     if (!datum.has()) {
         return counted_t<const datum_t>();
     }
