@@ -427,18 +427,18 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(counted_t<const datum_t> _datum, counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+val_t::val_t(counted_t<const datum_t> _datum, const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
-             counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+             const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::SINGLE_SELECTION),
       table(_table),
       u(_datum) {
@@ -446,9 +446,9 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(counted_t<datum_stream_t> _sequence, counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
@@ -461,9 +461,9 @@ val_t::val_t(counted_t<datum_stream_t> _sequence, counted_t<const term_t> _paren
 }
 
 val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
-             counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+             const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::SELECTION),
       table(_table),
       u(_sequence) {
@@ -471,24 +471,24 @@ val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_t> _table, counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+val_t::val_t(counted_t<table_t> _table, const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::TABLE),
       table(_table) {
     guarantee(table.has());
 }
-val_t::val_t(uuid_u _db, counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+val_t::val_t(uuid_u _db, const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::DB),
       table(NULL) {
     guarantee(!table.has());
     *db_ptr() = _db;
 }
-val_t::val_t(counted_t<func_t> _func, counted_t<const term_t> _parent)
-    : pb_rcheckable_t(_parent->backtrace()),
-      parent(_parent),
+val_t::val_t(counted_t<func_t> _func, const term_t *parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      env(parent->val_t_get_env()),
       type(type_t::FUNC),
       u(_func) {
     guarantee(func().has());
@@ -523,7 +523,7 @@ counted_t<datum_stream_t> val_t::as_seq() {
     } else if (type.raw_type == type_t::TABLE) {
         return table->as_datum_stream();
     } else if (type.raw_type == type_t::DATUM) {
-        return datum()->as_datum_stream(get_env(), parent->backtrace());
+        return datum()->as_datum_stream(env, backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
@@ -557,12 +557,11 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         unreachable();
     }
 
-    r_sanity_check(parent);
     // We use a switch here so that people have to update it if they add another
     // shortcut.
     switch(shortcut) {
     case IDENTITY_SHORTCUT:
-        return func_t::new_identity_func(get_env(), as_datum(), parent->backtrace());
+        return func_t::new_identity_func(env, as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

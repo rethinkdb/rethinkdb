@@ -122,13 +122,13 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, counted_t<const term_t> _parent);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, counted_t<const term_t> _parent);
-    val_t(counted_t<datum_stream_t> _sequence, counted_t<const term_t> _parent);
-    val_t(counted_t<table_t> _table, counted_t<const term_t> _parent);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, counted_t<const term_t> _parent);
-    val_t(uuid_u _db, counted_t<const term_t> _parent);
-    val_t(counted_t<func_t> _func, counted_t<const term_t> _parent);
+    val_t(counted_t<const datum_t> _datum, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(uuid_u _db, const term_t *parent);
+    val_t(counted_t<func_t> _func, const term_t *parent);
     ~val_t();
 
     uuid_u as_db();
@@ -165,16 +165,18 @@ public:
 private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
-    counted_t<const term_t> parent;
-    env_t *get_env() { return parent->val_t_get_env(); }
+    env_t *env;
 
     type_t type;
     counted_t<table_t> table;
 
-    // We pretend that this variant is a union -- it doesn't come with type
+    // We pretend that this variant is a union -- as if it doesn't have type
     // information.  The sequence, datum, func, and db_ptr functions get the
     // fields of the variant.
-    boost::variant<uuid_u, counted_t<datum_stream_t>, counted_t<const datum_t>, counted_t<func_t> > u;
+    boost::variant<uuid_u,
+                   counted_t<datum_stream_t>,
+                   counted_t<const datum_t>,
+                   counted_t<func_t> > u;
 
     counted_t<datum_stream_t> &sequence() { return boost::get<counted_t<datum_stream_t> >(u); }
     counted_t<const datum_t> &datum() { return boost::get<counted_t<const datum_t> >(u); }

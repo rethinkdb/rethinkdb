@@ -269,27 +269,28 @@ counted_t<val_t> term_t::eval() {
     }
 }
 
+// SAMRSI: get rid of these counted_use_count guarantees.
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
-    return make_counted<val_t>(d, this->counted_from_this());
+    return make_counted<val_t>(d, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return make_counted<val_t>(d, t, this->counted_from_this());
+    return make_counted<val_t>(d, t, this);
 }
 
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(s, this->counted_from_this());
+    return make_counted<val_t>(s, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
-    return make_counted<val_t>(d, s, this->counted_from_this());
+    return make_counted<val_t>(d, s, this);
 }
 counted_t<val_t> term_t::new_val(uuid_u db) {
-    return make_counted<val_t>(db, this->counted_from_this());
+    return make_counted<val_t>(db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
-    return make_counted<val_t>(t, this->counted_from_this());
+    return make_counted<val_t>(t, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
-    return make_counted<val_t>(f, this->counted_from_this());
+    return make_counted<val_t>(f, this);
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
