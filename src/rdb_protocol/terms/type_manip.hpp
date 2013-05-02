@@ -255,7 +255,7 @@ private:
             b |= info->add("name", env->new_datum(v->as_db()->name));
         } break;
         case TABLE_TYPE: {
-            table_t *table = arg(0)->as_table();
+            table_t *table = v->as_table();
             b |= info->add("name", env->new_datum(table->name));
             b |= info->add("primary_key", env->add_ptr(new datum_t(table->get_pkey())));
             b |= info->add("indexes", table->sindex_list());

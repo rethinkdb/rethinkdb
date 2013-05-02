@@ -1,16 +1,37 @@
 desc: Issue #469: add pkey term
 tests:
 
-  - cd: r.db('test').table_create('469')
-    ot: ({'created':1})
-  - cd: r.table('469').pkey
-    ot: ("id")
-  - cd: r.db('test').table_drop('469')
-    ot: ({'dropped':1})
+  - rb: r.db_create('d469')
+    cd: ({'created':1})
+  - rb: r.db('d469').table_create('t469')
+    cd: ({'created':1})
+  - rb: r.db('d469').table('t469').index_create('x')
+    cd: ({'created':1})
 
-  - cd: r.db('test').table_create('469', :primary_key => 'id2')
-    ot: ({'created':1})
-  - cd: r.table('469').pkey
-    ot: ("id2")
-  - cd: r.db('test').table_drop('469')
-    ot: ({'dropped':1})
+  - rb: r(nil).info
+    ot: ({'type':'NULL','value':'nu''ll'})
+  - rb: r(true).info
+    ot: ({'type':'BOOL','value':'true'})
+  - rb: r(1).info
+    ot: ({'type':'NUMBER','value':'1'})
+  - rb: r('1').info
+    ot: ({'type':'STRING','value':('"1"')})
+  - rb: r([1]).info
+    ot: ({'type':'ARRAY','value':'[1]'})
+  - rb: r({:a => 1}).info
+    ot: ({'type':'OBJECT','value':"{\n\t\"a\":\t1\n}"})
+
+  - rb: r.db('d469').info
+    ot: ({'type':'DB','name':'d469'})
+  - rb: r.db('d469').table('t469').info
+    ot: ({'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+          'primary_key':'id', 'indexes':['x']})
+  - rb: r.db('d469').table('t469').filter{true}.info
+    ot: ({'type':'SELECTION',
+          'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+                   'primary_key':'id', 'indexes':['x']}})
+  - rb: r.db('d469').table('t469').map{1}.info
+    ot: ({'type':'STREAM'})
+
+  - rb: r.db_drop('d469')
+    cd: ({'dropped':1})
