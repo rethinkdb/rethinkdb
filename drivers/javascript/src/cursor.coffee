@@ -118,3 +118,12 @@ class Cursor extends IterableResult
 class ArrayResult extends IterableResult
     hasNext: ar () -> (@__index < @.length)
     next: ar (cb) -> cb(null, @[@__index++])
+
+    makeIterable: (response) ->
+        for name, method of IterableResult.prototype
+            response.__proto__[name] = method
+        for name, method of ArrayResult.prototype
+            response.__proto__[name] = method
+        response.__proto__.__index = 0
+        response
+

@@ -94,14 +94,10 @@ class Connection
                 cb mkErr(RqlRuntimeError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.SUCCESS_ATOM
-                final_response = mkAtom(response)
-                if Object.prototype.toString.call(final_response) is '[object Array]'
-                    for name, method of IterableResult.prototype
-                        final_response.__proto__[name] = method
-                    for name, method of ArrayResult.prototype
-                        final_response.__proto__[name] = method
-                    final_response.__proto__.__index = 0
-                cb null, final_response
+                response = mkAtom response
+                if goog.isArray response
+                    response = ArrayResult::makeIterable response
+                cb null, response
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor = new Cursor @, token
