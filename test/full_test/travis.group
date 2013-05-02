@@ -3,9 +3,6 @@
 unit-*
 ql-*
 
-# The validator wants to validate against the ruby driver
-!ql-validate-examples
-
 # This test fails on travis with "Connection is closed"
 !ql-js-cursor
 
