@@ -12,8 +12,8 @@ namespace ql {
 
 // Most of this logic is copy-pasted from the old query language.
 table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
-                 bool _use_outdated, const pb_rcheckable_t *src)
-    : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
+                 bool _use_outdated, const protob_t<const Backtrace> &backtrace)
+    : pb_rcheckable_t(backtrace), env(_env), use_outdated(_use_outdated) {
     name_string_t table_name;
     bool b = table_name.assign_value(name);
     rcheck(b, strprintf("Table name `%s` invalid (%s).",
@@ -366,13 +366,13 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
 
 counted_t<datum_stream_t> table_t::get_sindex_rows(counted_t<const datum_t> pval,
                                                    const std::string &sindex_id,
-                                                   const pb_rcheckable_t *bt) {
+                                                   const protob_t<const Backtrace> &bt) {
     return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
                                              pval, sindex_id, bt);
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream() {
-    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(), this);
+    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(), backtrace());
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -419,8 +419,9 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
+// SAMRSI: Why why is this not a counted_t?
 val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::DATUM),
       datum(_datum) {
@@ -429,7 +430,7 @@ val_t::val_t(counted_t<const datum_t> _datum, const term_t *_parent)
     memcpy(opaque_db, nil.data(), uuid_u::static_size());
 }
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::SINGLE_SELECTION),
       table(_table),
@@ -440,7 +441,7 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const t
     memcpy(opaque_db, nil.data(), uuid_u::static_size());
 }
 val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::SEQUENCE),
       sequence(_sequence) {
@@ -455,7 +456,7 @@ val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *_parent)
 
 val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
              const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::SELECTION),
       table(_table),
@@ -465,14 +466,14 @@ val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
 }
 
 val_t::val_t(counted_t<table_t> _table, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::TABLE),
       table(_table) {
     guarantee(table.has());
 }
 val_t::val_t(uuid_u _db, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::DB),
       table(NULL) {
@@ -480,7 +481,7 @@ val_t::val_t(uuid_u _db, const term_t *_parent)
     *db_ptr() = _db;
 }
 val_t::val_t(counted_t<func_t> _func, const term_t *_parent)
-    : pb_rcheckable_t(_parent),
+    : pb_rcheckable_t(_parent->backtrace()),
       parent(_parent),
       type(type_t::FUNC),
       func(_func) {
@@ -516,7 +517,7 @@ counted_t<datum_stream_t> val_t::as_seq() {
     } else if (type.raw_type == type_t::TABLE) {
         return table->as_datum_stream();
     } else if (type.raw_type == type_t::DATUM) {
-        return datum->as_datum_stream(get_env(), parent);
+        return datum->as_datum_stream(get_env(), parent->backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();

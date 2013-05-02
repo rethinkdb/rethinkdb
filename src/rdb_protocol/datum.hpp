@@ -112,7 +112,8 @@ public:
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    counted_t<datum_stream_t> as_datum_stream(env_t *env, const pb_rcheckable_t *bt_src) const;
+    counted_t<datum_stream_t> as_datum_stream(env_t *env,
+                                              const protob_t<const Backtrace> &backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations

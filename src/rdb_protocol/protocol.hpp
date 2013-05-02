@@ -24,6 +24,7 @@
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
@@ -42,6 +43,10 @@ template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
 namespace extproc { class pool_group_t; }
+
+namespace ql {
+class datum_t;
+};
 
 using query_language::scopes_t;
 using query_language::backtrace_t;

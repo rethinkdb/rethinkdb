@@ -42,8 +42,8 @@ public:
     explicit pb_rcheckable_t(protob_t<const Term> t)
         : bt_src(t.make_child(&t->GetExtension(ql2::extension::backtrace))) { }
 
-    explicit pb_rcheckable_t(const pb_rcheckable_t *rct)
-        : bt_src(rct->bt_src) { }
+    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
+        : bt_src(_bt_src) { }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
@@ -52,6 +52,8 @@ public:
 
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
+
+    protob_t<const Backtrace> backtrace() const { return bt_src; }
 
 private:
     protob_t<const Backtrace> bt_src;

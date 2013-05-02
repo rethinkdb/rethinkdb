@@ -10,7 +10,7 @@
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
-    : pb_rcheckable_t(parent.get() /* SAMRSI is this good? */), body(0), source(parent->get_src()),
+    : pb_rcheckable_t(parent->backtrace()), body(0), source(parent->get_src()),
       js_parent(parent), js_env(env), js_id(id) {
     env->dump_scope(&scope);
 }

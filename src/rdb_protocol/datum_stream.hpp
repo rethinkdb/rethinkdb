@@ -14,7 +14,7 @@ namespace ql {
 
 class datum_stream_t : public single_threaded_shared_mixin_t<datum_stream_t>, public pb_rcheckable_t {
 public:
-    datum_stream_t(env_t *_env, const pb_rcheckable_t *bt_src)
+    datum_stream_t(env_t *_env, const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src), env(_env) {
         guarantee(env);
     }
@@ -61,7 +61,7 @@ counted_t<datum_stream_t> zip(env_t *env, counted_t<datum_stream_t> zippee);
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
-    eager_datum_stream_t(env_t *env, const pb_rcheckable_t *bt_src)
+    eager_datum_stream_t(env_t *env, const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(env, bt_src) { }
 
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
@@ -78,8 +78,9 @@ public:
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
 public:
+    // SAMRSI: Rename this src stuff to 'source'.
     wrapper_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
-        : eager_datum_stream_t(env, _src.get() /* SAMRSI: acceptable? */), src(_src) { }
+        : eager_datum_stream_t(env, _src->backtrace()), src(_src) { }
     virtual bool is_array() { return src->is_array(); }
     virtual counted_t<const datum_t> as_array() {
         return is_array() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
@@ -92,7 +93,7 @@ private:
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
     map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
         guarantee(f.has() && source.has());
     }
 private:
@@ -105,7 +106,7 @@ private:
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
     filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
         guarantee(f.has() && source.has());
     }
 
@@ -119,7 +120,7 @@ private:
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
     concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source.get()), f(_f), source(_source) {
+        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
         guarantee(f.has() && source.has());
     }
 
@@ -135,11 +136,11 @@ class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        const pb_rcheckable_t *bt_src);
+                        const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> pval, const std::string &sindex_id,
-                        const pb_rcheckable_t *bt_src);
+                        const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
@@ -162,7 +163,8 @@ private:
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
-    array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr, const pb_rcheckable_t *bt_src);
+    array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr,
+                         const protob_t<const Backtrace> &bt_src);
 
 private:
     counted_t<const datum_t> next_impl();
@@ -194,7 +196,7 @@ template<class T>
 class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
-                        const pb_rcheckable_t *bt_src)
+                        const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
           src(_src), data_index(-1), is_arr_(false) {
         guarantee(src.has());
@@ -253,7 +255,7 @@ private:
 class union_datum_stream_t : public eager_datum_stream_t {
 public:
     union_datum_stream_t(env_t *env, const std::vector<counted_t<datum_stream_t> > &_streams,
-                         const pb_rcheckable_t *bt_src)
+                         const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
 private:
     counted_t<const datum_t> next_impl();

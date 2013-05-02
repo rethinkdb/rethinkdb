@@ -104,7 +104,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array() {
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    const pb_rcheckable_t *bt_src)
+    const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, key_range_t::universe(),
@@ -114,7 +114,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
     counted_t<const datum_t> pval, const std::string &sindex_id,
-    const pb_rcheckable_t *bt_src)
+    const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
@@ -122,7 +122,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
-    : datum_stream_t(src->env, src), json_stream(src->json_stream) { }
+    : datum_stream_t(src->env, src->backtrace()), json_stream(src->json_stream) { }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
@@ -216,7 +216,7 @@ counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr,
-                                           const pb_rcheckable_t *backtrace_source)
+                                           const protob_t<const Backtrace> &backtrace_source)
     : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
 
 counted_t<const datum_t> array_datum_stream_t::next_impl() {

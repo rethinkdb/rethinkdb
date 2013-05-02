@@ -4,30 +4,29 @@
 #include <string>
 #include <utility>
 
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp"
 
 namespace ql {
+class datum_t;
 class env_t;
 class val_t;
 class term_t;
 class stream_cache2_t;
-}
-
-namespace ql {
+template <class> class protob_t;
 
 class table_t : public single_threaded_shared_mixin_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
-            bool use_outdated, const pb_rcheckable_t *src);
+            bool use_outdated, const protob_t<const Backtrace> &src);
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
-    counted_t<datum_stream_t> get_sindex_rows(
-        counted_t<const datum_t> pval, const std::string &sindex_id, const pb_rcheckable_t *bt);
+    counted_t<datum_stream_t> get_sindex_rows(counted_t<const datum_t> pval,
+                                              const std::string &sindex_id,
+                                              const protob_t<const Backtrace> &bt);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
@@ -164,6 +163,7 @@ public:
 private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
+    // SAMRSI: Why is this not a counted_t?
     const term_t *parent;
     env_t *get_env() { return parent->val_t_get_env(); }
 

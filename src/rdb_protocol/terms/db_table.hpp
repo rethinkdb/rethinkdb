@@ -389,7 +389,7 @@ private:
             db = arg(0)->as_db();
             name = arg(1)->as_str();
         }
-        return new_val(make_counted<table_t>(env, db, name, use_outdated, this));
+        return new_val(make_counted<table_t>(env, db, name, use_outdated, backtrace()));
     }
     virtual bool is_deterministic_impl() const { return false; }
     virtual const char *name() const { return "table"; }
@@ -404,7 +404,8 @@ private:
         counted_t<const datum_t> pkey = arg(1)->as_datum();
         if (num_args() == 3) {
             counted_t<datum_stream_t> sequence = table->get_sindex_rows(pkey,
-                    arg(2)->as_datum()->as_str(), this);
+                                                                        arg(2)->as_datum()->as_str(),
+                                                                        backtrace());
             return new_val(sequence, table);
         } else {
             counted_t<const datum_t> row = table->get_row(pkey);

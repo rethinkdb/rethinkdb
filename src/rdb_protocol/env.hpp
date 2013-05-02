@@ -13,7 +13,6 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/pool.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -21,6 +20,7 @@
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
+class datum_t;
 class term_t;
 
 class env_t : private home_thread_mixin_t {

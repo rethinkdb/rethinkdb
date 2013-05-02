@@ -144,7 +144,8 @@ private:
         for (size_t i = 0; i < num_args(); ++i) {
             streams.push_back(arg(i)->as_seq());
         }
-        counted_t<datum_stream_t> union_stream(new union_datum_stream_t(env, streams, this));
+        counted_t<datum_stream_t> union_stream
+            = make_counted<union_datum_stream_t>(env, streams, backtrace());
         return new_val(union_stream);
     }
     virtual const char *name() const { return "union"; }

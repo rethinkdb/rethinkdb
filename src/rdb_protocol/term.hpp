@@ -9,13 +9,13 @@
 
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
 class env_t;
 class datum_stream_t;
+class datum_t;
 class func_t;
 class val_t;
 class table_t;

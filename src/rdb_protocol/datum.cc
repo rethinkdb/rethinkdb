@@ -401,7 +401,8 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env, const pb_rcheckable_t *backtrace_src) const {
+counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env,
+                                                   const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
@@ -409,7 +410,7 @@ counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env, const pb_rcheckab
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
     case R_ARRAY:
-        return make_counted<array_datum_stream_t>(env, this->counted_from_this(), backtrace_src);
+        return make_counted<array_datum_stream_t>(env, this->counted_from_this(), backtrace);
     default: unreachable();
     }
     unreachable();
