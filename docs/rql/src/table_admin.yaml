@@ -88,3 +88,59 @@ commands:
 
     rb:
       dont_need_parenthesis: true
+
+  - tag: index_create
+    section: table_admin
+    description: Create a new secondary index on this table.
+
+    body: indexName, indexFunction
+    parent: table
+    returns: json
+
+    examples:
+      - description: |
+          To efficiently query our heros by name we can create a secondary
+          index based on the value of that field.
+        code:
+          py: "r.table('marvel').index_create('name', lambda hero: hero['name'])"
+          js: r.table('marvel').indexCreate('name', function(hero) { return hero('name'); })
+          rb: r.table('marvel').index_create('name') {|hero| hero['name'] }
+      - description: |
+          We can create a compound index simply by returning an array of values when creating
+          the index.
+        code:
+          py: |
+            r.table('marvel').index_create('parental_planets',
+              lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
+            )
+          js: |
+            r.table('marvel').indexCreate('parental_planets', function(hero) {
+              return [hero('mothers_home_planet'), hero('fathers_home_planet')];
+            })
+          rb: |
+            r.table('marvel').index_create('parental_planets') {|hero|
+              [hero['mothers_home_planet'], hero['fathers_home_planet']]
+            }
+
+  - tag: index_drop
+    section: table_admin
+    description: Delete a previously created secondary index of this table.
+
+    parent: table
+    returns: json
+
+    examples:
+      - description: |
+          Drop a secondary index named 'name'.
+        code: r.table('marvel').index_drop('name')
+
+  - tag: index_list
+    section: table_admin
+    description: List all the secondary indexes of this table.
+
+    parent: table
+    returns: json
+
+    examples:
+      - description: List the available secondary indexes for this table.
+        code: r.table('marvel').index_list()
