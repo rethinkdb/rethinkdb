@@ -14,6 +14,7 @@
 #include "stl_utils.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
+#include "backtrace.hpp"
 
 class cond_t;
 class signal_t;
@@ -229,6 +230,8 @@ public:
         bool ended;
 
         fifo_enforcer_write_token_t token;
+
+        lazy_backtrace_t bt;
     };
 
     fifo_enforcer_sink_t() THROWS_NOTHING :

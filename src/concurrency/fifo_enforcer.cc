@@ -1,8 +1,19 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+#include <queue>
 #include "concurrency/fifo_enforcer.hpp"
 
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
+
+__thread std::queue<fifo_enforcer_sink_t::exit_write_t *> *tokens;
+
+std::queue<fifo_enforcer_sink_t::exit_write_t *> *get_tokens() {
+    if (!tokens) {
+        tokens = new std::queue<fifo_enforcer_sink_t::exit_write_t *>();
+    }
+
+    return tokens;
+}
 
 void fifo_enforcer_state_t::advance_by_read(DEBUG_VAR fifo_enforcer_read_token_t token) THROWS_NOTHING {
     rassert(timestamp == token.timestamp);
@@ -93,12 +104,15 @@ fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
 }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t() THROWS_NOTHING :
-    parent(NULL), ended(false) { }
+    parent(NULL), ended(false) { 
+    get_tokens()->push(this);
+}
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
     parent(NULL), ended(false)
 {
     begin(p, t);
+    get_tokens()->push(this);
 }
 
 void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING {
@@ -148,6 +162,7 @@ fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
     if (parent && !ended) {
         end();
     }
+    get_tokens()->pop();
 }
 
 fifo_enforcer_sink_t::~fifo_enforcer_sink_t() THROWS_NOTHING {

@@ -11,6 +11,7 @@ struct store_key_t;
 struct btree_key_t;
 class order_token_t;
 class superblock_t;
+class signal_t;
 
 class key_tester_t {
 public:
@@ -44,7 +45,8 @@ protected:
  * before the erase has actually happened on the kv pair. */
 class erase_range_cb_t {
 public:
-    virtual void handle_pair(const btree_key_t *key, const void *value) = 0;
+    virtual void handle_pair(const btree_key_t *key, const void *value,
+            signal_t *interruptor) = 0;
     virtual ~erase_range_cb_t() { }
 };
 

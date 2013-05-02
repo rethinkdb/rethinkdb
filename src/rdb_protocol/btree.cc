@@ -283,7 +283,7 @@ struct slice_timestamp_txn_replace_t {
     const point_replace_t *replace;
 };
 
-void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
+void do_a_replace_from_batched_replace(auto_drainer_t::lock_t lock,
                                        fifo_enforcer_sink_t *batched_replaces_fifo_sink,
                                        const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
                                        slice_timestamp_txn_replace_t sttr,
@@ -301,7 +301,7 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     exiter.wait();
-    sindex_cb->on_mod_report(mod_report);
+    sindex_cb->on_mod_report(mod_report, lock.get_drain_signal());
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -440,9 +440,11 @@ public:
         : mod_report_cb_(mod_report_cb), txn_(txn)
     { }
 
-    void handle_pair(const btree_key_t *key, const void *value) {
+    void handle_pair(const btree_key_t *key, const void *value,
+            signal_t *interruptor) {
         mod_report_cb_->delete_row(store_key_t(key),
-                get_data(static_cast<const rdb_value_t *>(value), txn_));
+                get_data(static_cast<const rdb_value_t *>(value), txn_),
+                interruptor);
     }
 
     rdb_modification_report_cb_t *mod_report_cb_;
@@ -838,25 +840,28 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
       lock_(lock)
 { }
 
-void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added) {
+void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, 
+        boost::shared_ptr<scoped_cJSON_t> added, signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
-void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted) {
+void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
+        boost::shared_ptr<scoped_cJSON_t> deleted, signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.deleted = deleted;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
 void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
         boost::shared_ptr<scoped_cJSON_t> added,
-        boost::shared_ptr<scoped_cJSON_t> deleted) {
+        boost::shared_ptr<scoped_cJSON_t> deleted,
+        signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
     report.info.deleted = deleted;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
@@ -866,8 +871,10 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+        const rdb_modification_report_t &mod_report,
+        signal_t *interruptor) {
     if (!sindex_block_.has()) {
+        wait_any_t combined_interruptor(interruptor, lock_.get_drain_signal());
         store_->acquire_sindex_block_for_write(
             token_pair_, txn_, &sindex_block_,
             sindex_block_id_, lock_.get_drain_signal());

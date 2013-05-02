@@ -1479,15 +1479,17 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_sindex_superblocks_for_write(
-                created_sindexes,
-                sindex_block.get(),
-                txn,
-                &sindexes);
+        if (!created_sindexes.empty()) {
+            sindex_access_vector_t sindexes;
+            store->acquire_sindex_superblocks_for_write(
+                    created_sindexes,
+                    sindex_block.get(),
+                    txn,
+                    &sindexes);
 
-        rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                sindex_block.get(), txn);
+            rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+                    sindex_block.get(), txn);
+        }
     }
 
 private:
