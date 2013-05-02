@@ -106,23 +106,23 @@ commands:
           attribute.
 
         code:
-          py: "r.table('marvel').index_create('code_name', lambda hero: hero['code_name'])"
-          js: r.table('marvel').indexCreate('code_name', function(hero) { return hero('code_name'); })
-          rb: r.table('marvel').index_create('code_name') {|hero| hero['code_name'] }
+          py: "r.table('dc').index_create('code_name', lambda hero: hero['code_name'])"
+          js: r.table('dc').indexCreate('code_name', function(hero) { return hero('code_name'); })
+          rb: r.table('dc').index_create('code_name') {|hero| hero['code_name'] }
       - description: |
           We can create a compound index simply by returning an array of values when creating
           the index.
         code:
           py: |
-            r.table('marvel').index_create('parental_planets',
+            r.table('dc').index_create('parental_planets',
               lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
             )
           js: |
-            r.table('marvel').indexCreate('parental_planets', function(hero) {
+            r.table('dc').indexCreate('parental_planets', function(hero) {
               return [hero('mothers_home_planet'), hero('fathers_home_planet')];
             })
           rb: |
-            r.table('marvel').index_create('parental_planets') {|hero|
+            r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
             }
 

@@ -100,13 +100,13 @@ commands:
           code:
             py: r.table('marvel').get_all('man_of_steel', index='code_name')
             js: r.table('marvel').getAll('man_of_steel', {index:'code_name'})
-            py: r.table('marvel').get_all('man_of_steel', index => :code_name)
+            rb: r.table('marvel').get_all('man_of_steel', :index => 'code_name')
         - description: |
             Without an index argument, `get_all` defaults to the primary index. While
             `get` will either return the document or `null` when no document with such
             a primary key value exists, `get_all` will return either a one or zero
             length stream.
-          code: r.table('marvel').get_all('superman')
+          code: r.table('dc').get_all('superman')
 
   - tag: between
     section: select
@@ -123,9 +123,9 @@ commands:
             Between can be used on secondary indexes too. Just pass an optional index
             argument giving the secondary index to query.
           code:
-            py: r.table('marvel').between('dark_knight', 'man_of_steel', index='code_name')
-            js: r.table('marvel').between('dark_knight', 'man_of_steel', {index:'code_name'})
-            rb: r.table('marvel').between('dark_knight', 'man_of_steel', index => 'code_name')
+            py: r.table('dc').between('dark_knight', 'man_of_steel', index='code_name')
+            js: r.table('dc').between('dark_knight', 'man_of_steel', {index:'code_name'})
+            rb: r.table('dc').between('dark_knight', 'man_of_steel', :index => 'code_name')
 
     js:
       examples:
