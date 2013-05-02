@@ -642,7 +642,8 @@ public:
                 } catch (const ql::datum_exc_t &e) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::exc_visitor_t(e, &rg_response->result),
+                    boost::apply_visitor(ql::terminal_exc_visitor_t(e,
+                                                                    &rg_response->result),
                                          rg.terminal->variant);
                 }
             }

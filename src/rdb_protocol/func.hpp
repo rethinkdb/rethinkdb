@@ -135,10 +135,6 @@ public:
 class count_wire_func_t {
 public:
     RDB_MAKE_ME_SERIALIZABLE_0()
-    protob_t<const Backtrace> get_bt() const {
-        r_sanity_check(false); // Server should never crash here.
-        unreachable();
-    }
 };
 
 // Grouped Map Reduce

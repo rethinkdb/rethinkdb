@@ -555,7 +555,7 @@ public:
             bad_init = true;
         } catch (const ql::datum_exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
-            boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+            boost::apply_visitor(ql::terminal_exc_visitor_t(e2, &response->result),
                                  terminal->variant);
             bad_init = true;
         }
@@ -603,7 +603,7 @@ public:
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
-                        boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                        boost::apply_visitor(ql::transform_exc_visitor_t(e2, &response->result),
                                              it->variant);
                         return false;
                     }
@@ -635,7 +635,7 @@ public:
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::exc_visitor_t(e2, &response->result),
+                    boost::apply_visitor(ql::terminal_exc_visitor_t(e2, &response->result),
                                          terminal->variant);
                     return false;
                 }

@@ -16,18 +16,57 @@ namespace ql {
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
-class exc_visitor_t : public boost::static_visitor<void> {
+class terminal_exc_visitor_t : public boost::static_visitor<void> {
 public:
-    exc_visitor_t(const datum_exc_t &_exc, rget_read_response_t::result_t *_res_out)
+    terminal_exc_visitor_t(const datum_exc_t &_exc,
+                           rget_read_response_t::result_t *_res_out)
         : exc(_exc), res_out(_res_out) { }
-    template<class T>
-    void operator()(const T &func) const {
+
+    void operator()(const gmr_wire_func_t &func) const {
         *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
     }
+
+    NORETURN void operator()(const count_wire_func_t &) const {
+        r_sanity_check(false);  // Server should never crash here.
+        unreachable();
+    }
+
+    void operator()(const reduce_wire_func_t &func) const {
+        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+    }
+
 private:
     const datum_exc_t exc;
     rget_read_response_t::result_t *res_out;
+
+    DISABLE_COPYING(terminal_exc_visitor_t);
 };
+
+class transform_exc_visitor_t : public boost::static_visitor<void> {
+public:
+    transform_exc_visitor_t(const datum_exc_t &_exc,
+                            rget_read_response_t::result_t *_res_out)
+        : exc(_exc), res_out(_res_out) { }
+
+    void operator()(const map_wire_func_t &func) const {
+        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+    }
+
+    void operator()(const filter_wire_func_t &func) const {
+        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+    }
+
+    void operator()(const concatmap_wire_func_t &func) const {
+        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+    }
+
+private:
+    const datum_exc_t exc;
+    rget_read_response_t::result_t *res_out;
+
+    DISABLE_COPYING(transform_exc_visitor_t);
+};
+
 } // namespace ql
 
 namespace query_language {
