@@ -89,7 +89,9 @@ class batched_rget_stream_t : public json_stream_t {
 public:
     /* Primary key rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                          signal_t *_interruptor, key_range_t _range,
+                          signal_t *_interruptor,
+                          const ql::datum_t *left_bound,
+                          const ql::datum_t *right_bound,
                           const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated);
 

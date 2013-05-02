@@ -241,14 +241,8 @@ class RqlQuery(object):
     def order_by(self, *obs):
         return OrderBy(self, *obs)
 
-    def between(self, left_bound=None, right_bound=None):
-        # This is odd and inconsistent with the rest of the API. Blame a
-        # poorly thought out spec.
-        if left_bound == None:
-            left_bound = ()
-        if right_bound == None:
-            right_bound = ()
-        return Between(self, left_bound=left_bound, right_bound=right_bound)
+    def between(self, left_bound=None, right_bound=None, index=()):
+        return Between(self, left_bound, right_bound, index=index)
 
     def distinct(self):
         return Distinct(self)
@@ -267,8 +261,8 @@ class RqlQuery(object):
     def outer_join(self, other, predicate):
         return OuterJoin(self, other, predicate)
 
-    def eq_join(self, left_attr, other):
-        return EqJoin(self, left_attr, other)
+    def eq_join(self, left_attr, other, index=()):
+        return EqJoin(self, left_attr, other, index=index)
 
     def zip(self):
         return Zip(self)
@@ -555,8 +549,14 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
-    def index_create(self, name, fundef):
-        return IndexCreate(self, name, func_wrap(fundef))
+    def get_all(self, key, index=()):
+        return GetAll(self, key, index=index)
+
+    def index_create(self, name, fundef=None):
+        if fundef:
+            return IndexCreate(self, name, func_wrap(fundef))
+        else:
+            return IndexCreate(self, name)
 
     def index_drop(self, name):
         return IndexDrop(self, name)
@@ -573,6 +573,10 @@ class Table(RqlQuery):
 class Get(RqlMethodQuery):
     tt = p.Term.GET
     st = 'get'
+
+class GetAll(RqlMethodQuery):
+    tt = p.Term.GET_ALL
+    st = 'get_all'
 
 class Reduce(RqlMethodQuery):
     tt = p.Term.REDUCE
