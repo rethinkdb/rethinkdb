@@ -127,7 +127,10 @@ commands:
       - description: |
           As a shortcut you can create a secondary index based on the value of an existing
           field by naming the index after that field and leaving off the index function.
-        code: r.table('dc').index_create('home_town')
+        code:
+          py: r.table('dc').index_create('home_town')
+          js: r.table('dc').indexCreate('home_town')
+          rb: r.table('dc').index_create('home_town')
 
   - tag: index_drop
     section: table_admin
@@ -140,7 +143,10 @@ commands:
     examples:
       - description: |
           Drop a secondary index named 'name'.
-        code: r.table('marvel').index_drop('name')
+        code:
+          py: r.table('marvel').index_drop('name')
+          js: r.table('marvel').indexDrop('name')
+          rb: r.table('marvel').index_drop('name')
 
   - tag: index_list
     section: table_admin
@@ -151,4 +157,7 @@ commands:
 
     examples:
       - description: List the available secondary indexes for this table.
-        code: r.table('marvel').index_list()
+        code:
+          py: r.table('marvel').index_list()
+          js: r.table('marvel').indexList()
+          rb: r.table('marvel').index_list()

@@ -106,7 +106,10 @@ commands:
             `get` will either return the document or `null` when no document with such
             a primary key value exists, `get_all` will return either a one or zero
             length stream.
-          code: r.table('dc').get_all('superman')
+          code:
+            py: r.table('dc').get_all('superman')
+            js: r.table('dc').getAll('superman')
+            rb: r.table('dc').get_all('superman')
 
   - tag: between
     section: select
@@ -184,7 +187,7 @@ commands:
             ).run(conn)
           rb: |
             r.table('marvel').filter { |hero| 
-              hero[:powers].filter { |power_rank| power_rank == 10 }.count() > 0
+              hero[:powers].filter { |power_rank| power_rank.eq(10) }.count() > 0
             }.run(conn)
 
     js:
