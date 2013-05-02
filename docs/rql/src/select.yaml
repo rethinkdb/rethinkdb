@@ -154,7 +154,7 @@ commands:
             ).run(conn)
           rb: |
             r.table('marvel').filter { |hero| 
-              hero[:powers].filter { |power_rank| power_rank == 10 }.count() > 0
+              hero[:powers].filter { |power_rank| power_rank.eq 10 }.count() > 0
             }.run(conn)
 
     js:
