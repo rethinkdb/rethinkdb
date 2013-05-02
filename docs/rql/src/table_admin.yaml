@@ -126,6 +126,7 @@ commands:
     section: table_admin
     description: Delete a previously created secondary index of this table.
 
+    body: indexName
     parent: table
     returns: json
 
