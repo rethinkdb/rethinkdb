@@ -35,7 +35,7 @@ public:
     protob_t(const protob_t<U> &other)
         : destructable_(other.destructable_), pointee_(other.pointee_) { }
 
-    protob_t(const protob_t &other) = default;
+    protob_t(const protob_t &) = default;
 
     template <class U>
     protob_t<U> make_child(U *child) const {
