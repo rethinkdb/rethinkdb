@@ -201,13 +201,10 @@ TEST(RdbInterrupt, InsertOp) {
     uint32_t eval_count;
 
     insert_proto->set_type(Term::INSERT);
-    // SAMRSI: Check lifetime of insert_proto.get()
     add_table_arg(insert_proto.get(), "db", "table");
 
     {
-        // SAMRSI: Check lifetime of insert_proto.get()
         Datum *object = add_object_arg(insert_proto.get());
-        // SAMRSI: Check lifetime of object in add_object_str.
         add_object_str(object, "id", "key");
         add_object_str(object, "value", "stuff");
     }
@@ -249,7 +246,6 @@ TEST(RdbInterrupt, GetOp) {
     initial_data.insert(target_object);
 
     get_proto->set_type(Term::GET);
-    // SAMRSI: Get lifetime of get_proto.get() in add_table_arg and add_string_arg.
     add_table_arg(get_proto.get(), "db", "table");
     add_string_arg(get_proto.get(), "key");
 
@@ -283,7 +279,6 @@ TEST(RdbInterrupt, DeleteOp) {
 
     delete_proto->set_type(Term::DELETE);
     {
-        // SAMRSI: Check object lifetiming of delete_proto and get_term in these.
         Term *get_term = add_term_arg(delete_proto.get(), Term::GET);
         add_table_arg(get_term, "db", "table");
         add_string_arg(get_term, "key");

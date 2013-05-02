@@ -143,7 +143,6 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             N1(DB, NDATUM("test"));
 
             term_walker_t(arg, t_bt); // duplicate toplevel backtrace
-            // SAMRSI: Check add_optarg lifetiming.
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 

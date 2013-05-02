@@ -103,8 +103,6 @@ void run(A a, B b, U arg) { run(datum_t(a, b), arg); }
 #define NDATUM(val) ql::pb::ndatum_impl::run(val, arg)
 #define NDATUM_BOOL(val) ql::pb::ndatum_impl::run(ql::datum_t::R_BOOL, val, arg)
 
-// SAMRSI: What the fuck is up with OPT1 and OPT2?  They modify the variable arg!
-
 // Like `N*` but for optional arguments.  See rewrites.hpp for examples if you
 // need to use them.
 #define OPT1(PB, STR1, ARG1) do {                       \

@@ -63,7 +63,6 @@ private:
 
         // One of these counted_t<const datum_t>'s is empty.
         counted_t<const datum_t> original_value;
-        // SAMRSI: Should this be counted_t?
         const map_wire_func_t *replacer;
         counted_t<const datum_t> error_value;
     };

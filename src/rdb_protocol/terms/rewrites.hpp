@@ -27,7 +27,6 @@ public:
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
         protob_t<Term> optarg_inheritor = rewrite(env, in, out, this);
-        // SAMRSI: What is this propagate function?
         propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
         for (int i = 0; i < in->optargs_size(); ++i) {
             *optarg_inheritor->add_optargs() = in->optargs(i);
