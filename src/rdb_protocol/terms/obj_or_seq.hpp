@@ -14,16 +14,12 @@ namespace ql {
 // from it just need to implement evaluation on objects (`obj_eval`).
 class obj_or_seq_op_term_t : public op_term_t {
 public:
-    // SAMRSI: Does op_term_t (and term_t) really need a protob_t<>?  It would be cool if it didn't.
     obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec), map_func(make_counted_term()) {
         int varnum = env->gensym();
-        // SAMRSI: Check the pb::set_func lifetiming here...
         Term *body = pb::set_func(map_func.get(), varnum);
         *body = *term;
-        // SAMRSI: Check the lifetiming here too.
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
-        // SAMRSI: Also check the lifetiming here.
         prop_bt(map_func.get());
     }
 private:
