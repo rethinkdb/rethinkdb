@@ -122,8 +122,8 @@ commands:
           js: |
             r.table('dc').indexCreate('power_rating', function(hero) {
               return hero('combat_power').add(hero('compassion_power').mul(2));
-            ).run(conn, callback)
-          py: |
+            }).run(conn, callback)
+          rb: |
             r.table('dc').index_create('power_rating') {|hero|
               hero['combat_power'] + (2 * hero['compassion_power'])
             }.run(conn)
@@ -163,7 +163,7 @@ commands:
       name: indexDrop
       examples:
         0:
-          code: r.table('dc).indexDrop('code_name').run(conn, callback)
+          code: r.table('dc').indexDrop('code_name').run(conn, callback)
 
   - tag: index_list
     section: table_admin
