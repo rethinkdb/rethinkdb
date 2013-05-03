@@ -149,7 +149,9 @@ protected:
         return counted_t<const T>(static_cast<const T *>(this));
     }
 
-    ~single_threaded_shared_mixin_t() { }
+    ~single_threaded_shared_mixin_t() {
+        rassert(refcount_ == 0);
+    }
 
 private:
     friend void counted_add_ref<T>(const single_threaded_shared_mixin_t<T> *p);
@@ -200,7 +202,9 @@ public:
     slow_shared_mixin_t() : refcount_(0) { }
 
 protected:
-    ~slow_shared_mixin_t() { }
+    ~slow_shared_mixin_t() {
+        rassert(refcount_ == 0);
+    }
 
 private:
     friend void counted_add_ref<T>(slow_shared_mixin_t<T> *p);

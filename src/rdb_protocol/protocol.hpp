@@ -44,10 +44,6 @@ class traversal_progress_combiner_t;
 
 namespace extproc { class pool_group_t; }
 
-namespace ql {
-class datum_t;
-};
-
 using query_language::scopes_t;
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;

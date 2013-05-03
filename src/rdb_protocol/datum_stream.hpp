@@ -61,9 +61,6 @@ private:
     virtual counted_t<const datum_t> next_impl() = 0;
 };
 
-counted_t<datum_stream_t> slice(env_t *env, counted_t<datum_stream_t> slicee, size_t left, size_t right);
-counted_t<datum_stream_t> zip(env_t *env, counted_t<datum_stream_t> zippee);
-
 class eager_datum_stream_t : public datum_stream_t {
 public:
     eager_datum_stream_t(env_t *env, const protob_t<const Backtrace> &bt_src)
