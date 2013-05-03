@@ -17,7 +17,7 @@ class term_t;
 class stream_cache2_t;
 template <class> class protob_t;
 
-class table_t : public single_threaded_shared_mixin_t<table_t>, public pb_rcheckable_t {
+class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
@@ -97,7 +97,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public single_threaded_shared_mixin_t<val_t>, public pb_rcheckable_t {
+class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible

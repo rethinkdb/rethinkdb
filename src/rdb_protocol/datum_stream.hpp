@@ -12,7 +12,7 @@ class json_stream_t;
 
 namespace ql {
 
-class datum_stream_t : public single_threaded_shared_mixin_t<datum_stream_t>,
+class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
     datum_stream_t(env_t *_env, const protob_t<const Backtrace> &bt_src)
