@@ -83,10 +83,4 @@ protob_t<Query> make_counted_query() {
     return protob_t<Query>(query, &query->query);
 }
 
-
-
-protob_t<Query> special_noncounting_query_protob(Query *query) {
-    return protob_t<Query>(NULL, query);
-}
-
 }  // namespace ql

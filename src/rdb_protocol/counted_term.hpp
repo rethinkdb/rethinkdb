@@ -88,7 +88,6 @@ private:
 
     friend protob_t<Term> make_counted_term_copy(const Term &copyee);
     friend protob_t<Query> make_counted_query();
-    friend protob_t<Query> special_noncounting_query_protob(Query *query);
 
     // Used by make_counted_term_copy.
     protob_t(protob_pointee_t *term, T *pointee)
@@ -107,10 +106,6 @@ protob_t<Term> make_counted_term();
 // Makes a protob_t<Query> with a default-constructed Query, which is
 // reference-counted (with the base object being a Query!).
 protob_t<Query> make_counted_query();
-
-// SAMRSI: Remove this.
-// Makes a protob_t<Query> that doesn't do any reference counting.
-protob_t<Query> special_noncounting_query_protob(Query *query);
 
 }  // namespace ql
 
