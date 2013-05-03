@@ -42,7 +42,8 @@ public:
             data.swap(buf->data);
         }
 
-        rassert(data.has() || token.has(), "creating buf snapshot without data or block token");
+        rassert(data.has() || token.has(),
+                "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 

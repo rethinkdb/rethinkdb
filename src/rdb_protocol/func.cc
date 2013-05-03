@@ -11,14 +11,14 @@
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
-    : pb_rcheckable_t(parent->backtrace()), body(0), source(parent->get_src()),
+    : pb_rcheckable_t(parent->backtrace()), source(parent->get_src()),
       js_parent(parent), js_env(env), js_id(id) {
     env->dump_scope(&scope);
 }
 
 func_t::func_t(env_t *env, protob_t<const Term> _source)
-    : pb_rcheckable_t(_source), body(0), source(_source),
-      js_parent(0), js_env(NULL), js_id(js::INVALID_ID) {
+    : pb_rcheckable_t(_source), source(_source),
+      js_env(NULL), js_id(js::INVALID_ID) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
@@ -118,7 +118,8 @@ counted_t<val_t> func_t::call(counted_t<const datum_t> arg) {
     return call(args);
 }
 
-counted_t<val_t> func_t::call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) {
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
+                              counted_t<const datum_t> arg2) {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg1);
     args.push_back(arg2);
@@ -146,7 +147,8 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) cons
     unreachable();
 }
 
-counted_t<val_t> js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+counted_t<val_t>
+js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
     return parent->new_val(make_counted<const datum_t>(json_val, env));
 }
 

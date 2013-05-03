@@ -51,7 +51,6 @@ public:
 
     block_id_t get_block_id() const;
     const void *get_data_read() const;
-    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_write();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);

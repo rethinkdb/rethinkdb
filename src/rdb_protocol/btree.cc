@@ -188,7 +188,8 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
         }
         guarantee(old_val.has());
 
-        counted_t<const ql::datum_t> new_val = f->compile(ql_env)->call(old_val)->as_datum();
+        counted_t<const ql::datum_t> new_val
+            = f->compile(ql_env)->call(old_val)->as_datum();
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
@@ -227,7 +228,8 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
             } else {
                 if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
                     if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged", make_counted<ql::datum_t>(1.0));
+                        conflict = resp->add("unchanged",
+                                             make_counted<ql::datum_t>(1.0));
                     } else {
                         conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
                         r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
@@ -603,8 +605,8 @@ public:
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
-                        boost::apply_visitor(ql::transform_exc_visitor_t(e2, &response->result),
-                                             it->variant);
+                        const ql::transform_exc_visitor_t visitor(e2, &response->result);
+                        boost::apply_visitor(visitor, it->variant);
                         return false;
                     }
                 }
@@ -623,9 +625,8 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                json_list_t::iterator jt;
                 try {
-                    for (jt = data.begin(); jt != data.end(); ++jt) {
+                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         boost::apply_visitor(query_language::terminal_visitor_t(
                                                  *jt, ql_env, terminal->scopes,
                                                  terminal->backtrace, &response->result),
@@ -635,7 +636,8 @@ public:
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::terminal_exc_visitor_t(e2, &response->result),
+                    boost::apply_visitor(ql::terminal_exc_visitor_t(e2,
+                                                                    &response->result),
                                          terminal->variant);
                     return false;
                 }
@@ -912,7 +914,8 @@ void rdb_update_single_sindex(
             counted_t<const ql::datum_t> added =
                 make_counted<ql::datum_t>(modification->info.added, &env);
 
-            counted_t<const ql::datum_t> index = mapping.compile(&env)->call(added)->as_datum();
+            counted_t<const ql::datum_t> index
+                = mapping.compile(&env)->call(added)->as_datum();
 
             store_key_t sindex_key(index->print_secondary(modification->primary_key));
 

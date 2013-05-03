@@ -157,9 +157,9 @@ private:
             name_string_t name = get_name(v, this);
             {
                 rethreading_metadata_accessor_t meta(this);
-                dc_id = meta_get_uuid(
-                                      &meta.dc_searcher, name,
-                                      strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
+                dc_id = meta_get_uuid(&meta.dc_searcher, name,
+                                      strprintf("Datacenter `%s` does not exist.",
+                                                name.str().c_str()),
                                       this);
             }
         }

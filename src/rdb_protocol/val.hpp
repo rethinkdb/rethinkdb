@@ -17,7 +17,7 @@ class term_t;
 class stream_cache2_t;
 template <class> class protob_t;
 
-class table_t : public single_threaded_shared_mixin_t<table_t>, public pb_rcheckable_t {
+class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
     table_t(env_t *_env, uuid_u db_id, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
@@ -34,8 +34,12 @@ public:
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<func_t> f,
+                                     bool nondet_ok);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<const datum_t> d,
+                                     bool upsert);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -70,9 +74,14 @@ private:
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<datum_func_pair_t> &replacements);
 
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        const map_wire_func_t &mwf);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<func_t> f,
+                                        bool nondet_ok);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<const datum_t> d,
+                                        bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -88,7 +97,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public single_threaded_shared_mixin_t<val_t>, public pb_rcheckable_t {
+class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -178,8 +187,12 @@ private:
                    counted_t<const datum_t>,
                    counted_t<func_t> > u;
 
-    counted_t<datum_stream_t> &sequence() { return boost::get<counted_t<datum_stream_t> >(u); }
-    counted_t<const datum_t> &datum() { return boost::get<counted_t<const datum_t> >(u); }
+    counted_t<datum_stream_t> &sequence() {
+        return boost::get<counted_t<datum_stream_t> >(u);
+    }
+    counted_t<const datum_t> &datum() {
+        return boost::get<counted_t<const datum_t> >(u);
+    }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 
     uuid_u *db_ptr() {

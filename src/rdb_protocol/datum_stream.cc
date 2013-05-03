@@ -58,7 +58,8 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
     return make_counted<datum_t>(static_cast<double>(i));
 }
 
-counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {
+counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
+                                                      counted_t<func_t> f) {
     counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
     rcheck(base.has(), "Cannot reduce over an empty stream with no base.");
 
@@ -68,14 +69,17 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
     return base;
 }
 
-counted_t<const datum_t> eager_datum_stream_t::gmr(
-    counted_t<func_t> group, counted_t<func_t> map, counted_t<const datum_t> base, counted_t<func_t> reduce) {
+counted_t<const datum_t> eager_datum_stream_t::gmr(counted_t<func_t> group,
+                                                   counted_t<func_t> map,
+                                                   counted_t<const datum_t> base,
+                                                   counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
     while (counted_t<const datum_t> el = next()) {
         counted_t<const datum_t> el_group = group->call(el)->as_datum();
         counted_t<const datum_t> el_map = map->call(el)->as_datum();
         if (!wd_map.has(el_group)) {
-            wd_map.set(el_group, base.has() ? reduce->call(base, el_map)->as_datum() : el_map);
+            wd_map.set(el_group,
+                       base.has() ? reduce->call(base, el_map)->as_datum() : el_map);
         } else {
             wd_map.set(el_group, reduce->call(wd_map.get(el_group), el_map)->as_datum());
         }
@@ -174,9 +178,10 @@ counted_t<const datum_t> lazy_datum_stream_t::count() {
     return wire_datum->compile(env);
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val, counted_t<func_t> f) {
-    rdb_protocol_t::rget_read_response_t::result_t res =
-        run_terminal(reduce_wire_func_t(env, f));
+counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
+                                                     counted_t<func_t> f) {
+    rdb_protocol_t::rget_read_response_t::result_t res
+        = run_terminal(reduce_wire_func_t(env, f));
 
     if (wire_datum_t *wire_datum = boost::get<wire_datum_t>(&res)) {
         counted_t<const datum_t> datum = wire_datum->compile(env);
@@ -195,8 +200,10 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val, 
     }
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::gmr(
-    counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> base, counted_t<func_t> r) {
+counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
+                                                  counted_t<func_t> m,
+                                                  counted_t<const datum_t> base,
+                                                  counted_t<func_t> r) {
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
             rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r)),
@@ -227,8 +234,8 @@ counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
 
 // ARRAY_DATUM_STREAM_T
 array_datum_stream_t::array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr,
-                                           const protob_t<const Backtrace> &backtrace_source)
-    : eager_datum_stream_t(env, backtrace_source), index(0), arr(_arr) { }
+                                           const protob_t<const Backtrace> &bt_source)
+    : eager_datum_stream_t(env, bt_source), index(0), arr(_arr) { }
 
 counted_t<const datum_t> array_datum_stream_t::next_impl() {
     counted_t<const datum_t> datum = arr->get(index, NOTHROW);

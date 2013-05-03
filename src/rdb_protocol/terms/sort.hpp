@@ -83,7 +83,8 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             Term::TermType type = src_term->args(i).type();
             if (type != Term::ASC && type != Term::DESC) {
-                arr->add(new_val(make_counted<const datum_t>("+" + arg(i)->as_str()))->as_datum());
+                auto datum = make_counted<const datum_t>("+" + arg(i)->as_str());
+                arr->add(new_val(datum)->as_datum());
             } else {
                 arr->add(arg(i)->as_datum());
             }
@@ -95,7 +96,8 @@ private:
         counted_t<datum_stream_t> seq;
         counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
+                = v0->as_selection();
             tbl = ts.first;
             seq = ts.second;
         } else {
@@ -105,6 +107,7 @@ private:
             = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
         return tbl.has() ? new_val(s, tbl) : new_val(s);
     }
+
     virtual const char *name() const { return "orderby"; }
 
 private:

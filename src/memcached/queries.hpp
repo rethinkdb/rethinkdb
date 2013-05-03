@@ -69,7 +69,9 @@ struct key_with_data_buffer_t {
     counted_t<data_buffer_t> value_provider;
 
     key_with_data_buffer_t() { }
-    key_with_data_buffer_t(const store_key_t& _key, mcflags_t _mcflags, const counted_t<data_buffer_t>& _value_provider)
+    key_with_data_buffer_t(const store_key_t &_key,
+                           mcflags_t _mcflags,
+                           const counted_t<data_buffer_t> &_value_provider)
         : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 };
 
@@ -260,8 +262,10 @@ struct append_prepend_mutation_t {
     counted_t<data_buffer_t> data;
 
     append_prepend_mutation_t() { }
-    append_prepend_mutation_t(append_prepend_kind_t _kind, const store_key_t &_key, const counted_t<data_buffer_t> &_data) :
-        kind(_kind), key(_key), data(_data) { }
+    append_prepend_mutation_t(append_prepend_kind_t _kind,
+                              const store_key_t &_key,
+                              const counted_t<data_buffer_t> &_data)
+        : kind(_kind), key(_key), data(_data) { }
 };
 
 void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation_t& mut);

@@ -433,7 +433,8 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
         }
         my_cb_t(iocallback_t *_cb, const counted_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
         iocallback_t *cb;
-        counted_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
+        // tok is needed to ensure the block remains alive for appropriate period of time.
+        counted_t<ls_block_token_pointee_t> tok;
         ticks_t pm_time;
         log_serializer_stats_t *stats;
     };
@@ -459,11 +460,13 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-counted_t<ls_block_token_pointee_t> get_ls_block_token(const counted_t<ls_block_token_pointee_t>& tok) {
+counted_t<ls_block_token_pointee_t>
+get_ls_block_token(const counted_t<ls_block_token_pointee_t> &tok) {
     return tok;
 }
 #else
-counted_t<ls_block_token_pointee_t> get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
+counted_t<ls_block_token_pointee_t>
+get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
     if (tok) {
         return tok->inner_token;
     } else {
@@ -496,7 +499,8 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                counted_t<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
+                counted_t<ls_block_token_pointee_t> token
+                    = get_ls_block_token(op.token.get());
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
@@ -609,9 +613,11 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     }
 }
 
-counted_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token(int64_t offset) {
+counted_t<ls_block_token_pointee_t>
+log_serializer_t::generate_block_token(int64_t offset) {
     assert_thread();
-    return counted_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset));
+    return ret;
 }
 
 counted_t<ls_block_token_pointee_t>
@@ -758,7 +764,9 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return counted_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
+        counted_t<ls_block_token_pointee_t> ret(
+            new ls_block_token_pointee_t(this, offset.get_value()));
+        return ret;
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }

@@ -244,7 +244,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     return ret;
 }
 
-MUST_USE bool table_t::sindex_create(const std::string &id, counted_t<func_t> index_func) {
+MUST_USE bool table_t::sindex_create(const std::string &id,
+                                     counted_t<func_t> index_func) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
@@ -295,7 +296,8 @@ counted_t<const datum_t> table_t::sindex_list() {
     return counted_t<const datum_t>(array.release());
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
+                                             const map_wire_func_t &mwf) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -318,7 +320,9 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, cons
     return make_counted<datum_t>(d, env);
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
+                                             counted_t<func_t> f,
+                                             bool nondet_ok) {
     if (f->is_deterministic()) {
         return do_replace(orig, map_wire_func_t(env, f));
     } else {
@@ -327,7 +331,9 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, coun
     }
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert) {
+counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
+                                             counted_t<const datum_t> d,
+                                             bool upsert) {
     Term t;
     int x = env->gensym();
     Term *arg = pb::set_func(&t, x);
@@ -380,7 +386,10 @@ counted_t<datum_stream_t> table_t::get_sindex_rows(counted_t<const datum_t> left
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream() {
-    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(), backtrace());
+    return make_counted<lazy_datum_stream_t>(env,
+                                             use_outdated,
+                                             access.get(),
+                                             backtrace());
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

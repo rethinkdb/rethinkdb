@@ -56,7 +56,8 @@ private:
         counted_t<val_t> v1 = arg(1);
         counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
+                = v0->as_selection();
             return new_val(ts.second->filter(f), ts.first);
         } else {
             return new_val(v0->as_seq()->filter(f));
@@ -72,7 +73,8 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()), arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
+                                                arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };

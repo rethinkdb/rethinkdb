@@ -130,19 +130,6 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
     init_json(json->get(), env);
 }
 
-datum_t &datum_t::operator=(datum_t &&other) {
-    type = other.type;
-    other.type = R_NULL;
-
-    r_bool = other.r_bool;
-    r_num = other.r_num;
-    r_str = std::move(other.r_str);
-    r_array = std::move(other.r_array);
-    r_object = std::move(other.r_object);
-
-    return *this;
-}
-
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
     switch (type) {
@@ -349,7 +336,8 @@ counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) con
     return counted_t<const datum_t>();
 }
 
-counted_t<const datum_t> datum_t::get(const std::string &key, throw_bool_t throw_bool) const {
+counted_t<const datum_t> datum_t::get(const std::string &key,
+                                      throw_bool_t throw_bool) const {
     std::map<std::string, counted_t<const datum_t> >::const_iterator it
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
@@ -394,8 +382,9 @@ boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
-counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env,
-                                                   const protob_t<const Backtrace> &backtrace) const {
+counted_t<datum_stream_t>
+datum_t::as_datum_stream(env_t *env,
+                         const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
     case R_NULL: //fallthru
     case R_BOOL: //fallthru
@@ -403,7 +392,9 @@ counted_t<datum_stream_t> datum_t::as_datum_stream(env_t *env,
     case R_STR:  //fallthru
     case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
     case R_ARRAY:
-        return make_counted<array_datum_stream_t>(env, this->counted_from_this(), backtrace);
+        return make_counted<array_datum_stream_t>(env,
+                                                  this->counted_from_this(),
+                                                  backtrace);
     default: unreachable();
     }
     unreachable();
@@ -442,7 +433,9 @@ counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d->add(it->first, f(env, it->first, left, it->second, this), CLOBBER);
+            bool b = d->add(it->first,
+                            f(env, it->first, left, it->second, this),
+                            CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d->add(it->first, it->second);
@@ -482,14 +475,19 @@ int datum_t::cmp(const datum_t &rhs) const {
     } unreachable();
     case R_OBJECT: {
         const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-        const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs.as_object();
-        std::map<std::string, counted_t<const datum_t> >::const_iterator it = obj.begin();
-        std::map<std::string, counted_t<const datum_t> >::const_iterator it2 = rhs_obj.begin();
+        const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+            = rhs.as_object();
+        auto it = obj.begin();
+        auto it2 = rhs_obj.begin();
         while (it != obj.end() && it2 != rhs_obj.end()) {
             int key_cmpval = derived_cmp(it->first, it2->first);
-            if (key_cmpval) return key_cmpval;
+            if (key_cmpval) {
+                return key_cmpval;
+            }
             int val_cmpval = it->second->cmp(*it2->second);
-            if (val_cmpval) return val_cmpval;
+            if (val_cmpval) {
+                return val_cmpval;
+            }
             ++it;
             ++it2;
         }

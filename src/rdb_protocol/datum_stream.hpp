@@ -12,7 +12,8 @@ class json_stream_t;
 
 namespace ql {
 
-class datum_stream_t : public single_threaded_shared_mixin_t<datum_stream_t>, public pb_rcheckable_t {
+class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
+                       public pb_rcheckable_t {
 public:
     datum_stream_t(env_t *_env, const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src), env(_env) {
@@ -27,8 +28,12 @@ public:
 
     // stream -> atom
     virtual counted_t<const datum_t> count() = 0;
-    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f) = 0;
-    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r) = 0;
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,
+                                            counted_t<func_t> f) = 0;
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g,
+                                         counted_t<func_t> m,
+                                         counted_t<const datum_t> d,
+                                         counted_t<func_t> r) = 0;
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -56,9 +61,6 @@ private:
     virtual counted_t<const datum_t> next_impl() = 0;
 };
 
-counted_t<datum_stream_t> slice(env_t *env, counted_t<datum_stream_t> slicee, size_t left, size_t right);
-counted_t<datum_stream_t> zip(env_t *env, counted_t<datum_stream_t> zippee);
-
 class eager_datum_stream_t : public datum_stream_t {
 public:
     eager_datum_stream_t(env_t *env, const protob_t<const Backtrace> &bt_src)
@@ -69,8 +71,12 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
-    virtual counted_t<const datum_t> gmr(counted_t<func_t> g, counted_t<func_t> m, counted_t<const datum_t> d, counted_t<func_t> r);
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,
+                                            counted_t<func_t> f);
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g,
+                                         counted_t<func_t> m,
+                                         counted_t<const datum_t> d,
+                                         counted_t<func_t> r);
 
     virtual bool is_array() { return true; }
     virtual counted_t<const datum_t> as_array();
@@ -82,7 +88,9 @@ public:
         : eager_datum_stream_t(env, _source->backtrace()), source(_source) { }
     virtual bool is_array() { return source->is_array(); }
     virtual counted_t<const datum_t> as_array() {
-        return is_array() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
+        return is_array() ?
+            eager_datum_stream_t::as_array() :
+            counted_t<const datum_t>();
     }
 
 protected:
@@ -152,13 +160,16 @@ public:
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
-    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val, counted_t<func_t> f);
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,
+                                            counted_t<func_t> f);
     virtual counted_t<const datum_t> gmr(counted_t<func_t> g,
                                          counted_t<func_t> m,
                                          counted_t<const datum_t> base,
                                          counted_t<func_t> r);
     virtual bool is_array() { return false; }
-    virtual counted_t<const datum_t> as_array() { return counted_t<const datum_t>(); } // cannot be converted implicitly
+    virtual counted_t<const datum_t> as_array() {
+        return counted_t<const datum_t>();  // Cannot be converted implicitly.
+    }
 private:
     counted_t<const datum_t> next_impl();
 

@@ -38,7 +38,9 @@ private:
 
         try {
             js::js_result_t result = js->eval(source, &config);
-            return boost::apply_visitor(js_result_visitor_t(env, this->counted_from_this()), result);
+            return boost::apply_visitor(js_result_visitor_t(env,
+                                                            this->counted_from_this()),
+                                        result);
         } catch (const interrupted_exc_t &e) {
             rfail("JavaScript query \"%s\" timed out after %.2G seconds", source.c_str(), timeout_s);
         }
