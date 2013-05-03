@@ -72,7 +72,7 @@ commands:
       The result is a list of strings.
 
     parent: db
-    returns: sequence
+    returns: array
 
     examples:
       - description: List all tables of the 'test' database.

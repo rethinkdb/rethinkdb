@@ -62,7 +62,7 @@ commands:
       The result is a list of strings.
 
     parent: r
-    returns: sequence
+    returns: array
 
     examples:
       - description: List all databases.
