@@ -17,18 +17,15 @@ class Term;
 
 namespace ql {
 
-// protob_term_t is a struct with a refcount and a Term, defined in
-// counted_term.cc.
-struct protob_term_t;
+// A struct with a refcount and either a Term or a Query.
+struct protob_pointee_t;
 
 // protob_destructable_t is a helper type that makes protob_t simpler.
 class protob_destructable_t {
 protected:
     template <class T> friend class protob_t;
     protob_destructable_t();
-    // This is a dumb initializer -- destructee is already expected to have a
-    // reference count of 1.
-    protob_destructable_t(protob_term_t *destructee);
+    protob_destructable_t(protob_pointee_t *destructee);
     protob_destructable_t(const protob_destructable_t &copyee);
     ~protob_destructable_t();
 
@@ -36,10 +33,7 @@ protected:
 
     void swap(protob_destructable_t &other);
 
-    // This can be NULL.  If it is, that means we don't have a base Term object.
-    // This is used when there's a base Query object (for the outermost protocol
-    // buffer server handle callback).
-    protob_term_t *destructee_;
+    protob_pointee_t *destructee_;
 };
 
 template <class T>
@@ -91,10 +85,11 @@ private:
         : destructable_(destructable), pointee_(pointee) { }
 
     friend protob_t<Term> make_counted_term_copy(const Term &copyee);
+    friend protob_t<Query> make_counted_query();
     friend protob_t<Query> special_noncounting_query_protob(Query *query);
 
     // Used by make_counted_term_copy.
-    protob_t(protob_term_t *term, T *pointee)
+    protob_t(protob_pointee_t *term, T *pointee)
         : destructable_(term), pointee_(pointee) { }
 
     protob_destructable_t destructable_;
