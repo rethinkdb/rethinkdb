@@ -58,8 +58,7 @@ public:
 }   /* anonymous namespace */
 
 void run_directory_echo_test() {
-    int port = randport();
-    directory_echo_cluster_t<std::string> cluster1("hello", port), cluster2("world", port+1);
+    directory_echo_cluster_t<std::string> cluster1("hello", ANY_PORT), cluster2("world", ANY_PORT);
     cluster1.connectivity_cluster_run.join(cluster2.connectivity_cluster.get_peer_address(cluster2.connectivity_cluster.get_me()));
 
     directory_echo_version_t version;

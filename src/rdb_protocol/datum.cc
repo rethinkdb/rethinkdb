@@ -651,4 +651,17 @@ const datum_t *wire_datum_map_t::to_arr(env_t *env) const {
     return arr;
 }
 
+void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    r_sanity_check(state == SERIALIZABLE);
+    msg << map_pb;
+}
+
+archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res = deserialize(s, &map_pb);
+    if (res) return res;
+    state = SERIALIZABLE;
+    return ARCHIVE_SUCCESS;
+}
+
+
 } //namespace ql

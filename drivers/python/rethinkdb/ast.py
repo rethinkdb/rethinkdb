@@ -241,14 +241,8 @@ class RqlQuery(object):
     def order_by(self, *obs):
         return OrderBy(self, *obs)
 
-    def between(self, left_bound=None, right_bound=None):
-        # This is odd and inconsistent with the rest of the API. Blame a
-        # poorly thought out spec.
-        if left_bound == None:
-            left_bound = ()
-        if right_bound == None:
-            right_bound = ()
-        return Between(self, left_bound=left_bound, right_bound=right_bound)
+    def between(self, left_bound=None, right_bound=None, index=()):
+        return Between(self, left_bound, right_bound, index=index)
 
     def distinct(self):
         return Distinct(self)
@@ -267,8 +261,8 @@ class RqlQuery(object):
     def outer_join(self, other, predicate):
         return OuterJoin(self, other, predicate)
 
-    def eq_join(self, left_attr, other):
-        return EqJoin(self, left_attr, other)
+    def eq_join(self, left_attr, other, index=()):
+        return EqJoin(self, left_attr, other, index=index)
 
     def zip(self):
         return Zip(self)
@@ -298,7 +292,7 @@ class RqlBiOperQuery(RqlQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([repr(name)+'='+optargs[name] for name in optargs.keys()])
+        args.extend([name+'='+optargs[name] for name in optargs.keys()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -353,7 +347,15 @@ class Datum(RqlQuery):
         elif datum.type == p.Datum.R_BOOL:
             return datum.r_bool
         elif datum.type == p.Datum.R_NUM:
-            return datum.r_num
+            # Convert to an integer if we think maybe the user might think of this
+            # number as an integer. I have been assured that this is a "temporary"
+            # behavior change until RQL supports native integers.
+            num = datum.r_num
+            if num % 1 == 0:
+                # Then we assume that in the user's data model this floating point
+                # number is meant be an integer and "helpfully" convert types for them.
+                num = int(num)
+            return num
         elif datum.type == p.Datum.R_STR:
             return datum.r_str
         elif datum.type == p.Datum.R_ARRAY:
@@ -387,7 +389,7 @@ class MakeObj(RqlQuery):
         self.optargs = {}
         for k in obj_dict.keys():
             if not isinstance(k, types.StringTypes):
-                raise RqlDriverError("RQL object keys must be strings.");
+                raise RqlDriverError("Object keys must be strings.");
             self.optargs[k] = expr(obj_dict[k])
 
     def compose(self, args, optargs):
@@ -516,8 +518,8 @@ class DB(RqlTopLevelQuery):
     def table_list(self):
         return TableList(self)
 
-    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=()):
-        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size)
+    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), hard_durability=()):
+        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, hard_durability=hard_durability)
 
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
@@ -547,8 +549,14 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
-    def index_create(self, name, fundef):
-        return IndexCreate(self, name, func_wrap(fundef))
+    def get_all(self, key, index=()):
+        return GetAll(self, key, index=index)
+
+    def index_create(self, name, fundef=None):
+        if fundef:
+            return IndexCreate(self, name, func_wrap(fundef))
+        else:
+            return IndexCreate(self, name)
 
     def index_drop(self, name):
         return IndexDrop(self, name)
@@ -565,6 +573,10 @@ class Table(RqlQuery):
 class Get(RqlMethodQuery):
     tt = p.Term.GET
     st = 'get'
+
+class GetAll(RqlMethodQuery):
+    tt = p.Term.GET_ALL
+    st = 'get_all'
 
 class Reduce(RqlMethodQuery):
     tt = p.Term.REDUCE

@@ -146,7 +146,7 @@ private:
 };
 
 static const char *const table_create_optargs[] =
-    {"datacenter", "primary_key", "cache_size"};
+    {"datacenter", "primary_key", "cache_size", "hard_durability"};
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, const Term *term) :
@@ -163,6 +163,11 @@ private:
                     strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
                     this);
             }
+        }
+
+        bool hard_durability = true;
+        if (val_t *v = optarg("hard_durability", NULL)) {
+            hard_durability = v->as_datum()->as_bool();
         }
 
         std::string primary_key = "id";
@@ -190,6 +195,15 @@ private:
             new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, tbl_name,
                                           primary_key, port_defaults::reql_port,
                                           cache_size);
+
+        // Set Durability
+        std::map<datacenter_id_t, ack_expectation_t> *ack_map =
+            &ns.ack_expectations.get_mutable();
+        for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
+            it->second = ack_expectation_t(it->second.expectation(), hard_durability);
+        }
+        ns.ack_expectations.upgrade_version(env->this_machine);
+
         meta.ns_change.get()->namespaces.insert(
             std::make_pair(namespace_id, make_deletable(ns)));
         try {
@@ -380,21 +394,41 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2, 3)) { }
+    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
         const datum_t *pkey = arg(1)->as_datum();
-        if (num_args() == 3) {
-            datum_stream_t *sequence = table->get_sindex_rows(pkey, 
-                    arg(2)->as_datum()->as_str(), this);
-            return new_val(sequence, table);
-        } else {
-            const datum_t *row = table->get_row(pkey);
-            return new_val(row, table);
-        }
+        const datum_t *row = table->get_row(pkey);
+        return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }
+};
+
+static const char *const get_all_optargs[] = {"index"};
+class get_all_term_t : public op_term_t {
+public:
+    get_all_term_t(env_t *env, const Term *term)
+        : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
+private:
+    virtual val_t *eval_impl() {
+        table_t *table = arg(0)->as_table();
+        const datum_t *pkey = arg(1)->as_datum();
+        if (val_t *v = optarg("index", NULL)) {
+            if (v->as_str() != table->get_pkey()) {
+                datum_stream_t *seq =
+                    table->get_sindex_rows(pkey, pkey, v->as_str(), this);
+                return new_val(seq, table);
+            }
+        }
+        const datum_t *row = table->get_row(pkey);
+        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        if (row->get_type() != datum_t::R_NULL) {
+            arr->add(row);
+        }
+        return new_val(new array_datum_stream_t(env, arr, this), table);
+    }
+    virtual const char *name() const { return "get_all"; }
 };
 
 } // namespace ql

@@ -147,13 +147,10 @@ std::vector<const datum_t *> table_t::batch_replace(
             if (upsert) {
                 replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
             } else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
                 N3(BRANCH,
                    N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
                    NDATUM(replacement_values[i]),
                    N1(ERROR, NDATUM("Duplicate primary key.")));
-#pragma GCC diagnostic pop
             }
 
             propagate(&t);
@@ -370,12 +367,20 @@ const datum_t *table_t::get_row(const datum_t *pval) {
     return env->add_ptr(new datum_t(p_res->data, env));
 }
 
-datum_stream_t *table_t::get_sindex_rows(const datum_t *pval,
-                                         const std::string &sindex_id,
-                                         const pb_rcheckable_t *bt) {
+datum_stream_t *table_t::get_rows(const datum_t *left_bound,
+                                  const datum_t *right_bound,
+                                  const pb_rcheckable_t *bt) {
     return env->add_ptr(
             new lazy_datum_stream_t(env, use_outdated, access.get(),
-                                    pval, sindex_id, bt));
+                                    left_bound, right_bound, bt));
+}
+
+datum_stream_t *table_t::get_sindex_rows(const datum_t *left_bound,
+                                         const datum_t *right_bound,
+                                         const std::string &sindex_id,
+                                         const pb_rcheckable_t *bt) {
+    return env->add_ptr(new lazy_datum_stream_t(env, use_outdated, access.get(),
+                                                left_bound, right_bound, sindex_id, bt));
 }
 
 datum_stream_t *table_t::as_datum_stream() {

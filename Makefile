@@ -44,8 +44,14 @@ MAKE_CMD_LINE += --no-builtin-rules
 MAKE_CMD_LINE += --no-builtin-variables
 MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
 
+# Makefiles can override the goals by setting OVERRIDE_GOALS=<goal>=<replacement>
+OVERRIDE_GOALS ?=
+NEW_MAKECMDGOALS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),default-goal)
+comma := ,
+$(foreach _, $(OVERRIDE_GOALS), $(eval NEW_MAKECMDGOALS := $$(patsubst $(subst =,$(comma),$_), $$(NEW_MAKECMDGOALS))))
+
 # Call fixpath on all goals that aren't phony
-MAKE_GOALS = $(foreach goal,$(filter-out $(PHONY_LIST),$(MAKECMDGOALS)),$(call fixpath,$(goal))) $(filter $(PHONY_LIST),$(MAKECMDGOALS))
+MAKE_GOALS = $(foreach goal,$(filter-out $(PHONY_LIST),$(NEW_MAKECMDGOALS)),$(call fixpath,$(goal))) $(filter $(PHONY_LIST),$(NEW_MAKECMDGOALS))
 
 # Delegate the build to mk/main.mk
 .PHONY: make
@@ -78,9 +84,14 @@ include $(TOP)/mk/pipe-stderr.mk
 # The cached list of phony targets
 -include $(TOP)/mk/gen/phony-list.mk
 
+.PHONY: debug-count
+debug-count:
+	@$(eval MAKE_GOALS := $(filter-out $@,$(MAKE_GOALS)))$(COUNTDOWN_COMMAND)
+
+COUNTDOWN_COMMAND = MAKEFLAGS='$(MAKEFLAGS)' $(MAKE_CMD_LINE) $(MAKE_GOALS) --dry-run JUST_SCAN_MAKEFILES=1 -j1
 ifeq (1,$(SHOW_COUNTDOWN))
   # See mk/lib.mk for JUST_SCAN_MAKEFILES
-  COUNTDOWN_TOTAL = $(firstword $(shell MAKEFLAGS='$(MAKEFLAGS)' $(MAKE_CMD_LINE) $(MAKE_GOALS) --dry-run JUST_SCAN_MAKEFILES=1 -j1 2>&1 | grep "[!!!]" | wc -l 2>/dev/null))
+  COUNTDOWN_TOTAL = $(firstword $(shell $(COUNTDOWN_COMMAND) 2>&1 | grep "[!!!]" | wc -l 2>/dev/null))
 else
   COUNTDOWN_TOTAL :=
 endif

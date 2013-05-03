@@ -15,7 +15,7 @@ rethinkdb.expr = ar (val) ->
     else
         new DatumTerm val
 
-rethinkdb.js = ar (jssrc) -> new JavaScript {}, jssrc
+rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
 
 rethinkdb.error = ar (errstr) -> new UserError {}, errstr
 
@@ -62,3 +62,4 @@ rethinkdb.mul = (args...) -> new Mul {}, args...
 rethinkdb.div = (args...) -> new Div {}, args...
 rethinkdb.mod = (a, b) -> new Mod {}, a, b
 
+rethinkdb.typeOf = ar (val) -> new TypeOf {}, val

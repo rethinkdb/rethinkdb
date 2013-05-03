@@ -134,56 +134,81 @@ public:
         typename protocol_t::region_t region;
     };
 
+    class shard_region_array_t : public array_t<typename protocol_t::region_t> {
+    public:
+        shard_region_array_t(const std::vector<shard_t> *s) : shards_(s) { }
+        virtual size_t array_size() const {
+            return shards_->size();
+        }
+        virtual const typename protocol_t::region_t &array_nth(size_t n) const {
+            return (*shards_)[n].region;
+        }
+
+    private:
+        const std::vector<shard_t> *shards_;
+    };
+
     explicit dummy_sharder_t(std::vector<shard_t> _shards,
                              typename protocol_t::context_t *_ctx)
         : shards(_shards), ctx(_ctx) { }
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) {
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
+
         std::vector<typename protocol_t::read_response_t> responses;
-        for (size_t i = 0; i < shards.size(); ++i) {
-            typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
-            if (!region_is_empty(ixn)) {
-                typename protocol_t::read_t subread = read.shard(ixn);
-                typename protocol_t::read_response_t subresponse;
-                shards[i].timestamper->read(subread, &subresponse, tok, interruptor);
-                responses.push_back(subresponse);
-                if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::read_t subread;
+            if (read.shard(it->region, &subread)) {
+                responses.push_back(typename protocol_t::read_response_t());
+                it->timestamper->read(subread, &responses.back(), tok, interruptor);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
             }
         }
+
         read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
     }
 
     void read_outdated(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, signal_t *interruptor) {
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
+
         std::vector<typename protocol_t::read_response_t> responses;
-        for (size_t i = 0; i < shards.size(); ++i) {
-            typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
-            if (!region_is_empty(ixn)) {
-                typename protocol_t::read_t subread = read.shard(ixn);
-                typename protocol_t::read_response_t subresponse;
-                shards[i].performer->read_outdated(subread, &subresponse, interruptor);
-                responses.push_back(subresponse);
-                if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::read_t subread;
+            if (read.shard(it->region, &subread)) {
+                responses.push_back(typename protocol_t::read_response_t());
+                it->performer->read_outdated(subread, &responses.back(), interruptor);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
             }
         }
+
         read.unshard(responses.data(), responses.size(), response, ctx, interruptor);
     }
 
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) {
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
-        std::vector<typename protocol_t::write_response_t> responses;
-        for (size_t i = 0; i < shards.size(); ++i) {
-            typename protocol_t::region_t ixn = region_intersection(shards[i].region, write.get_region());
+        if (interruptor->is_pulsed()) { throw interrupted_exc_t(); }
 
-            if (!region_is_empty(ixn)) {
-                typename protocol_t::write_t subwrite = write.shard(ixn);
-                typename protocol_t::write_response_t subresponse;
-                shards[i].timestamper->write(subwrite, &subresponse, tok);
-                responses.push_back(subresponse);
-                if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        std::vector<typename protocol_t::write_response_t> responses;
+        responses.reserve(shards.size());
+
+        for (auto it = shards.begin(); it != shards.end(); ++it) {
+            typename protocol_t::write_t subwrite;
+            if (write.shard(it->region, &subwrite)) {
+                responses.push_back(typename protocol_t::write_response_t());
+                it->timestamper->write(subwrite, &responses.back(), tok);
+                if (interruptor->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
             }
         }
+
         write.unshard(responses.data(), responses.size(), response, ctx, interruptor);
     }
 
@@ -193,13 +218,11 @@ private:
 };
 
 template<class protocol_t>
-class dummy_namespace_interface_t :
-    public namespace_interface_t<protocol_t>
-{
+class dummy_namespace_interface_t : public namespace_interface_t<protocol_t> {
 public:
     dummy_namespace_interface_t(std::vector<typename protocol_t::region_t>
             shards, store_view_t<protocol_t> **stores, order_source_t
-            *order_source, typename protocol_t::context_t *_ctx) 
+            *order_source, typename protocol_t::context_t *_ctx)
         : ctx(_ctx)
     {
         /* Make sure shards are non-overlapping and stuff */

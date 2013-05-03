@@ -41,12 +41,12 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db):
+    def __init__(self, host, port, db=None):
         self.socket = None
         self.host = host
         self.port = port
         self.next_token = 1
-        self.db = DB(db)
+        self.db = db
         self.reconnect()
 
     def __enter__(self):
@@ -56,7 +56,7 @@ class Connection(object):
         self.close()
 
     def use(self, db):
-        self.db = DB(db)
+        self.db = db
 
     def reconnect(self):
         self.close()
@@ -68,8 +68,6 @@ class Connection(object):
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
 
     def close(self):
-        if repl.default_connection is self:
-            repl.default_connection = None
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
@@ -99,7 +97,7 @@ class Connection(object):
             global_opt_args['db'] = DB(global_opt_args['db'])
         else:
             if self.db:
-               global_opt_args['db'] = self.db
+               global_opt_args['db'] = DB(self.db)
 
         for k,v in global_opt_args.iteritems():
             pair = query.global_optargs.add()
@@ -190,11 +188,13 @@ class Connection(object):
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
+            if len(response.response) < 1:
+                return None
             return Datum.deconstruct(response.response[0])
 
         # Default for unknown response types
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-def connect(host='localhost', port=28015, db='test'):
+def connect(host='localhost', port=28015, db=None):
     return Connection(host, port, db)

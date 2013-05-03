@@ -38,7 +38,13 @@ tests:
       - r.db_drop()
       - r.db()
       - r.error()
-      - r.js()
+
+    - cd: r.js()
+      ot:
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
+        rb: err("RqlCompileError", "Expected 1 argument(s) but found 0.", [])
+        py: err_regex('TypeError', ".*takes at least 1 argument \(0 given\)", [])
+
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
         rb: err("ArgumentError", "wrong number of arguments (0 for 1)", [])
@@ -71,7 +77,13 @@ tests:
       - r.db_drop(1,2)
       - r.db(1,2)
       - r.error(1,2)
-      - r.js(1,2)
+
+    - cd: r.js(1,2)
+      ot:
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        py: err('RqlRuntimeError', u"Expected type STRING but found NUMBER.", [])
+
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         rb: err("ArgumentError", "wrong number of arguments (2 for 1)", [])
@@ -108,6 +120,12 @@ tests:
       # - db.table() # TODO: theerror message for this in ruby is wrong
       - tbl.reduce()
 
+    - cd: tbl.eq_join()
+      ot:
+        js: err("RqlDriverError", "Expected 2 argument(s) but found 0.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
+        py: err_regex('TypeError', ".*takes at least 3 arguments \(1 given\)", [])
+
     - ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 0.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 1.", [])
@@ -115,7 +133,13 @@ tests:
       cd:
       - tbl.inner_join()
       - tbl.outer_join()
-      - tbl.eq_join()
+
+    - cd: tbl.eq_join(1)
+      ot:
+        js: err("RqlDriverError", "Expected 2 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
+        py: err_regex('TypeError', ".*takes at least 3 arguments \(2 given\)", [])
+
     - ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
@@ -123,7 +147,13 @@ tests:
       cd:
       - tbl.inner_join(1)
       - tbl.outer_join(1)
-      - tbl.eq_join(1)
+
+    - cd: tbl.eq_join(1,2,3,4)
+      ot:
+        js: err("RqlDriverError", "Expected 2 argument(s) but found 4.", [])
+        rb: err("RqlCompileError", "Expected 3 argument(s) but found 5.", [])
+        py: err_regex('TypeError', ".*takes at most 4 arguments \(5 given\)", [])
+
     - ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 3.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 4.", [])
@@ -131,7 +161,6 @@ tests:
       cd:
       - tbl.inner_join(1,2,3)
       - tbl.outer_join(1,2,3)
-      - tbl.eq_join(1,2,3)
 
     - ot:
         js: err("RqlDriverError", "Expected at least 2 argument(s) but found 0.", [])

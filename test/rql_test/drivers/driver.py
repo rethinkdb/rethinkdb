@@ -154,6 +154,20 @@ class Uuid:
     def __repr__(self):
         return "uuid()"
 
+class Int:
+    def __init__(self, i):
+        self.i = i
+
+    def __eq__(self, thing):
+        return isinstance(thing, int) and (self.i == thing)
+
+class Float:
+    def __init__(self, f):
+        self.f = f
+
+    def __eq__(self, thing):
+        return isinstance(thing, float) and (self.f == thing)
+
 # -- Curried output test functions --
 
 def eq(exp):
@@ -270,6 +284,12 @@ def uuid():
 
 def shard(table_name):
     shard_table(CLUSTER_PORT, BUILD, table_name)
+
+def int_cmp(i):
+    return Int(i)
+
+def float_cmp(f):
+    return Float(f)
 
 def the_end():
     global failure_count

@@ -5,7 +5,7 @@
 import unittest
 from os import getenv
 from sys import path, argv, exit
-path.append("../../drivers/python")
+path.insert(0, "../../drivers/python")
 
 import rethinkdb as r
 
