@@ -408,7 +408,7 @@ message Term {
         // Indicates to ORDER_BY that this attribute is to be sorted in descending order.
         DESC = 74; // !STRING -> Ordering
 
-        // Gets info about anythin; most useful for tables.
+        // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
     }
     optional TermType type = 1;
