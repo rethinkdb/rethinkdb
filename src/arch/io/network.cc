@@ -601,7 +601,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
         return false;
     }
 
-    const int RDB_LISTEN_BACKLOG = 5;
+    const int RDB_LISTEN_BACKLOG = 256;
 
     // Start listening to connections
     for (ssize_t i = 0; i < socks.size(); ++i) {
