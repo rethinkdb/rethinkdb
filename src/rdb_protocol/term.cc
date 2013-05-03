@@ -269,13 +269,13 @@ val_t *term_t::eval() {
 }
 
 val_t *term_t::new_val(datum_t *d) {
-    return new_val(const_cast<const datum_t *>(d));
+    return new_val(static_cast<const datum_t *>(d));
 }
 val_t *term_t::new_val(const datum_t *d) {
     return env->new_val(d, this);
 }
 val_t *term_t::new_val(datum_t *d, table_t *t) {
-    return new_val(const_cast<const datum_t *>(d), t);
+    return new_val(static_cast<const datum_t *>(d), t);
 }
 val_t *term_t::new_val(const datum_t *d, table_t *t) {
     return env->new_val(d, t, this);
@@ -286,7 +286,7 @@ val_t *term_t::new_val(datum_stream_t *s, table_t *d) {
     return env->new_val(d, s, this);
 }
 val_t *term_t::new_val(db_t *db) {
-    return new_val(const_cast<const db_t *>(db));
+    return new_val(static_cast<const db_t *>(db));
 }
 val_t *term_t::new_val(const db_t *db) {
     return env->new_val(db, this);
