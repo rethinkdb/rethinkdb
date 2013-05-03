@@ -130,19 +130,6 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
     init_json(json->get(), env);
 }
 
-datum_t &datum_t::operator=(datum_t &&other) {
-    type = other.type;
-    other.type = R_NULL;
-
-    r_bool = other.r_bool;
-    r_num = other.r_num;
-    r_str = std::move(other.r_str);
-    r_array = std::move(other.r_array);
-    r_object = std::move(other.r_object);
-
-    return *this;
-}
-
 datum_t::type_t datum_t::get_type() const { return type; }
 const char *datum_type_name(datum_t::type_t type) {
     switch (type) {

@@ -66,8 +66,6 @@ public:
     datum_t(cJSON *json, env_t *env);
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
-    datum_t &operator=(datum_t &&other);
-
     ~datum_t();
 
     void write_to_protobuf(Datum *out) const;
