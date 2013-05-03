@@ -10,7 +10,8 @@ commands:
       <li><code>skipped</code> - the number of documents from the selection that were not deleted.</li>
       <li><code>errors</code> - the number of errors encountered while deleting;</li>
       <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
-      <li><code>inserted</code>, <code>replace</code>, and <code>unchanged</copde> - 0 for a <code>delete</code> operation</li>
+      <li><code>inserted</code>, <code>replaced</code>, and <code>unchanged</code> - all 
+      <code>0</code> for a <code>delete</code> operation</li>
       </ul>
 
     parent: selection

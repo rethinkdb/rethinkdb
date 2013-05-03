@@ -11,7 +11,8 @@ commands:
       <li><code>replaced</code> - the number of documents that were replaced;</li>
       <li><code>errors</code> - the number of errors encountered while performing the replace;</li>
       <li>if errors occurred performing the replace, <code>first_error</code> contains the text of the first error encountered.</li>
-      <li><code>deleted</code>, <code>inserted</code>, <code>replaced</code>, and <code>skipped</code> - 0 for a <code>replace</code> operation</li>
+      <li><code>deleted</code>, <code>inserted</code>, <code>skipped</code>, and <code>unchanged</code> 
+      - all <code>0</code> for a <code>replace</code> operation</li>
       </ul>
 
     body: json | expr

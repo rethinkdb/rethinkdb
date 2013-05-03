@@ -9,8 +9,10 @@ commands:
       <ul>
       <li><code>replaced</code> - the number of documents that were updated;</li>
       <li><code>errors</code> - the number of errors encountered while performing the update;</li>
-      <li>f errors occured, <code>first_error</code> - the text of
-      the first error encountered.</li></ul>
+      <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
+      <li><code>deleted</code>, <code>inserted</code>, <code>skipped</code>, and <code>unchanged</code>
+      - all <code>0</code> for an <code>update</code> operation</li>
+      </ul>
 
     body: json | expr
     parent: selection

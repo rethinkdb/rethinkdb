@@ -12,7 +12,8 @@ commands:
       <li><code>errors</code> - the number of errors encountered while inserting;</li>
       <li>if errors where encountered while inserting, <code>first_error</code> contains the text of the first error;</li>
       <li><code>generated_keys</code> - a list of generated primary key values.</li>
-      <li><code>unchanged</code>, <code>skipped</code>, and <code>deleted</code> - 0 for an <code>insert</code> operation</li>
+      <li><code>deleted</code>, <code>skipped</code>, and <code>unchanged</code> 
+      - all <code>0</code> for an <code>insert</code> operation</li>
       </ul>
 
     body:
