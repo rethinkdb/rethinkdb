@@ -134,15 +134,15 @@ commands:
           py: |
             r.table('dc').index_create('parental_planets',
               lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
-            )
+            ).run(conn)
           js: |
             r.table('dc').indexCreate('parental_planets', function(hero) {
               return [hero('mothers_home_planet'), hero('fathers_home_planet')];
-            })
+            }).run(conn, callback)
           rb: |
             r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
-            }
+            }.run(conn)
 
     js:
       name: indexCreate
