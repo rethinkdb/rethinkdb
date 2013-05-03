@@ -10,28 +10,45 @@ const uintptr_t PROTOB_QUERY_TAG = 1;
 // We have compile-time assertions about these types' sizeof values below.
 struct protob_pointee_t {
     uintptr_t tag : 1;  // 0 means protob_term_t, 1 means protob_query_t.
-    uintptr_t refcount : sizeof(uintptr_t) - 1;
+    uintptr_t destructed : 1;  // SAMRSI: Get rid of this.
+    uintptr_t refcount : sizeof(uintptr_t) - 2;
 
-    protob_pointee_t(uintptr_t _tag) : tag(_tag), refcount(0) { }
+    protob_pointee_t(uintptr_t _tag) : tag(_tag), destructed(0), refcount(0) { }
 };
 
 struct protob_term_t : public protob_pointee_t {
     protob_term_t(const Term &t) : protob_pointee_t(PROTOB_TERM_TAG), term(t) { }
+    ~protob_term_t() {
+        rassert(tag == PROTOB_TERM_TAG);
+        rassert(refcount == 0);
+        rassert(!destructed);
+        destructed = 1;
+    }
 
     Term term;
 };
 
 struct protob_query_t : public protob_pointee_t {
     protob_query_t() : protob_pointee_t(PROTOB_QUERY_TAG) { }
+    ~protob_query_t() {
+        rassert(tag == PROTOB_TERM_TAG);
+        rassert(refcount == 0);
+        rassert(!destructed);
+        destructed = 1;
+    }
 
     Query query;
 };
 
 protob_destructable_t::protob_destructable_t()
-    : destructee_() { }
+    : destructee_(NULL) { }
 
 protob_destructable_t::protob_destructable_t(protob_pointee_t *destructee)
     : destructee_(destructee) {
+    CT_ASSERT(sizeof(protob_pointee_t) == sizeof(uintptr_t));
+    CT_ASSERT(sizeof(protob_term_t) == sizeof(uintptr_t) + sizeof(Term));
+    CT_ASSERT(sizeof(protob_query_t) == sizeof(uintptr_t) + sizeof(Query));
+
     rassert(destructee_->refcount == 0);
     ++destructee_->refcount;
 }
@@ -54,6 +71,7 @@ protob_destructable_t::~protob_destructable_t() {
             } else {
                 delete static_cast<protob_query_t *>(destructee_);
             }
+            destructee_ = NULL;
         }
     }
 }
