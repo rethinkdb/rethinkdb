@@ -135,7 +135,12 @@ public:
                         const pb_rcheckable_t *bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        const datum_t *pval, const std::string &sindex_id,
+                        const datum_t *left_bound, const datum_t *right_bound,
+                        const pb_rcheckable_t *bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const datum_t *left_bound, const datum_t *right_bound,
+                        const std::string &sindex_id,
                         const pb_rcheckable_t *bt_src);
     virtual datum_stream_t *filter(func_t *f);
     virtual datum_stream_t *map(func_t *f);

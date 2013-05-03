@@ -88,3 +88,96 @@ commands:
 
     rb:
       dont_need_parenthesis: true
+
+  - tag: index_create
+    section: table_admin
+    description: Create a new secondary index on this table.
+
+    body:
+      py: index_name[, index_function]
+      js: indexName[, indexFunction]
+      rb: index_name[, index_function]
+    parent: table
+    returns: json
+
+    examples:
+      - description: |
+          To efficiently query our heros by name we can create a secondary
+          index based on the value of that field. We can already quickly query
+          heros by name with the primary index but to do the same based on hero
+          code names we'll have to create a secondary index based on that
+          attribute.
+        code:
+          py: "r.table('dc').index_create('code_name').run(conn)"
+          js: r.table('dc').indexCreate('code_name').run(conn, callback)
+          rb: r.table('dc').index_create('code_name').run(conn)
+      - description: |
+          You can also create a secondary index based on an arbitrary function
+          on the document.
+        code:
+          py: |
+            r.table('dc').index_create('power_rating',
+              lambda hero: hero['combat_power'] + (2 * hero['compassion_power'])
+            ).run(conn)
+          js: |
+            r.table('dc').indexCreate('power_rating', function(hero) {
+              return hero('combat_power').add(hero('compassion_power').mul(2));
+            }).run(conn, callback)
+          rb: |
+            r.table('dc').index_create('power_rating') {|hero|
+              hero['combat_power'] + (2 * hero['compassion_power'])
+            }.run(conn)
+      - description: |
+          A compound index can be created by returning an array of values to
+          use as the secondary index key.
+        code:
+          py: |
+            r.table('dc').index_create('parental_planets',
+              lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
+            ).run(conn)
+          js: |
+            r.table('dc').indexCreate('parental_planets', function(hero) {
+              return [hero('mothers_home_planet'), hero('fathers_home_planet')];
+            }).run(conn, callback)
+          rb: |
+            r.table('dc').index_create('parental_planets') {|hero|
+              [hero['mothers_home_planet'], hero['fathers_home_planet']]
+            }.run(conn)
+
+    js:
+      name: indexCreate
+
+  - tag: index_drop
+    section: table_admin
+    description: Delete a previously created secondary index of this table.
+
+    body: indexName
+    parent: table
+    returns: json
+
+    examples:
+      - description: Drop a secondary index named 'code_name'.
+        code: r.table('dc').index_drop('code_name').run(conn)
+
+    js:
+      name: indexDrop
+      examples:
+        0:
+          code: r.table('dc').indexDrop('code_name').run(conn, callback)
+
+  - tag: index_list
+    section: table_admin
+    description: List all the secondary indexes of this table.
+
+    parent: table
+    returns: json
+
+    examples:
+      - description: List the available secondary indexes for this table.
+        code: r.table('marvel').index_list()
+
+    js:
+      name: indexList
+      examples:
+        0:
+          code: r.table('dc').indexList()

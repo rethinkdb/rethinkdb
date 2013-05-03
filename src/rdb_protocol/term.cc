@@ -39,6 +39,7 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_DB:                 return new db_term_t(env, t);
     case Term_TermType_TABLE:              return new table_term_t(env, t);
     case Term_TermType_GET:                return new get_term_t(env, t);
+    case Term_TermType_GET_ALL:            return new get_all_term_t(env, t);
     case Term_TermType_EQ:                 // fallthru
     case Term_TermType_NE:                 // fallthru
     case Term_TermType_LT:                 // fallthru
@@ -235,6 +236,10 @@ bool term_t::is_deterministic() const {
 
 const Term *term_t::get_src() const {
     return src;
+}
+
+void term_t::prop_bt(Term *t) const {
+    term_walker_t(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
 val_t *term_t::eval() {
