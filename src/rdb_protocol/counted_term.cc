@@ -1,17 +1,21 @@
 #include "rdb_protocol/counted_term.hpp"
 
 #include "rdb_protocol/ql2.pb.h"
+#include "utils.hpp"  // SAMRSI not needed
 
 namespace ql {
 
 const uintptr_t PROTOB_TERM_TAG = 0;
 const uintptr_t PROTOB_QUERY_TAG = 1;
 
+// SAMRSI: Change the guarantees in this file back to rasserts.
+
 // We have compile-time assertions about these types' sizeof values below.
 struct protob_pointee_t {
     uintptr_t tag : 1;  // 0 means protob_term_t, 1 means protob_query_t.
-    uintptr_t destructed : 1;  // SAMRSI: Get rid of this.
-    uintptr_t refcount : sizeof(uintptr_t) - 2;
+    uintptr_t destructed : 1;  // SAMRSI: Get rid of this.  And adjust refcount's
+                               // bitfield width.
+    uintptr_t refcount : sizeof(uintptr_t) * CHAR_BIT - 2;
 
     protob_pointee_t(uintptr_t _tag) : tag(_tag), destructed(0), refcount(0) { }
 };
@@ -19,9 +23,9 @@ struct protob_pointee_t {
 struct protob_term_t : public protob_pointee_t {
     protob_term_t(const Term &t) : protob_pointee_t(PROTOB_TERM_TAG), term(t) { }
     ~protob_term_t() {
-        rassert(tag == PROTOB_TERM_TAG);
-        rassert(refcount == 0);
-        rassert(!destructed);
+        guarantee(destructed == 0);
+        guarantee(tag == PROTOB_TERM_TAG);
+        guarantee(refcount == 0);
         destructed = 1;
     }
 
@@ -31,9 +35,9 @@ struct protob_term_t : public protob_pointee_t {
 struct protob_query_t : public protob_pointee_t {
     protob_query_t() : protob_pointee_t(PROTOB_QUERY_TAG) { }
     ~protob_query_t() {
-        rassert(tag == PROTOB_TERM_TAG);
-        rassert(refcount == 0);
-        rassert(!destructed);
+        guarantee(destructed == 0);
+        guarantee(tag == PROTOB_QUERY_TAG);
+        guarantee(refcount == 0);
         destructed = 1;
     }
 
@@ -49,21 +53,21 @@ protob_destructable_t::protob_destructable_t(protob_pointee_t *destructee)
     CT_ASSERT(sizeof(protob_term_t) == sizeof(uintptr_t) + sizeof(Term));
     CT_ASSERT(sizeof(protob_query_t) == sizeof(uintptr_t) + sizeof(Query));
 
-    rassert(destructee_->refcount == 0);
+    guarantee(destructee_->refcount == 0);
     ++destructee_->refcount;
 }
 
 protob_destructable_t::protob_destructable_t(const protob_destructable_t &copyee)
     : destructee_(copyee.destructee_) {
     if (destructee_ != NULL) {
-        rassert(destructee_->refcount > 0);
+        guarantee(destructee_->refcount > 0);
         destructee_->refcount += 1;
     }
 }
 
 protob_destructable_t::~protob_destructable_t() {
     if (destructee_ != NULL) {
-        rassert(destructee_->refcount > 0);
+        guarantee(destructee_->refcount > 0);
         --destructee_->refcount;
         if (destructee_->refcount == 0) {
             if (destructee_->tag == PROTOB_TERM_TAG) {
