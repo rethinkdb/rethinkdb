@@ -13,7 +13,9 @@ class Term;
 // You want to reference count the protocol buffer objects.  This means that the
 // pointer to a sub-object needs own a pointer to the base Term object, so that
 // once all pointers to subobjects have destructed, the base Term object is
-// destroyed.  That's what protob_t does.
+// destroyed.  That's what protob_t (almost) does.
+//
+// protob_t also supports the base object type being Query, instead of Term.
 
 namespace ql {
 
@@ -102,6 +104,11 @@ protob_t<Term> make_counted_term_copy(const Term &copyee);
 // Makes a protob_t<Term> with default-constructed Term.
 protob_t<Term> make_counted_term();
 
+// Makes a protob_t<Query> with a default-constructed Query, which is
+// reference-counted (with the base object being a Query!).
+protob_t<Query> make_counted_query();
+
+// SAMRSI: Remove this.
 // Makes a protob_t<Query> that doesn't do any reference counting.
 protob_t<Query> special_noncounting_query_protob(Query *query);
 

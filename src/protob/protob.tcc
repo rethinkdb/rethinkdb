@@ -18,8 +18,8 @@
 template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::set<ip_address_t> &local_addresses,
                                                                    int port,
-                                                                   boost::function<response_t(request_t *, context_t *)> _f,
-                                                                   response_t (*_on_unparsable_query)(request_t *, std::string),
+                                                                   boost::function<response_t(request_t, context_t *)> _f,
+                                                                   response_t (*_on_unparsable_query)(request_t, std::string),
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
@@ -75,6 +75,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
     //TODO figure out how to do this with less copying
     for (;;) {
         request_t request;
+        make_empty_protob_bearer(&request);
         bool force_response = false;
         response_t forced_response;
         std::string err;
@@ -83,16 +84,17 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
             conn->read(&size, sizeof(int32_t), &ct_keepalive);
             if (size < 0) {
                 err = strprintf("Negative protobuf size (%d).", size);
-                forced_response = on_unparsable_query(0, err);
+                forced_response = on_unparsable_query(request_t(), err);
                 force_response = true;
             } else {
                 scoped_array_t<char> data(size);
                 conn->read(data.data(), size, &ct_keepalive);
 
-                bool res = request.ParseFromArray(data.data(), size);
+                const bool res
+                    = underlying_protob_value(&request)->ParseFromArray(data.data(), size);
                 if (!res) {
                     err = "Client is buggy (failed to deserialize protobuf).";
-                    forced_response = on_unparsable_query(&request, err);
+                    forced_response = on_unparsable_query(request, err);
                     force_response = true;
                 }
             }
@@ -116,7 +118,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
 #else
                         ctx.interruptor = shutdown_signal();
 #endif  // __linux
-                        send(f(&request, &ctx), conn.get(), &ct_keepalive);
+                        send(f(request, &ctx), conn.get(), &ct_keepalive);
                     }
                     break;
                 case CORO_ORDERED:
@@ -193,7 +195,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         data += sizeof(req_size);
 
         request_t request;
-        bool parseSucceeded = request.ParseFromArray(data, req_size);
+        const bool parseSucceeded
+            = underlying_protob_value(&request)->ParseFromArray(data, req_size);
 
         response_t response;
         switch (cb_mode) {
@@ -202,13 +205,13 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
                 http_conn_cache.find(conn_id);
             if (!parseSucceeded) {
                 std::string err = "Client is buggy (failed to deserialize protobuf).";
-                response = on_unparsable_query(&request, err);
+                response = on_unparsable_query(request, err);
             } else if (!conn) {
                 std::string err = "This HTTP connection not open.";
-                response = on_unparsable_query(&request, err);
+                response = on_unparsable_query(request, err);
             } else {
                 context_t *ctx = conn->get_ctx();
-                response = f(&request, ctx);
+                response = f(request, ctx);
             }
         } break;
         case CORO_ORDERED:

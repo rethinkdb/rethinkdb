@@ -87,14 +87,29 @@ private:
     repeating_timer_t http_timeout_timer;
 };
 
+// A protob_server_t<request_t, response_t, context_t> expects response_t to be
+// a protocol buffers type.  However, request_t need not be.  The overloaded
+// functions make_empty_protob_bearer and underlying_protob_value are used to
+// initialize a request_t object and access the protocol buffers object.  Their
+// signatures are:
+//
+// // Initializes *request to a value that contains a protocol buffers object.
+// void make_empty_protob_bearer(request_t *request);
+//
+// // Retrieves the protocol buffers object from an initialized request_t.
+// request_t::protob_type *underlying_protob_value(request_t *request);
+//
+// "request_t::protob_type" does not actually have to be defined.
+
+
 template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
     // TODO: Function pointers?  Really?
     protob_server_t(const std::set<ip_address_t> &local_addresses,
                     int port,
-                    boost::function<response_t(request_t *, context_t *)> _f,
-                    response_t (*_on_unparsable_query)(request_t *, std::string),
+                    boost::function<response_t(request_t, context_t *)> _f,
+                    response_t (*_on_unparsable_query)(request_t, std::string),
                     protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 
@@ -107,8 +122,8 @@ private:
     // For HTTP server
     http_res_t handle(const http_req_t &);
 
-    boost::function<response_t(request_t *, context_t *)> f;
-    response_t (*on_unparsable_query)(request_t *, std::string);
+    boost::function<response_t(request_t, context_t *)> f;
+    response_t (*on_unparsable_query)(request_t, std::string);
     protob_server_callback_mode_t cb_mode;
 
     /* WARNING: The order here is fragile. */
