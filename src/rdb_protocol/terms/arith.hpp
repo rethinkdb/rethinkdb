@@ -32,7 +32,8 @@ public:
     virtual const char *name() const { return namestr; }
 
 private:
-    counted_t<const datum_t> add(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+    counted_t<const datum_t> add(counted_t<const datum_t> lhs,
+                                 counted_t<const datum_t> rhs) {
         if (lhs->get_type() == datum_t::R_NUM) {
             rhs->check_type(datum_t::R_NUM);
             return make_counted<datum_t>(lhs->as_num() + rhs->as_num());
@@ -48,17 +49,20 @@ private:
         unreachable();
     }
 
-    counted_t<const datum_t> sub(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+    counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
+                                 counted_t<const datum_t> rhs) {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         return make_counted<datum_t>(lhs->as_num() - rhs->as_num());
     }
-    counted_t<const datum_t> mul(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+    counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
+                                 counted_t<const datum_t> rhs) {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
     }
-    counted_t<const datum_t> div(counted_t<const datum_t> lhs, counted_t<const datum_t> rhs) {
+    counted_t<const datum_t> div(counted_t<const datum_t> lhs,
+                                 counted_t<const datum_t> rhs) {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         rcheck(rhs->as_num() != 0, "Cannot divide by zero.");

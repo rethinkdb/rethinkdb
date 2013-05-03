@@ -101,7 +101,8 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
     rassert(block_id < txn->cache->bufs->get_size());
     rassert(internal_buf);
 
-    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode,
+                               call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = txn->recency_timestamp;
@@ -142,7 +143,10 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp, order_token_t _order_token)
-    : cache(_cache), order_token(_order_token), access(_access), recency_timestamp(_recency_timestamp),
+    : cache(_cache),
+      order_token(_order_token),
+      access(_access),
+      recency_timestamp(_recency_timestamp),
       keepalive(_cache->transaction_counter.get()) {
     coro_fifo_acq_t write_throttle_acq;
     if (is_write_mode(access)) {
@@ -196,7 +200,10 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED const mirrored_cac
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs->get(i) = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.count++;
-            serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
+            serializer->block_read(serializer->index_read(i),
+                                   internal_buf->data,
+                                   DEFAULT_DISK_ACCOUNT,
+                                   &read_cb);
         }
     }
 
@@ -216,9 +223,10 @@ mock_cache_t::~mock_cache_t() {
         on_thread_t thread_switcher(serializer->home_thread());
         std::vector<serializer_write_t> writes;
         for (block_id_t i = 0; i < bufs->get_size(); i++)
-            writes.push_back(
-                             bufs->get(i)
-                             ? serializer_write_t::make_update(i, bufs->get(i)->subtree_recency, bufs->get(i)->data)
+            writes.push_back(bufs->get(i)
+                             ? serializer_write_t::make_update(i,
+                                                               bufs->get(i)->subtree_recency,
+                                                               bufs->get(i)->data)
                              : serializer_write_t::make_delete(i));
         do_writes(serializer, writes, DEFAULT_DISK_ACCOUNT);
     }

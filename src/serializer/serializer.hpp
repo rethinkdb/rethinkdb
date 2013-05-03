@@ -154,7 +154,8 @@ counted_t<typename serializer_traits_t<serializer_type>::block_token_type> seria
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    counted_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
+    counted_t<typename serializer_traits_t<serializer_type>::block_token_type> result
+        = ser->block_write(buf, block_id, io_account, &cb);
     cb.wait();
     return result;
 

@@ -126,8 +126,8 @@ struct scs_block_info_t {
 
 template <class inner_serializer_t>
 struct scs_block_token_t {
-    scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
-                      const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
+    scs_block_token_t(block_id_t _block_id, const scs_block_info_t &_info,
+                      const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> &tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
@@ -167,11 +167,10 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 };
 
 // God this is such a hack (Part 1 of 2)
-inline
-counted_t< scs_block_token_t<log_serializer_t> >
-to_standard_block_token(block_id_t block_id, const counted_t<ls_block_token_pointee_t>& tok) {
-    counted_t< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
-    return ret;
+inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(block_id_t block_id, const counted_t<ls_block_token_pointee_t> &tok) {
+    return make_counted<scs_block_token_t<log_serializer_t> >(block_id,
+                                                              scs_block_info_t(),
+                                                              tok);
 }
 
 #else
@@ -181,7 +180,8 @@ typedef log_serializer_t standard_serializer_t;
 // God this is such a hack (Part 2 of 2)
 inline
 counted_t<ls_block_token_pointee_t>
-to_standard_block_token(UNUSED block_id_t block_id, const counted_t<ls_block_token_pointee_t>& tok) {
+to_standard_block_token(UNUSED block_id_t block_id,
+                        const counted_t<ls_block_token_pointee_t> &tok) {
     return tok;
 }
 

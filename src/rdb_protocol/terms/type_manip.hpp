@@ -162,7 +162,8 @@ private:
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
                     scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-                    const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
+                    const std::map<std::string, counted_t<const datum_t> > &obj
+                        = d->as_object();
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
                         scoped_ptr_t<datum_t> pair(new datum_t(datum_t::R_ARRAY));
                         pair->add(make_counted<datum_t>(it->first));

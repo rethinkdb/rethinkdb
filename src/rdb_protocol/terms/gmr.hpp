@@ -15,7 +15,9 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> baseval = optarg("base", counted_t<val_t>());
-        counted_t<const datum_t> base = baseval.has() ? baseval->as_datum() : counted_t<const datum_t>();
+        counted_t<const datum_t> base = baseval.has() ?
+            baseval->as_datum() :
+            counted_t<const datum_t>();
         counted_t<func_t> g = arg(1)->as_func();
         counted_t<func_t> m = arg(2)->as_func();
         counted_t<func_t> r = arg(3)->as_func();

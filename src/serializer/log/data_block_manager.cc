@@ -185,8 +185,10 @@ public:
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                counted_t<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
-                counted_t<standard_block_token_t> token = to_standard_block_token(block_id, ls_token);
+                auto ls_token = make_counted<ls_block_token_pointee_t>(parent->serializer,
+                                                                       current_offset);
+                counted_t<standard_block_token_t> token
+                    = to_standard_block_token(block_id, ls_token);
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);

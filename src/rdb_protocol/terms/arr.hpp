@@ -57,7 +57,8 @@ private:
             for (int32_t i = 0; ; ++i) {
                 counted_t<const datum_t> d = s->next();
                 if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(), strprintf("Index out of bounds: %d", n));
+                    rcheck(n == -1 && last_d.has(),
+                           strprintf("Index out of bounds: %d", n));
                     return new_val(last_d);
                 }
                 if (i == n) return new_val(d);
@@ -100,7 +101,8 @@ private:
             counted_t<table_t> t;
             counted_t<datum_stream_t> seq;
             if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-                std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq = v->as_selection();
+                std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
+                    = v->as_selection();
                 t = t_seq.first;
                 seq = t_seq.second;
             } else {

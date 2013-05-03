@@ -63,9 +63,11 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
     guarantee(obj);
 
     counted_t<const ql::datum_t> el(new ql::datum_t(json, ql_env));
-    counted_t<const ql::datum_t> el_group = func.compile_group(ql_env)->call(el)->as_datum();
+    counted_t<const ql::datum_t> el_group
+        = func.compile_group(ql_env)->call(el)->as_datum();
     counted_t<const ql::datum_t> elm(new ql::datum_t(json, ql_env));
-    counted_t<const ql::datum_t> el_map = func.compile_map(ql_env)->call(elm)->as_datum();
+    counted_t<const ql::datum_t> el_map
+        = func.compile_map(ql_env)->call(elm)->as_datum();
 
     if (!obj->has(el_group)) {
         obj->set(el_group, el_map);

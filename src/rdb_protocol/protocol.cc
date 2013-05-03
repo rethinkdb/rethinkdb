@@ -573,8 +573,7 @@ public:
                             } else {
                                 ql::wire_datum_t local_rhs = *rhs;
                                 if (lhs) {
-                                    counted_t<const ql::datum_t> reduced_val =
-                                        local_reduce_func.compile(&ql_env)->call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->as_datum();
+                                    counted_t<const ql::datum_t> reduced_val = local_reduce_func.compile(&ql_env)->call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->as_datum();
                                     rg_response->result = ql::wire_datum_t(reduced_val);
                                 } else {
                                     guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -598,9 +597,7 @@ public:
                             const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
                             ql::wire_datum_t local_rhs = *rhs;
 
-                            counted_t<const ql::datum_t> sum =
-                                make_counted<ql::datum_t>(lhs->compile(&ql_env)->as_num() +
-                                                          local_rhs.compile(&ql_env)->as_num());
+                            counted_t<const ql::datum_t> sum = make_counted<ql::datum_t>(lhs->compile(&ql_env)->as_num() + local_rhs.compile(&ql_env)->as_num());
                             rg_response->result = ql::wire_datum_t(sum);
                         }
                         boost::get<ql::wire_datum_t>(rg_response->result).finalize();
@@ -623,12 +620,15 @@ public:
 
                             counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
                             for (size_t f = 0; f < rhs_arr->size(); ++f) {
-                                counted_t<const ql::datum_t> key = rhs_arr->get(f)->get("group");
-                                counted_t<const ql::datum_t> val = rhs_arr->get(f)->get("reduction");
+                                counted_t<const ql::datum_t> key
+                                    = rhs_arr->get(f)->get("group");
+                                counted_t<const ql::datum_t> val
+                                    = rhs_arr->get(f)->get("reduction");
                                 if (!map->has(key)) {
                                     map->set(key, val);
                                 } else {
-                                    counted_t<ql::func_t> r = local_gmr_func.compile_reduce(&ql_env);
+                                    counted_t<ql::func_t> r
+                                        = local_gmr_func.compile_reduce(&ql_env);
                                     map->set(key, r->call(map->get(key), val)->as_datum());
                                 }
                             }
@@ -640,9 +640,8 @@ public:
                 } catch (const ql::datum_exc_t &e) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::terminal_exc_visitor_t(e,
-                                                                    &rg_response->result),
-                                         rg.terminal->variant);
+                    const ql::terminal_exc_visitor_t visitor(e, &rg_response->result);
+                    boost::apply_visitor(visitor, rg.terminal->variant);
                 }
             }
         } catch (const runtime_exc_t &e) {

@@ -118,7 +118,8 @@ counted_t<val_t> func_t::call(counted_t<const datum_t> arg) {
     return call(args);
 }
 
-counted_t<val_t> func_t::call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) {
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
+                              counted_t<const datum_t> arg2) {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg1);
     args.push_back(arg2);
@@ -146,7 +147,8 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) cons
     unreachable();
 }
 
-counted_t<val_t> js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+counted_t<val_t>
+js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
     return parent->new_val(make_counted<const datum_t>(json_val, env));
 }
 

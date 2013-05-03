@@ -28,7 +28,8 @@ protob_destructable_t::~protob_destructable_t() {
     }
 }
 
-protob_destructable_t &protob_destructable_t::operator=(const protob_destructable_t &assignee) {
+protob_destructable_t &
+protob_destructable_t::operator=(const protob_destructable_t &assignee) {
     protob_destructable_t tmp(assignee);
     swap(tmp);
     return *this;

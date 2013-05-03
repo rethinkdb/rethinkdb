@@ -282,7 +282,8 @@ struct rdb_protocol_t {
             : region(_region), optargs(_optargs) {
         }
 
-        void init_sindexes(counted_t<const ql::datum_t> start, counted_t<const ql::datum_t> end) {
+        void init_sindexes(counted_t<const ql::datum_t> start,
+                           counted_t<const ql::datum_t> end) {
             if (start) {
                 sindex_start_value = ql::wire_datum_t(start);
                 sindex_start_value->finalize();

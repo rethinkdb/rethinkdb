@@ -101,17 +101,21 @@ public:
     // Returns true if key was in object.
     MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
-    counted_t<const datum_t> get(const std::string &key, throw_bool_t throw_bool = THROW) const;
+    counted_t<const datum_t> get(const std::string &key,
+                                 throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    typedef counted_t<const datum_t> (*merge_res_f)(env_t *env, const std::string &key,
-                                          counted_t<const datum_t> l, counted_t<const datum_t> r,
-                                          const rcheckable_t *caller);
+    typedef counted_t<const datum_t> (*merge_res_f)(env_t *env,
+                                                    const std::string &key,
+                                                    counted_t<const datum_t> l,
+                                                    counted_t<const datum_t> r,
+                                                    const rcheckable_t *caller);
     counted_t<const datum_t> merge(env_t *env, counted_t<const datum_t> rhs, merge_res_f f) const;
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    counted_t<datum_stream_t> as_datum_stream(env_t *env,
-                                              const protob_t<const Backtrace> &backtrace) const;
+    counted_t<datum_stream_t>
+    as_datum_stream(env_t *env,
+                    const protob_t<const Backtrace> &backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -221,7 +225,9 @@ private:
         }
     };
 
-    std::map<counted_t<const datum_t>, counted_t<const datum_t>, datum_value_compare_t> map;
+    std::map<counted_t<const datum_t>,
+             counted_t<const datum_t>,
+             datum_value_compare_t> map;
     std::vector<std::pair<Datum, Datum> > map_pb;
 
 public:

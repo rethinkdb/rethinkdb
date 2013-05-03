@@ -34,8 +34,12 @@ public:
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<func_t> f,
+                                     bool nondet_ok);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<const datum_t> d,
+                                     bool upsert);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -70,9 +74,14 @@ private:
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<datum_func_pair_t> &replacements);
 
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, const map_wire_func_t &mwf);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<func_t> f, bool nondet_ok);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig, counted_t<const datum_t> d, bool upsert);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        const map_wire_func_t &mwf);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<func_t> f,
+                                        bool nondet_ok);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<const datum_t> d,
+                                        bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -178,8 +187,12 @@ private:
                    counted_t<const datum_t>,
                    counted_t<func_t> > u;
 
-    counted_t<datum_stream_t> &sequence() { return boost::get<counted_t<datum_stream_t> >(u); }
-    counted_t<const datum_t> &datum() { return boost::get<counted_t<const datum_t> >(u); }
+    counted_t<datum_stream_t> &sequence() {
+        return boost::get<counted_t<datum_stream_t> >(u);
+    }
+    counted_t<const datum_t> &datum() {
+        return boost::get<counted_t<const datum_t> >(u);
+    }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 
     uuid_u *db_ptr() {

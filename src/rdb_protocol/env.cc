@@ -96,7 +96,8 @@ void env_t::push_scope(std::map<int64_t, Datum> *in) {
 
     for (std::map<int64_t, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
         scope_stack.top().push_back(std::make_pair(it->first,
-                                                   make_counted<datum_t>(&it->second, this)));
+                                                   make_counted<datum_t>(&it->second,
+                                                                         this)));
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {

@@ -15,7 +15,8 @@ namespace ql {
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
 counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string &key,
-                                     counted_t<const datum_t> l, counted_t<const datum_t> r,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r,
                                      const rcheckable_t *caller) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
@@ -40,7 +41,8 @@ counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string
 
 // Use this merge if it should theoretically never be called.
 counted_t<const datum_t> pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
-                                    UNUSED counted_t<const datum_t> l, UNUSED counted_t<const datum_t> r,
+                                    UNUSED counted_t<const datum_t> l,
+                                    UNUSED counted_t<const datum_t> r,
                                     UNUSED const rcheckable_t *caller) {
     r_sanity_check(false);
     return counted_t<const datum_t>();
@@ -104,7 +106,8 @@ private:
             counted_t<datum_stream_t> datum_stream = v1->as_seq();
 
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums = datum_stream->next_batch();
+                std::vector<counted_t<const datum_t> > datums
+                    = datum_stream->next_batch();
                 if (datums.empty()) {
                     break;
                 }
@@ -132,7 +135,8 @@ private:
                 genkeys->add(make_counted<datum_t>(generated_keys[i]));
             }
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = d->add("generated_keys", counted_t<const datum_t>(genkeys.release()));
+            UNUSED bool b = d->add("generated_keys",
+                                   counted_t<const datum_t>(genkeys.release()));
             stats = stats->merge(env, counted_t<const datum_t>(d.release()), pure_merge);
         }
 
@@ -161,11 +165,15 @@ private:
         counted_t<val_t> v0 = arg(0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
-            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow = v0->as_single_selection();
-            counted_t<const datum_t> result = tblrow.first->replace(tblrow.second, f, nondet_ok);
+            std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
+                = v0->as_single_selection();
+            counted_t<const datum_t> result = tblrow.first->replace(tblrow.second,
+                                                                    f,
+                                                                    nondet_ok);
             stats = stats->merge(env, result, stats_merge);
         } else {
-            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
+                = v0->as_selection();
             counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
 
