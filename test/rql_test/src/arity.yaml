@@ -79,11 +79,17 @@ tests:
 
     - cd:
       - db.table_drop()
-      - db.table_create()
       ot:
         rb: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(1 given\)", [])
+
+
+    - cd: db.table_create()
+      ot:
+        rb: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
+        py: err_regex('TypeError', ".*takes at least 2 arguments \(1 given\)", [])
 
     - cd: r.js(1,2)
       ot:
@@ -114,13 +120,18 @@ tests:
       - tbl.filter(1,2)
       - tbl.get(1,2)
 
-    - cd:
-      - db.table_drop(1,2)
-      - db.table_create(1,2)
+    - cd: db.table_drop(1,2)
       ot:
         rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(3 given\)", [])
+
+
+    - cd: db.table_create(1,2)
+      ot:
+        rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
+        js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+        py: err_regex('RqlRuntimeError', "Expected type STRING but found NUMBER", [])
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
