@@ -329,12 +329,20 @@ message Term {
         DB_DROP      = 58; // STRING -> OBJECT
         // Lists all the databases by name.  (Takes no arguments)
         DB_LIST      = 59; // -> ARRAY
-        // Creates a table with a particular name in a particular database.
+        // Creates a table with a particular name in a particular
+        // database.  (You may omit the first argument to use the
+        // default database.)
         TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
-        // Drops a table with a particular name from a particular database.
+                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
+        // Drops a table with a particular name from a particular
+        // database.  (You may omit the first argument to use the
+        // default database.)
         TABLE_DROP   = 61; // Database, STRING -> OBJECT
-        // Lists all the tables in a particular database.
+                           // STRING -> OBJECT
+        // Lists all the tables in a particular database.  (You may
+        // omit the first argument to use the default database.)
         TABLE_LIST   = 62; // Database -> ARRAY
+                           //  -> ARRAY
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.

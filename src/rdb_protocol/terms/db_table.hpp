@@ -358,11 +358,18 @@ private:
 class table_list_term_t : public meta_op_t {
 public:
     table_list_term_t(env_t *env, const Term *term) :
-        meta_op_t(env, term, argspec_t(1)) { }
+        meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual val_t *eval_impl() {
         datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        uuid_u db_id = arg(0)->as_db();
+        uuid_u db_id;
+        if (num_args() == 0) {
+            val_t *dbv = optarg("db", NULL);
+            r_sanity_check(dbv);
+            db_id = dbv->as_db();
+        } else {
+            db_id = arg(0)->as_db();
+        }
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
