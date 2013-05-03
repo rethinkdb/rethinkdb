@@ -616,7 +616,8 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 counted_t<ls_block_token_pointee_t>
 log_serializer_t::generate_block_token(int64_t offset) {
     assert_thread();
-    return make_counted_t<ls_block_token_pointee_t>(this, offset);
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset));
+    return ret;
 }
 
 counted_t<ls_block_token_pointee_t>
@@ -763,7 +764,9 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return make_counted<ls_block_token_pointee_t>(this, offset.get_value());
+        counted_t<ls_block_token_pointee_t> ret(
+            new ls_block_token_pointee_t(this, offset.get_value()));
+        return ret;
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }

@@ -181,12 +181,12 @@ public:
 
                 const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
-                ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(parent->serializer->malloc());
+                ls_buf_data_t *data = static_cast<ls_buf_data_t *>(parent->serializer->malloc());
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                auto ls_token = make_counted<ls_block_token_pointee_t>(parent->serializer,
-                                                                       current_offset);
+                counted_t<ls_block_token_pointee_t> ls_token(
+                    new ls_block_token_pointee_t(parent->serializer, current_offset));
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
