@@ -34,7 +34,7 @@
         "parents": ["datum"]
     },
     "null": {
-        "parents": ["datun"]
+        "parents": ["datum"]
     },
     "number": {
         "parents": ["datum"]
