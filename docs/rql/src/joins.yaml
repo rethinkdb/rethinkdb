@@ -85,7 +85,10 @@ commands:
       key.
 
     name: eq_join
-    body: left_attr, other
+    body:
+      py: left_attr, other[, index='id']
+      rb: left_attr, other[, :index => 'id']
+      js: leftAttr, other[, {index:'id'}]
     parent: sequence
     returns: sequence
 
@@ -109,10 +112,21 @@ commands:
             r.table('marvel').inner_join(r.table('dc')) {|left, right|
              left[:main_dc_collaborator].eq(right[:hero_name])
             }.run(conn)
+      - description: You can take advantage of a secondary index on the second table by giving
+          an optional index parameter.
+        code:
+          py: |
+            r.table('marvel').eq_join('main_weapon_origin',
+                r.table('mythical_weapons'), index='origin').run(conn)
+          rb: |
+            r.table('marvel').eq_join('main_weapon_origin',
+                r.table('mythical_weapons'), :index => 'origin').run(conn)
+          js: |
+            r.table('marvel').eqJoin('main_weapon_origin',
+                r.table('mythical_weapons'), {index:'origin'}).run(conn, callback)
 
     js:
       name: eqJoin
-      body: leftAttr, other
       examples:
         0:
           can_try: true
