@@ -625,9 +625,8 @@ public:
 
                 return cumulative_size < rget_max_chunk_size;
             } else {
-                json_list_t::iterator jt;
                 try {
-                    for (jt = data.begin(); jt != data.end(); ++jt) {
+                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         boost::apply_visitor(query_language::terminal_visitor_t(
                                                  *jt, ql_env, terminal->scopes,
                                                  terminal->backtrace, &response->result),

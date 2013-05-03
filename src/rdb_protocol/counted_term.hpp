@@ -8,8 +8,16 @@
 class Query;
 class Term;
 
+// This defines the type protob_t.  Imagine you have a deeply nested protocol
+// buffer object that is owned by same base protocol buffer object of type Term.
+// You want to reference count the protocol buffer objects.  This means that the
+// pointer to a sub-object needs own a pointer to the base Term object, so that
+// once all pointers to subobjects have destructed, the base Term object is
+// destroyed.  That's what protob_t does.
+
 namespace ql {
 
+// protob_destructable_t is a helper type that makes protob_t simpler.
 class protob_destructable_t {
 protected:
     template <class T> friend class protob_t;
@@ -22,6 +30,9 @@ protected:
 
     void swap(protob_destructable_t &other);
 
+    // These can be NULL.  If they are NULL, that means we don't have a base
+    // Term object.  This is used when there's a base Query object (for the
+    // outermost protocol buffer server handle callback).
     intptr_t *refcount_;
     Term *destructee_;
 };
@@ -37,6 +48,9 @@ public:
 
     protob_t(const protob_t &) = default;
 
+    // Makes a protob_t pointer to some value that is a child of pointee_.  They
+    // both share the same base Term object that will eventually get destroyed
+    // when all its pointers are released.
     template <class U>
     protob_t<U> make_child(U *child) const {
         return protob_t<U>(destructable_, child);
