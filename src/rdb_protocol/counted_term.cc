@@ -4,25 +4,36 @@
 
 namespace ql {
 
-protob_destructable_t::protob_destructable_t()
-    : refcount_(NULL), destructee_(NULL) { }
+// Contains an allocated Term (with a refcount) so that we don't need both a
+// refcount pointer and a Term pointer inside protob_destructable_t.  Not to
+// mention a heap-allocated refcount.  This saves memory.
+struct protob_term_t {
+    protob_term_t(intptr_t initial_refcount, const Term &t)
+        : refcount(initial_refcount), term(t) { }
 
-protob_destructable_t::protob_destructable_t(intptr_t *refcount, Term *destructee)
-    : refcount_(refcount), destructee_(destructee) { }
+    intptr_t refcount;
+    Term term;
+};
+
+protob_destructable_t::protob_destructable_t()
+    : destructee_(NULL) { }
+
+protob_destructable_t::protob_destructable_t(protob_term_t *destructee)
+    : destructee_(destructee) { }
 
 protob_destructable_t::protob_destructable_t(const protob_destructable_t &copyee)
-    : refcount_(copyee.refcount_), destructee_(copyee.destructee_) {
-    if (copyee.refcount_ != NULL) {
-        rassert(*copyee.refcount_ > 0);
-        ++*refcount_;
+    : destructee_(copyee.destructee_) {
+    if (destructee_ != NULL) {
+        rassert(destructee_->refcount > 0);
+        ++destructee_->refcount;
     }
 }
 
 protob_destructable_t::~protob_destructable_t() {
-    if (refcount_ != NULL) {
-        rassert(*refcount_ > 0);
-        --*refcount_;
-        if (*refcount_ == 0) {
+    if (destructee_ != NULL) {
+        rassert(destructee_->refcount > 0);
+        --destructee_->refcount;
+        if (destructee_->refcount == 0) {
             delete destructee_;
         }
     }
@@ -36,13 +47,12 @@ protob_destructable_t::operator=(const protob_destructable_t &assignee) {
 }
 
 void protob_destructable_t::swap(protob_destructable_t &other) {
-    std::swap(refcount_, other.refcount_);
     std::swap(destructee_, other.destructee_);
 }
 
 protob_t<Term> make_counted_term_copy(const Term &t) {
-    Term *term = new Term(t);
-    return protob_t<Term>(new intptr_t(1), term, term);
+    protob_term_t *term = new protob_term_t(1, t);
+    return protob_t<Term>(term, &term->term);
 }
 
 protob_t<Term> make_counted_term() {
@@ -50,7 +60,7 @@ protob_t<Term> make_counted_term() {
 }
 
 protob_t<Query> special_noncounting_query_protob(Query *query) {
-    return protob_t<Query>(NULL, NULL, query);
+    return protob_t<Query>(NULL, query);
 }
 
 }  // namespace ql
