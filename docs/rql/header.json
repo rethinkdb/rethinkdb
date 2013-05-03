@@ -3,9 +3,6 @@
     "r": {
       "parents": null
     },
-    "query": {
-      "parents": null
-    },
     "error": {
       "parents": null
     },
@@ -16,7 +13,7 @@
       "parents": null
     },
     "sequence": {
-      "parents": ["query"]
+      "parents": null
     },
     "selection": {
       "parents": ["sequence"]
@@ -27,23 +24,32 @@
     "db": {
       "parents": null
     },
-    "bool": {
-        "parents": ["json"]
-    },
-    "number": {
-        "parents": ["json"]
+    "datum": {
+      "parents": null
     },
     "array": {
-        "parents": ["sequence"]
+        "parents": ["datum", "sequence"]
+    },
+    "bool": {
+        "parents": ["datum"]
     },
     "null": {
-        "parents": ["json"]
+        "parents": ["datun"]
+    },
+    "number": {
+        "parents": ["datum"]
     },
     "object": {
-        "parents": ["json"]
+        "parents": ["datum"]
+    },
+    "string": {
+        "parents": ["datum"]
     },
     "json": {
-      "parents": null 
-    }
+      "parents": ["array", "bool", "null", "number", "object", "string"]
+    },
+    "query": {
+      "parents": ["json", "sequence"]
+    }    
   }
 }
