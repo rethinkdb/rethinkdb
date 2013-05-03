@@ -1,4 +1,18 @@
+# Release 1.4.5 (Some Like It Hot) #
+
+Released on 2013-05-03.
+
+## Changes ##
+
+Bug fix update:
+
+* Increase the TCP accept backlog (#369).
+
+---
+
 # Release 1.4.4 (Some Like It Hot) #
+
+Released on 2013-04-19.
 
 ## Changes ##
 
@@ -21,6 +35,8 @@ Bug fix update:
 
 # Release 1.4.3 (Some Like It Hot) #
 
+Released on 2013-04-10.
+
 ## Changes ##
 
 Bug fix update:
@@ -33,6 +49,8 @@ Bug fix update:
 ---
 
 # Release 1.4.2 (Some Like It Hot) #
+
+Released on 2013-03-30.
 
 ## Changes ##
 
@@ -51,6 +69,8 @@ Bug fix update:
 
 # Release 1.4.1 (Some Like It Hot) #
 
+Released on 2013-03-22.
+
 ## Changes ##
 
 Bug fix update:
@@ -66,6 +86,8 @@ Bug fix update:
 
 # Release 1.4 (Some Like It Hot) #
 
+Relased on 2013-03-18.
+
 ## Changes ##
 
 * Improved ReQL wire protocol and client drivers
@@ -76,6 +98,8 @@ Bug fix update:
 
 # Release 1.3.2 (Metropolis) #
 
+Released on 2013-01-15.
+
 ## Changes ##
 
 * Fixed security bug in http server.
@@ -84,6 +108,8 @@ Bug fix update:
 
 # Release 1.3.1 (Metropolis) #
 
+Released on 2012-12-20.
+
 ## Changes ##
 
 * Fixed OS X crash on ReQL exceptions.
@@ -91,6 +117,8 @@ Bug fix update:
 ---
 
 # Release 1.3.0 (Metropolis) #
+
+Released on 2012-12-20.
 
 ## Changes ##
 
@@ -102,6 +130,8 @@ Bug fix update:
 
 # Release 1.2.8 (Rashomon) #
 
+Released on 2012-12-15.
+
 ## Changes ##
 
 * Updating data explorer suggestions to account for recent `r.row`
@@ -111,6 +141,8 @@ Bug fix update:
 
 # Release 1.2.7 (Rashomon) #
 
+Released on 2012-12-14.
+
 ## Changes ##
 
 * Lots and lots of bug fixes
@@ -118,6 +150,8 @@ Bug fix update:
 ---
 
 # Release 1.2.6 (Rashomon) #
+
+Released on 2012-11-13.
 
 ## Changes ##
 
@@ -129,6 +163,8 @@ Bug fix update:
 
 # Release 1.2.5 (Rashomon) #
 
+Released on 2012-11-11.
+
 ## Changes ##
 
 * Checking for a null ifaattrs
@@ -136,6 +172,8 @@ Bug fix update:
 ---
 
 # Release 1.2.4 (Rashomon) #
+
+Released on 2012-11-11.
 
 ## Changes ##
 
@@ -145,6 +183,8 @@ Bug fix update:
 
 # Release 1.2.3 (Rashomon) #
 
+Released on 2012-11-09.
+
 ## Changes ##
 
 * Fixes a bug in the query engine that causes large range queries to
@@ -153,6 +193,8 @@ Bug fix update:
 ---
 
 # Release 1.2.0 (Rashomon) #
+
+Released on 2012-11-09.
 
 ## Changes ##
 
