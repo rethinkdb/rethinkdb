@@ -23,11 +23,14 @@ tests:
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
         py: err_regex("TypeError", ".* takes exactly 1 argument .2 given.", [])
       cd:
-      - db.table_list(1)
       - tbl.delete(1)
       - tbl.zip(1)
       - tbl.count(1)
       - tbl.distinct(1)
+
+    - rb: db.table_list(1)
+      ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
+
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
