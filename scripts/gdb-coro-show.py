@@ -148,7 +148,7 @@ class CoroListCommand(gdb.Command):
                 #else:
                 #    interesting_file = i[1]
 
-                gdb.write("[%d] = %s\n" % i)
+                gdb.write("[%d] = %s parent: %s\n" % (i[0], i[1], i[1].dereference()["parent_"]))
         else:
             gdb.write("no coroutine structure found, switch to a thread with coroutines\n")
 
