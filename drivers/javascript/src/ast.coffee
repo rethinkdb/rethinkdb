@@ -135,7 +135,7 @@ class DatumTerm extends RDBVal
             when Datum.DatumType.R_STR
                 datum.getRStr()
             when Datum.DatumType.R_ARRAY
-                new ArrayResult(DatumTerm::deconstruct dt for dt in datum.rArrayArray())
+                DatumTerm::deconstruct dt for dt in datum.rArrayArray()
             when Datum.DatumType.R_OBJECT
                 obj = {}
                 for pair in datum.rObjectArray()
