@@ -110,6 +110,32 @@ def get_coro_backtrace(gdb, coro_ptr, exe_file):
         max_frames = max_frames - 1
     return result
 
+class coro_tree_node(object):
+    def __init__(self, coro):
+        self.coro = coro
+        self.children = []
+
+def insert_into_tree(list_of_coro_nodes, coro):
+    for node in list_of_coro_nodes:
+        if coro.dereference()["parent_"] == node.coro:
+            node.children += [coro_tree_node(coro)]
+            return True
+        elif insert_into_tree(node.children, coro):
+            return True
+    return False
+
+def make_coro_tree(list_of_coros):
+    coro_nodes = []
+    for coro in list_of_coros:
+        if not insert_into_tree(coro_nodes, coro):
+            coro_nodes += [coro_tree_node(coro)]
+    return coro_nodes
+
+def print_coro_nodes(list_of_coro_nodes, tabs):
+    for node in list_of_coro_nodes:
+        gdb.write("\t" * tabs + " " + "%s" % node.coro + "\n")
+        print_coro_nodes(node.children, tabs + 1)
+
 
 class CoroListCommand(gdb.Command):
     "List of all coroutines running in the current thread."
@@ -126,29 +152,8 @@ class CoroListCommand(gdb.Command):
             current_coro = coro_globals_ptr.dereference()["current_coro"]
 
             gdb.write("active coroutine count: %d\n" % len (active_coros.children().rbiter))
-            for i in active_coros.children():
-                # i[0] contains the index we're in
-                # i[1] contains a string of the pointer to the coro_t
-                #if arg == "long":
-                #    backtrace = get_coro_backtrace(gdb, i[1], self.exe_file)
-                #    interesting_file = "<system>"
-                #    if (i[1] == current_coro):
-                #        interesting_file = "<active>"
-                #    else:
-                        # Look through the filenames for a rethinkdb/src file that isn't in arch/
-                        # TODO: it would be better to do this backwards and break, but this isn't going to be fast, anyway
-                #        for line in backtrace:
-                #            match = re.search("rethinkdb/src/(.+):", line[0])
-                #            if match is None:
-                #                continue
-                #            temp_str = match.group(1)
-                #            if temp_str.find("arch/") == 0 or temp_str.find("./arch/") == 0:
-                #                continue
-                #            interesting_file = temp_str
-                #else:
-                #    interesting_file = i[1]
-
-                gdb.write("[%d] = %s parent: %s\n" % (i[0], i[1], i[1].dereference()["parent_"]))
+            coro_list = map(lambda x: x[1], active_coros.children())
+            print_coro_nodes(make_coro_tree(coro_list), 0)
         else:
             gdb.write("no coroutine structure found, switch to a thread with coroutines\n")
 
