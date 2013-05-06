@@ -131,6 +131,7 @@ private:
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
+        coro->parent_ = coro_t::self();
         return coro;
     }
 
@@ -153,6 +154,7 @@ private:
     bool notified_;
     bool waiting_;
     std::set<coro_t *> waiting_on_;
+    coro_t *parent_;
 
     callable_action_wrapper_t action_wrapper;
 
