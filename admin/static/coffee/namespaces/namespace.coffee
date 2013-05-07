@@ -36,6 +36,7 @@ module 'NamespaceView', ->
             @title = new NamespaceView.Title(model: @model)
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
+            @secondary_indexes_view = new NamespaceView.SecondaryIndexesView(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
             @server_assignments = new NamespaceView.ServerAssignments(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance,
@@ -83,6 +84,10 @@ module 'NamespaceView', ->
             # Display the server assignments
             @.$('.server-assignments').html @server_assignments.render().el
 
+            # Display the secondary indexes
+            @.$('.secondary_indexes').html @secondary_indexes_view.render().el
+
+
             return @
 
         close_alert: (event) ->
@@ -127,6 +132,7 @@ module 'NamespaceView', ->
             @shards.destroy()
             @server_assignments.destroy()
             @performance_graph.destroy()
+            @secondary_indexes_view.destroy()
 
     # NamespaceView.Title
     class @Title extends Backbone.View
@@ -194,3 +200,184 @@ module 'NamespaceView', ->
             @model.off 'all', @render
             directory.off 'all', @render
             progress_list.off 'all', @render
+
+    class @SecondaryIndexesView extends Backbone.View
+        template: Handlebars.templates['namespace_view-secondary_indexes-template']
+        content_template: Handlebars.templates['namespace_view-secondary_indexes-content-template']
+        alert_message_template: Handlebars.templates['secondary_indexes-alert_msg-template']
+        error_template: Handlebars.templates['secondary_indexes-error-template']
+        events:
+            'click .delete_link': 'confirm_delete'
+            'click .delete_index_btn': 'delete_secondary_index'
+            'click .cancel_delete_btn': 'cancel_delete'
+            'click .create_link': 'show_add_index'
+            'click .create_btn': 'create_index'
+            'keydown .secondary_index_name': 'handle_keypress'
+            'click .cancel_btn': 'hide_add_index'
+            'click .reconnect_link': 'init_connection'
+            'click .close_hide': 'hide_alert'
+        interval: 60*1000 # Retrieve secondary indexes every minute
+
+        initialize: =>
+            @init_connection()
+            @secondary_indexes = null
+            @deleting_secondary_indexes = {}
+
+        # Create a connection and fetch secondary indexes
+        init_connection: (event) =>
+            if event?
+                event.preventDefault()
+
+            @loading = true
+            @driver_handler = new DataExplorerView.DriverHandler
+                on_success: @set_interval_get_indexes
+                on_fail: @on_fail_to_connect
+                dont_timeout_connection: true
+            @secondary_indexes = null # list of secondary indexes available
+            @deleting_secondary_indexes = {} # list of secondary indexes with an alert displayed
+
+            @db = databases.get(@model.get('database')).get('name')
+            @table = @model.get('name')
+
+        # Show a confirmation before deleting a secondary index
+        confirm_delete: (event) =>
+            event.preventDefault()
+            @deleting_secondary_indexes[@$(event.target).data('name')] = true
+            @$(event.target).parent().next('li').children('.alert').slideDown 'fast'
+
+        # Delete a secondary index
+        delete_secondary_index: (event) =>
+            @current_secondary_name = @$(event.target).data('name')
+            r.db(@db).table(@table).indexDrop(@current_secondary_name).private_run @driver_handler.connection, @on_drop
+            @deleting_secondary_indexes[@$(event.target).data('name')] = false
+
+        # Callback for indexDrop()
+        on_drop: (err, result) =>
+            if err? or result?.dropped isnt 1
+                @loading = false
+                @$('.alert_content').html @error_template
+                    delete_fail: true
+                    message: err.msg.replace('\n', '<br/>')
+                @$('.main_alert').show()
+                @get_indexes()
+
+            else
+                @get_indexes()
+                @$('.alert_content').html @alert_message_template
+                    delete_ok: true
+                    name: @current_secondary_name
+                @$('.main_alert').show()
+
+
+        # Show the form to add a secondary index
+        show_add_index: (event) =>
+            event.preventDefault()
+            @adding_index = true
+            @render_content()
+        
+        # Hide the form to add a secondary index
+        hide_add_index: =>
+            @adding_index = false
+            @render_content()
+
+        # Render list of secondary index
+        render_content: (args) =>
+            that = @
+            if not args?
+                args = {}
+            mapped_secondary_indexes = _.map @secondary_indexes, (d) ->
+                name: d
+                display: that.deleting_secondary_indexes[d] is true
+
+            template_args =
+                loading: @loading
+                secondary_indexes: mapped_secondary_indexes
+                no_secondary_indexes: @secondary_indexes? and @secondary_indexes.length is 0
+                show_add_index: @adding_index
+                secondary_index_name: @secondary_index_name
+            @$('.content').html @content_template _.extend template_args, args
+            if @adding_index
+                @$('.secondary_index_name').focus()
+            @delegateEvents()
+
+        render: =>
+            @$el.html @template()
+            @render_content()
+            return @
+       
+        # Retrieve secondary indexes with an interval
+        set_interval_get_indexes: =>
+            @get_indexes()
+            @interval = setInterval @get_indexes, @interval # The connection times out every 5 minutes
+
+        get_indexes: =>
+            r.db(@db).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
+
+        # Callback on indexList
+        on_index_list: (err, result) =>
+            if err?
+                @loading = false
+                @render_content
+                    error: true
+                    index_list: true
+            else
+                @loading = false
+                secondary_indexes = result.sort()
+                if not _.isEqual @secondary_indexes, secondary_indexes
+                    @secondary_indexes = secondary_indexes
+                    @render_content()
+
+        
+        on_fail_to_connect: =>
+            @loading = false
+            @$el.html @template
+                error: true
+                connect: true
+            return @
+
+        # We catch enter and esc when the user is writing a secondary index name
+        handle_keypress: (event) =>
+            if event.which is 13 # Enter
+                event.preventDefault()
+                @create_index()
+            else if event.which is 27 # ESC
+                event.preventDefault()
+                @hide_add_index()
+            else
+                @current_secondary_name = $('.secondary_index_name').val()
+
+        create_index: =>
+            @current_secondary_name = $('.secondary_index_name').val()
+            r.db(@db).table(@table).indexCreate(@current_secondary_name).private_run @driver_handler.connection, @on_create
+
+        # Callback on indexCreate()
+        on_create: (err, result) =>
+            if err?
+                @$('.alert_error_content').html @error_template
+                    create_fail: true
+                    message: err.msg.replace('\n', '<br/>')
+                @$('.alert-on_create').slideDown 'fast'
+            else
+                @adding_index = false
+                @get_indexes()
+                @$('.alert_content').html @alert_message_template
+                    create_ok: true
+                    name: @current_secondary_name
+                @$('.main_alert').show()
+
+        # Hide alert BUT do not remove it
+        hide_alert: (event) ->
+            if event? and @$(event.target)?.data('name')?
+                @deleting_secondary_indexes[@$(event.target).data('name')] = false
+            event.preventDefault()
+            $(event.target).parent().slideUp 'fast'
+        
+        # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
+        cancel_delete: (event) ->
+            if event? and @$(event.target)?.data('name')?
+                @deleting_secondary_indexes[@$(event.target).data('name')] = false
+            @$(event.target).parent().parent().slideUp 'fast'
+
+        destroy: =>
+            if @interval?
+                clearInterval @interval

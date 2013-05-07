@@ -235,7 +235,7 @@ button.btn {
         color: #d95b5b; // text color + color overlay
     }
 
-    .close {
+    .close, .close_hide {
         position: relative;
         float: right;
         right: -23px;
@@ -2384,6 +2384,48 @@ TODO: retire this
             line { stroke: #dcdcdc; }
             .rect { fill: #9ad7f2; }
             text { fill: #a3a3a3; }
+        }
+    }
+    .section.secondary_indexes{
+        .list_secondary_indexes{
+            list-style: none;
+            margin: 0px;
+            padding: 0px;
+            .square_li{
+                background-image: url('/images/list-square-bullet.png'); 
+                background-position: left center;
+                background-repeat: no-repeat;
+                padding: 5px 0px 5px 20px;
+                font-family: @sans;
+                font-size: 15px;
+                color: #a9a9a9;
+                .secondary_index_name{
+                    margin-bottom: -1px;
+                }
+            }
+            .input_li{
+                padding: 0px 0px 0px 20px;
+            }
+            .alert_li{
+                .alert{
+                    margin-top: 5px;
+                    margin-bottom: 5px;
+                }
+            }
+        }
+        .create_container{
+            margin: 10px 0px 0px 0px;
+            font-size: 13px;
+        }
+        .alert-on_create{
+            margin-top: 7px;
+            .error_detail{
+                font-family: @monospace;
+                font-size: 13px;
+            }
+        }
+        .cancel_delete_btn, .delete_index_btn{
+            margin: 7px 7px 0px 0px;
         }
     }
 }
