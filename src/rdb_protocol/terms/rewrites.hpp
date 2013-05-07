@@ -59,6 +59,10 @@ public:
            reduce_fn(env, arg, dc, &dc_arg));
     }
 private:
+
+    // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
+    // as syntax rather than just parsing them both into an object (since we're
+    // doing this at compile-time rather than runtime).
     static void parse_dc(const Term *t, std::string *dc_out,
                          Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
         std::string errmsg = "Invalid data collector.";
