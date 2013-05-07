@@ -11,9 +11,14 @@
 namespace ql {
 
 // Most of this logic is copy-pasted from the old query language.
-table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
+table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
-    : pb_rcheckable_t(backtrace), env(_env), use_outdated(_use_outdated) {
+    : pb_rcheckable_t(backtrace),
+      db(_db),
+      name(_name),
+      env(_env),
+      use_outdated(_use_outdated) {
+    uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
     rcheck(b, strprintf("Table name `%s` invalid (%s).",
@@ -487,13 +492,12 @@ val_t::val_t(counted_t<table_t> _table, const term_t *parent)
       table(_table) {
     guarantee(table.has());
 }
-val_t::val_t(uuid_u _db, const term_t *parent)
+val_t::val_t(counted_t<const db_t> _db, const term_t *parent)
     : pb_rcheckable_t(parent->backtrace()),
       env(parent->val_t_get_env()),
       type(type_t::DB),
-      table(NULL) {
-    guarantee(!table.has());
-    *db_ptr() = _db;
+      u(_db) {
+    guarantee(db().has());
 }
 val_t::val_t(counted_t<func_t> _func, const term_t *parent)
     : pb_rcheckable_t(parent->backtrace()),
@@ -503,13 +507,7 @@ val_t::val_t(counted_t<func_t> _func, const term_t *parent)
     guarantee(func().has());
 }
 
-val_t::~val_t() {
-    if (get_type().is_convertible(type_t::DB)) {
-        // This isn't necessary right now because the `uuid_u` destructor
-        // doesn't do anything useful, but it helps make us future-proof.
-        db_ptr()->~uuid_u();
-    }
-}
+val_t::~val_t() { }
 
 val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
@@ -578,9 +576,9 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     unreachable();
 }
 
-uuid_u val_t::as_db() {
+counted_t<const db_t> val_t::as_db() {
     rcheck_literal_type(type_t::DB);
-    return *db_ptr();
+    return db();
 }
 
 bool val_t::as_bool() {

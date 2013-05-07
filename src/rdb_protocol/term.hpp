@@ -13,12 +13,15 @@
 #include "rdb_protocol/ql2.pb.h"
 
 namespace ql {
-class env_t;
+
 class datum_stream_t;
 class datum_t;
+class db_t;
+class env_t;
 class func_t;
-class val_t;
 class table_t;
+class val_t;
+
 class term_t : public slow_atomic_countable_t<term_t>, public pb_rcheckable_t {
 public:
     explicit term_t(env_t *_env, protob_t<const Term> _src);
@@ -32,7 +35,7 @@ public:
     counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t);
-    counted_t<val_t> new_val(uuid_u db);
+    counted_t<val_t> new_val(counted_t<const db_t> db);
     counted_t<val_t> new_val(counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<func_t> f);
     counted_t<val_t> new_val_bool(bool b);

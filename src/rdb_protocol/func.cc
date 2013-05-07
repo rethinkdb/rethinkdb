@@ -141,6 +141,11 @@ void func_t::assert_deterministic(const char *extra_msg) const {
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
+std::string func_t::print_src() const {
+    r_sanity_check(source.has());
+    return source->DebugString();
+}
+
 // This JS evaluation resulted in an error
 counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
     rfail_target(parent, "%s", err_val.c_str());

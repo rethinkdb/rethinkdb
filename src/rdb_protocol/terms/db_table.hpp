@@ -105,7 +105,7 @@ private:
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
         }
-        return new_val(uuid);
+        return new_val(make_counted<const db_t>(uuid, db_name.str()));
     }
     virtual const char *name() const { return "db"; }
 };
@@ -149,7 +149,8 @@ static const char *const table_create_optargs[] =
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, protob_t<const Term> term) :
-        meta_write_op_t(env, term, argspec_t(2), optargspec_t(table_create_optargs)) { }
+        meta_write_op_t(env, term, argspec_t(1, 2),
+                        optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
@@ -179,9 +180,17 @@ private:
             cache_size = v->as_int<int>();
         }
 
-        uuid_u db_id = arg(0)->as_db();
-
-        name_string_t tbl_name = get_name(arg(1), this);
+        uuid_u db_id;
+        name_string_t tbl_name;
+        if (num_args() == 1) {
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            r_sanity_check(dbv);
+            db_id = dbv->as_db()->id;
+            tbl_name = get_name(arg(0), this);
+        } else {
+            db_id = arg(0)->as_db()->id;
+            tbl_name = get_name(arg(1), this);
+        }
         // Ensure table doesn't already exist.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
@@ -282,11 +291,20 @@ private:
 class table_drop_term_t : public meta_write_op_t {
 public:
     table_drop_term_t(env_t *env, protob_t<const Term> term) :
-        meta_write_op_t(env, term, argspec_t(2)) { }
+        meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual std::string write_eval_impl() {
-        uuid_u db_id = arg(0)->as_db();
-        name_string_t tbl_name = get_name(arg(1), this);
+        uuid_u db_id;
+        name_string_t tbl_name;
+        if (num_args() == 1) {
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            r_sanity_check(dbv);
+            db_id = dbv->as_db()->id;
+            tbl_name = get_name(arg(0), this);
+        } else {
+            db_id = arg(0)->as_db()->id;
+            tbl_name = get_name(arg(1), this);
+        }
 
         rethreading_metadata_accessor_t meta(this);
 
@@ -343,11 +361,18 @@ private:
 class table_list_term_t : public meta_op_t {
 public:
     table_list_term_t(env_t *env, protob_t<const Term> term) :
-        meta_op_t(env, term, argspec_t(1)) { }
+        meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-        uuid_u db_id = arg(0)->as_db();
+        uuid_u db_id;
+        if (num_args() == 0) {
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            r_sanity_check(dbv);
+            db_id = dbv->as_db()->id;
+        } else {
+            db_id = arg(0)->as_db()->id;
+        }
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
@@ -376,8 +401,8 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
-        bool use_outdated = t.has() ? t->as_bool() : false;
-        uuid_u db;
+        bool use_outdated = t ? t->as_bool() : false;
+        counted_t<const db_t> db;
         std::string name;
         if (num_args() == 1) {
             counted_t<val_t> dbv = optarg("db", counted_t<val_t>());

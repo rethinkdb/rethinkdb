@@ -278,6 +278,9 @@ class RqlQuery(object):
     def for_each(self, mapping):
         return ForEach(self, func_wrap(mapping))
 
+    def info(self):
+        return Info(self)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -713,8 +716,12 @@ class All(RqlBiOperQuery):
     st = "&"
 
 class ForEach(RqlMethodQuery):
-    tt =p.Term.FOREACH
+    tt = p.Term.FOREACH
     st = 'for_each'
+
+class Info(RqlMethodQuery):
+    tt = p.Term.INFO
+    st = 'info'
 
 # Called on arguments that should be functions
 def func_wrap(val):

@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
@@ -17,9 +18,16 @@ class term_t;
 class stream_cache2_t;
 template <class> class protob_t;
 
+class db_t : public slow_atomic_countable_t<db_t> {
+public:
+    db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
+    const uuid_u id;
+    const std::string name;
+};
+
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, uuid_u db_id, const std::string &name,
+    table_t(env_t *_env, counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
@@ -55,6 +63,8 @@ public:
     MUST_USE bool sindex_drop(const std::string &name);
     counted_t<const datum_t> sindex_list();
 
+    counted_t<const db_t> db;
+    const std::string name;
 private:
     struct datum_func_pair_t {
         datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
@@ -126,6 +136,7 @@ public:
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
+        friend int val_type(counted_t<val_t> v);
         raw_type_t raw_type;
     };
     type_t get_type() const;
@@ -136,11 +147,11 @@ public:
     val_t(counted_t<datum_stream_t> _sequence, const term_t *parent);
     val_t(counted_t<table_t> _table, const term_t *parent);
     val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(uuid_u _db, const term_t *parent);
+    val_t(counted_t<const db_t> _db, const term_t *parent);
     val_t(counted_t<func_t> _func, const term_t *parent);
     ~val_t();
 
-    uuid_u as_db();
+    counted_t<const db_t> as_db();
     counted_t<table_t> as_table();
     std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection();
     counted_t<datum_stream_t> as_seq();
@@ -182,11 +193,14 @@ private:
     // We pretend that this variant is a union -- as if it doesn't have type
     // information.  The sequence, datum, func, and db_ptr functions get the
     // fields of the variant.
-    boost::variant<uuid_u,
+    boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
                    counted_t<func_t> > u;
 
+    counted_t<const db_t> db() {
+        return boost::get<counted_t<const db_t> >(u);
+    }
     counted_t<datum_stream_t> &sequence() {
         return boost::get<counted_t<datum_stream_t> >(u);
     }
@@ -194,10 +208,6 @@ private:
         return boost::get<counted_t<const datum_t> >(u);
     }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
-
-    uuid_u *db_ptr() {
-        return &boost::get<uuid_u>(u);
-    }
 
     DISABLE_COPYING(val_t);
 };

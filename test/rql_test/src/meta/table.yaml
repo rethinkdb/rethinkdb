@@ -58,7 +58,7 @@ tests:
       py: [] # In python, 'foo' becomes the primary key
       ot:
         cd: err('RqlDriverError', 'Expected 1 argument(s) but found 2.', [])
-        rb: err("RqlCompileError", "Expected 2 argument(s) but found 3.", [])
+        rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
 
     - js: db.table_create('nonsense', {'foo':'bar'})
       py: db.table_create('nonsense', foo='bar')

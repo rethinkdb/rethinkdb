@@ -102,6 +102,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::FUNC:               return make_counted<func_term_t>(env, t);
     case Term::ASC:                return make_counted<asc_term_t>(env, t);
     case Term::DESC:               return make_counted<desc_term_t>(env, t);
+    case Term::INFO:               return make_counted<info_term_t>(env, t);
     default: unreachable();
     }
     unreachable();
@@ -284,7 +285,7 @@ counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
     return make_counted<val_t>(d, s, this);
 }
-counted_t<val_t> term_t::new_val(uuid_u db) {
+counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
     return make_counted<val_t>(db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {

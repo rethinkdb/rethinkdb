@@ -1,0 +1,18 @@
+commands:
+  - tag: info
+    section: control
+    order: 8
+    description: Get information about a RQL value.
+
+    parent: value
+    returns: object
+
+    examples:
+      - description: |
+          Get information about a table such as primary key, or cache size.
+        code: r.table('marvel').info().run(conn)
+
+    js:
+      examples:
+        0:
+          code: r.table('marvel').info().run(conn, callback)
