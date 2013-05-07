@@ -102,12 +102,11 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    typedef counted_t<const datum_t> (*merge_res_f)(env_t *env,
-                                                    const std::string &key,
+    typedef counted_t<const datum_t> (*merge_res_f)(const std::string &key,
                                                     counted_t<const datum_t> l,
                                                     counted_t<const datum_t> r,
                                                     const rcheckable_t *caller);
-    counted_t<const datum_t> merge(env_t *env, counted_t<const datum_t> rhs, merge_res_f f) const;
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;

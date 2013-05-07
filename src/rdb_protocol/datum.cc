@@ -428,13 +428,13 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     return counted_t<const datum_t>(d.release());
 }
 
-counted_t<const datum_t> datum_t::merge(env_t *env, counted_t<const datum_t> rhs, merge_res_f f) const {
+counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
             bool b = d->add(it->first,
-                            f(env, it->first, left, it->second, this),
+                            f(it->first, left, it->second, this),
                             CLOBBER);
             r_sanity_check(b);
         } else {

@@ -10,11 +10,9 @@
 
 namespace ql {
 
-// RSI env is unused in stats_merge and pure_merge.
-
 // This function is used by e.g. foreach to merge statistics from multiple write
 // operations.
-counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string &key,
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r,
                                      const rcheckable_t *caller) {
@@ -40,7 +38,7 @@ counted_t<const datum_t> stats_merge(UNUSED env_t *env, UNUSED const std::string
 }
 
 // Use this merge if it should theoretically never be called.
-counted_t<const datum_t> pure_merge(UNUSED env_t *env, UNUSED const std::string &key,
+counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
                                     UNUSED counted_t<const datum_t> l,
                                     UNUSED counted_t<const datum_t> r,
                                     UNUSED const rcheckable_t *caller) {
@@ -74,7 +72,7 @@ private:
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
             bool conflict = d->add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
-            *datum_out = (*datum_out)->merge(env, counted_t<const datum_t>(d.release()), pure_merge);
+            *datum_out = (*datum_out)->merge(counted_t<const datum_t>(d.release()), pure_merge);
             generated_keys_out->push_back(key);
         }
     }
@@ -97,7 +95,7 @@ private:
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                stats = stats->merge(env, t->replace(d, d, upsert), stats_merge);
+                stats = stats->merge(t->replace(d, d, upsert), stats_merge);
                 done = true;
             }
         }
@@ -124,7 +122,7 @@ private:
                 std::vector<counted_t<const datum_t> > results =
                     t->batch_replace(datums, datums, upsert);
                 for (auto it = results.begin(); it != results.end(); ++it) {
-                    stats = stats->merge(env, *it, stats_merge);
+                    stats = stats->merge(*it, stats_merge);
                 }
             }
         }
@@ -137,7 +135,7 @@ private:
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
             UNUSED bool b = d->add("generated_keys",
                                    counted_t<const datum_t>(genkeys.release()));
-            stats = stats->merge(env, counted_t<const datum_t>(d.release()), pure_merge);
+            stats = stats->merge(counted_t<const datum_t>(d.release()), pure_merge);
         }
 
         return new_val(stats);
@@ -170,7 +168,7 @@ private:
             counted_t<const datum_t> result = tblrow.first->replace(tblrow.second,
                                                                     f,
                                                                     nondet_ok);
-            stats = stats->merge(env, result, stats_merge);
+            stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection();
@@ -186,7 +184,7 @@ private:
                     tbl->batch_replace(datums, f, nondet_ok);
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
-                    stats = stats->merge(env, *result, stats_merge);
+                    stats = stats->merge(*result, stats_merge);
                 }
             }
         }
@@ -214,10 +212,10 @@ private:
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {
-                    stats = stats->merge(env, d, stats_merge);
+                    stats = stats->merge(d, stats_merge);
                 } else {
                     for (size_t i = 0; i < d->size(); ++i) {
-                        stats = stats->merge(env, d->get(i), stats_merge);
+                        stats = stats->merge(d->get(i), stats_merge);
                     }
                 }
             } catch (const exc_t &e) {
