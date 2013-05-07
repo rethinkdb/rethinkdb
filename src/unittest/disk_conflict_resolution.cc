@@ -12,32 +12,45 @@
 
 namespace unittest {
 
-struct test_driver_t {
+struct core_action_t : public intrusive_list_node_t<core_action_t> {
     /* We need for multiple test_driver_t objects to share a file
        descriptor in order to test the conflict resolution logic, but
        it doesn't matter what that file descriptor is. */
     static const int IRRELEVANT_DEFAULT_FD = 0;
 
-    struct core_action_t : public intrusive_list_node_t<core_action_t> {
-        bool get_is_write() const { return !is_read; }
-        bool get_is_read() const { return is_read; }
-        fd_t get_fd() const { return fd; }
-        void *get_buf() const { return buf; }
-        size_t get_count() const { return count; }
-        int64_t get_offset() const { return offset; }
-        void set_successful_due_to_conflict() { }
+    bool get_is_write() const { return !is_read; }
+    bool get_is_read() const { return is_read; }
+    fd_t get_fd() const { return fd; }
+    void *get_buf() const { return buf; }
+    size_t get_count() const { return count; }
+    int64_t get_offset() const { return offset; }
+    void set_successful_due_to_conflict() { }
 
-        bool is_read;
-        void *buf;
-        size_t count;
-        int64_t offset;
+    bool is_read;
+    void *buf;
+    size_t count;
+    int64_t offset;
 
-        core_action_t() :
-            has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
-        bool has_begun, done;
-        fd_t fd;
-    };
+    core_action_t() :
+        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
+    bool has_begun, done;
+    fd_t fd;
+};
 
+void debug_print(append_only_printf_buffer_t *buf,
+                  const core_action_t &action) {
+    buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
+                 "offset=%" PRIi64 ", has_begun=%s, done=%s, fd=%d}",
+                 action.is_read ? "true" : "false",
+                 action.buf,
+                 action.count,
+                 action.offset,
+                 action.has_begun ? "true" : "false",
+                 action.done ? "true" : "false",
+                 action.fd);
+}
+
+struct test_driver_t {
     intrusive_list_t<core_action_t> running_actions;
     std::vector<char> data;
 
