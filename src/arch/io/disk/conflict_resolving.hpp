@@ -58,6 +58,10 @@ struct conflict_resolving_diskmgr_action_t : public payload_t {
 };
 
 template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const conflict_resolving_diskmgr_action_t<payload_t> &action);
+
+template <class payload_t>
 struct conflict_resolving_diskmgr_t {
     explicit conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
     ~conflict_resolving_diskmgr_t();

@@ -6,6 +6,15 @@
 
 #include "perfmon/perfmon.hpp"
 
+template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const conflict_resolving_diskmgr_action_t<payload_t> &action) {
+    buf->appendf("cr_diskmgr_action{conflict_count=%d}<", action.conflict_count);
+    const payload_t &parent_action = action;
+    debug_print(buf, parent_action);
+}
+
+
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
     conflict_sampler(secs_to_ticks(1), true),
@@ -26,6 +35,8 @@ conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
+    // debugf_print("cr action submit", *action);
+
     std::map<int, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
     /* Determine the range of file-blocks that this action spans */
     int start, end;
@@ -110,6 +121,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
                    action->get_count());
 
             action->set_successful_due_to_conflict();
+            // debugf_print("cr action instant done_fun", *action);
             done_fun(action);
             return;
         }
@@ -223,5 +235,6 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
         }
     }
 
+    // debugf_print("cr action delayed done_fun", *action);
     done_fun(action);
 }
