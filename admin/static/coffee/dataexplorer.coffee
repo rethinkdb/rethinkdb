@@ -649,7 +649,7 @@ module 'DataExplorerView', ->
                                     @insert_next char_to_insert
                             else # Else we'll just insert one quote
                                 return true
-                    else if last_element_incomplete_type isnt 'string' and last_element_incomplete_type isnt 'object_key'
+                    else if last_element_incomplete_type isnt 'string'
                         next_char = @get_next_char()
 
                         if char_to_insert of @matching_opening_bracket
