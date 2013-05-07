@@ -321,6 +321,8 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
 }
 
+static __thread coro_t *who_has_the_sindex_block;
+
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         write_token_pair_t *token_pair,
@@ -339,6 +341,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
+    who_has_the_sindex_block = coro_t::self();
 }
 
 template <class region_map_t>

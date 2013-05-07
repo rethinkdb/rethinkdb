@@ -29,21 +29,21 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now_dangerously(const Callable &action) {
-        get_and_init_coro(action)->notify_now_deprecated();
+    static void spawn_now_dangerously(const Callable &action, const std::string &purpose = "") {
+        get_and_init_coro(action, purpose)->notify_now_deprecated();
     }
 
     template<class Callable>
-    static void spawn_sometime(const Callable &action) {
-        get_and_init_coro(action)->notify_sometime();
+    static void spawn_sometime(const Callable &action, const std::string &purpose = "") {
+        get_and_init_coro(action, purpose)->notify_sometime();
     }
 
     // TODO: spawn_later_ordered is usually what naive people want,
     // but it's such a long and onerous name.  It should have the
     // shortest name.
     template<class Callable>
-    static void spawn_later_ordered(const Callable &action) {
-        get_and_init_coro(action)->notify_later_ordered();
+    static void spawn_later_ordered(const Callable &action, const std::string &purpose = "") {
+        get_and_init_coro(action, purpose)->notify_later_ordered();
     }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
@@ -52,8 +52,8 @@ public:
     `notify_later_ordered()`. They are deprecated and new code should not use
     them. */
     template<class Callable>
-    static void spawn(const Callable &action) {
-        spawn_later_ordered(action);
+    static void spawn(const Callable &action, const std::string &purpose = "") {
+        spawn_later_ordered(action, purpose);
     }
 
     /* Pauses the current coroutine until it is notified */
@@ -125,13 +125,14 @@ private:
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
-    static coro_t * get_and_init_coro(const Callable &action) {
+    static coro_t * get_and_init_coro(const Callable &action, const std::string &purpose) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
         coro->parent_ = coro_t::self();
+        coro->purpose_ = purpose;
         return coro;
     }
 
@@ -155,6 +156,7 @@ private:
     bool waiting_;
     std::set<coro_t *> waiting_on_;
     coro_t *parent_;
+    std::string purpose_;
 
     callable_action_wrapper_t action_wrapper;
 

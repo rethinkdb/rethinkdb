@@ -433,56 +433,89 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
         blob.clear(_txn);
 }
 
-class erase_range_sindex_cb_t : public erase_range_cb_t {
+class sindex_key_range_tester_t : public key_tester_t {
 public:
-    erase_range_sindex_cb_t(rdb_modification_report_cb_t *mod_report_cb,
-                            transaction_t *txn)
-        : mod_report_cb_(mod_report_cb), txn_(txn)
-    { }
+    sindex_key_range_tester_t(const key_range_t &key_range)
+        : key_range_(key_range) { }
 
-    void handle_pair(const btree_key_t *key, const void *value,
-            signal_t *interruptor) {
-        mod_report_cb_->delete_row(store_key_t(key),
-                get_data(static_cast<const rdb_value_t *>(value), txn_),
-                interruptor);
+    bool key_should_be_erased(const btree_key_t *key) {
+        std::string pk = ql::datum_t::unprint_secondary(
+            key_to_unescaped_str(store_key_t(key)));
+
+        return key_range_.contains_key(store_key_t(pk));
     }
-
-    rdb_modification_report_cb_t *mod_report_cb_;
-    transaction_t *txn_;
+private:
+    key_range_t key_range_;
 };
 
+typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
+typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
+
+void sindex_erase_range(const key_range_t &key_range,
+        transaction_t *txn, sindex_access_t *sindex_access, auto_drainer_t::lock_t) {
+
+    value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    rdb_value_deleter_t deleter;
+
+    sindex_key_range_tester_t tester(key_range);
+
+    btree_erase_range_generic(sizer, sindex_access->btree, &tester,
+            &deleter, NULL, NULL, txn, sindex_access->super_block.get(), NULL);
+}
+
+/* Spawns a coro to carry out the erase range for each sindex. */
+void spawn_sindex_erase_ranges(
+        sindex_access_vector_t *sindex_access,
+        const key_range_t &key_range,
+        transaction_t *txn,
+        auto_drainer_t *drainer,
+        auto_drainer_t::lock_t) {
+    for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
+        coro_t::spawn_sometime(boost::bind(
+                    &sindex_erase_range, key_range, txn, &*it, auto_drainer_t::lock_t(drainer)));
+    }
+}
+
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                     bool left_key_supplied, const store_key_t& left_key_exclusive,
-                     bool right_key_supplied, const store_key_t& right_key_inclusive,
+                     const key_range_t &key_range,
                      transaction_t *txn, superblock_t *superblock,
-                     rdb_modification_report_cb_t *mod_report_cb) {
+                     btree_store_t<rdb_protocol_t> *store,
+                     write_token_pair_t *token_pair,
+                     signal_t *interruptor) {
 
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_deleter_t deleter;
 
-    erase_range_sindex_cb_t sindex_cb(mod_report_cb, txn);
+    /* Dispatch the erase range to the sindexes. */
+    sindex_access_vector_t sindex_superblocks;
+    store->aquire_post_constructed_sindex_superblocks_for_write(
+            superblock->get_sindex_block_id(),
+            token_pair, txn, &sindex_superblocks, interruptor);
+    auto_drainer_t drainer;
+    spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
+            &drainer, auto_drainer_t::lock_t(&drainer));
+
+    /* Twiddle some keys to get the in the form we want. TODO check that the
+     * code above shouldn't be using these twiddled keys.*/
+    store_key_t left_key_exclusive(key_range.left);
+    store_key_t right_key_inclusive(key_range.right.key);
+
+    bool left_key_supplied = left_key_exclusive.decrement();
+    bool right_key_supplied = !key_range.right.unbounded;
+    if (right_key_supplied) {
+        right_key_inclusive.decrement();
+    }
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        txn, superblock, &sindex_cb);
-}
+        txn, superblock);
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       const key_range_t &keys,
-                       transaction_t *txn, superblock_t *superblock,
-                       rdb_modification_report_cb_t *cb) {
-    store_key_t left_exclusive(keys.left);
-    store_key_t right_inclusive(keys.right.key);
-
-    bool left_key_supplied = left_exclusive.decrement();
-    bool right_key_supplied = !keys.right.unbounded;
-    if (right_key_supplied) {
-        right_inclusive.decrement();
-    }
-    rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock, cb);
+    //auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object

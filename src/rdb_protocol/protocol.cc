@@ -1452,12 +1452,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
-        rdb_modification_report_cb_t sindex_cb(
-            store, token_pair, txn,
-            superblock->get_sindex_block_id(),
-            auto_drainer_t::lock_t(&store->drainer));
-
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, &sindex_cb);
+        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, 
+                store, token_pair, interruptor);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -1540,12 +1536,8 @@ void store_t::protocol_reset_data(const region_t& subregion,
 
     always_true_key_tester_t key_tester;
 
-    rdb_modification_report_cb_t sindex_cb(
-            this, token_pair, txn,
-            superblock->get_sindex_block_id(), 
-            auto_drainer_t::lock_t(&drainer));
-
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, &sindex_cb);
+    cond_t non_interruptor; //TODO is this okay?
+    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, this, token_pair, &non_interruptor);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

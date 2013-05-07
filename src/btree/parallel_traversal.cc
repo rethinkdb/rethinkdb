@@ -177,7 +177,7 @@ public:
                         // Spawn a coroutine so that it's safe to acquire
                         // blocks.
                         level_count(i) += 1;
-                        coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
+                        coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb), "acquire block");
                         diff -= 1;
                     }
                 }

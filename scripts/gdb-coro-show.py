@@ -113,6 +113,7 @@ def get_coro_backtrace(gdb, coro_ptr, exe_file):
 class coro_tree_node(object):
     def __init__(self, coro, index):
         self.coro = coro
+        self.purpose = coro.dereference()["purpose_"]
         self.index = index
         self.children = []
 
@@ -135,7 +136,7 @@ def make_coro_tree(list_of_coros):
 
 def print_coro_nodes(list_of_coro_nodes, tabs):
     for node in list_of_coro_nodes:
-        gdb.write("\t" * tabs + " " + "[%d] %s" % (node.index, node.coro) + "\n")
+        gdb.write("\t" * tabs + " " + "[%d] %s - %s" % (node.index, node.coro, node.purpose) + "\n")
         print_coro_nodes(node.children, tabs + 1)
 
 

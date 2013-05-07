@@ -366,15 +366,12 @@ void run_erase_range_test() {
                                            &super_block,
                                            &dummy_interruptor);
 
-        rdb_modification_report_cb_t cb(&store,
-                &token_pair, txn.get(), super_block->get_sindex_block_id(),
-                auto_drainer_t::lock_t(&store.drainer));
-
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol_details::range_key_tester_t tester(&test_range);
         rdb_erase_range(store.btree.get(), &tester,
                 key_range_t::universe(),
-            txn.get(), super_block.get(), &cb);
+            txn.get(), super_block.get(), &store, &token_pair,
+            &dummy_interruptor);
     }
 
     check_keys_are_NOT_present(&store, sindex_id);
