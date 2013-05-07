@@ -86,6 +86,8 @@ class RDBVal extends TermBase
             throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
         new GroupBy {}, @, attrs, collector
 
+    info: ar () -> new Info {}, @
+
 class DatumTerm extends RDBVal
     args: []
     optargs: {}
@@ -439,6 +441,10 @@ class CoerceTo extends RDBOp
 class TypeOf extends RDBOp
     tt: Term.TermType.TYPEOF
     mt: 'typeOf'
+
+class Info extends RDBOp
+    tt: Term.TermType.INFO
+    mt: 'info'
 
 class Update extends RDBOp
     tt: Term.TermType.UPDATE

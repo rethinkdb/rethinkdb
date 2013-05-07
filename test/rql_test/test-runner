@@ -76,9 +76,12 @@ class JsLang(SrcLang):
         return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
 
 class RbLang(SrcLang):
+    def rb_str_repr(self, string):
+        return ('"'+re.sub("\"", "\\\"", re.sub("\\\\", "\\\\\\\\", string))+'"')
+
     def langrepr(self, val):
         if isinstance(val, types.StringType):
-            return re.sub("\\$","\\$", repr(val))
+            return self.rb_str_repr(val)
         elif isinstance(val, types.UnicodeType):
             return re.sub("\\$","\\$", repr(val)[1:]) # Get rid of the 'u'
         elif isinstance(val, types.BooleanType):
@@ -87,7 +90,11 @@ class RbLang(SrcLang):
             return repr(str(val))
 
     def dicttranslate(self, dic):
-        return re.sub("'([^']+)':",":\\1=>", dic)
+        # print dic
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\\1=>", dic)
+        dicnew = re.sub("\\\\n$", "\n", dicnew)
+        # print dicnew
+        return dicnew
 
     def nulltranslate(self, strng):
         return re.sub('null', 'nil', strng)

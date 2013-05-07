@@ -100,6 +100,7 @@ term_t *compile_term(env_t *env, const Term *t) {
     case Term_TermType_FUNC:               return new func_term_t(env, t);
     case Term_TermType_ASC:                return new asc_term_t(env, t);
     case Term_TermType_DESC:               return new desc_term_t(env, t);
+    case Term_TermType_INFO:               return new info_term_t(env, t);
     default: unreachable();
     }
     unreachable();
@@ -268,13 +269,13 @@ val_t *term_t::eval() {
 }
 
 val_t *term_t::new_val(datum_t *d) {
-    return new_val(const_cast<const datum_t *>(d));
+    return new_val(static_cast<const datum_t *>(d));
 }
 val_t *term_t::new_val(const datum_t *d) {
     return env->new_val(d, this);
 }
 val_t *term_t::new_val(datum_t *d, table_t *t) {
-    return new_val(const_cast<const datum_t *>(d), t);
+    return new_val(static_cast<const datum_t *>(d), t);
 }
 val_t *term_t::new_val(const datum_t *d, table_t *t) {
     return env->new_val(d, t, this);
@@ -284,7 +285,12 @@ val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
 val_t *term_t::new_val(datum_stream_t *s, table_t *d) {
     return env->new_val(d, s, this);
 }
-val_t *term_t::new_val(uuid_u db) { return env->new_val(db, this); }
+val_t *term_t::new_val(db_t *db) {
+    return new_val(static_cast<const db_t *>(db));
+}
+val_t *term_t::new_val(const db_t *db) {
+    return env->new_val(db, this);
+}
 val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
 val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
 val_t *term_t::new_val_bool(bool b) {

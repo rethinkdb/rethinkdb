@@ -19,9 +19,16 @@ class stream_cache2_t;
 
 namespace ql {
 
+class db_t : public ptr_baggable_t {
+public:
+    db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
+    const uuid_u id;
+    const std::string name;
+};
+
 class table_t : public ptr_baggable_t, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, uuid_u db_id, const std::string &name,
+    table_t(env_t *_env, const db_t *db, const std::string &name,
             bool use_outdated, const pb_rcheckable_t *src);
     datum_stream_t *as_datum_stream();
     const std::string &get_pkey();
@@ -53,6 +60,8 @@ public:
     MUST_USE bool sindex_drop(const std::string &name);
     const datum_t *sindex_list();
 
+    const db_t *db;
+    const std::string name;
 private:
     struct datum_func_pair_t {
         datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
@@ -114,6 +123,7 @@ public:
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
+        friend int val_type(val_t *v);
         const char *name() const;
         raw_type_t raw_type;
     };
@@ -125,11 +135,10 @@ public:
     val_t(datum_stream_t *_sequence, const term_t *_parent);
     val_t(table_t *_table, const term_t *_parent);
     val_t(table_t *_table, datum_stream_t *_sequence, const term_t *_parent);
-    val_t(uuid_u _db, const term_t *_parent);
+    val_t(const db_t *_db, const term_t *_parent);
     val_t(func_t *_func, const term_t *_parent);
-    ~val_t();
 
-    uuid_u as_db();
+    const db_t *as_db();
     table_t *as_table();
     std::pair<table_t *, datum_stream_t *> as_selection();
     datum_stream_t *as_seq();
@@ -170,14 +179,11 @@ private:
     table_t *table;
     union {
         // We store the db's `uuid_u` in here.
-        uint8_t opaque_db[sizeof(uuid_u)];
+        const db_t *db;
         datum_stream_t *sequence;
         const datum_t *datum;
         func_t *func;
     };
-    uuid_u *db_ptr() {
-        return reinterpret_cast<uuid_u *>(&opaque_db);
-    }
 
     DISABLE_COPYING(val_t);
 };

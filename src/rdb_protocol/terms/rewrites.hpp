@@ -45,32 +45,54 @@ class groupby_term_t : public rewrite_term_t {
 public:
     groupby_term_t(env_t *env, const Term *term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
-    static Term * rewrite(env_t *env, const Term *in, Term *out,
+    static Term *rewrite(env_t *env, const Term *in, Term *out,
                           const pb_rcheckable_t *bt_src) {
         std::string dc;
-        const Term *dc_arg;
+        Term dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
         Term *arg = out;
-        arg = final_wrap(env, arg, dc, dc_arg);
+        arg = final_wrap(env, arg, dc, &dc_arg);
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
            group_fn(env, arg, &in->args(1)),
-           map_fn(env, arg, dc, dc_arg),
-           reduce_fn(env, arg, dc, dc_arg));
+           map_fn(env, arg, dc, &dc_arg),
+           reduce_fn(env, arg, dc, &dc_arg));
         return out;
     }
 private:
+
+    // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
+    // as syntax rather than just parsing them both into an object (since we're
+    // doing this at compile-time rather than runtime).
     static void parse_dc(const Term *t, std::string *dc_out,
-                         const Term **dc_arg_out, const pb_rcheckable_t *bt_src) {
-        rcheck_target(bt_src, t->type() == Term_TermType_MAKE_OBJ,
-                      "Invalid data collector.");
-        rcheck_target(bt_src, t->optargs_size() == 1, "Invalid data collector.");
-        const Term_AssocPair *ap = &t->optargs(0);
-        *dc_out = ap->key();
-        rcheck_target(bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-               strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
-        *dc_arg_out = &ap->val();
+                         Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
+        std::string errmsg = "Invalid data collector.";
+        if (t->type() == Term::MAKE_OBJ) {
+            rcheck_target(bt_src, t->optargs_size() == 1, errmsg);
+            const Term_AssocPair *ap = &t->optargs(0);
+            *dc_out = ap->key();
+            rcheck_target(
+                bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+            *dc_arg_out = ap->val();
+        } else if (t->type() == Term::DATUM) {
+            rcheck_target(bt_src, t->has_datum(), errmsg);
+            const Datum *d = &t->datum();
+            rcheck_target(bt_src, d->type() == Datum::R_OBJECT, errmsg);
+            rcheck_target(bt_src, d->r_object_size() == 1, errmsg);
+            const Datum_AssocPair *ap = &d->r_object(0);
+            *dc_out = ap->key();
+            rcheck_target(
+                bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+            dc_arg_out->set_type(Term::DATUM);
+            *dc_arg_out->mutable_datum() = ap->val();
+        } else {
+            rcheck_target(bt_src, t->type() == Term::MAKE_OBJ, errmsg);
+            unreachable();
+        }
     }
+
     static void group_fn(env_t *env, Term *arg, const Term *group_attrs) {
         int obj = env->gensym();
         int attr = env->gensym();

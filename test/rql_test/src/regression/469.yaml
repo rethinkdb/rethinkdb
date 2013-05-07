@@ -1,0 +1,56 @@
+desc: Issue #469: add pkey term
+tests:
+
+  - cd: r.db_create('d469')
+    ot: ({'created':1})
+  - cd: r.db('d469').table_create('t469')
+    ot: ({'created':1})
+  - cd: r.db('d469').table('t469').index_create('x')
+    ot: ({'created':1})
+
+  - rb: r(nil).info
+    py: r.expr(None).info()
+    js: r(null).info()
+    ot:
+      rb: ({'type':'NULL','value':'nu''ll'})
+      py: ({'type':'NULL','value':'null'})
+      js: ({'type':'NULL','value':'null'})
+  - rb: r(true).info
+    py: r.expr(True).info()
+    js: r(true).info()
+    ot: ({'type':'BOOL','value':'true'})
+  - rb: r(1).info
+    py: r.expr(1).info()
+    js: r(1).info()
+    ot: ({'type':'NUMBER','value':'1'})
+  - rb: r('1').info
+    py: r.expr('1').info()
+    js: r('1').info()
+    ot: ({'type':'STRING','value':('"1"')})
+  - rb: r([1]).info
+    py: r.expr([1]).info()
+    js: r([1]).info()
+    ot: ({'type':'ARRAY','value':'[1]'})
+  - rb: r({:a => 1}).info
+    py: r.expr({'a':1}).info()
+    js: r({a:1}).info()
+    ot: ({'type':'OBJECT','value':"{\n\t\"a\":\t1\n}"})
+
+  - cd: r.db('d469').info()
+    ot: ({'type':'DB','name':'d469'})
+  - cd: r.db('d469').table('t469').info()
+    ot: ({'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+          'primary_key':'id', 'indexes':['x']})
+  - rb: r.db('d469').table('t469').filter{true}.info
+    py: r.db('d469').table('t469').filter(lambda x:True).info()
+    js: r.db('d469').table('t469').filter(function(x) { return true; }).info()
+    ot: ({'type':'SELECTION',
+          'table':{'type':'TABLE','name':'t469','db':{'type':'DB','name':'d469'},
+                   'primary_key':'id', 'indexes':['x']}})
+  - rb: r.db('d469').table('t469').map{1}.info
+    py: r.db('d469').table('t469').map(lambda x:1).info()
+    js: r.db('d469').table('t469').map(function(x) { return 1; }).info()
+    ot: ({'type':'STREAM'})
+
+  - cd: r.db_drop('d469')
+    ot: ({'dropped':1})

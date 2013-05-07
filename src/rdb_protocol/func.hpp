@@ -36,6 +36,7 @@ public:
     bool is_deterministic() const;
     void assert_deterministic(const char *extra_msg) const;
 
+    std::string print_src() const;
 private:
     // Pointers to this function's arguments.
     scoped_array_t<const datum_t *> argptrs;
