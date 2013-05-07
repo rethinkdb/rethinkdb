@@ -271,7 +271,6 @@ counted_t<val_t> term_t::eval() {
     }
 }
 
-// SAMRSI: get rid of these counted_use_count guarantees.
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
     return make_counted<val_t>(d, this);
 }

@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "errors.hpp"
-#include "utils.hpp"  // SAMRSI unused header?
+#include "utils.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
@@ -135,7 +135,7 @@ template <class T>
 inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p);
 
 template <class T>
-class single_threaded_countable_t : private home_thread_mixin_t {  // SAMRSI: Remove this home_thread_mixin_t.
+class single_threaded_countable_t : private home_thread_mixin_debug_only_t {
 public:
     single_threaded_countable_t() : refcount_(0) { }
 
