@@ -13,11 +13,17 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
     optargs[key] = wire_func_t(*arg, 0);
+    func_t *force_compilation = optargs[key].compile(this);
+    r_sanity_check(force_compilation != NULL);
     return false;
 }
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
+    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+        func_t *force_compilation = it->second.compile(this);
+        r_sanity_check(force_compilation != NULL);
+    }
 }
 val_t *env_t::get_optarg(const std::string &key){
     if (!optargs.count(key)) return 0;
