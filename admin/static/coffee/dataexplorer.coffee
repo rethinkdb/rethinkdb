@@ -2742,7 +2742,7 @@ module 'DataExplorerView', ->
                 return @template_json_tree.span
                     classname: 'jt_null'
                     value: 'null'
-            else if value.constructor? and value.constructor is Array
+            else if Object.prototype.toString.call(value) is '[object Array]'
                 if value.length is 0
                     return '[ ]'
                 else

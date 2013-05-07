@@ -3,20 +3,37 @@
 
 #include <string>
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {
 
 class sindex_create_term_t : public op_term_t {
 public:
     sindex_create_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(3)) { }
+        : op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
-        std::string name = arg(1)->as_datum()->as_str();
-        func_t *index_func = arg(2)->as_func();
+        const datum_t *name_datum = arg(1)->as_datum();
+        std::string name = name_datum->as_str();
+        rcheck(name != table->get_pkey(),
+               strprintf("Index name conflict: `%s` is the name of the primary key.",
+                         name.c_str()));
+        func_t *index_func = NULL;
+        if (num_args() ==3) {
+            index_func = arg(2)->as_func();
+        } else {
+            env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
+            Term *func_term = &twrap->t;
+            int x = env->gensym();
+            Term *arg = pb::set_func(func_term, x);
+            N2(GETATTR, NVAR(x), NDATUM(name_datum));
+            prop_bt(func_term);
+            index_func = env->add_ptr(new func_t(env, func_term));
+        }
+        r_sanity_check(index_func != NULL);
 
         bool success = table->sindex_create(name, index_func);
         if (success) {

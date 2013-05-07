@@ -1,6 +1,6 @@
 # Test the query language
 
-make = "make -C $RETHINKDB/test/rql_test BUILD_DIR=$RETHINKDB_BUILD_DIR "
+make = "make -j1 -C $RETHINKDB/test/rql_test BUILD_DIR=$RETHINKDB_BUILD_DIR "
 
 generate_test(
     make + "js_connect",
@@ -32,6 +32,6 @@ generate_test(
 
 # Validate the API documentation examples
 generate_test(
-    "make -C $RETHINKDB/docs/rql validate",
+    "make -j1 -C $RETHINKDB/docs/rql validate",
     name = "validate-examples"
     )

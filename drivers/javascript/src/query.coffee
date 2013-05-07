@@ -26,10 +26,12 @@ rethinkdb.table = aropt (tblName, opts) -> new Table opts, tblName
 rethinkdb.db = ar (dbName) -> new Db {}, dbName
 
 rethinkdb.dbCreate = ar (dbName) -> new DbCreate {}, dbName
-
 rethinkdb.dbDrop = ar (dbName) -> new DbDrop {}, dbName
-
 rethinkdb.dbList = ar () -> new DbList {}
+
+rethinkdb.tableCreate = aropt (tblName, opts) -> new TableCreate opts, tblName
+rethinkdb.tableDrop = ar (tblName) -> new TableDrop {}, tblName
+rethinkdb.tableList = ar () -> new TableList {}
 
 rethinkdb.do = (args...) ->
     unless args.length >= 1

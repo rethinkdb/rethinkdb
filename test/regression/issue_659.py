@@ -25,7 +25,7 @@ with driver.Metacluster() as metacluster:
     dc = http.add_datacenter()
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
-    ns = http.add_namespace(protocol = "rdb", primary = dc, name = "stress", database = db)
+    ns = http.add_namespace(protocol = "memcached", primary = dc, name = "stress", database = db)
     time.sleep(3)
     host, port = driver.get_namespace_host(ns.port, processes)
     cluster.check()
