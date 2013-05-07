@@ -200,7 +200,9 @@ void btree_store_t<protocol_t>::receive_backfill(
                                       interruptor,
                                       chunk);
         } catch (const interrupted_exc_t &) {
-            token_pair->sindex_write_token.reset();
+            if (token_pair->sindex_write_token.has()) {
+                token_pair->sindex_write_token.reset();
+            }
         }
 }
 
@@ -302,6 +304,16 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
     }
 }
 
+static __thread std::set<coro_t *> *who_has_the_sindex_block = NULL;
+
+std::set<coro_t *> *get_who_has_the_sindex_block() {
+    if (who_has_the_sindex_block == NULL) {
+        who_has_the_sindex_block = new std::set<coro_t *>();
+    }
+
+    return who_has_the_sindex_block;
+}
+
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
@@ -319,9 +331,9 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
-}
 
-static __thread coro_t *who_has_the_sindex_block;
+    get_who_has_the_sindex_block()->insert(coro_t::self());
+}
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
@@ -341,7 +353,8 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
-    who_has_the_sindex_block = coro_t::self();
+    get_who_has_the_sindex_block()->clear();
+    get_who_has_the_sindex_block()->insert(coro_t::self());
 }
 
 template <class region_map_t>
