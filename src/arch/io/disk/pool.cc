@@ -8,6 +8,19 @@
 
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
+
+void debug_print(append_only_printf_buffer_t *buf,
+                 const pool_diskmgr_action_t &action) {
+    buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
+                 "offset=%" PRIi64 ", errno=%d}",
+                 action.get_is_read() ? "true" : "false",
+                 action.get_fd(),
+                 action.get_buf(),
+                 action.get_count(),
+                 action.get_offset(),
+                 action.get_succeeded() ? 0 : action.get_errno());
+}
+
 pool_diskmgr_t::pool_diskmgr_t(
         linux_event_queue_t *queue, passive_producer_t<action_t *> *_source)
     : source(_source),
