@@ -141,6 +141,14 @@ struct accounting_diskmgr_action_t
     accounting_diskmgr_account_t<payload_t> *account;
 };
 
+template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const accounting_diskmgr_action_t<payload_t> &action) {
+    buf->appendf("accounting_diskmgr_action{...}<");
+    const payload_t &parent_action = action;
+    debug_print(buf, parent_action);
+}
+
 template<class payload_t>
 class accounting_diskmgr_t : public home_thread_mixin_t {
 public:
