@@ -121,8 +121,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 replacement->write_to_protobuf(pb::set_datum(arg));
                 propagate(&t);
 
-                funcs[i] = map_wire_func_t(
-                    t, static_cast<std::map<int64_t, Datum> *>(NULL));
+                funcs[i] = map_wire_func_t(t, std::map<int64_t, Datum>());
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -155,7 +154,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
             }
 
             propagate(&t);
-            funcs[i] = map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL));
+            funcs[i] = map_wire_func_t(t, std::map<int64_t, Datum>());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -353,8 +352,7 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
 
     propagate(&t);
     // RSI remove this static_cast.
-    return do_replace(
-        orig, map_wire_func_t(t, static_cast<std::map<int64_t, Datum> *>(NULL)));
+    return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()));
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

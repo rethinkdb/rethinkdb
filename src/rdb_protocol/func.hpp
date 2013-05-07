@@ -77,7 +77,7 @@ class wire_func_t {
 public:
     wire_func_t();
     wire_func_t(env_t *env, counted_t<func_t> _func);
-    wire_func_t(const Term &_source, std::map<int64_t, Datum> *_scope);
+    wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope);
 
     counted_t<func_t> compile(env_t *env);
 

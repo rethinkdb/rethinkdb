@@ -23,7 +23,7 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     term_walker_t(arg.get(), &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, 0);
+    optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
     return false;
 }
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {

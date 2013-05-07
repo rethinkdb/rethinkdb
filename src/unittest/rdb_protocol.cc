@@ -171,7 +171,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     Term *arg = ql::pb::set_func(&mapping, 1);
     N2(GETATTR, NVAR(1), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
+    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
     rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
     rdb_protocol_t::write_response_t response;
