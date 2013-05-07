@@ -51,6 +51,10 @@ public:
         draining.rethread(new_thread);
     }
 
+    signal_t *get_drain_signal() {
+        return &draining;
+    }
+
 private:
     void incref();
     void decref();

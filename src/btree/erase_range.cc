@@ -122,16 +122,17 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
                                transaction_t *txn, superblock_t *superblock,
+                               signal_t *interruptor,
                                erase_range_cb_t *erase_range_cb) {
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null, erase_range_cb);
-    cond_t non_interruptor;
-    btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
+    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
 }
 
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter, transaction_t *txn,
                superblock_t *superblock,
+               signal_t *interruptor,
                erase_range_cb_t *erase_range_cb) {
     struct always_true_tester_t : public key_tester_t {
         bool key_should_be_erased(const btree_key_t *) { return true; }
@@ -139,5 +140,5 @@ void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
 
     btree_erase_range_generic(sizer, slice, &always_true_tester,
                               deleter, NULL, NULL, txn, superblock,
-                              erase_range_cb);
+                              interruptor, erase_range_cb);
 }

@@ -513,7 +513,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        txn, superblock);
+        txn, superblock, interruptor);
 
     //auto_drainer_t is destructed here so this waits for other coros to finish.
 }

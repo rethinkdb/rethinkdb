@@ -452,7 +452,8 @@ void btree_store_t<protocol_t>::set_sindexes(
                 real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
                 erase_all(sizer, sindex_slice,
-                          deleter, txn, &sindex_superblock);
+                          deleter, txn, &sindex_superblock,
+                          interruptor);
             }
 
             secondary_index_slices.erase(it->first);
@@ -557,7 +558,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
             erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock);
+                      deleter, txn, &sindex_superblock, interruptor);
         }
 
         secondary_index_slices.erase(id);
@@ -603,7 +604,7 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
             erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock);
+                      deleter, txn, &sindex_superblock, interruptor);
         }
 
         secondary_index_slices.erase(it->first);
