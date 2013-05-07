@@ -129,7 +129,6 @@ public:
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
 
-        // RSI
         raw_type_t get_raw_type() const { return raw_type; }
         const char *name() const;
 

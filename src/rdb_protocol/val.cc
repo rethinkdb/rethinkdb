@@ -351,7 +351,6 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
     }
 
     propagate(&t);
-    // RSI remove this static_cast.
     return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()));
 }
 
