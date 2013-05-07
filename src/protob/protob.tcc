@@ -118,7 +118,8 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
 #else
                         ctx.interruptor = shutdown_signal();
 #endif  // __linux
-                        send(f(request, &ctx), conn.get(), &ct_keepalive);
+                        const response_t &response = f(request, &ctx);
+                        send(response, conn.get(), &ct_keepalive);
                     }
                     break;
                 case CORO_ORDERED:

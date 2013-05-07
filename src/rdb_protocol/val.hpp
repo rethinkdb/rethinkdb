@@ -97,7 +97,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
+class val_t : public slow_atomic_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible

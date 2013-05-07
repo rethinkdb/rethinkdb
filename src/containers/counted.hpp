@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "errors.hpp"
+#include "utils.hpp"  // SAMRSI unused header?
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
@@ -134,22 +135,25 @@ template <class T>
 inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p);
 
 template <class T>
-class single_threaded_countable_t {
+class single_threaded_countable_t : private home_thread_mixin_t {  // SAMRSI: Remove this home_thread_mixin_t.
 public:
     single_threaded_countable_t() : refcount_(0) { }
 
 protected:
     counted_t<T> counted_from_this() {
+        assert_thread();
         rassert(refcount_ > 0);
         return counted_t<T>(static_cast<T *>(this));
     }
 
     counted_t<const T> counted_from_this() const {
+        assert_thread();
         rassert(refcount_ > 0);
         return counted_t<const T>(static_cast<const T *>(this));
     }
 
     ~single_threaded_countable_t() {
+        assert_thread();
         rassert(refcount_ == 0);
     }
 
@@ -164,12 +168,14 @@ private:
 
 template <class T>
 inline void counted_add_ref(const single_threaded_countable_t<T> *p) {
+    p->assert_thread();
     p->refcount_ += 1;
     rassert(p->refcount_ > 0);
 }
 
 template <class T>
 inline void counted_release(const single_threaded_countable_t<T> *p) {
+    p->assert_thread();
     rassert(p->refcount_ > 0);
     --p->refcount_;
     if (p->refcount_ == 0) {
@@ -179,6 +185,7 @@ inline void counted_release(const single_threaded_countable_t<T> *p) {
 
 template <class T>
 inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
+    p->assert_thread();
     return p->refcount_;
 }
 
@@ -190,9 +197,9 @@ inline intptr_t counted_use_count(const single_threaded_countable_t<T> *p) {
 template <class> class slow_atomic_countable_t;
 
 template <class T>
-inline void counted_add_ref(slow_atomic_countable_t<T> *p);
+inline void counted_add_ref(const slow_atomic_countable_t<T> *p);
 template <class T>
-inline void counted_release(slow_atomic_countable_t<T> *p);
+inline void counted_release(const slow_atomic_countable_t<T> *p);
 template <class T>
 inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p);
 
@@ -206,27 +213,37 @@ protected:
         rassert(refcount_ == 0);
     }
 
+    counted_t<T> counted_from_this() {
+        rassert(counted_use_count(this) > 0);
+        return counted_t<T>(static_cast<T *>(this));
+    }
+
+    counted_t<const T> counted_from_this() const {
+        rassert(counted_use_count(this) > 0);
+        return counted_t<const T>(static_cast<const T *>(this));
+    }
+
 private:
-    friend void counted_add_ref<T>(slow_atomic_countable_t<T> *p);
-    friend void counted_release<T>(slow_atomic_countable_t<T> *p);
+    friend void counted_add_ref<T>(const slow_atomic_countable_t<T> *p);
+    friend void counted_release<T>(const slow_atomic_countable_t<T> *p);
     friend intptr_t counted_use_count<T>(const slow_atomic_countable_t<T> *p);
 
-    intptr_t refcount_;
+    mutable intptr_t refcount_;
     DISABLE_COPYING(slow_atomic_countable_t);
 };
 
 template <class T>
-inline void counted_add_ref(slow_atomic_countable_t<T> *p) {
+inline void counted_add_ref(const slow_atomic_countable_t<T> *p) {
     DEBUG_VAR intptr_t res = __sync_add_and_fetch(&p->refcount_, 1);
     rassert(res > 0);
 }
 
 template <class T>
-inline void counted_release(slow_atomic_countable_t<T> *p) {
+inline void counted_release(const slow_atomic_countable_t<T> *p) {
     intptr_t res = __sync_sub_and_fetch(&p->refcount_, 1);
     rassert(res >= 0);
     if (res == 0) {
-        delete static_cast<T *>(p);
+        delete static_cast<T *>(const_cast<slow_atomic_countable_t<T> *>(p));
     }
 }
 

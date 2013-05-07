@@ -3,10 +3,9 @@
 
 #include <stdint.h>
 
+#include "containers/counted.hpp"
 #include "errors.hpp"
-
-class Query;
-class Term;
+#include "rdb_protocol/ql2.pb.h"
 
 // This defines the type protob_t.  Imagine you have a deeply nested protocol
 // buffer object that is owned by same base protocol buffer object of type Term.
@@ -20,22 +19,21 @@ class Term;
 namespace ql {
 
 // A struct with a refcount and either a Term or a Query.
-struct protob_pointee_t;
+struct protob_pointee_t : public slow_atomic_countable_t<protob_pointee_t> {
+    protob_pointee_t() { }
+    virtual ~protob_pointee_t() { }
+};
 
-// protob_destructable_t is a helper type that makes protob_t simpler.
-class protob_destructable_t {
-protected:
-    template <class T> friend class protob_t;
-    protob_destructable_t();
-    protob_destructable_t(protob_pointee_t *destructee);
-    protob_destructable_t(const protob_destructable_t &copyee);
-    ~protob_destructable_t();
+struct protob_term_t : public protob_pointee_t {
+    protob_term_t(const Term &t) : term(t) { }
 
-    protob_destructable_t &operator=(const protob_destructable_t &assignee);
+    Term term;
+};
 
-    void swap(protob_destructable_t &other);
+struct protob_query_t : public protob_pointee_t {
+    protob_query_t() { }
 
-    protob_pointee_t *destructee_;
+    Query query;
 };
 
 template <class T>
@@ -83,7 +81,7 @@ private:
     template <class U>
     friend class protob_t;
 
-    protob_t(const protob_destructable_t &destructable, T *pointee)
+    protob_t(const counted_t<protob_pointee_t> &destructable, T *pointee)
         : destructable_(destructable), pointee_(pointee) { }
 
     friend protob_t<Term> make_counted_term_copy(const Term &copyee);
@@ -93,7 +91,7 @@ private:
     protob_t(protob_pointee_t *term, T *pointee)
         : destructable_(term), pointee_(pointee) { }
 
-    protob_destructable_t destructable_;
+    counted_t<protob_pointee_t> destructable_;
     T *pointee_;
 };
 

@@ -180,6 +180,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
             return;
         }
+
     } break;
     case Query_QueryType_CONTINUE: {
         try {
