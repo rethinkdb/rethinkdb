@@ -106,10 +106,38 @@ ptr_bag_t **env_t::current_bag_ptr() {
 void env_t::push_var(int var, const datum_t **val) {
     vars[var].push(val);
 }
+
+static const datum_t *sindex_error_dummy_datum;
+void env_t::push_special_var(int var, special_var_t special_var) {
+    switch (special_var) {
+    case SINDEX_ERROR_VAR: {
+        vars[var].push(&sindex_error_dummy_datum);
+    } break;
+    default: unreachable();
+    }
+}
+
+env_t::special_var_shadower_t::special_var_shadower_t(
+    env_t *env, special_var_t special_var) : shadow_env(env) {
+    shadow_env->dump_scope(&current_scope);
+    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
+        shadow_env->push_special_var(it->first, special_var);
+    }
+}
+
+env_t::special_var_shadower_t::~special_var_shadower_t() {
+    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
+        shadow_env->pop_var(it->first);
+    }
+}
+
 const datum_t **env_t::top_var(int var, const rcheckable_t *caller) {
     rcheck_target(caller, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
-    return vars[var].top();
+    const datum_t **var_val = vars[var].top();
+    rcheck_target(caller, var_val != &sindex_error_dummy_datum,
+                  "Cannot reference external variables from inside an index.");
+    return var_val;
 }
 void env_t::pop_var(int var) {
     vars[var].pop();

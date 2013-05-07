@@ -9,10 +9,11 @@
 
 namespace ql {
 
-class sindex_create_term_t : public op_term_t {
+class sindex_create_term_t : public env_t::special_var_shadower_t, public op_term_t {
 public:
     sindex_create_term_t(env_t *env, const Term *term)
-        : op_term_t(env, term, argspec_t(2, 3)) { }
+        : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
+          op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual val_t *eval_impl() {
         table_t *table = arg(0)->as_table();
@@ -22,7 +23,7 @@ public:
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
         func_t *index_func = NULL;
-        if (num_args() ==3) {
+        if (num_args() == 3) {
             index_func = arg(2)->as_func();
         } else {
             env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
