@@ -11,9 +11,14 @@
 namespace ql {
 
 // Most of this logic is copy-pasted from the old query language.
-table_t::table_t(env_t *_env, uuid_u db_id, const std::string &name,
+table_t::table_t(env_t *_env, const db_t *_db, const std::string &_name,
                  bool _use_outdated, const pb_rcheckable_t *src)
-    : pb_rcheckable_t(src), env(_env), use_outdated(_use_outdated) {
+    : pb_rcheckable_t(src),
+      db(_db),
+      name(_name),
+      env(_env),
+      use_outdated(_use_outdated) {
+    uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
     rcheck(b, strprintf("Table name `%s` invalid (%s).",
@@ -485,13 +490,12 @@ val_t::val_t(table_t *_table, const term_t *_parent)
     guarantee(table != NULL);
     guarantee(sequence == NULL);
 }
-val_t::val_t(uuid_u _db, const term_t *_parent)
+val_t::val_t(const db_t *_db, const term_t *_parent)
     : pb_rcheckable_t(_parent),
       parent(_parent),
       type(type_t::DB),
-      table(NULL) {
-    guarantee(table == NULL);
-    *db_ptr() = _db;
+      db(_db) {
+    guarantee(db != NULL);
 }
 val_t::val_t(func_t *_func, const term_t *_parent)
     : pb_rcheckable_t(_parent),
@@ -501,14 +505,6 @@ val_t::val_t(func_t *_func, const term_t *_parent)
       func(get_env()->add_ptr(_func)) {
     guarantee(table == NULL);
     guarantee(func != NULL);
-}
-
-val_t::~val_t() {
-    if (get_type().is_convertible(type_t::DB)) {
-        // This isn't necessary right now because the `uuid_u` destructor
-        // doesn't do anything useful, but it helps make us future-proof.
-        db_ptr()->~uuid_u();
-    }
 }
 
 val_t::type_t val_t::get_type() const { return type; }
@@ -580,9 +576,9 @@ func_t *val_t::as_func(function_shortcut_t shortcut) {
     unreachable();
 }
 
-uuid_u val_t::as_db() {
+const db_t *val_t::as_db() {
     rcheck_literal_type(type_t::DB);
-    return *db_ptr();
+    return db;
 }
 
 bool val_t::as_bool() {

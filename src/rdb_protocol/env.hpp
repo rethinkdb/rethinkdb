@@ -101,11 +101,13 @@ public:
     val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
         return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent));
     }
-    val_t *new_val(uuid_u db, term_t *parent) {
-        return add_ptr(new val_t(db, parent));
-    }
     term_t *new_term(const Term *source) {
         return add_ptr(compile_term(this, source));
+    }
+
+    template<class... Args>
+    datum_t *new_datum(Args... args) {
+        return add_ptr(new datum_t(args...));
     }
 
     // Checkpoint code (most of the logic is in `env_checkpoint_t` and

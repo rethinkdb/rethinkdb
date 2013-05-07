@@ -105,3 +105,6 @@ def any(*args):
 
 def type_of(val):
     return TypeOf(val)
+
+def info(val):
+    return Info(val)

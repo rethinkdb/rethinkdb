@@ -90,7 +90,11 @@ class RbLang(SrcLang):
             return repr(str(val))
 
     def dicttranslate(self, dic):
-        return re.sub("'([^']+)':",":\\1=>", dic)
+        # print dic
+        dicnew = re.sub("\\\\?'([^']*[^'\\\\])\\\\?':",":\\1=>", dic)
+        dicnew = re.sub("\\\\n$", "\n", dicnew)
+        # print dicnew
+        return dicnew
 
     def nulltranslate(self, strng):
         return re.sub('null', 'nil', strng)

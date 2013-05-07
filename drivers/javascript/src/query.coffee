@@ -65,3 +65,4 @@ rethinkdb.div = (args...) -> new Div {}, args...
 rethinkdb.mod = (a, b) -> new Mod {}, a, b
 
 rethinkdb.typeOf = ar (val) -> new TypeOf {}, val
+rethinkdb.info = ar (val) -> new Info {}, val

@@ -106,7 +106,7 @@ private:
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
         }
-        return new_val(uuid);
+        return new_val(new db_t(uuid, db_name.str()));
     }
     virtual const char *name() const { return "db"; }
 };
@@ -182,10 +182,10 @@ private:
         if (num_args() == 1) {
             val_t *dbv = optarg("db", NULL);
             r_sanity_check(dbv);
-            db_id = dbv->as_db();
+            db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
         } else {
-            db_id = arg(0)->as_db();
+            db_id = arg(0)->as_db()->id;
             tbl_name = get_name(arg(1), this);
         }
         // Ensure table doesn't already exist.
@@ -296,10 +296,10 @@ private:
         if (num_args() == 1) {
             val_t *dbv = optarg("db", NULL);
             r_sanity_check(dbv);
-            db_id = dbv->as_db();
+            db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
         } else {
-            db_id = arg(0)->as_db();
+            db_id = arg(0)->as_db()->id;
             tbl_name = get_name(arg(1), this);
         }
 
@@ -366,9 +366,9 @@ private:
         if (num_args() == 0) {
             val_t *dbv = optarg("db", NULL);
             r_sanity_check(dbv);
-            db_id = dbv->as_db();
+            db_id = dbv->as_db()->id;
         } else {
-            db_id = arg(0)->as_db();
+            db_id = arg(0)->as_db()->id;
         }
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
@@ -399,7 +399,7 @@ private:
     virtual val_t *eval_impl() {
         val_t *t = optarg("use_outdated", 0);
         bool use_outdated = t ? t->as_bool() : false;
-        uuid_u db;
+        const db_t *db;
         std::string name;
         if (num_args() == 1) {
             val_t *dbv = optarg("db", 0);

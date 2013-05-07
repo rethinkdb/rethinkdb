@@ -222,17 +222,76 @@ private:
     virtual const char *name() const { return "coerce_to"; }
 };
 
+int val_type(val_t *v) {
+    int t = v->get_type().raw_type * MAX_TYPE;
+    if (t == DATUM_TYPE) t += v->as_datum()->get_type();
+    return t;
+}
+
 class typeof_term_t : public op_term_t {
 public:
     typeof_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual val_t *eval_impl() {
-        val_t *v0 = arg(0);
-        int t = v0->get_type().raw_type * MAX_TYPE;
-        if (t == DATUM_TYPE) t += v0->as_datum()->get_type();
-        return new_val(get_name(t));
+        return new_val(get_name(val_type(arg(0))));
     }
     virtual const char *name() const { return "typeof"; }
+};
+
+class info_term_t : public op_term_t {
+public:
+    info_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual val_t *eval_impl() {
+        return new_val(val_info(arg(0)));
+    }
+
+    const datum_t *val_info(val_t *v) {
+        datum_t *info = env->add_ptr(new datum_t(datum_t::R_OBJECT));
+        int type = val_type(v);
+        bool b = info->add("type", env->add_ptr(new datum_t(get_name(type))));
+        switch(type) {
+        case DB_TYPE: {
+            b |= info->add("name", env->new_datum(v->as_db()->name));
+        } break;
+        case TABLE_TYPE: {
+            table_t *table = v->as_table();
+            b |= info->add("name", env->new_datum(table->name));
+            b |= info->add("primary_key", env->add_ptr(new datum_t(table->get_pkey())));
+            b |= info->add("indexes", table->sindex_list());
+            b |= info->add("db", val_info(new_val(table->db)));
+        } break;
+        case SELECTION_TYPE: {
+            b |= info->add("table", val_info(new_val(v->as_selection().first)));
+        } break;
+        case SINGLE_SELECTION_TYPE: {
+            b |= info->add("table", val_info(new_val(v->as_single_selection().first)));
+        } break;
+        case SEQUENCE_TYPE: {
+            // No more info.
+        } break;
+
+        case FUNC_TYPE: {
+            b |= info->add("source_code", env->new_datum(v->as_func()->print_src()));
+        } break;
+
+        case R_NULL_TYPE:   // fallthru
+        case R_BOOL_TYPE:   // fallthru
+        case R_NUM_TYPE:    // fallthru
+        case R_STR_TYPE:    // fallthru
+        case R_ARRAY_TYPE:  // fallthru
+        case R_OBJECT_TYPE: // fallthru
+        case DATUM_TYPE: {
+            b |= info->add("value", env->new_datum(v->as_datum()->print()));
+        } break;
+
+        default: unreachable();
+        }
+        r_sanity_check(!b);
+        return info;
+    }
+
+    virtual const char *name() const { return "info"; }
 };
 
 } // namespace ql
