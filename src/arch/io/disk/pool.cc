@@ -53,7 +53,7 @@ void pool_diskmgr_t::action_t::run() {
     }
 }
 
-void pool_diskmgr_t::action_t::done() {
+void pool_diskmgr_action_t::done() {
     parent->assert_thread();
     parent->n_pending--;
     parent->pump();
