@@ -2,6 +2,7 @@
 #include "backtrace.hpp"
 
 #include <cxxabi.h>
+#include <execinfo.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -11,11 +12,11 @@
 #include <string>
 
 #include "errors.hpp"
-#include <boost/tokenizer.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/scoped.hpp"
 #include "logger.hpp"
+#include "thread_stack_pcs.hpp"
 #include "utils.hpp"
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
@@ -246,7 +247,7 @@ std::string print_frames(void **stack_frames, int size, bool use_addr2line) {
 }
 
 lazy_backtrace_t::lazy_backtrace_t() : timestamp(time(0)), timestr(time2str(timestamp)) {
-    size = backtrace(stack_frames, max_frames);
+    size = rethinkdb_backtrace(stack_frames, max_frames);
 }
 
 std::string lazy_backtrace_t::addrs() {
