@@ -150,6 +150,26 @@ void bring_sindexes_up_to_date(
                 auto_drainer_t::lock_t(&store->drainer)));
 }
 
+class apply_sindex_change_visitor_t : public boost::static_visitor<> {
+public:
+    apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
+            transaction_t *txn,
+            signal_t *interruptor)
+        : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
+    void operator()(const rdb_modification_report_t &mod_report) const {
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_);
+    }
+
+    void operator()(const rdb_erase_range_report_t &erase_range_report) const {
+        rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
+    }
+
+private:
+    const sindex_access_vector_t *sindexes_;
+    transaction_t *txn_;
+    signal_t *interruptor_;
+};
+
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro. */
@@ -213,11 +233,12 @@ void post_construct_and_drain_queue(
                 mod_queue->pop(&data_vec);
                 vector_read_stream_t read_stream(&data_vec);
 
-                rdb_modification_report_t mod_report;
-                int ser_res = deserialize(&read_stream, &mod_report);
+                rdb_sindex_change_t sindex_change;
+                int ser_res = deserialize(&read_stream, &sindex_change);
                 guarantee_err(ser_res == 0, "corruption in disk-backed queue");
 
-                rdb_update_sindexes(sindexes, &mod_report, queue_txn.get());
+                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
+                                     sindex_change);
             }
 
             previous_size = mod_queue->size();
@@ -280,6 +301,10 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
     return delete_range->beg <= h && h < delete_range->end
         && delete_range->inner.contains_key(key->contents, key->size);
 }
+
+typedef boost::variant<rdb_modification_report_t, 
+                       rdb_erase_range_report_t> 
+        sindex_change_t;
 
 }  // namespace rdb_protocol_details
 
@@ -1279,7 +1304,7 @@ private:
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
         write_message_t wm;
-        wm << *mod_report;
+        wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
@@ -1499,7 +1524,7 @@ private:
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
         write_message_t wm;
-        wm << *mod_report;
+        wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;

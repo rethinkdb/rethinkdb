@@ -59,7 +59,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             store->lock_sindex_queue(sindex_block.get(), &acq);
 
             write_message_t wm;
-            wm << mod_report;
+            wm << rdb_sindex_change_t(mod_report);
 
             store->sindex_queue_push(wm, &acq);
         }

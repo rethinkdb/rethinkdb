@@ -185,6 +185,20 @@ struct rdb_modification_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+
+struct rdb_erase_range_report_t {
+    rdb_erase_range_report_t() { }
+    rdb_erase_range_report_t(const key_range_t &_range_to_erase)
+        : range_to_erase(_range_to_erase) { }
+    key_range_t range_to_erase;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+typedef boost::variant<rdb_modification_report_t, 
+                       rdb_erase_range_report_t>
+        rdb_sindex_change_t;
+
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
 class rdb_modification_report_cb_t {
@@ -219,9 +233,16 @@ private:
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
-void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
-                         transaction_t *txn);
+void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification,
+        transaction_t *txn);
+
+void rdb_erase_range_sindexes(
+        const const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_erase_range_report_t *erase_range,
+        transaction_t *txn,
+        signal_t *interruptor);
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,

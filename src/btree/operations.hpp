@@ -42,6 +42,8 @@ public:
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
 
+    virtual bool is_acquired() = 0;
+
 private:
     DISABLE_COPYING(superblock_t);
 };
@@ -66,6 +68,8 @@ public:
 
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
+
+    bool is_acquired() { return sb_buf_.is_acquired(); }
 
 private:
     buf_lock_t sb_buf_;

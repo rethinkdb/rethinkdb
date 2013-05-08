@@ -452,7 +452,8 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void sindex_erase_range(const key_range_t &key_range,
-        transaction_t *txn, sindex_access_t *sindex_access, auto_drainer_t::lock_t) {
+        transaction_t *txn, const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
+        signal_t *interruptor, bool release_superblock) {
 
     value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
@@ -462,19 +463,23 @@ void sindex_erase_range(const key_range_t &key_range,
     sindex_key_range_tester_t tester(key_range);
 
     btree_erase_range_generic(sizer, sindex_access->btree, &tester,
-            &deleter, NULL, NULL, txn, sindex_access->super_block.get(), NULL);
+            &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
 }
 
 /* Spawns a coro to carry out the erase range for each sindex. */
 void spawn_sindex_erase_ranges(
-        sindex_access_vector_t *sindex_access,
+        const sindex_access_vector_t *sindex_access,
         const key_range_t &key_range,
         transaction_t *txn,
         auto_drainer_t *drainer,
-        auto_drainer_t::lock_t) {
+        auto_drainer_t::lock_t,
+        bool release_superblock,
+        signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(boost::bind(
-                    &sindex_erase_range, key_range, txn, &*it, auto_drainer_t::lock_t(drainer)));
+                    &sindex_erase_range, key_range, txn, &*it, 
+                    auto_drainer_t::lock_t(drainer), interruptor,
+                    release_superblock));
     }
 }
 
@@ -492,12 +497,26 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     /* Dispatch the erase range to the sindexes. */
     sindex_access_vector_t sindex_superblocks;
-    store->aquire_post_constructed_sindex_superblocks_for_write(
-            superblock->get_sindex_block_id(),
-            token_pair, txn, &sindex_superblocks, interruptor);
+    {
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        store->acquire_sindex_block_for_write(
+            token_pair, txn, &sindex_block, superblock->get_sindex_block_id(),
+            interruptor);
+
+        store->aquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block.get(), txn, &sindex_superblocks);
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(sindex_block.get(), &acq);
+
+        write_message_t wm;
+        wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
+        store->sindex_queue_push(wm, &acq);
+    }
     auto_drainer_t drainer;
     spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
-            &drainer, auto_drainer_t::lock_t(&drainer));
+            &drainer, auto_drainer_t::lock_t(&drainer), 
+            true, /* release the superblock */ interruptor);
 
     /* Twiddle some keys to get the in the form we want. TODO check that the
      * code above shouldn't be using these twiddled keys.*/
@@ -862,6 +881,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
@@ -1024,10 +1044,21 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                 it != sindexes.end();
                                                 ++it) {
+        rassert(it->super_block->is_acquired());
         coro_t::spawn_sometime(boost::bind(
                     &rdb_update_single_sindex, &*it,
                     modification, txn, auto_drainer_t::lock_t(&drainer)));
     }
+}
+
+void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
+        const rdb_erase_range_report_t *erase_range,
+        transaction_t *txn, signal_t *interruptor) {
+    auto_drainer_t drainer;
+
+    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
+            txn, &drainer, auto_drainer_t::lock_t(&drainer), 
+            false, /* don't release the superblock */ interruptor);
 }
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
