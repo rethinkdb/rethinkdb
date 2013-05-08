@@ -85,17 +85,84 @@ private:
 
     // Returns true if `t` is a write or a meta op.
     static bool term_is_write_or_meta(Term *t) {
-        return t->type() == Term::UPDATE
-            || t->type() == Term::DELETE
-            || t->type() == Term::INSERT
-            || t->type() == Term::REPLACE
+        switch (t->type()) {
+        case Term::UPDATE:
+        case Term::DELETE:
+        case Term::INSERT:
+        case Term::REPLACE:
+        case Term::DB_CREATE:
+        case Term::DB_DROP:
+        case Term::DB_LIST:
+        case Term::TABLE_CREATE:
+        case Term::TABLE_DROP:
+        case Term::TABLE_LIST:
+        case Term::INDEX_CREATE:
+        case Term::INDEX_DROP:
+        case Term::INDEX_LIST:
+            return true;
 
-            || t->type() == Term::DB_CREATE
-            || t->type() == Term::DB_DROP
-            || t->type() == Term::DB_LIST
-            || t->type() == Term::TABLE_CREATE
-            || t->type() == Term::TABLE_DROP
-            || t->type() == Term::TABLE_LIST;
+        case Term::DATUM:
+        case Term::MAKE_ARRAY:
+        case Term::MAKE_OBJ:
+        case Term::VAR:
+        case Term::JAVASCRIPT:
+        case Term::ERROR:
+        case Term::IMPLICIT_VAR:
+        case Term::DB:
+        case Term::TABLE:
+        case Term::GET:
+        case Term::GET_ALL:
+        case Term::EQ:
+        case Term::NE:
+        case Term::LT:
+        case Term::LE:
+        case Term::GT:
+        case Term::GE:
+        case Term::NOT:
+        case Term::ADD:
+        case Term::SUB:
+        case Term::MUL:
+        case Term::DIV:
+        case Term::MOD:
+        case Term::APPEND:
+        case Term::SLICE:
+        case Term::GETATTR:
+        case Term::CONTAINS:
+        case Term::PLUCK:
+        case Term::WITHOUT:
+        case Term::MERGE:
+        case Term::BETWEEN:
+        case Term::REDUCE:
+        case Term::MAP:
+        case Term::FILTER:
+        case Term::CONCATMAP:
+        case Term::ORDERBY:
+        case Term::DISTINCT:
+        case Term::COUNT:
+        case Term::UNION:
+        case Term::NTH:
+        case Term::GROUPED_MAP_REDUCE:
+        case Term::LIMIT:
+        case Term::SKIP:
+        case Term::GROUPBY:
+        case Term::INNER_JOIN:
+        case Term::OUTER_JOIN:
+        case Term::EQ_JOIN:
+        case Term::ZIP:
+        case Term::COERCE_TO:
+        case Term::TYPEOF:
+        case Term::FUNCALL:
+        case Term::BRANCH:
+        case Term::ANY:
+        case Term::ALL:
+        case Term::FOREACH:
+        case Term::FUNC:
+        case Term::ASC:
+        case Term::DESC:
+        case Term::INFO:
+            return false;
+        default: unreachable();
+        }
     }
 
     // Returns true if writes are still legal at this node.  Basically:
@@ -113,20 +180,84 @@ private:
         return true;
     }
     static bool term_forbids_writes(Term *term) {
-        return term->type() == Term::REDUCE
-            || term->type() == Term::MAP
-            || term->type() == Term::FILTER
-            || term->type() == Term::CONCATMAP
-            || term->type() == Term::GROUPED_MAP_REDUCE
-            || term->type() == Term::GROUPBY
-            || term->type() == Term::INNER_JOIN
-            || term->type() == Term::OUTER_JOIN
-            || term->type() == Term::EQ_JOIN
+        switch (term->type()) {
+        case Term::REDUCE:
+        case Term::MAP:
+        case Term::FILTER:
+        case Term::CONCATMAP:
+        case Term::GROUPED_MAP_REDUCE:
+        case Term::GROUPBY:
+        case Term::INNER_JOIN:
+        case Term::OUTER_JOIN:
+        case Term::EQ_JOIN:
+        case Term::UPDATE:
+        case Term::DELETE:
+        case Term::REPLACE:
+        case Term::INSERT:
+            return true;
 
-            || term->type() == Term::UPDATE
-            || term->type() == Term::DELETE
-            || term->type() == Term::REPLACE
-            || term->type() == Term::INSERT;
+        case Term::DATUM:
+        case Term::MAKE_ARRAY:
+        case Term::MAKE_OBJ:
+        case Term::VAR:
+        case Term::JAVASCRIPT:
+        case Term::ERROR:
+        case Term::IMPLICIT_VAR:
+        case Term::DB:
+        case Term::TABLE:
+        case Term::GET:
+        case Term::GET_ALL:
+        case Term::EQ:
+        case Term::NE:
+        case Term::LT:
+        case Term::LE:
+        case Term::GT:
+        case Term::GE:
+        case Term::NOT:
+        case Term::ADD:
+        case Term::SUB:
+        case Term::MUL:
+        case Term::DIV:
+        case Term::MOD:
+        case Term::APPEND:
+        case Term::SLICE:
+        case Term::GETATTR:
+        case Term::CONTAINS:
+        case Term::PLUCK:
+        case Term::WITHOUT:
+        case Term::MERGE:
+        case Term::BETWEEN:
+        case Term::ORDERBY:
+        case Term::DISTINCT:
+        case Term::COUNT:
+        case Term::UNION:
+        case Term::NTH:
+        case Term::LIMIT:
+        case Term::SKIP:
+        case Term::ZIP:
+        case Term::COERCE_TO:
+        case Term::TYPEOF:
+        case Term::DB_CREATE:
+        case Term::DB_DROP:
+        case Term::DB_LIST:
+        case Term::TABLE_CREATE:
+        case Term::TABLE_DROP:
+        case Term::TABLE_LIST:
+        case Term::INDEX_CREATE:
+        case Term::INDEX_DROP:
+        case Term::INDEX_LIST:
+        case Term::FUNCALL:
+        case Term::BRANCH:
+        case Term::ANY:
+        case Term::ALL:
+        case Term::FOREACH:
+        case Term::FUNC:
+        case Term::ASC:
+        case Term::DESC:
+        case Term::INFO:
+            return false;
+        default: unreachable();
+        }
     }
 
     // We use this class to change a value while recursing, then restore it to

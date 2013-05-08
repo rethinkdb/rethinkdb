@@ -199,6 +199,15 @@ module 'DatabaseView', ->
             #@.$('.btn-primary').focus()
 
         on_submit: =>
+            if @$('.verification_name').val() isnt @database_to_delete.get('name')
+                if @.$('.mismatch_container').css('display') is 'none'
+                    @.$('.mismatch_container').slideDown('fast')
+                else
+                    @.$('.mismatch_container').hide()
+                    @.$('.mismatch_container').fadeIn()
+                @reset_buttons()
+                return true
+
             super
 
             # We remove the database
