@@ -190,7 +190,7 @@ tests:
       - tbl.outer_join(1,2,3)
 
     - ot:
-        js: err("RqlDriverError", "Expected at least 2 argument(s) but found 0.", [])
+        js: err("RqlDriverError", "groupBy requires a data collector argument. Please supply r.count, r.sum(field), or r.avg(field).", [])
         rb: err("RqlCompileError", "Invalid data collector.", [])
         py: err_regex('TypeError', ".*takes at least 3 arguments \(1 given\)", [])
       cd:
