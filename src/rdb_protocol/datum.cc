@@ -392,7 +392,8 @@ datum_stream_t *datum_t::as_datum_stream(
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
-    case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
+    case R_OBJECT: rfail("Cannot convert `%s` of type %s to SEQUENCE.",
+                         print().c_str(), datum_type_name(get_type()));
     case R_ARRAY: {
         return env->add_ptr(new array_datum_stream_t(env, this, backtrace_src));
     }

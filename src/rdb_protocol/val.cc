@@ -522,15 +522,24 @@ table_t *val_t::as_table() {
     return table;
 }
 
-datum_stream_t *val_t::as_seq() {
-    if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
-        return sequence;
-    } else if (type.raw_type == type_t::TABLE) {
-        return table->as_datum_stream();
-    } else if (type.raw_type == type_t::DATUM) {
-        return datum->as_datum_stream(get_env(), parent);
+datum_stream_t *val_t::as_seq(const char *message) {
+    try {
+        if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
+            return sequence;
+        } else if (type.raw_type == type_t::TABLE) {
+            return table->as_datum_stream();
+        } else if (type.raw_type == type_t::DATUM) {
+            return datum->as_datum_stream(get_env(), parent);
+        }
+        rcheck_literal_type(type_t::SEQUENCE);
+    } catch (const base_exc_t &e) {
+        if (message == NULL) {
+            throw;
+        } else {
+            rfail("%s but found `%s` of type %s.",
+                  message, print().c_str(), get_type_name());
+        }
     }
-    rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
 }
 

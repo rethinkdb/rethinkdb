@@ -1,0 +1,10 @@
+desc: 771 -- insert error message
+tests:
+
+  - cd: r.db('test').table_create('771')
+    def: tbl = r.db('test').table('771')
+
+  - cd: tbl.insert(1)
+    ot: err("RqlRuntimeError", "INSERT expects an OBJECT or SEQUENCE but found `1` of type DATUM.", [])
+
+  - cd: r.db('test').table_drop('771')

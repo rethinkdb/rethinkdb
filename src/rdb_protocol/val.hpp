@@ -141,7 +141,7 @@ public:
     const db_t *as_db();
     table_t *as_table();
     std::pair<table_t *, datum_stream_t *> as_selection();
-    datum_stream_t *as_seq();
+    datum_stream_t *as_seq(const char *message = NULL);
     std::pair<table_t *, const datum_t *> as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);

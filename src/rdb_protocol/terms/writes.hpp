@@ -95,7 +95,8 @@ private:
         }
 
         if (!done) {
-            datum_stream_t *datum_stream = v1->as_seq();
+            datum_stream_t *datum_stream =
+                v1->as_seq("INSERT expects an OBJECT or SEQUENCE");
 
             for (;;) {
                 std::vector<const datum_t *> datums = datum_stream->next_batch();
