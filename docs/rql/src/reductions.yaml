@@ -1,12 +1,12 @@
 sections:
-  - tag: reductions
-    name: Reductions
-    description: These standard reduction objects are to be used in conjunction with group_by.
+  - tag: aggregators
+    name: Aggregators
+    description: These standard aggregator objects are to be used in conjunction with group_by.
     order: 8
 
 commands:
   - tag: count
-    section: reductions
+    section: aggregators
     description: Count the total size of the group.
 
     dont_need_parenthesis: true
@@ -27,7 +27,7 @@ commands:
           dataset: marvel
 
   - tag: sum
-    section: reductions
+    section: aggregators
     description: Compute the sum of the given field in the group.
 
     body: attr
@@ -48,7 +48,7 @@ commands:
           dataset: marvel
 
   - tag: avg
-    section: reductions
+    section: aggregators
     description: Compute the average value of the given attribute for the group.
 
     body: attr
