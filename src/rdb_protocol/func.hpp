@@ -106,6 +106,9 @@ private:
     std::map<int64_t, Datum> scope;
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func);
+
+
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
