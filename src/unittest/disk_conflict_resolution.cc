@@ -12,32 +12,45 @@
 
 namespace unittest {
 
-struct test_driver_t {
+struct core_action_t : public intrusive_list_node_t<core_action_t> {
     /* We need for multiple test_driver_t objects to share a file
        descriptor in order to test the conflict resolution logic, but
        it doesn't matter what that file descriptor is. */
     static const int IRRELEVANT_DEFAULT_FD = 0;
 
-    struct core_action_t : public intrusive_list_node_t<core_action_t> {
-        bool get_is_write() const { return !is_read; }
-        bool get_is_read() const { return is_read; }
-        fd_t get_fd() const { return fd; }
-        void *get_buf() const { return buf; }
-        size_t get_count() const { return count; }
-        int64_t get_offset() const { return offset; }
-        void set_successful_due_to_conflict() { }
+    bool get_is_write() const { return !is_read; }
+    bool get_is_read() const { return is_read; }
+    fd_t get_fd() const { return fd; }
+    void *get_buf() const { return buf; }
+    size_t get_count() const { return count; }
+    int64_t get_offset() const { return offset; }
+    void set_successful_due_to_conflict() { }
 
-        bool is_read;
-        void *buf;
-        size_t count;
-        int64_t offset;
+    bool is_read;
+    void *buf;
+    size_t count;
+    int64_t offset;
 
-        core_action_t() :
-            has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
-        bool has_begun, done;
-        fd_t fd;
-    };
+    core_action_t() :
+        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
+    bool has_begun, done;
+    fd_t fd;
+};
 
+void debug_print(append_only_printf_buffer_t *buf,
+                  const core_action_t &action) {
+    buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
+                 "offset=%" PRIi64 ", has_begun=%s, done=%s, fd=%d}",
+                 action.is_read ? "true" : "false",
+                 action.buf,
+                 action.count,
+                 action.offset,
+                 action.has_begun ? "true" : "false",
+                 action.done ? "true" : "false",
+                 action.fd);
+}
+
+struct test_driver_t {
     intrusive_list_t<core_action_t> running_actions;
     std::vector<char> data;
 
@@ -87,7 +100,9 @@ struct test_driver_t {
         rassert(a->has_begun);
         running_actions.remove(a);
 
-        if (a->offset + a->count > data.size()) data.resize(a->offset + a->count, 0);
+        if (a->offset + a->count > data.size()) {
+            data.resize(a->offset + a->count, 0);
+        }
         if (a->is_read) {
             memcpy(a->buf, data.data() + a->offset, a->count);
         } else {
@@ -145,12 +160,11 @@ struct write_test_t {
     write_test_t(test_driver_t *_driver, int64_t o, const std::string &d) :
         driver(_driver),
         offset(o),
-        data(d)
+        data(d.begin(), d.end())
     {
         action.is_read = false;
         action.fd = 0;
-        // It's OK to cast away the const; it won't be modified.
-        action.buf = const_cast<void *>(reinterpret_cast<const void *>(d.data()));
+        action.buf = data.data();
         action.count = d.size();
         action.offset = o;
         driver->submit(&action);
@@ -158,7 +172,7 @@ struct write_test_t {
 
     test_driver_t *driver;
     int64_t offset;
-    std::string data;
+    std::vector<char> data;
     test_driver_t::action_t action;
 
     bool was_sent() {
