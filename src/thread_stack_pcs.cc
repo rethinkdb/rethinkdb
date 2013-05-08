@@ -74,6 +74,8 @@ _rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max,
     void *stackbot;
 
     {
+        // RethinkDB changes here: We add code that gets the stack bounds when
+        // on a coroutine stack.
         coro_t *coro = coro_t::self();
         if (coro != NULL) {
             artificial_stack_t *stack = coro->get_stack();
