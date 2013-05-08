@@ -63,7 +63,13 @@
 </script>
 
 <script id="remove_database-modal-template" type="text/x-handlebars-template">
-  <div class="alert alert-error displayed_alert">Deleting the database will delete all the tables in it.</div>
-  <div class="alert alert-error error_answer"></div>
-  <p>Are you sure you want to delete the database <a href="#databases/{{id}}">{{name}}</a>?</p>
+    <div class="alert mismatch_container">
+       This name doesn't match the name of the database you're trying to delete. 
+    </div>
+    <div class="alert alert-error displayed_alert">Deleting the database will delete all the tables in it.<br/>This action <strong>cannot</strong> be undone.</div>
+    <div class="alert alert-error error_answer"></div>
+    <p>Please type in the name of the database to confirm.</p>
+    <div class="input">
+        <input class="xlarge large_input verification_name" name="name" size="30" type="text" placeholder="Name of the database"/>
+    </div>
 </script>
