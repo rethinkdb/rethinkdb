@@ -151,6 +151,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace);
             return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
+            return;
         }
 
         try {
@@ -158,6 +161,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                 strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
             return;
         }
 
@@ -177,6 +183,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             }
         } catch (const exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace);
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
     } break;
