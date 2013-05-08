@@ -23,7 +23,7 @@ struct context_ref_t {
 
 private:
     friend class artificial_stack_t;
-    friend void context_switch(context_ref_t *, context_ref_t *);
+    friend void context_switch(context_ref_t *current_context_out, context_ref_t *dest_context_in);
 
     /* `pointer` points to a location on the stack of the context in question.
     From that pointer, we find the instruction pointer, relevant registers, and
