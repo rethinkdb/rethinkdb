@@ -4,6 +4,7 @@
 #include <string>
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 
 void wait_for_rdb_table_readiness(
     base_namespace_repo_t<rdb_protocol_t> *ns_repo,
