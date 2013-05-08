@@ -30,7 +30,7 @@ public:
         signal_t *interruptor;
     };
 private:
-    Response handle(Query *q, context_t *query2_context);
+    MUST_USE bool handle(Query *q, Response *response_out, context_t *query2_context);
     protob_server_t<Query, Response, context_t> server;
     rdb_protocol_t::context_t *ctx;
     uuid_u parser_id;

@@ -16,10 +16,11 @@
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
-protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::set<ip_address_t> &local_addresses,
-                                                                   int port,
-                                                                   boost::function<response_t(request_t *, context_t *)> _f,
-                                                                   response_t (*_on_unparsable_query)(request_t *, std::string),
+protob_server_t<request_t, response_t, context_t>::protob_server_t(
+    const std::set<ip_address_t> &local_addresses,
+    int port,
+    boost::function<bool(request_t *, response_t *, context_t *)> _f,
+    response_t (*_on_unparsable_query)(request_t *, std::string),
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
@@ -29,13 +30,18 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(const std::se
       next_thread(0) {
 
     for (int i = 0; i < get_num_threads(); ++i) {
-        cross_thread_signal_t *s = new cross_thread_signal_t(&main_shutting_down_cond, i);
+        cross_thread_signal_t *s =
+            new cross_thread_signal_t(&main_shutting_down_cond, i);
         shutting_down_conds.push_back(s);
         rassert(s == &shutting_down_conds[i]);
     }
 
     try {
-        tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+        tcp_listener.init(new tcp_listener_t(
+            local_addresses,
+            port,
+            boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
+                        this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &e) {
         nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
     }
@@ -49,7 +55,9 @@ int protob_server_t<request_t, response_t, context_t>::get_port() const {
 }
 
 template <class request_t, class response_t, class context_t>
-void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t keepalive) {
+void protob_server_t<request_t, response_t, context_t>::handle_conn(
+    const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
+    auto_drainer_t::lock_t keepalive) {
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
@@ -61,7 +69,8 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
         if (client_magic_number != context_t::magic_number) {
-            const char *msg = "ERROR: This is the rdb protocol port! (bad magic number)\n";
+            const char *msg =
+                "ERROR: This is the rdb protocol port! (bad magic number)\n";
             conn->write(msg, strlen(msg), &ct_keepalive);
             conn->shutdown_write();
             return;
@@ -104,30 +113,35 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
 
         try {
             switch (cb_mode) {
-                case INLINE:
-                    if (force_response) {
-                        send(forced_response, conn.get(), &ct_keepalive);
-                    } else {
+            case INLINE:
+                if (force_response) {
+                    send(forced_response, conn.get(), &ct_keepalive);
+                } else {
 #ifdef __linux
-                        linux_event_watcher_t *ew = conn->get_event_watcher();
-                        linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
-                        wait_any_t interruptor(&conn_interrupted, shutdown_signal());
-                        ctx.interruptor = &interruptor;
+                    linux_event_watcher_t *ew = conn->get_event_watcher();
+                    linux_event_watcher_t::watch_t conn_interrupted(
+                        ew, poll_event_rdhup);
+                    wait_any_t interruptor(&conn_interrupted, shutdown_signal());
+                    ctx.interruptor = &interruptor;
 #else
-                        ctx.interruptor = shutdown_signal();
+                    ctx.interruptor = shutdown_signal();
 #endif  // __linux
-                        send(f(&request, &ctx), conn.get(), &ct_keepalive);
+                    response_t response;
+                    bool response_needed = f(&request, &response, &ctx);
+                    if (response_needed) {
+                        send(response, conn.get(), &ct_keepalive);
                     }
-                    break;
-                case CORO_ORDERED:
-                    crash("unimplemented");
-                    break;
-                case CORO_UNORDERED:
-                    crash("unimplemented");
-                    break;
-                default:
-                    crash("unreachable");
-                    break;
+                }
+                break;
+            case CORO_ORDERED:
+                crash("unimplemented");
+                break;
+            case CORO_UNORDERED:
+                crash("unimplemented");
+                break;
+            default:
+                crash("unreachable");
+                break;
             }
         } catch (const tcp_conn_write_closed_exc_t &) {
             //TODO need to figure out what blocks us up here in non inline cb
@@ -138,7 +152,10 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(const scoped
 }
 
 template <class request_t, class response_t, class context_t>
-void protob_server_t<request_t, response_t, context_t>::send(const response_t &res, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
+void protob_server_t<request_t, response_t, context_t>::send(
+    const response_t &res,
+    tcp_conn_t *conn,
+    signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t) {
     int size = res.ByteSize();
     conn->write(&size, sizeof(res.ByteSize()), closer);
     scoped_array_t<char> data(size);
@@ -148,14 +165,16 @@ void protob_server_t<request_t, response_t, context_t>::send(const response_t &r
 }
 
 template <class request_t, class response_t, class context_t>
-http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_req_t &req) {
+http_res_t protob_server_t<request_t, response_t, context_t>::handle(
+    const http_req_t &req) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
 
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
-            return http_res_t(HTTP_BAD_REQUEST, "application/text", "Required parameter \"conn_id\" missing\n");
+            return http_res_t(HTTP_BAD_REQUEST, "application/text",
+                              "Required parameter \"conn_id\" missing\n");
         }
 
         std::string string_conn_id = *optional_conn_id;
@@ -182,7 +201,8 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
     } else {
         boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
         if (!optional_conn_id) {
-            return http_res_t(HTTP_BAD_REQUEST, "application/text", "Required parameter \"conn_id\" missing\n");
+            return http_res_t(HTTP_BAD_REQUEST, "application/text",
+                              "Required parameter \"conn_id\" missing\n");
         }
         std::string string_conn_id = *optional_conn_id;
         int32_t conn_id = boost::lexical_cast<int32_t>(string_conn_id);
@@ -195,6 +215,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         request_t request;
         bool parseSucceeded = request.ParseFromArray(data, req_size);
 
+        bool response_needed;
         response_t response;
         switch (cb_mode) {
         case INLINE: {
@@ -208,7 +229,11 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
                 response = on_unparsable_query(&request, err);
             } else {
                 context_t *ctx = conn->get_ctx();
-                response = f(&request, ctx);
+                response_needed = f(&request, &response, ctx);
+                if (!response_needed) {
+                    return http_res_t(HTTP_BAD_REQUEST, "application/text",
+                                      "Noreply writes unsupported over HTTP\n");
+                }
             }
         } break;
         case CORO_ORDERED:

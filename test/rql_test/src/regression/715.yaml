@@ -1,0 +1,29 @@
+desc: 715 -- noreply writes
+tests:
+  - cd: r.table_create('715')
+    ot: ({'created':1})
+
+  - def: tbl = r.table('715')
+
+  - rb: tbl.insert({})[:inserted]
+    ot: 1
+
+  # We define a singleton class that overrides the `run` method so that we can add the noreply global option.
+  - rb: (x = tbl.insert({})[:inserted]; class << x; def run(*a); super(*(a+[:noreply => false])); end; end; x)
+    ot: 1
+
+  - rb: (x = tbl.insert({})[:inserted]; class << x; def run(*a); super(*(a+[:noreply => true])); end; end; x)
+    ot: nil
+
+  # We respect ruby conventions where everything except `nil` and `false` is `true`.
+  - rb: (x = tbl.insert({})[:inserted]; class << x; def run(*a); super(*(a+[:noreply => nil])); end; end; x)
+    ot: 1
+
+  - rb: (x = tbl.insert({})[:inserted]; class << x; def run(*a); super(*(a+[:noreply => 1])); end; end; x)
+    ot: nil
+
+  - rb: tbl.count
+    ot: 5
+
+  - cd: r.table_drop('715')
+    ot: ({'dropped':1})
