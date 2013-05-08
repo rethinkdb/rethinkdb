@@ -1078,7 +1078,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                   NVAR(arg1)));
 
             Backtrace dummy_backtrace;
-            ql::term_walker_t(&filter_term, &dummy_backtrace);
+            ql::propagate_backtraces(&filter_term, &dummy_backtrace);
             ql::filter_wire_func_t sindex_filter(filter_term, std::map<int64_t, Datum>());
 
             // We then add this new filter to the beginning of the transform stack

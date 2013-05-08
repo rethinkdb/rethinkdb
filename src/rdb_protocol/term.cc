@@ -129,7 +129,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
-            term_walker_t term_walker(t); // fill backtraces
+            fill_in_backtraces(t);
             Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
 
             // Parse global optargs
@@ -145,7 +145,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
             N1(DB, NDATUM("test"));
 
-            term_walker_t(arg, t_bt); // duplicate toplevel backtrace
+            propagate_backtraces(arg, t_bt); // duplicate toplevel backtrace
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
@@ -245,7 +245,7 @@ protob_t<const Term> term_t::get_src() const {
 }
 
 void term_t::prop_bt(Term *t) const {
-    term_walker_t(t, &get_src()->GetExtension(ql2::extension::backtrace));
+    propagate_backtraces(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
 counted_t<val_t> term_t::eval() {
