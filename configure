@@ -28,8 +28,9 @@ init () {
     npm_deps="$web_assets_deps"
     required_bin_deps="protoc"
     support_bin_deps="$required_bin_deps $web_assets_deps npm"
+    optional_bin_deps="wget curl"
     support_deps="$support_bin_deps $support_libs"
-    bin_deps="cxx $support_bin_deps"
+    bin_deps="cxx $support_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
@@ -78,6 +79,7 @@ configure () {
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
     if ! $enable_precompiled_web; then
         for bin in $web_assets_deps; do
+            require_dep $bin
             check_bin $bin
         done
         if ! contains "$fetch_list" coffee; then
@@ -86,9 +88,15 @@ configure () {
         fi
     fi
     for bin in $required_bin_deps; do
+        require_dep $bin
+        check_bin $bin
+    done
+    for bin in $optional_bin_deps; do
+        optional_dep $bin
         check_bin $bin
     done
     if any "$fetch_list" contains "$npm_deps"; then
+        require_dep npm
         check_bin npm
     fi
     build_try_lib_paths
@@ -565,7 +573,6 @@ lookup () {
 # check_bin <name>
 # Check for a binary
 check_bin () {
-    require_dep $1
     if contains "$please_fetch_list" $1; then
         fetch_bin $1
         return
