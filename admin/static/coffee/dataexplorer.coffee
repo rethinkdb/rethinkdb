@@ -259,7 +259,7 @@ module 'DataExplorerView', ->
                     args: '( )'
                     description: @description_with_example_template
                         description: command['description']
-                        examples: command['langs']['js']['examples']
+                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
             else
                 if command['langs']['js']['dont_need_parenthesis'] is true
                     full_tag = tag # Here full_tag is just the name of the tag
@@ -272,7 +272,7 @@ module 'DataExplorerView', ->
                     args: ('( '+command['langs']['js']['body']+' )' if command['langs']['js']['dont_need_parenthesis'] isnt true)
                     description: @description_with_example_template
                         description: command['description']
-                        examples: command['langs']['js']['examples']
+                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
 
             if command['parent']?
                 parents = command['parent']?.split(' | ')

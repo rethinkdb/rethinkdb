@@ -144,6 +144,8 @@ rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max, unsigned *nb)
 }
 
 #else
+#include <execinfo.h>
+
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);
 }
