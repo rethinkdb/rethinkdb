@@ -120,7 +120,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
-  RT_CXXFLAGS += -stdlib=libc++
+  ifeq ($(OS), Darwin)
+    RT_CXXFLAGS += -stdlib=libc++
+  endif
 
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
