@@ -640,8 +640,7 @@ public:
                 } catch (const ql::datum_exc_t &e) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    const ql::terminal_exc_visitor_t visitor(e, &rg_response->result);
-                    boost::apply_visitor(visitor, rg.terminal->variant);
+                    terminal_exception(e, rg.terminal->variant, &rg_response->result);
                 }
             }
         } catch (const runtime_exc_t &e) {
