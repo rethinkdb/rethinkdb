@@ -160,6 +160,7 @@ private:
         case Term::FUNC:
         case Term::ASC:
         case Term::DESC:
+        case Term::INFO:
             return false;
         default: unreachable();
         }
@@ -254,6 +255,7 @@ private:
         case Term::FUNC:
         case Term::ASC:
         case Term::DESC:
+        case Term::INFO:
             return false;
         default: unreachable();
         }
