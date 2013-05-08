@@ -50,7 +50,6 @@ message Query {
     // A [Term] is how we represent the operations we want a query to perform.
     optional Term query = 2; // only present when [type] = [START]
     optional int64 token = 3;
-    optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
 
     message AssocPair {
         optional string key = 1;
