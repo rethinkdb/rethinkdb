@@ -100,7 +100,9 @@ struct test_driver_t {
         rassert(a->has_begun);
         running_actions.remove(a);
 
-        if (a->offset + a->count > data.size()) data.resize(a->offset + a->count, 0);
+        if (a->offset + a->count > data.size()) {
+            data.resize(a->offset + a->count, 0);
+        }
         if (a->is_read) {
             memcpy(a->buf, data.data() + a->offset, a->count);
         } else {
@@ -158,12 +160,11 @@ struct write_test_t {
     write_test_t(test_driver_t *_driver, int64_t o, const std::string &d) :
         driver(_driver),
         offset(o),
-        data(d)
+        data(d.begin(), d.end())
     {
         action.is_read = false;
         action.fd = 0;
-        // It's OK to cast away the const; it won't be modified.
-        action.buf = const_cast<void *>(reinterpret_cast<const void *>(d.data()));
+        action.buf = data.data();
         action.count = d.size();
         action.offset = o;
         driver->submit(&action);
@@ -171,7 +172,7 @@ struct write_test_t {
 
     test_driver_t *driver;
     int64_t offset;
-    std::string data;
+    std::vector<char> data;
     test_driver_t::action_t action;
 
     bool was_sent() {
