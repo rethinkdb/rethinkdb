@@ -300,6 +300,7 @@ module 'NamespaceView', ->
             mapped_secondary_indexes = _.map @secondary_indexes, (d) ->
                 name: d
                 display: that.deleting_secondary_index is d
+                is_empty: d is ''
 
             template_args =
                 loading: @loading
