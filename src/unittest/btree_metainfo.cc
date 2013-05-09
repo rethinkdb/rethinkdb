@@ -41,8 +41,7 @@ std::string vector_to_string(const std::vector<char> &v) {
 void run_metainfo_test() {
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
 
     filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(

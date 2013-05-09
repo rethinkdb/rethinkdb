@@ -18,7 +18,6 @@
 #include "config/args.hpp"
 #include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "arch/io/disk/aio.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -155,37 +154,10 @@ private:
     DISABLE_COPYING(linux_templated_disk_manager_t);
 };
 
-
-void native_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
-                                              perfmon_collection_t *stats,
-                                              scoped_ptr_t<linux_disk_manager_t> *out) {
-#ifdef AIOSUPPORT
-    out->init(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
-#else
-    if ( queue || batch_factor || stats || out ) { }
-    crash("This version has no native aio support. Consider using the pool back-end.\n");
-#endif //AIOSUPPORT
-}
-
 void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                             perfmon_collection_t *stats,
                                             scoped_ptr_t<linux_disk_manager_t> *out) {
     out->init(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
-}
-
-
-void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) {
-    if (backend == aio_native) {
-        #ifdef AIOSUPPORT
-        out->init(new native_io_backender_t);
-        #else
-        crash("This version has no native aio support. Consider using the pool back-end.\n");
-        #endif
-    } else if (backend == aio_pool) {
-        out->init(new pool_io_backender_t);
-    } else {
-        crash("impossible io_backend_t value: %d\n", backend);
-    }
 }
 
 /* Disk file object */

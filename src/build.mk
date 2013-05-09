@@ -269,11 +269,6 @@ ifeq ($(VALGRIND),1)
   RT_CXXFLAGS += -DVALGRIND
 endif
 
-ifeq ($(AIOSUPPORT),1)
-  RT_CXXFLAGS += -DAIOSUPPORT
-  RT_LDFLAGS += -laio
-endif
-
 ifeq ($(LEGACY_PROC_STAT),1)
   RT_CXXFLAGS += -DLEGACY_PROC_STAT
 endif

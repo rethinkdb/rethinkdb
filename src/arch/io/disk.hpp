@@ -66,14 +66,6 @@ private:
     DISABLE_COPYING(io_backender_t);
 };
 
-class native_io_backender_t : public io_backender_t {
-public:
-    native_io_backender_t() { make_disk_manager(queue, batch_factor, &stats, &diskmgr); }
-    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
-                           perfmon_collection_t *stats,
-                           scoped_ptr_t<linux_disk_manager_t> *out);
-};
-
 class pool_io_backender_t : public io_backender_t {
 public:
     pool_io_backender_t() { make_disk_manager(queue, batch_factor, &stats, &diskmgr); }
@@ -81,8 +73,6 @@ public:
                            perfmon_collection_t *stats,
                            scoped_ptr_t<linux_disk_manager_t> *out);
 };
-
-void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
 // A file_open_result_t is either FILE_OPEN_DIRECT, FILE_OPEN_BUFFERED, or an errno value.
 struct file_open_result_t {
