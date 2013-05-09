@@ -26,8 +26,6 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-// #define DEBUG_DUMP_WRITES 1
-
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
