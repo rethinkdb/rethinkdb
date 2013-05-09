@@ -36,7 +36,7 @@ static void run_read_write_test() {
     /* Set up branch history tracker */
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
@@ -128,7 +128,7 @@ static void run_broadcaster_problem_test() {
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     // io backender.
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));

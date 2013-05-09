@@ -23,7 +23,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     scoped_ptr_t<standard_serializer_t> serializer;
 

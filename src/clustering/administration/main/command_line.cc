@@ -381,7 +381,7 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -495,7 +495,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");

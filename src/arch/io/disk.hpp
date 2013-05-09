@@ -47,31 +47,15 @@ private:
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
-                                   perfmon_collection_t *stats,
-                                   scoped_ptr_t<linux_disk_manager_t> *out) = 0;
-
-    virtual ~io_backender_t() { }
-    linux_disk_manager_t *get_diskmgr_ptr() {return diskmgr.get();}
+    io_backender_t();
+    ~io_backender_t();
+    linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
 
 protected:
-    io_backender_t() : queue(&linux_thread_pool_t::thread->queue), batch_factor(DEFAULT_IO_BATCH_FACTOR) {
-        //        printf("tst\n");
-    }
-    linux_event_queue_t *queue;
-    int batch_factor;
     perfmon_collection_t stats;
     scoped_ptr_t<linux_disk_manager_t> diskmgr;
 private:
     DISABLE_COPYING(io_backender_t);
-};
-
-class pool_io_backender_t : public io_backender_t {
-public:
-    pool_io_backender_t() { make_disk_manager(queue, batch_factor, &stats, &diskmgr); }
-    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
-                           perfmon_collection_t *stats,
-                           scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
 // A file_open_result_t is either FILE_OPEN_DIRECT, FILE_OPEN_BUFFERED, or an errno value.

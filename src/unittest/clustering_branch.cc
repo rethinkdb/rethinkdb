@@ -47,7 +47,7 @@ void run_with_broadcaster(
     /* Set up branch history manager */
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     /* Set up a broadcaster and initial listener */
     test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));

@@ -269,7 +269,7 @@ void run_sindex_post_construction() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(
@@ -313,7 +313,7 @@ void run_erase_range_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(
@@ -386,7 +386,7 @@ void run_sindex_interruption_via_drop_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(
@@ -430,7 +430,7 @@ void run_sindex_interruption_via_store_delete() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
     standard_serializer_t::create(

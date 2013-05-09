@@ -20,7 +20,7 @@ serializer_filepath_t dbq_serializer_path() {
 
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
@@ -47,7 +47,7 @@ TEST(DiskBackedQueue, ManyInts) {
 
 void run_big_values_test() {
     static const int NUM_BIG_ELTS_IN_QUEUE = 100;
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
@@ -79,7 +79,7 @@ static void randomly_delay(int, signal_t *) {
 }
 
 void run_concurrent_test() {
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 

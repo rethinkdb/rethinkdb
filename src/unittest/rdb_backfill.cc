@@ -41,7 +41,7 @@ void run_with_broadcaster(
     in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
 
     // io backender
-    scoped_ptr_t<io_backender_t> io_backender(new pool_io_backender_t);
+    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
 
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak

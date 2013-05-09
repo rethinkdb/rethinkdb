@@ -154,11 +154,10 @@ private:
     DISABLE_COPYING(linux_templated_disk_manager_t);
 };
 
-void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
-                                            perfmon_collection_t *stats,
-                                            scoped_ptr_t<linux_disk_manager_t> *out) {
-    out->init(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
-}
+io_backender_t::io_backender_t()
+    : diskmgr(new linux_templated_disk_manager_t<pool_diskmgr_t>(&linux_thread_pool_t::thread->queue, DEFAULT_IO_BATCH_FACTOR, &stats)) { }
+
+io_backender_t::~io_backender_t() { }
 
 /* Disk file object */
 
