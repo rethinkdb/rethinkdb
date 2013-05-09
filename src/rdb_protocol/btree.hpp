@@ -239,7 +239,7 @@ void rdb_update_sindexes(
         transaction_t *txn);
 
 void rdb_erase_range_sindexes(
-        const const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_erase_range_report_t *erase_range,
         transaction_t *txn,
         signal_t *interruptor);
