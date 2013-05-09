@@ -50,32 +50,6 @@ private:
     DISABLE_COPYING(json_stream_t);
 };
 
-class in_memory_stream_t : public json_stream_t {
-public:
-    explicit in_memory_stream_t(json_array_iterator_t it);
-    explicit in_memory_stream_t(boost::shared_ptr<json_stream_t> stream);
-
-    // RSI: Does anybody use this?
-    template <class Ordering>
-    void sort(const Ordering &o) {
-        auto beg = data.begin() + data_index;
-        if (data.end() - beg == 1) {
-            // We want to do this so that we trigger exceptions consistently.
-            o(*beg, *beg);
-        } else {
-            std::sort(beg, data.end(), o);
-        }
-    }
-
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > next_batch(size_t max_size);
-
-    /* Use default implementation of `add_transformation()` and `apply_terminal()` */
-
-private:
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
-    size_t data_index;
-};
-
 class transform_stream_t : public json_stream_t {
 public:
     transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);

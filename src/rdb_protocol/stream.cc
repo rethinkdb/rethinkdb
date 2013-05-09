@@ -39,31 +39,6 @@ result_t json_stream_t::apply_terminal(
     return res;
 }
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) : data_index(0) {
-    while (cJSON *json = it.next()) {
-        data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
-    }
-}
-
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream)
-    : data(stream->next_batch(SIZE_MAX)), data_index(0) {
-    guarantee(data.size() != SIZE_MAX);
-}
-
-std::vector<boost::shared_ptr<scoped_cJSON_t> >
-in_memory_stream_t::next_batch(size_t max_size) {
-    const size_t end
-        = data.size() - data_index < max_size ? data.size() : data_index + max_size;
-
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > ret;
-    while (data_index != end) {
-        ret.push_back(std::move(data[data_index]));
-        ++data_index;
-    }
-
-    return ret;
-}
-
 std::vector<boost::shared_ptr<scoped_cJSON_t> >
 pop_a_batch(std::list<boost::shared_ptr<scoped_cJSON_t> > *const data,
             const size_t max_size) {
