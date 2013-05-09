@@ -126,7 +126,7 @@ class Connection
     use: ar (db) ->
         @db = db
 
-    _start: (term, cb, useOutdated) ->
+    _start: (term, cb, useOutdated, noreply) ->
         unless @open then throw new RqlDriverError "Connection is closed."
 
         # Assign token
@@ -152,10 +152,20 @@ class Connection
             pair.setVal((new DatumTerm (!!useOutdated)).build())
             query.addGlobalOptargs(pair)
 
+        if noreply?
+            pair = new Query.AssocPair()
+            pair.setKey('noreply')
+            pair.setVal((new DatumTerm (!!noreply)).build())
+            query.addGlobalOptargs(pair)
+
         # Save callback
-        @outstandingCallbacks[token] = {cb:cb, root:term}
+        if (not noreply?) or !noreply
+            @outstandingCallbacks[token] = {cb:cb, root:term}
 
         @_sendQuery(query)
+
+        if noreply? and noreply
+            cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
         query = new Query
