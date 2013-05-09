@@ -649,7 +649,7 @@ module 'DataExplorerView', ->
                                     @insert_next char_to_insert
                             else # Else we'll just insert one quote
                                 return true
-                    else if last_element_incomplete_type isnt 'string' and last_element_incomplete_type isnt 'object_key'
+                    else if last_element_incomplete_type isnt 'string'
                         next_char = @get_next_char()
 
                         if char_to_insert of @matching_opening_bracket
@@ -1466,8 +1466,9 @@ module 'DataExplorerView', ->
                                             context: context
                                             complete: 'false'
                                         stack_stop_char = ['(']
-                                        start = position_opening_parenthesis+1
+                                        start = position_opening_parenthesis
                                         to_skip = result_regex[0].length-1
+                                        continue
 
                             # Check for method without parenthesis r., r.row., doc.
                             result_regex = @regex.method_var.exec query.slice new_start
