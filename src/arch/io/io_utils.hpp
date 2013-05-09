@@ -4,12 +4,6 @@
 
 #include "arch/runtime/runtime_utils.hpp"
 
-/* Types of IO backends */
-enum linux_io_backend_t {
-    AIO_BACKEND_MIN_BOUND = 0, aio_native = 0, aio_default = 1, aio_pool = 1, AIO_BACKEND_MAX_BOUND = 1
-};
-typedef linux_io_backend_t io_backend_t;
-
 // Thanks glibc for not providing a wrapper for this syscall :(
 int _gettid();
 
