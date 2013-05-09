@@ -131,8 +131,8 @@ private:
     the conflict resolver, which enforces ordering constraints between IO operations by
     holding back operations that must be run after other, currently-running, operations.
     Then it goes to the account manager, which queues up running IO operations according
-    to which account they are part of. Finally the backend (which may be either AIO-based
-    or thread-pool-based) pops the IO operations from the queue.
+    to which account they are part of. Finally the "backend" pops the IO operations
+    from the queue.
 
     At two points in the process--once as soon as it is submitted, and again right
     as the backend pops it off the queue--its statistics are recorded. The "stack stats"
