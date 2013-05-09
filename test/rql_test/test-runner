@@ -160,7 +160,7 @@ class TestGroup:
             self.write_def(out, test['def'], lang, index)
 
         # See if this test even defines a test for our language
-        code = self.get_code(test, lang, index)
+        (code, runopts) = self.get_code(test, lang, index)
         for test_case in code:
             out.write("test("+test_case)
             expected = self.get_expected(test, lang)
@@ -168,6 +168,11 @@ class TestGroup:
                 expected = '""'
             out.write(', '+expected)
             out.write(', "' + '-'.join(self.path) + '-' + str(index) + '"')
+
+            if runopts:
+                runoptsrepr = Langs.translate_expected_for(lang, repr(runopts))
+                out.write(', '+runoptsrepr)
+
             out.write(')\n')
 
             # We want to auto-shard tables that we create. There is stil no
@@ -181,7 +186,7 @@ class TestGroup:
                     out.write('shard("'+table_name+'")\n')
 
     def write_def(self, out, defobj, lang, index):
-        code = self.get_code(defobj, lang, index + '-def')
+        (code, runopts) = self.get_code(defobj, lang, index + '-def')
         if len(code) > 0:
             out.write('define('+code[0]+')\n')
 
@@ -189,7 +194,10 @@ class TestGroup:
     # all languages or language specific versions
     def get_code(self, obj, lang, index):
 
+        runopts = None
         if isinstance(obj, dict):
+            if 'runopts' in obj:
+                runopts = obj['runopts']
 
             # Try language specific version first
             if lang in obj:
@@ -224,7 +232,7 @@ class TestGroup:
                 print 'Missing %s test for %s' % (lang, '-'.join(self.path) + '-' + str(index))
 
         # Construct the appropriate representation for each test in this language
-        return map(lambda src: Langs.repr_query_for(lang, src), code)
+        return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)
 
     # Get the expected result from the test object. Either a generic result or
     # a language specific result.
