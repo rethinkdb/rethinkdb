@@ -76,11 +76,11 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 
 <script id="dataexplorer-description_with_example-template" type="text/x-handlebars-template">
-    <p>{{description}}</p>
+    <p>{{print_safe description}}</p>
     <div class="db_table_available"></div>
     <div class="separation"></div>
     {{#each examples}}
-    <p><u>Ex</u>: {{description}}</br>
+    <p><u>Example</u>: {{print_safe description}}</br>
     {{code}}
     </p>
     {{/each}}
