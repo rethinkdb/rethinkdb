@@ -234,8 +234,13 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
-    term_walker_t(twrap.get(), bt_src.get());
+    propagate_backtraces(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
 }
+
+void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func) {
+    debug_print(buf, func.debug_str());
+}
+
 
 } // namespace ql

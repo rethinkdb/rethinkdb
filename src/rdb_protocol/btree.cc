@@ -542,10 +542,9 @@ public:
             response->last_considered_key = range.left;
 
             if (terminal) {
-                boost::apply_visitor(query_language::terminal_initializer_visitor_t(
-                                         &response->result, ql_env,
-                                         terminal->scopes, terminal->backtrace),
-                                     terminal->variant);
+                terminal_initialize(ql_env, terminal->scopes, terminal->backtrace,
+                                    &terminal->variant,
+                                    &response->result);
             }
         } catch (const query_language::runtime_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
@@ -557,11 +556,9 @@ public:
             bad_init = true;
         } catch (const ql::datum_exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
-            boost::apply_visitor(ql::terminal_exc_visitor_t(e2, &response->result),
-                                 terminal->variant);
+            terminal_exception(e2, terminal->variant, &response->result);
             bad_init = true;
         }
-
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
@@ -596,17 +593,16 @@ public:
                         for (json_list_t::iterator jt  = data.begin();
                              jt != data.end();
                              ++jt) {
-                            boost::apply_visitor(query_language::transform_visitor_t(
-                                                     *jt, &tmp, ql_env, it->scopes,
-                                                     it->backtrace), it->variant);
+                            transform_apply(ql_env, it->scopes, it->backtrace,
+                                            *jt, &it->variant,
+                                            &tmp);
                         }
                         data.clear();
                         data.splice(data.begin(), tmp);
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
-                        const ql::transform_exc_visitor_t visitor(e2, &response->result);
-                        boost::apply_visitor(visitor, it->variant);
+                        transform_exception(e2, it->variant, &response->result);
                         return false;
                     }
                 }
@@ -627,18 +623,14 @@ public:
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        boost::apply_visitor(query_language::terminal_visitor_t(
-                                                 *jt, ql_env, terminal->scopes,
-                                                 terminal->backtrace, &response->result),
-                                             terminal->variant);
+                        terminal_apply(ql_env, terminal->scopes, terminal->backtrace,
+                                       *jt, &terminal->variant, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::terminal_exc_visitor_t(e2,
-                                                                    &response->result),
-                                         terminal->variant);
+                    terminal_exception(e2, terminal->variant, &response->result);
                     return false;
                 }
             }

@@ -19,12 +19,12 @@ result_t json_stream_t::apply_terminal(
     const backtrace_t &backtrace) {
     rdb_protocol_details::terminal_variant_t t = _t;
     result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res, ql_env, scopes, backtrace), t);
+
+    terminal_initialize(ql_env, scopes, backtrace, &t, &res);
+
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) {
-        boost::apply_visitor(terminal_visitor_t(json, ql_env,
-                                                scopes, backtrace, &res),
-                             t);
+        terminal_apply(ql_env, scopes, backtrace, json, &t, &res);
     }
     return res;
 }
@@ -78,15 +78,13 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
             for (json_list_t::iterator jt  = accumulator.begin();
                                        jt != accumulator.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(*jt, &tmp, ql_env, it->scopes, it->backtrace), it->variant);
+                transform_apply(ql_env, it->scopes, it->backtrace, *jt, &it->variant, &tmp);
             }
 
-            /* Equivalent to `accumulator = tmp`, but without the extra copying */
-            std::swap(accumulator, tmp);
+            accumulator.swap(tmp);
         }
 
-        /* Equivalent to `data = accumulator`, but without the extra copying */
-        std::swap(data, accumulator);
+        data.swap(accumulator);
     }
 
     boost::shared_ptr<scoped_cJSON_t> datum = data.front();

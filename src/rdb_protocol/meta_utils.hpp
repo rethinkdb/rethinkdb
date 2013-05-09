@@ -4,6 +4,7 @@
 #include <string>
 
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 
 void wait_for_rdb_table_readiness(
     base_namespace_repo_t<rdb_protocol_t> *ns_repo,
@@ -14,28 +15,9 @@ void wait_for_rdb_table_readiness(
 
 namespace ql {
 
-static const char *valid_char_msg = name_string_t::valid_char_msg;
-
-template<class T>
-static void meta_check(metadata_search_status_t status, metadata_search_status_t want,
-                       const std::string &operation, T *caller) {
-    if (status != want) {
-        const char *msg;
-        switch (status) {
-        case METADATA_SUCCESS: msg = "Entry already exists."; break;
-        case METADATA_ERR_NONE: msg = "No entry with that name."; break;
-        case METADATA_ERR_MULTIPLE: msg = "Multiple entries with that name."; break;
-        case METADATA_CONFLICT: msg = "Entry with that name is in conflict."; break;
-        default:
-            unreachable();
-        }
-        rfail_target(caller, "Error during operation `%s`: %s", operation.c_str(), msg);
-    }
-}
-
 template<class T, class U, class V>
-static uuid_u meta_get_uuid(T *searcher, const U &predicate,
-                            const std::string &message, V *caller) {
+uuid_u meta_get_uuid(T *searcher, const U &predicate,
+                     const std::string &message, V *caller) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
     rcheck_target(caller, status == METADATA_SUCCESS, message);
