@@ -87,8 +87,11 @@ private:
         lb = (lb->get_type() != datum_t::R_NULL) ? lb : NULL;
         const datum_t *rb = arg(2)->as_datum();
         rb = (rb->get_type() != datum_t::R_NULL) ? rb : NULL;
-        if (!lb && !rb) {
+        if ((lb == NULL) && (rb == NULL)) {
             return new_val(tbl->as_datum_stream(), tbl);
+        } else if ((lb != NULL) && (rb != NULL) && *lb > *rb) {
+            const datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+            return new_val(new array_datum_stream_t(env, arr, this), tbl);
         }
 
         val_t *sindex = optarg("index", 0);
