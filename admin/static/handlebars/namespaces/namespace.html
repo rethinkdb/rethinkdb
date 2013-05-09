@@ -64,6 +64,10 @@
       <a class="close_hide" href="#">&times;</a>
       <div class="alert_content"></div>
     </div>
+    <div class="alert alert-error main_alert_error">
+        <a class="close_hide" href="#">&times;</a>
+        <div class="alert_error_content"></div>
+    </div>
     <div class="alert alert-error"></div>
     <div class="content"></div>
 </script>
@@ -78,7 +82,7 @@
                 <p>An error occured: Could not open a connection. <a href="#" class="reconnect_link">Try again</a>.</p>
                 {{/if}}
                 {{#if index_list}}
-                <p>An error occured: Could not retrieve the secondary indexes. <a href="#" class="reconnect_link">Try again</a>.</p>
+                <p>An error occurred: could not retrieve secondary indexes. <a href="#" class="reconnect_link">Try again</a>.</p>
                 {{/if}}
             </div>
         {{else}}
@@ -89,10 +93,9 @@
                 {{#each secondary_indexes}}
                 <li class="square_li">{{name}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
                 <li class="alert_li">
-                    <div class="alert {{#if display}}displayed_alert{{/if}}">
-                        <a class="close_hide" href="#" data-name="{{name}}">&times;</a>
+                <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{name}}">
                         <div class="content">
-                            Are you sure you want to delete this secondary index?<br/>
+                            Are you sure you want to delete the secondary index {{name}}?<br/>
                             <button class="btn cancel_delete_btn" data-name="{{name}}">Cancel</button><button class="btn delete_index_btn" data-name="{{name}}">Delete</button>
                         </div>
                     </div>
@@ -104,13 +107,6 @@
             {{/if}}
             </ul>
 
-            {{#if show_add_index}}
-                <div class="alert alert-error alert-on_create">
-                    <a class="close_hide" href="#">&times;</a>
-                    <div class="alert_error_content"></div>
-                </div>
-            {{/if}}
-
             {{#unless show_add_index}}
                 <div class="create_container"><a href="#" class="create_link">Create a new secondary index</a></div>
             {{/unless}}
@@ -121,7 +117,7 @@
 
 <script id="secondary_indexes-alert_msg-template" type="text/x-handlebars-template">
     {{#if delete_ok}}
-    <p>You successfully delete the secondary index {{name}}.</p>
+    <p>You successfully deleted the secondary index {{name}}.</p>
     {{/if}}
     {{#if create_ok}}
     <p>You successfully created the secondary index {{name}}.</p>

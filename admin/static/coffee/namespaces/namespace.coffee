@@ -221,7 +221,7 @@ module 'NamespaceView', ->
         initialize: =>
             @init_connection()
             @secondary_indexes = null
-            @deleting_secondary_indexes = {}
+            @deleting_secondary_index = null
 
         # Create a connection and fetch secondary indexes
         init_connection: (event) =>
@@ -234,7 +234,7 @@ module 'NamespaceView', ->
                 on_fail: @on_fail_to_connect
                 dont_timeout_connection: true
             @secondary_indexes = null # list of secondary indexes available
-            @deleting_secondary_indexes = {} # list of secondary indexes with an alert displayed
+            @deleting_secondary_index = null # The secondary index being deleted (with a confirm box displayed)
 
             @db = databases.get(@model.get('database')).get('name')
             @table = @model.get('name')
@@ -242,23 +242,32 @@ module 'NamespaceView', ->
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
             event.preventDefault()
-            @deleting_secondary_indexes[@$(event.target).data('name')] = true
-            @$(event.target).parent().next('li').children('.alert').slideDown 'fast'
+            deleting_secondary_index = @$(event.target).data('name')
+            @adding_index = false # Less states = better, so we hide the form to create an index if the user is about to delete one
+            @render_content()
+            if deleting_secondary_index isnt @deleting_secondary_index
+                @deleting_secondary_index = deleting_secondary_index
+                @$('.alert_confirm_delete').slideUp 'fast'
+                @$('.alert_confirm_delete_'+@deleting_secondary_index).slideDown 'fast'
 
         # Delete a secondary index
         delete_secondary_index: (event) =>
             @current_secondary_name = @$(event.target).data('name')
+            @deleting_secondary_index = @$(event.target).data('name')
             r.db(@db).table(@table).indexDrop(@current_secondary_name).private_run @driver_handler.connection, @on_drop
-            @deleting_secondary_indexes[@$(event.target).data('name')] = false
 
         # Callback for indexDrop()
         on_drop: (err, result) =>
+            if @current_secondary_name is @deleting_secondary_index
+                @deleting_secondary_index = null
+
             if err? or result?.dropped isnt 1
                 @loading = false
-                @$('.alert_content').html @error_template
+                @$('.alert_error_content').html @error_template
                     delete_fail: true
                     message: err.msg.replace('\n', '<br/>')
-                @$('.main_alert').show()
+                @$('.main_alert').slideUp 'fast'
+                @$('.main_alert_error').slideDown 'fast'
                 @get_indexes()
 
             else
@@ -266,14 +275,17 @@ module 'NamespaceView', ->
                 @$('.alert_content').html @alert_message_template
                     delete_ok: true
                     name: @current_secondary_name
-                @$('.main_alert').show()
+                @$('.main_alert').slideDown 'fast'
+                @$('.main_alert_error').slideUp 'fast'
 
 
         # Show the form to add a secondary index
         show_add_index: (event) =>
             event.preventDefault()
             @adding_index = true
+            @deleting_secondary_index = null
             @render_content()
+            @$('.alert_confirm_delete').slideUp 'fast'
         
         # Hide the form to add a secondary index
         hide_add_index: =>
@@ -287,7 +299,7 @@ module 'NamespaceView', ->
                 args = {}
             mapped_secondary_indexes = _.map @secondary_indexes, (d) ->
                 name: d
-                display: that.deleting_secondary_indexes[d] is true
+                display: that.deleting_secondary_index is d
 
             template_args =
                 loading: @loading
@@ -301,6 +313,7 @@ module 'NamespaceView', ->
             @delegateEvents()
 
         render: =>
+            console.log 'call render'
             @$el.html @template()
             @render_content()
             return @
@@ -352,30 +365,33 @@ module 'NamespaceView', ->
 
         # Callback on indexCreate()
         on_create: (err, result) =>
+            that = @
             if err?
                 @$('.alert_error_content').html @error_template
                     create_fail: true
                     message: err.msg.replace('\n', '<br/>')
-                @$('.alert-on_create').slideDown 'fast'
+                @$('.main_alert_error').slideDown 'fast'
+                @$('.main_alert').slideUp 'fast'
             else
                 @adding_index = false
                 @get_indexes()
                 @$('.alert_content').html @alert_message_template
                     create_ok: true
                     name: @current_secondary_name
-                @$('.main_alert').show()
+                @$('.main_alert_error').slideUp 'fast'
+                @$('.main_alert').slideDown 'fast'
 
         # Hide alert BUT do not remove it
         hide_alert: (event) ->
             if event? and @$(event.target)?.data('name')?
-                @deleting_secondary_indexes[@$(event.target).data('name')] = false
+                @deleting_secondary_index = null
             event.preventDefault()
             $(event.target).parent().slideUp 'fast'
         
         # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
         cancel_delete: (event) ->
             if event? and @$(event.target)?.data('name')?
-                @deleting_secondary_indexes[@$(event.target).data('name')] = false
+                @deleting_secondary_index = null
             @$(event.target).parent().parent().slideUp 'fast'
 
         destroy: =>
