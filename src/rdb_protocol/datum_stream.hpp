@@ -230,13 +230,12 @@ public:
     std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size) {
         r_sanity_check(data_loaded);
 
-        std::vector<counted_t<const datum_t> > ret;
         const size_t end = data.size() - data_index < max_size ?
             data.size() :
             data_index + max_size;
-        for (; data_index < end; ++data_index) {
-            ret.push_back(std::move(data[data_index]));
-        }
+
+        std::vector<counted_t<const datum_t> > ret(end - data_index);
+        std::move(data.begin() + data_index, data.begin() + end, ret.begin());
 
         return ret;
     }
