@@ -18,19 +18,27 @@ class scoped_fd_t {
 public:
     scoped_fd_t() : fd(INVALID_FD) { }
     explicit scoped_fd_t(fd_t f) : fd(f) { }
+    scoped_fd_t(scoped_fd_t &&other) : fd(other.fd) {
+        other.fd = INVALID_FD;
+    }
+
     ~scoped_fd_t() {
         reset(INVALID_FD);
     }
+
     fd_t reset(fd_t f2 = INVALID_FD);
+
     // TODO: Make get check that it's not returning INVALID_FD.
     fd_t get() {
         return fd;
     }
+
     MUST_USE fd_t release() {
         fd_t f = fd;
         fd = INVALID_FD;
         return f;
     }
+
 private:
     fd_t fd;
     DISABLE_COPYING(scoped_fd_t);

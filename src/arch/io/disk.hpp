@@ -78,7 +78,7 @@ public:
     ~linux_file_t();
 
 private:
-    linux_file_t(scoped_fd_t *fd, uint64_t file_size, linux_disk_manager_t *diskmgr);
+    linux_file_t(scoped_fd_t &&fd, uint64_t file_size, linux_disk_manager_t *diskmgr);
     friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
     scoped_fd_t fd;

@@ -160,8 +160,8 @@ io_backender_t::~io_backender_t() { }
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(scoped_fd_t *_fd, uint64_t _file_size, linux_disk_manager_t *_diskmgr)
-    : fd(_fd->release()), file_size(_file_size), diskmgr(_diskmgr) {
+linux_file_t::linux_file_t(scoped_fd_t &&_fd, uint64_t _file_size, linux_disk_manager_t *_diskmgr)
+    : fd(std::move(_fd)), file_size(_file_size), diskmgr(_diskmgr) {
     // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
     // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
     // aren't they?)
@@ -375,7 +375,7 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
     // this way is just a few seconds after the creation of a new database,
     // until the file system flushes the metadata to disk.
 
-    out->init(new linux_file_t(&fd, file_size, backender->get_diskmgr_ptr()));
+    out->init(new linux_file_t(std::move(fd), file_size, backender->get_diskmgr_ptr()));
 
     return open_res;
 }
