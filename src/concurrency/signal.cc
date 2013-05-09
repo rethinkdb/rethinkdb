@@ -18,7 +18,7 @@ void signal_t::wait_lazily_ordered() const {
     if (!is_pulsed()) {
         notify_later_ordered_subscription_t subs;
         subs.reset(const_cast<signal_t *>(this));
-        coro_t::wait(owner);
+        coro_t::wait();
     }
 }
 
@@ -38,6 +38,6 @@ void signal_t::wait_lazily_unordered() const {
     if (!is_pulsed()) {
         notify_sometime_subscription_t subs;
         subs.reset(const_cast<signal_t *>(this));
-        coro_t::wait(owner);
+        coro_t::wait();
     }
 }

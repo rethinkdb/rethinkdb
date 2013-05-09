@@ -2,8 +2,6 @@
 #ifndef ARCH_RUNTIME_COROUTINES_HPP_
 #define ARCH_RUNTIME_COROUTINES_HPP_
 
-#include <set>
-
 #ifndef NDEBUG
 #include <string>
 #endif
@@ -29,21 +27,21 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now_dangerously(const Callable &action, const std::string &purpose = "") {
-        get_and_init_coro(action, purpose)->notify_now_deprecated();
+    static void spawn_now_dangerously(const Callable &action) {
+        get_and_init_coro(action)->notify_now_deprecated();
     }
 
     template<class Callable>
-    static void spawn_sometime(const Callable &action, const std::string &purpose = "") {
-        get_and_init_coro(action, purpose)->notify_sometime();
+    static void spawn_sometime(const Callable &action) {
+        get_and_init_coro(action)->notify_sometime();
     }
 
     // TODO: spawn_later_ordered is usually what naive people want,
     // but it's such a long and onerous name.  It should have the
     // shortest name.
     template<class Callable>
-    static void spawn_later_ordered(const Callable &action, const std::string &purpose = "") {
-        get_and_init_coro(action, purpose)->notify_later_ordered();
+    static void spawn_later_ordered(const Callable &action) {
+        get_and_init_coro(action)->notify_later_ordered();
     }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
@@ -52,14 +50,12 @@ public:
     `notify_later_ordered()`. They are deprecated and new code should not use
     them. */
     template<class Callable>
-    static void spawn(const Callable &action, const std::string &purpose = "") {
-        spawn_later_ordered(action, purpose);
+    static void spawn(const Callable &action) {
+        spawn_later_ordered(action);
     }
 
     /* Pauses the current coroutine until it is notified */
-    static void wait(coro_t *waiting_on);
-
-    static void wait(const std::set<coro_t *> &waiting_on);
+    static void wait();
 
     /* Gives another coroutine a chance to run, but schedules this coroutine to
     be run at some point in the future. Might not preserve order; two calls to
@@ -125,14 +121,12 @@ private:
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
-    static coro_t * get_and_init_coro(const Callable &action, const std::string &purpose) {
+    static coro_t * get_and_init_coro(const Callable &action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
-        coro->parent_ = coro_t::self();
-        coro->purpose_ = purpose;
         return coro;
     }
 
@@ -154,9 +148,6 @@ private:
     // Sanity check variables
     bool notified_;
     bool waiting_;
-    std::set<coro_t *> waiting_on_;
-    coro_t *parent_;
-    std::string purpose_;
 
     callable_action_wrapper_t action_wrapper;
 

@@ -36,7 +36,7 @@ void one_waiter_cond_t::wait_eagerly_deprecated() {
     rassert(!waiter_);
     if (!pulsed_) {
         waiter_ = coro_t::self();
-        coro_t::wait(owner_);
+        coro_t::wait();
         rassert(pulsed_);
     }
 }

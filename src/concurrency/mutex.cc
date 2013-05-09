@@ -27,14 +27,9 @@ void mutex_t::acq_t::reset(mutex_t *l, bool eager) {
 void co_lock_mutex(mutex_t *mutex) {
     if (mutex->locked) {
         mutex->waiters.push_back(coro_t::self());
-        if (mutex->waiters.empty()) {
-            coro_t::wait(mutex->currently_running_coro);
-        } else {
-            coro_t::wait(mutex->waiters.back());
-        }
+        coro_t::wait();
     } else {
         mutex->locked = true;
-        mutex->currently_running_coro = coro_t::self();
     }
 }
 
@@ -47,10 +42,8 @@ void unlock_mutex(mutex_t *mutex, bool eager) {
         mutex->waiters.pop_front();
         if (eager) {
             next->notify_now_deprecated();
-            mutex->currently_running_coro = next;
         } else {
             next->notify_sometime();
-            mutex->currently_running_coro = next;
         }
     }
 }

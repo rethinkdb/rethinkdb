@@ -50,10 +50,6 @@ public:
         return sub_superblock->get_eviction_priority();
     }
 
-    bool is_acquired() {
-        return sub_superblock->is_acquired();
-    }
-
 private:
     superblock_t *sub_superblock;
     int refcount;

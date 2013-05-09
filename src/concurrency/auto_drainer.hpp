@@ -61,7 +61,6 @@ private:
 
     cond_t draining;
     int refcount;
-    std::set<coro_t *> lock_holders;
     coro_t *when_done;
 };
 
