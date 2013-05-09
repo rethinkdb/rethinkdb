@@ -9,7 +9,10 @@
 
 namespace ql {
 
-class sindex_create_term_t : public env_t::special_var_shadower_t, public op_term_t {
+// We need to use inheritance rather than composition for
+// `env_t::special_var_shadower_t` because it needs to be initialized before
+// `op_term_t`.
+class sindex_create_term_t : private env_t::special_var_shadower_t, public op_term_t {
 public:
     sindex_create_term_t(env_t *env, const Term *term)
         : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
