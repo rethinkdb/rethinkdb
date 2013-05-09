@@ -43,22 +43,24 @@ public:
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array() = 0;
 
+    // RSI: Get rid of next().
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     counted_t<const datum_t> next();
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
-    std::vector<counted_t<const datum_t> > next_batch();
+    std::vector<counted_t<const datum_t> > next_batch(size_t max_size);
+
+    // Not much thought was put into this number.
+    static const size_t RECOMMENDED_MAX_SIZE = 100;
 
 protected:
     env_t *env;
 
 private:
-    static const size_t MAX_BATCH_SIZE = 100;
-
-    // Returns NULL upon end of stream.
-    virtual counted_t<const datum_t> next_impl() = 0;
+    // Returns an empty vector upon end of stream.  max_size must be positive.
+    virtual std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size) = 0;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -104,7 +106,7 @@ public:
         guarantee(f.has() && source.has());
     }
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> source;
@@ -118,7 +120,7 @@ public:
     }
 
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> source;
@@ -132,7 +134,7 @@ public:
     }
 
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> source;
@@ -171,14 +173,15 @@ public:
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
     boost::shared_ptr<query_language::json_stream_t> json_stream;
 
-    rdb_protocol_t::rget_read_response_t::result_t run_terminal(const rdb_protocol_details::terminal_variant_t &t);
+    rdb_protocol_t::rget_read_response_t::result_t
+    run_terminal(const rdb_protocol_details::terminal_variant_t &t);
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
@@ -187,7 +190,7 @@ public:
                          const protob_t<const Backtrace> &bt_src);
 
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     size_t index;
     counted_t<const datum_t> arr;
@@ -197,15 +200,16 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
     size_t index, left, right;
 };
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {
 public:
     zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> src);
+    void transform(counted_t<const datum_t> &it);  // NOLINT(runtime/references)
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 };
 
 // This has to be constructed explicitly rather than invoking `.sort()`.  There
@@ -218,21 +222,23 @@ public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
                         const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
-          src(_src), data_index(-1), is_arr_(false) {
+          src(_src), data_loaded(false), data_index(0), is_arr_(false) {
         guarantee(src.has());
         load_data();
     }
 
-    counted_t<const datum_t> next_impl() {
-        r_sanity_check(data_index >= 0);
-        if (data_index >= static_cast<int>(data.size())) {
-            //            ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
-            return counted_t<const datum_t>();
-        } else {
-            counted_t<const datum_t> ret = data[data_index];
-            ++data_index;
-            return ret;
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size) {
+        r_sanity_check(data_loaded);
+
+        std::vector<counted_t<const datum_t> > ret;
+        const size_t end = data.size() - data_index < max_size ?
+            data.size() :
+            data_index + max_size;
+        for (; data_index < end; ++data_index) {
+            ret.push_back(std::move(data[data_index]));
         }
+
+        return ret;
     }
 private:
     virtual counted_t<const datum_t> as_array() {
@@ -242,8 +248,10 @@ private:
         return is_arr_;
     }
     void load_data() {
-        if (data_index != -1) return;
-        data_index = 0;
+        if (data_loaded) {
+            return;
+        }
+
         if (counted_t<const datum_t> arr = src->as_array()) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
@@ -263,11 +271,13 @@ private:
             }
         }
         std::sort(data.begin(), data.end(), lt_cmp);
+        data_loaded = true;
     }
     T lt_cmp;
     counted_t<datum_stream_t> src;
 
-    int data_index;
+    bool data_loaded;
+    size_t data_index;
     std::vector<counted_t<const datum_t> > data;
     bool is_arr_;
 };
@@ -278,7 +288,7 @@ public:
                          const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
 private:
-    counted_t<const datum_t> next_impl();
+    std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;

@@ -105,7 +105,7 @@ private:
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch();
+                    = datum_stream->next_batch(datum_stream_t::RECOMMENDED_MAX_SIZE);
                 if (datums.empty()) {
                     break;
                 }
@@ -176,7 +176,8 @@ private:
             counted_t<datum_stream_t> ds = tblrows.second;
 
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums = ds->next_batch();
+                std::vector<counted_t<const datum_t> > datums
+                    = ds->next_batch(datum_stream_t::RECOMMENDED_MAX_SIZE);
                 if (datums.empty()) {
                     break;
                 }

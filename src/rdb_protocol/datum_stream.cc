@@ -1,5 +1,7 @@
 #include "rdb_protocol/datum_stream.hpp"
 
+#include <algorithm>
+#include <functional>
 #include <map>
 
 #include "clustering/administration/metadata.hpp"
@@ -22,26 +24,19 @@ counted_t<const datum_t> datum_stream_t::next() {
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
     try {
-        return next_impl();
+        std::vector<counted_t<const datum_t> > datums = next_batch_impl(1);
+        rassert(datums.size() <= 1);
+        return datums.empty() ? counted_t<const datum_t>() : datums[0];
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
         unreachable();
     }
 }
 
-std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
+std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(size_t max_size) {
     env->throw_if_interruptor_pulsed();
     try {
-        std::vector<counted_t<const datum_t> > batch;
-        for (;;) {
-            counted_t<const datum_t> datum = next_impl();
-            if (datum.has()) {
-                batch.push_back(datum);
-            }
-            if (!datum.has() || batch.size() == MAX_BATCH_SIZE) {
-                return batch;
-            }
-        }
+        return next_batch_impl(max_size);
     } catch (const datum_exc_t &e) {
         rfail("%s", e.what());
         unreachable();
@@ -227,9 +222,15 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
     }
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
+// RSI: Make json_stream have a next_batch_impl.
+std::vector<counted_t<const datum_t> >
+lazy_datum_stream_t::next_batch_impl(UNUSED size_t max_size) {
+    std::vector<counted_t<const datum_t> > ret;
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    return json ? make_counted<datum_t>(json, env) : counted_t<datum_t>();
+    if (json) {
+        ret.push_back(make_counted<datum_t>(json, env));
+    }
+    return ret;
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -237,55 +238,65 @@ array_datum_stream_t::array_datum_stream_t(env_t *env, counted_t<const datum_t> 
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(env, bt_source), index(0), arr(_arr) { }
 
-counted_t<const datum_t> array_datum_stream_t::next_impl() {
-    counted_t<const datum_t> datum = arr->get(index, NOTHROW);
-    if (!datum.has()) {
-        return counted_t<const datum_t>();
-    } else {
-        ++index;
-        return datum;
+std::vector<counted_t<const datum_t> >
+array_datum_stream_t::next_batch_impl(const size_t max_size) {
+    const size_t count = std::min(arr->size() - index, max_size);
+
+    std::vector<counted_t<const datum_t> > ret;
+    ret.reserve(count);
+
+    const size_t end = index + count;
+    for (; index < end; ++index) {
+        ret.push_back(arr->get(index, NOTHROW));
     }
+
+    return ret;
 }
 
 // MAP_DATUM_STREAM_T
-counted_t<const datum_t> map_datum_stream_t::next_impl() {
-    counted_t<const datum_t> arg = source->next();
-    if (!arg.has()) {
-        return counted_t<const datum_t>();
-    } else {
-        return f->call(arg)->as_datum();
+std::vector<counted_t<const datum_t> >
+map_datum_stream_t::next_batch_impl(size_t max_size) {
+    std::vector<counted_t<const datum_t> > datums = source->next_batch(max_size);
+    for (auto it = datums.begin(); it != datums.end(); ++it) {
+        *it = f->call(*it)->as_datum();
     }
+    return datums;
 }
 
 // FILTER_DATUM_STREAM_T
-counted_t<const datum_t> filter_datum_stream_t::next_impl() {
+std::vector<counted_t<const datum_t> >
+filter_datum_stream_t::next_batch_impl(size_t max_size) {
     for (;;) {
-        counted_t<const datum_t> arg = source->next();
-
-        if (!arg.has()) {
-            return counted_t<const datum_t>();
+        std::vector<counted_t<const datum_t> > datums = source->next_batch(max_size);
+        if (datums.empty()) {
+            return datums;
         }
 
-        if (f->filter_call(arg)) {
-            return arg;
+        datums.erase(std::remove_if(datums.begin(), datums.end(),
+                                    boost::bind(&func_t::filter_call, f.get(), _1)),
+                     datums.end());
+
+        if (!datums.empty()) {
+            return datums;
         }
     }
 }
 
 // CONCATMAP_DATUM_STREAM_T
-counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
+std::vector<counted_t<const datum_t> >
+concatmap_datum_stream_t::next_batch_impl(size_t max_size) {
     for (;;) {
         if (!subsource.has()) {
             counted_t<const datum_t> arg = source->next();
             if (!arg.has()) {
-                return counted_t<const datum_t>();
+                return std::vector<counted_t<const datum_t> >();
             }
             subsource = f->call(arg)->as_seq();
         }
 
-        counted_t<const datum_t> datum = subsource->next();
-        if (datum.has()) {
-            return datum;
+        std::vector<counted_t<const datum_t> > datums = subsource->next_batch(max_size);
+        if (!datums.empty()) {
+            return datums;
         }
 
         subsource.reset();
@@ -298,52 +309,67 @@ slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _rig
     : wrapper_datum_stream_t(env, _src), index(0),
       left(_left), right(_right) { }
 
-counted_t<const datum_t> slice_datum_stream_t::next_impl() {
+std::vector<counted_t<const datum_t> >
+slice_datum_stream_t::next_batch_impl(const size_t max_size) {
     if (left > right || index > right) {
-        return counted_t<const datum_t>();
+        return std::vector<counted_t<const datum_t> >();
     }
 
     while (index < left) {
-        counted_t<const datum_t> discard = source->next();
-        if (!discard.has()) {
-            return counted_t<const datum_t>();
+        // max_size is an indicator of how comfortable we are loading a ton of
+        // datums into memory at once, so we don't want a discard batch to be
+        // bigger than max_size.
+        std::vector<counted_t<const datum_t> > discards
+            = source->next_batch(std::min(max_size, left - index));
+        if (discards.empty()) {
+            return discards;
         }
-        ++index;
+        index += discards.size();
     }
 
-    counted_t<const datum_t> datum = source->next();
-    if (datum.has()) {
-        ++index;
-    }
-    return datum;
+    // Fucking Christ.  Why the fuck are slices still inclusive?
+    std::vector<counted_t<const datum_t> > datums
+        = source->next_batch(std::min(right + 1 - index, max_size));
+
+    index += datums.size();
+
+    return datums;
 }
 
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(env, _src) { }
 
-counted_t<const datum_t> zip_datum_stream_t::next_impl() {
-    counted_t<const datum_t> datum = source->next();
-    if (!datum.has()) {
-        return counted_t<const datum_t>();
-    }
-
+void zip_datum_stream_t::transform(counted_t<const datum_t> &datum) {  // NOLINT(runtime/references)
     counted_t<const datum_t> left = datum->get("left", NOTHROW);
     counted_t<const datum_t> right = datum->get("right", NOTHROW);
     rcheck(left.has(), "ZIP can only be called on the result of a join.");
-    return right.has() ? left->merge(right) : left;
+    datum = right.has() ? left->merge(right) : left;
+}
+
+std::vector<counted_t<const datum_t> >
+zip_datum_stream_t::next_batch_impl(size_t max_size) {
+    std::vector<counted_t<const datum_t> > datums = source->next_batch(max_size);
+    std::for_each(datums.begin(), datums.end(),
+                  boost::bind(&zip_datum_stream_t::transform, this, _1));
+    return datums;
 }
 
 
 // UNION_DATUM_STREAM_T
-counted_t<const datum_t> union_datum_stream_t::next_impl() {
-    for (; streams_index < streams.size(); ++streams_index) {
-        counted_t<const datum_t> datum = streams[streams_index]->next();
-        if (datum.has()) {
-            return datum;
+std::vector<counted_t<const datum_t> >
+union_datum_stream_t::next_batch_impl(size_t max_size) {
+    while (streams_index < streams.size()) {
+        std::vector<counted_t<const datum_t> > datums
+            = streams[streams_index]->next_batch(max_size);
+        if (!datums.empty()) {
+            return datums;
         }
+
+        streams[streams_index].reset();
+        ++streams_index;
     }
-    return counted_t<const datum_t>();
+    return std::vector<counted_t<const datum_t> >();
 }
 
 } // namespace ql
