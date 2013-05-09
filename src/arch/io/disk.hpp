@@ -22,28 +22,8 @@
 #endif
 
 class linux_iocallback_t;
-struct linux_disk_manager_t;
 
-/* Disk manager object takes care of queueing operations, collecting statistics, preventing
-   conflicts, and actually sending them to the disk. */
-
-
-struct linux_disk_manager_t : public home_thread_mixin_t {
-    linux_disk_manager_t() { }
-
-    virtual ~linux_disk_manager_t() { }
-
-    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
-    virtual void destroy_account(void *account) = 0;
-
-    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
-        void *account, linux_iocallback_t *cb) = 0;
-    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
-        void *account, linux_iocallback_t *cb) = 0;
-
-private:
-    DISABLE_COPYING(linux_disk_manager_t);
-};
+class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:

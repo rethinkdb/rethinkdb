@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 
+#include "arch/io/disk/pool.hpp"
 #include "perfmon/types.hpp"
 
 /* There are two types of stat-collectors in the disk stack. One type is a passive
@@ -70,12 +71,8 @@ void debug_print(append_only_printf_buffer_t *buf,
     debug_print(buf, parent_action);
 }
 
-template<class payload_t>
-struct stats_diskmgr_2_t :
-    /* private; access it through the `producer` field instead */
-    private passive_producer_t<payload_t *>
-{
-    typedef stats_diskmgr_2_action_t<payload_t> action_t;
+struct stats_diskmgr_2_t : private passive_producer_t<pool_diskmgr_t::action_t *> {
+    typedef stats_diskmgr_2_action_t<pool_diskmgr_t::action_t> action_t;
 
     /* Give the `stats_diskmgr_2_t` constructor a
     `passive_producer_t<action_t *>`; it will get its operations from there. It
@@ -83,7 +80,7 @@ struct stats_diskmgr_2_t :
     stats_diskmgr_2_t(
             perfmon_collection_t *stats, const std::string &name,
             passive_producer_t<action_t *> *_source) :
-        passive_producer_t<payload_t *>(_source->available),
+        passive_producer_t<pool_diskmgr_t::action_t *>(_source->available),
         producer(this),
         source(_source),
         read_sampler(secs_to_ticks(1)),
@@ -95,8 +92,8 @@ struct stats_diskmgr_2_t :
         { }
     boost::function<void (action_t *)> done_fun;
 
-    passive_producer_t<payload_t *> * const producer;
-    void done(payload_t *p) {
+    passive_producer_t<pool_diskmgr_t::action_t *> *const producer;
+    void done(pool_diskmgr_t::action_t *p) {
         action_t *a = static_cast<action_t *>(p);
         if (a->get_is_read()) {
             read_sampler.end(&a->start_time);
@@ -107,7 +104,7 @@ struct stats_diskmgr_2_t :
     }
 
 private:
-    payload_t *produce_next_value() {
+    pool_diskmgr_t::action_t *produce_next_value() {
         action_t *a = source->pop();
         if (a->get_is_read()) {
             read_sampler.begin(&a->start_time);

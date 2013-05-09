@@ -30,11 +30,10 @@
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
-template<class backend_t>
-class linux_templated_disk_manager_t : public linux_disk_manager_t {
-    typedef stats_diskmgr_2_t<typename backend_t::action_t> backend_stats_t;
-    typedef accounting_diskmgr_t<typename backend_stats_t::action_t> accounter_t;
-    typedef conflict_resolving_diskmgr_t<typename accounter_t::action_t> conflict_resolver_t;
+/* Disk manager object takes care of queueing operations, collecting statistics, preventing
+   conflicts, and actually sending them to the disk. */
+class linux_disk_manager_t : public home_thread_mixin_t {
+    typedef conflict_resolving_diskmgr_t<accounting_diskmgr_t::action_t> conflict_resolver_t;
     typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stack_stats_t;
 
 public:
@@ -44,7 +43,7 @@ public:
     };
 
 
-    linux_templated_disk_manager_t(linux_event_queue_t *queue, const int batch_factor, perfmon_collection_t *stats) :
+    linux_disk_manager_t(linux_event_queue_t *queue, const int batch_factor, perfmon_collection_t *stats) :
         stack_stats(stats, "stack"),
         conflict_resolver(stats),
         accounter(batch_factor),
@@ -56,31 +55,31 @@ public:
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
         stack_stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
-        conflict_resolver.submit_fun = boost::bind(&accounter_t::submit, &accounter, _1);
+        conflict_resolver.submit_fun = boost::bind(&accounting_diskmgr_t::submit, &accounter, _1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = boost::bind(&backend_stats_t::done, &backend_stats, _1);
-        backend_stats.done_fun = boost::bind(&accounter_t::done, &accounter, _1);
+        backend.done_fun = boost::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
+        backend_stats.done_fun = boost::bind(&accounting_diskmgr_t::done, &accounter, _1);
         accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
         conflict_resolver.done_fun = boost::bind(&stack_stats_t::done, &stack_stats, _1);
-        stack_stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
+        stack_stats.done_fun = boost::bind(&linux_disk_manager_t::done, this, _1);
     }
 
-    ~linux_templated_disk_manager_t() {
+    ~linux_disk_manager_t() {
         rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
-        return new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit);
+        return new accounting_diskmgr_t::account_t(&accounter, pri, outstanding_requests_limit);
     }
 
     void delayed_destroy(void *_account) {
         on_thread_t t(home_thread());
-        delete static_cast<typename accounter_t::account_t *>(_account);
+        delete static_cast<accounting_diskmgr_t::account_t *>(_account);
     }
 
     void destroy_account(void *account) {
-        coro_t::spawn_sometime(boost::bind(&linux_templated_disk_manager_t::delayed_destroy, this, account));
+        coro_t::spawn_sometime(boost::bind(&linux_disk_manager_t::delayed_destroy, this, account));
     }
 
     void submit_action_to_stack_stats(action_t *a) {
@@ -94,11 +93,11 @@ public:
 
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
-        a->account = static_cast<typename accounter_t::account_t*>(account);
+        a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
@@ -106,11 +105,11 @@ public:
 
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
-        a->account = static_cast<typename accounter_t::account_t*>(account);
+        a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
     };
 
     void done(typename stack_stats_t::action_t *a) {
@@ -144,18 +143,18 @@ private:
 
     stack_stats_t stack_stats;
     conflict_resolver_t conflict_resolver;
-    accounter_t accounter;
-    backend_stats_t backend_stats;
-    backend_t backend;
+    accounting_diskmgr_t accounter;
+    stats_diskmgr_2_t backend_stats;
+    pool_diskmgr_t backend;
 
 
     int outstanding_txn;
 
-    DISABLE_COPYING(linux_templated_disk_manager_t);
+    DISABLE_COPYING(linux_disk_manager_t);
 };
 
 io_backender_t::io_backender_t()
-    : diskmgr(new linux_templated_disk_manager_t<pool_diskmgr_t>(&linux_thread_pool_t::thread->queue, DEFAULT_IO_BATCH_FACTOR, &stats)) { }
+    : diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue, DEFAULT_IO_BATCH_FACTOR, &stats)) { }
 
 io_backender_t::~io_backender_t() { }
 
