@@ -222,7 +222,6 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
     }
 }
 
-// RSI: Make json_stream have a next_batch_impl.
 std::vector<counted_t<const datum_t> >
 lazy_datum_stream_t::next_batch_impl(const size_t max_size) {
     std::vector<boost::shared_ptr<scoped_cJSON_t> > jsons

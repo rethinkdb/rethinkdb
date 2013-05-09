@@ -43,7 +43,6 @@ public:
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array() = 0;
 
-    // RSI: Get rid of next().
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     counted_t<const datum_t> next();
 
