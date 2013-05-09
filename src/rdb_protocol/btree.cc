@@ -1044,7 +1044,6 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                 it != sindexes.end();
                                                 ++it) {
-        rassert(it->super_block->is_acquired());
         coro_t::spawn_sometime(boost::bind(
                     &rdb_update_single_sindex, &*it,
                     modification, txn, auto_drainer_t::lock_t(&drainer)));
