@@ -20,11 +20,23 @@ public:
         reset(INVALID_FD);
     }
 
+    scoped_fd_t &operator=(scoped_fd_t &&other) {
+        scoped_fd_t tmp(std::move(other));
+        swap(tmp);
+        return *this;
+    }
+
     fd_t reset(fd_t f2 = INVALID_FD);
 
     // TODO: Make get check that it's not returning INVALID_FD.
     fd_t get() {
         return fd;
+    }
+
+    void swap(scoped_fd_t &other) {
+        fd_t tmp = fd;
+        fd = other.fd;
+        other.fd = tmp;
     }
 
     MUST_USE fd_t release() {
