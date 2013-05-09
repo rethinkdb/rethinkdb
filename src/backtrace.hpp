@@ -2,7 +2,6 @@
 #ifndef BACKTRACE_HPP_
 #define BACKTRACE_HPP_
 
-#include <execinfo.h>
 #include <stdio.h>
 #include <time.h>
 
