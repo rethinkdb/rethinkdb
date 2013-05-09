@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
@@ -46,20 +47,20 @@ private:
 // access their arguments.
 class op_term_t : public term_t {
 public:
-    op_term_t(env_t *env, const Term *term,
+    op_term_t(env_t *env, protob_t<const Term> term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    val_t *arg(size_t i); // returns argument `i`
+    counted_t<val_t> arg(size_t i); // returns argument `i`
     // Tries to get an optional argument, returns `def` if not found.
-    val_t *optarg(const std::string &key, val_t *def/*ault*/);
+    counted_t<val_t> optarg(const std::string &key, counted_t<val_t> default_value);
 private:
     virtual bool is_deterministic_impl() const;
-    boost::ptr_vector<term_t> args;
+    std::vector<counted_t<term_t> > args;
 
     friend class make_obj_term_t; // needs special access to optargs
-    boost::ptr_map<const std::string, term_t> optargs;
+    std::map<std::string, counted_t<term_t> > optargs;
 };
 
 }  // namespace ql

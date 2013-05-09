@@ -15,19 +15,19 @@ namespace ql {
 static const char *const js_optargs[] = {"timeout"};
 class javascript_term_t : public op_term_t {
 public:
-    javascript_term_t(env_t *env, const Term *term)
+    javascript_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1), optargspec_t(js_optargs)) { }
 private:
 
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         std::string source = arg(0)->as_datum()->as_str();
 
         boost::shared_ptr<js::runner_t> js = env->get_js_runner();
 
-        // Optarg seems designed to take a default vaule as the second argument
+        // Optarg seems designed to take a default value as the second argument
         // but nowhere else is this actually used.
         double timeout_s = 5.0;
-        val_t *timeout_opt = optarg("timeout", NULL);
+        counted_t<val_t> timeout_opt = optarg("timeout", counted_t<val_t>());
         if (timeout_opt) {
             timeout_s = timeout_opt->as_num();
         }
@@ -38,11 +38,12 @@ private:
 
         try {
             js::js_result_t result = js->eval(source, &config);
-            return boost::apply_visitor(js_result_visitor_t(env, this), result);
+            return boost::apply_visitor(js_result_visitor_t(env,
+                                                            this->counted_from_this()),
+                                        result);
         } catch (const interrupted_exc_t &e) {
             rfail("JavaScript query \"%s\" timed out after %.2G seconds", source.c_str(), timeout_s);
         }
-
     }
     virtual const char *name() const { return "javascript"; }
 

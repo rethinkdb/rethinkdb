@@ -5,7 +5,7 @@
 #include "containers/cow_ptr.hpp"
 
 template <class T>
-class cow_pointee_t : public slow_shared_mixin_t<cow_pointee_t<T> > {
+class cow_pointee_t : public slow_atomic_countable_t<cow_pointee_t<T> > {
     friend class cow_ptr_t<T>;
 
     cow_pointee_t() { }

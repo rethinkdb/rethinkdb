@@ -12,7 +12,7 @@ class append_only_printf_buffer_t;
 
 struct backfill_atom_t {
     store_key_t key;
-    intrusive_ptr_t<data_buffer_t> value;
+    counted_t<data_buffer_t> value;
     mcflags_t flags;
     exptime_t exptime;
     repli_timestamp_t recency;
@@ -20,7 +20,7 @@ struct backfill_atom_t {
 
     backfill_atom_t() { }
     backfill_atom_t(const store_key_t& _key,
-                    const intrusive_ptr_t<data_buffer_t>& _value,
+                    const counted_t<data_buffer_t>& _value,
                     const mcflags_t& _flags,
                     const exptime_t& _exptime,
                     const repli_timestamp_t& _recency,

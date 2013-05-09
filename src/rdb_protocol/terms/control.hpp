@@ -14,18 +14,13 @@ namespace ql {
 
 class all_term_t : public op_term_t {
 public:
-    all_term_t(env_t *env, const Term *term)
+    all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-            val_t *v = arg(i);
-            if (!v->as_bool()) {
-                ect.reset(env_checkpoint_t::MERGE);
-                return v;
-            } else if (i == num_args() - 1) {
-                ect.reset(env_checkpoint_t::MERGE);
+            counted_t<val_t> v = arg(i);
+            if (!v->as_bool() || i == num_args() - 1) {
                 return v;
             }
         }
@@ -36,15 +31,13 @@ private:
 
 class any_term_t : public op_term_t {
 public:
-    any_term_t(env_t *env, const Term *term)
+    any_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         for (size_t i = 0; i < num_args(); ++i) {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-            val_t *v = arg(i);
+            counted_t<val_t> v = arg(i);
             if (v->as_bool()) {
-                ect.reset(env_checkpoint_t::MERGE);
                 return v;
             }
         }
@@ -55,14 +48,10 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual val_t *eval_impl() {
-        bool b;
-        {
-            env_checkpoint_t ect(env, env_checkpoint_t::DISCARD);
-            b = arg(0)->as_bool();
-        }
+    virtual counted_t<val_t> eval_impl() {
+        bool b = arg(0)->as_bool();
         return b ? arg(1) : arg(2);
     }
     virtual const char *name() const { return "branch"; }
@@ -71,12 +60,12 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(env_t *env, const Term *term)
+    funcall_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual val_t *eval_impl() {
-        func_t *f = arg(0)->as_func(IDENTITY_SHORTCUT);
-        std::vector<const datum_t *> args;
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<func_t> f = arg(0)->as_func(IDENTITY_SHORTCUT);
+        std::vector<counted_t<const datum_t> > args;
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
         return f->call(args);
     }

@@ -41,7 +41,7 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
         }
 
         // Deliver the value to the client via the promise_t we got.
-        intrusive_ptr_t<data_buffer_t> dp = value_to_data_buffer(value->get(), txn);
+        counted_t<data_buffer_t> dp = value_to_data_buffer(value->get(), txn);
         res->pulse(get_result_t(dp, (*value)->mcflags(), cas_to_report));
 
         // Return whether we made a change to the value.

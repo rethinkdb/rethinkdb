@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term.hpp"
+
+#include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
 
@@ -27,86 +29,86 @@
 
 namespace ql {
 
-term_t *compile_term(env_t *env, const Term *t) {
+counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
-    case Term_TermType_DATUM:              return new datum_term_t(env, t);
-    case Term_TermType_MAKE_ARRAY:         return new make_array_term_t(env, t);
-    case Term_TermType_MAKE_OBJ:           return new make_obj_term_t(env, t);
-    case Term_TermType_VAR:                return new var_term_t(env, t);
-    case Term_TermType_JAVASCRIPT:         return new javascript_term_t(env, t);
-    case Term_TermType_ERROR:              return new error_term_t(env, t);
-    case Term_TermType_IMPLICIT_VAR:       return new implicit_var_term_t(env, t);
-    case Term_TermType_DB:                 return new db_term_t(env, t);
-    case Term_TermType_TABLE:              return new table_term_t(env, t);
-    case Term_TermType_GET:                return new get_term_t(env, t);
-    case Term_TermType_GET_ALL:            return new get_all_term_t(env, t);
-    case Term_TermType_EQ:                 // fallthru
-    case Term_TermType_NE:                 // fallthru
-    case Term_TermType_LT:                 // fallthru
-    case Term_TermType_LE:                 // fallthru
-    case Term_TermType_GT:                 // fallthru
-    case Term_TermType_GE:                 return new predicate_term_t(env, t);
-    case Term_TermType_NOT:                return new not_term_t(env, t);
-    case Term_TermType_ADD:                // fallthru
-    case Term_TermType_SUB:                // fallthru
-    case Term_TermType_MUL:                // fallthru
-    case Term_TermType_DIV:                return new arith_term_t(env, t);
-    case Term_TermType_MOD:                return new mod_term_t(env, t);
-    case Term_TermType_APPEND:             return new append_term_t(env, t);
-    case Term_TermType_SLICE:              return new slice_term_t(env, t);
-    case Term_TermType_GETATTR:            return new getattr_term_t(env, t);
-    case Term_TermType_CONTAINS:           return new contains_term_t(env, t);
-    case Term_TermType_PLUCK:              return new pluck_term_t(env, t);
-    case Term_TermType_WITHOUT:            return new without_term_t(env, t);
-    case Term_TermType_MERGE:              return new merge_term_t(env, t);
-    case Term_TermType_BETWEEN:            return new between_term_t(env, t);
-    case Term_TermType_REDUCE:             return new reduce_term_t(env, t);
-    case Term_TermType_MAP:                return new map_term_t(env, t);
-    case Term_TermType_FILTER:             return new filter_term_t(env, t);
-    case Term_TermType_CONCATMAP:          return new concatmap_term_t(env, t);
-    case Term_TermType_ORDERBY:            return new orderby_term_t(env, t);
-    case Term_TermType_DISTINCT:           return new distinct_term_t(env, t);
-    case Term_TermType_COUNT:              return new count_term_t(env, t);
-    case Term_TermType_UNION:              return new union_term_t(env, t);
-    case Term_TermType_NTH:                return new nth_term_t(env, t);
-    case Term_TermType_GROUPED_MAP_REDUCE: return new gmr_term_t(env, t);
-    case Term_TermType_LIMIT:              return new limit_term_t(env, t);
-    case Term_TermType_SKIP:               return new skip_term_t(env, t);
-    case Term_TermType_GROUPBY:            return new groupby_term_t(env, t);
-    case Term_TermType_INNER_JOIN:         return new inner_join_term_t(env, t);
-    case Term_TermType_OUTER_JOIN:         return new outer_join_term_t(env, t);
-    case Term_TermType_EQ_JOIN:            return new eq_join_term_t(env, t);
-    case Term_TermType_ZIP:                return new zip_term_t(env, t);
-    case Term_TermType_COERCE_TO:          return new coerce_term_t(env, t);
-    case Term_TermType_TYPEOF:             return new typeof_term_t(env, t);
-    case Term_TermType_UPDATE:             return new update_term_t(env, t);
-    case Term_TermType_DELETE:             return new delete_term_t(env, t);
-    case Term_TermType_REPLACE:            return new replace_term_t(env, t);
-    case Term_TermType_INSERT:             return new insert_term_t(env, t);
-    case Term_TermType_DB_CREATE:          return new db_create_term_t(env, t);
-    case Term_TermType_DB_DROP:            return new db_drop_term_t(env, t);
-    case Term_TermType_DB_LIST:            return new db_list_term_t(env, t);
-    case Term_TermType_TABLE_CREATE:       return new table_create_term_t(env, t);
-    case Term_TermType_TABLE_DROP:         return new table_drop_term_t(env, t);
-    case Term_TermType_TABLE_LIST:         return new table_list_term_t(env, t);
-    case Term_TermType_INDEX_CREATE:       return new sindex_create_term_t(env, t);
-    case Term_TermType_INDEX_DROP:         return new sindex_drop_term_t(env, t);
-    case Term_TermType_INDEX_LIST:         return new sindex_list_term_t(env, t);
-    case Term_TermType_FUNCALL:            return new funcall_term_t(env, t);
-    case Term_TermType_BRANCH:             return new branch_term_t(env, t);
-    case Term_TermType_ANY:                return new any_term_t(env, t);
-    case Term_TermType_ALL:                return new all_term_t(env, t);
-    case Term_TermType_FOREACH:            return new foreach_term_t(env, t);
-    case Term_TermType_FUNC:               return new func_term_t(env, t);
-    case Term_TermType_ASC:                return new asc_term_t(env, t);
-    case Term_TermType_DESC:               return new desc_term_t(env, t);
-    case Term_TermType_INFO:               return new info_term_t(env, t);
+    case Term::DATUM:              return make_counted<datum_term_t>(env, t);
+    case Term::MAKE_ARRAY:         return make_counted<make_array_term_t>(env, t);
+    case Term::MAKE_OBJ:           return make_counted<make_obj_term_t>(env, t);
+    case Term::VAR:                return make_counted<var_term_t>(env, t);
+    case Term::JAVASCRIPT:         return make_counted<javascript_term_t>(env, t);
+    case Term::ERROR:              return make_counted<error_term_t>(env, t);
+    case Term::IMPLICIT_VAR:       return make_counted<implicit_var_term_t>(env, t);
+    case Term::DB:                 return make_counted<db_term_t>(env, t);
+    case Term::TABLE:              return make_counted<table_term_t>(env, t);
+    case Term::GET:                return make_counted<get_term_t>(env, t);
+    case Term::GET_ALL:            return make_counted<get_all_term_t>(env, t);
+    case Term::EQ:                 // fallthru
+    case Term::NE:                 // fallthru
+    case Term::LT:                 // fallthru
+    case Term::LE:                 // fallthru
+    case Term::GT:                 // fallthru
+    case Term::GE:                 return make_counted<predicate_term_t>(env, t);
+    case Term::NOT:                return make_counted<not_term_t>(env, t);
+    case Term::ADD:                // fallthru
+    case Term::SUB:                // fallthru
+    case Term::MUL:                // fallthru
+    case Term::DIV:                return make_counted<arith_term_t>(env, t);
+    case Term::MOD:                return make_counted<mod_term_t>(env, t);
+    case Term::APPEND:             return make_counted<append_term_t>(env, t);
+    case Term::SLICE:              return make_counted<slice_term_t>(env, t);
+    case Term::GETATTR:            return make_counted<getattr_term_t>(env, t);
+    case Term::CONTAINS:           return make_counted<contains_term_t>(env, t);
+    case Term::PLUCK:              return make_counted<pluck_term_t>(env, t);
+    case Term::WITHOUT:            return make_counted<without_term_t>(env, t);
+    case Term::MERGE:              return make_counted<merge_term_t>(env, t);
+    case Term::BETWEEN:            return make_counted<between_term_t>(env, t);
+    case Term::REDUCE:             return make_counted<reduce_term_t>(env, t);
+    case Term::MAP:                return make_counted<map_term_t>(env, t);
+    case Term::FILTER:             return make_counted<filter_term_t>(env, t);
+    case Term::CONCATMAP:          return make_counted<concatmap_term_t>(env, t);
+    case Term::ORDERBY:            return make_counted<orderby_term_t>(env, t);
+    case Term::DISTINCT:           return make_counted<distinct_term_t>(env, t);
+    case Term::COUNT:              return make_counted<count_term_t>(env, t);
+    case Term::UNION:              return make_counted<union_term_t>(env, t);
+    case Term::NTH:                return make_counted<nth_term_t>(env, t);
+    case Term::GROUPED_MAP_REDUCE: return make_counted<gmr_term_t>(env, t);
+    case Term::LIMIT:              return make_counted<limit_term_t>(env, t);
+    case Term::SKIP:               return make_counted<skip_term_t>(env, t);
+    case Term::GROUPBY:            return make_counted<groupby_term_t>(env, t);
+    case Term::INNER_JOIN:         return make_counted<inner_join_term_t>(env, t);
+    case Term::OUTER_JOIN:         return make_counted<outer_join_term_t>(env, t);
+    case Term::EQ_JOIN:            return make_counted<eq_join_term_t>(env, t);
+    case Term::ZIP:                return make_counted<zip_term_t>(env, t);
+    case Term::COERCE_TO:          return make_counted<coerce_term_t>(env, t);
+    case Term::TYPEOF:             return make_counted<typeof_term_t>(env, t);
+    case Term::UPDATE:             return make_counted<update_term_t>(env, t);
+    case Term::DELETE:             return make_counted<delete_term_t>(env, t);
+    case Term::REPLACE:            return make_counted<replace_term_t>(env, t);
+    case Term::INSERT:             return make_counted<insert_term_t>(env, t);
+    case Term::DB_CREATE:          return make_counted<db_create_term_t>(env, t);
+    case Term::DB_DROP:            return make_counted<db_drop_term_t>(env, t);
+    case Term::DB_LIST:            return make_counted<db_list_term_t>(env, t);
+    case Term::TABLE_CREATE:       return make_counted<table_create_term_t>(env, t);
+    case Term::TABLE_DROP:         return make_counted<table_drop_term_t>(env, t);
+    case Term::TABLE_LIST:         return make_counted<table_list_term_t>(env, t);
+    case Term::INDEX_CREATE:       return make_counted<sindex_create_term_t>(env, t);
+    case Term::INDEX_DROP:         return make_counted<sindex_drop_term_t>(env, t);
+    case Term::INDEX_LIST:         return make_counted<sindex_list_term_t>(env, t);
+    case Term::FUNCALL:            return make_counted<funcall_term_t>(env, t);
+    case Term::BRANCH:             return make_counted<branch_term_t>(env, t);
+    case Term::ANY:                return make_counted<any_term_t>(env, t);
+    case Term::ALL:                return make_counted<all_term_t>(env, t);
+    case Term::FOREACH:            return make_counted<foreach_term_t>(env, t);
+    case Term::FUNC:               return make_counted<func_term_t>(env, t);
+    case Term::ASC:                return make_counted<asc_term_t>(env, t);
+    case Term::DESC:               return make_counted<desc_term_t>(env, t);
+    case Term::INFO:               return make_counted<info_term_t>(env, t);
     default: unreachable();
     }
     unreachable();
 }
 
-void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
@@ -122,7 +124,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        term_t *root_term = 0;
+        counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
             term_walker_t term_walker(t); // fill backtraces
@@ -136,8 +138,8 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                     !conflict,
                     strprintf("Duplicate global optarg: %s", ap.key().c_str()));
             }
-            env_wrapper_t<Term> *ewt = env->add_ptr(new env_wrapper_t<Term>());
-            Term *arg = &ewt->t;
+            protob_t<Term> ewt = make_counted_term();
+            Term *const arg = ewt.get();
 
             N1(DB, NDATUM("test"));
 
@@ -146,10 +148,10 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = env->new_term(t);
+            root_term = compile_term(env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
-            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
             return;
         }
 
@@ -157,18 +159,18 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(!stream_cache2->contains(token),
                 strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
 
         try {
-            val_t *val = root_term->eval();
+            counted_t<val_t> val = root_term->eval();
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
-                const datum_t *d = val->as_datum();
+                counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(q, token, env_ptr, val->as_seq());
+                stream_cache2->insert(token, env_ptr, val->as_seq());
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
@@ -176,9 +178,10 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                                "(got %s).", val->get_type().name());
             }
         } catch (const exc_t &e) {
-            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
             return;
         }
+
     } break;
     case Query_QueryType_CONTINUE: {
         try {
@@ -186,7 +189,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
             rcheck_toplevel(b, strprintf("Token %" PRIi64 " not in stream cache.",
                                          token));
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
     } break;
@@ -196,7 +199,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                 strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace);
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
     } break;
@@ -204,9 +207,9 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, const Term *_src)
+term_t::term_t(env_t *_env, protob_t<const Term> _src)
     : pb_rcheckable_t(_src), env(_env), src(_src) {
-    guarantee(env);
+    guarantee(env != NULL);
 }
 term_t::~term_t() { }
 
@@ -235,7 +238,7 @@ bool term_t::is_deterministic() const {
     return b;
 }
 
-const Term *term_t::get_src() const {
+protob_t<const Term> term_t::get_src() const {
     return src;
 }
 
@@ -243,7 +246,7 @@ void term_t::prop_bt(Term *t) const {
     term_walker_t(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-val_t *term_t::eval() {
+counted_t<val_t> term_t::eval() {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
@@ -252,7 +255,7 @@ val_t *term_t::eval() {
 
     try {
         try {
-            val_t *ret = eval_impl();
+            counted_t<val_t> ret = eval_impl();
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -268,33 +271,30 @@ val_t *term_t::eval() {
     }
 }
 
-val_t *term_t::new_val(datum_t *d) {
-    return new_val(static_cast<const datum_t *>(d));
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
+    return make_counted<val_t>(d, this);
 }
-val_t *term_t::new_val(const datum_t *d) {
-    return env->new_val(d, this);
-}
-val_t *term_t::new_val(datum_t *d, table_t *t) {
-    return new_val(static_cast<const datum_t *>(d), t);
-}
-val_t *term_t::new_val(const datum_t *d, table_t *t) {
-    return env->new_val(d, t, this);
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
+    return make_counted<val_t>(d, t, this);
 }
 
-val_t *term_t::new_val(datum_stream_t *s) { return env->new_val(s, this); }
-val_t *term_t::new_val(datum_stream_t *s, table_t *d) {
-    return env->new_val(d, s, this);
+counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
+    return make_counted<val_t>(s, this);
 }
-val_t *term_t::new_val(db_t *db) {
-    return new_val(static_cast<const db_t *>(db));
+counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
+    return make_counted<val_t>(d, s, this);
 }
-val_t *term_t::new_val(const db_t *db) {
-    return env->new_val(db, this);
+counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
+    return make_counted<val_t>(db, this);
 }
-val_t *term_t::new_val(table_t *t) { return env->new_val(t, this); }
-val_t *term_t::new_val(func_t *f) { return env->new_val(f, this); }
-val_t *term_t::new_val_bool(bool b) {
-    return new_val(new datum_t(datum_t::R_BOOL, b));
+counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
+    return make_counted<val_t>(t, this);
+}
+counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
+    return make_counted<val_t>(f, this);
+}
+counted_t<val_t> term_t::new_val_bool(bool b) {
+    return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 
 } //namespace ql

@@ -4,86 +4,94 @@
 #include <string>
 #include <utility>
 
-#include "rdb_protocol/datum.hpp"
+#include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp"
 
 namespace ql {
+class datum_t;
 class env_t;
 class val_t;
 class term_t;
 class stream_cache2_t;
-}
+template <class> class protob_t;
 
-namespace ql {
-
-class db_t : public ptr_baggable_t {
+class db_t : public slow_atomic_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
     const uuid_u id;
     const std::string name;
 };
 
-class table_t : public ptr_baggable_t, public pb_rcheckable_t {
+class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, const db_t *db, const std::string &name,
-            bool use_outdated, const pb_rcheckable_t *src);
-    datum_stream_t *as_datum_stream();
+    table_t(env_t *_env, counted_t<const db_t> db, const std::string &name,
+            bool use_outdated, const protob_t<const Backtrace> &src);
+    counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
-    const datum_t *get_row(const datum_t *pval);
-    datum_stream_t *get_rows(const datum_t *left_bound, const datum_t *right_bound,
-                             const pb_rcheckable_t *bt);
-    datum_stream_t *get_sindex_rows(
-        const datum_t *left_bound, const datum_t *right_bound,
-        const std::string &sindex_id, const pb_rcheckable_t *bt);
-    datum_t *env_add_ptr(datum_t *d);
+    counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
+    counted_t<datum_stream_t> get_rows(counted_t<const datum_t> left_bound,
+                                       counted_t<const datum_t> right_bound,
+                                       const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> get_sindex_rows(
+        counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+        const std::string &sindex_id, const protob_t<const Backtrace> &bt);
 
-    const datum_t *make_error_datum(const base_exc_t &exception);
+    counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 
-    const datum_t *replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *replace(const datum_t *orig, const datum_t *d, bool upsert);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<func_t> f,
+                                     bool nondet_ok);
+    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+                                     counted_t<const datum_t> d,
+                                     bool upsert);
 
-    std::vector<const datum_t *> batch_replace(
-        const std::vector<const datum_t *> &original_values,
-        func_t *replacement_generator,
+    std::vector<counted_t<const datum_t> > batch_replace(
+        const std::vector<counted_t<const datum_t> > &original_values,
+        counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok);
 
-    std::vector<const datum_t *> batch_replace(
-        const std::vector<const datum_t *> &original_values,
-        const std::vector<const datum_t *> &replacement_values,
+    std::vector<counted_t<const datum_t> > batch_replace(
+        const std::vector<counted_t<const datum_t> > &original_values,
+        const std::vector<counted_t<const datum_t> > &replacement_values,
         bool upsert);
 
-    MUST_USE bool sindex_create(const std::string &name, func_t *index_func);
+    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
     MUST_USE bool sindex_drop(const std::string &name);
-    const datum_t *sindex_list();
+    counted_t<const datum_t> sindex_list();
 
-    const db_t *db;
+    counted_t<const db_t> db;
     const std::string name;
 private:
     struct datum_func_pair_t {
         datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
-        datum_func_pair_t(const datum_t *_original_value,
+        datum_func_pair_t(counted_t<const datum_t> _original_value,
                           const map_wire_func_t *_replacer)
             : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
 
-        explicit datum_func_pair_t(const datum_t *_error_value)
+        explicit datum_func_pair_t(counted_t<const datum_t> _error_value)
             : original_value(NULL), replacer(NULL), error_value(_error_value) { }
 
-        // One of these datum_t *'s is NULL.
-        const datum_t *original_value;
+        // One of these counted_t<const datum_t>'s is empty.
+        counted_t<const datum_t> original_value;
         const map_wire_func_t *replacer;
-        const datum_t *error_value;
+        counted_t<const datum_t> error_value;
     };
 
-    std::vector<const datum_t *> batch_replace(
+    std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<datum_func_pair_t> &replacements);
 
-    const datum_t *do_replace(const datum_t *orig, const map_wire_func_t &mwf);
-    const datum_t *do_replace(const datum_t *orig, func_t *f, bool nondet_ok);
-    const datum_t *do_replace(const datum_t *orig, const datum_t *d, bool upsert);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        const map_wire_func_t &mwf);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<func_t> f,
+                                        bool nondet_ok);
+    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+                                        counted_t<const datum_t> d,
+                                        bool upsert);
 
     env_t *env;
     bool use_outdated;
@@ -99,7 +107,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public ptr_baggable_t, public pb_rcheckable_t {
+class val_t : public slow_atomic_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -120,33 +128,37 @@ public:
         };
         type_t(raw_type_t _raw_type); // NOLINT
         bool is_convertible(type_t rhs) const;
+
+        raw_type_t get_raw_type() const { return raw_type; }
+        const char *name() const;
+
     private:
         friend class coerce_term_t;
         friend class typeof_term_t;
-        friend int val_type(val_t *v);
-        const char *name() const;
+        friend int val_type(counted_t<val_t> v);
         raw_type_t raw_type;
     };
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(const datum_t *_datum, const term_t *_parent);
-    val_t(const datum_t *_datum, table_t *_table, const term_t *_parent);
-    val_t(datum_stream_t *_sequence, const term_t *_parent);
-    val_t(table_t *_table, const term_t *_parent);
-    val_t(table_t *_table, datum_stream_t *_sequence, const term_t *_parent);
-    val_t(const db_t *_db, const term_t *_parent);
-    val_t(func_t *_func, const term_t *_parent);
+    val_t(counted_t<const datum_t> _datum, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(counted_t<const db_t> _db, const term_t *parent);
+    val_t(counted_t<func_t> _func, const term_t *parent);
+    ~val_t();
 
-    const db_t *as_db();
-    table_t *as_table();
-    std::pair<table_t *, datum_stream_t *> as_selection();
-    datum_stream_t *as_seq();
-    std::pair<table_t *, const datum_t *> as_single_selection();
+    counted_t<const db_t> as_db();
+    counted_t<table_t> as_table();
+    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection();
+    counted_t<datum_stream_t> as_seq();
+    std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    func_t *as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
-    const datum_t *as_datum(); // prefer the 4 below
+    counted_t<const datum_t> as_datum(); // prefer the 4 below
     bool as_bool();
     double as_num();
     template<class T>
@@ -172,21 +184,33 @@ public:
 private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
-    const term_t *parent;
-    env_t *get_env() { return parent->val_t_get_env(); }
+    env_t *env;
 
     type_t type;
-    table_t *table;
-    union {
-        // We store the db's `uuid_u` in here.
-        const db_t *db;
-        datum_stream_t *sequence;
-        const datum_t *datum;
-        func_t *func;
-    };
+    counted_t<table_t> table;
+
+    // We pretend that this variant is a union -- as if it doesn't have type
+    // information.  The sequence, datum, func, and db_ptr functions get the
+    // fields of the variant.
+    boost::variant<counted_t<const db_t>,
+                   counted_t<datum_stream_t>,
+                   counted_t<const datum_t>,
+                   counted_t<func_t> > u;
+
+    counted_t<const db_t> db() {
+        return boost::get<counted_t<const db_t> >(u);
+    }
+    counted_t<datum_stream_t> &sequence() {
+        return boost::get<counted_t<datum_stream_t> >(u);
+    }
+    counted_t<const datum_t> &datum() {
+        return boost::get<counted_t<const datum_t> >(u);
+    }
+    counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 
     DISABLE_COPYING(val_t);
 };
+
 
 }  //namespace ql
 

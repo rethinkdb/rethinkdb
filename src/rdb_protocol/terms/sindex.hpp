@@ -11,35 +11,37 @@ namespace ql {
 
 class sindex_create_term_t : public op_term_t {
 public:
-    sindex_create_term_t(env_t *env, const Term *term)
+    sindex_create_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2, 3)) { }
 
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
-        const datum_t *name_datum = arg(1)->as_datum();
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
+        counted_t<const datum_t> name_datum = arg(1)->as_datum();
         std::string name = name_datum->as_str();
         rcheck(name != table->get_pkey(),
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
-        func_t *index_func = NULL;
-        if (num_args() ==3) {
+        counted_t<func_t> index_func;
+        if (num_args() == 3) {
             index_func = arg(2)->as_func();
         } else {
-            env_wrapper_t<Term> *twrap = env->add_ptr(new env_wrapper_t<Term>());
-            Term *func_term = &twrap->t;
+            protob_t<Term> func_term = make_counted_term();
             int x = env->gensym();
-            Term *arg = pb::set_func(func_term, x);
-            N2(GETATTR, NVAR(x), NDATUM(name_datum));
-            prop_bt(func_term);
-            index_func = env->add_ptr(new func_t(env, func_term));
+            {
+                Term *arg = pb::set_func(func_term.get(), x);
+                N2(GETATTR, NVAR(x), NDATUM(name_datum));
+            }
+
+            prop_bt(func_term.get());
+            index_func = make_counted<func_t>(env, func_term);
         }
-        r_sanity_check(index_func != NULL);
+        r_sanity_check(index_func.has());
 
         bool success = table->sindex_create(name, index_func);
         if (success) {
-            datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("created", env->add_ptr(new datum_t(1.0)));
-            return new_val(res);
+            scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+            UNUSED bool b = res->add("created", make_counted<datum_t>(1.0));
+            return new_val(counted_t<const datum_t>(res.release()));
         } else {
             rfail("Index `%s` already exists.", name.c_str());
         }
@@ -50,39 +52,39 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(env_t *env, const Term *term)
+    sindex_drop_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
         std::string name = arg(1)->as_datum()->as_str();
         bool success = table->sindex_drop(name);
         if (success) {
-            datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("dropped", env->add_ptr(new datum_t(1.0)));
-            return new_val(res);
+            scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+            UNUSED bool b = res->add("dropped", make_counted<datum_t>(1.0));
+            return new_val(counted_t<const datum_t>(res.release()));
         } else {
             rfail("Index `%s` does not exist.", name.c_str());
         }
     }
 
-    virtual const char * name() const { return "sindex_drop"; }
+    virtual const char *name() const { return "sindex_drop"; }
 };
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(env_t *env, const Term *term)
+    sindex_list_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
 
         return new_val(table->sindex_list());
     }
 
-    virtual const char * name() const { return "sindex_list"; }
+    virtual const char *name() const { return "sindex_list"; }
 };
 
 } // namespace ql
 
-#endif
+#endif  // RDB_PROTOCOL_TERMS_SINDEX_HPP_

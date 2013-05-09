@@ -21,103 +21,121 @@ namespace ql {
 
 class asc_term_t : public op_term_t {
 public:
-    asc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    asc_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
-        return new_val("+" + arg(0)->as_str());
+    virtual counted_t<val_t> eval_impl() {
+        return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "asc"; }
 };
 
 class desc_term_t : public op_term_t {
 public:
-    desc_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    desc_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
-        return new_val("-" + arg(0)->as_str());
+    virtual counted_t<val_t> eval_impl() {
+        return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "desc"; }
 };
 
 class orderby_term_t : public op_term_t {
 public:
-    orderby_term_t(env_t *env, const Term *term)
+    orderby_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
     class lt_cmp_t {
     public:
-        explicit lt_cmp_t(const datum_t *_attrs) : attrs(_attrs) { }
-        bool operator()(const datum_t *l, const datum_t *r) {
+        explicit lt_cmp_t(counted_t<const datum_t> _attrs) : attrs(_attrs) { }
+        bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
             for (size_t i = 0; i < attrs->size(); ++i) {
                 std::string attrname = attrs->get(i)->as_str();
                 bool invert = (attrname[0] == '-');
                 r_sanity_check(attrname[0] == '-' || attrname[0] == '+');
                 attrname.erase(0, 1);
-                const datum_t *lattr = l->get(attrname, NOTHROW);
-                const datum_t *rattr = r->get(attrname, NOTHROW);
-                if (!lattr && !rattr) continue;
-                if (!lattr) return static_cast<bool>(true ^ invert);
-                if (!rattr) return static_cast<bool>(false ^ invert);
+                counted_t<const datum_t> lattr = l->get(attrname, NOTHROW);
+                counted_t<const datum_t> rattr = r->get(attrname, NOTHROW);
+                if (!lattr.has() && !rattr.has()) {
+                    continue;
+                }
+                if (!lattr.has()) {
+                    return static_cast<bool>(true ^ invert);
+                }
+                if (!rattr.has()) {
+                    return static_cast<bool>(false ^ invert);
+                }
                 // TODO: use datum_t::cmp instead to be faster
-                if (*lattr == *rattr) continue;
+                if (*lattr == *rattr) {
+                    continue;
+                }
                 return static_cast<bool>((*lattr < *rattr) ^ invert);
             }
             return false;
         }
     private:
-        const datum_t *attrs;
+        counted_t<const datum_t> attrs;
     };
 
-    virtual val_t *eval_impl() {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    virtual counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             Term::TermType type = src_term->args(i).type();
             if (type != Term::ASC && type != Term::DESC) {
-                arr->add(new_val("+" + arg(i)->as_str())->as_datum());
+                auto datum = make_counted<const datum_t>("+" + arg(i)->as_str());
+                arr->add(new_val(datum)->as_datum());
             } else {
                 arr->add(arg(i)->as_datum());
             }
         }
-        lt_cmp_t lt_cmp(arr);
+        lt_cmp_t lt_cmp(counted_t<const datum_t>(arr.release()));
         // We can't have datum_stream_t::sort because templates suck.
 
-        table_t *tbl = 0;
-        datum_stream_t *seq = 0;
-        val_t *v0 = arg(0);
+        counted_t<table_t> tbl;
+        counted_t<datum_stream_t> seq;
+        counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            std::pair<table_t *, datum_stream_t *> ts = v0->as_selection();
+            std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
+                = v0->as_selection();
             tbl = ts.first;
             seq = ts.second;
         } else {
             seq = v0->as_seq();
         }
-        datum_stream_t *s = new sort_datum_stream_t<lt_cmp_t>(
-            env, lt_cmp, seq, this);
-        return tbl ? new_val(s, tbl) : new_val(s);
+        counted_t<datum_stream_t> s
+            = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+        return tbl.has() ? new_val(s, tbl) : new_val(s);
     }
+
     virtual const char *name() const { return "orderby"; }
 
 private:
-    const Term *src_term;
+    protob_t<const Term> src_term;
 };
 
 class distinct_term_t : public op_term_t {
 public:
-    distinct_term_t(env_t *env, const Term *term)
+    distinct_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    static bool lt_cmp(const datum_t *l, const datum_t *r) { return *l < *r; }
-    virtual val_t *eval_impl() {
-        datum_stream_t *s =
-            new sort_datum_stream_t<bool (*)(const datum_t *, const datum_t *)>(
-                env, lt_cmp, arg(0)->as_seq(), this);
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
-        const datum_t *last = 0;
-        while (const datum_t *d = s->next()) {
-            if (last && *last == *d) continue;
-            arr->add(last = d);
+    static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
+    virtual counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        counted_t<const datum_t> last;
+        while (counted_t<const datum_t> d = s->next()) {
+            if (last.has() && *last == *d) {
+                continue;
+            }
+            last = d;
+            arr->add(last);
         }
-        return new_val(new array_datum_stream_t(env, arr, this));
+        counted_t<datum_stream_t> out
+            = make_counted<array_datum_stream_t>(env,
+                                                 counted_t<const datum_t>(arr.release()),
+                                                 backtrace());
+        return new_val(out);
     }
     virtual const char *name() const { return "distinct"; }
 };

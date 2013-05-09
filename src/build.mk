@@ -28,6 +28,7 @@ ifeq ($(COMPILER),CLANG)
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
+    RT_LDFLAGS += -lc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -119,6 +120,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
+  ifeq ($(OS), Darwin)
+    RT_CXXFLAGS += -stdlib=libc++
+  endif
 
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
@@ -276,8 +280,8 @@ endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
-UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest-1.6.0/make/gtest.a
-UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest-1.6.0/include
+UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
+UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
 RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -322,7 +326,7 @@ endif
 
 $(UNIT_STATIC_LIBRARY_PATH):
 	$P MAKE $@
-	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest-1.6.0/make gtest.a
+	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest/make gtest.a
 
 .PHONY: unit
 unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)

@@ -220,7 +220,7 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-intrusive_ptr_t<standard_block_token_t>
+counted_t<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // NULL_BLOCK_ID is special: it indicates no block id specified.  Right now only the
     // log_serializer_t ever sees a NULL_BLOCK_ID, passed in from its data block manager in some
@@ -230,15 +230,15 @@ translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_
     return inner->block_write(buf, block_id, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_read(token, buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 
-intrusive_ptr_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
     return inner->index_read(translate_block_id(block_id));
 }
 
@@ -278,7 +278,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard

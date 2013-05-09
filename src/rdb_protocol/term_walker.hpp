@@ -280,7 +280,7 @@ private:
 
     int depth;
     bool writes_legal;
-    const Backtrace *bt;
+    const Backtrace *const bt;
 };
 
 } // namespace ql

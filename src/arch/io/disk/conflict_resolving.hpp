@@ -51,16 +51,22 @@ functions:
 
 You should make a separate conflict_resolving_diskmgr_t for each file. */
 
-template<class payload_t>
+
+template <class payload_t>
+struct conflict_resolving_diskmgr_action_t : public payload_t {
+    int conflict_count;
+};
+
+template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const conflict_resolving_diskmgr_action_t<payload_t> &action);
+
+template <class payload_t>
 struct conflict_resolving_diskmgr_t {
     explicit conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
     ~conflict_resolving_diskmgr_t();
 
-    struct action_t : public payload_t {
-    private:
-        friend struct conflict_resolving_diskmgr_t;
-        int conflict_count;
-    };
+    typedef conflict_resolving_diskmgr_action_t<payload_t> action_t;
 
     /* Call submit() to send an action to the conflict_resolving_diskmgr_t.
     conflict_resolving_diskmgr_t calls done_fun() when the operation is done. */

@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream_cache.hpp"
@@ -12,7 +13,7 @@
 namespace ql {
 // Runs a query!  This is all outside code should ever need to call.  See
 // term.cc for definition.
-void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
          Response *res, stream_cache2_t *stream_cache2);
 } // namespace ql
 

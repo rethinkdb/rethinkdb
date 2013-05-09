@@ -51,7 +51,6 @@ public:
 
     block_id_t get_block_id() const;
     const void *get_data_read() const;
-    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_write();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
@@ -133,7 +132,7 @@ public:
     block_size_t get_block_size();
     void create_cache_account(int priority, scoped_ptr_t<typename inner_cache_t::cache_account_type> *out);
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
     unsigned int num_blocks();
 

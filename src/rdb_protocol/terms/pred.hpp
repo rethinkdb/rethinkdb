@@ -7,7 +7,7 @@ namespace ql {
 
 class predicate_term_t : public op_term_t {
 public:
-    predicate_term_t(env_t *env, const Term *term)
+    predicate_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2, -1)), namestr(0), invert(false), pred(0) {
         int predtype = term->type();
         switch(predtype) {
@@ -41,12 +41,11 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual val_t *eval_impl() {
-        const datum_t *lhs, *rhs;
-        lhs = arg(0)->as_datum();
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<const datum_t> lhs = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            rhs = arg(i)->as_datum();
-            if (!(lhs->*pred)(*rhs)) {
+            counted_t<const datum_t> rhs = arg(i)->as_datum();
+            if (!(lhs.get()->*pred)(*rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
             lhs = rhs;
@@ -61,9 +60,11 @@ private:
 
 class not_term_t : public op_term_t {
 public:
-    not_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(1)) { }
+    not_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() { return new_val_bool(!arg(0)->as_bool()); }
+    virtual counted_t<val_t> eval_impl() {
+        return new_val_bool(!arg(0)->as_bool());
+    }
     virtual const char *name() const { return "not"; }
 };
 

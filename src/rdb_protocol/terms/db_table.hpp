@@ -12,8 +12,8 @@
 
 namespace ql {
 
-name_string_t get_name(val_t *val, const term_t *caller) {
-    r_sanity_check(val);
+name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
+    r_sanity_check(val.has());
     std::string raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
@@ -28,11 +28,11 @@ name_string_t get_name(val_t *val, const term_t *caller) {
 // including the thread switching.
 class meta_op_t : public op_term_t {
 public:
-    meta_op_t(env_t *env, const Term *term, argspec_t argspec)
+    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
           metadata_home_thread(env->semilattice_metadata->home_thread()) { }
-    meta_op_t(env_t *env, const Term *term, argspec_t argspec, optargspec_t optargspec)
+    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
           metadata_home_thread(env->semilattice_metadata->home_thread()) { }
@@ -66,9 +66,9 @@ private:
 
 class meta_write_op_t : public meta_op_t {
 public:
-    meta_write_op_t(env_t *env, const Term *term, argspec_t argspec)
+    meta_write_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : meta_op_t(env, term, argspec) { init(); }
-    meta_write_op_t(env_t *env, const Term *term,
+    meta_write_op_t(env_t *env, protob_t<const Term> term,
                     argspec_t argspec, optargspec_t optargspec)
         : meta_op_t(env, term, argspec, optargspec) { init(); }
 private:
@@ -81,12 +81,11 @@ private:
     }
 
     virtual std::string write_eval_impl() = 0;
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         std::string op = write_eval_impl();
-        datum_t *res = env->add_ptr(new datum_t(datum_t::R_OBJECT));
-        const datum_t *num_1 = env->add_ptr(new datum_t(1.0));
-        UNUSED bool b = res->add(op, num_1);
-        return new_val(res);
+        scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+        UNUSED bool b = res->add(op, make_counted<datum_t>(1.0));
+        return new_val(counted_t<const datum_t>(res.release()));
     }
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
@@ -95,9 +94,9 @@ protected:
 
 class db_term_t : public meta_op_t {
 public:
-    db_term_t(env_t *env, const Term *term) : meta_op_t(env, term, argspec_t(1)) { }
+    db_term_t(env_t *env, protob_t<const Term> term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual val_t *eval_impl() {
+    virtual counted_t<val_t> eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
         uuid_u uuid;
         {
@@ -106,14 +105,14 @@ private:
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
         }
-        return new_val(new db_t(uuid, db_name.str()));
+        return new_val(make_counted<const db_t>(uuid, db_name.str()));
     }
     virtual const char *name() const { return "db"; }
 };
 
 class db_create_term_t : public meta_write_op_t {
 public:
-    db_create_term_t(env_t *env, const Term *term) :
+    db_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -149,38 +148,42 @@ static const char *const table_create_optargs[] =
     {"datacenter", "primary_key", "cache_size", "hard_durability"};
 class table_create_term_t : public meta_write_op_t {
 public:
-    table_create_term_t(env_t *env, const Term *term) :
+    table_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
                         optargspec_t(table_create_optargs)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
-        if (val_t *v = optarg("datacenter", 0)) {
+        if (counted_t<val_t> v = optarg("datacenter", counted_t<val_t>())) {
             name_string_t name = get_name(v, this);
             {
                 rethreading_metadata_accessor_t meta(this);
-                dc_id = meta_get_uuid(
-                    &meta.dc_searcher, name,
-                    strprintf("Datacenter `%s` does not exist.", name.str().c_str()),
-                    this);
+                dc_id = meta_get_uuid(&meta.dc_searcher, name,
+                                      strprintf("Datacenter `%s` does not exist.",
+                                                name.str().c_str()),
+                                      this);
             }
         }
 
         bool hard_durability = true;
-        if (val_t *v = optarg("hard_durability", NULL)) {
+        if (counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>())) {
             hard_durability = v->as_datum()->as_bool();
         }
 
         std::string primary_key = "id";
-        if (val_t *v = optarg("primary_key", 0)) primary_key = v->as_str();
+        if (counted_t<val_t> v = optarg("primary_key", counted_t<val_t>())) {
+            primary_key = v->as_str();
+        }
 
         int cache_size = 1073741824;
-        if (val_t *v = optarg("cache_size", 0)) cache_size = v->as_int<int>();
+        if (counted_t<val_t> v = optarg("cache_size", counted_t<val_t>())) {
+            cache_size = v->as_int<int>();
+        }
 
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            val_t *dbv = optarg("db", NULL);
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
@@ -242,7 +245,7 @@ private:
 
 class db_drop_term_t : public meta_write_op_t {
 public:
-    db_drop_term_t(env_t *env, const Term *term) :
+    db_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl() {
@@ -287,14 +290,14 @@ private:
 
 class table_drop_term_t : public meta_write_op_t {
 public:
-    table_drop_term_t(env_t *env, const Term *term) :
+    table_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            val_t *dbv = optarg("db", NULL);
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
@@ -331,11 +334,11 @@ private:
 
 class db_list_term_t : public meta_op_t {
 public:
-    db_list_term_t(env_t *env, const Term *term) :
+    db_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual val_t *eval_impl() {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    virtual counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         std::vector<std::string> dbs;
         {
             rethreading_metadata_accessor_t meta(this);
@@ -348,23 +351,23 @@ private:
             }
         }
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr->add(env->add_ptr(new datum_t(*it)));
+            arr->add(make_counted<datum_t>(*it));
         }
-        return new_val(arr);
+        return new_val(counted_t<const datum_t>(arr.release()));
     }
     virtual const char *name() const { return "db_list"; }
 };
 
 class table_list_term_t : public meta_op_t {
 public:
-    table_list_term_t(env_t *env, const Term *term) :
+    table_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual val_t *eval_impl() {
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+    virtual counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         uuid_u db_id;
         if (num_args() == 0) {
-            val_t *dbv = optarg("db", NULL);
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
         } else {
@@ -383,9 +386,9 @@ private:
             }
         }
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr->add(env->add_ptr(new datum_t(*it)));
+            arr->add(make_counted<datum_t>(*it));
         }
-        return new_val(arr);
+        return new_val(counted_t<const datum_t>(arr.release()));
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -393,17 +396,17 @@ private:
 static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
-    table_term_t(env_t *env, const Term *term)
+    table_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
 private:
-    virtual val_t *eval_impl() {
-        val_t *t = optarg("use_outdated", 0);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
         bool use_outdated = t ? t->as_bool() : false;
-        const db_t *db;
+        counted_t<const db_t> db;
         std::string name;
         if (num_args() == 1) {
-            val_t *dbv = optarg("db", 0);
-            r_sanity_check(dbv);
+            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            r_sanity_check(dbv.has());
             db = dbv->as_db();
             name = arg(0)->as_str();
         } else {
@@ -411,7 +414,7 @@ private:
             db = arg(0)->as_db();
             name = arg(1)->as_str();
         }
-        return new_val(new table_t(env, db, name, use_outdated, this));
+        return new_val(make_counted<table_t>(env, db, name, use_outdated, backtrace()));
     }
     virtual bool is_deterministic_impl() const { return false; }
     virtual const char *name() const { return "table"; }
@@ -419,39 +422,44 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const Term *term) : op_term_t(env, term, argspec_t(2)) { }
+    get_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
-        const datum_t *pkey = arg(1)->as_datum();
-        const datum_t *row = table->get_row(pkey);
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
+        counted_t<const datum_t> pkey = arg(1)->as_datum();
+        counted_t<const datum_t> row = table->get_row(pkey);
         return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }
 };
 
-static const char *const get_all_optargs[] = {"index"};
+static const char *const get_all_optargs[] = { "index" };
+
 class get_all_term_t : public op_term_t {
 public:
-    get_all_term_t(env_t *env, const Term *term)
+    get_all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
 private:
-    virtual val_t *eval_impl() {
-        table_t *table = arg(0)->as_table();
-        const datum_t *pkey = arg(1)->as_datum();
-        if (val_t *v = optarg("index", NULL)) {
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<table_t> table = arg(0)->as_table();
+        counted_t<const datum_t> pkey = arg(1)->as_datum();
+        if (counted_t<val_t> v = optarg("index", counted_t<val_t>())) {
             if (v->as_str() != table->get_pkey()) {
-                datum_stream_t *seq =
-                    table->get_sindex_rows(pkey, pkey, v->as_str(), this);
+                counted_t<datum_stream_t> seq =
+                    table->get_sindex_rows(pkey, pkey, v->as_str(), backtrace());
                 return new_val(seq, table);
             }
         }
-        const datum_t *row = table->get_row(pkey);
-        datum_t *arr = env->add_ptr(new datum_t(datum_t::R_ARRAY));
+        counted_t<const datum_t> row = table->get_row(pkey);
+        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         if (row->get_type() != datum_t::R_NULL) {
             arr->add(row);
         }
-        return new_val(new array_datum_stream_t(env, arr, this), table);
+
+        counted_t<datum_stream_t> stream
+            = make_counted<array_datum_stream_t>(env, counted_t<datum_t>(arr.release()),
+                                                 backtrace());
+        return new_val(stream, table);
     }
     virtual const char *name() const { return "get_all"; }
 };

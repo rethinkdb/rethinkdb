@@ -185,7 +185,7 @@ void scc_cache_t<inner_cache_t>::create_cache_account(int priority, scoped_ptr_t
 }
 
 template<class inner_cache_t>
-bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     return inner_cache.offer_read_ahead_buf(block_id, buf, token, recency_timestamp);
 }
 

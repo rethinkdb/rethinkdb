@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_ENV_HPP_
 #define RDB_PROTOCOL_ENV_HPP_
 
@@ -11,9 +11,8 @@
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
-#include "containers/ptr_bag.hpp"
+#include "containers/counted.hpp"
 #include "extproc/pool.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -21,16 +20,8 @@
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
+class datum_t;
 class term_t;
-
-/* Checks that divisor is indeed a divisor of multiple. */
-template <class T>
-bool is_joined(const T &multiple, const T &divisor) {
-    T cpy = multiple;
-
-    semilattice_join(&cpy, divisor);
-    return cpy == multiple;
-}
 
 class env_t : private home_thread_mixin_t {
 public:
@@ -40,7 +31,7 @@ public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
-    val_t *get_optarg(const std::string &key); // returns NULL if no entry
+    counted_t<val_t> get_optarg(const std::string &key); // returns NULL if no entry
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
@@ -54,92 +45,32 @@ private:
 
 public:
     // Bind a variable in the current scope.
-    void push_var(int var, const datum_t **val);
+    void push_var(int var, counted_t<const datum_t> *val);
     // Get the current binding of a variable in the current scope.
-    const datum_t **top_var(int var, const rcheckable_t *caller);
+    counted_t<const datum_t> *top_var(int var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.
     void pop_var(int var);
 
     // Dump the current scope.
-    void dump_scope(std::map<int64_t, const datum_t **> *out);
+    void dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
     void push_scope(std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 private:
-    std::map<int64_t, std::stack<const datum_t **> > vars;
-    std::stack<std::vector<std::pair<int, const datum_t *> > > scope_stack;
+    std::map<int64_t, std::stack<counted_t<const datum_t> *> > vars;
+    std::stack<std::vector<std::pair<int, counted_t<const datum_t> > > > scope_stack;
 
 public:
     // Implicit Variables (same interface as normal variables above).
-    void push_implicit(const datum_t **val);
-    const datum_t **top_implicit(const rcheckable_t *caller);
+    void push_implicit(counted_t<const datum_t> *val);
+    counted_t<const datum_t> *top_implicit(const rcheckable_t *caller);
     void pop_implicit();
+
 private:
     friend class implicit_binder_t;
     int implicit_depth;
-    std::stack<const datum_t **> implicit_var;
-
-    // Allocation Functions
-public:
-    template<class T>
-    T *add_ptr(T *p) {
-        assert_thread();
-        r_sanity_check(bags.size() > 0);
-        if (some_bag_has(p)) return p;
-        bags[bags.size()-1]->add(p);
-        return p;
-    }
-    func_t *new_func(const Term *term) {
-        return add_ptr(new func_t(this, term));
-    }
-    template<class T>
-    val_t *new_val(T *ptr, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), parent));
-    }
-    template<class T, class U>
-    val_t *new_val(T *ptr, U *ptr2, term_t *parent) {
-        return add_ptr(new val_t(add_ptr(ptr), add_ptr(ptr2), parent));
-    }
-    term_t *new_term(const Term *source) {
-        return add_ptr(compile_term(this, source));
-    }
-
-    template<class... Args>
-    datum_t *new_datum(Args... args) {
-        return add_ptr(new datum_t(args...));
-    }
-
-    // Checkpoint code (most of the logic is in `env_checkpoint_t` and
-    // env_gc_checkpoint_t` below).  Checkpoints should be created by
-    // constructing a `*_checkpoint_t`, which is why the `checkpoint` function
-    // is private.
-public:
-    void merge_checkpoint(); // Merge in all allocations since checkpoint
-    void discard_checkpoint(); // Discard all allocations since checkpoint
-    size_t num_checkpoints() const; // number of checkpoints
-private:
-    void checkpoint(); // create a new checkpoint
-    friend class env_checkpoint_t;
-    friend class env_gc_checkpoint_t;
-    bool some_bag_has(const ptr_baggable_t *p);
-
-private:
-    // `old_bag` and `new_bag` are so that `gc` can communicate with `gc_callback`.
-    ptr_bag_t *old_bag, *new_bag;
-    class gc_callback_caller_t {
-    public:
-        gc_callback_caller_t(env_t *_env) : env(_env) { }
-        bool operator()(const datum_t *el) { return env->gc_callback(el); }
-    private:
-        env_t *env;
-    };
-    bool gc_callback(const datum_t *el);
-    void gc(const datum_t *root);
-
-    ptr_bag_t *current_bag(); // gets the top bag
-    ptr_bag_t **current_bag_ptr();
-    std::vector<ptr_bag_t *> bags;
+    std::stack<counted_t<const datum_t> *> implicit_var;
 
 public:
     // This is copied basically verbatim from old code.
@@ -228,46 +159,6 @@ private:
     DISABLE_COPYING(env_t);
 };
 
-// Construct this to checkpoint the environment.  You should pass it a pointer
-// to either `env_t::merge_checkpoint` or `env_t::discard_checkpoint`, which
-// will be its default action when deconstructed.  You can change this action
-// with `reset`.
-class env_checkpoint_t {
-public:
-    enum destructor_op_t { MERGE, DISCARD };
-    env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op);
-    ~env_checkpoint_t();
-    void reset(destructor_op_t new_destructor_op);
-    // This will garbage-collect the checkpoint so that only `root` and data it
-    // points to remain.
-    void gc(const datum_t *root);
-private:
-    env_t *env;
-    destructor_op_t destructor_op;
-};
-
-// This is a checkpoint (as above) that also does shitty generational garbage
-// collection for `reduce` and `gmr` queries.
-class env_gc_checkpoint_t {
-    static const int DEFAULT_GEN1_CUTOFF;
-    static const int DEFAULT_GEN2_SIZE_MULTIPLIER;
-public:
-    env_gc_checkpoint_t(env_t *_env, size_t _gen1 = 0, size_t _gen2 = 0);
-    ~env_gc_checkpoint_t();
-    const datum_t *maybe_gc(const datum_t *root);
-    const datum_t *finalize(const datum_t *root);
-private:
-    bool finalized;
-    env_t *env;
-    size_t gen1;
-    size_t gen2;
-};
-
-template<class T>
-struct env_wrapper_t : public ptr_baggable_t {
-    T t;
-};
-
-} // ql
+}  // namespace ql
 
 #endif // RDB_PROTOCOL_ENV_HPP_

@@ -34,8 +34,8 @@ external/protobuf-plugin-closure/js/javascript_package.pb.cc
 external/protobuf-plugin-closure/js/javascript_package.pb.h
 external/protobuf-plugin-closure/protoc-gen-ccjs
 external/protobuf-plugin-closure/protoc-gen-js
-external/gtest-1.6.0/make/gtest-all.o
-external/gtest-1.6.0/make/gtest.a
+external/gtest/make/gtest-all.o
+external/gtest/make/gtest.a
 last_tested_versions
 .deps/
 src/spin_up_clusters.py
