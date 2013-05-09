@@ -50,8 +50,7 @@ struct accounting_diskmgr_account_t {
                                  int _pri,
                                  int _outstanding_requests_limit);
 
-    // RSI: Does anybody subclass this type?
-    virtual ~accounting_diskmgr_account_t();
+    ~accounting_diskmgr_account_t();
 
     void push(action_t *action);
     void on_semaphore_available();
