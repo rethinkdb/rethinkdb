@@ -41,7 +41,7 @@ void run_with_broadcaster(
     in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
 
     // io backender
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
@@ -61,7 +61,7 @@ void run_with_broadcaster(
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<rdb_protocol_t> initial_store(io_backender.get(), &order_source, &ctx);
+    test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
@@ -77,7 +77,7 @@ void run_with_broadcaster(
 
     scoped_ptr_t<listener_t<rdb_protocol_t> > initial_listener(
         new listener_t<rdb_protocol_t>(base_path_t("."), //TODO is it bad that this isn't configurable?
-                                       io_backender.get(),
+                                       &io_backender,
                                        cluster.get_mailbox_manager(),
                                        broadcaster_business_card_watchable_variable.get_watchable(),
                                        &branch_history_manager,
@@ -86,7 +86,7 @@ void run_with_broadcaster(
                                        &interruptor,
                                        &order_source));
 
-    fun(io_backender.get(),
+    fun(&io_backender,
         &cluster,
         &branch_history_manager,
         broadcaster_business_card_watchable_variable.get_watchable(),

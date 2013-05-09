@@ -269,9 +269,9 @@ void run_sindex_post_construction() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -288,7 +288,7 @@ void run_sindex_post_construction() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get(),
+            &io_backender,
             base_path_t("."));
 
     cond_t dummy_interruptor;
@@ -313,9 +313,9 @@ void run_erase_range_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -332,7 +332,7 @@ void run_erase_range_test() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get(),
+            &io_backender,
             base_path_t("."));
 
     cond_t dummy_interruptor;
@@ -386,9 +386,9 @@ void run_sindex_interruption_via_drop_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -405,7 +405,7 @@ void run_sindex_interruption_via_drop_test() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get(),
+            &io_backender,
             base_path_t("."));
 
     cond_t dummy_interuptor;
@@ -430,9 +430,9 @@ void run_sindex_interruption_via_store_delete() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -450,7 +450,7 @@ void run_sindex_interruption_via_store_delete() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get(),
+            &io_backender,
             base_path_t(".")));
 
     cond_t dummy_interuptor;

@@ -381,13 +381,13 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
+        metadata_persistence::persistent_file_t store(&io_backender, metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
@@ -495,7 +495,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    scoped_ptr_t<io_backender_t> io_backender(new io_backender_t);
+    io_backender_t io_backender;
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -503,19 +503,19 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     try {
         scoped_ptr_t<metadata_persistence::persistent_file_t> store;
         if (our_machine_id && semilattice_metadata) {
-            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+            store.init(new metadata_persistence::persistent_file_t(&io_backender,
                                                                    metadata_file(base_path),
                                                                    &metadata_perfmon_collection,
                                                                    *our_machine_id,
                                                                    *semilattice_metadata));
         } else {
-            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+            store.init(new metadata_persistence::persistent_file_t(&io_backender,
                                                                    metadata_file(base_path),
                                                                    &metadata_perfmon_collection));
         }
 
         *result_out = serve(serve_info.spawner_info,
-                            io_backender.get(),
+                            &io_backender,
                             base_path, store.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
