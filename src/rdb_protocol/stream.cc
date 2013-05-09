@@ -22,33 +22,57 @@ result_t json_stream_t::apply_terminal(
 
     terminal_initialize(ql_env, scopes, backtrace, &t, &res);
 
-    boost::shared_ptr<scoped_cJSON_t> json;
-    while ((json = next())) {
-        terminal_apply(ql_env, scopes, backtrace, json, &t, &res);
+    for (;;) {
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > jsons
+            = next_batch(RECOMMENDED_MAX_SIZE);
+
+        if (jsons.empty()) {
+            break;
+        }
+
+        for (auto it = jsons.begin(); it != jsons.end(); ++it) {
+            terminal_apply(ql_env, scopes, backtrace, *it, &t, &res);
+            it->reset();
+        }
     }
+
     return res;
 }
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) {
+in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) : data_index(0) {
     while (cJSON *json = it.next()) {
         data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
     }
 }
 
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-        data.push_back(json);
-    }
+in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream)
+    : data(stream->next_batch(SIZE_MAX)), data_index(0) {
+    guarantee(data.size() != SIZE_MAX);
 }
 
-boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
-    if (data.empty()) {
-        return boost::shared_ptr<scoped_cJSON_t>();
-    } else {
-        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
-        data.pop_front();
-        return ret;
+std::vector<boost::shared_ptr<scoped_cJSON_t> >
+in_memory_stream_t::next_batch(size_t max_size) {
+    const size_t end
+        = data.size() - data_index < max_size ? data.size() : data_index + max_size;
+
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > ret;
+    while (data_index != end) {
+        ret.push_back(std::move(data[data_index]));
+        ++data_index;
     }
+
+    return ret;
+}
+
+std::vector<boost::shared_ptr<scoped_cJSON_t> >
+pop_a_batch(std::list<boost::shared_ptr<scoped_cJSON_t> > *const data,
+            const size_t max_size) {
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > ret;
+    while (!data->empty() && ret.size() < max_size) {
+        ret.push_back(std::move(data->front()));
+        data->pop_front();
+    }
+    return ret;
 }
 
 transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
@@ -58,16 +82,20 @@ transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
     ql_env(_ql_env),
     transform(tr) { }
 
-boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
+std::vector<boost::shared_ptr<scoped_cJSON_t> >
+transform_stream_t::next_batch(const size_t max_size) {
     while (data.empty()) {
-        boost::shared_ptr<scoped_cJSON_t> input = stream->next();
-        if (!input) {
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > inputs
+            = stream->next_batch(max_size);
+
+        if (inputs.empty()) {
             // End of stream reached.
-            return boost::shared_ptr<scoped_cJSON_t>();
+            return inputs;
         }
 
-        json_list_t accumulator;
-        accumulator.push_back(input);
+        std::list<boost::shared_ptr<scoped_cJSON_t> > accumulator(inputs.begin(),
+                                                                  inputs.end());
+        inputs.clear();
 
         //Apply transforms to the data
         typedef rdb_protocol_details::transform_t::iterator tit_t;
@@ -75,21 +103,19 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
                    it != transform.end();
                    ++it) {
             json_list_t tmp;
-            for (json_list_t::iterator jt  = accumulator.begin();
-                                       jt != accumulator.end();
-                                       ++jt) {
+            for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
                 transform_apply(ql_env, it->scopes, it->backtrace, *jt, &it->variant, &tmp);
             }
 
-            accumulator.swap(tmp);
+            accumulator = std::move(tmp);
         }
 
-        data.swap(accumulator);
+        data = std::move(accumulator);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
-    data.pop_front();
-    return datum;
+    // Why not just return the whole batch?  To slow down chains of explosive
+    // transformers.
+    return pop_a_batch(&data, max_size);
 }
 
 boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
@@ -143,22 +169,21 @@ batched_rget_stream_t::batched_rget_stream_t(
       table_scan_backtrace()
 { }
 
-boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+std::vector<boost::shared_ptr<scoped_cJSON_t> >
+batched_rget_stream_t::next_batch(size_t max_size) {
     started = true;
     if (data.empty()) {
         if (finished) {
-            return boost::shared_ptr<scoped_cJSON_t>();
+            return std::vector<boost::shared_ptr<scoped_cJSON_t> >();
         }
         read_more();
         if (data.empty()) {
             finished = true;
-            return boost::shared_ptr<scoped_cJSON_t>();
+            return std::vector<boost::shared_ptr<scoped_cJSON_t> >();
         }
     }
 
-    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
-    data.pop_front();
-    return datum;
+    return pop_a_batch(&data, max_size);
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {

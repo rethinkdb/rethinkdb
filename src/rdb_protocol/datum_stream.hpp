@@ -53,7 +53,8 @@ public:
     std::vector<counted_t<const datum_t> > next_batch(size_t max_size);
 
     // Not much thought was put into this number.
-    static const size_t RECOMMENDED_MAX_SIZE = 100;
+    static const size_t RECOMMENDED_MAX_SIZE
+        = query_language::json_stream_t::RECOMMENDED_MAX_SIZE;
 
 protected:
     env_t *env;
