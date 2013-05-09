@@ -196,6 +196,7 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(const http_
         data += sizeof(req_size);
 
         request_t request;
+        make_empty_protob_bearer(&request);
         const bool parseSucceeded
             = underlying_protob_value(&request)->ParseFromArray(data, req_size);
 
