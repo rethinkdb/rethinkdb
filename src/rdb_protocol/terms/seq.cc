@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/seq.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 #include <utility>
@@ -97,6 +97,11 @@ private:
         }
         if (!lb.has() && !rb.has()) {
             return new_val(tbl->as_datum_stream(), tbl);
+        } else if (lb.has() && rb.has() && *lb > *rb) {
+            counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
+            counted_t<datum_stream_t> ds(
+                new array_datum_stream_t(env, arr, backtrace()));
+            return new_val(ds, tbl);
         }
 
         counted_t<val_t> sindex = optarg("index", counted_t<val_t>());

@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/obj_or_seq.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 

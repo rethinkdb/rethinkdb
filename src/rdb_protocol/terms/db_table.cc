@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/db_table.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <map>
 #include <string>

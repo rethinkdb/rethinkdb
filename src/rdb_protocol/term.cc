@@ -8,24 +8,7 @@
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
 
-#include "rdb_protocol/terms/arith.hpp"
-#include "rdb_protocol/terms/arr.hpp"
-#include "rdb_protocol/terms/control.hpp"
-#include "rdb_protocol/terms/datum_terms.hpp"
-#include "rdb_protocol/terms/db_table.hpp"
-#include "rdb_protocol/terms/error.hpp"
-#include "rdb_protocol/terms/gmr.hpp"
-#include "rdb_protocol/terms/js.hpp"
-#include "rdb_protocol/terms/obj.hpp"
-#include "rdb_protocol/terms/obj_or_seq.hpp"
-#include "rdb_protocol/terms/pred.hpp"
-#include "rdb_protocol/terms/rewrites.hpp"
-#include "rdb_protocol/terms/seq.hpp"
-#include "rdb_protocol/terms/sindex.hpp"
-#include "rdb_protocol/terms/sort.hpp"
-#include "rdb_protocol/terms/type_manip.hpp"
-#include "rdb_protocol/terms/var.hpp"
-#include "rdb_protocol/terms/writes.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -129,7 +112,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
-            fill_in_backtraces(t);
+            preprocess_term(t);
             Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
 
             // Parse global optargs
@@ -145,7 +128,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
             N1(DB, NDATUM("test"));
 
-            propagate_backtraces(arg, t_bt); // duplicate toplevel backtrace
+            propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
@@ -155,6 +138,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
             return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::COMPILE_ERROR, e.what(), backtrace_t());
+            return;
         }
 
         try {
@@ -162,6 +148,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
             return;
         }
 
@@ -181,6 +170,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             }
         } catch (const exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::RUNTIME_ERROR, e.what(), backtrace_t());
             return;
         }
 
@@ -245,7 +237,7 @@ protob_t<const Term> term_t::get_src() const {
 }
 
 void term_t::prop_bt(Term *t) const {
-    propagate_backtraces(t, &get_src()->GetExtension(ql2::extension::backtrace));
+    propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
 counted_t<val_t> term_t::eval() {

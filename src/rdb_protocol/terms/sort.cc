@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/sort.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 #include <utility>
