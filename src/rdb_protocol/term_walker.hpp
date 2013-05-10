@@ -8,7 +8,7 @@ namespace ql {
 
 // Fills in the backtraces of a term and checks that it's well-formed with
 // regard to write placement.
-void fill_in_backtraces(Term *root);
+void preprocess_term(Term *root);
 
 // Propagates a backtrace down a tree until it hits a node that already has a
 // backtrace (this is used for e.g. rewrite terms so that they return reasonable

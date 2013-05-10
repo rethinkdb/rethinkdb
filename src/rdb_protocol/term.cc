@@ -129,7 +129,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
-            fill_in_backtraces(t);
+            preprocess_term(t);
             Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
 
             // Parse global optargs

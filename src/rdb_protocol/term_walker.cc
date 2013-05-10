@@ -282,7 +282,7 @@ private:
     const Backtrace *const bt;
 };
 
-void fill_in_backtraces(Term *root) {
+void preprocess_term(Term *root) {
     term_walker_t walker(root);
 }
 
