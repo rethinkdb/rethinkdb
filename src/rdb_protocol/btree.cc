@@ -517,13 +517,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
         store->sindex_queue_push(wm, &acq);
     }
-    auto_drainer_t drainer;
-    spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
-            &drainer, auto_drainer_t::lock_t(&drainer), 
-            true, /* release the superblock */ interruptor);
-
-    /* Twiddle some keys to get the in the form we want. TODO check that the
-     * code above shouldn't be using these twiddled keys.*/
+    /* Twiddle some keys to get the in the form we want. */
     store_key_t left_key_exclusive(key_range.left);
     store_key_t right_key_inclusive(key_range.right.key);
 
@@ -532,6 +526,17 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     if (right_key_supplied) {
         right_key_inclusive.decrement();
     }
+
+    key_range_t sindex_key_range(left_key_supplied ? key_range_t::open : key_range_t::none,
+                                 store_key_t(left_key_exclusive),
+                                 right_key_supplied ? key_range_t::closed : key_range_t::none,
+                                 store_key_t(right_key_inclusive));
+
+    auto_drainer_t drainer;
+    spawn_sindex_erase_ranges(&sindex_superblocks, sindex_key_range, txn,
+            &drainer, auto_drainer_t::lock_t(&drainer),
+            true, /* release the superblock */ interruptor);
+
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
