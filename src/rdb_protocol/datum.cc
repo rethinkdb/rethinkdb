@@ -130,7 +130,7 @@ void datum_t::check_str_validity(const std::string &str) {
     rcheck(null_offset == std::string::npos,
            // We truncate because lots of other places can call `c_str` on the
            // error message.
-           strprintf("String `%s` (truncated) contains NULL byte at offset %zu.",
+           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
                      str.c_str(), null_offset));
 }
 
