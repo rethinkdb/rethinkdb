@@ -4234,6 +4234,9 @@ require 'time'
 def pr x
   puts(Time.now.iso8601 + ' ' + x.to_s)
 end
+def vpr x
+  pr x if $verbose
+end
 
 def export(runner, dir)
   Dir.mkdir dir
@@ -4255,7 +4258,8 @@ def export(runner, dir)
   }
 end
 
-$row_batches = 2
+$row_batch_size = 100
+$char_batch_size = 3000
 def import(runner, dir)
   Dir.chdir(dir) {
     dbs = Dir.open('.') {|d| d.grep(/^[^.]/)}
@@ -4270,14 +4274,29 @@ def import(runner, dir)
           pr "Importing table #{tblspec} with primary key #{key}..."
           runner.table_create(db, tbl, key)
           File.open(tbl) {|f|
+            rows_inserted = 0
+            begin
+              total_rows = `wc -l #{tbl}`.to_i
+            rescue Exception => e
+              total_rows = "? (#{e.inspec})"
+            end
+            vpr "Preparing to insert #{total_rows} rows..."
+
+            charcount = 0
             rows = []
             f.each_line {|l|
+              charcount += l.size
               rows << JSON.parse(l)
-              if rows.size >= $row_batches
+              if rows.size >= $row_batch_size || charcount >= $char_batch_size
+                rows_inserted += rows.size
+                vpr "Inserting #{rows.size} rows (#{rows_inserted}/#{total_rows})..."
                 runner.insert_rows(db, tbl, rows)
+                charcount = 0
                 rows = []
               end
             }
+            rows_inserted += rows.size
+            vpr "Inserting #{rows.size} rows (#{rows_inserted}/#{total_rows})..."
             runner.insert_rows(db, tbl, rows) if rows.size > 0
           }
         }
@@ -4290,6 +4309,7 @@ require 'optparse'
 
 $host = 'localhost'
 $port = 28015
+$verbose = false
 $opt_parser = OptionParser.new {|opts|
   opts.banner = "Usage: import_export.rb [options]"
   opts.on("-h", "--host HOST",
@@ -4304,6 +4324,7 @@ $opt_parser = OptionParser.new {|opts|
           "when importing data from old RethinkDB versions, you",
           "must specify all non-`id` primary keys as follows:",
           "'{\"db_name.table_name\": \"key_name\"}'") {|k| $keys_str = k}
+  opts.on("-v", "--verbose", "be verbose") {|v| $verbose = v}
 }
 def test_class(x, cls)
   raise ArgumentError, "#{x} is of type #{x.class} instead of #{cls}" if x.class != cls
