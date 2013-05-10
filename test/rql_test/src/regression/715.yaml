@@ -5,9 +5,6 @@ tests:
 
   - def: tbl = r.table('715')
 
-  - rb: tbl.insert({})[:inserted]
-    ot: 1
-
   - cd: tbl.insert({})['inserted']
     js: tbl.insert({})('inserted')
     ot: 1
@@ -26,8 +23,8 @@ tests:
       rb: (nil)
       js: (undefined)
 
-  - rb: tbl.count
-    ot: 5
+  - cd: tbl.count()
+    ot: 3
 
   - cd: r.table_drop('715')
     ot: ({'dropped':1})
