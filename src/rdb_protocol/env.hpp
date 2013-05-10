@@ -46,6 +46,24 @@ private:
 public:
     // Bind a variable in the current scope.
     void push_var(int var, counted_t<const datum_t> *val);
+
+    // Special variables have unusual behavior.
+    enum special_var_t {
+        SINDEX_ERROR_VAR = 1, // Throws an error when you try to access it.
+    };
+    // Push a special variable.  (Pop it off with the normal `pop_var`.)
+    void push_special_var(int var, special_var_t special_var);
+    // This will push a special variable over ever variable currently in scope
+    // when constructed, then pop those variables when destructed.
+    class special_var_shadower_t {
+    public:
+        special_var_shadower_t(env_t *env, special_var_t special_var);
+        ~special_var_shadower_t();
+    private:
+        env_t *shadow_env;
+        std::map<int64_t, counted_t<const datum_t > *> current_scope;
+    };
+
     // Get the current binding of a variable in the current scope.
     counted_t<const datum_t> *top_var(int var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.

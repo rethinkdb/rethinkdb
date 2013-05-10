@@ -10,10 +10,14 @@
 
 namespace ql {
 
-class sindex_create_term_t : public op_term_t {
+// We need to use inheritance rather than composition for
+// `env_t::special_var_shadower_t` because it needs to be initialized before
+// `op_term_t`.
+class sindex_create_term_t : private env_t::special_var_shadower_t, public op_term_t {
 public:
     sindex_create_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2, 3)) { }
+        : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
+          op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
