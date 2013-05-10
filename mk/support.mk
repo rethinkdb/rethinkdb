@@ -4,12 +4,16 @@
 # It is used for portable builds on platforms where these dependencies are not available or are too old.
 
 V8_DEP :=
+PROTOBUF_DEP :=
 NPM_DEP :=
 TCMALLOC_DEP :=
 PROTOC_DEP :=
 
-# TODO: use curl if wget not available
-GETURL := wget --quiet --output-document=-
+ifdef WGET
+  GETURL := $(WGET) --quiet --output-document=-
+else ifdef CURL
+  GETURL := $(CURL) --silent
+endif
 
 ifneq (1,$(FETCH_INTERNAL_TOOLS))
   GETURL = bash -c 'echo "Error: Refusing to download $$0 (needed to build $@)" >&2; echo Run ./configure with --allow-fetch to enable downloads. >&2; false'
@@ -79,6 +83,10 @@ ifneq (,$(filter $(V8_INT_LIB),$(LIBRARY_PATHS)))
   CXXPATHDS += -isystem $(V8_INT_DIR)/include
 else
   V8_CXXFLAGS :=
+endif
+
+ifneq (,$(filter $(PROTOBUF_INT_LIB),$(LIBRARY_PATHS)))
+  PROTOBUF_DEP := $(PROTOBUF_INT_LIB)
 endif
 
 NPM ?= NO_NPM
@@ -159,16 +167,23 @@ $(TC_NODE_INT_EXE): $(NODE_DIR)
 
 $(PROTOC_SRC_DIR):
 	$P DOWNLOAD protoc
-	$(GETURL) http://protobuf.googlecode.com/files/protobuf-2.4.1.tar.bz2 | ( \
+	$(GETURL) http://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2 | ( \
 	  cd $(TC_SRC_DIR) && \
 	  tar -xjf - && \
 	  rm -rf protobuf && \
-	  mv protobuf-2.4.1 protobuf )
+	  mv protobuf-2.5.0 protobuf )
+
+ifeq ($(COMPILER) $(OS),CLANG Darwin)
+  BUILD_PROTOC_ENV := CXX=clang++ CXXFLAGS='-std=c++11 -stdlib=libc++' LDFLAGS=-lc++
+else
+  BUILD_PROTOC_ENV :=
+endif
 
 $(PROTOBUF_INT_LIB): $(TC_PROTOC_INT_EXE)
 $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
 	$P MAKE protoc
 	( cd $(PROTOC_DIR) && \
+	  $(BUILD_PROTOC_ENV) \
 	  ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && \
 	  $(EXTERN_MAKE) PREFIX=$(SUPPORT_DIR_ABS)/usr prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && \
 	  $(EXTERN_MAKE) install PREFIX=$(SUPPORT_DIR_ABS)/usr prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ) \

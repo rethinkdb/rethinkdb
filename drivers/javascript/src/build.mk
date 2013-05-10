@@ -27,7 +27,7 @@ JS_OUTPUT_MODE := script
 
 JS_DRIVER_LIB=$(JS_BUILD_DIR)/rethinkdb.js
 
-$(PROTOC_JS_HOME_DIR)/protoc-gen-js:
+$(PROTOC_JS_HOME_DIR)/protoc-gen-js: | $(PROTOC_DEP)
 	$P MAKE -C $(TOP)/external/protobuf-plugin-closure
 	$(EXTERN_MAKE) -C $(TOP)/external/protobuf-plugin-closure SPREFIX="$(abspath $(PROTOC_BASE))"
 
@@ -36,7 +36,7 @@ $(PB_JS_FILE): $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR) --js_out=$(JS_BUILD_DIR) $(PROTO_FILE)
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
-$(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/.
+$(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/. $(COFFEE)
 	$P COFFEE
 	coffee -b -p -c $< > $@
 

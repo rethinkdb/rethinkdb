@@ -29,6 +29,8 @@ ifeq ($(COMPILER),CLANG)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
     RT_LDFLAGS += -lc++
+  else
+    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -39,7 +41,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lm
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -337,7 +339,7 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
 	$P LD $@
 	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
 ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
