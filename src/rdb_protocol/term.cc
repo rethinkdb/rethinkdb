@@ -145,7 +145,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
             N1(DB, NDATUM("test"));
 
-            propagate_backtraces(arg, t_bt); // duplicate toplevel backtrace
+            propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
             UNUSED bool _b = env->add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
@@ -254,7 +254,7 @@ protob_t<const Term> term_t::get_src() const {
 }
 
 void term_t::prop_bt(Term *t) const {
-    propagate_backtraces(t, &get_src()->GetExtension(ql2::extension::backtrace));
+    propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
 counted_t<val_t> term_t::eval() {

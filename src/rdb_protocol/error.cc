@@ -92,7 +92,7 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
 }
 
 void pb_rcheckable_t::propagate(Term *t) const {
-    propagate_backtraces(t, bt_src.get());
+    propagate_backtrace(t, bt_src.get());
 }
 
 } // namespace ql

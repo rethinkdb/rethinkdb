@@ -286,7 +286,7 @@ void preprocess_term(Term *root) {
     term_walker_t walker(root);
 }
 
-void propagate_backtraces(Term *root, const Backtrace *bt) {
+void propagate_backtrace(Term *root, const Backtrace *bt) {
     term_walker_t walker(root, bt);
 }
 
