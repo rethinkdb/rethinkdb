@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/arr.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
