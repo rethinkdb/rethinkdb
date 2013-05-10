@@ -453,7 +453,7 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 
 void sindex_erase_range(const key_range_t &key_range,
         transaction_t *txn, const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
-        signal_t *interruptor, bool release_superblock) {
+        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
 
     value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
@@ -462,8 +462,12 @@ void sindex_erase_range(const key_range_t &key_range,
 
     sindex_key_range_tester_t tester(key_range);
 
-    btree_erase_range_generic(sizer, sindex_access->btree, &tester,
-            &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
+    try {
+        btree_erase_range_generic(sizer, sindex_access->btree, &tester,
+                &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
+    } catch (const interrupted_exc_t &) {
+        //We were interrupted. That's fine nothing to be done about it.
+    }
 }
 
 /* Spawns a coro to carry out the erase range for each sindex. */
