@@ -4278,7 +4278,7 @@ def import(runner, dir)
             begin
               total_rows = `wc -l #{tbl}`.to_i
             rescue Exception => e
-              total_rows = "? (#{e.inspec})"
+              total_rows = "? (#{e.inspect})"
             end
             vpr "Preparing to insert #{total_rows} rows..."
 
