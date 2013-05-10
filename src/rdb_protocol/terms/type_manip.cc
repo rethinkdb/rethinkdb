@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/type_manip.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
 #include <map>

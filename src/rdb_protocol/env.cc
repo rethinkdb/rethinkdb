@@ -22,7 +22,7 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
-    propagate_backtraces(arg.get(), &val.GetExtension(ql2::extension::backtrace));
+    propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
     optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
     counted_t<func_t> force_compilation = optargs[key].compile(this);
     r_sanity_check(force_compilation != NULL);

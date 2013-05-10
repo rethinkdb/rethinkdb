@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/datum_terms.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 

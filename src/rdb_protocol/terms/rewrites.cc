@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/rewrites.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 
@@ -70,14 +70,14 @@ private:
     // doing this at compile-time rather than runtime).
     static void parse_dc(const Term *t, std::string *dc_out,
                          Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
-        std::string errmsg = "Invalid data collector.";
+        std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
             rcheck_target(bt_src, t->optargs_size() == 1, errmsg);
             const Term_AssocPair *ap = &t->optargs(0);
             *dc_out = ap->key();
             rcheck_target(
                 bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             *dc_arg_out = ap->val();
         } else if (t->type() == Term::DATUM) {
             rcheck_target(bt_src, t->has_datum(), errmsg);
@@ -88,7 +88,7 @@ private:
             *dc_out = ap->key();
             rcheck_target(
                 bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             dc_arg_out->set_type(Term::DATUM);
             *dc_arg_out->mutable_datum() = ap->val();
         } else {

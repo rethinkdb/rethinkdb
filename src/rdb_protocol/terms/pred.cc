@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/pred.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/op.hpp"

@@ -1,4 +1,4 @@
-#include "rdb_protocol/terms/control.hpp"
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <vector>
 
