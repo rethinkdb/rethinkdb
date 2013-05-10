@@ -106,6 +106,9 @@ public:
     template <class T>
     void operator()(const T &) const { }
 private:
+
+    void handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const;
+
     std::map<peer_id_t, cluster_directory_metadata_t> directory;
     namespace_id_t n_id;
     machine_id_t m_id;
@@ -116,64 +119,30 @@ private:
     boost::ptr_vector<request_record_t> *things_to_destroy;
 };
 
-template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t &primary_when_safe) const {
-    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
-                                                                                         b_it != primary_when_safe.backfills_waited_on.end();
-                                                                                         ++b_it) {
-
-        namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
-            directory.find(b_it->peer_id)->second.rdb_namespaces;
-
-        if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
-            continue;
-        }
-
-        if (!std_contains(namespaces_directory_metadata.reactor_bcards[n_id].internal->activities, b_it->activity_id)) {
-            continue;
-        }
-
-        reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
-            namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(b_it->activity_id)->second;
-
-        boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
-        if (backfiller) {
-            promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
-            mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
-                mbox_manager,
-                boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
-                mailbox_callback_mode_inline);
-
-            send(mbox_manager, backfiller->request_progress_mailbox, b_it->backfill_session_id, resp_mbox->get_address());
-
-            request_record_t *req_rec = new request_record_t(value, resp_mbox);
-            (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
-            things_to_destroy->push_back(req_rec);
-        } else {
-            // TODO: Why is this commented out?
-            //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
-            //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
-        }
+void send_backfill_requests_t::handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const {
+    auto directory_it = directory.find(loc.peer_id);
+    if (directory_it == directory.end()) {
+        return;
     }
-}
-
-template <>
-void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
-    reactor_business_card_details::backfill_location_t b_loc = secondary_backfilling.backfill;
 
     namespaces_directory_metadata_t<rdb_protocol_t> namespaces_directory_metadata =
-        directory.find(b_loc.peer_id)->second.rdb_namespaces;
+        directory_it->second.rdb_namespaces;
 
     if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
         return;
     }
 
-    if (!std_contains(namespaces_directory_metadata.reactor_bcards[n_id].internal->activities, b_loc.activity_id)) {
+    if (!std_contains(namespaces_directory_metadata.reactor_bcards[n_id].internal->activities, loc.activity_id)) {
+        return;
+    }
+
+    auto activity_it = namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(loc.activity_id);
+    if (activity_it == namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.end()) {
         return;
     }
 
     reactor_business_card_t<rdb_protocol_t>::activity_entry_t region_activity_entry =
-        namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(b_loc.activity_id)->second;
+        namespaces_directory_metadata.reactor_bcards[n_id].internal->activities.find(loc.activity_id)->second;
 
     boost::optional<backfiller_business_card_t<rdb_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<rdb_protocol_t>(), region_activity_entry.activity);
     if (backfiller) {
@@ -183,7 +152,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t
             boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
             mailbox_callback_mode_inline);
 
-        send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox->get_address());
+        send(mbox_manager, backfiller->request_progress_mailbox, loc.backfill_session_id, resp_mbox->get_address());
 
         request_record_t *req_rec = new request_record_t(value, resp_mbox);
         (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
@@ -193,6 +162,21 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t
         //scoped_cJSON_t scoped_region(render_as_json(region_activity_pair.first, 0));
         //cJSON_AddItemToObject(backfills, get_string(scoped_region.get()).c_str(), cJSON_CreateString("backfiller not found"));
     }
+
+}
+
+template <>
+void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<rdb_protocol_t>::primary_when_safe_t &primary_when_safe) const {
+    for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
+                                                                                         b_it != primary_when_safe.backfills_waited_on.end();
+                                                                                         ++b_it) {
+        handle_request_internal(*b_it);
+    }
+}
+
+template <>
+void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<rdb_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
+    handle_request_internal(secondary_backfilling.backfill);
 }
 
 static const char *any_machine_id_wildcard = "_";
