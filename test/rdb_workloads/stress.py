@@ -15,7 +15,7 @@ parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, ty
 parser.add_option("--batch-size", dest="batch_size", metavar="BATCH_SIZE", default=100, type="int")
 parser.add_option("--workload", dest="workload", metavar="WRITES/DELETES/READS/SINDEX_READS", default="3/2/5/0", type="string")
 parser.add_option("--host", dest="hosts", metavar="HOST:PORT", action="append", default=[], type="string")
-parser.add_option("--sindex", dest="sindexes", metavar="constant | simple | complex | long", action="append", default=[], type="string")
+parser.add_option("--add-sindex", dest="sindexes", metavar="constant | simple | complex | long", action="append", default=[], type="string")
 (options, args) = parser.parse_args()
 
 if len(args) != 0:
@@ -72,9 +72,10 @@ def collect_and_print_results():
     # Until we do some real analysis on the results, just get ops/sec for each client
     averages = [ ]
     durations = [ ]
+    ignored_results = 0
     for results in results_per_client:
         if len(results) < 2:
-            print "Ignoring client result, not enough data points"
+            ignored_results += 1
         else:
             keys = sorted(results.keys())
             duration = keys[-1] - keys[0]
@@ -83,6 +84,9 @@ def collect_and_print_results():
                 accumulator = dict((op, accumulator.get(op, 0) + counts.get(op, 0)) for op in set(accumulator) | set(counts))
             averages.append(dict((op, accumulator.get(op, 0) / (duration)) for op in accumulator.keys()))
             durations.append(duration)
+
+    if ignored_results > 0:
+        print "Ignored %d client results due to insufficient data" % ignored_results
 
     # Add up all the client averages for the total ops/sec
     total = { }
@@ -121,6 +125,44 @@ def interrupt_handler(signal, frame):
     finish_stress()
     exit(0)
 
+def complex_sindex_fn(row, db, table):
+    return r.expr([row["value"]]).concat_map(lambda item: [item, item, item, item]) \
+                                .concat_map(lambda item: [item, item, item, item]) \
+                                .concat_map(lambda item: [item, item, item, item]) \
+                                .concat_map(lambda item: [item, item, item, item]) \
+                                .concat_map(lambda item: [item, item, item, item]) \
+                                .concat_map(lambda item: [item, item, item, item]) \
+                                .reduce(lambda acc, val: acc + val, 0)
+    return 1
+
+def long_sindex_fn(row):
+    result = []
+    for i in range(32):
+        denom = 2 ** i
+        result.insert(0, r.branch(((row["value"] / denom) % 2) == 0, "zero", "one"))
+    return result
+
+def initialize_sindexes(sindexes, connection, db, table):
+    # This assumes sindexes are never deleted
+    #  if they are and a table is loaded, there could be problems
+    sindex_count = len(r.db(db).table(table).index_list().run(connection))
+    for sindex in sindexes:
+        # Sindexes are named as their type of sindex (below) plus a unique number
+        sindex_name = sindex + str(sindex_count)
+        sindex_count += 1
+        sindex_fn = None
+        if sindex == "constant":
+            sindex_fn = lambda x: 1
+        elif sindex == "simple":
+            sindex_fn = lambda x: r.branch(x["value"] % 2 == 0, "odd", "even")
+        elif sindex == "complex":
+            sindex_fn = lambda x: complex_sindex_fn(x, db, table)
+        elif sindex == "long":
+            sindex_fn = long_sindex_fn
+        else:
+            raise RuntimeError("Unknown sindex type")
+        r.db(db).table(table).index_create(sindex_name, sindex_fn).run(connection)
+
 # Get table name, and make sure it exists on the server
 if len(options.db_table) == 0:
     # Create a new table
@@ -136,6 +178,7 @@ if len(options.db_table) == 0:
             table = "stress_" + "".join(random.sample(string.letters + string.digits, 10))
 
         r.db(db).table_create(table).run(connection)
+        initialize_sindexes(sindexes, connection, db, table)
 else:
     # Load an existing table
     if "." not in options.db_table:
@@ -150,6 +193,7 @@ else:
         if table not in r.db(db).table_list().run(connection):
             r.db(db).table_create(table).run(connection)
 
+        initialize_sindexes(sindexes, connection, db, table)
         # TODO: load existing keys, distribute them among clients
         # TODO: fill out keys so that all keys are contiguous (for use by clients) - may be tricky
 

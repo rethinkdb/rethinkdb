@@ -159,21 +159,33 @@ def interrupt_handler(signal, frame):
         stats_file.close()
     exit(0)
 
-signal.signal(signal.SIGINT, interrupt_handler)
+try:
+    signal.signal(signal.SIGINT, interrupt_handler)
 
-# Synchronize with parent stress process (so all clients start at the same time)
-sys.stdout.write("ready\n")
-sys.stdout.flush()
+    # Synchronize with parent stress process (so all clients start at the same time)
+    sys.stdout.write("ready\n")
+    sys.stdout.flush()
 
-if sys.stdin.readline().strip() != "go":
-    raise RuntimeError("unexpected message from parent")
+    if sys.stdin.readline().strip() != "go":
+        raise RuntimeError("unexpected message from parent")
 
-# Run until interrupted
-stats_time = time.time() # write an initial stats so we have the start point
-while True:
-    # Append stats to the output file every second
-    if time.time() >= stats_time:
-        write_stats(stats_time)
-        stats_time = stats_time + 1
+    # Run until interrupted
+    stats_time = time.time() # write an initial stats so we have the start point
+    consecutive_errors = 0
+    while True:
+        # Append stats to the output file every second
+        if time.time() >= stats_time:
+            write_stats(stats_time)
+            stats_time = stats_time + 1
 
-    do_operation()
+        try:
+            do_operation()
+            consecutive_errors = 0
+        except r.RqlRuntimeError as ex:
+            # Put a small sleep in here to keep from saturating cpu in error conditions
+            consecutive_errors += 1
+            if consecutive_errors >= 5:
+                time.sleep(0.5)
+except SystemExit:
+    # This is the normal path for exiting the stress client
+    pass
