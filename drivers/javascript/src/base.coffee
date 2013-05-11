@@ -16,10 +16,12 @@ ar = (fun) -> (args...) ->
 # Like ar for varaible argument functions. Takes minimum
 # and maximum argument parameters.
 varar = (min, max, fun) -> (args...) ->
-    if args.length < min
-        throw new RqlDriverError "Expected at least #{min} argument(s) but found #{args.length}."
-    if max? and args.length > max
-        throw new RqlDriverError "Expected at most #{max} argument(s) but found #{args.length}."
+    if (min? and args.length < min) or (max? and args.length > max)
+        if min? and not max?
+            throw new RqlDriverError "Expected #{min} or more argument(s) but found #{args.length}."
+        if max? and not min?
+            throw new RqlDriverError "Expected #{max} or fewer argument(s) but found #{args.length}."
+        throw new RqlDriverError "Expected between #{min} and #{max} argument(s) but found #{args.length}."
     fun.apply(@, args)
 
 # Like ar but for functions that take an optional options dict as the last argument

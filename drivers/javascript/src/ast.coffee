@@ -84,11 +84,9 @@ class RDBVal extends TermBase
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
     groupBy: (attrs..., collector) ->
-        unless collector?
-            throw new RqlDriverError "groupBy requires a data collector argument. "+
-                                     "Please supply r.count, r.sum(field), or r.avg(field)."
-        unless attrs.length >= 1
-            throw new RqlDriverError "Expected at least 1 attribute to group by."
+        unless collector? or attrs.length >= 1
+            numArgs = attrs.length + (if collector? then 1 else 0)
+            throw new RqlDriverError "Expected 2 or more argument(s) but found #{numArgs}."
         new GroupBy {}, @, attrs, collector
 
     info: ar () -> new Info {}, @

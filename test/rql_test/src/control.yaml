@@ -56,9 +56,7 @@ tests:
     
     - cd: r.do()
       py: [] # Case handled by native python error
-      ot:
-        rb: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
-        js: err("RqlDriverError", 'Expected at least 1 argument(s) but found 0.', [1])
+      ot: err("RqlDriverError", 'Expected 1 or more argument(s) but found 0.', [1])
       
     
     # FunCall errors
