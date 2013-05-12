@@ -73,8 +73,11 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
-                                                arg(1)->as_func()));
+        counted_t<val_t> base = optarg("base", counted_t<val_t>());
+        rcheck(!base.has(), "REDUCE no longer takes an optional base."
+               "  (It was causing a lot of confusion about the term's semantics.)"
+               "  Use DEFAULT instead if you need to handle an empty stream.");
+        return new_val(arg(0)->as_seq()->reduce(base, arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };

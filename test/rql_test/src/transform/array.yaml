@@ -148,7 +148,7 @@ tests:
     - py: arr.reduce(lambda a, b:a + b, base=0)
       js: arr.reduce(function(a,b) { return a.add(b); }, 0)
       rb: arr.reduce(0){ |a, b| a + b }
-      ot: 6
+      ot: err("RqlRuntimeError", "REDUCE no longer takes an optional base.  (It was causing a lot of confusion about the term's semantics.)  Use DEFAULT instead if you need to handle an empty stream.", [])
 
     ## Filter
 
@@ -173,7 +173,7 @@ tests:
     - cd: objArr.order_by('b')
       rb: objArr.order_by :b
       ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
-      
+
     - cd: objArr.order_by(r.desc('b'))
       ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
 
