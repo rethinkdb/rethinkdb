@@ -48,15 +48,15 @@ module RethinkDB
     def self.native_to_datum_term x
       dt = Datum::DatumType
       d = Datum.new
-      case x.class.hash
-      when Fixnum.hash     then d.type = dt::R_NUM;  d.r_num = x
-      when Float.hash      then d.type = dt::R_NUM;  d.r_num = x
-      when Bignum.hash     then d.type = dt::R_NUM;  d.r_num = x
-      when String.hash     then d.type = dt::R_STR;  d.r_str = x
-      when Symbol.hash     then d.type = dt::R_STR;  d.r_str = x.to_s
-      when TrueClass.hash  then d.type = dt::R_BOOL; d.r_bool = x
-      when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
-      when NilClass.hash   then d.type = dt::R_NULL
+      case x
+      when Fixnum     then d.type = dt::R_NUM;  d.r_num = x
+      when Float      then d.type = dt::R_NUM;  d.r_num = x
+      when Bignum     then d.type = dt::R_NUM;  d.r_num = x
+      when String     then d.type = dt::R_STR;  d.r_str = x
+      when Symbol     then d.type = dt::R_STR;  d.r_str = x.to_s
+      when TrueClass  then d.type = dt::R_BOOL; d.r_bool = x
+      when FalseClass then d.type = dt::R_BOOL; d.r_bool = x
+      when NilClass   then d.type = dt::R_NULL
       else raise RqlRuntimeError, "UNREACHABLE"
       end
       t = Term.new
@@ -74,16 +74,17 @@ module RethinkDB
       return x if x.class == RQL
       datum_types = [Fixnum, Float, Bignum, String, Symbol,
                      TrueClass, FalseClass, NilClass]
-      if datum_types.map{|y| y.hash}.include? x.class.hash
+
+      if datum_types.include? x.class
         return RQL.new(Shim.native_to_datum_term(x))
       end
 
       t = Term.new
-      case x.class.hash
-      when Array.hash
+      case x
+      when Array
         t.type = Term::TermType::MAKE_ARRAY
         t.args = x.map{|y| expr(y).to_pb}
-      when Hash.hash
+      when Hash
         t.type = Term::TermType::MAKE_OBJ
         t.optargs = x.map{|k,v|
           ap = Term::AssocPair.new;
@@ -96,7 +97,7 @@ module RethinkDB
           ap.val = expr(v).to_pb
           ap
         }
-      when Proc.hash
+      when Proc
         t = RQL.new.new_func(&x).to_pb
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
