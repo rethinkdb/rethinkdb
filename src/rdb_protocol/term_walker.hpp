@@ -163,6 +163,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::JSON:
+        case Term::DEFAULT:
             return false;
         default: unreachable();
         }
@@ -260,6 +261,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::JSON:
+        case Term::DEFAULT:
             return false;
         default: unreachable();
         }

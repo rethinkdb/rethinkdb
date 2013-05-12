@@ -435,7 +435,7 @@ message Term {
         // text of the error or NULL respectively and its return value is
         // substituted for the expression.  (You can propagate the error back up
         // by calling `r.error` on it.)
-        // DEFAULT = 81; // Top, Function(1) -> Top
+        DEFAULT = 81; // Top, Function(1) -> Top
     }
     optional TermType type = 1;
 

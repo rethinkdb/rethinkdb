@@ -1,0 +1,35 @@
+desc: Tests r.json
+tests:
+   # The test driver is incorrectly translating `null` to `None` for
+   # Ruby, and I don't know enough to fix it.
+    - def: None = nil
+    - def: obj = r.expr({'a':0, 'b':null})
+
+    - cd: obj['a']
+      ot: 0
+    - cd: obj['a'].default(1)
+      ot: 0
+    - cd: obj['a'].default{1}
+      ot: 0
+
+    - cd: obj['b']
+      ot: null
+    - cd: obj['b'].default(1)
+      ot: 1
+    - cd: obj['b'].default{1}
+      ot: 1
+    - cd: obj['b'].default{|e| e.typeof}
+      ot: ("NULL")
+
+    - cd: obj['c']
+      ot: err("RqlRuntimeError", "No attribute `c` in object.", [])
+    - cd: obj['c'].default(1)
+      ot: 1
+    - cd: obj['c'].default{1}
+      ot: 1
+    - cd: obj['c'].default{|e| e.typeof}
+      ot: ("STRING")
+
+    # Compilation errors aren't handled by `default`.
+    - rb: r.table_create('test', :bad_option => true).default(1)
+      ot: err("RqlCompileError", "Unrecognized optional argument `bad_option`.", [])

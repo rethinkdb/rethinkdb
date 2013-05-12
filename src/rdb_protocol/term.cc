@@ -105,8 +105,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::DESC:               return make_counted<desc_term_t>(env, t);
     case Term::INFO:               return make_counted<info_term_t>(env, t);
     case Term::JSON:               return make_counted<json_term_t>(env, t);
-        //     case Term::JSON:               return make_counted<json_term_t>(env, t);
-        //     case Term::DEFAULT:            return make_counted<default_term_t>(env, t);
+    case Term::DEFAULT:            return make_counted<default_term_t>(env, t);
     default: unreachable();
     }
     unreachable();
