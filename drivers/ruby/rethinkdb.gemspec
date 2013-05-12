@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.license   = 'Apache-2'
   s.files     = Dir['lib/*.rb']
 
-  s.add_runtime_dependency "json"
+  s.add_runtime_dependency "oj", "~>2.0.12"
   s.add_runtime_dependency "ruby_protobuf"
 end
 
