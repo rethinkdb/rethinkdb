@@ -58,7 +58,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::SLICE:              return make_counted<slice_term_t>(env, t);
     case Term::GETATTR:            return make_counted<getattr_term_t>(env, t);
     case Term::HAS_FIELDS:         return make_counted<has_fields_term_t>(env, t);
-        //  case Term::WITH_FIELDS:        return make_counted<contains_term_t>(env, t);
+    case Term::WITH_FIELDS:        return make_counted<with_fields_term_t>(env, t);
     case Term::PLUCK:              return make_counted<pluck_term_t>(env, t);
     case Term::WITHOUT:            return make_counted<without_term_t>(env, t);
     case Term::MERGE:              return make_counted<merge_term_t>(env, t);

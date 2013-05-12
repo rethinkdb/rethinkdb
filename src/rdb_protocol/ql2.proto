@@ -256,7 +256,7 @@ message Term {
                          // | Sequence, STRING..., {including_nulls:BOOL} -> BOOL
         // Get all the rows of a sequence that have the specified fields, and
         // plucks out only those fields.
-        // WITH_FIELDS = 82; // Sequence, STRING..., {including_null:BOOL} -> BOOL
+        WITH_FIELDS = 82; // Sequence, STRING..., {including_null:BOOL} -> BOOL
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT

@@ -327,7 +327,6 @@ public:
     skip_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-
     static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
@@ -336,6 +335,26 @@ private:
         return out;
      }
      virtual const char *name() const { return "skip"; }
+};
+
+class with_fields_term_t : public rewrite_term_t {
+public:
+    with_fields_term_t(env_t *env, protob_t<const Term> term)
+        : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
+private:
+    static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
+                                  const protob_t<Term> out,
+                                  UNUSED const pb_rcheckable_t *bt_src) {
+        Term *arg = out.get();
+        Term *pluck = arg;
+        Term *has_fields = NULL;
+        N1(PLUCK, has_fields = arg; N1(HAS_FIELDS, *arg = in->args(0)));
+        for (int i = 1; i < in->args_size(); ++i) {
+            *pluck->add_args() = *has_fields->add_args() = in->args(i);
+        }
+        return out.make_child(has_fields);
+     }
+     virtual const char *name() const { return "with_fields"; }
 };
 
 } // namespace ql

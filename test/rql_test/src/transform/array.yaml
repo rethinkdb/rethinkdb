@@ -56,13 +56,12 @@ tests:
     - cd: arr.limit(12)
       ot: [1,2,3]
 
-    ## has_fields
-    - def: hf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}, {'a':null}, {'b':null}])
-
-    # The test driver is incorrectly translating `null` to `None` for
-      Ruby, and I don't know enough to fix it.
+   # The test driver is incorrectly translating `null` to `None` for
+   # Ruby, and I don't know enough to fix it.
     - def: None = nil
 
+   ## has_fields
+    - def: hf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}, {'a':null}, {'b':null}])
     - cd: hf_arr.has_fields()
       ot: [{"a":1, "b":"a"}, {"a":2}, {"b":"c"}, {"a":null}, {"b":null}]
     - cd: hf_arr.has_fields('a')
@@ -84,6 +83,31 @@ tests:
     - cd: hf_arr.has_fields('c')
       ot: []
     - cd: hf_arr.has_fields('c', "including_nul""ls" => true)
+      ot: []
+
+    ## with_fields
+    - def: wf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}, {'a':null}, {'b':null}])
+    - cd: wf_arr.with_fields()
+      ot: [{}, {}, {}, {}, {}]
+    - cd: wf_arr.with_fields('a')
+      ot: [{"a":1}, {"a":2}]
+    - cd: wf_arr.with_fields('a', "including_nul""ls" => true)
+      ot: [{"a":1}, {"a":2}, {"a":null}]
+    - cd: wf_arr.with_fields('b')
+      ot: [{"b":"a"}, {"b":"c"}]
+    - cd: wf_arr.with_fields('b', "including_nul""ls" => true)
+      ot: [{"b":"a"}, {"b":"c"}, {"b":null}]
+    - cd: wf_arr.with_fields('a', 'b')
+      ot: [{"a":1, "b":"a"}]
+    - cd: wf_arr.with_fields('a', 'b', "including_nul""ls" => true)
+      ot: [{"a":1, "b":"a"}]
+    - cd: wf_arr.with_fields('a', 'b', 'c')
+      ot: []
+    - cd: wf_arr.with_fields('a', 'b', 'c', "including_nul""ls" => true)
+      ot: []
+    - cd: wf_arr.with_fields('c')
+      ot: []
+    - cd: wf_arr.with_fields('c', "including_nul""ls" => true)
       ot: []
 
     ## Pluck
