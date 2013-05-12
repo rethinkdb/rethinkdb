@@ -15,9 +15,12 @@ namespace ql {
 class obj_or_seq_op_term_t : public op_term_t {
 public:
     enum seq_translate_t { MAP, FILTER };
-    obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec,
-                         seq_translate_t _seq_translate)
-        : op_term_t(env, term, argspec),
+    obj_or_seq_op_term_t(env_t *env,
+                         protob_t<const Term> term,
+                         seq_translate_t _seq_translate,
+                         argspec_t argspec,
+                         optargspec_t optargspec = optargspec_t(0, NULL))
+        : op_term_t(env, term, argspec, optargspec),
           func(make_counted_term()),
           seq_translate(_seq_translate) {
         int varnum = env->gensym();
@@ -54,7 +57,7 @@ private:
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
     pluck_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1), MAP) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
@@ -77,7 +80,7 @@ private:
 class without_term_t : public obj_or_seq_op_term_t {
 public:
     without_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1), MAP) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
@@ -96,7 +99,7 @@ private:
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
     merge_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1), MAP) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> d = arg(0)->as_datum();
@@ -108,16 +111,24 @@ private:
     virtual const char *name() const { return "merge"; }
 };
 
+static const char *const has_fields_optargs[] = {"including_nulls"};
 class has_fields_term_t : public obj_or_seq_op_term_t {
 public:
     has_fields_term_t(env_t *env, protob_t<const Term> term)
-        : obj_or_seq_op_term_t(env, term, argspec_t(1, -1), FILTER) { }
+        : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1),
+                               optargspec_t(has_fields_optargs)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
+        counted_t<val_t> nulls = optarg("including_nulls", counted_t<val_t>());
+        bool including_nulls = nulls ? nulls->as_bool() : false;
         bool has_fields = true;
         for (size_t i = 1; i < num_args(); ++i) {
-            has_fields = has_fields && obj->get(arg(i)->as_str(), NOTHROW).has();
+            counted_t<const datum_t> val = obj->get(arg(i)->as_str(), NOTHROW);
+            if (!val.has() || (!including_nulls && val->get_type() == datum_t::R_NULL)) {
+                has_fields = false;
+                break;
+            }
         }
         return new_val(make_counted<const datum_t>(datum_t::R_BOOL, has_fields));
     }

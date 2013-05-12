@@ -7,7 +7,7 @@ tests:
         rb: obj = r.expr({ :a => 1, :b => 2, :c => 'str' })
 
     ##  Get attr
-    
+
     - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
       ot: 1
@@ -22,10 +22,48 @@ tests:
     - cd: obj.has_fields('d')
       ot: false
 
-    # Has_Fields is variatic
+    # Has_Fields is variadic
+    - cd: obj.has_fields()
+      ot: true
     - cd: obj.has_fields('a', 'b')
       ot: true
     - cd: obj.has_fields('a', 'd')
+      ot: false
+
+    # Has_Fields and NULL
+    - def: nobj = r.expr({'a':1, 'b':null, 'c':1})
+    - cd: nobj.has_fields('a')
+      ot: true
+    - cd: nobj.has_fields('b')
+      ot: false
+    - cd: nobj.has_fields('d')
+      ot: false
+    - cd: nobj.has_fields('a', 'b')
+      ot: false
+    - cd: nobj.has_fields('a', 'c')
+      ot: true
+    - cd: nobj.has_fields('a', 'd')
+      ot: false
+    - cd: nobj.has_fields('a', 'b', 'c')
+      ot: false
+    - cd: nobj.has_fields('a', 'b', 'c', 'd')
+      ot: false
+
+    - cd: nobj.has_fields('a', "including_nul""ls" => true)
+      ot: true
+    - cd: nobj.has_fields('b', "including_nul""ls" => true)
+      ot: true
+    - cd: nobj.has_fields('d', "including_nul""ls" => true)
+      ot: false
+    - cd: nobj.has_fields('a', 'b', "including_nul""ls" => true)
+      ot: true
+    - cd: nobj.has_fields('a', 'c', "including_nul""ls" => true)
+      ot: true
+    - cd: nobj.has_fields('a', 'd', "including_nul""ls" => true)
+      ot: false
+    - cd: nobj.has_fields('a', 'b', 'c', "including_nul""ls" => true)
+      ot: true
+    - cd: nobj.has_fields('a', 'b', 'c', 'd', "including_nul""ls" => true)
       ot: false
 
     ## Pluck
@@ -36,7 +74,7 @@ tests:
       ot: ({'a':1, 'b':2})
 
     ## Without
-    
+
     - cd: obj.without('a')
       ot: ({'b':2, 'c':'str'})
     - cd: obj.without('a', 'b')

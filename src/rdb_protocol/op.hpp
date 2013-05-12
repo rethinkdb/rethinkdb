@@ -48,7 +48,7 @@ private:
 class op_term_t : public term_t {
 public:
     op_term_t(env_t *env, protob_t<const Term> term,
-              argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
+              argspec_t argspec, optargspec_t optargspec = optargspec_t(0, NULL));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments

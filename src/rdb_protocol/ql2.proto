@@ -252,8 +252,8 @@ message Term {
         // considered to have a field even if the key for that field maps to
         // NULL.  When called on a sequence, selects all the objects in that
         // sequence which have the specified fields.
-        HAS_FIELDS = 32; // OBJECT, STRING..., {including_null:BOOL} -> BOOL
-                         // | Sequence, STRING..., {including_null:BOOL} -> BOOL
+        HAS_FIELDS = 32; // OBJECT, STRING..., {including_nulls:BOOL} -> BOOL
+                         // | Sequence, STRING..., {including_nulls:BOOL} -> BOOL
         // Get all the rows of a sequence that have the specified fields, and
         // plucks out only those fields.
         // WITH_FIELDS = 82; // Sequence, STRING..., {including_null:BOOL} -> BOOL

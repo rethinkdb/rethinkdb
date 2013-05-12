@@ -13,7 +13,8 @@ module RethinkDB
     @@opt_off = {
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
-      :get_all => -1, :eq_join => -1
+      :get_all => -1, :eq_join => -1,
+      :has_fields => -1, :with_fields => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,

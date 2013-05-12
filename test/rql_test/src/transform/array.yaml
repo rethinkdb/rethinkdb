@@ -57,18 +57,33 @@ tests:
       ot: [1,2,3]
 
     ## has_fields
-    - def: hf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}])
+    - def: hf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}, {'a':null}, {'b':null}])
+
+    # The test driver is incorrectly translating `null` to `None` for
+      Ruby, and I don't know enough to fix it.
+    - def: None = nil
+
     - cd: hf_arr.has_fields()
-      ot: [{"a":1, "b":"a"}, {"a":2}, {"b":"c"}]
+      ot: [{"a":1, "b":"a"}, {"a":2}, {"b":"c"}, {"a":null}, {"b":null}]
     - cd: hf_arr.has_fields('a')
       ot: [{"a":1, "b":"a"}, {"a":2}]
+    - cd: hf_arr.has_fields('a', "including_nul""ls" => true)
+      ot: [{"a":1, "b":"a"}, {"a":2}, {"a":null}]
     - cd: hf_arr.has_fields('b')
       ot: [{"a":1, "b":"a"}, {"b":"c"}]
+    - cd: hf_arr.has_fields('b', "including_nul""ls" => true)
+      ot: [{"a":1, "b":"a"}, {"b":"c"}, {"b":null}]
     - cd: hf_arr.has_fields('a', 'b')
+      ot: [{"a":1, "b":"a"}]
+    - cd: hf_arr.has_fields('a', 'b', "including_nul""ls" => true)
       ot: [{"a":1, "b":"a"}]
     - cd: hf_arr.has_fields('a', 'b', 'c')
       ot: []
+    - cd: hf_arr.has_fields('a', 'b', 'c', "including_nul""ls" => true)
+      ot: []
     - cd: hf_arr.has_fields('c')
+      ot: []
+    - cd: hf_arr.has_fields('c', "including_nul""ls" => true)
       ot: []
 
     ## Pluck
