@@ -1,0 +1,32 @@
+desc: Tests r.json
+tests:
+    # Note: The JSON that we failed to parse is displayed on the next line.
+    - cd: r.json('{a:1}')
+      ot: err("RqlRuntimeError", "Could not parse JSON.", [])
+    - cd: r.json('{1:1}')
+      ot: err("RqlRuntimeError", "Could not parse JSON.", [])
+    - cd: r.json('{"a":1}')
+      ot: ({'a':1})
+    - cd: r.json('{"a":"1"}')
+      ot: ({'a':'1'})
+    - cd: r.json('{"a":a}')
+      ot: err("RqlRuntimeError", "Could not parse JSON.", [])
+    - cd: r.json('{"a":"a"}')
+      ot: ({'a':'a'})
+
+    - cd: r.json("a")
+      ot: err("RqlRuntimeError", "Could not parse JSON.", [])
+    - cd: r.json("nu""ll")
+      ot: nil
+    - cd: r.json("true")
+      ot: true
+    - cd: r.json("false")
+      ot: false
+    - cd: r.json("[a]")
+      ot: err("RqlRuntimeError", "Could not parse JSON.", [])
+    - cd: r.json('["a"]')
+      ot: ["a"]
+    - cd: r.json('["1"]')
+      ot: ["1"]
+    - cd: r.json('[1]')
+      ot: [1]

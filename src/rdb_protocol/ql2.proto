@@ -429,7 +429,7 @@ message Term {
         INFO = 79; // Top -> OBJECT
 
         // Takes a JSON string and turns it into a RQL Datum.
-        // JSON = 80; // STRING -> DATUM
+        JSON = 80; // STRING -> DATUM
         // Takes any expression and a function.  If that expression throws an
         // error or evalutates to NULL, the function is called with either the
         // text of the error or NULL respectively and its return value is

@@ -52,6 +52,20 @@ private:
     virtual const char *name() const { return "make_obj"; }
 };
 
+class json_term_t : public op_term_t {
+public:
+    json_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        std::string json_str = arg(0)->as_str();
+        scoped_cJSON_t json(cJSON_Parse(json_str.c_str()));
+        rcheck(json.get(), strprintf("Could not parse JSON:\n%s", json_str.c_str()));
+        return new_val(make_counted<const datum_t>(json.get(), env));
+    }
+    virtual const char *name() const { return "json"; }
+};
+
 } // namespace ql
 
 #endif // RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
