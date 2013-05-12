@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_OBJ_HPP_
-#define RDB_PROTOCOL_TERMS_OBJ_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
@@ -33,6 +32,12 @@ private:
     virtual const char *name() const { return "contains"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_getattr_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<getattr_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_OBJ_HPP_
+counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<contains_term_t>(env, term);
+}
+
+} // namespace ql

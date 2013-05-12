@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_REWRITES_HPP_
-#define RDB_PROTOCOL_TERMS_REWRITES_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 
@@ -71,14 +70,14 @@ private:
     // doing this at compile-time rather than runtime).
     static void parse_dc(const Term *t, std::string *dc_out,
                          Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
-        std::string errmsg = "Invalid data collector.";
+        std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
             rcheck_target(bt_src, t->optargs_size() == 1, errmsg);
             const Term_AssocPair *ap = &t->optargs(0);
             *dc_out = ap->key();
             rcheck_target(
                 bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             *dc_arg_out = ap->val();
         } else if (t->type() == Term::DATUM) {
             rcheck_target(bt_src, t->has_datum(), errmsg);
@@ -89,7 +88,7 @@ private:
             *dc_out = ap->key();
             rcheck_target(
                 bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
-                strprintf("Unrecognized data collector `%s`.", dc_out->c_str()));
+                strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             dc_arg_out->set_type(Term::DATUM);
             *dc_arg_out->mutable_datum() = ap->val();
         } else {
@@ -338,6 +337,27 @@ private:
      virtual const char *name() const { return "skip"; }
 };
 
-} // namespace ql
 
-#endif // RDB_PROTOCOL_TERMS_REWRITES_HPP_
+counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<skip_term_t>(env, term);
+}
+counted_t<term_t> make_groupby_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<groupby_term_t>(env, term);
+}
+counted_t<term_t> make_inner_join_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<inner_join_term_t>(env, term);
+}
+counted_t<term_t> make_outer_join_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<outer_join_term_t>(env, term);
+}
+counted_t<term_t> make_eq_join_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<eq_join_term_t>(env, term);
+}
+counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<update_term_t>(env, term);
+}
+counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<delete_term_t>(env, term);
+}
+
+} // namespace ql

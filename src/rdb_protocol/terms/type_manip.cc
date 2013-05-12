@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_
-#define RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
 #include <map>
@@ -299,6 +298,14 @@ private:
     virtual const char *name() const { return "info"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_coerce_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<coerce_term_t>(env, term);
+}
+counted_t<term_t> make_typeof_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<typeof_term_t>(env, term);
+}
+counted_t<term_t> make_info_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<info_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_TYPE_MANIP_HPP_
+} // namespace ql

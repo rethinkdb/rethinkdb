@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_GMR_HPP_
-#define RDB_PROTOCOL_TERMS_GMR_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
@@ -7,7 +6,8 @@
 
 namespace ql {
 
-static const char *const gmr_optargs[] = {"base"};
+const char *const gmr_optargs[] = { "base" };
+
 class gmr_term_t : public op_term_t {
 public:
     gmr_term_t(env_t *env, protob_t<const Term> term)
@@ -26,6 +26,8 @@ private:
     virtual const char *name() const { return "grouped_map_reduce"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_gmr_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<gmr_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_GMR_HPP_
+} // namespace ql

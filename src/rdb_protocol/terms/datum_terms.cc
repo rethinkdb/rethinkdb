@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
-#define RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 
@@ -52,6 +51,14 @@ private:
     virtual const char *name() const { return "make_obj"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_datum_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<datum_term_t>(env, term);
+}
+counted_t<term_t> make_make_array_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<make_array_term_t>(env, term);
+}
+counted_t<term_t> make_make_obj_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<make_obj_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_DATUM_TERMS_HPP_
+} // namespace ql

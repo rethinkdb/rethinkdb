@@ -1,8 +1,8 @@
-#ifndef RDB_PROTOCOL_TERMS_ARITH_HPP_
-#define RDB_PROTOCOL_TERMS_ARITH_HPP_
+#include "rdb_protocol/terms/terms.hpp"
+
+#include <limits>
 
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/error.hpp"
 
 namespace ql {
 
@@ -82,13 +82,23 @@ private:
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
         rcheck(i1, "Cannot take a number modulo 0.");
-        rcheck(!(i0 == INT64_MIN && i1 == -1),
+        rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
     }
     virtual const char *name() const { return "mod"; }
 };
 
-} //namespace ql
 
-#endif // RDB_PROTOCOL_TERMS_ARITH_HPP_
+counted_t<term_t> make_arith_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<arith_term_t>(env, term);
+}
+
+counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<mod_term_t>(env, term);
+}
+
+
+}  // namespace ql
+
+

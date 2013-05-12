@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_SEQ_HPP_
-#define RDB_PROTOCOL_TERMS_SEQ_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 #include <utility>
@@ -98,6 +97,11 @@ private:
         }
         if (!lb.has() && !rb.has()) {
             return new_val(tbl->as_datum_stream(), tbl);
+        } else if (lb.has() && rb.has() && *lb > *rb) {
+            counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
+            counted_t<datum_stream_t> ds(
+                new array_datum_stream_t(env, arr, backtrace()));
+            return new_val(ds, tbl);
         }
 
         counted_t<val_t> sindex = optarg("index", counted_t<val_t>());
@@ -143,6 +147,29 @@ private:
     virtual const char *name() const { return "zip"; }
 };
 
-} //namespace ql
+counted_t<term_t> make_between_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<between_term_t>(env, term);
+}
+counted_t<term_t> make_reduce_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<reduce_term_t>(env, term);
+}
+counted_t<term_t> make_map_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<map_term_t>(env, term);
+}
+counted_t<term_t> make_filter_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<filter_term_t>(env, term);
+}
+counted_t<term_t> make_concatmap_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<concatmap_term_t>(env, term);
+}
+counted_t<term_t> make_count_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<count_term_t>(env, term);
+}
+counted_t<term_t> make_union_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<union_term_t>(env, term);
+}
+counted_t<term_t> make_zip_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<zip_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_SEQ_HPP_
+} //namespace ql

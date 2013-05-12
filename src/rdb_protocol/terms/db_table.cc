@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_DB_TABLE_HPP_
-#define RDB_PROTOCOL_TERMS_DB_TABLE_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <map>
 #include <string>
@@ -19,7 +18,7 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, assignment_successful,
                   strprintf("Database name `%s` invalid (%s).",
-                            raw_name.c_str(), valid_char_msg));
+                            raw_name.c_str(), name_string_t::valid_char_msg));
     return name;
 }
 
@@ -464,6 +463,46 @@ private:
     virtual const char *name() const { return "get_all"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_db_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<db_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_DB_TABLE_HPP_
+counted_t<term_t> make_table_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<table_term_t>(env, term);
+}
+
+counted_t<term_t> make_get_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<get_term_t>(env, term);
+}
+
+counted_t<term_t> make_get_all_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<get_all_term_t>(env, term);
+}
+
+counted_t<term_t> make_db_create_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<db_create_term_t>(env, term);
+}
+
+counted_t<term_t> make_db_drop_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<db_drop_term_t>(env, term);
+}
+
+counted_t<term_t> make_db_list_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<db_list_term_t>(env, term);
+}
+
+counted_t<term_t> make_table_create_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<table_create_term_t>(env, term);
+}
+
+counted_t<term_t> make_table_drop_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<table_drop_term_t>(env, term);
+}
+
+counted_t<term_t> make_table_list_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<table_list_term_t>(env, term);
+}
+
+
+
+} // namespace ql

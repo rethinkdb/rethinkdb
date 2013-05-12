@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_VAR_HPP_
-#define RDB_PROTOCOL_TERMS_VAR_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
@@ -35,7 +34,11 @@ private:
     virtual const char *name() const { return "implicit_var"; }
 };
 
+counted_t<term_t> make_var_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<var_term_t>(env, term);
+}
+counted_t<term_t> make_implicit_var_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<implicit_var_term_t>(env, term);
+}
 
 } //namespace ql
-
-#endif // RDB_PROTOCOL_TERMS_VAR_HPP_

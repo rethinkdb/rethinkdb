@@ -1,5 +1,4 @@
-#ifndef RDB_PROTOCOL_TERMS_SORT_HPP_
-#define RDB_PROTOCOL_TERMS_SORT_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
 #include <utility>
@@ -140,6 +139,17 @@ private:
     virtual const char *name() const { return "distinct"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_orderby_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<orderby_term_t>(env, term);
+}
+counted_t<term_t> make_distinct_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<distinct_term_t>(env, term);
+}
+counted_t<term_t> make_asc_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<asc_term_t>(env, term);
+}
+counted_t<term_t> make_desc_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<desc_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_SORT_HPP_
+} // namespace ql

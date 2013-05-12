@@ -249,19 +249,6 @@ ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
 endif
 
-ifeq ($(MCHECK_PEDANTIC),1)
-  RT_CXXFLAGS += -DMCHECK_PEDANTIC
-  MCHECK := 1
-endif
-
-ifeq ($(MCHECK),1)
-  ifneq (1,$(NO_TCMALLOC))
-    $(error cannot build with MCHECK=1 when NO_TCMALLOC=0)
-  endif
-  RT_CXXFLAGS += -DMCHECK
-  RT_LDFLAGS += -lmcheck
-endif
-
 ifeq ($(VALGRIND),1)
   ifneq (1,$(NO_TCMALLOC))
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)

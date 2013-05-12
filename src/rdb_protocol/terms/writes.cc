@@ -1,5 +1,3 @@
-#ifndef RDB_PROTOCOL_TERMS_WRITES_HPP_
-#define RDB_PROTOCOL_TERMS_WRITES_HPP_
 
 #include <string>
 #include <utility>
@@ -230,6 +228,14 @@ private:
     virtual const char *name() const { return "foreach"; }
 };
 
-} // namespace ql
+counted_t<term_t> make_insert_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<insert_term_t>(env, term);
+}
+counted_t<term_t> make_replace_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<replace_term_t>(env, term);
+}
+counted_t<term_t> make_foreach_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<foreach_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_WRITES_HPP_
+} // namespace ql

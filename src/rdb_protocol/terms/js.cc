@@ -1,10 +1,6 @@
-#ifndef RDB_PROTOCOL_TERMS_JS_HPP_
-#define RDB_PROTOCOL_TERMS_JS_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
-
-#include "errors.hpp"
-#include <boost/variant/static_visitor.hpp>
 
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
@@ -53,6 +49,8 @@ private:
     }
 };
 
+counted_t<term_t> make_javascript_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<javascript_term_t>(env, term);
 }
 
-#endif // RDB_PROTOCOL_TERMS_JS_HPP_
+}  // namespace ql

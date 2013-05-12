@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_TERMS_ERROR_HPP_
-#define RDB_PROTOCOL_TERMS_ERROR_HPP_
+#include "rdb_protocol/terms/terms.hpp"
+
 
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
@@ -17,6 +17,9 @@ private:
     virtual const char *name() const { return "error"; }
 };
 
-} //namespace ql
+counted_t<term_t> make_error_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<error_term_t>(env, term);
+}
 
-#endif // RDB_PROTOCOL_TERMS_ERROR_HPP_
+
+} //namespace ql

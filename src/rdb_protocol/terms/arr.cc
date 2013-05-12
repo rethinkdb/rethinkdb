@@ -1,10 +1,10 @@
-#ifndef RDB_PROTOCOL_TERMS_ARR_HPP_
-#define RDB_PROTOCOL_TERMS_ARR_HPP_
+#include "rdb_protocol/terms/terms.hpp"
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/op.hpp"
 
 namespace ql {
+
 class append_term_t : public op_term_t {
 public:
     append_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
@@ -144,6 +144,21 @@ private:
     virtual const char *name() const { return "limit"; }
 };
 
-} // namespace ql
 
-#endif // RDB_PROTOCOL_TERMS_ARR_HPP_
+counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<append_term_t>(env, term);
+}
+
+counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<nth_term_t>(env, term);
+}
+
+counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<slice_term_t>(env, term);
+}
+
+counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<limit_term_t>(env, term);
+}
+
+}  // namespace ql
