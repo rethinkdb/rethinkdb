@@ -128,7 +128,7 @@ private:
         case Term::APPEND:
         case Term::SLICE:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
@@ -223,7 +223,7 @@ private:
         case Term::APPEND:
         case Term::SLICE:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:

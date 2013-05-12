@@ -15,17 +15,17 @@ tests:
       js: [obj('c'), obj.getAttr('c')]
       ot: "'str'"
 
-    ## Contains
+    ## Has_Fields
 
-    - cd: obj.contains('b')
+    - cd: obj.has_fields('b')
       ot: true
-    - cd: obj.contains('d')
+    - cd: obj.has_fields('d')
       ot: false
 
-    # Contains is variatic
-    - cd: obj.contains('a', 'b')
+    # Has_Fields is variatic
+    - cd: obj.has_fields('a', 'b')
       ot: true
-    - cd: obj.contains('a', 'd')
+    - cd: obj.has_fields('a', 'd')
       ot: false
 
     ## Pluck

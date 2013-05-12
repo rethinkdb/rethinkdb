@@ -57,7 +57,8 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::APPEND:             return make_counted<append_term_t>(env, t);
     case Term::SLICE:              return make_counted<slice_term_t>(env, t);
     case Term::GETATTR:            return make_counted<getattr_term_t>(env, t);
-    case Term::CONTAINS:           return make_counted<contains_term_t>(env, t);
+    case Term::HAS_FIELDS:         return make_counted<has_fields_term_t>(env, t);
+        //     case Term::WITH_FIELDS:           return make_counted<contains_term_t>(env, t);
     case Term::PLUCK:              return make_counted<pluck_term_t>(env, t);
     case Term::WITHOUT:            return make_counted<without_term_t>(env, t);
     case Term::MERGE:              return make_counted<merge_term_t>(env, t);
@@ -103,6 +104,8 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::ASC:                return make_counted<asc_term_t>(env, t);
     case Term::DESC:               return make_counted<desc_term_t>(env, t);
     case Term::INFO:               return make_counted<info_term_t>(env, t);
+        //     case Term::JSON:               return make_counted<json_term_t>(env, t);
+        //     case Term::DEFAULT:            return make_counted<default_term_t>(env, t);
     default: unreachable();
     }
     unreachable();

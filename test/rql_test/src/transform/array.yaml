@@ -56,6 +56,21 @@ tests:
     - cd: arr.limit(12)
       ot: [1,2,3]
 
+    ## has_fields
+    - def: hf_arr = r.expr([{'a':1, 'b':'a'}, {'a':2}, {'b':'c'}])
+    - cd: hf_arr.has_fields()
+      ot: [{"a":1, "b":"a"}, {"a":2}, {"b":"c"}]
+    - cd: hf_arr.has_fields('a')
+      ot: [{"a":1, "b":"a"}, {"a":2}]
+    - cd: hf_arr.has_fields('b')
+      ot: [{"a":1, "b":"a"}, {"b":"c"}]
+    - cd: hf_arr.has_fields('a', 'b')
+      ot: [{"a":1, "b":"a"}]
+    - cd: hf_arr.has_fields('a', 'b', 'c')
+      ot: []
+    - cd: hf_arr.has_fields('c')
+      ot: []
+
     ## Pluck
 
     - cd: objArr.pluck('a', 'b')

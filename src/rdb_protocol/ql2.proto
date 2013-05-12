@@ -247,9 +247,16 @@ message Term {
         // Get a particular attribute out of an object, or map that over a
         // sequence.
         GETATTR  = 31; // OBJECT, STRING -> DATUM
-        // Check whether an object contains all of a set of attributes, or map
-        // that over a sequence.
-        CONTAINS = 32; // OBJECT, STRING... -> BOOL
+        // Check whether an object has all the specified fields.  If
+        // `including_null` is set to `true` (default `false`), an object is
+        // considered to have a field even if the key for that field maps to
+        // NULL.  When called on a sequence, selects all the objects in that
+        // sequence which have the specified fields.
+        HAS_FIELDS = 32; // OBJECT, STRING..., {including_null:BOOL} -> BOOL
+                         // | Sequence, STRING..., {including_null:BOOL} -> BOOL
+        // Get all the rows of a sequence that have the specified fields, and
+        // plucks out only those fields.
+        // WITH_FIELDS = 82; // Sequence, STRING..., {including_null:BOOL} -> BOOL
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
@@ -261,10 +268,12 @@ message Term {
 
         // Sequence Ops
         // Get all elements of a sequence between two values.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
-        REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
+        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING} -> StreamSelection
+        REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
+                        // | OBJECT, Function(2) -> OBJECT
+        FILTER    = 39; // Sequence, Function(1), {skip_on_error:BOOL} -> Sequence
+                        // | Sequence, OBJECT, {skip_on_error:BOOL} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
@@ -281,7 +290,7 @@ message Term {
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> Sequence
+        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> Sequence
         // Groups a sequence by one or more attributes, and then applies a reduction.
         // The third argument is a special object literal giving the kind of operation to be
         // performed and any necessary arguments.
@@ -418,6 +427,15 @@ message Term {
 
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
+
+        // Takes a JSON string and turns it into a RQL Datum.
+        // JSON = 80; // STRING -> DATUM
+        // Takes any expression and a function.  If that expression throws an
+        // error or evalutates to NULL, the function is called with either the
+        // text of the error or NULL respectively and its return value is
+        // substituted for the expression.  (You can propagate the error back up
+        // by calling `r.error` on it.)
+        // DEFAULT = 81; // Top, Function(1) -> Top
     }
     optional TermType type = 1;
 
