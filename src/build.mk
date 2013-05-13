@@ -5,15 +5,19 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-ifeq ($(USE_CCACHE),1)
-  RT_CXX := ccache $(CXX)
-else
-  RT_CXX := $(CXX)
-endif
 LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
+
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+  ifeq ($(COMPILER),CLANG)
+    RT_CXXFLAGS += -Qunused-arguments
+  endif
+else
+  RT_CXX := $(CXX)
+endif
 
 STATICFORCE := $(STATIC)
 
