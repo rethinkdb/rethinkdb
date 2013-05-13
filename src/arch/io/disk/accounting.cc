@@ -52,7 +52,7 @@ accounting_diskmgr_account_t::accounting_diskmgr_account_t(accounting_diskmgr_t 
           outstanding_requests_limit(_outstanding_requests_limit) { }
 
 accounting_diskmgr_account_t::~accounting_diskmgr_account_t() {
-    rassert(get_thread_id() == par->home_thread());
+    par->assert_thread();
 }
 
 void accounting_diskmgr_account_t::push(action_t *action) {
@@ -72,7 +72,7 @@ semaphore_t &accounting_diskmgr_account_t::get_outstanding_requests_limiter() {
 
 void accounting_diskmgr_account_t::maybe_init(){
     if (!eager_account.has()) {
-        rassert(get_thread_id() == par->home_thread());
+        par->assert_thread();
         eager_account.init(new eager_account_t(par, pri, outstanding_requests_limit));
     }
 }
