@@ -41,15 +41,6 @@ protected:
     DISABLE_COPYING(value_deleter_t);
 };
 
-/* This call back will be called with each kv pair that is slated for erase
- * before the erase has actually happened on the kv pair. */
-class erase_range_cb_t {
-public:
-    virtual void handle_pair(const btree_key_t *key, const void *value,
-            signal_t *interruptor) = 0;
-    virtual ~erase_range_cb_t() { }
-};
-
 void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                key_tester_t *tester,
                                value_deleter_t *deleter,
@@ -57,14 +48,12 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                const btree_key_t *right_inclusive_or_null,
                                transaction_t *txn, superblock_t *superblock,
                                signal_t *interruptor,
-                               bool release_superblock = true,
-                               erase_range_cb_t *erase_range_cb = NULL);
+                               bool release_superblock = true);
 
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter, transaction_t *txn,
                superblock_t *superblock,
                signal_t *interruptor,
-               bool release_superblock = true,
-               erase_range_cb_t *erase_range_cb = NULL);
+               bool release_superblock = true);
 
 #endif  // BTREE_ERASE_RANGE_HPP_
