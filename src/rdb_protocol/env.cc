@@ -148,13 +148,13 @@ void env_t::pop_scope() {
     // pointer too early.
 }
 
-void env_t::set_eval_callback(eval_callback_t *callback) {
-    eval_callback = callback;
+void env_t::set_unittest_callback(unittest_callback_t *callback) {
+    unittest_callback = callback;
 }
 
-void env_t::do_eval_callback() {
-    if (eval_callback != NULL) {
-        eval_callback->eval_callback();
+void env_t::do_unittest_eval_callback() {
+    if (unittest_callback != NULL) {
+        unittest_callback->eval_callback();
     }
 }
 
@@ -221,7 +221,7 @@ env_t::env_t(
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
     js_runner(_js_runner),
-    eval_callback(NULL),
+    unittest_callback(NULL),
     interruptor(_interruptor),
     this_machine(_this_machine) {
 
@@ -235,7 +235,7 @@ env_t::env_t(signal_t *_interruptor)
     pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
-    eval_callback(NULL),
+    unittest_callback(NULL),
     interruptor(_interruptor) { }
 
 env_t::~env_t() { }

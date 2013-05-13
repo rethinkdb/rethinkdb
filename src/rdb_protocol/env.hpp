@@ -157,17 +157,17 @@ public:
     boost::shared_ptr<js::runner_t> get_js_runner();
 
     // This is a callback used in unittests to control things during a query
-    class eval_callback_t {
+    class unittest_callback_t {
     public:
-        virtual ~eval_callback_t() { }
+        virtual ~unittest_callback_t() { }
         virtual void eval_callback() = 0;
     };
 
-    void set_eval_callback(eval_callback_t *callback);
-    void do_eval_callback();
+    void set_unittest_callback(unittest_callback_t *callback);
+    void do_unittest_eval_callback();
 
 private:
-    eval_callback_t *eval_callback;
+    unittest_callback_t *unittest_callback;
 
 public:
     signal_t *interruptor;
