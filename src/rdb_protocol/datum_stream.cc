@@ -335,7 +335,7 @@ slice_datum_stream_t::next_batch_impl(const size_t max_size) {
 
     // Fucking Christ.  Why the fuck are slices still inclusive?
     std::vector<counted_t<const datum_t> > datums
-        = source->next_batch(std::min(right + 1 - index, max_size));
+        = source->next_batch(right == -1 ? max_size : std::min(right + 1 - index, max_size));
 
     index += datums.size();
 
