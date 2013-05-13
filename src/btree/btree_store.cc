@@ -243,7 +243,8 @@ void btree_store_t<protocol_t>::reset_data(
                         btree.get(),
                         txn.get(),
                         superblock.get(),
-                        token_pair);
+                        token_pair,
+                        interruptor);
 }
 
 template <class protocol_t>

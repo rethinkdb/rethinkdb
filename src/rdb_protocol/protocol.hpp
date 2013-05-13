@@ -698,7 +698,8 @@ struct rdb_protocol_t {
                                  btree_slice_t *btree,
                                  transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair);
+                                 write_token_pair_t *token_pair,
+                                 signal_t *interruptor);
         context_t *ctx;
     };
 

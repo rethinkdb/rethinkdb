@@ -1555,14 +1555,13 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *token_pair) {
+                                  write_token_pair_t *token_pair,
+                                  signal_t *interruptor) {
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-
-    cond_t non_interruptor; //TODO is this okay?
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, this, token_pair, &non_interruptor);
+    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, this, token_pair, interruptor);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

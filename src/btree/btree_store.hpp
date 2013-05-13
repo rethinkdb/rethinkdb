@@ -345,7 +345,8 @@ public:
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      superblock_t *superblock,
-                                     write_token_pair_t *token_pair) = 0;
+                                     write_token_pair_t *token_pair,
+                                     signal_t *interruptor) = 0;
 
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
