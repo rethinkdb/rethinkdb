@@ -175,35 +175,31 @@ void btree_store_t<protocol_t>::receive_backfill(
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+        token_destroyer(&token_pair->sindex_write_token);
     assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    try {
-        // We don't want hard durability, this is a backfill chunk, and nobody
-        // wants chunk-by-chunk acks.
-        acquire_superblock_for_write(rwi_write,
-                                     chunk.get_btree_repli_timestamp(),
-                                     expected_change_count,
-                                     WRITE_DURABILITY_SOFT,
-                                     token_pair,
-                                     &txn,
-                                     &superblock,
-                                     interruptor);
+    // We don't want hard durability, this is a backfill chunk, and nobody
+    // wants chunk-by-chunk acks.
+    acquire_superblock_for_write(rwi_write,
+                                 chunk.get_btree_repli_timestamp(),
+                                 expected_change_count,
+                                 WRITE_DURABILITY_SOFT,
+                                 token_pair,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
 
-        protocol_receive_backfill(btree.get(),
-                                  txn.get(),
-                                  superblock.get(),
-                                  token_pair,
-                                  interruptor,
-                                  chunk);
-    } catch (const interrupted_exc_t &) {
-        if (token_pair->sindex_write_token.has()) {
-            token_pair->sindex_write_token.reset();
-        }
-    }
+    protocol_receive_backfill(btree.get(),
+                              txn.get(),
+                              superblock.get(),
+                              token_pair,
+                              interruptor,
+                              chunk);
 }
 
 template <class protocol_t>
