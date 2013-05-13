@@ -23,8 +23,7 @@ before_script:
 script:
   - ./configure
   - make -j 3 test-deps
-  - make -C test/rql_test js_polyglot TEST=regression-767
-#  - make test TEST=travis RUN_TEST_ARGS='-j3 -w-'
+  - make test TEST=ql-js-polyglot RUN_TEST_ARGS='-v'
 
 # Notify only on change
 notifications:
