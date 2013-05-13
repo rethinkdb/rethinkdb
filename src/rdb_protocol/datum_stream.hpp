@@ -10,9 +10,6 @@ namespace query_language {
 class json_stream_t;
 }
 
-// RSI
-// #define DATUM_STREAM_NEXT
-
 namespace ql {
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
@@ -47,13 +44,7 @@ public:
     virtual counted_t<const datum_t> as_array() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_batch`.)
-#ifdef DATUM_STREAM_NEXT
-protected:
-#endif
     counted_t<const datum_t> next();
-#ifdef DATUM_STREAM_NEXT
-public:
-#endif
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
