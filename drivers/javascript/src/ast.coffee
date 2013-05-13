@@ -84,7 +84,7 @@ class RDBVal extends TermBase
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
     groupBy: (attrs..., collector) ->
-        unless collector? or attrs.length >= 1
+        unless collector? and attrs.length >= 1
             numArgs = attrs.length + (if collector? then 1 else 0)
             throw new RqlDriverError "Expected 2 or more argument(s) but found #{numArgs}."
         new GroupBy {}, @, attrs, collector
