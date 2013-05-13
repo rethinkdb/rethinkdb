@@ -22,7 +22,7 @@ public:
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
-                        signal_t * interruptor,
+                        signal_t *interruptor,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
 
