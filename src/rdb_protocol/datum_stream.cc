@@ -19,8 +19,6 @@ counted_t<datum_stream_t> datum_stream_t::zip() {
     return make_counted<zip_datum_stream_t>(env, this->counted_from_this());
 }
 
-// RSI
-#ifdef DATUM_STREAM_NEXT
 counted_t<const datum_t> datum_stream_t::next() {
     // This is a hook for unit tests to change things mid-query.
     env->do_eval_callback();
@@ -28,7 +26,6 @@ counted_t<const datum_t> datum_stream_t::next() {
     rassert(datums.size() <= 1);
     return datums.empty() ? counted_t<const datum_t>() : datums[0];
 }
-#endif  // DATUM_STREAM_NEXT
 
 std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(size_t max_size) {
     env->throw_if_interruptor_pulsed();
@@ -289,11 +286,11 @@ std::vector<counted_t<const datum_t> >
 concatmap_datum_stream_t::next_batch_impl(size_t max_size) {
     for (;;) {
         if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next();
-            if (!arg.has()) {
+            std::vector<counted_t<const datum_t> > arg = source->next_batch(1);
+            if (arg.empty()) {
                 return std::vector<counted_t<const datum_t> >();
             }
-            subsource = f->call(arg)->as_seq();
+            subsource = f->call(arg[0])->as_seq();
         }
 
         std::vector<counted_t<const datum_t> > datums = subsource->next_batch(max_size);

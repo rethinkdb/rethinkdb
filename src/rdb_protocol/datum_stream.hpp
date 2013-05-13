@@ -11,7 +11,7 @@ class json_stream_t;
 }
 
 // RSI
-#define DATUM_STREAM_NEXT
+// #define DATUM_STREAM_NEXT
 
 namespace ql {
 
@@ -48,7 +48,11 @@ public:
 
     // Gets the next element from the stream.  (Wrapper around `next_batch`.)
 #ifdef DATUM_STREAM_NEXT
+protected:
+#endif
     counted_t<const datum_t> next();
+#ifdef DATUM_STREAM_NEXT
+public:
 #endif
 
     // Gets the next elements from the stream.  (Returns zero elements only when
