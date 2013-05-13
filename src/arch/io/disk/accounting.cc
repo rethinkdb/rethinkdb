@@ -25,8 +25,8 @@ struct accounting_diskmgr_eager_account_t : public semaphore_available_callback_
         throttled_queue.pop_front();
         queue.push(action);
     }
-    semaphore_t &get_outstanding_requests_limiter() {
-        return outstanding_requests_limiter;
+    semaphore_t *get_outstanding_requests_limiter() {
+        return &outstanding_requests_limiter;
     }
 
 private:
@@ -65,7 +65,7 @@ void accounting_diskmgr_account_t::on_semaphore_available() {
     eager_account->on_semaphore_available();
 }
 
-semaphore_t &accounting_diskmgr_account_t::get_outstanding_requests_limiter() {
+semaphore_t *accounting_diskmgr_account_t::get_outstanding_requests_limiter() {
     maybe_init();
     return eager_account->get_outstanding_requests_limiter();
 }
@@ -100,7 +100,7 @@ void accounting_diskmgr_t::submit(action_t *a) {
 void accounting_diskmgr_t::done(accounting_payload_t *p) {
     // p really is an action_t...
     action_t *a = static_cast<action_t *>(p);
-    a->account->get_outstanding_requests_limiter().unlock(1);
+    a->account->get_outstanding_requests_limiter()->unlock(1);
     done_fun(static_cast<action_t *>(p));
 }
 
