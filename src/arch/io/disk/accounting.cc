@@ -10,7 +10,6 @@ struct accounting_diskmgr_eager_account_t : public semaphore_available_callback_
     accounting_diskmgr_eager_account_t(accounting_diskmgr_t *par,
                                        int pri,
                                        int outstanding_requests_limit) :
-        parent(par),
         outstanding_requests_limiter(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS ? SEMAPHORE_NO_LIMIT : outstanding_requests_limit),
         account(&par->queue, &queue, pri),
         accounter_lock(par->get_auto_drainer()) {
@@ -31,8 +30,6 @@ struct accounting_diskmgr_eager_account_t : public semaphore_available_callback_
     }
 
 private:
-    accounting_diskmgr_t *parent;
-
     // It would be nice if we could just use a limited_fifo_queue to
     // implement the limitation of outstanding requests.
     // However this part of the code must not rely on coroutines, therefore
