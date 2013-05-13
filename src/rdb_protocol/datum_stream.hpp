@@ -237,6 +237,8 @@ public:
         std::vector<counted_t<const datum_t> > ret(end - data_index);
         std::move(data.begin() + data_index, data.begin() + end, ret.begin());
 
+        data_index = end;
+
         return ret;
     }
 private:
