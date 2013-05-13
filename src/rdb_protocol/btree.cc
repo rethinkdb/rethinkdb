@@ -525,7 +525,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
     guarantee(!key_range.is_empty());
-    /* Twiddle some keys to get the in the form we want. */
+    /* Twiddle some keys to get the in the form we want. Notice these are keys
+     * which will be made  exclusive and inclusive as their names suggest
+     * below. At the point of construction they aren't. */
     store_key_t left_key_exclusive(key_range.left);
     store_key_t right_key_inclusive(key_range.right.key);
 
@@ -534,6 +536,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     if (right_key_supplied) {
         right_key_inclusive.decrement();
     }
+
+    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
+     * names. */
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
