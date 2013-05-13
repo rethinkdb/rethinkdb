@@ -43,7 +43,7 @@ public:
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array() = 0;
 
-    // Gets the next element from the stream.  (Wrapper around `next_impl`.)
+    // Gets the next element from the stream.  (Wrapper around `next_batch`.)
     counted_t<const datum_t> next();
 
     // Gets the next elements from the stream.  (Returns zero elements only when
