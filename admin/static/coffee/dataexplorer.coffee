@@ -2839,8 +2839,8 @@ module 'DataExplorerView', ->
 
         # Sort the keys per level
         order_keys: (keys) =>
+            copy_keys = []
             if keys.object?
-                copy_keys = []
                 for key, value of keys.object
                     if jQuery.isPlainObject(value)
                         @order_keys value
@@ -2857,9 +2857,9 @@ module 'DataExplorerView', ->
                             return 1
                         else # We cannot have two times the same key
                             return -1
-                keys.sorted_keys = _.map copy_keys, (d) -> return d.key
-                if keys.primitive_value_count > 0
-                    keys.sorted_keys.unshift @primitive_key
+            keys.sorted_keys = _.map copy_keys, (d) -> return d.key
+            if keys.primitive_value_count > 0
+                keys.sorted_keys.unshift @primitive_key
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
@@ -2953,7 +2953,6 @@ module 'DataExplorerView', ->
                             value = value[key]
                         else
                             value = undefined
-
                     new_document.cells.push @json_to_table_get_td_value value, col
                 new_document.record = @container.saved_data.start_record + i
                 document_list.push new_document
@@ -3000,6 +2999,7 @@ module 'DataExplorerView', ->
                     data['classname'] = 'jta_string'
             else if value_type is 'boolean'
                 data['classname'] = 'jta_bool'
+                data.value = if value is true then 'true' else 'false'
 
             return data
 
