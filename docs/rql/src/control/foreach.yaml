@@ -8,7 +8,7 @@ commands:
       js: queryFunction
       py: query_function
       rb: query_function
-    parent: r
+    parent: sequence
     returns: query
 
     examples:

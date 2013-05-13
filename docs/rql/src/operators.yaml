@@ -11,9 +11,9 @@ commands:
 
     name: +
     is_operator: true
-    body: other
-    parent: datum
-    returns: datum
+    body: addable
+    parent: addable
+    returns: addable
 
     examples:
       - description: It's as easy as 2 + 2 = 4.
@@ -193,9 +193,9 @@ commands:
     section: operators
     description: Test if two values are equal.
 
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:
@@ -219,9 +219,9 @@ commands:
     section: operators
     description: Test if two values are not equal.
 
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:
@@ -247,9 +247,9 @@ commands:
     description: Test if the first value is greater than other.
 
     name: '>'
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:
@@ -272,9 +272,9 @@ commands:
     description: Test if the first value is greater than or equal to other.
 
     name: '>='
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:
@@ -297,9 +297,9 @@ commands:
     description: Test if the first value is less than other.
 
     name: '<'
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:
@@ -322,9 +322,9 @@ commands:
     description: Test if the first value is less than or equal to other.
 
     name: '<='
-    body: datum
+    body: comparable
     is_operator: true
-    parent: datum
+    parent: comparable
     returns: bool
 
     examples:

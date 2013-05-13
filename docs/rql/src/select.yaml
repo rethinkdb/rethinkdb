@@ -72,7 +72,7 @@ commands:
 
     body: key
     parent: table
-    returns: json
+    returns: object
 
     examples:
       - description: Find a document with the primary key 'superman'.
@@ -155,8 +155,8 @@ commands:
       same as the type on which the function was called on.
 
     body: predicate
-    parent: selection
-    returns: selection
+    parent: sequence
+    returns: sequence
 
     examples:
       - description: Get all active users aged 30.

@@ -4,7 +4,7 @@ commands:
     order: 8
     description: Get information about a RQL value.
 
-    parent: value
+    parent: table
     returns: object
 
     examples:

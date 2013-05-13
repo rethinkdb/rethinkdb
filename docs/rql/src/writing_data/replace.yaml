@@ -11,9 +11,9 @@ commands:
       errors encountered while performing the replace;</li><li><code>first_error</code>
       - the text of the first error encountered.</li></ul>
 
-    body: json | expr
+    body: object | expr
     parent: selection
-    returns: json
+    returns: object
 
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.

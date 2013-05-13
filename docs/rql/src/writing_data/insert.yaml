@@ -13,11 +13,11 @@ commands:
       <code>generated_keys</code> providing a list of generated primary key values.</li></ul>
 
     body:
-      js: json | [json][, {upsert:true}]
-      py: json | [json][, upsert=False]
-      rb: json | [json][, :upsert]
+      js: object | [object][, {upsert:true}]
+      py: object | [object][, upsert=False]
+      rb: object | [object][, :upsert]
     parent: table
-    returns: json
+    returns: object
 
     examples:
       - description: Insert a row into a table named 'marvel'.

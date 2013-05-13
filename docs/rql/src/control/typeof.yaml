@@ -4,7 +4,7 @@ commands:
     order: 7
     description: Gets the type of a value.
 
-    parent: value
+    parent: introspectable
     returns: string
 
     examples:

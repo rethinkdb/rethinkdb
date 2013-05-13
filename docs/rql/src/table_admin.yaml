@@ -13,8 +13,8 @@ commands:
       a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.
 
     body: tableName[, options]
-    parent: db
-    returns: json
+    parent: db | r
+    returns: object
 
     examples:
       - description: |
@@ -49,8 +49,8 @@ commands:
       If the specified table doesn''t exist a <code>RqlRuntimeError</code> is thrown.
 
     body: table_name
-    parent: db
-    returns: json
+    parent: db | r
+    returns: object
 
     examples:
       - description: Drop a table named 'dc_universe'.
@@ -71,8 +71,8 @@ commands:
       List all table names in a database.<br /><br />
       The result is a list of strings.
 
-    parent: db
-    returns: sequence
+    parent: db | r
+    returns: array
 
     examples:
       - description: List all tables of the 'test' database.
@@ -98,7 +98,7 @@ commands:
       js: indexName[, indexFunction]
       rb: index_name[, index_function]
     parent: table
-    returns: json
+    returns: object
 
     examples:
       - description: |
@@ -153,7 +153,7 @@ commands:
 
     body: indexName
     parent: table
-    returns: json
+    returns: object
 
     examples:
       - description: Drop a secondary index named 'code_name'.

@@ -56,8 +56,8 @@ commands:
       of objects (projection).
 
     body: attr1[, attr2...]
-    parent: sequence
-    returns: sequence
+    parent: pluckable
+    returns: pluckable
 
     examples:
       - description: We just need information about IronMan's reactor and not the rest of the document.
@@ -84,8 +84,8 @@ commands:
       and removes all attributes except for the ones specified.
 
     body: attr1[, attr2...]
-    parent: sequence
-    returns: sequence
+    parent: pluckable
+    returns: pluckable
 
     examples:
       - description: Since we don't need it for this computation we'll save bandwidth
@@ -110,9 +110,9 @@ commands:
     description: Merge two objects together to construct a new object with properties
       from both. Gives preference to attributes from other when there is a conflict.
 
-    body: json
-    parent: json
-    returns: json
+    body: object
+    parent: object
+    returns: object
 
     examples:
       - description: Equip IronMan for battle.
@@ -134,8 +134,8 @@ commands:
     description: Append a value to an array.
 
     body: value
-    parent: json
-    returns: json
+    parent: array
+    returns: array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -159,7 +159,7 @@ commands:
     name2: ']'
     is_selector: true
     body: attr
-    parent: json
+    parent: object
     returns: json
 
     examples:
@@ -185,7 +185,7 @@ commands:
       <code>string</code> or <code>array</code> attributes.
 
     body: attr
-    parent: json
+    parent: object
     returns: bool
 
     examples:

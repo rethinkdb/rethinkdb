@@ -10,9 +10,9 @@ commands:
       while performing the update;</li><li><code>first_error</code> - the text of
       the first error encountered.</li></ul>
 
-    body: json | expr
+    body: object | expr
     parent: selection
-    returns: json
+    returns: object
 
     examples:
       - description: |

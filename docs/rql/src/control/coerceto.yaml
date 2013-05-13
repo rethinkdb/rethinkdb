@@ -8,7 +8,7 @@ commands:
       an array of pairs into an OBJECT, and any DATUM into a STRING.
 
     body: typename
-    parent: json
+    parent: coerceable
     returns: json
 
     examples:

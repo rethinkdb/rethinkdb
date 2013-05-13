@@ -15,7 +15,7 @@ commands:
 
     body: db_name
     parent: r
-    returns: json
+    returns: object
 
     examples:
       - description: Create a database named 'superheroes'.
@@ -40,7 +40,7 @@ commands:
 
     body: db_name
     parent: r
-    returns: json
+    returns: object
 
     examples:
       - description: Drop a database named 'superheroes'.
@@ -62,7 +62,7 @@ commands:
       The result is a list of strings.
 
     parent: r
-    returns: sequence
+    returns: array
 
     examples:
       - description: List all databases.
