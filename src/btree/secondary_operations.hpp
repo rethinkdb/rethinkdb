@@ -2,6 +2,8 @@
 #ifndef BTREE_SECONDARY_OPERATIONS_HPP_
 #define BTREE_SECONDARY_OPERATIONS_HPP_
 
+#include <map>
+#include <string>
 #include <vector>
 
 #include "buffer_cache/mirrored/writeback.hpp"

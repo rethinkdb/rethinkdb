@@ -2,6 +2,11 @@
 #ifndef UNITTEST_RDB_ENV_HPP_
 #define UNITTEST_RDB_ENV_HPP_
 
+#include <stdexcept>
+#include <set>
+#include <map>
+#include <string>
+
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -18,10 +23,6 @@
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include <stdexcept>
-#include <set>
-#include <map>
-#include <string>
 
 namespace unittest {
 

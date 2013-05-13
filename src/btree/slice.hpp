@@ -2,6 +2,7 @@
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
+#include <string>
 #include <vector>
 
 #include "buffer_cache/types.hpp"

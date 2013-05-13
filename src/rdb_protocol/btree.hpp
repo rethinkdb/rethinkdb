@@ -2,6 +2,8 @@
 #ifndef RDB_PROTOCOL_BTREE_HPP_
 #define RDB_PROTOCOL_BTREE_HPP_
 
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
