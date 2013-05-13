@@ -25,7 +25,7 @@ struct protob_pointee_t : public slow_atomic_countable_t<protob_pointee_t> {
 };
 
 struct protob_term_t : public protob_pointee_t {
-    protob_term_t(const Term &t) : term(t) { }
+    explicit protob_term_t(const Term &t) : term(t) { }
 
     Term term;
 };
