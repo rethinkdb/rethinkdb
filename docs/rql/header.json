@@ -12,8 +12,33 @@
     "cursor": {
       "parents": null
     },
+    "introspectable": {
+      "parents": null,
+      "abstract": true,
+      "synonym": "any"
+    },
+    "addable": {
+      "parents": null,
+      "abstract": true,
+      "synonym": "number | string"
+    },
+    "comparable": {
+      "parents": null,
+      "abstract": true,
+      "synonym": "json"
+    },
+    "coerceable": {
+      "parents": null,
+      "abstract": true,
+      "synonym": "sequence | object"
+    },
+    "pluckable": {
+      "parents": null,
+      "abstract": true,
+      "synonym": "sequence | object"
+    },
     "sequence": {
-      "parents": null
+      "parents": ["coerceable", "pluckable", "introspectable"]
     },
     "selection": {
       "parents": ["sequence"]
@@ -24,26 +49,23 @@
     "db": {
       "parents": null
     },
-    "datum": {
-      "parents": null
-    },
     "array": {
-        "parents": ["datum", "sequence"]
+        "parents": ["comparable", "sequence"]
     },
     "bool": {
-        "parents": ["datum"]
+        "parents": ["comparable", "introspectable"]
     },
     "null": {
-        "parents": ["datum"]
+        "parents": ["comparable", "introspectable"]
     },
     "number": {
-        "parents": ["datum"]
+        "parents": ["addable, comparable", "introspectable"]
     },
     "object": {
-        "parents": ["datum"]
+        "parents": ["comparable", "coerceable", "pluckable", "introspectable"]
     },
     "string": {
-        "parents": ["datum"]
+        "parents": ["addable", "comparable", "introspectable"]
     },
     "json": {
       "parents": ["array", "bool", "null", "number", "object", "string"]
