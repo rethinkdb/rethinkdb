@@ -95,7 +95,7 @@
                 <li class="alert_li">
                 <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{name}}">
                         <div class="content">
-                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}}?<br/>
+                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}<strong>{{name}}</strong>{{/if}}?<br/>
                             <button class="btn cancel_delete_btn" data-name="{{name}}">Cancel</button><button class="btn delete_index_btn" data-name="{{name}}">Delete</button>
                         </div>
                     </div>
@@ -117,10 +117,10 @@
 
 <script id="secondary_indexes-alert_msg-template" type="text/x-handlebars-template">
     {{#if delete_ok}}
-    <p>You successfully deleted the secondary index {{name}}.</p>
+    <p>You successfully deleted the secondary index <strong>{{name}}</strong>.</p>
     {{/if}}
     {{#if create_ok}}
-    <p>You successfully created the secondary index {{name}}.</p>
+    <p>You successfully created the secondary index <strong>{{name}}</strong>.</p>
     {{/if}}
 </script>
 
