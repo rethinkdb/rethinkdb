@@ -29,7 +29,11 @@ typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
+#ifndef NDEBUG
+    static const size_t RECOMMENDED_MAX_SIZE = 3;
+#else
     static const size_t RECOMMENDED_MAX_SIZE = 100;
+#endif
 
     json_stream_t() { }
     // Returns a null value when end of stream is reached.
