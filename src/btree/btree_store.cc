@@ -175,13 +175,14 @@ void btree_store_t<protocol_t>::receive_backfill(
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-        token_destroyer(&token_pair->sindex_write_token);
     assert_thread();
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
+
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+        token_destroyer(&token_pair->sindex_write_token);
 
     // We don't want hard durability, this is a backfill chunk, and nobody
     // wants chunk-by-chunk acks.
