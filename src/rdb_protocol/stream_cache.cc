@@ -24,7 +24,10 @@ void stream_cache2_t::erase(int64_t key) {
 
 bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     boost::ptr_map<int64_t, entry_t>::iterator it = streams.find(key);
-    if (it == streams.end()) return false;
+    if (it == streams.end()) {
+        return false;
+    }
+
     entry_t *entry = it->second;
     entry->last_activity = time(0);
     try {
@@ -39,29 +42,35 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             entry->next_datum.reset();
         }
         rassert(entry->max_chunk_size > 0);
-        while (counted_t<const datum_t> d = entry->stream->next()) {
-            d->write_to_protobuf(res->add_response());
-            if (++chunk_size >= entry->max_chunk_size) {
-                if (counted_t<const datum_t> next_d = entry->stream->next()) {
-                    r_sanity_check(!entry->next_datum.has());
-                    entry->next_datum.init(new Datum());
-                    next_d->write_to_protobuf(entry->next_datum.get());
-                    res->set_type(Response::SUCCESS_PARTIAL);
-                }
-                break;
+
+        // We add 1 to allow for the "next_datum" value that the javascript
+        // driver currently needs us to hoard.  (Note that the argument to
+        // next_batch must be positive.)
+        std::vector<counted_t<const datum_t> > datums
+            = entry->stream->next_batch(entry->max_chunk_size + 1 - chunk_size);
+
+        if (datums.size() > 0) {
+            counted_t<const datum_t> last = std::move(datums.back());
+            datums.pop_back();
+
+            entry->next_datum.init(new Datum());
+            last->write_to_protobuf(entry->next_datum.get());
+
+            for (auto datum = datums.begin(); datum != datums.end(); ++datum) {
+                (*datum)->write_to_protobuf(res->add_response());
             }
+
+            res->set_type(Response::SUCCESS_PARTIAL);
+        } else {
+            erase(key);
+            res->set_type(Response::SUCCESS_SEQUENCE);
         }
+
+        return true;
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    if (!entry->next_datum.has()) {
-        erase(key);
-        res->set_type(Response::SUCCESS_SEQUENCE);
-    } else {
-        r_sanity_check(res->type() == Response::SUCCESS_PARTIAL);
-    }
-    return true;
 }
 
 void stream_cache2_t::maybe_evict() {
