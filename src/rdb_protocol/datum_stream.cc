@@ -30,7 +30,7 @@ counted_t<const datum_t> datum_stream_t::next() {
 std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(size_t max_size) {
     env->throw_if_interruptor_pulsed();
 
-    guarantee(max_size > 0);
+    r_sanity_check(max_size > 0);
     try {
         // next_batch_impl is allowed to assume max_size is positive.
         return next_batch_impl(max_size);
