@@ -41,7 +41,6 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             ++chunk_size;
             entry->next_datum.reset();
         }
-        rassert(entry->max_chunk_size > 0);
 
         // We add 1 to allow for the "next_datum" value that the javascript
         // driver currently needs us to hoard.  (Note that the argument to
