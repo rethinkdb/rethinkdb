@@ -198,10 +198,13 @@ private:
 
 class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
+    slice_datum_stream_t(env_t *env, size_t left, ssize_t right, counted_t<datum_stream_t> src);
 private:
     std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size);
-    size_t index, left, right;
+    size_t index;
+    size_t left;
+    // right can be -1 to support reading to end of stream.
+    ssize_t right;
 };
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {

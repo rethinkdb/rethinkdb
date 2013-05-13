@@ -310,15 +310,18 @@ concatmap_datum_stream_t::next_batch_impl(size_t max_size) {
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _right,
+slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, ssize_t _right,
                                            counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(env, _src), index(0),
       left(_left), right(_right) { }
 
 std::vector<counted_t<const datum_t> >
 slice_datum_stream_t::next_batch_impl(const size_t max_size) {
-    if (left > right || index > right) {
-        return std::vector<counted_t<const datum_t> >();
+    if (right != -1) {
+        const size_t unsigned_right = right;
+        if (left > unsigned_right || index > unsigned_right) {
+            return std::vector<counted_t<const datum_t> >();
+        }
     }
 
     while (index < left) {
