@@ -672,10 +672,10 @@ public:
     void operator()(const rget_read_response_t::empty_t &) const { }
     void operator()(const rget_read_response_t::vec_t &) const { }
 
-    void operator()(ql::wire_datum_t &d) const {
+    void operator()(ql::wire_datum_t &d) const {  // NOLINT(runtime/references)
         d.finalize();
     }
-    void operator()(ql::wire_datum_map_t &dm) const {
+    void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
         dm.finalize();
     }
 };

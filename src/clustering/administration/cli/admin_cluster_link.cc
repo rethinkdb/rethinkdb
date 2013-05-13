@@ -2361,7 +2361,7 @@ uint32_t guarantee_uint32(const std::map<std::string, std::vector<std::string> >
 }
 
 template <class protocol_t>
-namespace_semilattice_metadata_t<protocol_t>* get_namespace_from_metadata(typename cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> >::change_t &change,
+namespace_semilattice_metadata_t<protocol_t> *get_namespace_from_metadata(const typename cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> >::change_t &change,
                                                                           const uuid_u &ns_id) {
     typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_id);
     if (i == change.get()->namespaces.end()) {
