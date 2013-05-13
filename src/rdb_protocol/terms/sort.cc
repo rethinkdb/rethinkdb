@@ -103,7 +103,7 @@ private:
             seq = v0->as_seq();
         }
         counted_t<datum_stream_t> s
-            = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+            = make_counted<sort_datum_stream_t>(env, lt_cmp, seq, backtrace());
         return tbl.has() ? new_val(s, tbl) : new_val(s);
     }
 
@@ -120,7 +120,7 @@ public:
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
+        scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t(env, lt_cmp, arg(0)->as_seq(), backtrace()));
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next()) {

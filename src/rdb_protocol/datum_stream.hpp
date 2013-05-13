@@ -10,6 +10,9 @@ namespace query_language {
 class json_stream_t;
 }
 
+// RSI
+#define DATUM_STREAM_NEXT
+
 namespace ql {
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
@@ -44,7 +47,9 @@ public:
     virtual counted_t<const datum_t> as_array() = 0;
 
     // Gets the next element from the stream.  (Wrapper around `next_batch`.)
+#ifdef DATUM_STREAM_NEXT
     counted_t<const datum_t> next();
+#endif
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
@@ -216,15 +221,15 @@ private:
 // was a good reason for this involving header dependencies, but I don't
 // remember exactly what it was.
 static const size_t sort_el_limit = 1000000; // maximum number of elements we'll sort
-template<class T>
 class sort_datum_stream_t : public eager_datum_stream_t {
 public:
-    sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _source,
+    template <class T>
+    sort_datum_stream_t(env_t *env, const T &lt_cmp, counted_t<datum_stream_t> _source,
                         const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
+        : eager_datum_stream_t(env, bt_src),
           source(_source), data_loaded(false), data_index(0), is_arr_(false) {
         guarantee(source.has());
-        load_data();
+        load_data(lt_cmp);
     }
 
     std::vector<counted_t<const datum_t> > next_batch_impl(size_t max_size) {
@@ -246,10 +251,10 @@ private:
     bool is_arr() {
         return is_arr_;
     }
-    void load_data() {
-        if (data_loaded) {
-            return;
-        }
+
+    template <class T>
+    void load_data(const T &lt_cmp) {
+        guarantee(!data_loaded);
 
         if (counted_t<const datum_t> arr = source->as_array()) {
             is_arr_ = true;
@@ -280,7 +285,6 @@ private:
         std::sort(data.begin(), data.end(), lt_cmp);
         data_loaded = true;
     }
-    T lt_cmp;
     counted_t<datum_stream_t> source;
 
     bool data_loaded;
