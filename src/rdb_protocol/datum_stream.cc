@@ -249,7 +249,7 @@ array_datum_stream_t::next_batch_impl(const size_t max_size) {
 
     const size_t end = index + count;
     for (; index < end; ++index) {
-        ret.push_back(arr->get(index, NOTHROW));
+        ret.push_back(arr->get(index));
     }
 
     return ret;
