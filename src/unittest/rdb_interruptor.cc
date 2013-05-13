@@ -92,7 +92,7 @@ Datum *add_object_object(Datum *datum, const std::string &key) {
     return pair_value;
 }
 
-class count_callback_t : public ql::env_t::eval_callback_t {
+class count_callback_t : public ql::env_t::unittest_callback_t {
 public:
     count_callback_t(uint32_t *_count_out) :
         count_out(_count_out)
@@ -110,7 +110,7 @@ private:
     uint32_t *count_out;
 };
 
-class interrupt_callback_t : public ql::env_t::eval_callback_t {
+class interrupt_callback_t : public ql::env_t::unittest_callback_t {
 public:
     interrupt_callback_t(uint32_t _delay, test_rdb_env_t::instance_t *_test_env_instance) :
         delay(_delay),
@@ -146,7 +146,7 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
     test_env->make_env(&env_instance);
 
     count_callback_t callback(count_out);
-    env_instance->get()->set_eval_callback(&callback);
+    env_instance->get()->set_unittest_callback(&callback);
 
     counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
 
@@ -163,7 +163,7 @@ void interrupt_test(test_rdb_env_t *test_env,
     test_env->make_env(&env_instance);
 
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
-    env_instance->get()->set_eval_callback(&callback);
+    env_instance->get()->set_unittest_callback(&callback);
 
     counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
 
