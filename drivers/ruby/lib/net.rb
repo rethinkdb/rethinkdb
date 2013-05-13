@@ -122,7 +122,7 @@ module RethinkDB
     end
 
     def send packet
-      @socket.send(packet, 0)
+      @socket.write(packet)
     end
 
     def dispatch msg
@@ -202,7 +202,7 @@ module RethinkDB
           return buf
         end
       end
-      @socket.send([@@magic_number].pack('L<'), 0)
+      @socket.write([@@magic_number].pack('L<'))
       @listener.terminate if @listener
       @listener = Thread.new do
         loop do
