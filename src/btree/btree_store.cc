@@ -305,16 +305,6 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
     }
 }
 
-static __thread std::set<coro_t *> *who_has_the_sindex_block = NULL;
-
-std::set<coro_t *> *get_who_has_the_sindex_block() {
-    if (who_has_the_sindex_block == NULL) {
-        who_has_the_sindex_block = new std::set<coro_t *>();
-    }
-
-    return who_has_the_sindex_block;
-}
-
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
@@ -332,8 +322,6 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
-
-    get_who_has_the_sindex_block()->insert(coro_t::self());
 }
 
 template <class protocol_t>
@@ -354,8 +342,6 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
-    get_who_has_the_sindex_block()->clear();
-    get_who_has_the_sindex_block()->insert(coro_t::self());
 }
 
 template <class region_map_t>
