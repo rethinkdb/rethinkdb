@@ -93,7 +93,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_arg,
          Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
@@ -104,7 +104,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr->get();
+    // Consistently take ownership of the env_t by putting it in a local variable.
+    scoped_ptr_t<env_t> env = std::move(env_arg);
     int64_t token = q->token();
 
     switch (q->type()) {
@@ -133,7 +134,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = compile_term(env, q.make_child(t));
+            root_term = compile_term(env.get(), q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
@@ -161,8 +162,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, env_ptr, val->as_seq());
-                bool b = stream_cache2->serve(token, res, env->interruptor);
+                signal_t *interruptor = env->interruptor;
+                stream_cache2->insert(token, std::move(env), val->as_seq());
+                bool b = stream_cache2->serve(token, res, interruptor);
                 r_sanity_check(b);
             } else {
                 rfail_toplevel("Query result must be of type DATUM or STREAM "

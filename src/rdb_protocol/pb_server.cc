@@ -53,7 +53,7 @@ Response query2_server_t::handle(ql::protob_t<Query> q, context_t *query2_contex
                 js_runner, interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
-        ql::run(q, &env, &res, stream_cache2);
+        ql::run(q, std::move(env), &res, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(&res, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
