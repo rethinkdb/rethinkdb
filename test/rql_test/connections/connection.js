@@ -92,8 +92,8 @@ describe('Javascript connection API', function(){
         var server_err_log
 
         beforeEach(function(done){
-            server_out_log = fs.openSync('build/server-log.txt', 'a');
-            server_err_log = fs.openSync('build/server-log.txt', 'a');
+            server_out_log = fs.openSync('run/server-log.txt', 'a');
+            server_err_log = fs.openSync('run/server-error-log.txt', 'a');
             cpp_server = spawn(
                 build_dir + '/rethinkdb',
                 ['--driver-port', port, '--http-port', '0', '--cluster-port', '0'],

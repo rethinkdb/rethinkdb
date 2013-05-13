@@ -56,14 +56,26 @@ private:
     perfmon_multi_membership_t stats_membership;
 };
 
+template <class payload_t>
+struct stats_diskmgr_2_action_t : public payload_t {
+    ticks_t start_time;
+};
+
+template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const stats_diskmgr_2_action_t<payload_t> &action) {
+    buf->appendf("stats_diskmgr_2_action{start_time=%" PRIu64 "}<",
+                 action.start_time);
+    const payload_t &parent_action = action;
+    debug_print(buf, parent_action);
+}
+
 template<class payload_t>
 struct stats_diskmgr_2_t :
     /* private; access it through the `producer` field instead */
     private passive_producer_t<payload_t *>
 {
-    struct action_t : public payload_t {
-        ticks_t start_time;
-    };
+    typedef stats_diskmgr_2_action_t<payload_t> action_t;
 
     /* Give the `stats_diskmgr_2_t` constructor a
     `passive_producer_t<action_t *>`; it will get its operations from there. It

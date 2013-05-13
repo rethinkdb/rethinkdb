@@ -19,12 +19,12 @@ result_t json_stream_t::apply_terminal(
     const backtrace_t &backtrace) {
     rdb_protocol_details::terminal_variant_t t = _t;
     result_t res;
-    boost::apply_visitor(terminal_initializer_visitor_t(&res, ql_env, scopes, backtrace), t);
+
+    terminal_initialize(ql_env, scopes, backtrace, &t, &res);
+
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) {
-        boost::apply_visitor(terminal_visitor_t(json, ql_env,
-                                                scopes, backtrace, &res),
-                             t);
+        terminal_apply(ql_env, scopes, backtrace, json, &t, &res);
     }
     return res;
 }
@@ -78,15 +78,13 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
             for (json_list_t::iterator jt  = accumulator.begin();
                                        jt != accumulator.end();
                                        ++jt) {
-                boost::apply_visitor(transform_visitor_t(*jt, &tmp, ql_env, it->scopes, it->backtrace), it->variant);
+                transform_apply(ql_env, it->scopes, it->backtrace, *jt, &it->variant, &tmp);
             }
 
-            /* Equivalent to `accumulator = tmp`, but without the extra copying */
-            std::swap(accumulator, tmp);
+            accumulator.swap(tmp);
         }
 
-        /* Equivalent to `data = accumulator`, but without the extra copying */
-        std::swap(data, accumulator);
+        data.swap(accumulator);
     }
 
     boost::shared_ptr<scoped_cJSON_t> datum = data.front();
@@ -101,28 +99,47 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
 
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    signal_t *_interruptor, key_range_t _range,
+    signal_t *_interruptor,
+    counted_t<const ql::datum_t> left_bound,
+    counted_t<const ql::datum_t> right_bound,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated)
     : ns_access(_ns_access), interruptor(_interruptor),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
-      sindex_start_value(NULL), sindex_end_value(NULL),
-      range(_range),
+      range(key_range_t::closed,
+            left_bound.has()
+              ? store_key_t(left_bound->print_primary())
+              : store_key_t::min(),
+            key_range_t::closed,
+            right_bound.has()
+              ? store_key_t(right_bound->print_primary())
+              : store_key_t::max()),
       table_scan_backtrace()
 { }
 
-batched_rget_stream_t::batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                      signal_t *_interruptor, const std::string &_sindex_id,
-                      const std::map<std::string, ql::wire_func_t> &_optargs,
-                      bool _use_outdated,
-                      const ql::datum_t *_sindex_start_value,
-                      const ql::datum_t *_sindex_end_value)
-    : ns_access(_ns_access), interruptor(_interruptor),
+batched_rget_stream_t::batched_rget_stream_t(
+    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    signal_t *_interruptor, const std::string &_sindex_id,
+    const std::map<std::string, ql::wire_func_t> &_optargs,
+    bool _use_outdated,
+    counted_t<const ql::datum_t> _sindex_start_value,
+    counted_t<const ql::datum_t> _sindex_end_value)
+    : ns_access(_ns_access),
+      interruptor(_interruptor),
       sindex_id(_sindex_id),
-      finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
-      sindex_start_value(_sindex_start_value), sindex_end_value(_sindex_end_value),
-      range(rdb_protocol_t::sindex_key_range(sindex_start_value->truncated_secondary(),
-                                             sindex_end_value->truncated_secondary())),
+      finished(false),
+      started(false),
+      optargs(_optargs),
+      use_outdated(_use_outdated),
+      sindex_start_value(_sindex_start_value),
+      sindex_end_value(_sindex_end_value),
+      range(rdb_protocol_t::sindex_key_range(
+                _sindex_start_value != NULL
+                  ? _sindex_start_value->truncated_secondary()
+                  : store_key_t::min(),
+                _sindex_end_value != NULL
+                  ? _sindex_end_value->truncated_secondary()
+                  : store_key_t::max())),
       table_scan_backtrace()
 { }
 

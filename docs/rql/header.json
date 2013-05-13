@@ -1,0 +1,49 @@
+{
+  "types": {
+    "r": {
+      "parents": null
+    },
+    "query": {
+      "parents": null
+    },
+    "error": {
+      "parents": null
+    },
+    "connection": {
+      "parents": null
+    },
+    "cursor": {
+      "parents": null
+    },
+    "sequence": {
+      "parents": ["query"]
+    },
+    "selection": {
+      "parents": ["sequence"]
+    },
+    "table": {
+      "parents": ["selection"]
+    },
+    "db": {
+      "parents": null
+    },
+    "bool": {
+        "parents": ["json"]
+    },
+    "number": {
+        "parents": ["json"]
+    },
+    "array": {
+        "parents": ["sequence"]
+    },
+    "null": {
+        "parents": ["json"]
+    },
+    "object": {
+        "parents": ["json"]
+    },
+    "json": {
+      "parents": null 
+    }
+  }
+}

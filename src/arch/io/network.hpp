@@ -56,7 +56,7 @@ public:
     };
 
     // NB. interruptor cannot be NULL.
-    linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
+    linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = ANY_PORT) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
 

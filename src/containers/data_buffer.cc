@@ -8,7 +8,7 @@
 #include "utils.hpp"
 
 
-void debug_print(append_only_printf_buffer_t *buf, const intrusive_ptr_t<data_buffer_t>& ptr) {
+void debug_print(append_only_printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr) {
     if (!ptr.has()) {
         buf->appendf("databuf_ptr{null}");
     } else {
@@ -19,7 +19,7 @@ void debug_print(append_only_printf_buffer_t *buf, const intrusive_ptr_t<data_bu
     }
 }
 
-intrusive_ptr_t<data_buffer_t> data_buffer_t::create(int64_t size) {
+counted_t<data_buffer_t> data_buffer_t::create(int64_t size) {
     static_assert(sizeof(data_buffer_t) == sizeof(ref_count_) + sizeof(size_),
                   "data_buffer_t is not a packed struct type");
 
@@ -27,5 +27,5 @@ intrusive_ptr_t<data_buffer_t> data_buffer_t::create(int64_t size) {
     data_buffer_t *b = static_cast<data_buffer_t *>(malloc(sizeof(data_buffer_t) + size));
     b->ref_count_ = 0;
     b->size_ = size;
-    return intrusive_ptr_t<data_buffer_t>(b);
+    return counted_t<data_buffer_t>(b);
 }

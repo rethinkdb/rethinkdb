@@ -7,15 +7,16 @@
 #include "memcached/memcached_btree/modify_oper.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {
-    memcached_set_oper_t(const intrusive_ptr_t<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
-                              add_policy_t ap, replace_policy_t rp, cas_t _req_cas)
+    memcached_set_oper_t(const counted_t<data_buffer_t>& _data,
+                         mcflags_t _mcflags,
+                         exptime_t _exptime,
+                         add_policy_t ap,
+                         replace_policy_t rp,
+                         cas_t _req_cas)
         : data(_data), mcflags(_mcflags), exptime(_exptime),
-          add_policy(ap), replace_policy(rp), req_cas(_req_cas)
-    {
-    }
+          add_policy(ap), replace_policy(rp), req_cas(_req_cas) { }
 
-    ~memcached_set_oper_t() {
-    }
+    ~memcached_set_oper_t() { }
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
         // We may be instructed to abort, depending on the old value.
@@ -110,7 +111,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ticks_t start_time;
 
-    intrusive_ptr_t<data_buffer_t> data;
+    counted_t<data_buffer_t> data;
     mcflags_t mcflags;
     exptime_t exptime;
     add_policy_t add_policy;
@@ -120,11 +121,19 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
     set_result_t result;
 };
 
-set_result_t memcached_set(const store_key_t &key, btree_slice_t *slice,
-                       const intrusive_ptr_t<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
-                       add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-                       cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
-                       transaction_t *txn, superblock_t *superblock) {
+set_result_t memcached_set(const store_key_t &key,
+                           btree_slice_t *slice,
+                           const counted_t<data_buffer_t>& data,
+                           mcflags_t mcflags,
+                           exptime_t exptime,
+                           add_policy_t add_policy,
+                           replace_policy_t replace_policy,
+                           cas_t req_cas,
+                           cas_t proposed_cas,
+                           exptime_t effective_time,
+                           repli_timestamp_t timestamp,
+                           transaction_t *txn,
+                           superblock_t *superblock) {
     memcached_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
     run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;

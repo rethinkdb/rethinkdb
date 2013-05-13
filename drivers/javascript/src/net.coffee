@@ -9,7 +9,6 @@ goog.require("goog.proto2.WireFormatSerializer")
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
-    DEFAULT_DB: 'test'
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -19,7 +18,7 @@ class Connection
 
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
-        @db = new Db {}, host.db || @DEFAULT_DB
+        @db = host.db # left undefined if this is not set
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -95,7 +94,10 @@ class Connection
                 cb mkErr(RqlRuntimeError, response, root)
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.SUCCESS_ATOM
-                cb null, mkAtom(response)
+                response = mkAtom response
+                if goog.isArray response
+                    response = ArrayResult::makeIterable response
+                cb null, response
                 @_delQuery(token)
             else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
                 cursor = new Cursor @, token
@@ -122,7 +124,7 @@ class Connection
         new @constructor({host:@host, port:@port}, callback)
 
     use: ar (db) ->
-        @db = new Db {}, db
+        @db = db
 
     _start: (term, cb, useOutdated) ->
         unless @open then throw new RqlDriverError "Connection is closed."
@@ -141,7 +143,7 @@ class Connection
         if @db?
             pair = new Query.AssocPair()
             pair.setKey('db')
-            pair.setVal(@db.build())
+            pair.setVal((new Db {}, @db).build())
             query.addGlobalOptargs(pair)
 
         if useOutdated?

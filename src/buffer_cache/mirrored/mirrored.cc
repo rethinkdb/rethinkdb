@@ -43,7 +43,8 @@ public:
             data.swap(buf->data);
         }
 
-        rassert(data.has() || token, "creating buf snapshot without data or block token");
+        rassert(data.has() || token.has(),
+                "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 
@@ -71,7 +72,7 @@ public:
         if (data.has()) {
             return data.get();
         }
-        rassert(token, "buffer snapshot lacks both token and data");
+        rassert(token.has(), "buffer snapshot lacks both token and data");
 
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
@@ -108,7 +109,7 @@ public:
     // We are safe to unload if we are saved to disk and have no mc_buf_lock_ts actively referencing us.
     bool safe_to_unload() {
         cache->assert_thread();
-        return token && !active_refcount;
+        return token.has() && !active_refcount;
     }
 
     void unload() {
@@ -134,7 +135,7 @@ private:
     serializer_data_ptr_t data;
 
     // Our block token to the serializer.
-    intrusive_ptr_t<standard_block_token_t> token;
+    counted_t<standard_block_token_t> token;
 
     // The recency of the snapshot we hold.
     repli_timestamp_t subtree_recency;
@@ -165,7 +166,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
-        guarantee(data_token);
+        guarantee(data_token.has());
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
@@ -208,7 +209,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -434,11 +435,11 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr_t<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const counted_t<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
-        rassert(!data_token, "data token already up-to-date");
+        rassert(!data_token.has(), "data token already up-to-date");
         data_token = token;
         return;
     }
@@ -447,7 +448,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr
         if (!snap->data.equals(the_data)) {
             continue;
         }
-        rassert(!snap->token, "snapshot data token already up-to-date");
+        rassert(!snap->token.has(), "snapshot data token already up-to-date");
         snap->token = token;
         return;
     }
@@ -1306,13 +1307,13 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time

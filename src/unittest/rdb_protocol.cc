@@ -71,15 +71,13 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     extproc::spawner_t::create(&spawner_info);
     extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
 
-    int port = randport();
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), port, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
 
-    int port2 = randport();
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), port2, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
 
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
 
@@ -173,7 +171,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     Term *arg = ql::pb::set_func(&mapping, 1);
     N2(GETATTR, NVAR(1), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
+    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
     rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
     rdb_protocol_t::write_response_t response;
@@ -216,7 +214,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
-    ql::datum_t sindex_key_literal(1.0);
+    counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
     ASSERT_TRUE(data->get());
     {
@@ -238,8 +236,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                &sindex_key_literal,
-                                                                &sindex_key_literal));
+                                                                sindex_key_literal,
+                                                                sindex_key_literal));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -274,8 +272,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                &sindex_key_literal,
-                                                                &sindex_key_literal));
+                                                                sindex_key_literal,
+                                                                sindex_key_literal));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -358,7 +356,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
         for (size_t j = 100; j < 200; j += 5) {
             std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, static_cast<char>(j));
             std::string sid(j, 'a');
-            ql::datum_t sindex_key_literal(sid);
+            auto sindex_key_literal = make_counted<const ql::datum_t>(sid);
             boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
@@ -392,8 +390,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             {
                 /* Access the data using the secondary index. */
                 rdb_protocol_t::rget_read_t rget(sindex_id,
-                                                 &sindex_key_literal,
-                                                 &sindex_key_literal);
+                                                 sindex_key_literal,
+                                                 sindex_key_literal);
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 

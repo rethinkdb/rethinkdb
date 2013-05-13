@@ -28,6 +28,9 @@ ifeq ($(COMPILER),CLANG)
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
+    RT_LDFLAGS += -lc++
+  else
+    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -38,7 +41,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lm
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -119,6 +122,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
+  ifeq ($(OS), Darwin)
+    RT_CXXFLAGS += -stdlib=libc++
+  endif
 
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
@@ -245,19 +251,6 @@ ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
 endif
 
-ifeq ($(MCHECK_PEDANTIC),1)
-  RT_CXXFLAGS += -DMCHECK_PEDANTIC
-  MCHECK := 1
-endif
-
-ifeq ($(MCHECK),1)
-  ifneq (1,$(NO_TCMALLOC))
-    $(error cannot build with MCHECK=1 when NO_TCMALLOC=0)
-  endif
-  RT_CXXFLAGS += -DMCHECK
-  RT_LDFLAGS += -lmcheck
-endif
-
 ifeq ($(VALGRIND),1)
   ifneq (1,$(NO_TCMALLOC))
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
@@ -276,8 +269,8 @@ endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
-UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest-1.6.0/make/gtest.a
-UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest-1.6.0/include
+UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
+UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
 RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -322,17 +315,16 @@ endif
 
 $(UNIT_STATIC_LIBRARY_PATH):
 	$P MAKE $@
-	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest-1.6.0/make gtest.a
+	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest/make gtest.a
 
 .PHONY: unit
 unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 	$P RUN $(SERVER_UNIT_TEST_NAME)
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
-$(QL2_PROTO_HEADERS) $(QL2_PROTO_CODE): $(PROTO_DIR)/.protocppgen2
-	true
+.PRECIOUS: $(PROTO_DIR)/. $(QL2_PROTO_HEADERS) $(QL2_PROTO_SOURCES)
 
-$(PROTO_DIR)/.protocppgen2: $(QL2_PROTO_SOURCES) | $(PROTOC_DEP) $(PROTO_DIR)/.
+$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto | $(PROTOC_DEP) $(PROTO_DIR)/.
 	$P PROTOC[CPP] $^
 	$(PROTOC_RUN) $(PROTOCFLAGS_CXX) --cpp_out $(PROTO_DIR) $^
 	touch $@
@@ -347,14 +339,16 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
 	$P LD $@
 	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
-ifeq ($(NO_TCMALLOC),0)
-# TODO: c++filt is not available everywhere
+ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
+ifeq ($(filter -ltcmalloc%, $(LIBRARY_PATHS)),) # and it's not dynamic
+# TODO: c++filt may not be installed
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
 		false)
+endif
 endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
@@ -369,15 +363,6 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
 
-depclean:
-	$P RM "$(BUILD_ROOT_DIR)/*.d"
-	if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
-
-.PHONY: $(TOP)/src/clean
-$(TOP)/src/clean:
-	$P RM $(BUILD_DIR)
-	rm -rf $(BUILD_DIR)
-
 $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)
 	$P CC $< -o $@
@@ -390,3 +375,9 @@ $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROT
 	          -MP -MQ $@ -MD -MF $(DEP_DIR)/$*.d
 
 -include $(DEPS)
+
+.PHONY: build-clean
+build-clean:
+	$P RM $(BUILD_ROOT_DIR)
+	rm -rf $(BUILD_ROOT_DIR)
+

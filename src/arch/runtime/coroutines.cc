@@ -210,7 +210,7 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    return cglobals->current_coro;
+    return cglobals == NULL ? NULL : cglobals->current_coro;
 }
 
 void coro_t::wait() {   /* class method */

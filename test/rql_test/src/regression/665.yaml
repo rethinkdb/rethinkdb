@@ -1,0 +1,19 @@
+desc: Regression tests for issue #665.  Makes sharding not depend on operation's region.
+tests:
+    # Create a table and do an insertion.
+    - cd: r.db('test').table_create('t665')
+      def: t = r.db('test').table('t665')
+
+    # Keys 1 and 4 are sharded to hash shards that, of the four hash
+    # shards, are not adjacent.
+    - cd: t.insert([{'id':1}, {'id':4}])
+      ot: ({'unchanged':0,
+            'skipped':0,
+            'replaced':0,
+            'inserted':2,
+            'errors':0,
+            'deleted':0
+           })
+
+    # clean up
+    - cd: r.db('test').table_drop('t665')

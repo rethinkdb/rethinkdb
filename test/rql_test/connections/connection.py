@@ -166,9 +166,8 @@ class TestConnection(TestWithConnection):
 
         c.close()
 
-        # And make sure that was actually the connection we were using
         self.assertRaisesRegexp(
-            r.RqlDriverError, "Connection is closed.",
+            r.RqlDriverError, "Connection is closed",
             r.expr(1).run)
 
 class TestShutdown(TestWithConnection):

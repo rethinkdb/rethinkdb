@@ -46,7 +46,7 @@ int cmp(int t1, int t2) { return wrapper.rank[t1] - wrapper.rank[t2]; }
 
 class char_star_cmp_functor {
 public:
-    bool operator()(const char *x, const char *y) {
+    bool operator()(const char *x, const char *y) const {
         return strcmp(x, y) < 0;
     }
 };

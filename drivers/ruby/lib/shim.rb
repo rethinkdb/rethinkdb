@@ -4,7 +4,7 @@ module RethinkDB
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
       case d.type
-      when dt::R_NUM then d.r_num
+      when dt::R_NUM then d.r_num == d.r_num.to_i ? d.r_num.to_i : d.r_num
       when dt::R_STR then d.r_str
       when dt::R_BOOL then d.r_bool
       when dt::R_NULL then nil
@@ -48,15 +48,15 @@ module RethinkDB
     def self.native_to_datum_term x
       dt = Datum::DatumType
       d = Datum.new
-      case x.class.hash
-      when Fixnum.hash     then d.type = dt::R_NUM;  d.r_num = x
-      when Float.hash      then d.type = dt::R_NUM;  d.r_num = x
-      when Bignum.hash     then d.type = dt::R_NUM;  d.r_num = x
-      when String.hash     then d.type = dt::R_STR;  d.r_str = x
-      when Symbol.hash     then d.type = dt::R_STR;  d.r_str = x.to_s
-      when TrueClass.hash  then d.type = dt::R_BOOL; d.r_bool = x
-      when FalseClass.hash then d.type = dt::R_BOOL; d.r_bool = x
-      when NilClass.hash   then d.type = dt::R_NULL
+      case x
+      when Fixnum     then d.type = dt::R_NUM;  d.r_num = x
+      when Float      then d.type = dt::R_NUM;  d.r_num = x
+      when Bignum     then d.type = dt::R_NUM;  d.r_num = x
+      when String     then d.type = dt::R_STR;  d.r_str = x
+      when Symbol     then d.type = dt::R_STR;  d.r_str = x.to_s
+      when TrueClass  then d.type = dt::R_BOOL; d.r_bool = x
+      when FalseClass then d.type = dt::R_BOOL; d.r_bool = x
+      when NilClass   then d.type = dt::R_NULL
       else raise RqlRuntimeError, "UNREACHABLE"
       end
       t = Term.new
@@ -72,21 +72,32 @@ module RethinkDB
     def expr(x)
       unbound_if @body
       return x if x.class == RQL
-      datum_types = [Fixnum, Float, Bignum, String, Symbol, TrueClass, FalseClass, NilClass]
-      if datum_types.map{|y| y.hash}.include? x.class.hash
+      datum_types = [Fixnum, Float, Bignum, String, Symbol,
+                     TrueClass, FalseClass, NilClass]
+
+      if datum_types.include? x.class
         return RQL.new(Shim.native_to_datum_term(x))
       end
 
       t = Term.new
-      case x.class.hash
-      when Array.hash
+      case x
+      when Array
         t.type = Term::TermType::MAKE_ARRAY
         t.args = x.map{|y| expr(y).to_pb}
-      when Hash.hash
+      when Hash
         t.type = Term::TermType::MAKE_OBJ
-        t.optargs = x.map{|k,v| ap = Term::AssocPair.new;
-          ap.key = k.to_s; ap.val = expr(v).to_pb; ap}
-      when Proc.hash
+        t.optargs = x.map{|k,v|
+          ap = Term::AssocPair.new;
+          if [Symbol, String].include? k.class
+            ap.key = k.to_s
+          else
+            raise RqlDriverError, "Object keys must be strings or symbols." +
+              "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
+          end
+          ap.val = expr(v).to_pb
+          ap
+        }
+      when Proc
         t = RQL.new.new_func(&x).to_pb
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end

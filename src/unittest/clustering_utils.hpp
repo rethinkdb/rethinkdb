@@ -242,7 +242,7 @@ public:
         mailbox_manager(&connectivity_cluster),
         connectivity_cluster_run(&connectivity_cluster,
                                  get_unittest_addresses(),
-                                 randport(),
+                                 ANY_PORT,
                                  &mailbox_manager,
                                  0,
                                  NULL)

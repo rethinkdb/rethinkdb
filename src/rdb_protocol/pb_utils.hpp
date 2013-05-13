@@ -84,17 +84,27 @@ void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_a
 #define NVAR(varnum) ql::pb::set_var(arg, varnum)
 
 namespace ndatum_impl {
+
 template<class U>
 void run(const datum_t &d, U arg) {
     d.write_to_protobuf(ql::pb::set_datum(arg));
 }
+
 template<class U>
-void run(const datum_t *d, U arg) { run(*d, arg); }
+void run(counted_t<const datum_t> d, U arg) {
+    run(*d, arg);
+}
+
 template<class T, class U>
 void run(T t, U arg) { run(datum_t(t), arg); }
+
+template<class A, class B, class U>
+void run(A a, B b, U arg) { run(datum_t(a, b), arg); }
+
 } // namespace ndatum_impl
 
 #define NDATUM(val) ql::pb::ndatum_impl::run(val, arg)
+#define NDATUM_BOOL(val) ql::pb::ndatum_impl::run(ql::datum_t::R_BOOL, val, arg)
 
 // Like `N*` but for optional arguments.  See rewrites.hpp for examples if you
 // need to use them.

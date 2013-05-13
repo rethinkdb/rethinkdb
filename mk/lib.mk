@@ -85,7 +85,7 @@ else
     # '$P CP' becomes 'echo "   CP $^ -> $@"'
     # '$P foo bar' becomes 'echo "   FOO bar"'
     # CHECK_ARG_VARIABLES comes from check-env.mk
-    P = +@bash -c 'prereq="$^"; echo "    $(COUNTDOWN_TAG)$$0 $${*:-$$prereq$${prereq:+ -> }$@}$(NEWER_PREREQUISITES)"'
+    P = +@bash -c 'echo "    $(COUNTDOWN_TAG)$$0 $${*:-$@}$(NEWER_PREREQUISITES)"'
   else
     # Let every rule be verbose and make $P quiet
     P = @\#

@@ -28,7 +28,8 @@ public:
     class access_t {
     public:
         access_t();
-        access_t(base_namespace_repo_t *parent, const uuid_u &ns_id, signal_t *interruptor);
+        access_t(base_namespace_repo_t *parent, const uuid_u &ns_id,
+                 signal_t *interruptor);
         access_t(const access_t& access);
         access_t &operator=(const access_t &access);
 

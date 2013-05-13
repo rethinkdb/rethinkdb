@@ -6,12 +6,13 @@
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-Response on_unparsable_query2(Query *q, std::string msg) {
+Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
     Response res;
-    res.set_token( (q && q->has_token()) ? q->token() : -1);
+    res.set_token((q.has() && q->has_token()) ? q->token() : -1);
     ql::fill_error(&res, Response::CLIENT_ERROR, msg);
     return res;
 }
@@ -32,7 +33,7 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
-Response query2_server_t::handle(Query *q, context_t *query2_context) {
+Response query2_server_t::handle(ql::protob_t<Query> q, context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
     guarantee(interruptor);
@@ -62,4 +63,12 @@ Response query2_server_t::handle(Query *q, context_t *query2_context) {
     }
 
     return res;
+}
+
+void make_empty_protob_bearer(ql::protob_t<Query> *request) {
+    *request = ql::make_counted_query();
+}
+
+Query *underlying_protob_value(ql::protob_t<Query> *request) {
+    return request->get();
 }

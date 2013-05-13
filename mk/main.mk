@@ -13,9 +13,6 @@ default-goal: real-default-goal
 .PHONY: all
 all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 
-.PHONY: clean
-clean: $(TOP)/admin/clean $(TOP)/src/clean
-
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
 
@@ -49,6 +46,9 @@ include $(TOP)/mk/install.mk
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
+# Documentation
+include $(TOP)/docs/rql/build.mk
+
 # Build the web assets
 include $(TOP)/mk/webui.mk
 
@@ -66,5 +66,8 @@ include $(TOP)/test/build.mk
 
 # Generate local Makefiles
 include $(TOP)/mk/local.mk
+
+.PHONY: clean
+clean: build-clean js-clean
 
 endif # CONFIGURE_STATUS = success

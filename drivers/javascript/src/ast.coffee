@@ -53,7 +53,7 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
     merge: ar (other) -> new Merge {}, @, other
-    between: ar (left, right) -> new Between {leftBound: (if left? then left else undefined), rightBound: (if right? then right else undefined)}, @
+    between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: aropt (func, base) -> new Reduce {base:base}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
@@ -66,10 +66,10 @@ class RDBVal extends TermBase
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
-    eqJoin: ar (left_attr, right) -> new EqJoin {}, @, left_attr, right
+    eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, left_attr, right
     zip: ar () -> new Zip {}, @
     coerceTo: ar (type) -> new CoerceTo {}, @, type
-    typeOf: -> new TypeOf {}, @
+    typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
     delete: ar () -> new Delete {}, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
@@ -85,6 +85,8 @@ class RDBVal extends TermBase
         if collector == null
             throw new RqlDriverError "Expected at least 2 argument(s) but found #{arg_count}."
         new GroupBy {}, @, attrs, collector
+
+    info: ar () -> new Info {}, @
 
 class DatumTerm extends RDBVal
     args: []
@@ -151,8 +153,7 @@ translateOptargs = (optargs) ->
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'leftBound' then 'left_bound'
-            when 'rightBound' then 'right_bound'
+            when 'hardDurability' then 'hard_durability'
             else key
 
         if key is undefined or val is undefined then continue
@@ -220,6 +221,8 @@ class MakeObject extends RDBOp
         self = super({})
         self.optargs = {}
         for own key,val of obj
+            if typeof val is 'undefined'
+                throw new RqlDriverError "Object field '#{key}' may not be undefined"
             self.optargs[key] = rethinkdb.expr val
         return self
 
@@ -255,8 +258,13 @@ class Table extends RDBOp
     tt: Term.TermType.TABLE
 
     get: ar (key) -> new Get {}, @, key
+    getAll: aropt (key, opts) -> new GetAll opts, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
-    indexCreate: ar (name, defun) -> new IndexCreate {}, @, name, funcWrap(defun)
+    indexCreate: (name, defun) ->
+        if defun?
+            new IndexCreate {}, @, name, funcWrap(defun)
+        else
+            new IndexCreate {}, @, name
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
 
@@ -269,6 +277,10 @@ class Table extends RDBOp
 class Get extends RDBOp
     tt: Term.TermType.GET
     mt: 'get'
+
+class GetAll extends RDBOp
+    tt: Term.TermType.GET_ALL
+    mt: 'getAll'
 
 class Eq extends RDBOp
     tt: Term.TermType.EQ
@@ -429,6 +441,10 @@ class CoerceTo extends RDBOp
 class TypeOf extends RDBOp
     tt: Term.TermType.TYPEOF
     mt: 'typeOf'
+
+class Info extends RDBOp
+    tt: Term.TermType.INFO
+    mt: 'info'
 
 class Update extends RDBOp
     tt: Term.TermType.UPDATE
