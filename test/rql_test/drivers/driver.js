@@ -243,6 +243,7 @@ function err(err_name, err_msg, err_frames) {
             if (err_name && !(other.name === err_name)) return false;
 
             // Strip out "offending object" from err message
+            console.log("OTHER", other);
             other.msg = other.msg.replace(/:\n([\r\n]|.)*/m, ".");
             other.msg = other.msg.replace(/\nFailed assertion([\r\n]|.)*/m, "");
 

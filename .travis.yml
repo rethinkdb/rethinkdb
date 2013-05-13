@@ -1,7 +1,7 @@
 # Environment
 language: cpp
 compiler:
-  - gcc
+#  - gcc
   - clang
 
 # Install build dependencies
@@ -23,7 +23,8 @@ before_script:
 script:
   - ./configure
   - make -j 3 test-deps
-  - make test TEST=travis RUN_TEST_ARGS='-j3 -w-'
+  - make -C test/rql_test js_polyglot TEST=regression-767
+#  - make test TEST=travis RUN_TEST_ARGS='-j3 -w-'
 
 # Notify only on change
 notifications:
