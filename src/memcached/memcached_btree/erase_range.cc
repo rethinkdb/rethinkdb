@@ -30,6 +30,9 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
 void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        const key_range_t &keys,
                        transaction_t *txn, superblock_t *superblock, signal_t *interruptor) {
+    /* This is guaranteed because the way the keys are calculated below would
+     * lead to a single key being deleted even if the range was empty. */
+    guarantee(!keys.is_empty());
     store_key_t left_exclusive(keys.left);
     store_key_t right_inclusive(keys.right.key);
 

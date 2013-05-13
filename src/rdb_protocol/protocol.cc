@@ -1477,7 +1477,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, 
+        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
                 store, token_pair, interruptor);
     }
 

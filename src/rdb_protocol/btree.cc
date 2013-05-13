@@ -481,7 +481,7 @@ void spawn_sindex_erase_ranges(
         signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
         coro_t::spawn_sometime(boost::bind(
-                    &sindex_erase_range, key_range, txn, &*it, 
+                    &sindex_erase_range, key_range, txn, &*it,
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock));
     }
@@ -493,7 +493,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      btree_store_t<rdb_protocol_t> *store,
                      write_token_pair_t *token_pair,
                      signal_t *interruptor) {
-
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
@@ -523,6 +522,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
             &drainer, auto_drainer_t::lock_t(&drainer),
             true, /* release the superblock */ interruptor);
 
+    /* This is guaranteed because the way the keys are calculated below would
+     * lead to a single key being deleted even if the range was empty. */
+    guarantee(!key_range.is_empty());
     /* Twiddle some keys to get the in the form we want. */
     store_key_t left_key_exclusive(key_range.left);
     store_key_t right_key_inclusive(key_range.right.key);
