@@ -265,6 +265,10 @@ map_datum_stream_t::next_batch_impl(size_t max_size) {
     return datums;
 }
 
+bool should_be_removed(func_t *func, const counted_t<const datum_t> &arg) {
+    return !func->filter_call(arg);
+}
+
 // FILTER_DATUM_STREAM_T
 std::vector<counted_t<const datum_t> >
 filter_datum_stream_t::next_batch_impl(size_t max_size) {
@@ -275,7 +279,7 @@ filter_datum_stream_t::next_batch_impl(size_t max_size) {
         }
 
         datums.erase(std::remove_if(datums.begin(), datums.end(),
-                                    boost::bind(&func_t::filter_call, f.get(), _1)),
+                                    boost::bind(should_be_removed, f.get(), _1)),
                      datums.end());
 
         if (!datums.empty()) {
