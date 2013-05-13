@@ -91,11 +91,11 @@
                 <li class="square_li">No secondary index found.</li>
             {{else}}
                 {{#each secondary_indexes}}
-                <li class="square_li">{{#if is_empty}}<em>Empty string</em>{{else}}{{name}}{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
+                <li class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
                 <li class="alert_li">
                 <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{name}}">
                         <div class="content">
-                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>Empty string</em>{{else}}{{name}}{{/if}}?<br/>
+                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}}?<br/>
                             <button class="btn cancel_delete_btn" data-name="{{name}}">Cancel</button><button class="btn delete_index_btn" data-name="{{name}}">Delete</button>
                         </div>
                     </div>
