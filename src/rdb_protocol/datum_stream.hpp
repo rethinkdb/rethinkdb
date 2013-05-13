@@ -219,11 +219,11 @@ static const size_t sort_el_limit = 1000000; // maximum number of elements we'll
 template<class T>
 class sort_datum_stream_t : public eager_datum_stream_t {
 public:
-    sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
+    sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _source,
                         const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
-          src(_src), data_loaded(false), data_index(0), is_arr_(false) {
-        guarantee(src.has());
+          source(_source), data_loaded(false), data_index(0), is_arr_(false) {
+        guarantee(source.has());
         load_data();
     }
 
@@ -251,7 +251,7 @@ private:
             return;
         }
 
-        if (counted_t<const datum_t> arr = src->as_array()) {
+        if (counted_t<const datum_t> arr = source->as_array()) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    strprintf("Can only sort at most %zu elements.",
@@ -262,18 +262,26 @@ private:
         } else {
             is_arr_ = false;
             size_t sort_els = 0;
-            while (counted_t<const datum_t> d = src->next()) {
-                rcheck(++sort_els <= sort_el_limit,
+
+            for (;;) {
+                std::vector<counted_t<const datum_t> > datums
+                    = source->next_batch(sort_el_limit + 1 - sort_els);
+                if (datums.empty()) {
+                    break;
+                }
+
+                sort_els += datums.size();
+                rcheck(sort_els <= sort_el_limit,
                        strprintf("Can only sort at most %zu elements.",
                                  sort_el_limit));
-                data.push_back(d);
+                data.insert(data.end(), datums.begin(), datums.end());
             }
         }
         std::sort(data.begin(), data.end(), lt_cmp);
         data_loaded = true;
     }
     T lt_cmp;
-    counted_t<datum_stream_t> src;
+    counted_t<datum_stream_t> source;
 
     bool data_loaded;
     size_t data_index;
