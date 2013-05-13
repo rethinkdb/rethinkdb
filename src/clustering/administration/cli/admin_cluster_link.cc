@@ -2361,10 +2361,10 @@ uint32_t guarantee_uint32(const std::map<std::string, std::vector<std::string> >
 }
 
 template <class protocol_t>
-namespace_semilattice_metadata_t<protocol_t> *get_namespace_from_metadata(const typename cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> >::change_t &change,
+namespace_semilattice_metadata_t<protocol_t> *get_namespace_from_metadata(typename cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> >::change_t *change,
                                                                           const uuid_u &ns_id) {
-    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(ns_id);
-    if (i == change.get()->namespaces.end()) {
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator i = change->get()->namespaces.find(ns_id);
+    if (i == change->get()->namespaces.end()) {
         throw admin_parse_exc_t("unexpected error, table not found");
     } else if (i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error, table has been deleted");
@@ -2391,15 +2391,15 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<rdb_protocol_t>(change, ns_info->uuid));
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<rdb_protocol_t>(&change, ns_info->uuid));
 
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<mock::dummy_protocol_t>(change, ns_info->uuid));
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<mock::dummy_protocol_t>(&change, ns_info->uuid));
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<memcached_protocol_t>(change, ns_info->uuid));
+        do_admin_set_acks_internal(dc_id, num_acks, get_namespace_from_metadata<memcached_protocol_t>(&change, ns_info->uuid));
 
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
@@ -2470,13 +2470,13 @@ void admin_cluster_link_t::do_admin_set_durability(const admin_command_parser_t:
 
     if (ns_info->path[0] == "rdb_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        do_admin_set_durability_internal(hard, get_namespace_from_metadata<rdb_protocol_t>(change, ns_info->uuid));
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<rdb_protocol_t>(&change, ns_info->uuid));
     } else if (ns_info->path[0] == "dummy_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
-        do_admin_set_durability_internal(hard, get_namespace_from_metadata<mock::dummy_protocol_t>(change, ns_info->uuid));
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<mock::dummy_protocol_t>(&change, ns_info->uuid));
     } else if (ns_info->path[0] == "memcached_namespaces") {
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        do_admin_set_durability_internal(hard, get_namespace_from_metadata<memcached_protocol_t>(change, ns_info->uuid));
+        do_admin_set_durability_internal(hard, get_namespace_from_metadata<memcached_protocol_t>(&change, ns_info->uuid));
     } else {
         throw admin_parse_exc_t(guarantee_param_0(data.params, "table") + " is not a table");
     }
