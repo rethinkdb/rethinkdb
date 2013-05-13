@@ -43,9 +43,11 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(size_t max_siz
 counted_t<const datum_t> eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
-        counted_t<const datum_t> value = next();
-        if (!value.has()) { break; }
-        ++i;
+        size_t n = next_batch(datum_stream_t::RECOMMENDED_MAX_SIZE).size();
+        if (n == 0) {
+            break;
+        }
+        i += n;
     }
     return make_counted<datum_t>(static_cast<double>(i));
 }
