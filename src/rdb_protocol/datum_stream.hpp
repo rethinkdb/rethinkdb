@@ -48,7 +48,7 @@ public:
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
-    // element.)  (Wrapper around `next_batch_impl`.)
+    // element.)  `max_size` must be positive!
     std::vector<counted_t<const datum_t> > next_batch(size_t max_size);
 
     // Not much thought was put into this number.
