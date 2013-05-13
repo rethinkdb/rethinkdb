@@ -21,8 +21,8 @@ counted_t<datum_stream_t> datum_stream_t::zip() {
 
 counted_t<const datum_t> datum_stream_t::next() {
     // This is a hook for unit tests to change things mid-query.
-    DEBUG_ONLY_CODE(env->do_eval_callback());
-    std::vector<counted_t<const datum_t> > datum = next_batch(1);
+    env->do_eval_callback();
+    std::vector<counted_t<const datum_t> > datums = next_batch(1);
     rassert(datums.size() <= 1);
     return datums.empty() ? counted_t<const datum_t>() : datums[0];
 }

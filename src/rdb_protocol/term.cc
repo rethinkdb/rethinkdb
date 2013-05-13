@@ -242,7 +242,7 @@ void term_t::prop_bt(Term *t) const {
 
 counted_t<val_t> term_t::eval() {
     // This is basically a hook for unit tests to change things mid-query
-    DEBUG_ONLY_CODE(env->do_eval_callback());
+    env->do_eval_callback();
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->throw_if_interruptor_pulsed();
     INC_DEPTH;
