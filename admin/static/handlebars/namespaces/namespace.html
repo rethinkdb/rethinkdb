@@ -88,7 +88,7 @@
         {{else}}
              <ul class="list_secondary_indexes">
             {{#if no_secondary_indexes}}
-                <li class="square_li">No secondary index found.</li>
+                <li class="square_li">No secondary indexes found.</li>
             {{else}}
                 {{#each secondary_indexes}}
                 <li class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
@@ -108,7 +108,7 @@
             </ul>
 
             {{#unless show_add_index}}
-                <div class="create_container"><a href="#" class="create_link">Create a new secondary index</a></div>
+                <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
             {{/unless}}
 
         {{/if}}
