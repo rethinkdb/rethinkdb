@@ -12,17 +12,16 @@ public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
                          value_deleter_t *deleter,
                          const btree_key_t *left_exclusive_or_null,
-                         const btree_key_t *right_inclusive_or_null,
-                         erase_range_cb_t *erase_range_cb)
+                         const btree_key_t *right_inclusive_or_null)
         : sizer_(sizer), tester_(tester), deleter_(deleter),
-          left_exclusive_or_null_(left_exclusive_or_null), right_inclusive_or_null_(right_inclusive_or_null),
-          erase_range_cb_(erase_range_cb)
+          left_exclusive_or_null_(left_exclusive_or_null),
+          right_inclusive_or_null_(right_inclusive_or_null)
     { }
 
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
-                        signal_t * /*interruptor*/,
+                        signal_t *,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
 
@@ -40,11 +39,6 @@ public:
 
             if (key_in_range(k, left_exclusive_or_null_, right_inclusive_or_null_) && tester_->key_should_be_erased(k)) {
                 keys_to_delete.push_back(store_key_t(k));
-
-                /* Call the call back. */
-                if (erase_range_cb_) {
-                    erase_range_cb_->handle_pair(k, iter.get_value(node));
-                }
             }
         }
 
@@ -111,7 +105,6 @@ private:
     value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
-    erase_range_cb_t *erase_range_cb_;
 
     DISABLE_COPYING(erase_range_helper_t);
 };
@@ -122,22 +115,22 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
                                transaction_t *txn, superblock_t *superblock,
-                               erase_range_cb_t *erase_range_cb) {
-
-    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null, erase_range_cb);
-    cond_t non_interruptor;
-    btree_parallel_traversal(txn, superblock, slice, &helper, &non_interruptor);
+                               signal_t *interruptor,
+                               bool release_superblock) {
+    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
+    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor, release_superblock);
 }
 
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter, transaction_t *txn,
                superblock_t *superblock,
-               erase_range_cb_t *erase_range_cb) {
+               signal_t *interruptor,
+               bool release_superblock) {
     struct always_true_tester_t : public key_tester_t {
         bool key_should_be_erased(const btree_key_t *) { return true; }
     } always_true_tester;
 
     btree_erase_range_generic(sizer, slice, &always_true_tester,
                               deleter, NULL, NULL, txn, superblock,
-                              erase_range_cb);
+                              interruptor, release_superblock);
 }

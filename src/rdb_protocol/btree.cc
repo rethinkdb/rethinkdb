@@ -284,7 +284,7 @@ struct slice_timestamp_txn_replace_t {
     const point_replace_t *replace;
 };
 
-void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
+void do_a_replace_from_batched_replace(auto_drainer_t::lock_t lock,
                                        fifo_enforcer_sink_t *batched_replaces_fifo_sink,
                                        const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
                                        slice_timestamp_txn_replace_t sttr,
@@ -302,7 +302,7 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
                                       superblock_promise_or_null, response_out, &mod_report.info);
 
     exiter.wait();
-    sindex_cb->on_mod_report(mod_report);
+    sindex_cb->on_mod_report(mod_report, lock.get_drain_signal());
 }
 
 // The int64_t in replaces is ignored -- that's used for preserving order
@@ -434,54 +434,119 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
         blob.clear(_txn);
 }
 
-class erase_range_sindex_cb_t : public erase_range_cb_t {
+class sindex_key_range_tester_t : public key_tester_t {
 public:
-    erase_range_sindex_cb_t(rdb_modification_report_cb_t *mod_report_cb,
-                            transaction_t *txn)
-        : mod_report_cb_(mod_report_cb), txn_(txn)
-    { }
+    sindex_key_range_tester_t(const key_range_t &key_range)
+        : key_range_(key_range) { }
 
-    void handle_pair(const btree_key_t *key, const void *value) {
-        mod_report_cb_->delete_row(store_key_t(key),
-                get_data(static_cast<const rdb_value_t *>(value), txn_));
+    bool key_should_be_erased(const btree_key_t *key) {
+        std::string pk = ql::datum_t::unprint_secondary(
+            key_to_unescaped_str(store_key_t(key)));
+
+        return key_range_.contains_key(store_key_t(pk));
     }
-
-    rdb_modification_report_cb_t *mod_report_cb_;
-    transaction_t *txn_;
+private:
+    key_range_t key_range_;
 };
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                     bool left_key_supplied, const store_key_t& left_key_exclusive,
-                     bool right_key_supplied, const store_key_t& right_key_inclusive,
-                     transaction_t *txn, superblock_t *superblock,
-                     rdb_modification_report_cb_t *mod_report_cb) {
+typedef btree_store_t<rdb_protocol_t>::sindex_access_t sindex_access_t;
+typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
+void sindex_erase_range(const key_range_t &key_range,
+        transaction_t *txn, const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
+        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
+
+    value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    rdb_value_deleter_t deleter;
+
+    sindex_key_range_tester_t tester(key_range);
+
+    try {
+        btree_erase_range_generic(sizer, sindex_access->btree, &tester,
+                &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
+    } catch (const interrupted_exc_t &) {
+        //We were interrupted. That's fine nothing to be done about it.
+    }
+}
+
+/* Spawns a coro to carry out the erase range for each sindex. */
+void spawn_sindex_erase_ranges(
+        const sindex_access_vector_t *sindex_access,
+        const key_range_t &key_range,
+        transaction_t *txn,
+        auto_drainer_t *drainer,
+        auto_drainer_t::lock_t,
+        bool release_superblock,
+        signal_t *interruptor) {
+    for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
+        coro_t::spawn_sometime(boost::bind(
+                    &sindex_erase_range, key_range, txn, &*it,
+                    auto_drainer_t::lock_t(drainer), interruptor,
+                    release_superblock));
+    }
+}
+
+void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+                     const key_range_t &key_range,
+                     transaction_t *txn, superblock_t *superblock,
+                     btree_store_t<rdb_protocol_t> *store,
+                     write_token_pair_t *token_pair,
+                     signal_t *interruptor) {
     value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
     rdb_value_deleter_t deleter;
 
-    erase_range_sindex_cb_t sindex_cb(mod_report_cb, txn);
+    /* Dispatch the erase range to the sindexes. */
+    sindex_access_vector_t sindex_superblocks;
+    {
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        store->acquire_sindex_block_for_write(
+            token_pair, txn, &sindex_block, superblock->get_sindex_block_id(),
+            interruptor);
+
+        store->aquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block.get(), txn, &sindex_superblocks);
+
+        mutex_t::acq_t acq;
+        store->lock_sindex_queue(sindex_block.get(), &acq);
+
+        write_message_t wm;
+        wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
+        store->sindex_queue_push(wm, &acq);
+    }
+
+    auto_drainer_t drainer;
+    spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
+            &drainer, auto_drainer_t::lock_t(&drainer),
+            true, /* release the superblock */ interruptor);
+
+    /* This is guaranteed because the way the keys are calculated below would
+     * lead to a single key being deleted even if the range was empty. */
+    guarantee(!key_range.is_empty());
+    /* Twiddle some keys to get the in the form we want. Notice these are keys
+     * which will be made  exclusive and inclusive as their names suggest
+     * below. At the point of construction they aren't. */
+    store_key_t left_key_exclusive(key_range.left);
+    store_key_t right_key_inclusive(key_range.right.key);
+
+    bool left_key_supplied = left_key_exclusive.decrement();
+    bool right_key_supplied = !key_range.right.unbounded;
+    if (right_key_supplied) {
+        right_key_inclusive.decrement();
+    }
+
+    /* Now left_key_exclusive and right_key_inclusive accurately reflect their
+     * names. */
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
-        txn, superblock, &sindex_cb);
-}
+        txn, superblock, interruptor);
 
-void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       const key_range_t &keys,
-                       transaction_t *txn, superblock_t *superblock,
-                       rdb_modification_report_cb_t *cb) {
-    store_key_t left_exclusive(keys.left);
-    store_key_t right_inclusive(keys.right.key);
-
-    bool left_key_supplied = left_exclusive.decrement();
-    bool right_key_supplied = !keys.right.unbounded;
-    if (right_key_supplied) {
-        right_inclusive.decrement();
-    }
-    rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock, cb);
+    //auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
@@ -781,6 +846,7 @@ archive_result_t rdb_modification_info_t::rdb_deserialize(read_stream_t *s) {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_modification_report_t, primary_key, info);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
@@ -792,25 +858,28 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
       lock_(lock)
 { }
 
-void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added) {
+void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key, 
+        boost::shared_ptr<scoped_cJSON_t> added, signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
-void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted) {
+void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
+        boost::shared_ptr<scoped_cJSON_t> deleted, signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.deleted = deleted;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
 void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
         boost::shared_ptr<scoped_cJSON_t> added,
-        boost::shared_ptr<scoped_cJSON_t> deleted) {
+        boost::shared_ptr<scoped_cJSON_t> deleted,
+        signal_t *interruptor) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
     report.info.deleted = deleted;
-    on_mod_report(report);
+    on_mod_report(report, interruptor);
 }
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
@@ -820,8 +889,10 @@ rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
-        const rdb_modification_report_t &mod_report) {
+        const rdb_modification_report_t &mod_report,
+        signal_t *interruptor) {
     if (!sindex_block_.has()) {
+        wait_any_t combined_interruptor(interruptor, lock_.get_drain_signal());
         store_->acquire_sindex_block_for_write(
             token_pair_, txn_, &sindex_block_,
             sindex_block_id_, lock_.get_drain_signal());
@@ -945,6 +1016,16 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     }
 }
 
+void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
+        const rdb_erase_range_report_t *erase_range,
+        transaction_t *txn, signal_t *interruptor) {
+    auto_drainer_t drainer;
+
+    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
+            txn, &drainer, auto_drainer_t::lock_t(&drainer), 
+            false, /* don't release the superblock */ interruptor);
+}
+
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
     post_construct_traversal_helper_t(
@@ -977,7 +1058,7 @@ public:
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
-                &token_pair.main_write_token,
+                &token_pair,
                 &wtxn,
                 &superblock,
                 interruptor_);

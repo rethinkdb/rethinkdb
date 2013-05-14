@@ -130,7 +130,8 @@ void btree_parallel_traversal(transaction_t *txn,
         superblock_t *superblock,
         btree_slice_t *slice,
         btree_traversal_helper_t *helper,
-        signal_t *interruptor)
+        signal_t *interruptor,
+        bool release_superblock = true)
         THROWS_ONLY(interrupted_exc_t);
 
 

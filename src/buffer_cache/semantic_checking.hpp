@@ -106,6 +106,10 @@ public:
 
     const order_token_t order_token;
 
+    void set_token_pair(write_token_pair_t *token_pair) { 
+        inner_transaction.set_token_pair(token_pair); 
+    }
+
 private:
     bool snapshotted; // Disables CRC checks
 
