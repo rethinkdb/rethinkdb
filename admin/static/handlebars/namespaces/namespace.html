@@ -126,13 +126,13 @@
 
 <script id="secondary_indexes-error-template" type="text/x-handlebars-template">
     {{#if create_fail}}
-    <p>The secondary index could not be created. Error:</p>
+    <p>The secondary index could not be created:</p>
     <div class="error_detail">
         {{print_safe message}}
     </div>
     {{/if}}
     {{#if delete_fail}}
-    <p>The secondary index could not be deleted. Error:</p>
+    <p>The secondary index could not be deleted:</p>
     <div class="error_detail">
         {{print_safe message}}
     </div>
