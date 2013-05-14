@@ -139,6 +139,8 @@ private:
     void init_object();
     void init_json(cJSON *json, env_t *env);
 
+    void check_str_validity(const std::string &str);
+
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
