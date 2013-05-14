@@ -53,7 +53,7 @@ message Query {
     // This flag is ignored on the server.  `noreply` should be added
     // to `global_optargs` instead (the key "noreply" should map to
     // either true or false).
-    optional bool DEPRECATED_noreply = 4 [default = false];
+    optional bool OBSOLETE_noreply = 4 [default = false];
 
     message AssocPair {
         optional string key = 1;
