@@ -74,6 +74,14 @@ configure () {
     require "Use ccache"
     boolvar USE_CCACHE $use_ccache
     check_cxx
+    if [ "$COMPILER" = CLANG ]; then
+        require stdlib
+        case "$OS" in
+            Darwin) var_append LDFLAGS -lc++
+                    var_append CXXFLAGS -stdlib=libc++ ;;
+            *) var_append LDFLAGS += -lstdc++ ;;
+        esac
+    fi
     require "Precompiled web assets"
     if [[ -z "$enable_precompiled_web" ]]; then
         if test -d precompiled/web; then
@@ -639,8 +647,15 @@ optional_dep () {
 }
 
 # An assoc-list of c++ code to test if a library works
-# TODO: these are unused.
-lib_test_code=':~'
+lib_test_code=':~
+~v8:
+#include <v8.h>
+#include <string>
+int main(){
+  std::string a("foo");
+  v8::String b = v8::String::New(a);
+}
+'
 
 # An assoc-list of possible library aliases
 lib_alias=':~'
@@ -708,11 +723,9 @@ check_dyn_lib () {
 check_lib_compile () {
     local bfile=`dirname $0`/mk/gen/check_$1
     local code
-    # TODO: If the library is present but the lib_test_code doesn't compile there
-    # TODO: needs to be a better error message than "library not found"
-    # if ! lookup "$lib_test_code" $1 code; then
+    if ! lookup "$lib_test_code" $1 code; then
         code='int main(){}'
-    # fi
+    fi
     echo "$code" > "$bfile.cc"
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
 	var_append LIBRARIES -l$1
