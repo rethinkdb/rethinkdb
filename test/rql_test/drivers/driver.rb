@@ -139,7 +139,8 @@ $cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
 $test_count = 0
 $success_count = 0
 
-def test src, expected, name
+def test src, expected, name, opthash=nil
+  $opthash = opthash
   $test_count += 1
   begin
     query = eval src, $defines
@@ -162,7 +163,11 @@ end
 
 def do_test query, expected, con, name, src
   begin
-    res = query.run(con)
+    if $opthash
+      res = query.run(con, $opthash)
+    else
+      res = query.run(con)
+    end
   rescue Exception => exc
     res = err(exc.class.name.sub(/^RethinkDB::/, ""), exc.message.split("\n")[0], "TODO")
   end

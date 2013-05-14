@@ -93,9 +93,9 @@ module RethinkDB
     attr_reader :default_db, :conn_id
 
     @@token_cnt = 0
-    def run_internal q
+    def run_internal(q, noreply=false)
       dispatch q
-      wait q.token
+      noreply ? nil : wait(q.token)
     end
     def run(msg, opts)
       raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
@@ -104,14 +104,23 @@ module RethinkDB
       q.query = msg
       q.token = @@token_cnt += 1
 
-      @default_opts.merge(opts).each {|k,v|
+      all_opts = @default_opts.merge(opts)
+      if all_opts.keys.include?(:noreply)
+        all_opts[:noreply] = !!all_opts[:noreply]
+      end
+      all_opts.each {|k,v|
         ap = Query::AssocPair.new
         ap.key = k.to_s
-        ap.val = v.to_pb
+        if v.class == RQL
+          ap.val = v.to_pb
+        else
+          ap.val = RQL.new.expr(v).to_pb
+        end
         q.global_optargs << ap
       }
 
-      res = run_internal q
+      res = run_internal(q, all_opts[:noreply])
+      return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
         Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE

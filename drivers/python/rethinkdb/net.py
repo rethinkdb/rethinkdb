@@ -104,9 +104,13 @@ class Connection(object):
             pair.key = k
             expr(v).build(pair.val)
 
+        noreply = False
+        if 'noreply' in global_opt_args:
+            noreply = global_opt_args['noreply']
+
         # Compile query to protobuf
         term.build(query.query)
-        return self._send_query(query, term)
+        return self._send_query(query, term, noreply)
 
     def _continue(self, orig_query, orig_term):
         query = p.Query()
@@ -120,7 +124,7 @@ class Connection(object):
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
-    def _send_query(self, query, term):
+    def _send_query(self, query, term, noreply=False):
 
         # Error if this connection has closed
         if not self.socket:
@@ -130,6 +134,9 @@ class Connection(object):
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
         self.socket.sendall(query_header + query_protobuf)
+
+        if noreply:
+            return None
 
         # Get response
         response_buf = ''

@@ -15,16 +15,17 @@ class TermBase
         useOutdated = undefined
         if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
             useOutdated = !!conn.useOutdated
+            noreply = !!conn.noreply
             for own key of conn
-                unless key in ['connection', 'useOutdated']
-                    throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
+                unless key in ['connection', 'useOutdated', 'noreply']
+                    throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
             conn = conn.connection
         unless conn instanceof Connection
             throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
         unless typeof(cb) is 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb, useOutdated
+        conn._start @, cb, useOutdated, noreply
 
     toString: -> RqlQueryPrinter::printQuery(@)
 

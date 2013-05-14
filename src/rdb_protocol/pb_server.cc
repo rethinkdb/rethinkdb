@@ -20,8 +20,11 @@ Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
 query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
                                  int port,
                                  rdb_protocol_t::context_t *_ctx) :
-    server(local_addresses, port, boost::bind(&query2_server_t::handle, this, _1, _2),
-           &on_unparsable_query2, INLINE),
+    server(local_addresses,
+           port,
+           boost::bind(&query2_server_t::handle, this, _1, _2, _3),
+           &on_unparsable_query2,
+           INLINE),
     ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
 { }
 
@@ -33,13 +36,15 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
-Response query2_server_t::handle(ql::protob_t<Query> q, context_t *query2_context) {
+bool query2_server_t::handle(ql::protob_t<Query> q,
+                             Response *response_out,
+                             context_t *query2_context) {
     ql::stream_cache2_t *stream_cache2 = &query2_context->stream_cache2;
     signal_t *interruptor = query2_context->interruptor;
     guarantee(interruptor);
-    Response res;
-    res.set_token(q->token());
+    response_out->set_token(q->token());
 
+    bool response_needed = true;
     try {
         boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
         int thread = get_thread_id();
@@ -53,16 +58,16 @@ Response query2_server_t::handle(ql::protob_t<Query> q, context_t *query2_contex
                 js_runner, interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
-        ql::run(q, &env, &res, stream_cache2);
+        ql::run(q, &env, response_out, stream_cache2, &response_needed);
     } catch (const interrupted_exc_t &e) {
-        ql::fill_error(&res, Response::RUNTIME_ERROR,
+        ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
     } catch (const std::exception &e) {
-        ql::fill_error(&res, Response::RUNTIME_ERROR,
+        ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));
     }
 
-    return res;
+    return response_needed;
 }
 
 void make_empty_protob_bearer(ql::protob_t<Query> *request) {

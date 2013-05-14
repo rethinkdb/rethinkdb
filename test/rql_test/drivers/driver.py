@@ -204,7 +204,7 @@ class PyTestDriver:
     def define(self, expr):
         exec(expr, globals(), self.scope)
 
-    def run(self, src, expected, name):
+    def run(self, src, expected, name, runopts):
 
         # Try to build the expected result
         if expected:
@@ -234,7 +234,7 @@ class PyTestDriver:
 
         # Try actually running the test
         try:
-            cppres = query.run(self.cpp_conn)
+            cppres = query.run(self.cpp_conn, **runopts)
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):
@@ -256,10 +256,10 @@ driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected, name):
+def test(query, expected, name, runopts={}):
     if expected == '':
         expected = None
-    driver.run(query, expected, name)
+    driver.run(query, expected, name, runopts)
 
 # Emitted test code can call this function to define variables
 def define(expr):
