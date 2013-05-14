@@ -154,17 +154,18 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
 // just a different function passed to this function).
-void rdb_replace_and_return_superblock(btree_slice_t *slice,
-                                       repli_timestamp_t timestamp,
-                                       transaction_t *txn,
-                                       superblock_t *superblock,
-                                       const std::string &primary_key,
-                                       const store_key_t &key,
-                                       ql::map_wire_func_t *f,
-                                       ql::env_t *ql_env,
-                                       promise_t<superblock_t *> *superblock_promise_or_null,
-                                       Datum *response_out,
-                                       rdb_modification_info_t *mod_info) {
+void rdb_replace_and_return_superblock(
+    btree_slice_t *slice,
+    repli_timestamp_t timestamp,
+    transaction_t *txn,
+    superblock_t *superblock,
+    const std::string &primary_key,
+    const store_key_t &key,
+    ql::map_wire_func_t *f,
+    ql::env_t *ql_env,
+    promise_t<superblock_t *> *superblock_promise_or_null,
+    Datum *response_out,
+    rdb_modification_info_t *mod_info) THROWS_NOTHING {
     scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
@@ -253,8 +254,17 @@ void rdb_replace_and_return_superblock(btree_slice_t *slice,
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
         bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-            || resp->add("first_error", make_counted<ql::datum_t>(msg));
+              || resp->add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
+    } catch (const interrupted_exc_t &e) {
+        std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
+        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
+              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        guarantee(!b);
+        // We don't rethrow because we're in a coroutine.  Theoretically the
+        // above message should never make it back to a user because the calling
+        // function will also be interrupted, but we document where it comes
+        // from to aid in future debugging if that invariant becomes violated.
     }
     resp->write_to_protobuf(response_out);
 }
