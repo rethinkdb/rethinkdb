@@ -14,7 +14,7 @@ module RethinkDB
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
-      :js => -1
+      :javascript => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
