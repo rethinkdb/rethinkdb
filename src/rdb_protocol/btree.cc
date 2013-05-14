@@ -446,7 +446,7 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
 
 class sindex_key_range_tester_t : public key_tester_t {
 public:
-    sindex_key_range_tester_t(const key_range_t &key_range)
+    explicit sindex_key_range_tester_t(const key_range_t &key_range)
         : key_range_(key_range) { }
 
     bool key_should_be_erased(const btree_key_t *key) {
