@@ -5,15 +5,19 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-ifeq ($(USE_CCACHE),1)
-  RT_CXX := ccache $(CXX)
-else
-  RT_CXX := $(CXX)
-endif
 LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
+
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+  ifeq ($(COMPILER),CLANG)
+    RT_CXXFLAGS += -Qunused-arguments
+  endif
+else
+  RT_CXX := $(CXX)
+endif
 
 STATICFORCE := $(STATIC)
 
@@ -29,6 +33,8 @@ ifeq ($(COMPILER),CLANG)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
     RT_LDFLAGS += -lc++
+  else
+    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -39,7 +45,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lm
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -256,11 +262,6 @@ ifeq ($(VALGRIND),1)
   RT_CXXFLAGS += -DVALGRIND
 endif
 
-ifeq ($(AIOSUPPORT),1)
-  RT_CXXFLAGS += -DAIOSUPPORT
-  RT_LDFLAGS += -laio
-endif
-
 ifeq ($(LEGACY_PROC_STAT),1)
   RT_CXXFLAGS += -DLEGACY_PROC_STAT
 endif
@@ -337,7 +338,7 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
 	$P LD $@
 	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
 ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
 #include "arch/io/disk.hpp"
@@ -15,10 +15,9 @@ namespace unittest {
 void run_sindex_low_level_operations_test() {
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -94,10 +93,9 @@ TEST(BTreeSindex, LowLevelOps) {
 void run_sindex_btree_store_api_test() {
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -114,7 +112,7 @@ void run_sindex_btree_store_api_test() {
             true,
             &get_global_perfmon_collection(),
             NULL,
-            io_backender.get(),
+            &io_backender,
             base_path_t("."));
 
     cond_t dummy_interuptor;
@@ -132,7 +130,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                               1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                               1, WRITE_DURABILITY_SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
             UNUSED bool b =store.add_sindex(
@@ -152,7 +150,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                               1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                               1, WRITE_DURABILITY_SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
             scoped_ptr_t<buf_lock_t> sindex_block;
@@ -173,7 +171,7 @@ void run_sindex_btree_store_api_test() {
 
             store.acquire_superblock_for_write(rwi_write,
                     repli_timestamp_t::invalid, 1, WRITE_DURABILITY_SOFT,
-                    &token_pair.main_write_token, &txn, &super_block,
+                    &token_pair, &txn, &super_block,
                     &dummy_interuptor);
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
@@ -239,7 +237,7 @@ void run_sindex_btree_store_api_test() {
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                           1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                           1, WRITE_DURABILITY_SOFT, &token_pair,
                                            &txn, &super_block, &dummy_interuptor);
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());

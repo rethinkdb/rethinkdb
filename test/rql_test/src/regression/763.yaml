@@ -1,0 +1,49 @@
+desc: issue 763 check arg count for indexCreate in JS driver
+tests:
+    - js: r.tableCreate('foo')
+      def: tbl = r.table('foo')
+
+    - js: tbl.indexCreate()
+      ot: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.")
+
+    - js: tbl.indexCreate('a', 'b', 'c')
+      ot: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 3.")
+
+    - js: tbl.indexCreate('a', 'b')
+      ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.")
+
+    - js: tbl.indexCreate('a')
+      ot: ({'created':1})
+
+    # The fix also changed affected arg checking for other variable argument functions
+    - js: tbl.groupBy()
+      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.")
+
+    - js: tbl.groupBy('a')
+      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
+
+    - js: tbl.groupBy(r.count)
+      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
+
+    - js: tbl.groupBy('a', 'b', 'c', r.count)
+      ot: ([])
+
+    - js: r('a').eq()
+      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+
+    - js: r('a').lt()
+      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+
+    - js: r(['a']).union()
+      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+
+    - js: r.do()
+      ot: err("RqlDriverError", "Expected 1 or more argument(s) but found 0.")
+
+    - js: r.add()
+      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.")
+
+    - js: r.add(1)
+      ot: err("RqlDriverError", "Expected 2 or more argument(s) but found 1.")
+
+    - js: r.tableDrop('foo')

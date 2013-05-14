@@ -370,7 +370,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 }
 
 
-void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, const io_backend_t io_backend, bool *const result_out) {
+void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -381,14 +381,13 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(io_backend, &io_backender);
+    io_backender_t io_backender;
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
+        metadata_persistence::persistent_file_t store(&io_backender, metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
@@ -480,7 +479,6 @@ std::string uname_msr() {
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,
-                         const io_backend_t io_backend,
                          const serve_info_t& serve_info,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *semilattice_metadata,
@@ -497,8 +495,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(io_backend, &io_backender);
+    io_backender_t io_backender;
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -506,19 +503,19 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     try {
         scoped_ptr_t<metadata_persistence::persistent_file_t> store;
         if (our_machine_id && semilattice_metadata) {
-            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+            store.init(new metadata_persistence::persistent_file_t(&io_backender,
                                                                    metadata_file(base_path),
                                                                    &metadata_perfmon_collection,
                                                                    *our_machine_id,
                                                                    *semilattice_metadata));
         } else {
-            store.init(new metadata_persistence::persistent_file_t(io_backender.get(),
+            store.init(new metadata_persistence::persistent_file_t(&io_backender,
                                                                    metadata_file(base_path),
                                                                    &metadata_perfmon_collection));
         }
 
         *result_out = serve(serve_info.spawner_info,
-                            io_backender.get(),
+                            &io_backender,
                             base_path, store.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
@@ -539,12 +536,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
-                             const io_backend_t io_backend,
                              const bool new_directory,
                              const serve_info_t &serve_info,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, io_backend, serve_info, NULL, NULL, result_out);
+        run_rethinkdb_serve(base_path, serve_info, NULL, NULL, result_out);
     } else {
         logINF("Creating directory %s\n", base_path.path().c_str());
 
@@ -573,7 +569,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
-        run_rethinkdb_serve(base_path, io_backend, serve_info,
+        run_rethinkdb_serve(base_path, serve_info,
                             &our_machine_id, &semilattice_metadata, result_out);
     }
 }
@@ -709,21 +705,6 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     return help;
 }
 
-void get_disk_options(std::vector<options::help_section_t> *help_out,
-                      std::vector<options::option_t> *options_out) {
-    options_out->push_back(options::option_t(options::names_t("--io-backend"),
-                                             options::OPTIONAL,
-                                             "pool"));
-
-#ifdef AIOSUPPORT
-    options::help_section_t help("Disk I/O options");
-    help.add("--io-backend backend", "event backend to use: native or pool");
-    help_out->push_back(help);
-#else
-    (void)help_out;
-#endif
-}
-
 options::help_section_t get_cpu_options(std::vector<options::option_t> *options_out) {
     options::help_section_t help("CPU options");
     options_out->push_back(options::option_t(options::names_t("--cores", "-c"),
@@ -768,7 +749,6 @@ void get_rethinkdb_create_options(std::vector<options::help_section_t> *help_out
                                   std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_machine_options(options_out));
-    get_disk_options(help_out, options_out);
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
@@ -780,7 +760,6 @@ void get_rethinkdb_serve_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(get_file_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
     help_out->push_back(get_web_options(options_out));
-    get_disk_options(help_out, options_out);
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
@@ -870,30 +849,12 @@ void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_
     help_out->push_back(get_machine_options(options_out));
     help_out->push_back(get_network_options(false, options_out));
     help_out->push_back(get_web_options(options_out));
-    get_disk_options(help_out, options_out);
     help_out->push_back(get_cpu_options(options_out));
     help_out->push_back(get_service_options(options_out));
     help_out->push_back(get_setuser_options(options_out));
     help_out->push_back(get_help_options(options_out));
     help_out->push_back(get_log_options(options_out));
     help_out->push_back(get_config_file_options(options_out));
-}
-
-io_backend_t get_io_backend_option(const std::map<std::string, options::values_t> &opts) {
-    std::string source;
-    const std::string value = get_single_option(opts, "--io-backend", &source);
-
-    if (value == "pool") {
-        return aio_pool;
-#ifdef AIOSUPPORT
-    } else if (value == "native") {
-        return aio_native;
-#endif
-    } else {
-        throw options::value_error_t(source, "--io-backend",
-                                     strprintf("Option '--io-backend' has invalid value '%s'",
-                                               value.c_str()));
-    }
 }
 
 std::map<std::string, options::values_t> parse_config_file_flat(const std::string &config_filepath,
@@ -958,8 +919,6 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         set_user_group(opts);
 
-        io_backend_t io_backend = get_io_backend_option(opts);
-
         base_path_t base_path(get_single_option(opts, "--directory"));
 
         std::string machine_name_str = get_single_option(opts, "--machine-name");
@@ -988,7 +947,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         initialize_logfile(opts, base_path);
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, io_backend, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1063,8 +1022,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         const std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option(opts);
-
         const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
@@ -1098,7 +1055,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
-                                       io_backend,
                                        serve_info,
                                        static_cast<machine_id_t*>(NULL),
                                        static_cast<cluster_semilattice_metadata_t*>(NULL),
@@ -1384,8 +1340,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         const std::string web_path = get_web_path(opts, argv);
 
-        io_backend_t io_backend = get_io_backend_option(opts);
-
         const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
             fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
@@ -1427,7 +1381,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
                                        base_path,
                                        machine_name,
-                                       io_backend,
                                        new_directory,
                                        serve_info,
                                        &result),

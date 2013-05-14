@@ -345,7 +345,8 @@ public:
                                      btree_slice_t *btree,
                                      transaction_t *txn,
                                      superblock_t *superblock,
-                                     write_token_pair_t *token_pair) = 0;
+                                     write_token_pair_t *token_pair,
+                                     signal_t *interruptor) = 0;
 
     void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
 
@@ -370,12 +371,24 @@ public:
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
+            write_token_pair_t *token_pair,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+private:
+    void acquire_superblock_for_write(
+            access_t access,
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
+public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,

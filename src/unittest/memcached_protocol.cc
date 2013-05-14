@@ -23,12 +23,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     temp_file_t temp_file;
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     scoped_ptr_t<standard_serializer_t> serializer;
 
-    filepath_file_opener_t file_opener(temp_file.name(), io_backender.get());
+    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
@@ -50,7 +49,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
                 new memcached_protocol_t::store_t(multiplexer->proxies[i],
                     temp_file.name().permanent_path() + strprintf("_%zd", i),
                     GIGABYTE, true, &get_global_perfmon_collection(), NULL,
-                    io_backender.get(), base_path_t(".")));
+                    &io_backender, base_path_t(".")));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;
