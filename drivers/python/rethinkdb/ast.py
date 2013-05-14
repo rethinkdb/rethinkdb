@@ -527,7 +527,7 @@ class DB(RqlTopLevelQuery):
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
 
-    def table(self, table_name, use_outdated=False):
+    def table(self, table_name, use_outdated=()):
         return Table(self, table_name, use_outdated=use_outdated)
 
 class FunCall(RqlQuery):
