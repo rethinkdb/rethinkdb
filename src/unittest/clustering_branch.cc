@@ -47,11 +47,10 @@ void run_with_broadcaster(
     /* Set up branch history manager */
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<dummy_protocol_t> initial_store(io_backender.get(), &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> initial_store(&io_backender, &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<dummy_protocol_t> > broadcaster(
@@ -68,7 +67,7 @@ void run_with_broadcaster(
 
     scoped_ptr_t<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(base_path_t("."),
-                                         io_backender.get(),
+                                         &io_backender,
                                          cluster.get_mailbox_manager(),
                                          broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
                                          &branch_history_manager,
@@ -77,7 +76,7 @@ void run_with_broadcaster(
                                          &interruptor,
                                          &order_source));
 
-    fun(io_backender.get(),
+    fun(&io_backender,
         &cluster,
         &branch_history_manager,
         broadcaster_directory_controller.get_watchable(),

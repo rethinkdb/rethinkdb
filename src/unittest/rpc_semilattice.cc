@@ -100,18 +100,17 @@ void run_metadata_exchange_test() {
         connection_established.wait_lazily_unordered();
     }
 
-    cond_t interruptor1;
-    slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);
-
+    cond_t non_interruptor;
+    slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
     EXPECT_EQ(3u, slm1.get_root_view()->get().i);
+
+    slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor);
     EXPECT_EQ(3u, slm2.get_root_view()->get().i);
 
     slm1.get_root_view()->join(sl_int_t(4));
-
-    cond_t interruptor2;
-    slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor2);
-
     EXPECT_EQ(7u, slm1.get_root_view()->get().i);
+
+    slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor);
     EXPECT_EQ(7u, slm2.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, MetadataExchange) {

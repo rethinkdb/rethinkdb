@@ -49,12 +49,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new temp_file_t);
     }
 
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
-        filepath_file_opener_t file_opener(temp_files[i].name(), io_backender.get());
+        filepath_file_opener_t file_opener(temp_files[i].name(), &io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
@@ -86,7 +85,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                 new rdb_protocol_t::store_t(serializers[i].get(),
                     temp_files[i].name().permanent_path(), GIGABYTE, true,
                     &get_global_perfmon_collection(), &ctx,
-                    io_backender.get(), base_path_t(".")));
+                    &io_backender, base_path_t(".")));
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;
