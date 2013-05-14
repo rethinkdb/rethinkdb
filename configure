@@ -617,7 +617,7 @@ fetch_bin () {
 # Instruct make to fetch and build the library
 fetch_lib () {
     show fetch
-    var_append LIBRARY_PATHS "\$($(uc $1)_INT_LIB)"
+    var_append LIBRARIES "\$($(uc $1)_INT_LIB)"
     macro $(uc $1) "\$($(uc $1)_INT_LIB)"
     fetch_list="$fetch_list $1"
 }
@@ -673,7 +673,7 @@ check_lib () {
     fi
     if lookup "$force_paths" $1 path; then
         require_dep $1
-        var_append LIBRARY_PATHS $path
+        var_append LIBRARIES $path
         return
     fi
     local check
@@ -715,7 +715,7 @@ check_lib_compile () {
     # fi
     echo "$code" > "$bfile.cc"
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
-	var_append LIBRARY_PATHS -l$1
+	var_append LIBRARIES -l$1
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
@@ -725,7 +725,7 @@ check_static_lib () {
     # TODO: pkg-config
     local path=$(static_lib_lookup $1)
     if [[ -n "$path" ]]; then
-        var_append LIBRARY_PATHS "$path"
+        var_append LIBRARIES "$path"
     fi
 }
 
