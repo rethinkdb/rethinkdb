@@ -314,7 +314,6 @@ module 'NamespaceView', ->
             @delegateEvents()
 
         render: =>
-            console.log 'call render'
             @$el.html @template()
             @render_content()
             return @
