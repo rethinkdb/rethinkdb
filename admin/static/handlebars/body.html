@@ -1,11 +1,17 @@
 <script id="body-structure-template" type="text/x-handlebars-template">
     <div id="sticky-wrap">
         <div id="navbar-container"></div>
+        <div class="options_container_arrow_overlay"></div>
+        <div class="options_background">
+        </div>
+
         <div id="dev-tools">
             <h3>Development tools</h3>
             <button id="pause-application" class="btn">Pause JS</button>
         </div>
         <div id="sidebar"></div>
+        <div class="updates_container"> 
+        </div>
         <div id="main-container">
             <div id="cluster" class="container"></div>
             <div id="modal-dialog"></div>
@@ -18,16 +24,21 @@
                 <li><a href="http://rethinkdb.com/api/">API</a></li>
                 <li><a href="http://groups.google.com/group/rethinkdb">Google Groups</a></li>
                 <li><a href="irc://chat.freenode.net/#rethinkdb">#rethinkdb on freenode</a></li>
-                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github project</a></li>
+                <li><a href="https://github.com/rethinkdb/rethinkdb/issues">Github</a></li>
+                <li><a href="http://rethinkdb.com/community/">Community</a></li>
                 {{!
                         We use an invisible span with no content to preload the monospace font for the data explorer:
                         This ensures that data explorer suggestions won't be delayed while loading the font.
                         This is an ugly hack, but using a prefetching / prerendering link tag doesn't resolve this adequately.
                 }}
-                <li><a href="http://rethinkdb.com/community/">Community</a><span class="preload_fonts"> </span></li>
             </ul>
         </div>
     </div>
+</script>
+
+<script id="has_update-template" type="text/x-handlebars-template">
+    <a class="close" href="#">&times;</a>
+    <p><strong>Update found:</strong> A new version of RethinkDB is available (version {{last_version}}): see the <a href="{{link_changelog}}" target="_blank" class="release_link">release announcement</a> for details.</p>
 </script>
 
 <script id="is_disconnected-template" type="text/x-handlebars-template">
@@ -54,5 +65,28 @@
         <h2 class="title">Error</h1>
         <p>{{capitalize type}} {{id}} could not be found.</p>
         <p>You can try to <a href="/#{{type_url}}/{{id}}">refresh</a> or see a list of all <a href="/#{{type_all_url}}">{{pluralize_noun type 2}}</a>.</p>
+    </div>
+</script>
+
+
+
+<script id="options_view-template" type="text/x-handlebars-template">
+    <div class="title">
+        <div class="title_content">
+            <div class="version"><img src="images/db.png" class="layers" />RethinkDB {{version}}</div>
+            <span class="title_text">Web UI Settings</span>
+        </div>
+    </div>
+    <div class="options_content">
+        <div class="toggle-primary">
+            <div class="switch">
+                <input type="radio" class="switch-input" name="updates" value="yes" id="updates_yes" {{#if check_update}}checked{{/if}}>
+                <label for="updates_yes" class="switch-label switch-label-off">Yes</label>
+                <input type="radio" class="switch-input" name="updates" value="no" id="updates_no" {{#unless check_update}}checked{{/unless}}>
+                <label for="updates_no" class="switch-label switch-label-on">No</label>
+                <span class="switch-selection"></span>
+            </div>
+        </div>
+        <div class="description">Automatically look for updates to RethinkDB</div>
     </div>
 </script>

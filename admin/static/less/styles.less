@@ -66,6 +66,86 @@ body:before {
     width: 0;
     margin-top: -32767px;
 }
+.options_background{
+    display: none;
+    position: absolute;
+    width: 100%;
+    background: #fafafa;
+    border-bottom: 1px solid #ccc;
+    padding: 0px;
+    height: 86px;
+    border-bottom: 2px solid #ddd;
+}
+.options_container_arrow_overlay{
+    display: none;
+    position: absolute;
+    z-index: 201;
+    left: 50%;
+    top: 51px;
+    width: 0; 
+    height: 0; 
+    margin: 1px 0px 0px 185px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent; 
+    border-bottom:10px solid #F6F0E3; 
+}
+.options_full_container{
+    position: relative;
+    margin: 0px auto;
+    text-shadow: none;
+    padding: 0px;
+    .title{
+        width: 100%;
+        background: #F6F0E3;
+        border-top: 1px solid #F0E6D1;
+        border-bottom: 1px solid #F0E6D1;
+
+        overflow: auto;
+        .title_content {
+            width: 940px;
+            margin: 0px auto;
+            color: #666;
+            padding: 9px 0px 2px 0px;
+            .title_text{
+                font-family: @serif;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            .version{
+                float: right;
+                margin: 0px 0px 7px 0px;
+                font-family: @sans;
+                font-size: 13px;
+                -webkit-font-smoothing: antialiased;
+                .layers{
+                    float: left;
+                    display: block;
+                    margin: 3px 8px 0px 0px;
+                    opacity: 0.7;
+                }
+            }
+        }
+    }
+    .options_content{
+        width: 940px;
+        margin: 3px auto;
+        padding: 8px 0px 0px 0px;
+        overflow: auto;
+        .toggle-primary{
+            float: left;
+            margin: 2px 0px 3px 0px;
+            .switch{
+                float: none;
+            }
+        }
+        .description{
+            margin: 5px 0px 0px 120px;
+            font-family: @sans;
+            font-size: 14px;
+            color: #666;
+        }
+    }
+}
 
 /*
     ----------------------------
@@ -335,8 +415,11 @@ TODO: retire this
         list-style-type: none;
         li {
             display: inline-block;
-            margin-right: 64px;
+            margin-right: 63px;
             a { color: #a3a3a3; }
+            &:last-child{
+                margin-right: 0px
+            }
         }
     }
 
@@ -370,11 +453,12 @@ TODO: retire this
             li {
                 font-size: 15px;
                 display: inline-block;
+                text-align: center;
                 vertical-align: middle;
                 text-shadow: @text_shadow;
                 margin-left: -3px;
                 a {
-                    padding: 21px 24px;
+                    padding: 21px 0px;
                     color: #ababab;
                     display: block;
                     &:hover {
@@ -383,7 +467,8 @@ TODO: retire this
                     }
                 }
                 &#nav-logo {
-                    padding-left: 0;
+                    width: 131px;
+                    text-align: left;
                     a {
                         font-family: @serif;
                         font-size: 22px;
@@ -397,6 +482,35 @@ TODO: retire this
                 &.active {
                     a { color: white; }
                 }
+            }
+            /* Fonts are not rendered on the same way on Linux and OS X, making the menu having different sizes.
+            We fix this problem by specifying the witdth of our blocks. */
+            #nav-dashboard{
+                width: 118px;
+            }
+            #nav-namespaces{
+                width: 86px;
+            }
+            #nav-servers{
+                width: 94px;
+            }
+            #nav-dataexplorer{
+                width: 136px;
+            }
+            #nav-logs{
+                width: 74px;
+            }
+            #nav-options{
+                width: 60px;
+            }
+            .cog_icon{
+                .opacity(0.4);
+            }
+            .cog_icon:hover, .cog_icon.active{
+                .opacity(0.9);
+            }
+            #nav-options{
+                position: relative;
             }
         }
         /* right nav (search) */
@@ -2755,4 +2869,47 @@ TODO: retire this
     right: 0;
     width: 190px;
     z-index: 1000;
+}
+
+
+/*
+    ----------------------------
+    Updates
+    ----------------------------
+*/
+.updates_container{
+    .settings{
+        display: none;
+        width: 895px;
+        margin: 20px auto 0px auto;
+        padding: 7px 35px 7px 10px;
+        .updates{
+            margin-top: 6px;
+            float: left;
+        }
+        .options_container{
+            float: right;
+        }
+        .close{
+            float: right;
+        }
+        .btn{
+            float: right;
+            padding: 4px 14px 4px;
+            margin-right: 20px;
+        }
+        .release_link a{
+            font-weight: normal;
+            color: #0088cc;
+        }
+    }
+    .changeul{
+        padding: 0px;
+        margin: 0px;
+        list-style: none;
+        .change{
+            padding: 0px;
+            margin: 0px 0px 0px 20px;
+        }
+    }
 }
