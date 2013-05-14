@@ -13,7 +13,7 @@ commands:
       a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.
       <br /><br />When creating a table you can specify the following options:
       <ul>
-      <li><code>primary_key</code>(string): the name of the primary key. The default primary key field name is <code>id</code>;</li>
+      <li><code>primary_key</code>(string): the name of the primary key. The default primary key is <code>id</code>;</li>
       <li><code>hard_durability</code>(boolean): if set to <code>false</code>, this enables <strong>soft durability</strong>
        on this table: writes will be acknowledged by the server immediately and flushed to disk in the background. 
        Default is <code>true</code> (hard durability);</li>
