@@ -2,9 +2,16 @@
 
 Released on 2013-13-32
 
-## Changes ##
+This release introduces secondary indexes.
+They are documented in the [release announcement]() and [API documentation]()
+
+## New Features ##
 
 
+## Fixed bugs ##
+
+
+[All closed issues between 1.4.5 and 1.5.0](https://github.com/rethinkdb/rethinkdb/issues?milestone=8&page=1&state=closed)
 
 ---
 
