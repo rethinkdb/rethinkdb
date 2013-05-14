@@ -51,10 +51,6 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += valgrind
   endif
 
-  ifeq (1,$(AIOSUPPORT))
-    BUILD_DIR += aiosupport
-  endif
-
   ifeq (1,$(NO_TCMALLOC))
     BUILD_DIR += notcmalloc
   endif

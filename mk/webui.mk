@@ -24,6 +24,7 @@ COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			navbar.coffee \
 			router.coffee \
 			app.coffee)
+COFFEE_VERSION_FILE :=  $(WEB_ASSETS_OBJ_DIR)/version.coffee
 LESS_SOURCES := $(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN := $(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML := $(WEB_SOURCE_DIR)/templates/cluster.html
@@ -60,7 +61,10 @@ $(WEB_ASSETS_BUILD_DIR)/js/template.js: $(HANDLEBAR_HTML_FILES) $(HANDLEBARS) $(
 	$P HANDLEBARS $@
 	env TC_HANDLEBARS_EXE=$(HANDLEBARS) $(TOP)/scripts/build_handlebars_templates.py $(WEB_SOURCE_DIR)/static/handlebars $(BUILD_DIR) $(WEB_ASSETS_BUILD_DIR)/js
 
-$(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES) | $(WEB_ASSETS_OBJ_DIR)/.
+$(COFFEE_VERSION_FILE): | $(WEB_ASSETS_OBJ_DIR)/.
+	echo "window.VERSION = '$(RETHINKDB_VERSION)'" > $@
+
+$(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_VERSION_FILE) $(COFFEE_SOURCES) | $(WEB_ASSETS_OBJ_DIR)/.
 	$P CONCAT $@
 	cat $+ > $@
 

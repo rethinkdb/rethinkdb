@@ -20,12 +20,11 @@ serializer_filepath_t dbq_serializer_path() {
 
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_t<int> queue(io_backender.get(), serializer_path, &get_global_perfmon_collection());
+    disk_backed_queue_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
@@ -48,12 +47,11 @@ TEST(DiskBackedQueue, ManyInts) {
 
 void run_big_values_test() {
     static const int NUM_BIG_ELTS_IN_QUEUE = 100;
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_t<std::string> queue(io_backender.get(), serializer_path, &get_global_perfmon_collection());
+    disk_backed_queue_t<std::string> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
     std::queue<std::string> ref_queue;
 
     std::string val;
@@ -81,12 +79,11 @@ static void randomly_delay(int, signal_t *) {
 }
 
 void run_concurrent_test() {
-    scoped_ptr_t<io_backender_t> io_backender;
-    make_io_backender(aio_default, &io_backender);
+    io_backender_t io_backender;
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_wrapper_t<int> queue(io_backender.get(), serializer_path, &get_global_perfmon_collection());
+    disk_backed_queue_wrapper_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
     boost_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {

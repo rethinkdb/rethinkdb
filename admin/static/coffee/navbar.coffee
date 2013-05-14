@@ -6,9 +6,13 @@ class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
     template: Handlebars.templates['navbar_view-template']
+    events:
+        'click .options_link': 'update_cog_icon'
+
 
     initialize: =>
         @first_render = true
+        @options_state = 'hidden' # can be 'hidden' or 'visible'
 
     init_typeahead: => # Has to be called after we have injected the template
         @.$('input.search-box').typeahead
@@ -60,3 +64,7 @@ class NavBarView extends Backbone.View
                 when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
                 when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
                 when 'route:logs'               then @.$('li#nav-logs').addClass('active')
+
+    update_cog_icon: (event) =>
+        @$('.cog_icon').toggleClass 'active'
+        window.options_view.toggle_options event

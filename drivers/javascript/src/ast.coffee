@@ -29,19 +29,19 @@ class TermBase
     toString: -> RqlQueryPrinter::printQuery(@)
 
 class RDBVal extends TermBase
-    eq: varar 1, null, (others...) -> new Eq {}, @, others...
-    ne: varar 1, null, (others...) -> new Ne {}, @, others...
-    lt: varar 1, null, (others...) -> new Lt {}, @, others...
-    le: varar 1, null, (others...) -> new Le {}, @, others...
-    gt: varar 1, null, (others...) -> new Gt {}, @, others...
-    ge: varar 1, null, (others...) -> new Ge {}, @, others...
+    eq: varar(1, null, (others...) -> new Eq {}, @, others...)
+    ne: varar(1, null, (others...) -> new Ne {}, @, others...)
+    lt: varar(1, null, (others...) -> new Lt {}, @, others...)
+    le: varar(1, null, (others...) -> new Le {}, @, others...)
+    gt: varar(1, null, (others...) -> new Gt {}, @, others...)
+    ge: varar(1, null, (others...) -> new Ge {}, @, others...)
 
     not: ar () -> new Not {}, @
 
-    add: varar 1, null, (others...) -> new Add {}, @, others...
-    sub: varar 1, null, (others...) -> new Sub {}, @, others...
-    mul: varar 1, null, (others...) -> new Mul {}, @, others...
-    div: varar 1, null, (others...) -> new Div {}, @, others...
+    add: varar(1, null, (others...) -> new Add {}, @, others...)
+    sub: varar(1, null, (others...) -> new Sub {}, @, others...)
+    mul: varar(1, null, (others...) -> new Mul {}, @, others...)
+    div: varar(1, null, (others...) -> new Div {}, @, others...)
     mod: ar (other) -> new Mod {}, @, other
 
     append: ar (val) -> new Append {}, @, val
@@ -49,7 +49,7 @@ class RDBVal extends TermBase
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
-    contains: varar 1, null, (fields...) -> new Contains {}, @, fields...
+    contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -61,10 +61,10 @@ class RDBVal extends TermBase
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
-    orderBy: varar 1, null, (fields...) -> new OrderBy {}, @, fields...
+    orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
     count: ar () -> new Count {}, @
-    union: varar 1, null, (others...) -> new Union {}, @, others...
+    union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
@@ -78,8 +78,8 @@ class RDBVal extends TermBase
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
 
-    or: varar 1, null, (others...) -> new Any {}, @, others...
-    and: varar 1, null, (others...) -> new All {}, @, others...
+    or: varar(1, null, (others...) -> new Any {}, @, others...)
+    and: varar(1, null, (others...) -> new All {}, @, others...)
 
     forEach: ar (func) -> new ForEach {}, @, funcWrap(func)
 
@@ -263,11 +263,12 @@ class Table extends RDBOp
     get: ar (key) -> new Get {}, @, key
     getAll: aropt (key, opts) -> new GetAll opts, @, key
     insert: aropt (doc, opts) -> new Insert opts, @, doc
-    indexCreate: varar 1, 2, (name, defun) ->
+    indexCreate: varar(1, 2, (name, defun) ->
         if defun?
             new IndexCreate {}, @, name, funcWrap(defun)
         else
             new IndexCreate {}, @, name
+        )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
 
