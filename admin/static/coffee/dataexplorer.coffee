@@ -2287,8 +2287,6 @@ module 'DataExplorerView', ->
         execute_portion: =>
             @saved_data.cursor = null
             while @queries[@index]?
-                @driver_handler.reset_count()
-
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
 
@@ -3411,11 +3409,10 @@ module 'DataExplorerView', ->
     class @DriverHandler
         # I don't want that thing in window
         constructor: (args) ->
-            that = @
-
             @container = args.container
             @on_success = args.on_success
             @on_fail = args.on_fail
+            @dont_timeout_connection = if args.dont_timeout_connection? then args.dont_timeout_connection else false
 
             if window.location.port is ''
                 if window.location.protocol is 'https:'
@@ -3432,23 +3429,21 @@ module 'DataExplorerView', ->
             @hack_driver()
             @connect()
         
-        reset_count: =>
-            @count = 0
-            @done = 0
-
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
             if not TermBase.prototype.private_run?
                 that = @
                 TermBase.prototype.private_run = TermBase.prototype.run
                 TermBase.prototype.run = ->
-                    throw that.container.query_error_template
-                        found_run: true
+                    if that.container.query_error?
+                        throw that.container.query_error_template
+                            found_run: true
 
         connect: =>
             that = @
             # Whether we are going to reconnect or not, the cursor might have timed out.
-            @container.saved_data.cursor_timed_out = true
+            if @container?
+                @container.saved_data.cursor_timed_out = true
             if @timeout?
                 clearTimeout @timeout
 
@@ -3465,8 +3460,10 @@ module 'DataExplorerView', ->
                     else
                         that.connection = connection
                         that.on_success(connection)
-                @container.results_view.cursor_timed_out()
-                @timeout = setTimeout @connect, 5*60*1000
+                if @container?
+                    @container.results_view.cursor_timed_out()
+                unless @dont_timeout_connection
+                    @timeout = setTimeout @connect, 5*60*1000
             catch err
                 @on_fail()
     

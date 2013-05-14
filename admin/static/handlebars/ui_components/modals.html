@@ -108,5 +108,9 @@
     {{#if special_char_detected}}
     <p>You can only use alphanumeric characters and underscores for a {{type}}'s name.</p>
     {{/if}}
+    {{#if fail_create_secondary_index}}
+    <p>The secondary index could not be created. Message returned by the driver:<br/>
+    {{message}}</p>
+    {{/if}}
   </div>
 </script>
