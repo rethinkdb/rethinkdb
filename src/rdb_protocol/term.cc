@@ -141,6 +141,7 @@ void run(Query *q, scoped_ptr_t<env_t> *env_ptr,
                     val_t *noreply = env->get_optarg("noreply");
                     r_sanity_check(noreply);
                     *response_needed_out = !noreply->as_bool();
+                    break;
                 }
             }
 
