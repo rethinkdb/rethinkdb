@@ -150,6 +150,26 @@ void bring_sindexes_up_to_date(
                 auto_drainer_t::lock_t(&store->drainer)));
 }
 
+class apply_sindex_change_visitor_t : public boost::static_visitor<> {
+public:
+    apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
+            transaction_t *txn,
+            signal_t *interruptor)
+        : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
+    void operator()(const rdb_modification_report_t &mod_report) const {
+        rdb_update_sindexes(*sindexes_, &mod_report, txn_);
+    }
+
+    void operator()(const rdb_erase_range_report_t &erase_range_report) const {
+        rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
+    }
+
+private:
+    const sindex_access_vector_t *sindexes_;
+    transaction_t *txn_;
+    signal_t *interruptor_;
+};
+
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro. */
@@ -180,7 +200,7 @@ void post_construct_and_drain_queue(
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
-                &token_pair.main_write_token,
+                &token_pair,
                 &queue_txn,
                 &queue_superblock,
                 lock.get_drain_signal());
@@ -213,11 +233,12 @@ void post_construct_and_drain_queue(
                 mod_queue->pop(&data_vec);
                 vector_read_stream_t read_stream(&data_vec);
 
-                rdb_modification_report_t mod_report;
-                int ser_res = deserialize(&read_stream, &mod_report);
+                rdb_sindex_change_t sindex_change;
+                int ser_res = deserialize(&read_stream, &sindex_change);
                 guarantee_err(ser_res == 0, "corruption in disk-backed queue");
 
-                rdb_update_sindexes(sindexes, &mod_report, queue_txn.get());
+                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
+                                     sindex_change);
             }
 
             previous_size = mod_queue->size();
@@ -255,7 +276,7 @@ void post_construct_and_drain_queue(
             repli_timestamp_t::distant_past,
             2,
             WRITE_DURABILITY_HARD,
-            &token_pair.main_write_token,
+            &token_pair,
             &queue_txn,
             &queue_superblock,
             lock.get_drain_signal());
@@ -280,6 +301,10 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
     return delete_range->beg <= h && h < delete_range->end
         && delete_range->inner.contains_key(key->contents, key->size);
 }
+
+typedef boost::variant<rdb_modification_report_t, 
+                       rdb_erase_range_report_t> 
+        sindex_change_t;
 
 }  // namespace rdb_protocol_details
 
@@ -573,11 +598,7 @@ public:
                             } else {
                                 ql::wire_datum_t local_rhs = *rhs;
                                 if (lhs) {
-                                    const ql::datum_t *reduced_val =
-                                        local_reduce_func.
-                                            compile(&ql_env)->
-                                                call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->
-                                                    as_datum();
+                                    counted_t<const ql::datum_t> reduced_val = local_reduce_func.compile(&ql_env)->call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->as_datum();
                                     rg_response->result = ql::wire_datum_t(reduced_val);
                                 } else {
                                     guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -591,7 +612,7 @@ public:
                         }
                     } else if (boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
                         rg_response->result =
-                            ql::wire_datum_t(ql_env.add_ptr(new ql::datum_t(0.0)));
+                            ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
 
                         for (size_t i = 0; i < count; ++i) {
                             const rget_read_response_t *_rr =
@@ -601,10 +622,7 @@ public:
                             const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
                             ql::wire_datum_t local_rhs = *rhs;
 
-                            const ql::datum_t *sum =
-                                ql_env.add_ptr(new ql::datum_t(
-                                                   lhs->compile(&ql_env)->as_num() +
-                                                   local_rhs.compile(&ql_env)->as_num()));
+                            counted_t<const ql::datum_t> sum = make_counted<ql::datum_t>(lhs->compile(&ql_env)->as_num() + local_rhs.compile(&ql_env)->as_num());
                             rg_response->result = ql::wire_datum_t(sum);
                         }
                         boost::get<ql::wire_datum_t>(rg_response->result).finalize();
@@ -625,14 +643,17 @@ public:
                             ql::wire_datum_map_t local_rhs = *rhs;
                             local_rhs.compile(&ql_env);
 
-                            const ql::datum_t *rhs_arr = local_rhs.to_arr(&ql_env);
+                            counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
                             for (size_t f = 0; f < rhs_arr->size(); ++f) {
-                                const ql::datum_t *key = rhs_arr->get(f)->get("group");
-                                const ql::datum_t *val = rhs_arr->get(f)->get("reduction");
+                                counted_t<const ql::datum_t> key
+                                    = rhs_arr->get(f)->get("group");
+                                counted_t<const ql::datum_t> val
+                                    = rhs_arr->get(f)->get("reduction");
                                 if (!map->has(key)) {
                                     map->set(key, val);
                                 } else {
-                                    ql::func_t *r = local_gmr_func.compile_reduce(&ql_env);
+                                    counted_t<ql::func_t> r
+                                        = local_gmr_func.compile_reduce(&ql_env);
                                     map->set(key, r->call(map->get(key), val)->as_datum());
                                 }
                             }
@@ -644,8 +665,7 @@ public:
                 } catch (const ql::datum_exc_t &e) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    boost::apply_visitor(ql::exc_visitor_t(e, &rg_response->result),
-                                         rg.terminal->variant);
+                    terminal_exception(e, rg.terminal->variant, &rg_response->result);
                 }
             }
         } catch (const runtime_exc_t &e) {
@@ -1082,10 +1102,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                   NVAR(arg1)));
 
             Backtrace dummy_backtrace;
-            ql::term_walker_t(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(
-                filter_term,
-                static_cast<std::map<int64_t, Datum>*>(NULL));
+            ql::propagate_backtrace(&filter_term, &dummy_backtrace);
+            ql::filter_wire_func_t sindex_filter(filter_term, std::map<int64_t, Datum>());
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
@@ -1321,7 +1339,7 @@ private:
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
         write_message_t wm;
-        wm << *mod_report;
+        wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
@@ -1471,12 +1489,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
-        rdb_modification_report_cb_t sindex_cb(
-            store, token_pair, txn,
-            superblock->get_sindex_block_id(),
-            auto_drainer_t::lock_t(&store->drainer));
-
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, &sindex_cb);
+        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
+                store, token_pair, interruptor);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -1498,15 +1512,17 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
 
-        sindex_access_vector_t sindexes;
-        store->acquire_sindex_superblocks_for_write(
-                created_sindexes,
-                sindex_block.get(),
-                txn,
-                &sindexes);
+        if (!created_sindexes.empty()) {
+            sindex_access_vector_t sindexes;
+            store->acquire_sindex_superblocks_for_write(
+                    created_sindexes,
+                    sindex_block.get(),
+                    txn,
+                    &sindexes);
 
-        rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                sindex_block.get(), txn);
+            rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+                    sindex_block.get(), txn);
+        }
     }
 
 private:
@@ -1520,7 +1536,7 @@ private:
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
         write_message_t wm;
-        wm << *mod_report;
+        wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
@@ -1551,18 +1567,13 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *token_pair) {
+                                  write_token_pair_t *token_pair,
+                                  signal_t *interruptor) {
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-
-    rdb_modification_report_cb_t sindex_cb(
-            this, token_pair, txn,
-            superblock->get_sindex_block_id(), 
-            auto_drainer_t::lock_t(&drainer));
-
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, &sindex_cb);
+    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, this, token_pair, interruptor);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

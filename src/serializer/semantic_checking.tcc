@@ -27,9 +27,8 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
 }
 
 template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
-    return intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >(new scs_block_token_t<inner_serializer_t>(block_id, info, inner_token));
+counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::wrap_token(block_id_t block_id, scs_block_info_t info, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
+    return counted_t< scs_block_token_t<inner_serializer_t> >(new scs_block_token_t<inner_serializer_t>(block_id, info, inner_token));
 }
 
 template<class inner_serializer_t>
@@ -107,16 +106,16 @@ file_account_t *semantic_checking_serializer_t<inner_serializer_t>::make_io_acco
 }
 
 template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-index_read(block_id_t block_id) {
+counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::index_read(block_id_t block_id) {
     scs_block_info_t info = blocks.get(block_id);
-    intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> result = inner_serializer.index_read(block_id);
+    counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> result
+        = inner_serializer.index_read(block_id);
     guarantee(info.state != scs_block_info_t::state_deleted || !result,
               "Cache asked for a deleted block, and serializer didn't complain.");
     if (result) {
         return wrap_token(block_id, info, result);
     } else {
-        return intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >();
+        return counted_t< scs_block_token_t<inner_serializer_t> >();
     }
 }
 
@@ -168,7 +167,7 @@ struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public ioc
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback) {
+block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
@@ -180,7 +179,7 @@ block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _toke
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account) {
+block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
@@ -200,7 +199,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
         index_write_op_t op = write_ops[i];
         scs_block_info_t info;
         if (op.token) {
-            intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > tok = op.token.get();
+            counted_t< scs_block_token_t<inner_serializer_t> > tok = op.token.get();
             if (tok) {
                 scs_block_token_t<inner_serializer_t> *token = tok.get();
                 // Fix the op to point at the inner serializer's block token.  (No.)
@@ -228,21 +227,22 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
 }
 
 template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-wrap_buf_token(block_id_t block_id, const void *buf, intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
+counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::wrap_buf_token(block_id_t block_id, const void *buf, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
     return wrap_token(block_id, scs_block_info_t(compute_crc(buf)), inner_token);
 }
 
 template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
-    return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account, cb));
+counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+    return wrap_buf_token(block_id,
+                          buf,
+                          inner_serializer.block_write(buf, block_id, io_account, cb));
 }
 
 template<class inner_serializer_t>
-intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account));
+counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
+    return wrap_buf_token(block_id,
+                          buf,
+                          inner_serializer.block_write(buf, block_id, io_account));
 }
 
 template<class inner_serializer_t>

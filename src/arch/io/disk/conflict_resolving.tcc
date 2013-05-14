@@ -6,6 +6,15 @@
 
 #include "perfmon/perfmon.hpp"
 
+template <class payload_t>
+void debug_print(append_only_printf_buffer_t *buf,
+                 const conflict_resolving_diskmgr_action_t<payload_t> &action) {
+    buf->appendf("cr_diskmgr_action{conflict_count=%d}<", action.conflict_count);
+    const payload_t &parent_action = action;
+    debug_print(buf, parent_action);
+}
+
+
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
     conflict_sampler(secs_to_ticks(1), true),

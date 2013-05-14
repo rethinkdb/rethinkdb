@@ -26,8 +26,8 @@ class io_backender_t;
 class real_superblock_t;
 class traversal_progress_combiner_t;
 
-write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
-archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
+write_message_t &operator<<(write_message_t &msg, const counted_t<data_buffer_t> &buf);
+archive_result_t deserialize(read_stream_t *s, counted_t<data_buffer_t> *buf);
 write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
 archive_result_t deserialize(read_stream_t *s, rget_result_t *iter);
 
@@ -212,7 +212,8 @@ public:
                                  btree_slice_t *btree,
                                  transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair);
+                                 write_token_pair_t *token_pair,
+                                 signal_t *interruptor);
     };
 
 };

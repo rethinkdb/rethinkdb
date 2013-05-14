@@ -7,6 +7,7 @@
 #include "utils.hpp"
 
 #include "containers/archive/stl_types.hpp"
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 #include "rpc/serialize_macros.hpp"
@@ -38,26 +39,24 @@ public:
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    explicit pb_rcheckable_t(const Term *t)
-        : bt_src(&t->GetExtension(ql2::extension::backtrace)), dummy_frames(0) { }
+    explicit pb_rcheckable_t(protob_t<const Term> t)
+        : bt_src(t.make_child(&t->GetExtension(ql2::extension::backtrace))) { }
 
-    explicit pb_rcheckable_t(const pb_rcheckable_t *rct)
-        : bt_src(rct->bt_src), dummy_frames(rct->dummy_frames) { }
+    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
+        : bt_src(_bt_src) { }
 
     virtual void runtime_check(const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg, bt_src, dummy_frames);
+        ql::runtime_check(test, file, line, pred, msg, bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
-    void note_dummy_frame() {
-        dummy_frames += 1;
-    }
+    protob_t<const Backtrace> backtrace() const { return bt_src; }
+
 private:
-    const Backtrace *bt_src;
-    int dummy_frames;
+    protob_t<const Backtrace> bt_src;
 };
 
 // Use these macros to return errors to users.
@@ -73,7 +72,7 @@ private:
     } while (0)
 
 #define rcheck(pred, msg) rcheck_target(this, pred, msg)
-#define rcheck_toplevel(pred, msg) rcheck_src(0, pred, msg)
+#define rcheck_toplevel(pred, msg) rcheck_src(NULL, pred, msg)
 
 #define rfail_target(target, args...) do {              \
         rcheck_target(target, false, strprintf(args));  \
@@ -92,7 +91,7 @@ private:
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) runtime_sanity_check(test)
+#define r_sanity_check(test) do { ::ql::runtime_sanity_check(test); } while (0)
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
@@ -101,7 +100,7 @@ public:
     explicit backtrace_t(const Backtrace *bt) {
         if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
-            push_back(bt->frames(i));
+            push_back(frame_t(bt->frames(i)));
         }
     }
     backtrace_t() { }
@@ -166,10 +165,6 @@ private:
         r_sanity_check(f.is_valid());
         frames.push_back(f);
     }
-    template<class T>
-    void push_back(T t) {
-        push_back(frame_t(t));
-    }
 
     std::list<frame_t> frames;
 };
@@ -182,34 +177,32 @@ public:
     virtual ~base_exc_t() throw () { }
 };
 
-// A RQL exception.  In the future it will be tagged.
+// A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
-    exc_t() : exc_msg("UNINITIALIZED") { }
-    exc_t(const std::string &_exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
-        : exc_msg(_exc_msg) {
-        if (bt_src) set_backtrace(bt_src);
-        backtrace.delete_frames(dummy_frames);
+    exc_t() : exc_msg_("UNINITIALIZED") { }
+    exc_t(const std::string &exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
+        : exc_msg_(exc_msg) {
+        if (bt_src != NULL) {
+            backtrace_ = backtrace_t(bt_src);
+        }
+        backtrace_.delete_frames(dummy_frames);
     }
-    exc_t(const std::string &_exc_msg, const backtrace_t &_backtrace,
+    exc_t(const std::string &exc_msg, const backtrace_t &backtrace,
           int dummy_frames = 0)
-        : backtrace(_backtrace), exc_msg(_exc_msg) {
-        backtrace.delete_frames(dummy_frames);
+        : backtrace_(backtrace), exc_msg_(exc_msg) {
+        backtrace_.delete_frames(dummy_frames);
     }
     virtual ~exc_t() throw () { }
-    const char *what() const throw () { return exc_msg.c_str(); }
-    RDB_MAKE_ME_SERIALIZABLE_2(backtrace, exc_msg);
 
-    template<class T>
-    void set_backtrace(const T *t) {
-        r_sanity_check(backtrace.is_empty());
-        backtrace = backtrace_t(t);
-    }
+    const char *what() const throw () { return exc_msg_.c_str(); }
+    const backtrace_t &backtrace() const { return backtrace_; }
 
-    backtrace_t backtrace;
+    RDB_MAKE_ME_SERIALIZABLE_2(backtrace_, exc_msg_);
 private:
-    std::string exc_msg;
+    backtrace_t backtrace_;
+    std::string exc_msg_;
 };
 
 // A datum exception is like a normal RQL exception, except it doesn't

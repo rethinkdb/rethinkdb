@@ -119,17 +119,17 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     rdb_protocol_t::point_replace_response_t *res = boost::get<rdb_protocol_t::point_replace_response_t>(&response->response);
     ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
 
-    const ql::datum_t *num_records = env->add_ptr(new ql::datum_t(1.0));
-    ql::datum_t *resp = env->add_ptr(new ql::datum_t(ql::datum_t::R_OBJECT));
+    counted_t<const ql::datum_t> num_records = make_counted<ql::datum_t>(1.0);
+    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
 
-    const ql::datum_t *old_val;
+    counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
-        old_val = env->add_ptr(new ql::datum_t(data->at(r.key)->get(), env));
+        old_val = make_counted<ql::datum_t>(data->at(r.key)->get(), env);
     } else {
-        old_val = env->add_ptr(new ql::datum_t(ql::datum_t::R_NULL));
+        old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
 
-    const ql::datum_t *new_val = f->compile(env)->call(old_val)->as_datum();
+    counted_t<const ql::datum_t> new_val = f->compile(env)->call(old_val)->as_datum();
     data->erase(r.key);
 
     bool not_added;

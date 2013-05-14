@@ -28,8 +28,9 @@ init () {
     npm_deps="$web_assets_deps"
     required_bin_deps="protoc"
     support_bin_deps="$required_bin_deps $web_assets_deps npm"
+    optional_bin_deps="wget curl"
     support_deps="$support_bin_deps $support_libs"
-    bin_deps="cxx $support_bin_deps"
+    bin_deps="cxx $support_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
 
     allowed_arg_vars="CXXFLAGS LDFLAGS"
@@ -78,6 +79,7 @@ configure () {
     boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
     if ! $enable_precompiled_web; then
         for bin in $web_assets_deps; do
+            require_dep $bin
             check_bin $bin
         done
         if ! contains "$fetch_list" coffee; then
@@ -86,9 +88,15 @@ configure () {
         fi
     fi
     for bin in $required_bin_deps; do
+        require_dep $bin
+        check_bin $bin
+    done
+    for bin in $optional_bin_deps; do
+        optional_dep $bin
         check_bin $bin
     done
     if any "$fetch_list" contains "$npm_deps"; then
+        require_dep npm
         check_bin npm
     fi
     build_try_lib_paths
@@ -155,7 +163,7 @@ read_args () {
     failed=false
 
     allow_fetch=false
-    fetch_list=
+    please_fetch_list=
     force_paths='= '
     can_show=false
     required=false
@@ -193,9 +201,9 @@ read_args () {
             --fetch) $has_arg
                 allow_fetch=true
                 if [[ "$arg" = "all" ]]; then
-                    fetch_list="$support_deps"
+                    please_fetch_list="$support_deps"
                 elif contains "$support_deps" "$arg"; then
-                    fetch_list="$fetch_list $arg"
+                    please_fetch_list="$please_fetch_list $arg"
                 else
                     die "Don't know how to fetch '$arg'"
                 fi ;;
@@ -565,8 +573,7 @@ lookup () {
 # check_bin <name>
 # Check for a binary
 check_bin () {
-    require_dep $1
-    if $allow_fetch && contains "$fetch_list" $1; then
+    if contains "$please_fetch_list" $1; then
         fetch_bin $1
         return
     fi
@@ -588,6 +595,9 @@ check_bin () {
     fi
     var "$(uc $1)" "$bin"
 }
+
+# List of dependencies that make will fetch
+fetch_list=
 
 # fetch_bin <name>
 # Instruct make to fetch and build the binary
@@ -650,8 +660,13 @@ build_try_lib_paths () {
 #           installed version is compatible. Try using pkg-config.
 check_lib () {
     local path
+    if contains "$please_fetch_list" $1; then
+        require_dep $1
+        fetch_lib $1
+        return
+    fi
     if lookup "$force_paths" $1 path; then
-        require $1
+        require_dep $1
         var_append LIBRARY_PATHS $path
         return
     fi

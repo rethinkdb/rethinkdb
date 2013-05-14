@@ -1,4 +1,6 @@
 #include "rdb_protocol/env.hpp"
+
+#include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
@@ -6,14 +8,23 @@
 
 namespace ql {
 
+/* Checks that divisor is indeed a divisor of multiple. */
+template <class T>
+bool is_joined(const T &multiple, const T &divisor) {
+    T cpy = multiple;
+
+    semilattice_join(&cpy, divisor);
+    return cpy == multiple;
+}
+
+
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
-    env_wrapper_t<Term> *ewt = add_ptr(new env_wrapper_t<Term>());
-    Term *arg = &ewt->t;
+    protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
-    term_walker_t(arg, &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, 0);
-    func_t *force_compilation = optargs[key].compile(this);
+    propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
+    optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
+    counted_t<func_t> force_compilation = optargs[key].compile(this);
     r_sanity_check(force_compilation != NULL);
     return false;
 }
@@ -21,12 +32,14 @@ void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
     for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        func_t *force_compilation = it->second.compile(this);
+        counted_t<func_t> force_compilation = it->second.compile(this);
         r_sanity_check(force_compilation != NULL);
     }
 }
-val_t *env_t::get_optarg(const std::string &key){
-    if (!optargs.count(key)) return 0;
+counted_t<val_t> env_t::get_optarg(const std::string &key){
+    if (!optargs.count(key)) {
+        return counted_t<val_t>();
+    }
     return optargs[key].compile(this)->call();
 }
 const std::map<std::string, wire_func_t> &env_t::get_all_optargs() {
@@ -49,10 +62,10 @@ bool env_t::var_allows_implicit(int varnum) {
     return varnum >= min_normal_gensym;
 }
 
-void env_t::push_implicit(const datum_t **val) {
+void env_t::push_implicit(counted_t<const datum_t> *val) {
     implicit_var.push(val);
 }
-const datum_t **env_t::top_implicit(const rcheckable_t *caller) {
+counted_t<const datum_t> *env_t::top_implicit(const rcheckable_t *caller) {
     rcheck_target(caller, !implicit_var.empty(),
                   "r.row is not defined in this context.");
     rcheck_target(caller, implicit_var.size() == 1,
@@ -64,64 +77,47 @@ void env_t::pop_implicit() {
     implicit_var.pop();
 }
 
-size_t env_t::num_checkpoints() const {
-    return bags.size()-1;
-}
-bool env_t::some_bag_has(const ptr_baggable_t *p) {
-    for (size_t i = 0; i < bags.size(); ++i) if (bags[i]->has(p)) return true;
-    return false;
-}
-void env_t::checkpoint() {
-    bags.push_back(new ptr_bag_t());
-}
-
-void env_t::merge_checkpoint() {
-    r_sanity_check(bags.size() >= 2);
-    bags[bags.size()-2]->add(bags[bags.size()-1]);
-    bags.pop_back();
-}
-void env_t::discard_checkpoint() {
-    r_sanity_check(bags.size() >= 2);
-    delete bags[bags.size()-1];
-    bags.pop_back();
-}
-
-bool env_t::gc_callback(const datum_t *el) {
-    if (old_bag->has(el)) {
-        old_bag->yield_to(new_bag, el);
-        return true;
-    }
-    r_sanity_check(some_bag_has(el));
-    return false;
-}
-void env_t::gc(const datum_t *root) {
-    old_bag = current_bag();
-    scoped_ptr_t<ptr_bag_t> _new_bag(new ptr_bag_t);
-    new_bag = _new_bag.get();
-    root->iter(gc_callback_caller_t(this));
-    *current_bag_ptr() = _new_bag.release();
-    delete old_bag;
-}
-
-ptr_bag_t *env_t::current_bag() { return *current_bag_ptr(); }
-ptr_bag_t **env_t::current_bag_ptr() {
-    r_sanity_check(bags.size() > 0);
-    return &bags[bags.size()-1];
-}
-
-void env_t::push_var(int var, const datum_t **val) {
+void env_t::push_var(int var, counted_t<const datum_t> *val) {
     vars[var].push(val);
 }
-const datum_t **env_t::top_var(int var, const rcheckable_t *caller) {
+
+static counted_t<const datum_t> sindex_error_dummy_datum;
+void env_t::push_special_var(int var, special_var_t special_var) {
+    switch (special_var) {
+    case SINDEX_ERROR_VAR: {
+        vars[var].push(&sindex_error_dummy_datum);
+    } break;
+    default: unreachable();
+    }
+}
+
+env_t::special_var_shadower_t::special_var_shadower_t(
+    env_t *env, special_var_t special_var) : shadow_env(env) {
+    shadow_env->dump_scope(&current_scope);
+    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
+        shadow_env->push_special_var(it->first, special_var);
+    }
+}
+
+env_t::special_var_shadower_t::~special_var_shadower_t() {
+    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
+        shadow_env->pop_var(it->first);
+    }
+}
+
+counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
     rcheck_target(caller, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
-    return vars[var].top();
+    counted_t<const datum_t> *var_val = vars[var].top();
+    rcheck_target(caller, var_val != &sindex_error_dummy_datum,
+                  "Cannot reference external variables from inside an index.");
+    return var_val;
 }
 void env_t::pop_var(int var) {
     vars[var].pop();
 }
-void env_t::dump_scope(std::map<int64_t, const datum_t **> *out) {
-    for (std::map<int64_t, std::stack<const datum_t **> >::iterator
+void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
+    for (std::map<int64_t, std::stack<counted_t<const datum_t> *> >::iterator
              it = vars.begin(); it != vars.end(); ++it) {
         if (it->second.size() == 0) continue;
         r_sanity_check(it->second.top());
@@ -129,11 +125,12 @@ void env_t::dump_scope(std::map<int64_t, const datum_t **> *out) {
     }
 }
 void env_t::push_scope(std::map<int64_t, Datum> *in) {
-    scope_stack.push(std::vector<std::pair<int, const datum_t *> >());
+    scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
 
     for (std::map<int64_t, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
-        const datum_t *d = add_ptr(new datum_t(&it->second, this));
-        scope_stack.top().push_back(std::make_pair(it->first, d));
+        scope_stack.top().push_back(std::make_pair(it->first,
+                                                   make_counted<datum_t>(&it->second,
+                                                                         this)));
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
@@ -159,77 +156,6 @@ void env_t::do_eval_callback() {
     if (eval_callback != NULL) {
         eval_callback->eval_callback();
     }
-}
-
-env_checkpoint_t::env_checkpoint_t(env_t *_env, destructor_op_t _destructor_op)
-    : env(_env), destructor_op(_destructor_op) {
-    env->checkpoint();
-}
-env_checkpoint_t::~env_checkpoint_t() {
-    switch (destructor_op) {
-    case MERGE: {
-        env->merge_checkpoint();
-    } break;
-    case DISCARD: {
-        env->discard_checkpoint();
-    } break;
-    default: unreachable();
-    }
-}
-void env_checkpoint_t::reset(destructor_op_t new_destructor_op) {
-    destructor_op = new_destructor_op;
-}
-void env_checkpoint_t::gc(const datum_t *root) {
-    env->gc(root);
-}
-
-// We GC more frequently (~ every 16 data) in debug mode to help with testing.
-#ifndef NDEBUG
-const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF =
-    sizeof(datum_t) * ptr_bag_t::mem_estimate_multiplier * 16;
-#else
-const int env_gc_checkpoint_t::DEFAULT_GEN1_CUTOFF = (8 * 1024 * 1024);
-#endif // NDEBUG
-const int env_gc_checkpoint_t::DEFAULT_GEN2_SIZE_MULTIPLIER = 8;
-
-env_gc_checkpoint_t::env_gc_checkpoint_t(env_t *_env, size_t _gen1, size_t _gen2)
-    : finalized(false), env(_env), gen1(_gen1), gen2(_gen2) {
-    r_sanity_check(env);
-    if (!gen1) gen1 = DEFAULT_GEN1_CUTOFF;
-    if (!gen2) gen2 = DEFAULT_GEN2_SIZE_MULTIPLIER * gen1;
-    env->checkpoint(); // gen2
-    env->checkpoint(); // gen1
-}
-env_gc_checkpoint_t::~env_gc_checkpoint_t() {
-    // We might not be finalized if e.g. an exception was thrown.
-    if (!finalized) {
-        env->merge_checkpoint();
-        env->merge_checkpoint();
-    }
-}
-
-const datum_t *env_gc_checkpoint_t::maybe_gc(const datum_t *root) {
-    if (env->current_bag()->get_mem_estimate() > gen1) {
-        env->gc(root);
-        env->merge_checkpoint();
-        if (env->current_bag()->get_mem_estimate() > gen2) {
-            env->gc(root);
-            if (env->current_bag()->get_mem_estimate() > (gen2 * 2 / 3)) {
-                gen2 *= 4;
-            }
-        }
-        env->checkpoint();
-    }
-    return root;
-}
-const datum_t *env_gc_checkpoint_t::finalize(const datum_t *root) {
-    r_sanity_check(!finalized);
-    finalized = true;
-    if (root) env->gc(root);
-    env->merge_checkpoint();
-    if (root) env->gc(root);
-    env->merge_checkpoint();
-    return root;
 }
 
 void env_t::join_and_wait_to_propagate(
@@ -300,8 +226,6 @@ env_t::env_t(
     this_machine(_this_machine) {
 
     guarantee(js_runner);
-    bags.push_back(new ptr_bag_t());
-
 }
 
 env_t::env_t(signal_t *_interruptor)
@@ -312,14 +236,8 @@ env_t::env_t(signal_t *_interruptor)
     ns_repo(NULL),
     directory_read_manager(NULL),
     DEBUG_ONLY(eval_callback(NULL),)
-    interruptor(_interruptor)
-{
-    bags.push_back(new ptr_bag_t());
-}
+    interruptor(_interruptor) { }
 
-env_t::~env_t() {
-    guarantee(bags.size() == 1);
-    delete bags[0];
-}
+env_t::~env_t() { }
 
 } // namespace ql

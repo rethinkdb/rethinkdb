@@ -1,0 +1,12 @@
+desc: 718 -- another lazy crashing bug
+tests:
+  - rb: r.db('test').table_create('718')
+    ot: ({'created':1})
+
+  - rb: r(4).do{|x| r.table('718').index_create('718') {|row| row[:id] % x}}
+    ot: err("RqlCompileError", "Cannot reference external variables from inside an index.", [])
+  - rb: r(4).do{|x| r.table('718').index_create('718') {|row| row[:id] % 4}}
+    ot: ({'created':1})
+
+  - rb: r.db('test').table_drop('718')
+    ot: ({'dropped':1})

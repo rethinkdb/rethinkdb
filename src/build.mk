@@ -5,15 +5,19 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-ifeq ($(USE_CCACHE),1)
-  RT_CXX := ccache $(CXX)
-else
-  RT_CXX := $(CXX)
-endif
 LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
+
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+  ifeq ($(COMPILER),CLANG)
+    RT_CXXFLAGS += -Qunused-arguments
+  endif
+else
+  RT_CXX := $(CXX)
+endif
 
 STATICFORCE := $(STATIC)
 
@@ -28,6 +32,9 @@ ifeq ($(COMPILER),CLANG)
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
+    RT_LDFLAGS += -lc++
+  else
+    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -38,7 +45,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lstdc++ -lm
+  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lm
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -119,6 +126,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
+  ifeq ($(OS), Darwin)
+    RT_CXXFLAGS += -stdlib=libc++
+  endif
 
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
@@ -245,19 +255,6 @@ ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
 endif
 
-ifeq ($(MCHECK_PEDANTIC),1)
-  RT_CXXFLAGS += -DMCHECK_PEDANTIC
-  MCHECK := 1
-endif
-
-ifeq ($(MCHECK),1)
-  ifneq (1,$(NO_TCMALLOC))
-    $(error cannot build with MCHECK=1 when NO_TCMALLOC=0)
-  endif
-  RT_CXXFLAGS += -DMCHECK
-  RT_LDFLAGS += -lmcheck
-endif
-
 ifeq ($(VALGRIND),1)
   ifneq (1,$(NO_TCMALLOC))
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
@@ -276,8 +273,8 @@ endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
-UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest-1.6.0/make/gtest.a
-UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest-1.6.0/include
+UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
+UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
 RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
@@ -322,7 +319,7 @@ endif
 
 $(UNIT_STATIC_LIBRARY_PATH):
 	$P MAKE $@
-	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest-1.6.0/make gtest.a
+	$(EXTERN_MAKE) -C $(EXTERNAL_DIR)/gtest/make gtest.a
 
 .PHONY: unit
 unit: $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
@@ -346,7 +343,7 @@ rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
+$(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
 	$P LD $@
 	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
 ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc

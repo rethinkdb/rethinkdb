@@ -219,7 +219,7 @@ osx:
 reset-dist-dir: FORCE | web-assets
 	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
 	rm -rf $(PROTOC_JS_PLUGIN)
-	$(EXTERN_MAKE) -C $(TOP)/external/gtest-1.6.0/make clean
+	$(EXTERN_MAKE) -C $(TOP)/external/gtest/make clean
 	$(EXTERN_MAKE) -C $(TOP)/external/protobuf-plugin-closure clean
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)

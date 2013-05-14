@@ -2,7 +2,7 @@
 #ifndef CONTAINERS_COW_PTR_HPP_
 #define CONTAINERS_COW_PTR_HPP_
 
-#include "containers/intrusive_ptr.hpp"
+#include "containers/counted.hpp"
 
 
 /* `cow_ptr_t<T>` (short for [c]opy-[o]n-[w]rite pointer) acts like a container
@@ -42,7 +42,7 @@ public:
     };
 
 private:
-    intrusive_ptr_t<cow_pointee_t<T> > ptr;
+    counted_t<cow_pointee_t<T> > ptr;
 
     /* Number of outstanding `change_t` objects for us. */
     intptr_t change_count;

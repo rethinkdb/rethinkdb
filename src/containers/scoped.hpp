@@ -4,16 +4,49 @@
 
 #include <string.h>
 
+#include <utility>
+
 #include "errors.hpp"
 
 // Like boost::scoped_ptr only with release, init, no bool conversion, no boost headers!
 template <class T>
 class scoped_ptr_t {
 public:
+    template <class U>
+    friend class scoped_ptr_t;
+
     scoped_ptr_t() : ptr_(NULL) { }
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
+    scoped_ptr_t(scoped_ptr_t &&movee) : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+    template <class U>
+    scoped_ptr_t(scoped_ptr_t<U> &&movee) : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+
     ~scoped_ptr_t() {
         reset();
+    }
+
+    scoped_ptr_t &operator=(scoped_ptr_t &&movee) {
+        scoped_ptr_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
+    }
+
+    template <class U>
+    scoped_ptr_t &operator=(scoped_ptr_t<U> &&movee) {
+        scoped_ptr_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
+    }
+
+    template <class U>
+    void init(scoped_ptr_t<U> &&movee) {
+        rassert(ptr_ == NULL);
+
+        operator=(std::move(movee));
     }
 
     // includes a sanity-check for first-time use.
@@ -44,6 +77,11 @@ public:
         other.ptr_ = tmp;
     }
 
+    T &operator*() const {
+        rassert(ptr_);
+        return *ptr_;
+    }
+
     T *get() const {
         rassert(ptr_);
         return ptr_;
@@ -67,6 +105,11 @@ private:
 
     DISABLE_COPYING(scoped_ptr_t);
 };
+
+template <class T, class... Args>
+scoped_ptr_t<T> make_scoped_ptr(Args&&... args) {
+    return scoped_ptr_t<T>(new T(std::forward<Args>(args)...));
+}
 
 // Not really like boost::scoped_array.  A fascist array.
 template <class T>

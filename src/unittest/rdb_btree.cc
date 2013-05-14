@@ -32,7 +32,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                                             1, WRITE_DURABILITY_SOFT,
-                                            &token_pair.main_write_token, &txn, &superblock, &dummy_interruptor);
+                                            &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
@@ -59,7 +59,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             store->lock_sindex_queue(sindex_block.get(), &acq);
 
             write_message_t wm;
-            wm << mod_report;
+            wm << rdb_sindex_change_t(mod_report);
 
             store->sindex_queue_push(wm, &acq);
         }
@@ -83,13 +83,13 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 
     store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
-                                        &token_pair.main_write_token, &txn, &super_block, &dummy_interruptor);
+                                        &token_pair, &txn, &super_block, &dummy_interruptor);
 
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
     N2(GETATTR, NVAR(1), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
+    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
     write_message_t wm;
     wm << m;
@@ -118,7 +118,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT, &token_pair.main_write_token,
+                                        1, WRITE_DURABILITY_SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interuptor);
 
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
@@ -144,7 +144,7 @@ void bring_sindexes_up_to_date(
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
-                                        &token_pair.main_write_token, &txn, &super_block, &dummy_interruptor);
+                                        &token_pair, &txn, &super_block, &dummy_interruptor);
 
     scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(
@@ -170,7 +170,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
-                                        &token_pair.main_write_token, &txn, &super_block, &dummy_interruptor);
+                                        &token_pair, &txn, &super_block, &dummy_interruptor);
 
     scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(
@@ -361,20 +361,17 @@ void run_erase_range_test() {
                                            repli_timestamp_t::invalid,
                                            1,
                                            WRITE_DURABILITY_SOFT,
-                                           &token_pair.main_write_token,
+                                           &token_pair,
                                            &txn,
                                            &super_block,
                                            &dummy_interruptor);
-
-        rdb_modification_report_cb_t cb(&store,
-                &token_pair, txn.get(), super_block->get_sindex_block_id(),
-                auto_drainer_t::lock_t(&store.drainer));
 
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol_details::range_key_tester_t tester(&test_range);
         rdb_erase_range(store.btree.get(), &tester,
                 key_range_t::universe(),
-            txn.get(), super_block.get(), &cb);
+            txn.get(), super_block.get(), &store, &token_pair,
+            &dummy_interruptor);
     }
 
     check_keys_are_NOT_present(&store, sindex_id);

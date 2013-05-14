@@ -40,8 +40,8 @@ private:
     uint32_t compute_crc(const void *buf);
     void update_block_info(block_id_t block_id, scs_block_info_t info);
 
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    counted_t< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    counted_t< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
 
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
@@ -58,15 +58,15 @@ public:
     void free(void *ptr);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
+    counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
-    void block_read(const intrusive_ptr_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
+    void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    intrusive_ptr_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    counted_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    counted_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     block_size_t get_block_size() const;
 

@@ -239,7 +239,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
         Term *arg = ql::pb::set_func(&mapping, 1);
         N2(GETATTR, NVAR(1), NDATUM("id"));
 
-        ql::map_wire_func_t m(mapping, static_cast<std::map<int64_t, Datum> *>(NULL));
+        ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
 
@@ -305,10 +305,11 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         boost::shared_ptr<scoped_cJSON_t> sindex_key_json(new scoped_cJSON_t(cJSON_Parse(it->second.c_str())));
-        ql::datum_t sindex_key_literal(sindex_key_json, &dummy_env);
+        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json,
+                                                                  &dummy_env);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_id,
-                                                                &sindex_key_literal,
-                                                                &sindex_key_literal));
+                                                                sindex_key_literal,
+                                                                sindex_key_literal));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

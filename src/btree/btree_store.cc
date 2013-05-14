@@ -134,7 +134,7 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, durability, &token_pair->main_write_token, &txn, &real_superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, durability, token_pair, &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
@@ -181,13 +181,16 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    // We don't want hard durability, this is a backfill chunk, and nobody wants chunk-by-chunk
-    // acks.
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+        token_destroyer(&token_pair->sindex_write_token);
+
+    // We don't want hard durability, this is a backfill chunk, and nobody
+    // wants chunk-by-chunk acks.
     acquire_superblock_for_write(rwi_write,
                                  chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
                                  WRITE_DURABILITY_SOFT,
-                                 &token_pair->main_write_token,
+                                 token_pair,
                                  &txn,
                                  &superblock,
                                  interruptor);
@@ -224,7 +227,7 @@ void btree_store_t<protocol_t>::reset_data(
                                  repli_timestamp_t::invalid,
                                  expected_change_count,
                                  durability,
-                                 &token_pair->main_write_token,
+                                 token_pair,
                                  &txn,
                                  &superblock,
                                  interruptor);
@@ -237,7 +240,8 @@ void btree_store_t<protocol_t>::reset_data(
                         btree.get(),
                         txn.get(),
                         superblock.get(),
-                        token_pair);
+                        token_pair,
+                        interruptor);
 }
 
 template <class protocol_t>
@@ -445,7 +449,8 @@ void btree_store_t<protocol_t>::set_sindexes(
                 real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
                 erase_all(sizer, sindex_slice,
-                          deleter, txn, &sindex_superblock);
+                          deleter, txn, &sindex_superblock,
+                          interruptor);
             }
 
             secondary_index_slices.erase(it->first);
@@ -550,7 +555,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
             erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock);
+                      deleter, txn, &sindex_superblock, interruptor);
         }
 
         secondary_index_slices.erase(id);
@@ -596,7 +601,7 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
             erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock);
+                      deleter, txn, &sindex_superblock, interruptor);
         }
 
         secondary_index_slices.erase(it->first);
@@ -1002,6 +1007,23 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
+        write_token_pair_t *token_pair,
+        scoped_ptr_t<transaction_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+
+    acquire_superblock_for_write(access, timestamp, expected_change_count, durability,
+            &token_pair->main_write_token, txn_out, sb_out, interruptor);
+    (*txn_out)->set_token_pair(token_pair);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_superblock_for_write(
+        access_t access,
+        repli_timestamp_t timestamp,
+        int expected_change_count,
+        write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
         scoped_ptr_t<transaction_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,

@@ -43,8 +43,8 @@ typedef memcached_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 const std::string memcached_protocol_t::protocol_name("memcached");
 
-write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
-    if (buf) {
+write_message_t &operator<<(write_message_t &msg, const counted_t<data_buffer_t> &buf) {
+    if (buf.has()) {
         bool exists = true;
         msg << exists;
         int64_t size = buf->size();
@@ -57,7 +57,7 @@ write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buf
     return msg;
 }
 
-archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
+archive_result_t deserialize(read_stream_t *s, counted_t<data_buffer_t> *buf) {
     bool exists;
     archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }
@@ -178,8 +178,6 @@ private:
 };
 
 }   /* anonymous namespace */
-
-// SAMRSI: Get rid of array_t.
 
 bool read_t::shard(const region_t &region,
                    read_t *read_out) const THROWS_NOTHING {
@@ -636,15 +634,16 @@ namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn,
-                               superblock_t *_superblock, UNUSED signal_t *_interruptor)
-        : btree(_btree), txn(_txn), superblock(_superblock) { }
+                               superblock_t *_superblock, signal_t *_interruptor)
+        : btree(_btree), txn(_txn),
+          superblock(_superblock), interruptor(_interruptor) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         memcached_delete(delete_key.key, true, btree, 0, delete_key.recency, txn, superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(delete_range.range);
-        memcached_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
+        memcached_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, interruptor);
     }
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
@@ -671,9 +670,7 @@ private:
     btree_slice_t *btree;
     transaction_t *txn;
     superblock_t *superblock;
-
-    // FIXME: interruptors are not used in btree code, so this one ignored.
-    // signal_t *interruptor;
+    signal_t *interruptor;
 };
 
 }   /* anonymous namespace */
@@ -681,9 +678,10 @@ private:
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
                                         superblock_t *superblock,
-                                        write_token_pair_t *,
+                                        write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    token_pair->sindex_write_token.reset();
     boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);
 }
 
@@ -711,9 +709,12 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
                                   transaction_t *txn,
                                   superblock_t *superblock,
-                                  write_token_pair_t *) {
+                                  write_token_pair_t *token_pair,
+                                  signal_t *interruptor) {
+    token_pair->sindex_write_token.reset();
+
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
-    memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
+    memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock, interruptor);
 }
 
 class generic_debug_print_visitor_t : public boost::static_visitor<void> {

@@ -75,7 +75,7 @@ public:
         if (mc_value->expired(effective_time)) {
             return true;
         }
-        intrusive_ptr_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
+        counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
         result.pairs.push_back(key_with_data_buffer_t(store_key_t(key), mc_value->mcflags(), data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
         return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;

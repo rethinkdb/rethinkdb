@@ -232,7 +232,7 @@ public:
         public thread_message_t,
         public home_thread_mixin_t {
         writeback_t *parent;
-        intrusive_ptr_t<standard_block_token_t> token;
+        counted_t<standard_block_token_t> token;
 
     private:
         friend class buf_writer_t;
@@ -241,7 +241,7 @@ public:
         scoped_ptr_t<mc_buf_lock_t> buf;
 
     public:
-        void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& tok) {
+        void on_write_launched(const counted_t<standard_block_token_t>& tok) {
             token = tok;
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }

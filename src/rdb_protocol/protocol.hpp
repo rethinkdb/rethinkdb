@@ -24,6 +24,7 @@
 #include "http/json/cJSON.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
@@ -277,7 +278,8 @@ struct rdb_protocol_t {
             : region(_region), optargs(_optargs) {
         }
 
-        void init_sindexes(const ql::datum_t *start, const ql::datum_t *end) {
+        void init_sindexes(counted_t<const ql::datum_t> start,
+                           counted_t<const ql::datum_t> end) {
             if (start) {
                 sindex_start_value = ql::wire_datum_t(start);
                 sindex_start_value->finalize();
@@ -289,8 +291,8 @@ struct rdb_protocol_t {
         }
 
         rget_read_t(const std::string &_sindex,
-                    const ql::datum_t *_sindex_start_value,
-                    const ql::datum_t *_sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_start_value,
+                    counted_t<const ql::datum_t> _sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(rdb_protocol_t::sindex_key_range(
                                 _sindex_start_value != NULL
@@ -304,8 +306,8 @@ struct rdb_protocol_t {
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    const ql::datum_t *_sindex_start_value,
-                    const ql::datum_t *_sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_start_value,
+                    counted_t<const ql::datum_t> _sindex_end_value)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(_sindex_region) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
@@ -313,8 +315,8 @@ struct rdb_protocol_t {
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    const ql::datum_t *_sindex_start_value,
-                    const ql::datum_t *_sindex_end_value,
+                    counted_t<const ql::datum_t> _sindex_start_value,
+                    counted_t<const ql::datum_t> _sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs)
             : region(region_t::universe()), sindex(_sindex),
@@ -710,7 +712,8 @@ struct rdb_protocol_t {
                                  btree_slice_t *btree,
                                  transaction_t *txn,
                                  superblock_t *superblock,
-                                 write_token_pair_t *token_pair);
+                                 write_token_pair_t *token_pair,
+                                 signal_t *interruptor);
         context_t *ctx;
     };
 
