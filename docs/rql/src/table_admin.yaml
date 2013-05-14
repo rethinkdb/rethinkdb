@@ -8,9 +8,22 @@ commands:
   - tag: table_create
     section: table_admin
     description: |
-      Create a table. A RethinkDB table is a collection of JSON documents.<br
-      /><br />If successful, the operation returns an object: <code>{created: 1}</code>.  If
+      Create a table. A RethinkDB table is a collection of JSON documents.
+      <br /><br />If successful, the operation returns an object: <code>{created: 1}</code>.  If
       a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.
+      <br /><br />When creating a table you can specify the following options:
+      <ul>
+      <li><code>primary key</code>(string): the name of the primary key. The default primary key field name is <code>id</code>.
+      <br/>For Python and Ruby the option name is <code>primary_key</code>. For Javascript it is <code>primaryKey</code>;
+      </li>
+      <li><code>hard durability</code>(boolean): if set to <code>false</code>, this enables <strong>soft durability</strong>
+       on this table: writes will be acknowledged by the server immediately and flushed to disk in the background. 
+       Default is <code>true</code> (hard durability).
+       <br/>For Python and Ruby the option name is <code>hard_durability</code>. For Javascript it is <code>hardDurability</code>;</li>
+      <li><code>cache size</code>(number): set the cache size (in MB) to be used by the table. Default is 1024MB.
+      <br/>For Python and Ruby the option name is <code>cache_size</code> and for Javascript it is <code>cacheSize</code>;</li>
+      <li><code>datacenter</code>(string): the name of the datacenter this table should be assigned to.</li>
+      </ul>
 
     body: tableName[, options]
     parent: db
@@ -28,6 +41,12 @@ commands:
         code:
           py: r.db('test').table_create('dc_universe', primary_key='name').run(conn)
           rb: r.db('test').table_create('dc_universe', :primary_key => 'name').run(conn)
+      - description: |
+          Create a table to log the very fast actions of the heroes.
+        code:
+          py: r.db('test').table_create('hero_actions', hard_durability=False).run(conn)
+          rb: r.db('test').table_create('dc_universe', :hard_durability => false).run(conn)
+
 
     js:
       name: tableCreate
@@ -38,6 +57,10 @@ commands:
           dataset: marvel
         1:
           code: r.db('test').tableCreate('dc_universe', {primaryKey:'name'}).run(conn, callback)
+          can_try: true
+          dataset: marvel
+        2:
+          code: r.db('test').tableCreate('dc_universe', {hardDurability:false}).run(conn, callback)
           can_try: true
           dataset: marvel
 
