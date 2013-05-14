@@ -1,6 +1,6 @@
 desc: 767 -- better NaN checking
 tests:
   - js: r({a:NaN})
-    ot: err("RqlCompileError", "Illegal non-finite number `-nan`.", [])
+    ot: err("RqlCompileError", "Illegal non-finite number `nan`.", [])
   - js: r({a:Infinity})
     ot: err("RqlCompileError", "Illegal non-finite number `inf`.", [])

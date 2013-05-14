@@ -518,7 +518,7 @@ module Query_Language_1
         payload = msg.serialize_to_string
         #File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
         packet = [payload.length].pack('L<') + payload
-        @socket.send(packet, 0)
+        @socket.write(packet)
         return msg.token
       end
 
@@ -667,7 +667,7 @@ module Query_Language_1
             return buf
           end
         end
-        @socket.send([@@magic_number].pack('L<'), 0)
+        @socket.write([@@magic_number].pack('L<'))
         @listener.terminate if @listener
         @listener = Thread.new do
           loop do
@@ -3544,7 +3544,7 @@ module Query_Language_2
       end
 
       def send packet
-        @socket.send(packet, 0)
+        @socket.write(packet)
       end
 
       def dispatch msg
@@ -3624,7 +3624,7 @@ module Query_Language_2
             return buf
           end
         end
-        @socket.send([@@magic_number].pack('L<'), 0)
+        @socket.write([@@magic_number].pack('L<'))
         @listener.terminate if @listener
         @listener = Thread.new do
           loop do

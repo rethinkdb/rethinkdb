@@ -8,6 +8,7 @@
 #include "arch/arch.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
+#include "protocol_api.hpp"
 
 /**
  * Buffer implementation.
@@ -892,7 +893,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      durability(_durability) {
+      durability(_durability),
+      token_pair(NULL) {
 
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -923,7 +925,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      durability(WRITE_DURABILITY_INVALID) {
+      durability(WRITE_DURABILITY_INVALID),
+      token_pair(NULL) {
 
     guarantee(is_read_mode(access));
 
@@ -947,7 +950,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true),
-    durability(WRITE_DURABILITY_INVALID) {
+    durability(WRITE_DURABILITY_INVALID),
+    token_pair(NULL) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -966,6 +970,19 @@ void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner
 
 mc_transaction_t::~mc_transaction_t() {
     assert_thread();
+
+
+    if (token_pair) {
+        /* If the below is failing then something insane is happening because at
+         * the time of writing this was destroyed in the function that gave you a
+         * transaction. */
+        guarantee(!token_pair->main_write_token.has());
+
+        /* If the below is failing then someone has gotten a token pair and not
+         * used the sindex portion of it. This is a crash because otherwise it's
+         * likely to be a deadlock. */
+        guarantee(!token_pair->sindex_write_token.has());
+    }
 
     cache->stats->pm_transactions_active.end(&start_time);
 
@@ -1023,6 +1040,10 @@ void mc_transaction_t::set_account(mc_cache_account_t *_cache_account) {
     rassert(cache_account == NULL, "trying to set the transaction's cache_account twice");
 
     cache_account = _cache_account;
+}
+
+void mc_transaction_t::set_token_pair(write_token_pair_t *_token_pair) {
+    token_pair = _token_pair;
 }
 
 file_account_t *mc_transaction_t::get_io_account() const {

@@ -75,7 +75,7 @@ public:
     std::string print() const;
     std::string print_primary() const;
     std::string print_secondary(const store_key_t &key) const;
-    /* An inverse to print_secondary. */
+    /* An inverse to print_secondary. Returns the primary key. */
     static std::string unprint_secondary(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired) const;
@@ -138,6 +138,8 @@ private:
     void init_array();
     void init_object();
     void init_json(cJSON *json, env_t *env);
+
+    void check_str_validity(const std::string &str);
 
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
