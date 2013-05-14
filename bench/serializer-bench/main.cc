@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -106,9 +106,9 @@ struct tester_t :
     } interruptor;
     
     tester_t(config_t *config, thread_pool_t *pool)
-        : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0), secs_so_far(0), interruptor(this)
-    {
-        make_io_backender(aio_native, &io_backender);
+        : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config),
+          pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0),
+          secs_so_far(0), interruptor(this) {
         last_time = get_ticks();
         if(config->tps_log_file) {
             tps_log_fd = fopen(config->tps_log_file, "a");
@@ -130,7 +130,7 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        filepath_file_opener_t file_opener(config->db_filename, io_backender.get());
+        filepath_file_opener_t file_opener(config->db_filename, &io_backender);
         log_serializer_t::create(&file_opener,
                                  config->ser_static_config);
 

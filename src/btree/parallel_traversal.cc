@@ -319,7 +319,7 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper, signal_t *interruptor, bool release_superblock) THROWS_ONLY(interrupted_exc_t) {
     traversal_state_t state(txn, slice, helper, interruptor);
 
     /* Make sure there's a stat block*/
@@ -348,11 +348,15 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
 
     struct : public parent_releaser_t {
         superblock_t *superblock;
+        bool release_superblock;
         void release() {
-            superblock->release();
+            if (release_superblock) {
+                superblock->release();
+            }
         }
     } superblock_releaser;
     superblock_releaser.superblock = superblock;
+    superblock_releaser.release_superblock = release_superblock;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();

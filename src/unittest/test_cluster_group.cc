@@ -180,9 +180,8 @@ std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_b
 
 
 template <class protocol_t>
-test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines) : base_path("/tmp") {
-    make_io_backender(aio_default, &io_backender);
-
+test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
+    : base_path("/tmp"), io_backender(new io_backender_t) {
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t);
         filepath_file_opener_t file_opener(files[i].name(), io_backender.get());

@@ -137,7 +137,9 @@ class rdb_value_deleter_t : public value_deleter_t {
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
                      transaction_t *txn, superblock_t *superblock,
-                     rdb_modification_report_cb_t *sindex_cb);
+                     btree_store_t<rdb_protocol_t> *store, 
+                     write_token_pair_t *token_pair,
+                     signal_t *interruptor);
 
 /* RGETS */
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
@@ -185,6 +187,20 @@ struct rdb_modification_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
+
+struct rdb_erase_range_report_t {
+    rdb_erase_range_report_t() { }
+    rdb_erase_range_report_t(const key_range_t &_range_to_erase)
+        : range_to_erase(_range_to_erase) { }
+    key_range_t range_to_erase;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+typedef boost::variant<rdb_modification_report_t, 
+                       rdb_erase_range_report_t>
+        rdb_sindex_change_t;
+
 /* An rdb_modification_cb_t is passed to BTree operations and allows them to
  * modify the secondary while they perform an operation. */
 class rdb_modification_report_cb_t {
@@ -192,13 +208,17 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
-    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
+    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added,
+            signal_t *interruptor);
+    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted,
+            signal_t *interruptor);
     void replace_row(const store_key_t &primary_key,
             boost::shared_ptr<scoped_cJSON_t> added,
-            boost::shared_ptr<scoped_cJSON_t> removed);
+            boost::shared_ptr<scoped_cJSON_t> removed,
+            signal_t *interruptor);
 
-    void on_mod_report(const rdb_modification_report_t &mod_report);
+    void on_mod_report(const rdb_modification_report_t &mod_report,
+            signal_t *interruptor);
 
     ~rdb_modification_report_cb_t();
 private:
@@ -215,9 +235,16 @@ private:
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
-void rdb_update_sindexes(const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
-                         transaction_t *txn);
+void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification,
+        transaction_t *txn);
+
+void rdb_erase_range_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_erase_range_report_t *erase_range,
+        transaction_t *txn,
+        signal_t *interruptor);
 
 void post_construct_secondary_indexes(
         btree_store_t<rdb_protocol_t> *store,

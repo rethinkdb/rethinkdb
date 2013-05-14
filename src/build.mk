@@ -5,15 +5,19 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-ifeq ($(USE_CCACHE),1)
-  RT_CXX := ccache $(CXX)
-else
-  RT_CXX := $(CXX)
-endif
 LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
+
+ifeq ($(USE_CCACHE),1)
+  RT_CXX := ccache $(CXX)
+  ifeq ($(COMPILER),CLANG)
+    RT_CXXFLAGS += -Qunused-arguments
+  endif
+else
+  RT_CXX := $(CXX)
+endif
 
 STATICFORCE := $(STATIC)
 
@@ -256,11 +260,6 @@ ifeq ($(VALGRIND),1)
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
   endif
   RT_CXXFLAGS += -DVALGRIND
-endif
-
-ifeq ($(AIOSUPPORT),1)
-  RT_CXXFLAGS += -DAIOSUPPORT
-  RT_LDFLAGS += -laio
 endif
 
 ifeq ($(LEGACY_PROC_STAT),1)

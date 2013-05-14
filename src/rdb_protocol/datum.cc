@@ -20,7 +20,9 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str)
-    : type(R_STR), r_str(new std::string(_str)) { }
+    : type(R_STR), r_str(new std::string(_str)) {
+    check_str_validity(_str);
+}
 datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
 datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
@@ -123,6 +125,15 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     } break;
     default: unreachable();
     }
+}
+
+void datum_t::check_str_validity(const std::string &str) {
+    size_t null_offset = str.find('\0');
+    rcheck(null_offset == std::string::npos,
+           // We truncate because lots of other places can call `c_str` on the
+           // error message.
+           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                     str.c_str(), null_offset));
 }
 
 datum_t::datum_t(cJSON *json, env_t *env) {
@@ -411,6 +422,7 @@ void datum_t::add(counted_t<const datum_t> val) {
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
+    check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
@@ -528,6 +540,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
     case Datum_DatumType_R_STR: {
         init_str();
         *r_str = d->r_str();
+        check_str_validity(*r_str);
     } break;
     case Datum_DatumType_R_ARRAY: {
         init_array();
@@ -540,6 +553,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
+            check_str_validity(key);
             rcheck(r_object->count(key) == 0,
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val(), env);

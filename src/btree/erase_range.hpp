@@ -11,6 +11,7 @@ struct store_key_t;
 struct btree_key_t;
 class order_token_t;
 class superblock_t;
+class signal_t;
 
 class key_tester_t {
 public:
@@ -40,25 +41,19 @@ protected:
     DISABLE_COPYING(value_deleter_t);
 };
 
-/* This call back will be called with each kv pair that is slated for erase
- * before the erase has actually happened on the kv pair. */
-class erase_range_cb_t {
-public:
-    virtual void handle_pair(const btree_key_t *key, const void *value) = 0;
-    virtual ~erase_range_cb_t() { }
-};
-
 void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                key_tester_t *tester,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
                                transaction_t *txn, superblock_t *superblock,
-                               erase_range_cb_t *erase_range_cb = NULL);
+                               signal_t *interruptor,
+                               bool release_superblock = true);
 
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter, transaction_t *txn,
                superblock_t *superblock,
-               erase_range_cb_t *erase_range_cb = NULL);
+               signal_t *interruptor,
+               bool release_superblock = true);
 
 #endif  // BTREE_ERASE_RANGE_HPP_
