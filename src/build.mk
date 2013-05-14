@@ -32,9 +32,6 @@ ifeq ($(COMPILER),CLANG)
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
-    RT_LDFLAGS += -lc++
-  else
-    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -126,10 +123,6 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
-  ifeq ($(OS), Darwin)
-    RT_CXXFLAGS += -stdlib=libc++
-  endif
-
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default
