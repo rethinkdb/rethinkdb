@@ -33,6 +33,7 @@ $(PROTOC_JS_HOME_DIR)/protoc-gen-js: | $(PROTOC_DEP)
 
 $(PB_JS_FILE): $(PROTO_FILE) $(PROTOC_JS_HOME_DIR)/protoc-gen-js | $(JS_BUILD_DIR)/.
 	$P PROTOC-JS
+	mkdir -p "$(JS_BUILD_DIR)"
 	$(PROTOC_JS) -I $(PROTO_FILE_DIR) --js_out=$(JS_BUILD_DIR) $(PROTO_FILE)
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
