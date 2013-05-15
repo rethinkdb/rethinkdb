@@ -5,15 +5,19 @@ commands:
     description: |
       Replace documents in a table. Accepts a JSON document or a RQL expression,
       and replaces the original document with the new one. The new document must have
-      the same primary key as the original document.<br /><br />Replace returns an
-      object that contains one or more of:<ul><li><code>replaced</code> - the number
-      of documents that were replaced;</li><li><code>errors</code> - the number of
-      errors encountered while performing the replace;</li><li><code>first_error</code>
-      - the text of the first error encountered.</li></ul>
+      the same primary key as the original document.<br /><br />
+      Replace returns an object that contains the following attributes:
+      <ul>
+      <li><code>replaced</code> - the number of documents that were replaced;</li>
+      <li><code>errors</code> - the number of errors encountered while performing the replace;</li>
+      <li>if errors occurred performing the replace, <code>first_error</code> contains the text of the first error encountered.</li>
+      <li><code>deleted</code>, <code>inserted</code>, <code>skipped</code>, and <code>unchanged</code> 
+      - all <code>0</code> for a <code>replace</code> operation</li>
+      </ul>
 
     body: json | expr
     parent: selection
-    returns: json
+    returns: object
 
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.

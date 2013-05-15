@@ -4,15 +4,19 @@ commands:
     order: 1
     description: |
       Update JSON documents in a table. Accepts a JSON document, a RQL
-      expression, or a combination of the two.<br /><br />Update returns an object
-      that contains one or more of:<ul><li><code>replaced</code> - the number of documents
-      that were updated;</li><li><code>errors</code> - the number of errors encountered
-      while performing the update;</li><li><code>first_error</code> - the text of
-      the first error encountered.</li></ul>
+      expression, or a combination of the two.<br /><br />
+      Update returns an object that contains the following attributes:
+      <ul>
+      <li><code>replaced</code> - the number of documents that were updated;</li>
+      <li><code>errors</code> - the number of errors encountered while performing the update;</li>
+      <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
+      <li><code>deleted</code>, <code>inserted</code>, <code>skipped</code>, and <code>unchanged</code>
+      - all <code>0</code> for an <code>update</code> operation</li>
+      </ul>
 
     body: json | expr
     parent: selection
-    returns: json
+    returns: object
 
     examples:
       - description: |
