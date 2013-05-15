@@ -134,7 +134,13 @@ bool get_group_id(const char *name, gid_t *group_id_out) {
         } else if (res == ERANGE) {
             bufsize *= 2;
         } else {
-            guarantee_err(false, "getgrnam_r failed");
+            // Here's what the man page says about error codes of getgrnam_r:
+            // 0 or ENOENT or ESRCH or EBADF or EPERM or ...
+            //        The given name or uid was not found.
+            //
+            // So let's just return false here.  I'm sure EMFILE and ENFILE and
+            // EIO will turn up again somewhere else.
+            return false;
         }
     }
 
@@ -171,7 +177,16 @@ bool get_user_ids(const char *name, int *user_id_out, gid_t *user_group_id_out) 
         } else if (res == ERANGE) {
             bufsize *= 2;
         } else {
-            guarantee_err(false, "getgrnam_r failed");
+            // Here's what the man page says about error codes of getpwnam_r:
+            // 0 or ENOENT or ESRCH or EBADF or EPERM or ...
+            //        The given name or uid was not found.
+            //
+            // So let's just return false here.  I'm sure EMFILE and ENFILE and
+            // EIO will turn up again somewhere else.
+            //
+            // (Yes, this is the same situation as with getgrnam_r, not some
+            // copy/paste.)
+            return false;
         }
     }
 
