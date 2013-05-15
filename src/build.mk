@@ -65,6 +65,10 @@ else ifeq ($(COMPILER),GCC)
     RT_LDFLAGS += -Wl,--no-as-needed
   endif
 
+  ifeq ($(OS),FreeBSD)
+    RT_LDFLAGS += -lstdc++
+  endif
+
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
