@@ -14,22 +14,23 @@ This release introduces secondary indexes, stability and performance enhancement
   * #207: Added soft durability option
   * #311: Added daemon mode (via --daemon)
   * #423: Allow logging to a specific file (via --log-file)
-  * #457: Added batched inserts, significant speedup in insert performance
-  * #496: Link to libc++ OS X to use advanced C++11 features
-  * #672: Replaced environment checkpoints with shared pointers in the ReQL layer
+  * #457: Significant performance improvement for batched inserts
+  * #496: Links against libc++ on OS X
+  * #672: Replaced environment checkpoints with shared pointers in the ReQL layer, reducing the memory footprint
+  * #715: Adds support for noreply writes
 * CLI
   * #566: In the admin CLI, `ls tables --long` now includes a `durability` column
 * Web UI
   * #331: Improved data explorer indentation and brace pairing
-  * #355: Check for new versions of RethinkDB from the admin UI
-  * #395: Auto complete databases and tables names in the data explorer
+  * #355: Checks for new versions of RethinkDB from the admin UI
+  * #395: Auto-completes databases and tables names in the data explorer
   * #514: Rewrote and improved the documentation generator
-  * #569: Toggle for Data Explorer brace pairing
+  * #569: Added toggle for Data Explorer brace pairing
   * #572: Changed button styles in the Data Explorer
-  * #707: Two step confirmation to the delete database button
+  * #707: Two step confirmation added to the delete database button
 * ReQL
   * #469: Added an `info` command that provides information on any ReQL value (useful for retreiving the primary key)
-  * #604: Allow iterating over result arrays as if they were cursors
+  * #604: Allow iterating over result arrays as if they were cursors in the JavaScript client
   * #670: Added a soft durability option to `table_create`
 * Testing
   * #480: Run [tests on Travis-CI](https://travis-ci.org/rethinkdb/rethinkdb)
@@ -47,14 +48,14 @@ This release introduces secondary indexes, stability and performance enhancement
   * Fix #645: Fixed server crash when updating replicas / acks
   * Fix #665: Fixed queries across shards that would trigger `Assertion failed: [!br.point_replaces.empty()] in src/rdb_protocol/protocol.cc`
   * Fix #750: Resolved intermittent RPCSemilatticeTest.MetadataExchange failure
-  * Fix #757: Fixed a crash caused by branch queries on the default database
+  * Fix #757: Fixed a crashing bug in the environment checkpointing code
 * Documentation
   * Fix #387: Documented the command line option --web-static-directory (custom location for web assets)
   * Fix #503: Updated outdated useOutdated documentation
   * Fix #563: Fixed documentation for `typeof()`
   * Fix #610: Documented optional arguments for `table_create`: `datacenter` and `cache_size`
   * Fix #631: Fixed missing parameters in documentation for `reduce`
-  * Fix #651: Replaced `r_datum` with `datum`
+  * Fix #651: Updated comments in protobuf file to reflect current spec
   * Fix #679: Fixed incorrect examples in protobuf spec
   * Fix #691: Fixed faulty example for `zip` in API documentation
 * Web UI
@@ -70,7 +71,7 @@ This release introduces secondary indexes, stability and performance enhancement
   * Fix #46: Added top-level `tableCreate`, `tableDrop` and `tableList` to drivers
   * Fix #125: Grouped reductions now return a stream, not an array
   * Fix #370: `map` after `dbList` and `tableList` no longer errors
-  * Fix #421: Return values from mutation operations now include all attributes, even if non-zero (`inserted`,`deleted`,`skipped`,`replaced`,`unchanged`,`errors`)
+  * Fix #421: Return values from mutation operations now include all attributes, even if zero (`inserted`,`deleted`,`skipped`,`replaced`,`unchanged`,`errors`)
   * Fix #525: Improved error for `groupBy`
   * Fix #527: Numbers that can be represented as integers are returned as native integers
   * Fix #603: Check the number of arguments correctly in the JavaScript client
