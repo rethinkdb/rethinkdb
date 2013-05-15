@@ -168,7 +168,18 @@ commands:
             r.table('marvel').run({connection:conn, useOutdated:true},
                                   function (err, cursor) { ... });
           py: r.table('marvel').run(conn, use_outdated=True)
-          rb: r.table('marvel').run({:connection => conn, :use_outdated => true})
+          rb: r.table('marvel').run(conn, :use_outdated => true)
+      - description: |
+          If you just want to send a write and forget about it, you
+          can set `noreply` to true in the options.  In this case
+          `run` will return immediately.
+        validate: false
+        code:
+          js: |
+            r.table('marvel').run({connection:conn, noreply:true},
+                                  function (err, cursor) { ... });
+          py: r.table('marvel').run(conn, noreply=True)
+          rb: r.table('marvel').run(conn, :noreply => true)
 
   - tag: next
     section: module

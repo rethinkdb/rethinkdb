@@ -16,7 +16,11 @@ commands:
         code: |-
           r.table('marvel').filter(
             r.js('(function (row) { return row.magazines > 5; })')).run(conn)
-
+      - description: You may also specify a timeout in seconds (defaults to 5).
+        code:
+          py: r.js('while(true) {}', timeout=1.3).run(conn)
+          rb: r.js('while(true) {}', :timeout => 1.3).run(conn)
+          js: r.js('while(true) {}', {timeout:1.3}).run(conn, callback)
     js:
       examples:
         0:
@@ -29,3 +33,8 @@ commands:
           code: |-
             r.table('marvel').filter(
               r.js('(function (row) { return row.magazines > 5; })')).run(conn, callback)
+        1:
+          can_try: true
+          dataset: marvel
+          code: |-
+            js: r.js('while(true) {}', {timeout:1.3}).run(conn, callback)

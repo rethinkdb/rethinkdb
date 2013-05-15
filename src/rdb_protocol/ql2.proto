@@ -50,7 +50,10 @@ message Query {
     // A [Term] is how we represent the operations we want a query to perform.
     optional Term query = 2; // only present when [type] = [START]
     optional int64 token = 3;
-    optional bool noreply = 4 [default = false]; // CURRENTLY IGNORED, NO SERVER SUPPORT
+    // This flag is ignored on the server.  `noreply` should be added
+    // to `global_optargs` instead (the key "noreply" should map to
+    // either true or false).
+    optional bool OBSOLETE_noreply = 4 [default = false];
 
     message AssocPair {
         optional string key = 1;

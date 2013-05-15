@@ -89,6 +89,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 } else {
 
                     testName = testPair[2];
+                    runopts = testPair[3];
 
                     try {
                         var exp_fun = eval(testPair[1]);
@@ -127,7 +128,10 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     // Run test first on cpp server
                     try {
-                        test.run(cpp_conn, cpp_cont);
+                        var opts = {connection:cpp_conn};
+                        if (runopts && ('noreply' in runopts))
+                            opts.noreply = runopts.noreply
+                        test.run(opts, cpp_cont);
                     } catch(err) {
                         if (exp_fun.isErr) {
                             if (!exp_fun(err)) {
@@ -207,8 +211,8 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
 // Invoked by generated code to add test and expected result
 // Really constructs list of tests to be sequentially evaluated
-function test(testSrc, resSrc, name) {
-    tests.push([testSrc, resSrc, name])
+function test(testSrc, resSrc, name, runopts) {
+    tests.push([testSrc, resSrc, name, runopts])
 }
 
 // Invoked by generated code to define variables to used within

@@ -108,7 +108,7 @@ public:
     // TODO: Function pointers?  Really?
     protob_server_t(const std::set<ip_address_t> &local_addresses,
                     int port,
-                    boost::function<response_t(request_t, context_t *)> _f,
+                    boost::function<bool(request_t, response_t *, context_t *)> _f,
                     response_t (*_on_unparsable_query)(request_t, std::string),
                     protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
@@ -122,8 +122,9 @@ private:
     // For HTTP server
     http_res_t handle(const http_req_t &);
 
-    boost::function<response_t(request_t, context_t *)> f;
+    boost::function<bool(request_t, response_t *, context_t *)> f;
     response_t (*on_unparsable_query)(request_t, std::string);
+
     protob_server_callback_mode_t cb_mode;
 
     /* WARNING: The order here is fragile. */

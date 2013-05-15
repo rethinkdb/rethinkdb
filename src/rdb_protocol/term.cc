@@ -94,7 +94,8 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
 }
 
 void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
-         Response *res, stream_cache2_t *stream_cache2) {
+         Response *res, stream_cache2_t *stream_cache2,
+         bool *response_needed_out) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -115,14 +116,33 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             preprocess_term(t);
             Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
 
+
+            // We parse out the `noreply` optarg in a special step so that we
+            // don't send back an unneeded response in the case where another
+            // optional argument throws a compilation error.
+            for (int i = 0; i < q->global_optargs_size(); ++i) {
+                const Query::AssocPair &ap = q->global_optargs(i);
+                if (ap.key() == "noreply") {
+                    bool conflict = env->add_optarg(ap.key(), ap.val());
+                    r_sanity_check(!conflict);
+                    counted_t<val_t> noreply = env->get_optarg("noreply");
+                    r_sanity_check(noreply.has());
+                    *response_needed_out = !noreply->as_bool();
+                    break;
+                }
+            }
+
             // Parse global optargs
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
-                bool conflict = env->add_optarg(ap.key(), ap.val());
-                rcheck_toplevel(
-                    !conflict,
-                    strprintf("Duplicate global optarg: %s", ap.key().c_str()));
+                if (ap.key() != "noreply") {
+                    bool conflict = env->add_optarg(ap.key(), ap.val());
+                    rcheck_toplevel(
+                        !conflict,
+                        strprintf("Duplicate global optarg: %s", ap.key().c_str()));
+                }
             }
+
             protob_t<Term> ewt = make_counted_term();
             Term *const arg = ewt.get();
 
@@ -156,6 +176,15 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
         try {
             counted_t<val_t> val = root_term->eval();
+
+            if (!*response_needed_out) {
+                // It's fine to just abort here because we don't allow write
+                // operations inside of lazy operations, which means the writes
+                // will have already occured even if `val` is a sequence that we
+                // haven't yet exhuasted.
+                return;
+            }
+
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
