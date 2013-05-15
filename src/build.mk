@@ -23,6 +23,9 @@ STATICFORCE := $(STATIC)
 
 ifeq ($(OS),Linux)
   LDPTHREADFLAG := -pthread
+else ifeq ($(OS),FreeBSD)
+  # Required by ports/devel/boost-libs.
+  LDPTHREADFLAG := -pthread
 else
   LDPTHREADFLAG :=
 endif
