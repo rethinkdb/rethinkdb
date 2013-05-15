@@ -403,4 +403,6 @@ module 'NamespaceView', ->
         destroy: =>
             if @interval?
                 clearInterval @interval
+            @db.off 'change:name', @save_name
             @model.off 'change:name', @save_name
+
