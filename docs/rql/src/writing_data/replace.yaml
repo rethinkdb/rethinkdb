@@ -9,10 +9,15 @@ commands:
       Replace returns an object that contains the following attributes:
       <ul>
       <li><code>replaced</code> - the number of documents that were replaced;</li>
+      <li><code>unchanged</code> - the number of documents that would have been modified,
+      except that the new value was the same as the old value;</li>
+      <li><code>inserted</code> - the number of new documents added. You can have new documents
+      inserted if you do a point-replace on a key that isn't in the table or you do a replace
+      on a selection and one of the documents you are replacing has been deleted;</li>
+      <li><code>deleted</code> - the number of deleted documents when doing a replace with null;</li>
       <li><code>errors</code> - the number of errors encountered while performing the replace;</li>
-      <li>if errors occurred performing the replace, <code>first_error</code> contains the text of the first error encountered.</li>
-      <li><code>deleted</code>, <code>inserted</code>, <code>skipped</code>, and <code>unchanged</code> 
-      - all <code>0</code> for a <code>replace</code> operation</li>
+      <li>if errors occurred performing the replace, <code>first_error</code> contains the text of the first error encountered;</li>
+      <li><code>skipped</code> - <code>0</code> for a <code>replace</code> operation.</li>
       </ul>
 
     body: json | expr
