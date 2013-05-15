@@ -236,8 +236,14 @@ module 'NamespaceView', ->
             @secondary_indexes = null # list of secondary indexes available
             @deleting_secondary_index = null # The secondary index being deleted (with a confirm box displayed)
 
-            @db = databases.get(@model.get('database')).get('name')
+            @db = databases.get(@model.get('database'))
+            @db.on 'change:name', @save_name
+            @model.on 'change:name', @save_name
+            @save_name()
+
+        save_name: =>
             @table = @model.get('name')
+            @db_name = @db.get('name')
 
         # Show a confirmation before deleting a secondary index
         confirm_delete: (event) =>
@@ -254,7 +260,7 @@ module 'NamespaceView', ->
         delete_secondary_index: (event) =>
             @current_secondary_name = @$(event.target).data('name')
             @deleting_secondary_index = @$(event.target).data('name')
-            r.db(@db).table(@table).indexDrop(@current_secondary_name).private_run @driver_handler.connection, @on_drop
+            r.db(@db_name).table(@table).indexDrop(@current_secondary_name).private_run @driver_handler.connection, @on_drop
 
         # Callback for indexDrop()
         on_drop: (err, result) =>
@@ -324,7 +330,7 @@ module 'NamespaceView', ->
             @interval = setInterval @get_indexes, @interval # The connection times out every 5 minutes
 
         get_indexes: =>
-            r.db(@db).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
+            r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
 
         # Callback on indexList
         on_index_list: (err, result) =>
@@ -361,7 +367,7 @@ module 'NamespaceView', ->
 
         create_index: =>
             @current_secondary_name = $('.secondary_index_name').val()
-            r.db(@db).table(@table).indexCreate(@current_secondary_name).private_run @driver_handler.connection, @on_create
+            r.db(@db_name).table(@table).indexCreate(@current_secondary_name).private_run @driver_handler.connection, @on_create
 
         # Callback on indexCreate()
         on_create: (err, result) =>
@@ -397,3 +403,4 @@ module 'NamespaceView', ->
         destroy: =>
             if @interval?
                 clearInterval @interval
+            @model.off 'change:name', @save_name
