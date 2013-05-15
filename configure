@@ -117,6 +117,7 @@ configure () {
             check_lib unwind
         fi
     fi
+    test_protobuf
     boolvar STATIC_V8 contains "$static_libs" v8
     var FETCH_LIST "$fetch_list"
     boolvar FETCH_INTERNAL_TOOLS $allow_fetch
@@ -644,10 +645,8 @@ optional_dep () {
 lib_test_code=':~
 ~v8:
 #include <v8.h>
-#include <string>
 int main(){
-  std::string a("foo");
-  v8::String b = v8::String::New(a);
+  v8::String b = v8::String::New("foo");
 }
 '
 
@@ -779,6 +778,27 @@ check_coffee_version () {
     else
         show $version
     fi
+}
+
+test_protobuf () {
+    require "Test protobuf"
+    if any "protoc protobuf" contains "$fetch_list"; then
+        show fetch
+        return
+    fi
+    local pbdir=`dirname $0`/mk/gen/protoc/
+    mkdir -p "$pbdir"
+    echo 'message Foo { enum Bar { Baz = 1; } }' > "$pbdir/test.proto"
+    local out
+    if ! out=$(
+            $(PROTOC) --cpp_out "$pbdir" "$pbdir/test.proto"
+            && "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} 2>&1)
+    then
+        error fail
+        echo "$out"
+        return
+    fi
+    show success
 }
 
 # Call the main command with the command line arguments
