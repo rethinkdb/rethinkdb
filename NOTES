@@ -40,73 +40,70 @@ This release introduces secondary indexes, stability and performance enhancement
 ## Fixed bugs ##
 
 * Server
-  * Fix #403: Serialization of perfmon_result_t is 32-bit/64-bit dependent
-  * Fix #505: Failure on read query "tcmalloc: allocation failed"
+  * Fix #403: Serialization of `perfmon_result_t` is no longer 32-bit/64-bit dependent
+  * Fix #505: Reduced memory consumption to avoid failure on read query "tcmalloc: allocation failed"
   * Fix #510: Make bind to `0.0.0.0` be equivalent to `all`
-  * Fix #639: 100% cpu utilization (on OSX, not sure about linux)
-  * Fix #645: Server crash when updating replicas / acks
-  * Fix #665: src/rdb_protocol/protocol.cc at line 699: Assertion failed: [!br.point_replaces.empty()]
-  * Fix #750: Intermittent RPCSemilatticeTest.MetadataExchange failure
-  * Fix #757: RethinkDB 1.4.4 crash with branch queries and default database
+  * Fix #639: Fixed bug where 100% cpu utilization was reported on OSX
+  * Fix #645: Fixed server crash when updating replicas / acks
+  * Fix #665: Fixed queries across shards that would trigger `Assertion failed: [!br.point_replaces.empty()] in src/rdb_protocol/protocol.cc`
+  * Fix #750: Resolved intermittent RPCSemilatticeTest.MetadataExchange failure
+  * Fix #757: Fixed a crash caused by branch queries on the default database
 * Documentation
-  * Fix #387: Document the command line option --web-static-directory (custom location for web assets)
-  * Fix #503: Outdated useOutdated documentation
-  * Fix #563: Fix doc for typeof()
-  * Fix #610: Optional arguments for `table_create` are not documented: datacenter and cache_size
-  * Fix #631: Docs for `reduce` are missing parameters
-  * Fix #651: Replace r_datum with datum
-  * Fix #679: Protobuf spec: example documentation
-  * Fix #691: API documentation: example for zip is faulty
+  * Fix #387: Documented the command line option --web-static-directory (custom location for web assets)
+  * Fix #503: Updated outdated useOutdated documentation
+  * Fix #563: Fixed documentation for `typeof()`
+  * Fix #610: Documented optional arguments for `table_create`: `datacenter` and `cache_size`
+  * Fix #631: Fixed missing parameters in documentation for `reduce`
+  * Fix #651: Replaced `r_datum` with `datum`
+  * Fix #679: Fixed incorrect examples in protobuf spec
+  * Fix #691: Fixed faulty example for `zip` in API documentation
 * Web UI
-  * Fix #529: Suggestion arrow goes out of bounds if you have excessive whitespace
-  * Fix #583: Data Explorer suggestions for table is incomplete
-  * Fix #584: Improve Data Explorer suggestions
-  * Fix #623: Modals (e.g. "delete database") have subpar margins
-  * Fix #629: Improve the buttons on the Tables View (and throughout the UI)
-  * Fix #662: Command key deletes text selection in Data Explorer
-  * Fix #725: Data Explorer: improve documentation
-  * Fix #790: False values in a document show up as blank in the tree view
+  * Fix #529: Suggestion arrow no longer goes out of bounds
+  * Fix #583: Improved Data Explorer suggestions for `table`
+  * Fix #584: Improved Data Explorer suggestion style and content
+  * Fix #623: Improved margins on modals
+  * Fix #629: Updated buttons and button styles on the Tables View (and throughout the UI)
+  * Fix #662: Command key no longer deletes text selection in Data Explorer
+  * Fix #725: Improved documentation in the Data Explorer
+  * Fix #790: False values in a document no longer show up as blank in the tree view
 * ReQL
-  * Fix #46: `r.tableCreate()` not defined in JavaScript
-  * Fix #125: Grouped reductions (map/reduce, groupby) should return a stream, not array
-  * Fix #370: Map after `dbList()` and `tableList()`
-  * Fix #421: Consider changing the return values from mutation operations
-  * Fix #525: Improve error for `groupBy`
-  * Fix #527: Integers returned as floats
-  * Fix #603: Catch error if no callback is passed to `cursor.toArray()`
-  * Fix #632: Python driver: insert object with non-valid key
-  * Fix #640: driver interrupt handling behavior
-  * Fix #642: Ruby client has a bad error message when you try and run a query on a closed connection
-  * Fix #650: Python driver sends "END" instead of "STOP"
-  * Fix #663: Handle undefined value in an object
-  * Fix #678: .limit() should not automatically convert to an array
-  * Fix #689: The Python driver hardcodes the default database
-  * Fix #704: `typeOf` is broken in JS driver
-  * Fix #730: ruby driver accepts methods that don't exist
-  * Fix #732: Fix javascript driver performance
-  * Fix #733: Wire protocol: GroupBy object must be MAKE_OBJ Term
-  * Fix #761: The Ruby driver probably doesn't work with Ruby 1.9
-  * Fix #767: Forbid NaN with the JavaScript driver
-  * Fix #779: Strings containing NULL are truncated
-  * Fix #789: Remove unnecessary uses of Class#hash in Ruby driver
-  * Fix #799: Optional args to `run` in Python driver
+  * Fix #46: Added top-level `tableCreate`, `tableDrop` and `tableList` to drivers
+  * Fix #125: Grouped reductions now return a stream, not an array
+  * Fix #370: `map` after `dbList` and `tableList` no longer errors
+  * Fix #421: Return values from mutation operations now include all attributes, even if non-zero (`inserted`,`deleted`,`skipped`,`replaced`,`unchanged`,`errors`)
+  * Fix #525: Improved error for `groupBy`
+  * Fix #527: Numbers that can be represented as integers are returned as native integers
+  * Fix #603: Check the number of arguments correctly in the JavaScript client
+  * Fix #632: Keys of objects are no longer magically converted to strings in the drivers
+  * Fix #640: Clients handle system interrupts better
+  * Fix #642: Ruby client no longer has a bad error message when queries are run on a closed connection
+  * Fix #650: Python driver successfully sends `STOP` query when the connection is closed
+  * Fix #663: Undefined values are handled correctly in JavaScript objects
+  * Fix #678: `limit` no longer automatically converts streams to arrays
+  * Fix #689: Python driver no longer hardcodes the default database
+  * Fix #704: `typeOf` is no longer broken in JavaScript driver
+  * Fix #730: Ruby driver no longer accepts spurious methods
+  * Fix #733: `groupBy` can now handle both a `MAKE_OBJ` protobuf and a literal `R_OBJECT` datum protobuf
+  * Fix #767: Server now detects `NaN` in all cases
+  * Fix #777: Ruby driver no longer occasionally truncates messages
+  * Fix #779: Server now rejects strings that contain a null byte
+  * Fix #789: Style improvements in Ruby driver
+  * Fix #799: Python driver handles `use_outdated` when specified as a global option argument
 * Testing
-  * Fix #653: run-tests.sh seems not to work on OS X
+  * Fix #653: `make test` now works on OS X
 * Build
-  * Fix #475: `make -j2` segfaults when building on ubuntu 10.04
-  * Fix #541: make clean should clean everything
-  * Fix #630: Clean up the rethinkdb source tree
-  * Fix #635: Building should fail and die quickly with bad versions of coffee-script
-  * Fix #693: `make` in next gets its numbering confused
-  * Fix #694: warnings when building with clang and ccache
-  * Fix #717: ./configure --fetch-protobuf doesn't work
+  * Fix #475: Added a workaround to avoid `make -j2` segfaulting when building on older versions of `make`
+  * Fix #541: `make clean` is more aggressive
+  * Fix #630: Removed cruft from the RethinkDB source tree
+  * Fix #635: Building fails quickly with troublesome versions of `coffee-script`
+  * Fix #694: Improved warnings when building with `clang` and `ccache`
+  * Fix #717: Fixed `./configure --fetch-protobuf`
 * Migration
-  * Fix #777: Migration script (or server?) appear to hang on data import
-  * Fix #782: import_export.rb in next defaults to sending batches of size 2
+  * Fix #782: Improved speed in migration script
 
 ## Other ##
 
-  * #508: Delete JS server code
+  * #508: Removed the JavaScript mock server
   * [All closed issues between 1.4.5 and 1.5.0](https://github.com/rethinkdb/rethinkdb/issues?milestone=8&page=1&state=closed)
 
 ---
