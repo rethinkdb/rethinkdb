@@ -9,11 +9,13 @@ commands:
       <ul>
       <li><code>inserted</code> - the number of documents that were succesfully inserted;</li>
       <li><code>replaced</code> - the number of documents that were updated when <code>upsert</code> is used;</li>
+      <li><code>unchanged</code> - the number of documents that would have been modified, except that the new
+      value was the same as the old value when doing an <code>upsert</code></li>
       <li><code>errors</code> - the number of errors encountered while inserting;</li>
       <li>if errors where encountered while inserting, <code>first_error</code> contains the text of the first error;</li>
       <li><code>generated_keys</code> - a list of generated primary key values.</li>
-      <li><code>deleted</code>, <code>skipped</code>, and <code>unchanged</code> 
-      - all <code>0</code> for an <code>insert</code> operation</li>
+      <li><code>deleted</code> and <code>skipped</code> 
+      - <code>0</code> for an <code>insert</code> operation</li>
       </ul>
 
     body:

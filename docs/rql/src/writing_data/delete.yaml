@@ -7,7 +7,9 @@ commands:
       Delete returns an object that contains the following attributes:
       <ul>
       <li><code>deleted</code> - the number of documents that were deleted;</li>
-      <li><code>skipped</code> - the number of documents from the selection that were not deleted.</li>
+      <li><code>skipped</code> - the number of documents from the selection that were left unmodified 
+      because there was nothing to do. For example, if you delete a row that has already been deleted, 
+      that row will be skipped.</li>
       <li><code>errors</code> - the number of errors encountered while deleting;</li>
       <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
       <li><code>inserted</code>, <code>replaced</code>, and <code>unchanged</code> - all 
