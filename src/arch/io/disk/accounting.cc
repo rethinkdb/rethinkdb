@@ -39,7 +39,7 @@ private:
     intrusive_list_t<action_t> throttled_queue;
     unlimited_fifo_queue_t<action_t *, intrusive_list_t<action_t> > queue;
     semaphore_t outstanding_requests_limiter;
-    typename accounting_queue_t<action_t *>::account_t account;
+    accounting_queue_t<action_t *>::account_t account;
     auto_drainer_t::lock_t accounter_lock;
 
     DISABLE_COPYING(accounting_diskmgr_eager_account_t);
