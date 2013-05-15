@@ -7,36 +7,35 @@ This release introduces secondary indexes, stability and performance enhancement
 ## New Features ##
 
 * Server
-  * #69: Bulletproof js execution in v8
+  * #69: Bad JavaScript snippets can no longer hang the server
     * `r.js` now takes an optional `timeout` argument
-  * #88: Secondary and compound indexes
-  * #165: Backtraces on OSX
-  * #207: Make write batching tunable
-  * #311: Daemon mode
-  * #423: Provide a way to log to `stdout`/`stderr`
-  * #457: Batched inserts
-  * #496: Get libc++ working with OSX
-  * #672: Use shared pointers instead of environment checkpoints in the RQL layer
+  * #88: Added secondary and compound indexes
+  * #165: Backtraces on OS X
+  * #207: Added soft durability option
+  * #311: Added daemon mode (via --daemon)
+  * #423: Allow logging to a specific file (via --log-file)
+  * #457: Added batched inserts, significant speedup in insert performance
+  * #496: Link to libc++ OS X to use advanced C++11 features
+  * #672: Replaced environment checkpoints with shared pointers in the ReQL layer
 * CLI
-  * #566: In admin CLI, `ls tables --long` should include a `durability` column
+  * #566: In the admin CLI, `ls tables --long` now includes a `durability` column
 * Web UI
-  * #331: Improve data explorer indentation and brace pairing
-  * #355: Check for updates in the admin UI
-  * #395: Data explorer - Auto completion for databases/tables names
-  * #514: Migrate reql_json.doc to YAML
-  * #569: Toggle for Data Explorer Electric Punctuation
-  * #572: Additional "Add Table" buttons & colored "Delete Database" button
+  * #331: Improved data explorer indentation and brace pairing
+  * #355: Check for new versions of RethinkDB from the admin UI
+  * #395: Auto complete databases and tables names in the data explorer
+  * #514: Rewrote and improved the documentation generator
+  * #569: Toggle for Data Explorer brace pairing
+  * #572: Changed button styles in the Data Explorer
   * #707: Two step confirmation to the delete database button
 * ReQL
-  * #469: Add an `info` command
-  * #604: Never return an array in JavaScript
-  * #670: Add soft durability option to `table_create`
+  * #469: Added an `info` command that provides information on any ReQL value (useful for retreiving the primary key)
+  * #604: Allow iterating over result arrays as if they were cursors
+  * #670: Added a soft durability option to `table_create`
 * Testing
-  * #480: Test on Travis-CI
-  * #517: Resurrect integration tests
-  * #574: We need a way to re-run just one RQL test with the test framework
-  * #587: Doc validation should work for ruby examples
-  * #669: Add color to run-tests.sh output
+  * #480: Run [tests on Travis-CI](https://travis-ci.org/rethinkdb/rethinkdb)
+  * #517: Improved the integration tests
+  * #587: Validate API documentation examples
+  * #669: Added color to `make test` output
 
 ## Fixed bugs ##
 
@@ -50,33 +49,32 @@ This release introduces secondary indexes, stability and performance enhancement
   * Fix #750: Intermittent RPCSemilatticeTest.MetadataExchange failure
   * Fix #757: RethinkDB 1.4.4 crash with branch queries and default database
 * Documentation
-  * Fix #387: Document the command line option --web-static-directory
-  * Fix #503: outdated useOutdated documentation
+  * Fix #387: Document the command line option --web-static-directory (custom location for web assets)
+  * Fix #503: Outdated useOutdated documentation
   * Fix #563: Fix doc for typeof()
-  * Fix #610: Optional arguments for table_create are not documented: datacenter and cache_size
+  * Fix #610: Optional arguments for `table_create` are not documented: datacenter and cache_size
   * Fix #631: Docs for `reduce` are missing parameters
-  * Fix #651: replace r_datum with datum
-  * Fix #679: Protobuffer Spec: Example documentation
-  * Fix #691: API Documentation: Example for zip is faulty
+  * Fix #651: Replace r_datum with datum
+  * Fix #679: Protobuf spec: example documentation
+  * Fix #691: API documentation: example for zip is faulty
 * Web UI
-  * Fix #583: DataExplorer suggester for table is incomplete
   * Fix #529: Suggestion arrow goes out of bounds if you have excessive whitespace
-  * Fix #583: DataExplorer suggester for table is incomplete
-  * Fix #584: DataExplorer Suggester suggestions
+  * Fix #583: Data Explorer suggestions for table is incomplete
+  * Fix #584: Improve Data Explorer suggestions
   * Fix #623: Modals (e.g. "delete database") have subpar margins
   * Fix #629: Improve the buttons on the Tables View (and throughout the UI)
-  * Fix #662: Command key deletes text selection in data explorer
-  * Fix #725: Dataexplorer - Do a better job with docs
+  * Fix #662: Command key deletes text selection in Data Explorer
+  * Fix #725: Data Explorer: improve documentation
   * Fix #790: False values in a document show up as blank in the tree view
 * ReQL
-  * Fix #46: r.tableCreate() not defined in JS
+  * Fix #46: `r.tableCreate()` not defined in JavaScript
   * Fix #125: Grouped reductions (map/reduce, groupby) should return a stream, not array
-  * Fix #370: Map after dbList() and tableList()
+  * Fix #370: Map after `dbList()` and `tableList()`
   * Fix #421: Consider changing the return values from mutation operations
-  * Fix #525: Improve error for groupBy
+  * Fix #525: Improve error for `groupBy`
   * Fix #527: Integers returned as floats
-  * Fix #603: Catch error if no callback is passed to cursor.toArray()
-  * Fix #632: Python driver - Insert object with non valid key
+  * Fix #603: Catch error if no callback is passed to `cursor.toArray()`
+  * Fix #632: Python driver: insert object with non-valid key
   * Fix #640: driver interrupt handling behavior
   * Fix #642: Ruby client has a bad error message when you try and run a query on a closed connection
   * Fix #650: Python driver sends "END" instead of "STOP"
