@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, time, random, signal
+import sys, os, time, random, signal, socket
 from optparse import OptionParser
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
@@ -186,6 +186,14 @@ try:
             consecutive_errors += 1
             if consecutive_errors >= 5:
                 time.sleep(0.5)
+        except r.RqlDriverError:
+            # Something went wrong, probably a server crash
+            # TODO: pass error message back to launcher, aggregate
+            break
+        except socket.error:
+            # Something went wrong, probably a server crash
+            # TODO: pass error message back to launcher, aggregate
+            break
 except SystemExit:
-    # This is the normal path for exiting the stress client
+    # SystemExit is the normal path for exiting the stress client
     pass
