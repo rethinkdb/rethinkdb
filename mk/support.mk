@@ -54,8 +54,7 @@ V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
 
 .PHONY: support
-support: $(foreach v,$(shell echo $(FETCH_LIST) | tr a-z A-Z), \
-            $(patsubst %,$($(v)),$(filter-out undefined,$(origin $(v)))))
+support: $(COFFEE) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
 
 $(shell mkdir -p $(SUPPORT_DIR) $(TOOLCHAIN_DIR) $(TC_BUILD_DIR) $(TC_SRC_DIR))
 
@@ -122,7 +121,7 @@ $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_
 $(NODE_MODULES_DIR)/coffee-script: $(NPM_DEP)
 	$P NPM-I coffee-script
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.6.2.tar.gz $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.4.0.tar.gz $(SUPPORT_LOG_REDIRECT)
 
 $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS_INT_EXE)).
 	$P LN
