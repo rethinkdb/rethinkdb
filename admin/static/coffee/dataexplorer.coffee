@@ -2862,7 +2862,7 @@ module 'DataExplorerView', ->
         # Build the table
         # We order by the most frequent keys then by alphabetic order
         json_to_table: (result) =>
-            if not (result.constructor? and result.constructor is Array)
+            if not (result.constructor? and result.constructor is ArrayResult)
                 result = [result]
 
             keys_count =
@@ -2976,7 +2976,7 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and value.constructor is Array
+            else if value.constructor? and value.constructor is ArrayResult
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'

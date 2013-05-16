@@ -21,6 +21,7 @@ Simple class to scan a JavaScript file and express its dependencies.
 __author__ = 'nnaze@google.com'
 
 
+import io
 import re
 
 _BASE_REGEX_STRING = '^\s*goog\.%s\(\s*[\'"](.+)[\'"]\s*\)'
@@ -107,7 +108,7 @@ def GetFileContents(path):
     IOError: An error occurred opening or reading the file.
 
   """
-  fileobj = open(path)
+  fileobj = io.open(path, encoding='utf-8')
   try:
     return fileobj.read()
   finally:
