@@ -36,6 +36,8 @@ ifeq ($(COMPILER),CLANG)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
     RT_LDFLAGS += -lc++
+  else ifeq ($(OS), FreeBSD)
+    RT_LDFLAGS += -lc++
   else
     RT_LDFLAGS += -lstdc++
   endif
@@ -130,7 +132,8 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations
+RT_CXXSTDFLAGS = -std=gnu++0x  # Default C++ standard - must be c++0x compatible
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
@@ -140,7 +143,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
   ifeq ($(OS), Darwin)
-    RT_CXXFLAGS += -stdlib=libc++
+    RT_CXXSTDFLAGS = -std=gnu++0x -stdlib=libc++
+  else ifeq ($(OS), FreeBSD)
+    RT_CXXSTDFLAGS = -std=c++0x -stdlib=libc++
   endif
 
 else ifeq ($(COMPILER), GCC)
@@ -150,6 +155,8 @@ else ifeq ($(COMPILER), GCC)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
   endif
 endif
+
+RT_CXXFLAGS += $(RT_CXXSTDFLAGS)
 
 ifeq ($(COVERAGE), 1)
   ifeq ($(COMPILER), GCC)
