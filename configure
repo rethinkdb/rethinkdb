@@ -38,6 +38,7 @@ init () {
 
     default_allocator_linux=jemalloc
     default_allocator_osx=system
+    default_allocator_freebsd=system
 
     allowed_arg_vars="CXXFLAGS LDFLAGS PLATFORM MSBUILD VCVARSALL NMAKE"
 }
@@ -70,13 +71,16 @@ configure () {
 }
 
 configure_unixlike () {
-    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
+#    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Use ccache"
     boolvar USE_CCACHE $use_ccache
     check_cxx
     require "Host System"
     var MACHINE $($CXX -dumpmachine)
     require "Build System"
+    require "Operating System"
+    var OS $(uname)
+    require "OS Version"
     show "`uname -msr`"
     check_cross_compiling
     require "Host Operating System"
@@ -91,6 +95,13 @@ configure_unixlike () {
             default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
+        *freebsd*)
+            var OS "FreeBSD"
+            default_allocator=$default_allocator_freebsd
+            var PTHREAD_LIBS -pthread ;
+            var RT_LIBS -lrt
+            [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
+            ;;
         *) error "unsupported operating system: $MACHINE" ;;
     esac
     case "${MACHINE%%-*}" in
