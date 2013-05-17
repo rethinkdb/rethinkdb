@@ -915,7 +915,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
 
     write_message_t wm;
-    wm << mod_report;
+    wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
     rdb_update_sindexes(sindexes_, &mod_report, txn_);
