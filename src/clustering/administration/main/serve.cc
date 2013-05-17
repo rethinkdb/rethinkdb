@@ -347,7 +347,7 @@ bool do_serve(
                         if(config_file) {
                             logINF("by adding `bind=all' to the config file (%s).", (*config_file).c_str());
                         } else {
-                            logINF("by running rethinkdb with the `--bind all' command line option.");
+                            logINF("by running rethinkdb with the `--bind all` command line option.");
                         }
                     }
 
