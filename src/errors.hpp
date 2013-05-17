@@ -6,12 +6,6 @@
 #include <signal.h>
 #include <stdlib.h>
 
-// Boost 1.53.0 would not build on OS X (using Apple's Clang 4.0, which is based
-// off of clang 3.1svn).  See https://github.com/rethinkdb/rethinkdb/issues/377
-#ifndef BOOST_NO_CXX11_RVALUE_REFERENCES
-#error "BOOST_NO_CXX11_RVALUE_REFERENCES should have been defined by the Makefile."
-#endif
-
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
