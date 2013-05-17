@@ -1,9 +1,54 @@
-# Accessing the RQL API.
+# Accessing the ReQL API.
 
 **Basic Example:**
 
-<PY_EXAMPLE_WITH_OUTPUT examples/basic_example.py>
-<RB_EXAMPLE_WITH_OUTPUT examples/basic_example.rb>
+<PY COMPLETE_EXAMPLE>
+    import rethinkdb as r
+
+    # Open a connection.
+    conn = r.connect('localhost', 28015, 'test')
+
+    # Create a table and insert three rows.
+    r.table_create('tristate_area').run(conn)
+    r.table('tristate_area').insert([{'name': 'Pennsylvania', 'code': 'PA'},
+                                     {'name': 'New Jersey', 'code': 'NJ'},
+                                     {'name': 'Delaware', 'code': 'DE'}]).run(conn)
+
+    # Make a cursor containing every row of the table and destructively
+    # iterate through its rows.
+    cursor = r.table('tristate_area').run(conn)
+    for row in cursor:
+        print row
+
+    # Cleanup.  (Exception safety is not a part of this example!)
+    r.table_drop('tristate_area').run(conn)
+    conn.close()
+<RB COMPLETE_EXAMPLE>
+    # Load the RethinkDB module.
+    require 'rethinkdb'
+
+    # Make the RethinkDB API accessible by the name 'r'.
+    include RethinkDB::Shortcuts
+
+    # Open a connection.
+    conn = r.connect('localhost', 28015, 'test')
+
+    # Create a table and insert three rows.
+    r.table_create('tristate_area').run(conn)
+    r.table('tristate_area').insert([{:name => "Pennsylvania", :code => 'PA'},
+                                     {:name => 'New Jersey', :code => 'NJ'},
+                                     {:name => 'Delaware', :code => 'DE'}]).run(conn)
+
+    # Make a cursor containing every row of the table and destructively
+    # iterate through its rows.
+    cursor = r.table('tristate_area').run(conn)
+    cursor.each { |x|
+      puts x
+    }
+
+    # Cleanup.  (Exception safety is not a part of this example!)
+    r.table_drop('tristate_area').run(conn)
+    conn.close()
 <JS> TODO
 </>
 
@@ -19,12 +64,14 @@ way.
 
 **Syntax:**
 
-    <JS> var r = require('rethinkdb');
-    <PY> import rethinkdb as r
-    <RB>
+<JS>
+    var r = require('rethinkdb');
+<PY>
+    import rethinkdb as r
+<RB>
     require 'rethinkdb'
     include RethinkDB::Shortcuts
-    </>
+</>
 
 ## connect
 
@@ -48,16 +95,91 @@ Options:
 
 **Example:**
 
-<PY_EXAMPLE_WITH_OUTPUT examples/connect_example.py>
-<RB_EXAMPLE_WITH_OUTPUT examples/connect_example.py>
+<PY COMPLETE_EXAMPLE>
+    import rethinkdb as r
+
+    # A fresh RethinkDB instance comes with an empty database named
+    # 'test' created for you.
+
+    # Open a connection with 'test' as the default database.
+    conn = r.connect('localhost', 28015, 'test')
+
+    # Create a second database, 'test_two'.
+    r.db_create('test_two').run(conn)
+
+    print "Databases: ", r.db_list().run(conn)
+
+    # Create a table in conn's default database, 'test'.
+    r.table_create('alice').run(conn)
+
+    # Create another table, explicitly specifying the database 'test'.
+    r.db('test').table_create('bob').run(conn)
+
+    # Create a third table, explicitly specifynig the database 'test_two'.
+    r.db('test_two').table_create('charlie').run(conn)
+
+    # Print the tables of conn's default database, 'test'.
+    print "Tables in 'test': ", r.table_list().run(conn)
+    # Print the tables of 'test_two'.
+    print "Tables in 'test_two': ", r.db('test_two').table_list().run(conn)
+
+    # Clean up our work.  (This example code is not exception-safe.)
+
+    # Drop the database 'test_two' and ALL of its tables.
+    r.db_drop('test_two').run(conn)
+
+    # Drop the tables 'alice' and 'bob' from conn's default database,
+    # which is 'test'.
+    r.table_drop('alice').run(conn)
+    r.table_drop('bob').run(conn)
+
+    conn.close()
+<RB COMPLETE_EXAMPLE>
+    require 'rethinkdb'
+    include RethinkDB::Shortcuts
+
+    # A fresh RethinkDB instance comes with an empty database named
+    # 'test' created for you.
+
+    # Open a connection with 'test' as the default database.
+    conn = r.connect('localhost', 28015, 'test')
+
+    # Create a second database, 'test_two'.
+    r.db_create('test_two').run(conn)
+
+    puts "Databases:", r.db_list().run(conn)
+
+    # Create a table in conn's default database, 'test'.
+    r.table_create('alice').run(conn)
+
+    # Create another table, explicitly specifying the database 'test'.
+    r.db('test').table_create('bob').run(conn)
+
+    # Create a third table, explicitly specifynig the database 'test_two'.
+    r.db('test_two').table_create('charlie').run(conn)
+
+    # Print the tables of conn's default database, 'test'.
+    puts "Tables in 'test':", r.table_list().run(conn)
+    # Print the tables of 'test_two'.
+    puts "Tables in 'test_two':", r.db('test_two').table_list().run(conn)
+
+    # Clean up our work.  (This example code is not exception-safe.)
+
+    # Drop the database 'test_two' and ALL of its tables.
+    r.db_drop('test_two').run(conn)
+
+    # Drop the tables 'alice' and 'bob' from conn's default database,
+    # which is 'test'.
+    r.table_drop('alice').run(conn)
+    r.table_drop('bob').run(conn)
+
+    conn.close()
 <JS> TODO
 </>
 
 <PY||RB>
 ## repl
-<PY> ### connection.repl()
-<RB> ### connection.repl()
-<PY||RB>
+### connection.repl()
 
 Set the default connection to make REPL use easier.  Allows calling
 `run()` without specifying a connection.
@@ -66,9 +188,39 @@ Connection objects are not thread safe, and `repl` connections should
 not be used in multi-threaded environments.  (The use of global
 variables in single-threaded environments is also questionable.)
 
-<PY_EXAMPLE_SANS_OUTPUT examples/repl_example.py>
-<RB_EXAMPLE_SANS_OUTPUT examples/repl_example.rb>
+<PY COMPLETE_EXAMPLE>
+    import rethinkdb as r
 
+    # Open a connection to localhost:28015, with 'test' as the default
+    # database.
+    conn = r.connect()
+
+    # We must explicitly pass conn.
+    print "Tables:", r.table_list().run(conn)
+
+    # Start "repl" mode, which is useful for irb and small scripts.
+    conn.repl()
+
+    # Now we don't need to explicitly pass conn.  conn.repl() put conn in
+    # a global variable that run defaults to using.
+    print "Tables:", r.table_list().run()
+<RB COMPLETE_EXAMPLE>
+    require 'rethinkdb'
+    include RethinkDB::Shortcuts
+
+    # Open a connection to localhost:28015, with 'test' as the default
+    # database.
+    conn = r.connect()
+
+    # We must explicitly pass conn.
+    puts "Tables: [" + r.table_list().run(conn).join(', ') + "]"
+
+    # Start "repl" mode, which is useful for irb and small scripts.
+    conn.repl()
+
+    # Now we don't need to explicitly pass conn.  conn.repl() put conn in
+    # a global variable that the 'run' method uses by default.
+    puts "Tables: [" + r.table_list().run.join(', ') + "]"
 </>
 
 ## close
@@ -154,11 +306,11 @@ Run a query on the server.
 
 Options:
 * `use_outdated`: Tolerate outdated data in this query.  Defaults to
-  `False`.  This can be fine-tuned precisely by using the
+  `<False>`.  This can be fine-tuned precisely by using the
   `use_outdated` option of `r.table`, which takes overrides this
   precedence over this option.
 * `noreply`: Don't wait for a reply, and return `nil`.  Defaults to
-  `False`.  This allows multiple write queries to be sent without
+  `<False>`.  This allows multiple write queries to be sent without
   waiting for or receiving the result, which means throughput is less
   hindered by client/server latency or other bottlenecks.  TODO: Check
   that the return value will be nil.
@@ -277,9 +429,9 @@ called for each remaining row in the cursor.
             var i = 0;
 
             cursor.each(function(err, row) {
-                console.log(["Row " + i + ":", row])
+                console.log(["Row " + i + ":", row]);
                 i += 1;
-                if (!row.hasNext()) {
+                if (!cursor.hasNext()) {
                     conn.close();
                 }
             });
@@ -402,10 +554,10 @@ Options:
   different primary key).  Defaults to `'id'`.
 
 * `<N>hard_durability</>`: A boolean.  If
-  `<PY>True<RB||JS>true</>`, specifies that writes to this table
+  `<True>`, specifies that writes to this table
   should be considered completed only when they're reliably stored on
   disk.  Otherwise, writes are considered completed when they're
-  stored in the cache.  Defaults to `<PY>True<RB||JS>true</>`.
+  stored in the cache.  Defaults to `<True>`.
 
 * `<N>cache_size</>`: *Deprecated* (TODO: Really?  Sam added this
   claim himself.).  An integer.  The amount of cache space allocated
@@ -526,15 +678,15 @@ is.
     # Set up some data to play with.
     r.table_create('users').run(conn)
     r.table('users').insert([{'username': 'Beethoven', 'postCount': 37,
-                              'warnings': 0},
+                              'warnings': 0, 'access': 'moderator'},
                              {'username': 'Mozart', 'postCount': 3,
-                              'warnings': 17},
+                              'warnings': 17, 'access': 'banned'},
                              {'username': 'Liszt', 'postCount': 123,
-                              'warnings': 3},
+                              'warnings': 3, 'access': 'normal'},
                              {'username': 'Dickens', 'postCount': 0,
-                              'warnings': 5},
+                              'warnings': 5, 'access': 'normal'},
                              {'username': 'Hugo', 'postCount': 0,
-                              'warnings': 0}]).run(conn)
+                              'warnings': 0, 'access': 'normal'}]).run(conn)
 
     # Create an index by post count.
     r.table('users').index_create('postCount').run(conn)
@@ -562,10 +714,14 @@ is.
 <RB WITH_OUTPUT>
     # Set up some data to play with.
     r.table_create('users').run(conn)
-    r.table('users').insert([{:username => 'Beethoven', :postCount => 37},
-                             {:username => 'Mozart', :postCount => 3},
-                             {:username => 'Liszt', :postCount => 123},
-                             {:username => 'Dickens', :postCount => 0}]).run(conn)
+    r.table('users').insert([{:username => 'Beethoven', :postCount => 37,
+                              :warnings => 0, :access => 'moderator'},
+                             {:username => 'Mozart', :postCount => 3,
+                              :warnings => 17, :access => 'banned'},
+                             {:username => 'Liszt', :postCount => 123,
+                              :warnings => 3, :access => 'normal'},
+                             {:username => 'Dickens', :postCount => 0,
+                              :warnings => 0, :access => 'normal'}]).run(conn)
 
     # Create an index by post count.
     r.table('users').index_create('postCount').run(conn)
@@ -641,3 +797,244 @@ When evaluated:  Returns an array of strings.  TODO: Is this true?
 
 # Writing Data
 
+## insert
+<PY>
+### table.insert(json, upsert=False) -> query
+### table.insert([json], upsert=False) -> query
+TODO: How to represent an array of JSON?
+<RB||JS>
+### table.insert(json) -> query
+### table.insert(json, options) -> query
+### table.insert([json]) -> query
+### table.insert([json], options) -> query
+</>
+
+Inserts JSON documenst into a table.  Acceps a single JSON document or
+an array of documents.  If `table`'s primary key column is not
+supplied, it will be autogenerated.  If a document already exists with
+the given primary key, the document won't get inserted, unless
+the optional argument `upsert` is specified to be <True>.
+
+TODO: Above: Link to primary key autogeneration doc.
+
+Options:
+
+* `json`: A JSON document or an array of JSON documents.  The JSON
+  document (or documents) to insert.
+
+<RB||JS>More options can be supplied in the `options` dictionary.</>
+
+* `upsert`: A boolean.  If set to `<True>`, the operation will
+  overwrite documents with a matching primary key.  Defaults to
+  `<False>`.
+
+When evaluated:  Returns an object that contains the following attributes:
+
+* `inserted`: the number of documents that were successfully inserted.
+
+* `replaced`: the number of odcuments that were updated when `upsert` is used.
+
+* `unchanged`: the number of documents that would have been modified,
+  except that the new value was the same as the old value when doing
+  an `upsert`.
+
+* `errors`: the number of errors encountered while inserting,
+
+* If errors were encountered while inserting, `first_error` contains
+  the text of the first error,
+
+* `generated_keys`: a list of generated primary key values,
+
+TODO: Is `generated_keys` in the same order as the insertions?
+
+* `deleted`: the number of documents deleted (which is always `0` for
+  an `insert` operation).
+
+* `skipped`: the number of documents skipped (which is always `0` for
+  an `insert` operation).
+
+**Example:**
+
+<PY>
+    # Connect and create a new table 'points'.
+    conn = r.connect()
+    r.table_create('points').run(conn)
+
+    # Insert one document.
+    results = r.table('points').insert({'x': 3, 'y': 4}).run(conn)
+
+    # Insert two more documents.
+    results = r.table('points').insert([{'x': 5, 'y': 12},
+                                        {'x': 7, 'y': 24}]).run(conn)
+    ids = results.generated_keys
+
+    print "Freshly inserted documents:"
+    for row in r.table('points').run(conn)
+        print row
+
+    # Overwrite the document {'x': 5, 'y': 12}.  TODO: Check that
+    # results.generated_keys must retain order.  Explain this here.
+    r.table('points')
+     .insert({'id': ids[0], 'x': 3, 'y': 4}, upsert=True).run(conn)
+
+    print "Slightly different documents:"
+    for row in r.table('points').run(conn)
+        print row
+<RB>
+    # Connect and create a new table 'points'.
+    conn = r.connect()
+    r.table_create('points').run(conn)
+
+    # Insert one document.
+    results = r.table('points').insert({ :x => 3, :y => 4}).run(conn)
+
+    # Insert two more documents.
+    results = r.table('points').insert([{ :x => 5, :y => 12 },
+                                        { :x => 7, :y => 24 }]).run(conn)
+    ids = results.generated_keys
+
+    print "Freshly inserted documents:"
+    for row in r.table('points').run(conn)
+        print row
+
+    # Overwrite the document { :x => 5, :y => 12}.  TODO: Check that
+    # results.generated_keys must retain order.  Explain this here.
+    r.table('points')
+     .insert({'id': ids[0], 'x': 20, 'y': 21}, :upsert => true).run(conn)
+
+    print "Slightly different documents:"
+    for row in r.table('points').run(conn)
+        print row
+<JS>
+    TODO
+<CLEANUP PY>
+    r.table_drop('points').run()
+</>
+
+## update
+<PY>
+### selection.update(expr, non_atomic=False) -> query
+<RB>
+### selection.update { expr } -> query
+### selection.update { |row| expr } -> query
+### selection.update(:non_atomic) { expr } -> query  (TODO: is this :non_atomic syntax good?)
+### selection.update(:non_atomic) { |row| expr } -> query
+<JS>
+### selection.update(expr[, options]) -> query
+</>
+
+Update documents, column-by-column, in a selection.  The first step is
+to write a query that selects the document or documents you'd like to
+update.  This produces `selection`.  Then, there's the question of how
+you'd like to update the documents.  If you provide a JSON object,
+you'll update just the specific columns used in that dictionary.  You
+can also compute this JSON dictionary by providing a function of the
+row you're operating on.
+
+Options:
+
+* `expr`: TODO
+
+<RB||JS> Further options are passed as part of the `options` dictionary.</>
+
+* `<N>non_atomic</>`: Update the row non-atomically.  This flag lets
+  you use non-deterministic and non-atomic query expressions, such as
+  those that retrieve data from other tables, or those that use
+  `r.js(...)` to evaluate Javascript on the server.  Defaults to
+  `False`.
+
+**Example:** Suppose we're a forum administrator that would like to
+add `" (Moderator)"` to all moderators' user names, set their warning
+level to 0, and randomize their post count.
+
+<SETUP PY>
+    r.table_create('users').run()
+    r.table('users').insert([{'username': 'Beethoven', 'postCount': 37,
+                              'warnings': 0, 'access': 'moderator'},
+                             {'username': 'Mozart', 'postCount': 3,
+                              'warnings': 17, 'access': 'banned'},
+                             {'username': 'Liszt', 'postCount': 123,
+                              'warnings': 3, 'access': 'normal'},
+                             {'username': 'Dickens', 'postCount': 0,
+                              'warnings': 5, 'access': 'normal'},
+                             {'username': 'Hugo', 'postCount': 0,
+                              'warnings': 0, 'access': 'normal'}]).run()
+<PY>
+    # Construct (but don't run) a ReQL query that selects moderators
+    # in the `users` table.
+    selection = r.table('users').filter({'access': 'moderator'})
+
+    # Set moderators' warnings to 0.
+    selection.update({'warnings': 0}).run(conn)
+
+    # Update moderators' user names.
+    selection.update(lambda x: {'username': x['username'] + ' (Moderator)'}).run(conn)
+
+    # Randomize moderators' post count.  Since ReQL doesn't provide a
+    # random number function, we'll have to use Javascript.  We'll
+    # also have to declare the query non-atomic.
+
+    javascript_expression = '(Math.floor(Math.random() * 4000))'
+    selection.update(lambda x: {'postCount': r.js(javascript_expression)},
+                     non_atomic=True)
+             .run(conn)
+<RB>
+    # Construct (but don't run) a ReQL query that selects moderators
+    # in the `users` table.
+    selection = r.table('users').filter({ :access => 'moderator' })
+
+    # Set moderators' warnings to 0.
+    selection.update { { :warnings => 0 } }.run(conn)
+
+    # Update moderators' user names.
+    selection.update { |x| {:username => x[:username] + ' (Moderator)'} }.run(conn)
+
+    # Randomize moderators' post count.
+    javascript_expression = '(Math.floor(Math.random() * 4000))'
+    selection.update(:non_atomic) { |x|
+      {:postCount => r.js(javascript_expression)}
+    }.run(conn)
+<JS>
+    TODO
+<CLEANUP PY>
+    r.table_drop('users').run()
+</>
+
+## replace
+<PY>
+### selection.replace(expr, non_atomic=False) -> query
+<RB>
+### selection.replace { expr } -> query
+### selection.replace { |row| expr } -> query
+### selection.replace(:non_atomic) { expr } -> query
+### selection.replace(:non_atomic) { |row| expr } -> query
+<JS>
+### selection.replace(expr[, options]) -> query
+</>
+
+Replace documents found in a selection.  The first step is to write a
+query that selects the document or documents you'd like to update.
+This produces `selection`.  Then, there's the question of how you'd
+like to replace the documents.  If you provide a JSON object, you'll
+be directly providing the replacement value for that document.  If you
+provide a ReQL expression, or function that produces a ReQL
+expression, the replacement value will be computed from the row that's
+getting replaced.  If the new document specifies the primary key
+value, it must be the same value as the original document's primary
+key.
+
+(TODO: Must we specify the new document's primary key value?)
+
+Options:
+
+* `expr`: TODO
+
+<RB||JS> Further options are passed as part of the `options` dictionary.</>
+
+* `<N>non_atomic</>`: Update the row non-atomically.  This flag lets
+  you use non-deterministic and non-atomic query expressions, such as
+  those that retrive data from other tables, or those that use
+  `r.js(...)` to evaluate Javascript on the server.  Defaults to
+  `False`.
+
+(TODO: Continue with replace examples.)
