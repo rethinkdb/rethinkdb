@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
