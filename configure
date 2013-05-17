@@ -47,16 +47,20 @@ configure () {
             var $var "$val"
         fi
     done
-    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Operating System"
     var OS $(uname)
     require "OS Version"
     show "`uname -msr`"
     case "$OS" in
-        Darwin) with_tcmalloc=false ;;
+        FreeBSD )
+          with_tcmalloc=false
+          [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
+          ;;
+        Darwin ) with_tcmalloc=false ;;
         Linux) true ;;
         *) error "unsupported operating system: $OS" ;;
     esac
+    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
