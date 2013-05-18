@@ -2757,8 +2757,13 @@ module 'DataExplorerView', ->
                     return @template_json_tree.array
                         values: sub_values
             else if value_type is 'object'
-                sub_values = []
+                sub_keys = []
                 for key of value
+                    sub_keys.push key
+                sub_keys.sort()
+
+                sub_values = []
+                for key in sub_keys
                     last_key = key
                     sub_values.push
                         key: key
