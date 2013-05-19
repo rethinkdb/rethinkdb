@@ -3435,9 +3435,8 @@ module 'DataExplorerView', ->
                 that = @
                 TermBase.prototype.private_run = TermBase.prototype.run
                 TermBase.prototype.run = ->
-                    if that.container.query_error?
-                        throw that.container.query_error_template
-                            found_run: true
+                    throw that.container.query_error_template
+                        found_run: true
 
         connect: =>
             that = @
