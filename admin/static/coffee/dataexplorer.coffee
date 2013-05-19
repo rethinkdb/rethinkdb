@@ -3407,6 +3407,8 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
+        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
+
         # I don't want that thing in window
         constructor: (args) ->
             @container = args.container
@@ -3435,7 +3437,7 @@ module 'DataExplorerView', ->
                 that = @
                 TermBase.prototype.private_run = TermBase.prototype.run
                 TermBase.prototype.run = ->
-                    throw that.container.query_error_template
+                    throw that.query_error_template
                         found_run: true
 
         connect: =>
