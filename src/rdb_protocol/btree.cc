@@ -972,8 +972,10 @@ void rdb_update_single_sindex(
                                                  &sindex->btree->stats,
                                                  &return_superblock_local);
 
-                kv_location_delete(&kv_location, sindex_key,
-                                   sindex->btree, repli_timestamp_t::distant_past, txn);
+                if (kv_location.value.has()) {
+                    kv_location_delete(&kv_location, sindex_key,
+                                       sindex->btree, repli_timestamp_t::distant_past, txn);
+                }
                 //The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();
