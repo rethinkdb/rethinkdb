@@ -122,7 +122,7 @@ private:
                 }
 
                 std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(datums, datums, upsert);
+                    t->batch_replace(datums, datums, upsert, durability_requirement);
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -188,7 +188,7 @@ private:
                     break;
                 }
                 std::vector<counted_t<const datum_t> > results =
-                    tbl->batch_replace(datums, f, nondet_ok);
+                    tbl->batch_replace(datums, f, nondet_ok, durability_requirement);
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(*result, stats_merge);

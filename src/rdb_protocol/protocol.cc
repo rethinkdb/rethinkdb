@@ -865,7 +865,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
 
         if (!sharded_replaces.empty()) {
-            *write_out = write_t(batched_replaces_t());
+            *write_out = write_t(batched_replaces_t(), durability_requirement);
             batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
             batched->point_replaces.swap(sharded_replaces);
             return true;
