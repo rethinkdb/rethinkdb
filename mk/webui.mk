@@ -41,6 +41,8 @@ $(TOP)/admin/all: web-assets
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
 
+.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
+
 ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
 
 $(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)/.

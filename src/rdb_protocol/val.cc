@@ -225,25 +225,27 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         }
     }
 
-    rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
-    rdb_protocol_t::write_response_t response;
-    access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
-    rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
-        = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
-    r_sanity_check(batched_replaces_response != NULL);
-    std::vector<std::pair<int64_t, Datum> > *datums = &batched_replaces_response->point_replace_responses;
+    if (!point_replaces.empty()) {
+        rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
+        rdb_protocol_t::write_response_t response;
+        access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
+            = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
+        r_sanity_check(batched_replaces_response != NULL);
+        std::vector<std::pair<int64_t, Datum> > *datums = &batched_replaces_response->point_replace_responses;
 
-    rassert(is_sorted_by_first(*datums));
+        rassert(is_sorted_by_first(*datums));
 
-    size_t j = 0;
-    for (size_t i = 0; i < ret.size(); ++i) {
-        if (!ret[i].has()) {
-            r_sanity_check(j < datums->size());
-            ret[i] = make_counted<datum_t>(&(*datums)[j].second, env);
-            ++j;
+        size_t j = 0;
+        for (size_t i = 0; i < ret.size(); ++i) {
+            if (!ret[i].has()) {
+                r_sanity_check(j < datums->size());
+                ret[i] = make_counted<datum_t>(&(*datums)[j].second, env);
+                ++j;
+            }
         }
+        r_sanity_check(j == datums->size());
     }
-    r_sanity_check(j == datums->size());
 
     return ret;
 }
