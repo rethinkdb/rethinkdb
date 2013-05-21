@@ -1627,7 +1627,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_create_t, id, mapping, region);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
