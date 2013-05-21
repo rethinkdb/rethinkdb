@@ -588,18 +588,23 @@ struct rdb_protocol_t {
         durability_requirement_t durability() const { return durability_requirement; }
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const point_replace_t &r)
-            : write(r), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const batched_replaces_t &br)
-            : write(br), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const point_write_t &w)
-            : write(w), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const point_delete_t &d)
-            : write(d), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sindex_create_t &c)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sindex_drop_t &c)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+        explicit write_t(const point_replace_t &r, durability_requirement_t durability)
+            : write(r), durability_requirement(durability) { }
+        explicit write_t(const batched_replaces_t &br,
+                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+            : write(br), durability_requirement(durability) { }
+        explicit write_t(const point_write_t &w,
+                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+            : write(w), durability_requirement(durability) { }
+        explicit write_t(const point_delete_t &d,
+                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+            : write(d), durability_requirement(durability) { }
+        explicit write_t(const sindex_create_t &c,
+                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+            : write(c), durability_requirement(durability) { }
+        explicit write_t(const sindex_drop_t &c,
+                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+            : write(c), durability_requirement(durability) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

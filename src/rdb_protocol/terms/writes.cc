@@ -58,9 +58,13 @@ static const char *const insert_optargs[] = { "upsert" };
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)),
+          durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
 private:
+    // RSI: Initialize durability_requirement with actual query data.
+    durability_requirement_t durability_requirement;
+
     void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
                             counted_t<const datum_t> *datum_out) {
@@ -93,7 +97,7 @@ private:
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                stats = stats->merge(t->replace(d, d, upsert), stats_merge);
+                stats = stats->merge(t->replace(d, d, upsert, durability_requirement), stats_merge);
                 done = true;
             }
         }
@@ -145,9 +149,13 @@ static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)),
+          durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
 private:
+    // RSI: Initialize durability_requirement with actual query data.
+    durability_requirement_t durability_requirement;
+
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
@@ -165,7 +173,8 @@ private:
                 = v0->as_single_selection();
             counted_t<const datum_t> result = tblrow.first->replace(tblrow.second,
                                                                     f,
-                                                                    nondet_ok);
+                                                                    nondet_ok,
+                                                                    durability_requirement);
             stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows

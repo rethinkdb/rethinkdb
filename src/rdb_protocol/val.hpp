@@ -44,10 +44,12 @@ public:
 
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
-                                     bool nondet_ok);
+                                     bool nondet_ok,
+                                     durability_requirement_t durability_requirement);
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
-                                     bool upsert);
+                                     bool upsert,
+                                     durability_requirement_t durability_requirement);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -85,13 +87,16 @@ private:
         const std::vector<datum_func_pair_t> &replacements);
 
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
-                                        const map_wire_func_t &mwf);
+                                        const map_wire_func_t &mwf,
+                                        durability_requirement_t durability_requirement);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
-                                        bool nondet_ok);
+                                        bool nondet_ok,
+                                        durability_requirement_t durability_requirement);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
-                                        bool upsert);
+                                        bool upsert,
+                                        durability_requirement_t durability_requirement);
 
     env_t *env;
     bool use_outdated;
