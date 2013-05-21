@@ -9,11 +9,6 @@
 #include "help.hpp"
 #include "config/args.hpp"
 
-void print_version_message() {
-    printf("%s\n", RETHINKDB_VERSION_STR);
-}
-
-
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
     rlimit core_limit;
