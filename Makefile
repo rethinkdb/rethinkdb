@@ -97,12 +97,12 @@ else
 endif
 
 # Build the list of phony targets
-# TODO: depend on inner $(MAKEFILES) instead of *.mk
 $(TOP)/mk/gen/phony-list.mk: $(wildcard $(TOP)/mk/*.mk)
-	+@MAKEFLAGS= $(MAKE_CMD_LINE) --print-data-base --question JUST_SCAN_MAKEFILES=1 \
-	  | grep '^.PHONY: ' \
+	+@MAKEFLAGS= $(MAKE_CMD_LINE) --print-data-base var-MAKEFILE_LIST JUST_SCAN_MAKEFILES=1 \
+	  | egrep '^.PHONY: |MAKEFILE_LIST = ' \
 	  | sed 's/^.PHONY:/PHONY_LIST :=/' \
-	    2>/dev/null > $@
+	  | sed 's|^MAKEFILE_LIST = \(.*\)$$|$@: $$(filter-out %.d,\1)|' \
+	  > $@
 
 # Don't try to rebuild any of the Makefiles
 Makefile:

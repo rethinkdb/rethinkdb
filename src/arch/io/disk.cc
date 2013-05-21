@@ -32,7 +32,7 @@
    conflicts, and actually sending them to the disk. */
 class linux_disk_manager_t : public home_thread_mixin_t {
     typedef conflict_resolving_diskmgr_t<accounting_diskmgr_t::action_t> conflict_resolver_t;
-    typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stack_stats_t;
+    typedef stats_diskmgr_t<conflict_resolver_t::action_t> stack_stats_t;
 
 public:
     struct action_t : public stack_stats_t::action_t {
@@ -110,7 +110,7 @@ public:
         do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
     };
 
-    void done(typename stack_stats_t::action_t *a) {
+    void done(stack_stats_t::action_t *a) {
         assert_thread();
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);

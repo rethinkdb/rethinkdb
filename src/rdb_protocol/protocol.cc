@@ -784,8 +784,8 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
             return hash_region_t<key_range_t>();
         }
 
-        store_key_t minimum_key = store_key_t::min();
-        store_key_t maximum_key = store_key_t::max();
+        store_key_t minimum_key = store_key_t::max();
+        store_key_t maximum_key = store_key_t::min();
         uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
         uint64_t maximum_hash_value = 0;
 

@@ -2862,7 +2862,7 @@ module 'DataExplorerView', ->
         # Build the table
         # We order by the most frequent keys then by alphabetic order
         json_to_table: (result) =>
-            if not (result.constructor? and result.constructor is Array)
+            if not (result.constructor? and result.constructor is ArrayResult)
                 result = [result]
 
             keys_count =
@@ -2976,7 +2976,7 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and value.constructor is Array
+            else if value.constructor? and value.constructor is ArrayResult
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
@@ -3407,6 +3407,8 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
+        query_error_template: Handlebars.templates['dataexplorer-query_error-template']
+
         # I don't want that thing in window
         constructor: (args) ->
             @container = args.container
@@ -3435,9 +3437,8 @@ module 'DataExplorerView', ->
                 that = @
                 TermBase.prototype.private_run = TermBase.prototype.run
                 TermBase.prototype.run = ->
-                    if that.container.query_error?
-                        throw that.container.query_error_template
-                            found_run: true
+                    throw that.query_error_template
+                        found_run: true
 
         connect: =>
             that = @
