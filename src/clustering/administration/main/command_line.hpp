@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_
 
+void print_version_message();
+
 int main_rethinkdb_create(int argc, char *argv[]);
 int main_rethinkdb_serve(int argc, char *argv[]);
 int main_rethinkdb_proxy(int argc, char *argv[]);

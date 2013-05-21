@@ -209,6 +209,22 @@ bool exists_option(const std::map<std::string, options::values_t> &opts, const s
     return it != opts.end() && !it->second.values.empty();
 }
 
+void print_version_message() {
+    printf("%s\n", RETHINKDB_VERSION_STR);
+}
+
+bool handle_help_or_version_option(const std::map<std::string, options::values_t> &opts,
+                                   void (*help_fn)()) {
+    if (exists_option(opts, "--help")) {
+        help_fn();
+        return true;
+    } else if (exists_option(opts, "--version")) {
+        print_version_message();
+        return true;
+    }
+    return false;
+}
+
 serializer_filepath_t metadata_file(const base_path_t& dirpath) {
     return serializer_filepath_t(dirpath, "metadata");
 }
@@ -741,7 +757,10 @@ options::help_section_t get_help_options(std::vector<options::option_t> *options
     options::help_section_t help("Help options");
     options_out->push_back(options::option_t(options::names_t("--help", "-h"),
                                              options::OPTIONAL_NO_PARAMETER));
+    options_out->push_back(options::option_t(options::names_t("--version", "-v"),
+                                             options::OPTIONAL_NO_PARAMETER));
     help.add("-h [ --help ]", "print this help");
+    help.add("-v [ --version ]", "print the version number of rethinkdb");
     return help;
 }
 
@@ -910,8 +929,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_create();
+        if (handle_help_or_version_option(opts, &help_rethinkdb_create)) {
             return EXIT_SUCCESS;
         }
 
@@ -1005,8 +1023,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_serve();
+        if (handle_help_or_version_option(opts, &help_rethinkdb_serve)) {
             return EXIT_SUCCESS;
         }
 
@@ -1122,8 +1139,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_proxy();
+        if (handle_help_or_version_option(opts, &help_rethinkdb_proxy)) {
             return EXIT_SUCCESS;
         }
 
@@ -1205,8 +1221,7 @@ int main_rethinkdb_import(int argc, char *argv[]) {
     try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
 
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_import();
+        if (handle_help_or_version_option(opts, &help_rethinkdb_import)) {
             return EXIT_SUCCESS;
         }
 
@@ -1316,8 +1331,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     try {
         std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 1, argv + 1, options);
 
-        if (exists_option(opts, "--help")) {
-            help_rethinkdb_porcelain();
+        if (handle_help_or_version_option(opts, help_rethinkdb_porcelain)) {
             return EXIT_SUCCESS;
         }
 
