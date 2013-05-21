@@ -593,7 +593,7 @@ struct rdb_protocol_t {
         explicit write_t(const batched_replaces_t &br, durability_requirement_t durability)
             : write(br), durability_requirement(durability) { }
         explicit write_t(const point_write_t &w,
-                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+                         durability_requirement_t durability)
             : write(w), durability_requirement(durability) { }
         explicit write_t(const point_delete_t &d,
                          durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)

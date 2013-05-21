@@ -122,7 +122,7 @@ boost::shared_ptr<scoped_cJSON_t> generate_document(const std::string &value) {
 }
 
 void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key), generate_document(value), true));
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key), generate_document(value), true), DURABILITY_REQUIREMENT_DEFAULT);
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());

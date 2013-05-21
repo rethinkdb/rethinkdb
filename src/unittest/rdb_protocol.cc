@@ -126,7 +126,8 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data),
+                                      DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -219,7 +220,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+                                      DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -372,7 +374,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data));
+                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+                                              DURABILITY_REQUIREMENT_DEFAULT);
                 rdb_protocol_t::write_response_t response;
 
                 cond_t interruptor;
@@ -429,7 +432,8 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data));
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+                                      DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
