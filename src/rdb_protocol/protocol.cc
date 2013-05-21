@@ -889,7 +889,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement);
+            *write_out = write_t(tmp);
             return true;
         } else {
             return false;

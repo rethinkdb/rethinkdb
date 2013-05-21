@@ -596,14 +596,12 @@ struct rdb_protocol_t {
                          durability_requirement_t durability)
             : write(w), durability_requirement(durability) { }
         explicit write_t(const point_delete_t &d,
-                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
+                         durability_requirement_t durability)
             : write(d), durability_requirement(durability) { }
-        explicit write_t(const sindex_create_t &c,
-                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
-            : write(c), durability_requirement(durability) { }
-        explicit write_t(const sindex_drop_t &c,
-                         durability_requirement_t durability = DURABILITY_REQUIREMENT_DEFAULT)
-            : write(c), durability_requirement(durability) { }
+        explicit write_t(const sindex_create_t &c)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+        explicit write_t(const sindex_drop_t &c)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
