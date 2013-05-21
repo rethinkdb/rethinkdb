@@ -915,7 +915,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
 
     write_message_t wm;
-    wm << mod_report;
+    wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
     rdb_update_sindexes(sindexes_, &mod_report, txn_);
@@ -972,8 +972,10 @@ void rdb_update_single_sindex(
                                                  &sindex->btree->stats,
                                                  &return_superblock_local);
 
-                kv_location_delete(&kv_location, sindex_key,
-                                   sindex->btree, repli_timestamp_t::distant_past, txn);
+                if (kv_location.value.has()) {
+                    kv_location_delete(&kv_location, sindex_key,
+                                       sindex->btree, repli_timestamp_t::distant_past, txn);
+                }
                 //The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();
