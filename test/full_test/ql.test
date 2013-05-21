@@ -3,11 +3,11 @@
 make = "make -j1 -C $RETHINKDB/test/rql_test BUILD_DIR=$RETHINKDB_BUILD_DIR "
 
 generate_test(
-    make + "js_connect",
+    make + "js_connect TEST_DEFAULT_PORT=1",
     name = "js-connect")
 
 generate_test(
-    make + "py_connect",
+    make + "py_connect TEST_DEFUALT_PORT=1",
     name = "py-connect")
 
 generate_test(
