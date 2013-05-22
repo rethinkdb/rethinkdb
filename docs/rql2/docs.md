@@ -91,8 +91,6 @@ Options:
 * `port`: Port of remote server.  Defaults to `28015`.
 * `<JS||PY>db<RB>default_db</>`: The default database to use for the connection when performing queries.  Defaults to `'test'`.
 
-#
-
 **Example:**
 
 <PY COMPLETE_EXAMPLE>
