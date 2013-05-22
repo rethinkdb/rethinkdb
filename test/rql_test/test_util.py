@@ -99,10 +99,6 @@ class RethinkDBTestServer(object):
                                 stdout=log_out, stderr=log_out)
         sleep(0.2)
 
-        # Create database 'test' which the tests assume but doesn't get created when we
-        # start up rethinkdb like this
-        call([self.executable, 'admin', '--join', 'localhost:%d' % self.cluster_port, 'create', 'database', 'test'],
-            stdout=log_out, stderr=log_out)
         return self.cluster_port
 
     # Join a cluster headed by a server previously invoked with start

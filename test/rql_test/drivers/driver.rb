@@ -135,6 +135,7 @@ $defines = eval_env
 # $js_conn = RethinkDB::Connection.new('localhost', JSPORT)
 
 $cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
+r.db_create('test').run($cpp_conn)
 
 $test_count = 0
 $success_count = 0

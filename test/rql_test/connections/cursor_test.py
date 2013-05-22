@@ -17,7 +17,7 @@ else:
 with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
     port = servers.driver_port()
     c = r.connect(port=port)
-
+    r.db_create('test').run(c)
     r.db('test').table_create('test').run(c)
     tbl = r.table('test')
 
