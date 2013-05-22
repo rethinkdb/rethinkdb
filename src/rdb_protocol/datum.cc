@@ -241,8 +241,10 @@ std::string datum_t::print_primary() const {
         num_to_str_key(&s);
     } else if (type == R_STR) {
         str_to_str_key(&s);
+    } else if (type == R_BOOL) {
+        bool_to_str_key(&s);
     } else {
-        rfail("Primary keys must be either a number or a string (got %s of type %s).",
+        rfail("Primary keys must be either a number, bool, or string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
