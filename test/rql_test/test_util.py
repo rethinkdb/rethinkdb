@@ -134,12 +134,11 @@ class RethinkDBTestServer(object):
 
     def stop(self):
         code = self.cpp_server.poll()
-        if code != None:
-            if code != 0:
-                sys.stderr.write(open(self.log_file).read())
-                raise Exception("Error: rethinkdb process %d failed with error code %d\n" % (self.cpp_server.pid, code))
-        else:
+        if code == None:
             self.cpp_server.terminate()
+            code = self.cpp_server.wait()
+        if code != 0:
+            raise Exception("Error: rethinkdb process %d failed with error code %d\n%s" % (self.cpp_server.pid, code, open(self.log_file).read()))
         sleep(0.1)
 
     def resstart(self):
