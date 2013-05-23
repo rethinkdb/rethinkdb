@@ -16,6 +16,15 @@ bool argspec_t::contains(int n) const {
     return min <= n && (max < 0 || n <= max);
 }
 
+optargspec_t::optargspec_t(int num_args, const char *const *args) {
+    init(num_args, args);
+}
+
+optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
+    init(args.size(), args.begin());
+}
+
+
 optargspec_t::optargspec_t(bool _is_make_object_val)
     : is_make_object_val(_is_make_object_val) { }
 

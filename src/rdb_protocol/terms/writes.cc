@@ -54,11 +54,10 @@ counted_t<const datum_t> new_stats_object() {
     return counted_t<datum_t>(stats.release());
 }
 
-static const char *const insert_optargs[] = { "upsert" };
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)),
+        : op_term_t(env, term, argspec_t(2), optargspec_t({ "upsert" })),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
 private:
@@ -145,11 +144,10 @@ private:
     virtual const char *name() const { return "insert"; }
 };
 
-static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)),
+        : op_term_t(env, term, argspec_t(2), optargspec_t({ "non_atomic" })),
           durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
 private:

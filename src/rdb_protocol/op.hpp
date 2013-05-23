@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_OP_HPP_
 
 #include <algorithm>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -26,9 +27,10 @@ private:
 // Specifies the optional arguments a function can take.
 struct optargspec_t {
 public:
-    optargspec_t(int num_args, const char *const *args) { init(num_args, args); }
+    optargspec_t(int num_args, const char *const *args);
     template<int n>
     optargspec_t(const char *const (&arg_array)[n]) { init(n, arg_array); }
+    explicit optargspec_t(std::initializer_list<const char *> args);
 
     static optargspec_t make_object();
     bool is_make_object() const;
