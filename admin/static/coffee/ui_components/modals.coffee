@@ -213,7 +213,7 @@ module 'UIComponents', ->
                         type: 'table'
                 else
                     for namespace in namespaces.models
-                        if namespace.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
+                        if namespace.get('name') is @formdata.new_name and namespace.get('database') is @model.get('database')
                             no_error = false
                             $('.alert_modal').html @error_template
                                 namespace_exists: true
@@ -231,7 +231,7 @@ module 'UIComponents', ->
                         type: 'database'
                 else
                     for database in databases.models
-                        if database.get('name').toLowerCase() is @formdata.new_name.toLowerCase()
+                        if database.get('name') is @formdata.new_name
                             no_error = false
                             $('.alert_modal').html @error_template
                                 database_exists: true
