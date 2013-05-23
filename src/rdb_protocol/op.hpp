@@ -27,7 +27,6 @@ private:
 // Specifies the optional arguments a function can take.
 struct optargspec_t {
 public:
-    optargspec_t(int num_args, const char *const *args);
     explicit optargspec_t(std::initializer_list<const char *> args);
 
     static optargspec_t make_object();
@@ -48,7 +47,7 @@ private:
 class op_term_t : public term_t {
 public:
     op_term_t(env_t *env, protob_t<const Term> term,
-              argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
+              argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
