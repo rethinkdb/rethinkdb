@@ -8,11 +8,10 @@
 
 namespace ql {
 
-static const char *const js_optargs[] = {"timeout"};
 class javascript_term_t : public op_term_t {
 public:
     javascript_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t(js_optargs)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t({ "timeout" })) { }
 private:
 
     virtual counted_t<val_t> eval_impl() {

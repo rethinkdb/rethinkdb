@@ -65,11 +65,10 @@ private:
     virtual const char *name() const { return "filter"; }
 };
 
-static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
     reduce_term_t(env_t *env, protob_t<const Term> term) :
-        op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
+        op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
@@ -79,11 +78,10 @@ private:
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
-static const char *const between_optargs[] = {"index"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(3), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> tbl = arg(0)->as_table();

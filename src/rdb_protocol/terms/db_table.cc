@@ -143,13 +143,12 @@ private:
     virtual const char *name() const { return "db_create"; }
 };
 
-static const char *const table_create_optargs[] =
-    {"datacenter", "primary_key", "cache_size", "hard_durability"};
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
-                        optargspec_t(table_create_optargs)) { }
+                        optargspec_t({"datacenter", "primary_key",
+                                    "cache_size", "hard_durability"})) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
@@ -392,11 +391,10 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
-static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
@@ -432,12 +430,10 @@ private:
     virtual const char *name() const { return "get"; }
 };
 
-static const char *const get_all_optargs[] = { "index" };
-
 class get_all_term_t : public op_term_t {
 public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();

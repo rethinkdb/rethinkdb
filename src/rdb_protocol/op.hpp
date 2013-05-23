@@ -28,8 +28,6 @@ private:
 struct optargspec_t {
 public:
     optargspec_t(int num_args, const char *const *args);
-    template<int n>
-    optargspec_t(const char *const (&arg_array)[n]) { init(n, arg_array); }
     explicit optargspec_t(std::initializer_list<const char *> args);
 
     static optargspec_t make_object();
