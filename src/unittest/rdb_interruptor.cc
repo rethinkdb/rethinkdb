@@ -94,9 +94,7 @@ Datum *add_object_object(Datum *datum, const std::string &key) {
 
 class count_callback_t : public ql::env_t::eval_callback_t {
 public:
-    count_callback_t(uint32_t *_count_out) :
-        count_out(_count_out)
-    {
+    explicit count_callback_t(uint32_t *_count_out) : count_out(_count_out) {
         *count_out = 0;
     }
 
@@ -182,7 +180,7 @@ public:
         key("S" + _key),
         ns_id(_ns_id),
         should_exist(_should_exist) { }
-    virtual ~exists_verify_callback_t() { };
+    virtual ~exists_verify_callback_t() { }
 
     bool verify(test_rdb_env_t::instance_t* env_instance) {
         const std::map<store_key_t, scoped_cJSON_t*> *data = env_instance->get_data(ns_id);
@@ -235,7 +233,7 @@ TEST(RdbInterrupt, InsertOp) {
 
 class dummy_callback_t : public verify_callback_t {
 public:
-    virtual ~dummy_callback_t() { };
+    virtual ~dummy_callback_t() { }
     bool verify(UNUSED test_rdb_env_t::instance_t *env_instance) {
         return true;
     }

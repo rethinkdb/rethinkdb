@@ -2,7 +2,10 @@
 #ifndef BTREE_BTREE_STORE_HPP_
 #define BTREE_BTREE_STORE_HPP_
 
+#include <map>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -29,7 +32,7 @@ class real_superblock_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
-    sindex_not_post_constructed_exc_t(std::string sindex_name);
+    explicit sindex_not_post_constructed_exc_t(std::string sindex_name);
     const char* what() const throw();
     ~sindex_not_post_constructed_exc_t() throw();
 private:

@@ -111,12 +111,12 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
-void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
 }
 
-void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
     while (counted_t<const ql::datum_t> d = ds->next()) {
@@ -124,7 +124,7 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {
     }
 }
 
-void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {
+void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<ql::func_t> f = func.compile(ql_env);
     counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
     if (f->filter_call(arg)) {
@@ -179,7 +179,7 @@ terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
-void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {
+void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLINT(runtime/references)
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
@@ -204,7 +204,7 @@ void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) co
     d->reset(make_counted<ql::datum_t>(d->get()->as_int() + 1.0));
 }
 
-void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {
+void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NOLINT(runtime/references)
     ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
     counted_t<const ql::datum_t> rhs(new ql::datum_t(json, ql_env));
     if (d) {
@@ -236,7 +236,7 @@ public:
         : out(_out), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace) { }
 
 
-    void operator()(ql::gmr_wire_func_t &f) const {
+    void operator()(ql::gmr_wire_func_t &f) const {  // NOLINT(runtime/references)
         counted_t<ql::func_t> group = f.compile_group(ql_env);
         counted_t<ql::func_t> map = f.compile_map(ql_env);
         counted_t<ql::func_t> reduce = f.compile_reduce(ql_env);
@@ -248,7 +248,7 @@ public:
         *out = ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
     }
 
-    void operator()(ql::reduce_wire_func_t &f) const {
+    void operator()(ql::reduce_wire_func_t &f) const {  // NOLINT(runtime/references)
         counted_t<ql::func_t> reduce = f.compile(ql_env);
         guarantee(reduce.has());
         *out = rget_read_response_t::empty_t();

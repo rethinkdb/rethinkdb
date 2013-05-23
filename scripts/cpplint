@@ -2421,6 +2421,10 @@ def _ClassifyInclude(fileinfo, include, is_system):
       include_first_component.group(0)):
     return _POSSIBLE_MY_HEADER
 
+  if (include == 'rdb_protocol/terms/terms.hpp' and
+      fileinfo.RepositoryName().startswith('rdb_protocol/terms/')):
+    return _LIKELY_MY_HEADER
+
   # errors.hpp or utils.hpp must be used before boost.  This isn't to
   # ensure that it's used before boost, unfortunately.
   if include == 'errors.hpp' or include == 'utils.hpp':

@@ -3,7 +3,9 @@
 
 #include <algorithm>
 #include <initializer_list>
+#include <map>
 #include <string>
+#include <set>
 #include <vector>
 
 #include "rdb_protocol/env.hpp"

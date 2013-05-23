@@ -38,10 +38,11 @@ public:
 
 protected:
     struct wait_rethreader_t : public on_thread_t {
-        wait_rethreader_t(meta_op_t *parent) : on_thread_t(parent->original_thread) { }
+        explicit wait_rethreader_t(meta_op_t *parent)
+            : on_thread_t(parent->original_thread) { }
     };
     struct rethreading_metadata_accessor_t : public on_thread_t {
-        rethreading_metadata_accessor_t(meta_op_t *parent)
+        explicit rethreading_metadata_accessor_t(meta_op_t *parent)
             : on_thread_t(parent->metadata_home_thread),
               metadata(parent->env->semilattice_metadata->get()),
               ns_change(&metadata.rdb_namespaces),

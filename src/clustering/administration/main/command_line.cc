@@ -106,36 +106,126 @@ boost::optional<std::string> get_optional_option(const std::map<std::string, opt
     return get_optional_option(opts, name, &source);
 }
 
+// Returns false if the group was not found.  This function replaces a call to
+// getgrnam(3).  That's right, getgrnam_r's interface is such that you have to
+// go through these shenanigans.
+bool get_group_id(const char *name, gid_t *group_id_out) {
+    // On Linux we can use sysconf to learn what the bufsize should be but on OS
+    // X we just have to guess.
+    size_t bufsize = 4096;
+    // I think 128 MB ought to be enough.
+    while (bufsize <= (1 << 17)) {
+        scoped_array_t<char> buf(bufsize);
+
+        struct group g;
+        struct group *result;
+        int res;
+        do {
+            res = getgrnam_r(name, &g, buf.data(), bufsize, &result);
+        } while (res == EINTR);
+
+        if (res == 0) {
+            if (result == NULL) {
+                return false;
+            } else {
+                *group_id_out = result->gr_gid;
+                return true;
+            }
+        } else if (res == ERANGE) {
+            bufsize *= 2;
+        } else {
+            // Here's what the man page says about error codes of getgrnam_r:
+            // 0 or ENOENT or ESRCH or EBADF or EPERM or ...
+            //        The given name or uid was not found.
+            //
+            // So let's just return false here.  I'm sure EMFILE and ENFILE and
+            // EIO will turn up again somewhere else.
+            return false;
+        }
+    }
+
+    rassert(false, "get_group_id bufsize overflow");
+    return false;
+}
+
+// Returns false if the user was not found.  This function replaces a call to
+// getpwnam(3).  That's right, getpwnam_r's interface is such that you have to
+// go through these shenanigans.
+bool get_user_ids(const char *name, int *user_id_out, gid_t *user_group_id_out) {
+    // On Linux we can use sysconf to learn what the bufsize should be but on OS
+    // X we just have to guess.
+    size_t bufsize = 4096;
+    // I think 128 MB ought to be enough.
+    while (bufsize <= (1 << 17)) {
+        scoped_array_t<char> buf(bufsize);
+
+        struct passwd p;
+        struct passwd *result;
+        int res;
+        do {
+            res = getpwnam_r(name, &p, buf.data(), bufsize, &result);
+        } while (res == EINTR);
+
+        if (res == 0) {
+            if (result == NULL) {
+                return false;
+            } else {
+                *user_id_out = result->pw_uid;
+                *user_group_id_out = result->pw_gid;
+                return true;
+            }
+        } else if (res == ERANGE) {
+            bufsize *= 2;
+        } else {
+            // Here's what the man page says about error codes of getpwnam_r:
+            // 0 or ENOENT or ESRCH or EBADF or EPERM or ...
+            //        The given name or uid was not found.
+            //
+            // So let's just return false here.  I'm sure EMFILE and ENFILE and
+            // EIO will turn up again somewhere else.
+            //
+            // (Yes, this is the same situation as with getgrnam_r, not some
+            // copy/paste.)
+            return false;
+        }
+    }
+
+    rassert(false, "get_user_ids bufsize overflow");
+    return false;
+}
+
+
 void set_user_group(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> rungroup = get_optional_option(opts, "--rungroup");
     boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
 
     if (rungroup) {
-        struct group *group_data = getgrnam(rungroup->c_str());
-        if (group_data == NULL) {
+        gid_t group_id;
+        if (!get_group_id(rungroup->c_str(), &group_id)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
                                                rungroup->c_str(), errno_string(errno).c_str()).c_str());
         }
-        if (setgid(group_data->gr_gid) != 0) {
+        if (setgid(group_id) != 0) {
             throw std::runtime_error(strprintf("Could not set group to '%s': %s",
                                                rungroup->c_str(), errno_string(errno).c_str()).c_str());
         }
     }
 
     if (runuser) {
-        struct passwd *user_data = getpwnam(runuser->c_str());
-        if (user_data == NULL) {
+        int user_id;
+        gid_t user_group_id;
+        if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
                                                runuser->c_str(), errno_string(errno).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
-            if (setgid(user_data->pw_gid) != 0) {
+            if (setgid(user_group_id) != 0) {
                 throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
                                                    runuser->c_str(), errno_string(errno).c_str()).c_str());
             }
         }
-        if (setuid(user_data->pw_uid) != 0) {
+        if (setuid(user_id) != 0) {
             throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
                                                runuser->c_str(), errno_string(errno).c_str()).c_str());
         }

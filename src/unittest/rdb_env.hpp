@@ -2,6 +2,11 @@
 #ifndef UNITTEST_RDB_ENV_HPP_
 #define UNITTEST_RDB_ENV_HPP_
 
+#include <stdexcept>
+#include <set>
+#include <map>
+#include <string>
+
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -18,10 +23,6 @@
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include <stdexcept>
-#include <set>
-#include <map>
-#include <string>
 
 namespace unittest {
 
@@ -38,7 +39,7 @@ private:
     mock_namespace_repo_t *parent;
 
 public:
-    mock_namespace_interface_t(mock_namespace_repo_t *_parent);
+    explicit mock_namespace_interface_t(mock_namespace_repo_t *_parent);
     virtual ~mock_namespace_interface_t();
 
     void read(const rdb_protocol_t::read_t &query,
@@ -103,7 +104,7 @@ private:
     namespace_cache_entry_t *get_cache_entry(const namespace_id_t &ns_id);
 
     struct mock_namespace_cache_entry_t {
-        mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
+        explicit mock_namespace_cache_entry_t(mock_namespace_repo_t *ns_repo) :
             mock_ns_if(ns_repo) { }
         namespace_cache_entry_t entry;
         mock_namespace_interface_t mock_ns_if;
@@ -115,7 +116,7 @@ private:
 
 class invalid_name_exc_t : public std::exception {
 public:
-    invalid_name_exc_t(const std::string& name) :
+    explicit invalid_name_exc_t(const std::string& name) :
         error_string(strprintf("invalid name string: %s", name.c_str())) { }
     ~invalid_name_exc_t() throw () { }
     const char *what() const throw () {
@@ -152,7 +153,7 @@ public:
 
     class instance_t {
     public:
-        instance_t(test_rdb_env_t *test_env);
+        explicit instance_t(test_rdb_env_t *test_env);
 
         extproc::pool_group_t *create_pool_group(test_rdb_env_t *test_env);
         ql::env_t *get();
