@@ -68,13 +68,25 @@ var assertNotNull = function(x){
     assert.notEqual(x, null);
 }
 
+var ifTestDefault = function(f, c){
+    if(testDefault){
+        return f(c);
+    }else{
+        return c();
+    }
+}
+
 describe('Javascript connection API', function(){
     describe('With no server', function(){
         it("fails when trying to connect", function(done){
-            r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
-                r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
-                    r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", function(){
-                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))}))}));
+            ifTestDefault(
+                function(cont){
+                    console.log('FOO');
+                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
+                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", cont))})); },
+                function(){
+                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
+                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))});
         });
 
         it("empty run", function(done) {

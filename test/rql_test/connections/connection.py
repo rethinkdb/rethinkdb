@@ -23,6 +23,8 @@ use_default_port = bool(int(argv[2]))
 class TestNoConnection(unittest.TestCase):
     # No servers started yet so this should fail
     def test_connect(self):
+        if not use_default_port:
+            self.skipTest("Not testing default port")
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to localhost:28015.",
             r.connect)
@@ -33,6 +35,8 @@ class TestNoConnection(unittest.TestCase):
             r.connect, port=11221)
 
     def test_connect_host(self):
+        if not use_default_port:
+            self.skipTest("Not testing default port")
         self.assertRaisesRegexp(
             RqlDriverError, "Could not connect to 0.0.0.0:28015.",
             r.connect, host="0.0.0.0")
@@ -53,7 +57,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
 
     def setUp(self):
         if not use_default_port:
-            skipTest("Not testing default port")
+            self.skipTest("Not testing default port")
         self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
         self.servers.__enter__()
 
@@ -82,6 +86,8 @@ class TestWithConnection(unittest.TestCase):
         self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir)
         self.servers.__enter__()
         self.port = self.servers.driver_port()
+        conn = r.connect(port=self.port)
+        r.db_create('test').run(conn)
 
     def tearDown(self):
         self.servers.__exit__(None, None, None)

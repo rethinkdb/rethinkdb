@@ -41,15 +41,19 @@ $(TOP)/admin/all: web-assets
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
 
+.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
+
 ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
 
 $(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP
 	mkdir -p $(dir $@)
-	cp -pRP $< $@
+	cp -pRP $< $(dir $@)
 
 $(PRECOMPILED_DIR)/web/%:
-	$(error Missing file $@. Run ./configure with --disable-precompiled-web to build normally.)
+	test -e $@ || ( \
+	  echo 'Missing file $@. Run ./configure with --disable-precompiled-web to build normally.' ; \
+	  false )
 
 else # Don't use precompiled assets
 

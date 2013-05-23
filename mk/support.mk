@@ -8,6 +8,7 @@ PROTOBUF_DEP :=
 NPM_DEP :=
 TCMALLOC_DEP :=
 PROTOC_DEP :=
+COFFEE_DEP :=
 
 ifdef WGET
   GETURL := $(WGET) --quiet --output-document=-
@@ -53,10 +54,6 @@ V8_SRC_DIR := $(TC_SRC_DIR)/v8
 V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
 
-.PHONY: support
-support: $(foreach v,$(shell echo $(FETCH_LIST) | tr a-z A-Z), \
-            $(patsubst %,$($(v)),$(filter-out undefined,$(origin $(v)))))
-
 $(shell mkdir -p $(SUPPORT_DIR) $(TOOLCHAIN_DIR) $(TC_BUILD_DIR) $(TC_SRC_DIR))
 
 ifeq (0,$(VERBOSE))
@@ -94,9 +91,17 @@ ifeq ($(NPM),$(TC_NPM_INT_EXE))
   NPM_DEP := $(NPM)
 endif
 
+COFFEE ?= NO_COFFEE
+ifeq ($(COFFEE),$(TC_COFFEE_INT_EXE))
+  COFFEE_DEP := $(COFFEE)
+endif
+
 ifneq (,$(filter $(TCMALLOC_MINIMAL_INT_LIB),$(LIBRARY_PATHS)))
   TCMALLOC_DEP := $(TCMALLOC_MINIMAL_INT_LIB)
 endif
+
+.PHONY: support
+support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
@@ -122,7 +127,7 @@ $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_
 $(NODE_MODULES_DIR)/coffee-script: $(NPM_DEP)
 	$P NPM-I coffee-script
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.6.2.tar.gz $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.4.0.tar.gz $(SUPPORT_LOG_REDIRECT)
 
 $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS_INT_EXE)).
 	$P LN

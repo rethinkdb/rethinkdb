@@ -37,7 +37,7 @@ class OptionsView extends Backbone.View
 
     render: =>
         @$el.html @template
-            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else false
+            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
             version: window.VERSION
         return @
 
@@ -164,7 +164,7 @@ class Settings extends Backbone.View
         if window.localStorage?.check_updates?
             @check_updates = JSON.parse window.localStorage.check_updates
         else
-            @check_updates = false
+            @check_updates = true
 
 
     change_settings: (event) =>

@@ -206,7 +206,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
         }
 
         // Start the recursion though all the tests
-        runTest();
+        r.dbCreate('test').run(cpp_conn, runTest);
 });
 
 // Invoked by generated code to add test and expected result
