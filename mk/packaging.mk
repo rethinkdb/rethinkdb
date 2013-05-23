@@ -227,7 +227,6 @@ reset-dist-dir: FORCE | web-assets
 
 $(DIST_DIR)/custom.mk: FORCE | reset-dist-dir
 	$P ECHO "> $@"
-	echo 'CONFIGURE_FLAGS += --enable-precompiled-web' > $@
 	for line in $(DIST_CUSTOM_MK_LINES); do \
 	  echo "$$line" >> $(DIST_DIR)/custom.mk ; \
 	done
