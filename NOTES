@@ -1,3 +1,18 @@
+# Release 1.5.2 (Le Gras de Ouate)
+
+Released on 2013-05-24
+
+Bug fix update.
+
+## Changes ##
+
+* Fix #844: Compilation error when using `./configure --fetch protobuf`
+* Fix #840: Using `.run` in the data explorer gives a cryptic error message
+* Fix #817: Adding a secondary index while under load occasionally causes a crash
+* Fix #831: Some invalid queries cause a crash
+
+--
+
 # Release 1.5.1 (The Grad You Ate) #
 
 Released on 2013-05-16
