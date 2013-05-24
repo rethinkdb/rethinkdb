@@ -6,10 +6,10 @@ Bug fix update.
 
 ## Changes ##
 
-* Fix #844: Compilation error when using `./configure --fetch protobuf`
-* Fix #840: Using `.run` in the data explorer gives a cryptic error message
-* Fix #817: Adding a secondary index while under load occasionally causes a crash
-* Fix #831: Some invalid queries cause a crash
+* Fix #844: Compilation error when using `./configure --fetch protobuf` resolved
+* Fix #840: Using `.run` in the data explorer gives a more helpful error message
+* Fix #817: Fix a crash caused by adding a secondary index while under load
+* Fix #831: Some invalid queries no longer cause a crash
 
 --
 
@@ -22,7 +22,7 @@ Bug fix update.
 ## Changes ###
 
 * Fix a build error
-* Fix #816: Table view is the data explorer is broken
+* Fix #816: Table view in the data explorer is no longer broken
 
 ---
 
