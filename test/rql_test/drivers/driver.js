@@ -3,6 +3,8 @@ var r = require('./../../../drivers/javascript/build/rethinkdb.js');
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
 
+var TRACE_ENABLED = false;
+
 // -- utilities --
 
 failure_count = 0;
@@ -78,13 +80,15 @@ var tests = []
 var defines = {}
 
 function TRACE(){
-    //console.log.apply(console, ["TRACE"].concat([].splice.call(arguments, 0)));
+    if (TRACE_ENABLED) {
+        console.log.apply(console, ["TRACE"].concat([].splice.call(arguments, 0)));
+    }
 }
 
 // Connect first to cpp server
 r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
-       if(cpp_conn_err || !cpp_conn){
+       if(cpp_conn_err){
            console.log("Failed to connect to server:", cpp_conn_err);
            process.exit(1);
 
