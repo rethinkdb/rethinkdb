@@ -58,7 +58,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
     def setUp(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
-        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
+        self.servers = RethinkDBTestServers(1, server_build_dir=server_build_dir, use_default_port=use_default_port)
         self.servers.__enter__()
 
     def tearDown(self):
@@ -83,7 +83,7 @@ class TestConnectionDefaultPort(unittest.TestCase):
 class TestWithConnection(unittest.TestCase):
 
     def setUp(self):
-        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir)
+        self.servers = RethinkDBTestServers(1, server_build_dir=server_build_dir)
         self.servers.__enter__()
         self.port = self.servers.driver_port()
         conn = r.connect(port=self.port)

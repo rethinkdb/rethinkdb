@@ -14,7 +14,7 @@ if len(argv) >= 3:
 else:
     lang = None
 
-with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
+with RethinkDBTestServers(1, server_build_dir=server_build_dir) as servers:
     port = servers.driver_port()
     c = r.connect(port=port)
     r.db_create('test').run(c)
