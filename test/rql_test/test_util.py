@@ -104,8 +104,7 @@ class RethinkDBTestServer(object):
                                  '--http-port', '0',
                                  '--cluster-port', str(self.cluster_port)],
                                 stdout=log_out, stderr=log_out)
-        os.system("tail -f %s &" % self.log_file)
-        sleep(0.2)
+        sleep(2)
 
         return self.cluster_port
 
@@ -121,8 +120,7 @@ class RethinkDBTestServer(object):
                                  '--http-port', '0',
                                  '--join', 'localhost:%d' % cluster_port],
                                 stdout=log_out, stderr=log_out)
-        os.system("tail -f %s &" % self.log_file)
-        sleep(0.2)
+        sleep(2)
 
     def create(self):
         directory = 'run/server_%s/' % self.cpp_port
