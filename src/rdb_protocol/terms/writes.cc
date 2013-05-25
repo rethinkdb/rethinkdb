@@ -54,6 +54,18 @@ counted_t<const datum_t> new_stats_object() {
     return counted_t<datum_t>(stats.release());
 }
 
+durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
+                                                 pb_rcheckable_t *target) {
+    if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
+    std::string str = arg->as_str();
+    if (str == "default") { return DURABILITY_REQUIREMENT_DEFAULT; }
+    if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
+    if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
+    rfail_target(target, "durability option '%s' unrecognized", str.c_str());
+    unreachable();
+}
+
+
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, protob_t<const Term> term)
@@ -61,18 +73,6 @@ public:
                     optargspec_t({ "upsert", "durability" })) { }
 
 private:
-    // RSI: Don't duplicate this in replace_term_t and insert_term_t.  (We do it
-    // for rfail.)
-    durability_requirement_t parse_durability_optarg(counted_t<val_t> arg) {
-        if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
-        std::string str = arg->as_str();
-        if (str == "default") { return DURABILITY_REQUIREMENT_DEFAULT; }
-        if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
-        if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
-        rfail("durability option '%s' unrecognized", str.c_str());
-        unreachable();
-    }
-
     void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
                             counted_t<const datum_t> *datum_out) {
@@ -93,7 +93,7 @@ private:
         const bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability", counted_t<val_t>()));
+            = parse_durability_optarg(optarg("durability", counted_t<val_t>()), this);
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
@@ -165,18 +165,6 @@ public:
                     optargspec_t({ "non_atomic", "durability" })) { }
 
 private:
-    // RSI: Don't duplicate this in replace_term_t and insert_term_t.  (We do it
-    // for rfail.)
-    durability_requirement_t parse_durability_optarg(counted_t<val_t> arg) {
-        if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
-        std::string str = arg->as_str();
-        if (str == "default") { return DURABILITY_REQUIREMENT_DEFAULT; }
-        if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
-        if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
-        rfail("durability option '%s' unrecognized", str.c_str());
-        unreachable();
-    }
-
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
@@ -184,7 +172,7 @@ private:
         }
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability", counted_t<val_t>()));
+            = parse_durability_optarg(optarg("durability", counted_t<val_t>()), this);
 
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         if (!nondet_ok) {
