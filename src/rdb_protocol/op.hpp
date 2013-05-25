@@ -54,8 +54,9 @@ public:
 protected:
     size_t num_args() const; // number of arguments
     counted_t<val_t> arg(size_t i); // returns argument `i`
-    // Tries to get an optional argument, returns `def` if not found.
-    counted_t<val_t> optarg(const std::string &key, counted_t<val_t> default_value);
+    // Tries to get an optional argument, returns `counted_t<val_t>()` if not
+    // found.
+    counted_t<val_t> optarg(const std::string &key);
 private:
     virtual bool is_deterministic_impl() const;
     std::vector<counted_t<term_t> > args;

@@ -22,7 +22,7 @@ private:
         // Optarg seems designed to take a default value as the second argument
         // but nowhere else is this actually used.
         double timeout_s = 5.0;
-        counted_t<val_t> timeout_opt = optarg("timeout", counted_t<val_t>());
+        counted_t<val_t> timeout_opt = optarg("timeout");
         if (timeout_opt) {
             timeout_s = timeout_opt->as_num();
         }

@@ -77,14 +77,13 @@ counted_t<val_t> op_term_t::arg(size_t i) {
     return args[i]->eval();
 }
 
-counted_t<val_t> op_term_t::optarg(const std::string &key,
-                                   counted_t<val_t> default_value) {
+counted_t<val_t> op_term_t::optarg(const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
         return it->second->eval();
     }
-    counted_t<val_t> v = env->get_optarg(key);
-    return v.has() ? v : default_value;
+    // RSI: We return some optarg from the environment?  Really?
+    return env->get_optarg(key);
 }
 
 bool op_term_t::is_deterministic_impl() const {

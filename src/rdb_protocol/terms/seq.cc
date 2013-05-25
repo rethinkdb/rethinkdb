@@ -71,7 +71,7 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
+        return new_val(arg(0)->as_seq()->reduce(optarg("base"),
                                                 arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
@@ -102,7 +102,7 @@ private:
             return new_val(ds, tbl);
         }
 
-        counted_t<val_t> sindex = optarg("index", counted_t<val_t>());
+        counted_t<val_t> sindex = optarg("index");
         if (sindex.has()) {
             std::string sid = sindex->as_str();
             if (sid != tbl->get_pkey()) {

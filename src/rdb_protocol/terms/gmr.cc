@@ -12,7 +12,7 @@ public:
         : op_term_t(env, term, argspec_t(4), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<val_t> baseval = optarg("base", counted_t<val_t>());
+        counted_t<val_t> baseval = optarg("base");
         counted_t<const datum_t> base = baseval.has() ?
             baseval->as_datum() :
             counted_t<const datum_t>();

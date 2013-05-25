@@ -89,11 +89,11 @@ private:
 
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
-        const counted_t<val_t> upsert_val = optarg("upsert", counted_t<val_t>());
+        const counted_t<val_t> upsert_val = optarg("upsert");
         const bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability", counted_t<val_t>()), this);
+            = parse_durability_optarg(optarg("durability"), this);
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
@@ -165,12 +165,12 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("non_atomic")) {
             nondet_ok = v->as_bool();
         }
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability", counted_t<val_t>()), this);
+            = parse_durability_optarg(optarg("durability"), this);
 
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         if (!nondet_ok) {
