@@ -158,8 +158,6 @@ private:
 
 class replace_term_t : public op_term_t {
 public:
-    // RSI: Make delete and other appropriate rewrite terms pass along the
-    // durability optarg.
     replace_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({ "non_atomic", "durability" })) { }
