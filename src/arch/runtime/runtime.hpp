@@ -2,7 +2,7 @@
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
-#include "arch/runtime/runtime_utils.hpp"
+class linux_thread_message_t;
 
 typedef linux_thread_message_t thread_message_t;
 
