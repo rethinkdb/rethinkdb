@@ -14,7 +14,7 @@ module RethinkDB
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
-      :javascript => -1
+      :javascript => -1, :count => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -99,7 +99,20 @@ module RethinkDB
       {:SUM => attr}
     end
     def count(*a, &b)
-      !@body && a == [] ? {:COUNT => true} : super(*a, &b)
+      if !@body && a == []
+        {:COUNT => true}
+      elsif b
+        args = a.dup
+        args << { :filter => b }
+        super(*args)
+      elsif (@body ? 1 : 0) + a.length == 2
+        f = a.pop
+        args = a.dup
+        args << { :filter => f }
+        super(*args)
+      else
+        super(*a)
+      end
     end
 
     def reduce(*a, &b)

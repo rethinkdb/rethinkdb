@@ -12,13 +12,20 @@ namespace ql {
 
 // Most of the real logic for these is in datum_stream.cc.
 
+static const char *const count_optargs[] = {"filter"};
 class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1, 2), optargspec_t(count_optargs)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->count());
+        auto filter = optarg("filter", counted_t<val_t>());
+        if (!filter.has()) {
+            return new_val(arg(0)->as_seq()->count());
+        } else {
+            auto fun = filter->as_func(IDENTITY_SHORTCUT);
+            return new_val(arg(0)->as_seq()->filter(fun)->count());
+        }
     }
     virtual const char *name() const { return "count"; }
 };

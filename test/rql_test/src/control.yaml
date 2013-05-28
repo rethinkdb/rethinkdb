@@ -206,7 +206,7 @@ tests:
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
       
     - cd: r.expr([1, 2, 3]).filter('foo')
-      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got STRING).", [0])
+      ot: []
 
     - py: r.expr([1, 2, 4]).filter(False)
       js: r.expr([1, 2, 4]).filter(false)
@@ -214,7 +214,7 @@ tests:
       ot: ([])
       
     - cd: r.expr([1, 2, 4]).filter([])
-      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got ARRAY).", [0])
+      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT, a NUMBER, a STRING, a NULL or a predicate (got ARRAY).", [0])
       
     # forEach
     - cd: tbl.count()

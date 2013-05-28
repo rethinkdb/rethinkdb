@@ -25,7 +25,6 @@ tests:
       cd:
       - tbl.delete(1)
       - tbl.zip(1)
-      - tbl.count(1)
       - tbl.distinct(1)
 
     - rb: db.table_list(1)

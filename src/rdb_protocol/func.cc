@@ -209,7 +209,8 @@ bool func_term_t::is_deterministic_impl() const {
 
 bool func_t::filter_call(counted_t<const datum_t> arg) {
     counted_t<const datum_t> d = call(arg)->as_datum();
-    if (d->get_type() == datum_t::R_OBJECT) {
+    switch (d->get_type()) {
+    case datum_t::R_OBJECT: {
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             r_sanity_check(it->second.has());
@@ -221,10 +222,20 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
             }
         }
         return true;
-    } else if (d->get_type() == datum_t::R_BOOL) {
+    }
+
+    case datum_t::R_BOOL:
         return d->as_bool();
-    } else {
-        rfail("FILTER must be passed either an OBJECT or a predicate (got %s).",
+
+    case datum_t::R_NUM:
+    case datum_t::R_STR:
+    case datum_t::R_NULL:
+        return *d == *arg;
+
+    default:
+    case datum_t::R_ARRAY:
+        rfail("FILTER must be passed either an OBJECT, a NUMBER, a STRING, a NULL or a"
+              " predicate (got %s).",
               d->get_type_name());
     }
 }
