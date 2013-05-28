@@ -1331,7 +1331,7 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 throw admin_parse_exc_t("no recognized subcommands for 'touch'");
             }
             helps.push_back(admin_help_info_t(touch_command, touch_usage, touch_description));
-            do_usage_internal(helps, options, "resolve - make sure cluster blueprints are up-to-date", console_mode);
+            do_usage_internal(helps, options, "touch - make sure cluster blueprints are up-to-date", console_mode);
         } else {
             throw admin_parse_exc_t("unknown command: " + command);
         }
