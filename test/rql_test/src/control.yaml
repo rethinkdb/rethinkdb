@@ -204,7 +204,7 @@ tests:
     # What happens if we pass static values to things that expect functions
     - cd: r.expr([1, 2, 3]).map(1)
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
-      
+
     - cd: r.expr([1, 2, 3]).filter('foo')
       ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got STRING).", [0])
 

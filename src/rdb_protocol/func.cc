@@ -238,6 +238,16 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     return make_counted<func_t>(env, twrap);
 }
 
+counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+                    const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    int var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM((double)var)), N2(EQ, NDATUM(obj), NVAR(var)));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
 void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }

@@ -15,10 +15,18 @@ namespace ql {
 class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->count());
+        if (num_args() == 1) {
+            return new_val(arg(0)->as_seq()->count());
+        } else if (arg(1)->get_type().is_convertible(val_t::type_t::FUNC)) {
+            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func())->count());
+        } else {
+            counted_t<func_t> f =
+                func_t::new_eq_comparison_func(env, arg(1)->as_datum(), backtrace());
+            return new_val(arg(0)->as_seq()->filter(f)->count());
+        }
     }
     virtual const char *name() const { return "count"; }
 };
