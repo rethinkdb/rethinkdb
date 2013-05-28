@@ -1,11 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/timing.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/wait_any.hpp"
 
 // nap()

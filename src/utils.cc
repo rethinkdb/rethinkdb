@@ -29,6 +29,7 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"

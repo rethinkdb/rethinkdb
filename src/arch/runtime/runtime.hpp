@@ -3,7 +3,6 @@
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
 #include "arch/runtime/runtime_utils.hpp"
-#include "arch/runtime/coroutines.hpp"
 
 typedef linux_thread_message_t thread_message_t;
 
