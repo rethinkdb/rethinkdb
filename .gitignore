@@ -48,4 +48,4 @@ support/
 custom.mk
 config.mk
 mk/gen/*
-python/rethinkdb/ql2_pb2.py
+drivers/python/rethinkdb/ql2_pb2.py
