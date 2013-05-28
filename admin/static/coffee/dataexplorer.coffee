@@ -611,16 +611,16 @@ module 'DataExplorerView', ->
                                 return true
                     return true
 
+                if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
+                    return true
+
                 char_to_insert = String.fromCharCode event.which
-                if char_to_insert? and event.which isnt 91 # 91 map to [ on OS X
+                if char_to_insert? # and event.which isnt 91 # 91 map to [ on OS X
                     if @codemirror.getSelection() isnt ''
                         if (char_to_insert of @matching_opening_bracket or char_to_insert of @matching_closing_bracket)
                             @codemirror.replaceSelection ''
                         else
                             return true
-                    if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
-                        return true
-
                     last_element_incomplete_type = @last_element_type_if_incomplete(stack)
                     if char_to_insert is '"' or char_to_insert is "'"
                         num_quote = @count_char char_to_insert
@@ -1109,11 +1109,11 @@ module 'DataExplorerView', ->
             # We are scrolling in history
             if @history_displayed_id isnt 0 and event?
                 # We catch ctrl, shift, alt and command 
-                if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
+                if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or (event.which is 91 and event.type isnt 'keypress') or event.which is 92 or event.type of @mouse_type_event
                     return false
 
             # We catch ctrl, shift, alt and command but don't look for active key (active key here refer to ctrl, shift, alt being pressed and hold)
-            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
+            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or (event.which is 91 and event.type isnt 'keypress') or event.which is 92)
                 return false
 
 
