@@ -9,11 +9,6 @@
 #include "help.hpp"
 #include "config/args.hpp"
 
-void print_version_message() {
-    printf("%s\n", RETHINKDB_VERSION_STR);
-}
-
-
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG
     rlimit core_limit;
@@ -26,6 +21,7 @@ int main(int argc, char *argv[]) {
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");
+    subcommands_that_look_like_flags.insert("-v");
     subcommands_that_look_like_flags.insert("--help");
     subcommands_that_look_like_flags.insert("-h");
 
@@ -45,9 +41,9 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_admin(argc, argv);
         } else if (subcommand == "import") {
             return main_rethinkdb_import(argc, argv);
-        } else if (subcommand == "--version") {
+        } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
-                puts("WARNING: Ignoring extra parameters after '--version'.");
+		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());              
             }
             print_version_message();
             return 0;

@@ -40,6 +40,12 @@ init () {
 configure () {
     require "Bash"
     show "$BASH_VERSION"
+    if contains "$please_fetch_list" protoc; then
+        please_fetch_list="$please_fetch_list protobuf"
+    fi
+    if contains "$please_fetch_list" protobuf; then
+        please_fetch_list="$please_fetch_list protoc"
+    fi
     for var in $allowed_arg_vars; do
         local val
         if lookup "$arg_vars" $var val; then

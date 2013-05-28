@@ -20,7 +20,7 @@ commands = []
 # Walk the src files to compile all sections and commands
 for root, dirs, file_names in os.walk(src_dir):
     for file_name in file_names:
-        docs = yaml.load(file(os.path.join(root, file_name)))
+        docs = yaml.load(open(os.path.join(root, file_name)))
 
         if 'sections' in docs:
             sections.extend(docs['sections'])
@@ -128,7 +128,7 @@ for section in sections:
                             out_lang['name2'] = override['name2']
 
                         if 'examples' in override:
-                            for example_num, example_override in override['examples'].iteritems():
+                            for example_num, example_override in override['examples'].items():
                                 if len(example_override) == 0:
                                     del out_examples[int(example_num)]
                                 else:
@@ -153,8 +153,8 @@ for section in sections:
 out_obj['sections'].sort(key=lambda section: section['order'])
 
 # And add header information
-out_obj = dict(json.load(open(header_file, "r")).items() + out_obj.items())
+out_obj.update(json.load(open(header_file, "r")))
 
 # Serialize and write the output
-out_file = file(dest_file, 'w')
+out_file = open(dest_file, 'w')
 json.dump(out_obj, out_file)
