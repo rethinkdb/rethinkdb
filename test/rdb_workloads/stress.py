@@ -240,8 +240,15 @@ client_args.extend(["--table", db + "." + table])
 # Register interrupt, now that we're spawning client processes
 signal.signal(signal.SIGINT, interrupt_handler)
 
+print "Launching client processes..."
+count_width = len(str(options.clients))
+progress_format = "\r[%%%dd/%%%dd]" % (count_width, count_width)
+done_format = "\r[%%%ds]" % (count_width * 2 + 1) % "DONE"
+
 # Launch all the client processes
 for i in range(options.clients):
+    print (progress_format % (i, options.clients)),
+    sys.stdout.flush()
     output_file = NamedTemporaryFile()
     host, port = hosts[i % len(hosts)]
 
@@ -252,11 +259,15 @@ for i in range(options.clients):
     client = subprocess.Popen(current_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     clients.append(client)
     output_files.append(output_file)
+print done_format
 
 print "Waiting for clients to connect..."
-for client in clients:
-    if client.stdout.readline().strip() != "ready":
+for i in range(options.clients):
+    print (progress_format % (i, options.clients)),
+    sys.stdout.flush()
+    if clients[i].stdout.readline().strip() != "ready":
         raise RuntimeError("unexpected client output")
+print done_format
 
 print "Starting traffic..."
 for client in clients:
