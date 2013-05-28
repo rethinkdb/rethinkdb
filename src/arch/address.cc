@@ -122,6 +122,6 @@ bool ip_address_t::is_loopback() const {
     return (ntohl(s_addr) >> 24) == 127;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr) {
+void debug_print(printf_buffer_t *buf, const ip_address_t &addr) {
     buf->appendf("%s", addr.as_dotted_decimal().c_str());
 }

@@ -9,7 +9,7 @@
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action) {
     buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
                  "offset=%" PRIi64 ", errno=%d}",

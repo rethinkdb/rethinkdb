@@ -63,7 +63,7 @@ struct stats_diskmgr_2_action_t : public payload_t {
 };
 
 template <class payload_t>
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const stats_diskmgr_2_action_t<payload_t> &action) {
     buf->appendf("stats_diskmgr_2_action{start_time=%" PRIu64 "}<",
                  action.start_time);

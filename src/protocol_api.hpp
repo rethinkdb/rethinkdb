@@ -177,7 +177,7 @@ private:
 };
 
 template <class P, class V>
-void debug_print(append_only_printf_buffer_t *buf, const region_map_t<P, V> &map) {
+void debug_print(printf_buffer_t *buf, const region_map_t<P, V> &map) {
     buf->appendf("rmap{");
     for (typename region_map_t<P, V>::const_iterator it = map.begin(); it != map.end(); ++it) {
         if (it != map.begin()) {

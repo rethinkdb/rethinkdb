@@ -24,7 +24,7 @@ void semilattice_join(deletable_t<T> *a, const deletable_t<T> &b) {
 }
 
 template <class T>
-void debug_print(append_only_printf_buffer_t *buf, const deletable_t<T> &x) {
+void debug_print(printf_buffer_t *buf, const deletable_t<T> &x) {
     buf->appendf("deletable{deleted=%s, t=", x.is_deleted() ? "true" : "false");
     debug_print(buf, x.get_ref());
     buf->appendf("}");

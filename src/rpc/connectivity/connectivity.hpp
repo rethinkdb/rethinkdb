@@ -46,7 +46,7 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const peer_id_t &peer_id);
+void debug_print(printf_buffer_t *buf, const peer_id_t &peer_id);
 
 struct peers_list_callback_t {
 public:

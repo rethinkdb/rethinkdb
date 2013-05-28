@@ -228,7 +228,7 @@ RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
 
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);
+void debug_print(printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
+void debug_print(printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);
 
 #endif /* MEMCACHED_PROTOCOL_HPP_ */
