@@ -4,17 +4,21 @@ commands:
     order: 1
     description: |
       Update JSON documents in a table. Accepts a JSON document, a RQL
-      expression, or a combination of the two.<br /><br />
+      expression, or a combination of the two.  The optional argument
+      <code>durability</code> with value <code>'hard'</code> or
+      <code>'soft'</code> will override the table or query's default
+      durability setting.  The optional argument
+      <code>non_atomic</code> lets you permit non-atomic updates.<br/><br/>
       Update returns an object that contains the following attributes:
       <ul>
       <li><code>replaced</code> - the number of documents that were updated;</li>
-      <li><code>unchanged</code> - the number of documents that would have been modified  
+      <li><code>unchanged</code> - the number of documents that would have been modified
       except the new value was the same as the old value;</li>
       <li><code>skipped</code> - the number of documents that were left unmodified because
-      there was nothing to do: either the row didn't exist or the new value is null;</li>  
+      there was nothing to do: either the row didn't exist or the new value is null;</li>
       <li><code>errors</code> - the number of errors encountered while performing the update;</li>
       <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
-      <li><code>deleted</code> and  <code>inserted</code> 
+      <li><code>deleted</code> and  <code>inserted</code>
       - <code>0</code> for an <code>update</code> operation.</li>
       </ul>
 
@@ -31,11 +35,11 @@ commands:
           py: "r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)"
           rb: r.table('marvel').get('superman').update{ {:age => 30} }.run(conn)
       - description: |
-          Increment every superhero's age. If age doesn't exist, throws an error.
+          Increment every superhero's age. If age doesn't exist, throws an error.  Specify soft durability.
         code:
-          js: "r.table('marvel').update({ age: r.row('age').add(1) }).run(conn, callback)"
-          py: "r.table('marvel').update(lambda x: {'age': x['age'] + 1}).run(conn)"
-          rb: r.table('marvel').update{|hero| {:age => hero[:age] + 1}}.run(conn)
+          js: "r.table('marvel').update({ age: r.row('age').add(1) }, { durability: 'soft' }).run(conn, callback)"
+          py: "r.table('marvel').update(lambda x: {'age': x['age'] + 1}, durability='soft').run(conn)"
+          rb: r.table('marvel').update(:durability => 'soft') {|hero| {:age => hero[:age] + 1}}.run(conn)
       - description: Allow the server to run non-atomic operations.
         code:
           js: |

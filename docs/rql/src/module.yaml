@@ -180,6 +180,24 @@ commands:
                                   function (err, cursor) { ... });
           py: r.table('marvel').run(conn, noreply=True)
           rb: r.table('marvel').run(conn, :noreply => true)
+      - description: |
+          If you want to specify whether to wait for a write to be
+          written to disk (overriding the table's default settings),
+          you can set `durability` to `'hard'` or `'soft'` in the
+          options.
+        validate: false
+        code:
+          js: r.table('marvel')
+               .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+               .run({connection:conn, noreply:true, durability: 'soft'},
+                    function (err, cursor) { ... });
+          py: r.table('marvel')
+               .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+               .run(conn, noreply=True, durability='soft')
+          rb: r.table('marvel')
+               .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
+               .run(conn, :noreply => true, :durability => 'soft')
+
 
   - tag: next
     section: module
