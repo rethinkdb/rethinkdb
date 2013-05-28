@@ -82,8 +82,8 @@ counted_t<val_t> op_term_t::optarg(const std::string &key) {
     if (it != optargs.end()) {
         return it->second->eval();
     }
-    // RSI: We return some optarg from the environment?  Really?
-    return env->get_optarg(key);
+    counted_t<val_t> ret = env->get_optarg(key);
+    return ret;
 }
 
 bool op_term_t::is_deterministic_impl() const {
