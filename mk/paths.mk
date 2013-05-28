@@ -27,10 +27,6 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += scs
   endif
 
-  ifeq (1,$(MOCK_CACHE_CHECK))
-    BUILD_DIR += mockcache
-  endif
-
   ifeq (1,$(LEGACY_LINUX))
     BUILD_DIR += legacy
   endif
