@@ -58,7 +58,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  pb_rcheckable_t *target) {
     if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
     std::string str = arg->as_str();
-    if (str == "default") { return DURABILITY_REQUIREMENT_DEFAULT; }
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target, "durability option '%s' unrecognized", str.c_str());
