@@ -14,6 +14,8 @@ parser.add_option("--writes", dest="writes", metavar="WRITES", default=3, type="
 parser.add_option("--deletes", dest="deletes", metavar="DELETES", default=2, type="int")
 parser.add_option("--reads", dest="reads", metavar="READS", default=5, type="int")
 parser.add_option("--sindex-reads", dest="sindex_reads", metavar="SINDEX_READS", default=0, type="int")
+parser.add_option("--updates", dest="updates", metavar="UPDATES", default=1, type="int")
+parser.add_option("--non-atomic-updates", dest="non_atomic_updates", metavar="NON_ATOMIC_UPDATES", default=1, type="int")
 parser.add_option("--batch-size", dest="batch_size", metavar="BATCH_SIZE", default=100, type="int")
 parser.add_option("--output", dest="output_file", metavar="FILE", default="", type="string")
 parser.add_option("--sindex", dest="sindexes", metavar="COUNT", default=[], type="string", action="append")
@@ -50,25 +52,35 @@ if table not in r.db("test").table_list().run(connection):
 
 extant_keys = set()
 
-operation_stats = { "read": 0,
-                    "write": 0,
-                    "sindex_read": 0,
-                    "delete": 0 }
+ops = ["read", "write", "sindex_read", "delete", "update", "non_atomic_update"]
+operation_stats = dict((op, 0) for op in ops)
+duration_stats = dict((op, 0) for op in ops)
+error_stats = dict((op, 0) for op in ops)
 
 stats_file = open(options.output_file, "w+")
 
 def write_stats(timestamp):
+    global ops
     global operation_stats
+    global duration_stats
+    global error_stats
     global stats_file
 
     data = [str(timestamp)]
-    for op, value in operation_stats.items():
-        data.extend([op, str(value)])
+    for op in ops:
+        data.extend([op, str(operation_stats[op]), str(error_stats[op]), str(duration_stats[op])])
         operation_stats[op] = 0
+        duration_stats[op] = 0
+        error_stats[op] = 0
 
     stats_file.write(",".join(data) + "\n")
 
 # TODO: verify results of all operations
+
+def generate_row(default=None):
+    if default is None:
+        default = random.randint(0, 10000)
+    return {"value": default}
 
 def do_write():
     global operation_stats
@@ -79,11 +91,10 @@ def do_write():
     if do_write.counter >= options.batch_size:
         write_data = [ ]
         for i in range(options.batch_size):
-            write_data.append({ "value": random.randint(0, 10000) })
+            write_data.append(generate_row())
         result = r.table(table).insert(write_data).run(connection)
         for key in result["generated_keys"]:
             extant_keys.add(key)
-        operation_stats["write"] += do_write.counter
         do_write.counter = 0
 do_write.counter = 0
 
@@ -93,7 +104,6 @@ def do_read():
 
     key = random.sample(extant_keys, 1)[0]
     r.table(table).get(key).run(connection)
-    operation_stats["read"] += 1
 
 def do_sindex_read():
     # TODO: implement this once sindex reads are supported in the python driver
@@ -103,7 +113,6 @@ def do_sindex_read():
     #sindex = random.choice(sindexes)
     #sindex_value = random_sindex_value(sindex)
     #r.table(table).get_all(sindex, sindex_value).run(connection)
-    #operation_stats["sindex_read"] += 1
     return
 
 def do_delete():
@@ -113,13 +122,29 @@ def do_delete():
     key = random.sample(extant_keys, 1)[0]
     r.table(table).get(key).delete().run(connection)
     extant_keys.remove(key)
-    operation_stats["delete"] += 1
+
+def do_update():
+    global operation_stats
+    global extant_keys
+
+    key = random.sample(extant_keys, 1)[0]
+    r.table(table).get(key).update(lambda row: row.merge(generate_row())).run(connection)
+
+def do_non_atomic_update():
+    global operation_stats
+    global extant_keys
+
+    target = random.sample(extant_keys, 1)[0]
+    source = random.sample(extant_keys, 1)[0]
+    r.table(table).get(target).update(lambda row: row.merge(r.table(table).get(source).pluck("value")), non_atomic=True).run(connection)
 
 # Probabilities for each operation type
 operation_weights = [ ("read", options.reads, do_read),
                       ("write", options.writes, do_write),
                       ("sindex_read", options.sindex_reads, do_sindex_read),
-                      ("delete", options.deletes, do_delete) ]
+                      ("delete", options.deletes, do_delete),
+                      ("updates", options.updates, do_update),
+                      ("non_atomic_update", options.non_atomic_updates, do_non_atomic_update) ]
 
 total_op_weight = sum(weight for (name, weight, fn) in operation_weights)
 
@@ -128,6 +153,7 @@ num_writes = 0
 
 def do_operation():
     global operation_weights
+    global operation_stats
     global total_op_weight
     global extant_keys
     global num_writes
@@ -139,12 +165,24 @@ def do_operation():
         return
 
     # Do a weighted roll on the operation to perform, probably a cleaner way to do this
-    r = random.randint(1, total_op_weight)
+    roll = random.randint(1, total_op_weight)
     choice = ""
     for (op, weight, fn) in operation_weights:
-        r -= weight
-        if r <= 0:
-            fn()
+        roll -= weight
+        if roll <= 0:
+            start_time = time.time()
+            try:
+                fn()
+                # TODO: this value will be incorrect when caching writes for batches
+                operation_stats[op] += 1
+            except r.RqlRuntimeError as ex:
+                error_stats[op] += 1
+                raise
+            finally:
+                # Average the duration into the accumulated duration for the selected op type
+                total_ops = operation_stats[op] + error_stats[op]
+                duration = time.time() - start_time
+                duration_stats[op] = ((total_ops * duration_stats[op]) + duration) / (total_ops + 1)
             return
 
     raise RuntimeError("Did not choose an operation to run")
@@ -186,11 +224,16 @@ try:
             consecutive_errors += 1
             if consecutive_errors >= 5:
                 time.sleep(0.5)
+            # TODO: pass error message back to launcher, aggregate
         except r.RqlDriverError:
+            sys.stderr.write("Client exiting due to RqlDriverError\n")
+            sys.stderr.flush()
             # Something went wrong, probably a server crash
             # TODO: pass error message back to launcher, aggregate
             break
         except socket.error:
+            sys.stderr.write("Client exiting due to socket error\n")
+            sys.stderr.flush()
             # Something went wrong, probably a server crash
             # TODO: pass error message back to launcher, aggregate
             break

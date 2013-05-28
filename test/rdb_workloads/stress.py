@@ -13,7 +13,7 @@ parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default="", ty
 parser.add_option("--timeout", dest="timeout", metavar="SECONDS", default=60, type="int")
 parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
 parser.add_option("--batch-size", dest="batch_size", metavar="BATCH_SIZE", default=100, type="int")
-parser.add_option("--workload", dest="workload", metavar="WRITES/DELETES/READS/SINDEX_READS", default="3/2/5/0", type="string")
+parser.add_option("--workload", dest="workload", metavar="WRITES/DELETES/READS/SINDEX_READS/UPDATES/NON_ATOMIC_UPDATES", default="3/2/5/0/1/1", type="string")
 parser.add_option("--host", dest="hosts", metavar="HOST:PORT", action="append", default=[], type="string")
 parser.add_option("--add-sindex", dest="sindexes", metavar="constant | simple | complex | long", action="append", default=[], type="string")
 (options, args) = parser.parse_args()
@@ -38,7 +38,12 @@ for sindex in options.sindexes:
 
 # Parse out workload info - probably an easier way to do this
 workload = { }
-workload_defaults = [("--writes", 3), ("--deletes", 2), ("--reads", 5), ("--sindex-reads", 0)]
+workload_defaults = [("--writes", 3),
+                     ("--deletes", 2),
+                     ("--reads", 5),
+                     ("--sindex-reads", 0),
+                     ("--updates", 1),
+                     ("--non-atomic-updates", 1)]
 workload_types = [item[0] for item in workload_defaults]
 workload_values = options.workload.split("/")
 if len(workload_values) < len(workload_types):
@@ -57,19 +62,23 @@ def collect_and_print_results():
 
     # Read in each file so that we have a per-client array containing a
     #  dict of timestamps to dicts of op-names: op-counts
+    # Format is "<time>[,<op_type>,<op_count>,<op_errs>,<avg_duration>]...
     results_per_client = [ ]
     for f in output_files:
         file_data = { }
         for line in f:
             split_line = line.strip().split(",")
             op_counts = { }
+            op_durations = { }
             timestamp = float(split_line[0])
-            for (op_name, count) in zip(split_line[1::2], split_line[2::2]):
-                op_counts[op_name] = int(count)
+            for (op_name, op_count, err_count, avg_dur) in zip(split_line[1::4], split_line[2::4], split_line[3::4], split_line[4::4]):
+                op_counts[op_name] = (int(op_count), int(err_count))
+                op_durations[op_name] = int(float(avg_dur) * 1000)
             file_data[timestamp] = op_counts
         results_per_client.append(file_data)
 
     # Until we do some real analysis on the results, just get ops/sec for each client
+    total_per_client = [ ]
     averages = [ ]
     durations = [ ]
     ignored_results = 0
@@ -81,25 +90,47 @@ def collect_and_print_results():
             duration = keys[-1] - keys[0]
             accumulator = { }
             for (timestamp, counts) in results.items():
-                accumulator = dict((op, accumulator.get(op, 0) + counts.get(op, 0)) for op in set(accumulator) | set(counts))
-            averages.append(dict((op, accumulator.get(op, 0) / (duration)) for op in accumulator.keys()))
+                accumulator = dict((op, map(sum, zip(accumulator.get(op, (0, 0)), counts.get(op, (0, 0))))) for op in set(accumulator) | set(counts))
+            total_per_client.append(accumulator)
+            averages.append(dict((op, accumulator.get(op, (0, 0))[0] / (duration)) for op in accumulator.keys()))
             durations.append(duration)
 
     if ignored_results > 0:
         print "Ignored %d client results due to insufficient data" % ignored_results
 
+    # Get the total number of ops of each type
+    total_op_counts = { }
+    for client_data in total_per_client:
+        total_op_counts = dict((op, map(sum, zip(total_op_counts.get(op, (0, 0)), client_data.get(op, (0, 0))))) for op in set(client_data) | set(total_op_counts))
+
     # Add up all the client averages for the total ops/sec
     total = { }
+    min_ops_per_sec = { }
+    max_ops_per_sec = { }
     for average in averages:
         total = dict((op, total.get(op, 0) + average.get(op, 0)) for op in set(total) | set(average))
+        # Get the lowest and highest per-client ops/sec
+        min_ops_per_sec = dict((op, min(min_ops_per_sec.get(op, 10000000), average.get(op))) for op in set(min_ops_per_sec) | set(average))
+        max_ops_per_sec = dict((op, max(max_ops_per_sec.get(op, 0), average.get(op))) for op in set(max_ops_per_sec) | set(average))
 
     if len(durations) < 1:
         print "Not enough data for results"
     else:
         print "Duration: " + str(int(max(durations))) + " seconds"
-        print "Operations per second: "
+        print "Operations data: "
+
+        table = [["op type", "successes", "per sec min", "per sec max", "per sec total", "errors", "avg duration"]]
         for op in total.keys():
-            print "  %s: %d" % (op, int(total[op]))
+            table.append([op, str(total_op_counts[op][0]), str(int(min_ops_per_sec[op])), str(int(max_ops_per_sec[op])), str(int(total[op])), str(total_op_counts[op][1]), "-"])
+
+        column_widths = []
+        for i in range(len(table[0])):
+            column_widths.append(max([len(row[i]) + 2 for row in table]))
+
+        format_str = ("{:<%d}" + ("{:>%d}" * (len(column_widths) - 1))) % tuple(column_widths)
+
+        for row in table:
+            print format_str.format(*row)
 
 def finish_stress():
     global clients
