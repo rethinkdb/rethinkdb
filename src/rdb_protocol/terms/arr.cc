@@ -230,4 +230,20 @@ counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
     return make_counted<limit_term_t>(env, term);
 }
 
+counted_t<term_t> make_insert_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<insert_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_delete_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<delete_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<change_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<splice_at_term_t>(env, term);
+}
+
 }  // namespace ql

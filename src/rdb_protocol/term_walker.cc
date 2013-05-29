@@ -149,6 +149,10 @@ private:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
         case Term::ZIP:
+        case Term::INSERT_AT:
+        case Term::DELETE_AT:
+        case Term::CHANGE_AT:
+        case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::TYPEOF:
         case Term::FUNCALL:
@@ -235,6 +239,10 @@ private:
         case Term::LIMIT:
         case Term::SKIP:
         case Term::ZIP:
+        case Term::INSERT_AT:
+        case Term::DELETE_AT:
+        case Term::CHANGE_AT:
+        case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::TYPEOF:
         case Term::DB_CREATE:
