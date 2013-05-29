@@ -35,8 +35,6 @@ public:
 
 typedef variable_scope_t<term_info_t> variable_type_scope_t;
 
-typedef variable_type_scope_t::new_scope_t new_scope_t;
-
 typedef implicit_value_t<term_info_t> implicit_type_t;
 
 struct type_checking_environment_t {
