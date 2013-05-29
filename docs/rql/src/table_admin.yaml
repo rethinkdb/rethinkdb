@@ -57,7 +57,7 @@ commands:
           can_try: true
           dataset: marvel
         2:
-          code: r.db('test').tableCreate('dc_universe', {durability:false}).run(conn, callback)
+          code: r.db('test').tableCreate('dc_universe', {durability:'soft'}).run(conn, callback)
           can_try: true
           dataset: marvel
 

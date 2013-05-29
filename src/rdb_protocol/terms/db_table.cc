@@ -11,6 +11,9 @@
 
 namespace ql {
 
+durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
+                                                 pb_rcheckable_t *target);
+
 name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
     r_sanity_check(val.has());
     std::string raw_name = val->as_str();
@@ -144,12 +147,24 @@ private:
     virtual const char *name() const { return "db_create"; }
 };
 
+bool is_hard(durability_requirement_t requirement) {
+    switch (requirement) {
+    case DURABILITY_REQUIREMENT_DEFAULT:
+    case DURABILITY_REQUIREMENT_HARD:
+        return true;
+    case DURABILITY_REQUIREMENT_SOFT:
+        return false;
+    default:
+        unreachable();
+    }
+}
+
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
                         optargspec_t({"datacenter", "primary_key",
-                                    "cache_size", "hard_durability"})) { }
+                                    "cache_size", "durability"})) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
@@ -164,10 +179,8 @@ private:
             }
         }
 
-        bool hard_durability = true;
-        if (counted_t<val_t> v = optarg("hard_durability")) {
-            hard_durability = v->as_datum()->as_bool();
-        }
+        const bool hard_durability
+            = is_hard(parse_durability_optarg(optarg("durability"), this));
 
         std::string primary_key = "id";
         if (counted_t<val_t> v = optarg("primary_key")) {
