@@ -4,16 +4,16 @@
 
 #include <boost/bind.hpp>
 
-#include "unittest/gtest.hpp"
-
 #include "arch/io/disk.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000

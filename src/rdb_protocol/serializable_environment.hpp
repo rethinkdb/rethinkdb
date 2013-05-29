@@ -2,7 +2,7 @@
 #ifndef RDB_PROTOCOL_SERIALIZABLE_ENVIRONMENT_HPP_
 #define RDB_PROTOCOL_SERIALIZABLE_ENVIRONMENT_HPP_
 
-#include "rdb_protocol/scope.hpp"
+#include "rpc/serialize_macros.hpp"
 
 namespace query_language {
 
