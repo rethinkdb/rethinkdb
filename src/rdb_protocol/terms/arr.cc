@@ -192,7 +192,7 @@ public:
         : at_term_t(env, term, argspec_t(2, 3)) { }
 private:
     virtual void modify() {
-        if (num_args() == 1) {
+        if (num_args() == 2) {
             arr->erase(index);
         } else {
             int end_index = canonicalize(this, arg(2)->as_datum()->as_int(), arr->size());

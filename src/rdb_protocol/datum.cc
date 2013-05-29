@@ -344,6 +344,9 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
 
 void datum_t::change(size_t index, counted_t<const datum_t> val) {
     check_type(R_ARRAY);
+    rcheck(index < r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     index, r_array->size()));
     (*r_array)[index] = val;
 }
 
@@ -357,7 +360,7 @@ void datum_t::insert(size_t index, counted_t<const datum_t> val) {
 
 void datum_t::erase(size_t index) {
     check_type(R_ARRAY);
-    rcheck(index <= r_array->size(), 
+    rcheck(index < r_array->size(), 
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
                      index, r_array->size()));
     r_array->erase(r_array->begin() + index);
@@ -365,16 +368,16 @@ void datum_t::erase(size_t index) {
 
 void datum_t::erase_range(size_t start, size_t end) {
     check_type(R_ARRAY);
-    rcheck(start <= r_array->size(), 
+    rcheck(start < r_array->size(), 
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
                      start, r_array->size()));
-    rcheck(end <= r_array->size(), 
+    rcheck(end < r_array->size(), 
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
                      end, r_array->size()));
     rcheck(start <= end,
            strprintf("Start index `%zu` is greater than end index `%zu`.",
                       start, end));
-    r_array->erase(r_array->begin() + start, r_array->begin() + start);
+    r_array->erase(r_array->begin() + start, r_array->begin() + end + 1);
 }
 
 void datum_t::splice(size_t index, const std::vector<counted_t<const datum_t> > &values) {
