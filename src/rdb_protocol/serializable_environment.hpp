@@ -33,24 +33,9 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-typedef implicit_value_t<term_info_t> implicit_type_t;
-
-struct type_checking_environment_t {
-    implicit_type_t implicit_type;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
-};
-
-//Implicit value typedef
-typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
-
 /* Wrapper for the scopes in the runtime environment. Makes it convenient to
  * serialize all the in scope variables. */
 struct scopes_t {
-    type_checking_environment_t type_env;
-
-    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
-
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 

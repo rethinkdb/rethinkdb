@@ -6,9 +6,7 @@ namespace query_language {
 
 RDB_IMPL_ME_SERIALIZABLE_2(term_info_t, type, deterministic);
 
-RDB_IMPL_ME_SERIALIZABLE_1(type_checking_environment_t, implicit_type);
-
-RDB_IMPL_ME_SERIALIZABLE_2(scopes_t, type_env, implicit_attribute_value);
+RDB_IMPL_ME_SERIALIZABLE_0(scopes_t);
 
 
 
