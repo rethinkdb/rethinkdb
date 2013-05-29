@@ -9,9 +9,9 @@ class IterableResult
     each: varar 1, 2, (cb, onFinished) ->
         brk = false
         n = =>
-            if not cont and @hasNext()
+            if not brk and @hasNext()
                 @next (err, row) =>
-                    cont = (cb(err, row) is false)
+                    brk = (cb(err, row) is false)
                     n()
             else if onFinished?
                 onFinished()
