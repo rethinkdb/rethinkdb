@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_SCOPE_HPP_
 #define RDB_PROTOCOL_SCOPE_HPP_
 
@@ -29,81 +29,27 @@ inline void guarantee_T<boost::shared_ptr<scoped_cJSON_t> >(const boost::shared_
 template <class T>
 class variable_scope_t {
 public:
-    void put_in_scope(const std::string &name, const T &t) {
-        guarantee_T(t);
-        guarantee(!scopes.empty());
-        scopes.front()[name] = t;
-    }
+    void put_in_scope(const std::string &name, const T &t);
 
-    T get(const std::string &name) const {
-        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin();
-             it != scopes.end();
-             ++it) {
-            typename std::map<std::string, T>::const_iterator jt = it->find(name);
-            if (jt != it->end()) {
-                return jt->second;
-            }
-        }
-
-        unreachable("Variable not in scope, probably because the code fails to call is_in_scope().");
-    }
+    T get(const std::string &name) const;
 
     // Calling this only makes sense in the typechecker. All variables
     // are guranteed by the typechecker to be present at runtime.
-    bool is_in_scope(const std::string &name) const {
-        for (typename std::list<std::map<std::string, T> >::const_iterator it = scopes.begin(); it != scopes.end(); ++it) {
-            typename std::map<std::string, T>::const_iterator jt = it->find(name);
-            if (jt != it->end()) {
-                return true;
-            }
-        }
-        return false;
-    }
+    bool is_in_scope(const std::string &name) const;
 
-    void push() {
-        scopes.push_front(std::map<std::string, T>());
-    }
+    void push();
 
-    void pop() {
-        scopes.pop_front();
-    }
+    void pop();
 
     // TODO(rntz): find a better way to do this.
-    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) const {
-        std::set<std::string> seen;
+    void dump(std::vector<std::string> *argnames, std::vector<T> *argvals) const;
 
-        if (argnames) argnames->clear();
-        argvals->clear();
-
-        // Most recent scope is at front of deque, so we iterate in-order.
-        for (typename std::list<std::map<std::string, T> >::const_iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
-            for (typename std::map<std::string, T>::const_iterator it = sit->begin(); it != sit->end(); ++it) {
-                // Earlier bindings take precedence over later ones.
-                if (seen.count(it->first)) continue;
-
-                seen.insert(it->first);
-                if (argnames) argnames->push_back(it->first);
-                argvals->push_back(it->second);
-            }
-        }
-    }
-
-    struct new_scope_t {
-        explicit new_scope_t(variable_scope_t<T> *_parent)
-            : parent(_parent)
-        {
-            parent->push();
-        }
-        new_scope_t(variable_scope_t<T> *_parent, const std::string &name, const T &t)
-            : parent(_parent)
-        {
-            parent->push();
-            parent->put_in_scope(name, t);
-        }
-        ~new_scope_t() {
-            parent->pop();
-        }
-
+    class new_scope_t {
+    public:
+        new_scope_t(variable_scope_t<T> *parent);
+        new_scope_t(variable_scope_t<T> *parent, const std::string &name, const T &t);
+        ~new_scope_t();
+    private:
         variable_scope_t<T> *parent;
     };
 

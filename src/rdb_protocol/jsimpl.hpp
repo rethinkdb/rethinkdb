@@ -15,10 +15,8 @@
 #include <string>
 
 #include "errors.hpp"
-#include <boost/variant.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "containers/archive/boost_types.hpp"
 #include "extproc/job.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/js.hpp"
