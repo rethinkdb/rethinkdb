@@ -146,11 +146,23 @@ private:
 
 class at_term_t : public op_term_t {
 public:
-    at_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
-        : op_term_t(env, term, argspec), arr(new datum_t(arg(0)->as_datum()->as_array())) {
-        index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
-    }
+    /* This is a bit of a pain here. Some array operations are referencing
+     * elements of the array (such as change_at and delete_at) while others are
+     * actually referencing the spaces between the elements (such as insert_at
+     * and splice_at). This distinction changes how we canonicalize negative
+     * indexes so we need to make it here. */
+    enum index_method_t { ELEMENTS, SPACES};
 
+    at_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec, index_method_t index_method)
+        : op_term_t(env, term, argspec), arr(new datum_t(arg(0)->as_datum()->as_array())) {
+        if (index_method == ELEMENTS) {
+            index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
+        } else if (index_method == SPACES) {
+            index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size() + 1);
+        } else {
+            unreachable();
+        }
+    }
     virtual void modify() = 0;
     virtual counted_t<val_t> eval_impl() {
         modify();
@@ -164,7 +176,7 @@ protected:
 class insert_at_term_t : public at_term_t {
 public:
     insert_at_term_t(env_t *env, protob_t<const Term> term)
-        : at_term_t(env, term, argspec_t(3)) { }
+        : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
     virtual void modify() {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
@@ -177,7 +189,7 @@ private:
 class splice_at_term_t : public at_term_t {
 public:
     splice_at_term_t(env_t *env, protob_t<const Term> term)
-        : at_term_t(env, term, argspec_t(3)) { }
+        : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
     virtual void modify() {
         counted_t<const datum_t> new_els = arg(2)->as_datum();
@@ -189,7 +201,7 @@ private:
 class delete_at_term_t : public at_term_t {
 public:
     delete_at_term_t(env_t *env, protob_t<const Term> term)
-        : at_term_t(env, term, argspec_t(2, 3)) { }
+        : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
     virtual void modify() {
         if (num_args() == 2) {
@@ -205,7 +217,7 @@ private:
 class change_at_term_t : public at_term_t {
 public:
     change_at_term_t(env_t *env, protob_t<const Term> term)
-        : at_term_t(env, term, argspec_t(3)) { }
+        : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
     virtual void modify() {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
