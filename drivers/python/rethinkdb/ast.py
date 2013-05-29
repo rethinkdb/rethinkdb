@@ -288,8 +288,8 @@ class RqlQuery(object):
     def splice_at(self, index, values):
         return SpliceAt(self, index, values)
 
-    def delete_at(self, index, end_index = ()):
-        return DeleteAt(self, index, end_index);
+    def delete_at(self, *indexes):
+        return DeleteAt(self, *indexes);
 
     def change_at(self, index, value):
         return ChangeAt(self, index, value);
