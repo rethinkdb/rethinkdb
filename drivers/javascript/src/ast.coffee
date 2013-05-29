@@ -157,7 +157,6 @@ translateOptargs = (optargs) ->
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'hardDurability' then 'hard_durability'
             else key
 
         if key is undefined or val is undefined then continue
