@@ -226,7 +226,7 @@ commands:
       - description: Let's process all the elements!
         code: |
           cur.each(function(err, row) {
-            return processRow(row);
+            processRow(row);
           });
       - description: If we need to know when iteration is complete
                      each also accepts a second `onFinished` callback.
@@ -236,6 +236,13 @@ commands:
           }, function() {
             doneProcessing();
           });
+      - description: Iteration can be stopped prematurely by returning `false`
+                     from the callback.
+        code: |
+            cur.each(function(err, row) {
+                if (processRow(row) < 0)
+                    return false;
+            });
 
     py: false
     rb: false
