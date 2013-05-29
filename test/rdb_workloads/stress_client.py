@@ -2,7 +2,7 @@
 import sys, os, time, random, signal, socket
 from optparse import OptionParser
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
 
 random.seed()
@@ -74,6 +74,10 @@ def write_stats(timestamp):
         error_stats[op] = 0
 
     stats_file.write(",".join(data) + "\n")
+
+def write_error(error):
+    str_error = ";".join(str(error).splitlines())
+    stats_file.write("ERROR,%s\n" % str_error)
 
 # TODO: verify results of all operations
 
@@ -173,7 +177,7 @@ def do_operation():
             start_time = time.time()
             try:
                 fn()
-                # TODO: this value will be incorrect when caching writes for batches
+                # TODO: this value will be incorrect when batching writes
                 operation_stats[op] += 1
             except r.RqlRuntimeError as ex:
                 error_stats[op] += 1
@@ -220,22 +224,20 @@ try:
             do_operation()
             consecutive_errors = 0
         except r.RqlRuntimeError as ex:
+            write_error(ex.message)
             # Put a small sleep in here to keep from saturating cpu in error conditions
             consecutive_errors += 1
-            if consecutive_errors >= 5:
+            if consecutive_errors >= 2:
                 time.sleep(0.5)
-            # TODO: pass error message back to launcher, aggregate
-        except r.RqlDriverError:
+        except r.RqlDriverError as ex:
+            write_error(ex.message)
             sys.stderr.write("Client exiting due to RqlDriverError\n")
             sys.stderr.flush()
-            # Something went wrong, probably a server crash
-            # TODO: pass error message back to launcher, aggregate
             break
-        except socket.error:
+        except socket.error as ex:
+            write_error(ex)
             sys.stderr.write("Client exiting due to socket error\n")
             sys.stderr.flush()
-            # Something went wrong, probably a server crash
-            # TODO: pass error message back to launcher, aggregate
             break
 except SystemExit:
     # SystemExit is the normal path for exiting the stress client

@@ -3,7 +3,7 @@ import sys, os, time, signal, random, string, subprocess
 from tempfile import NamedTemporaryFile
 from optparse import OptionParser
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
 
 client_script = os.path.join(os.path.dirname(__file__), "stress_client.py")
@@ -64,17 +64,22 @@ def collect_and_print_results():
     #  dict of timestamps to dicts of op-names: op-counts
     # Format is "<time>[,<op_type>,<op_count>,<op_errs>,<avg_duration>]...
     results_per_client = [ ]
+    errors = { }
     for f in output_files:
         file_data = { }
         for line in f:
             split_line = line.strip().split(",")
             op_counts = { }
             op_durations = { }
-            timestamp = float(split_line[0])
-            for (op_name, op_count, err_count, avg_dur) in zip(split_line[1::4], split_line[2::4], split_line[3::4], split_line[4::4]):
-                op_counts[op_name] = (int(op_count), int(err_count))
-                op_durations[op_name] = int(float(avg_dur) * 1000)
-            file_data[timestamp] = op_counts
+            if split_line[0] == "ERROR":
+                key = split_line[1].strip()
+                errors[key] = errors.get(key, 0) + 1
+            else:
+                timestamp = float(split_line[0])
+                for (op_name, op_count, err_count, avg_dur) in zip(split_line[1::4], split_line[2::4], split_line[3::4], split_line[4::4]):
+                    op_counts[op_name] = (int(op_count), int(err_count))
+                    op_durations[op_name] = int(float(avg_dur) * 1000)
+                file_data[timestamp] = op_counts
         results_per_client.append(file_data)
 
     # Until we do some real analysis on the results, just get ops/sec for each client
@@ -117,7 +122,7 @@ def collect_and_print_results():
         print "Not enough data for results"
     else:
         print "Duration: " + str(int(max(durations))) + " seconds"
-        print "Operations data: "
+        print "\nOperations data: "
 
         table = [["op type", "successes", "per sec min", "per sec max", "per sec total", "errors", "avg duration"]]
         for op in total.keys():
@@ -131,6 +136,11 @@ def collect_and_print_results():
 
         for row in table:
             print format_str.format(*row)
+
+    if len(errors) != 0:
+        print "\nErrors encountered:"
+        for error in errors:
+            print "%s: %s" % (error, errors[error])
 
 def finish_stress():
     global clients
@@ -158,12 +168,12 @@ def interrupt_handler(signal, frame):
 
 def complex_sindex_fn(row, db, table):
     return r.expr([row["value"]]).concat_map(lambda item: [item, item, item, item]) \
-                                .concat_map(lambda item: [item, item, item, item]) \
-                                .concat_map(lambda item: [item, item, item, item]) \
-                                .concat_map(lambda item: [item, item, item, item]) \
-                                .concat_map(lambda item: [item, item, item, item]) \
-                                .concat_map(lambda item: [item, item, item, item]) \
-                                .reduce(lambda acc, val: acc + val, 0)
+                                 .concat_map(lambda item: [item, item, item, item]) \
+                                 .concat_map(lambda item: [item, item, item, item]) \
+                                 .concat_map(lambda item: [item, item, item, item]) \
+                                 .concat_map(lambda item: [item, item, item, item]) \
+                                 .concat_map(lambda item: [item, item, item, item]) \
+                                 .reduce(lambda acc, val: acc + val, 0)
     return 1
 
 def long_sindex_fn(row):
