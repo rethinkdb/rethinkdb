@@ -7,10 +7,11 @@ class IterableResult
     next: -> throw "Abstract Method"
 
     each: varar 1, 2, (cb, onFinished) ->
+        brk = false
         n = =>
-            if @hasNext()
+            if not cont and @hasNext()
                 @next (err, row) =>
-                    cb(err, row)
+                    cont = (cb(err, row) is false)
                     n()
             else if onFinished?
                 onFinished()
