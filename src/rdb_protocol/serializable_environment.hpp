@@ -33,12 +33,9 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-typedef variable_scope_t<term_info_t> variable_type_scope_t;
-
 typedef implicit_value_t<term_info_t> implicit_type_t;
 
 struct type_checking_environment_t {
-    variable_type_scope_t scope;
     implicit_type_t implicit_type;
 
     RDB_DECLARE_ME_SERIALIZABLE;
