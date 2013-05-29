@@ -6,14 +6,15 @@ class IterableResult
     hasNext: -> throw "Abstract Method"
     next: -> throw "Abstract Method"
 
-    each: ar (cb) ->
+    each: varar 1, 2, (cb, onFinished) ->
         n = =>
-            @next (err, row) =>
-                cb(err, row)
-                if @hasNext()
+            if @hasNext()
+                @next (err, row) =>
+                    cb(err, row)
                     n()
-        if @hasNext()
-            n()
+            else if onFinished?
+                onFinished()
+        n()
 
     toArray: ar (cb) ->
         arr = []
