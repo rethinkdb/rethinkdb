@@ -4,8 +4,6 @@
 
 namespace query_language {
 
-RDB_IMPL_ME_SERIALIZABLE_2(term_info_t, type, deterministic);
-
 RDB_IMPL_ME_SERIALIZABLE_0(scopes_t);
 
 
