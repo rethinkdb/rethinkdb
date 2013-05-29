@@ -144,6 +144,75 @@ private:
     virtual const char *name() const { return "limit"; }
 };
 
+class at_term_t : public op_term_t {
+public:
+    at_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
+        : op_term_t(env, term, argspec), arr(new datum_t(arg(0)->as_datum()->as_array())) {
+        index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
+    }
+
+    virtual void modify() = 0;
+    virtual counted_t<val_t> eval_impl() {
+        modify();
+        return new_val(counted_t<const datum_t>(arr.release()));
+    }
+protected:
+    scoped_ptr_t<datum_t> arr;
+    int64_t index;
+};
+
+class insert_at_term_t : public at_term_t {
+public:
+    insert_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3)) { }
+private:
+    virtual void modify() {
+        counted_t<const datum_t> new_el = arg(2)->as_datum();
+        arr->insert(index, new_el);
+    }
+    virtual const char *name() const { return "insert_at"; }
+};
+
+
+class splice_at_term_t : public at_term_t {
+public:
+    splice_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3)) { }
+private:
+    virtual void modify() {
+        counted_t<const datum_t> new_els = arg(2)->as_datum();
+        arr->splice(index, new_els->as_array());
+    }
+    virtual const char *name() const { return "splice_at"; }
+};
+
+class delete_at_term_t : public at_term_t {
+public:
+    delete_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(2, 3)) { }
+private:
+    virtual void modify() {
+        if (num_args() == 1) {
+            arr->erase(index);
+        } else {
+            int end_index = canonicalize(this, arg(2)->as_datum()->as_int(), arr->size());
+            arr->erase_range(index, end_index);
+        }
+    }
+    virtual const char *name() const { return "delete_at"; }
+};
+
+class change_at_term_t : public at_term_t {
+public:
+    change_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3)) { }
+private:
+    virtual void modify() {
+        counted_t<const datum_t> new_el = arg(2)->as_datum();
+        arr->change(index, new_el);
+    }
+    virtual const char *name() const { return "change_at"; }
+};
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);
