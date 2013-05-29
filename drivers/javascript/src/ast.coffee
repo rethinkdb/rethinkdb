@@ -265,6 +265,7 @@ class Db extends RDBOp
 
 class Table extends RDBOp
     tt: Term.TermType.TABLE
+    st: 'table'
 
     get: ar (key) -> new Get {}, @, key
     getAll: aropt (key, opts) -> new GetAll opts, @, key
