@@ -281,6 +281,19 @@ class RqlQuery(object):
     def info(self):
         return Info(self)
 
+    # Array only operations
+    def insert_at(self, index, value):
+        return InsertAt(self, index, value)
+
+    def splice_at(self, index, values):
+        return SpliceAt(self, index, values)
+
+    def delete_at(self, index, end_index = ()):
+        return DeleteAt(self, index, end_index);
+
+    def change_at(self, index, value):
+        return ChangeAt(self, index, value);
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -722,6 +735,22 @@ class ForEach(RqlMethodQuery):
 class Info(RqlMethodQuery):
     tt = p.Term.INFO
     st = 'info'
+
+class InsertAt(RqlMethodQuery):
+    tt = p.Term.INSERT_AT
+    st = 'insert_at'
+
+class SpliceAt(RqlMethodQuery):
+    tt = p.Term.SPLICE_AT
+    st = 'splice_at'
+
+class DeleteAt(RqlMethodQuery):
+    tt = p.Term.DELETE_AT
+    st = 'delete_at'
+
+class ChangeAt(RqlMethodQuery):
+    tt = p.Term.CHANGE_AT
+    st = 'change_at'
 
 # Called on arguments that should be functions
 def func_wrap(val):
