@@ -218,7 +218,7 @@ try:
         # Append stats to the output file every second
         if time.time() >= stats_time:
             write_stats(stats_time)
-            stats_time = stats_time + 1
+            stats_time = time.time() + 1
 
         try:
             do_operation()
