@@ -2,6 +2,7 @@
 #ifndef CONCURRENCY_ONE_PER_THREAD_HPP_
 #define CONCURRENCY_ONE_PER_THREAD_HPP_
 
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
