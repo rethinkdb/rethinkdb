@@ -44,9 +44,12 @@ commands:
 
   - tag: count
     section: aggregation
-    description: Count the number of elements in the sequence.
+    description: Count the number of elements in the sequence. With a single argument,
+      count the number of elements equal to it. If the argument is a function, it is
+      equivalent to calling filter before count.
 
     parent: sequence
+    body: [filter]
     returns: number
 
     examples:
