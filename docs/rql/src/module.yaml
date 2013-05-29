@@ -217,7 +217,7 @@ commands:
     section: module
     description: Lazily iterate over the result set one element at a time.
 
-    body: callback
+    body: callback[, onFinished]
 
     parent: cursor
     returns: null
@@ -227,6 +227,14 @@ commands:
         code: |
           cur.each(function(err, row) {
             return processRow(row);
+          });
+      - description: If we need to know when iteration is complete
+                     each also accepts a second `onFinished` callback.
+        code: |
+          cur.each(function(err, row) {
+            return processRow(row);
+          }, function() {
+            doneProcessing();
           });
 
     py: false
