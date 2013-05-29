@@ -220,12 +220,12 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(stream->size(), 1ul);
+        ASSERT_EQ(1ul, stream->size());
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
 
-        ASSERT_EQ(query_language::json_cmp(expected_value.get(), stream->front().second->get()), 0);
+        ASSERT_EQ(0, query_language::json_cmp(expected_value.get(), stream->front().second->get()));
     }
 }
 
@@ -261,7 +261,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
-        ASSERT_EQ(stream->size(), 0ul);
+        ASSERT_EQ(0ul, stream->size());
     }
 }
 
