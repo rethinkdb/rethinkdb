@@ -187,16 +187,19 @@ commands:
           options.
         validate: false
         code:
-          js: r.table('marvel')
-               .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
-               .run({connection:conn, noreply:true, durability: 'soft'},
-                    function (err, cursor) { ... });
-          py: r.table('marvel')
-               .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
-               .run(conn, noreply=True, durability='soft')
-          rb: r.table('marvel')
-               .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
-               .run(conn, :noreply => true, :durability => 'soft')
+          js: |
+            r.table('marvel')
+             .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+             .run({connection:conn, noreply:true, durability: 'soft'},
+                  function (err, cursor) { ... });
+          py: |
+            r.table('marvel')
+             .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
+             .run(conn, noreply=True, durability='soft')
+          rb: |
+            r.table('marvel')
+             .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
+             .run(conn, :noreply => true, :durability => 'soft')
 
 
   - tag: next

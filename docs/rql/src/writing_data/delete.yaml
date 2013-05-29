@@ -30,7 +30,8 @@ commands:
           rb: r.table('marvel').get('superman').delete.run(conn)
       - description: Delete every document from the table 'marvel'.  Also, don't wait for the operation to be flushed to disk.
         code:
-          js: r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
+          js: |
+            r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
           py: r.table('marvel').delete(durability='soft').run(conn)
           rb: r.table('marvel').delete(:durability => 'soft').run(conn)
 
