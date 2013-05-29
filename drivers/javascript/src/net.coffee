@@ -6,6 +6,11 @@ goog.require("VersionDummy")
 goog.require("Query")
 goog.require("goog.proto2.WireFormatSerializer")
 
+# Eventually when we ditch Closure we can actually use the node
+# event emitter library. For now it's simple enough that we'll
+# emulate the interface.
+# var events = require('events')
+
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
@@ -26,12 +31,17 @@ class Connection
 
         @buffer = new ArrayBuffer 0
 
-        @_connect = =>
-            @open = true
-            @_error = => # Clear failed to connect callback
-            callback null, @
+        @_events = {}
 
-        @_error = => callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+        errCallback =  =>
+            callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+
+        @on 'error', errCallback
+
+        @on 'connect', =>
+            @open = true
+            @removeListener 'error', errCallback
+            callback null, @
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -110,7 +120,7 @@ class Connection
             else
                 cb new RqlDriverError "Unknown response type"
         else
-            @_error new RqlDriverError "Unknown token in response"
+            @emit 'error', new RqlDriverError "Unknown token in response"
 
     close: ar () ->
         @open = false
@@ -194,6 +204,36 @@ class Connection
 
         @write finalArray.buffer
 
+    ## Emulate the event emitter interface
+
+    addListener: (event, listener) ->
+        unless @_events[event]?
+            @_events[event] = []
+        @_events[event].push(listener)
+
+    on: (event, listener) -> @addListener(event, listener)
+
+    once: (event, listener) ->
+        listener._once = true
+        addListener(event, listener)
+
+    removeListener: (event, listener) ->
+        if @_events[event]?
+            @_events[event] = @_events[event].filter (lst) -> (lst isnt listener)
+
+    removeAllListeners: (event) -> delete @_events[event]
+
+    listeners: (event) -> @_events[event]
+
+    emit: (event, args...) ->
+        toRemove = []
+        for lst in @_events[event]
+            lst.apply(null, args)
+            if lst._once
+                toRemove.push(lst)
+        for lst in toRemove
+            @removeListener(event, lst)
+
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
 
@@ -215,9 +255,9 @@ class TcpConnection extends Connection
             buf = new ArrayBuffer 4
             (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
             @write buf
-            @_connect()
+            @emit 'connect'
 
-        @rawSocket.on 'error', => @_error()
+        @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'end', => @_end()
 
@@ -268,9 +308,9 @@ class HttpConnection extends Connection
                 if xhr.status is 200
                     @_url = url
                     @_connId = (new DataView xhr.response).getInt32(0, true)
-                    @_connect()
+                    @emit 'connect'
                 else
-                    @_error()
+                    @emit 'error', new RqlDriverError "XHR error, http status #{xhr.status}."
         xhr.send()
 
     cancel: ->
@@ -296,7 +336,7 @@ class EmbeddedConnection extends Connection
     constructor: (embeddedServer, callback) ->
         super({}, callback)
         @_embeddedServer = embeddedServer
-        @_connect()
+        @emit 'connect'
 
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
