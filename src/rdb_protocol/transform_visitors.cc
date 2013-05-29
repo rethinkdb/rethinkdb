@@ -82,7 +82,6 @@ public:
     transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                         std::list<boost::shared_ptr<scoped_cJSON_t> > *_out,
                         ql::env_t *_ql_env,
-                        const scopes_t &_scopes,
                         const backtrace_t &_backtrace);
 
     // This is a non-const reference because it caches the compiled function
@@ -94,18 +93,15 @@ private:
     boost::shared_ptr<scoped_cJSON_t> json;
     std::list<boost::shared_ptr<scoped_cJSON_t> > *out;
     ql::env_t *ql_env;
-    scopes_t scopes;
     backtrace_t backtrace;
 };
 
 transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                                          json_list_t *_out,
                                          ql::env_t *_ql_env,
-                                         const scopes_t &_scopes,
                                          const backtrace_t &_backtrace)
     : json(_json), out(_out), ql_env(_ql_env),
-      scopes(_scopes), backtrace(_backtrace)
-{ }
+      backtrace(_backtrace) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
@@ -134,12 +130,11 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // N
 
 
 void transform_apply(ql::env_t *ql_env,
-                     const scopes_t &scopes,
                      const backtrace_t &backtrace,
                      boost::shared_ptr<scoped_cJSON_t> json,
                      rdb_protocol_details::transform_variant_t *t,
                      std::list<boost::shared_ptr<scoped_cJSON_t> > *out) {
-    boost::apply_visitor(transform_visitor_t(json, out, ql_env, scopes, backtrace),
+    boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
                          *t);
 }
 
@@ -149,7 +144,6 @@ class terminal_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                        ql::env_t *_ql_env,
-                       const scopes_t &_scopes,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
 
@@ -160,7 +154,6 @@ public:
 private:
     boost::shared_ptr<scoped_cJSON_t> json;
     ql::env_t *ql_env;
-    scopes_t scopes;
     backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
@@ -168,12 +161,9 @@ private:
 
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    ql::env_t *_ql_env,
-                   const scopes_t &_scopes,
                    const backtrace_t &_backtrace,
                    rget_read_response_t::result_t *_out)
-    : json(_json), ql_env(_ql_env),
-      scopes(_scopes), backtrace(_backtrace), out(_out)
-{ }
+    : json(_json), ql_env(_ql_env), backtrace(_backtrace), out(_out) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
@@ -216,12 +206,11 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
 }
 
 void terminal_apply(ql::env_t *ql_env,
-                    const scopes_t &scopes,
                     const backtrace_t &backtrace,
                     boost::shared_ptr<scoped_cJSON_t> json,
                     rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
-    boost::apply_visitor(terminal_visitor_t(json, ql_env, scopes, backtrace, out),
+    boost::apply_visitor(terminal_visitor_t(json, ql_env, backtrace, out),
                          *t);
 }
 
@@ -231,9 +220,8 @@ class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
                                    ql::env_t *_ql_env,
-                                   const scopes_t &_scopes,
                                    const backtrace_t &_backtrace)
-        : out(_out), ql_env(_ql_env), scopes(_scopes), backtrace(_backtrace) { }
+        : out(_out), ql_env(_ql_env), backtrace(_backtrace) { }
 
 
     void operator()(ql::gmr_wire_func_t &f) const {  // NOLINT(runtime/references)
@@ -257,17 +245,14 @@ public:
 private:
     rget_read_response_t::result_t *out;
     ql::env_t *ql_env;
-    scopes_t scopes;
     backtrace_t backtrace;
 };
 
 void terminal_initialize(ql::env_t *ql_env,
-                         const scopes_t &scopes,
                          const backtrace_t &backtrace,
                          rdb_protocol_details::terminal_variant_t *t,
                          rget_read_response_t::result_t *out) {
     boost::apply_visitor(terminal_initializer_visitor_t(out, ql_env,
-                                                        scopes,
                                                         backtrace),
                          *t);
 }
