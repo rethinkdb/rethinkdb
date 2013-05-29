@@ -49,8 +49,6 @@ struct type_checking_environment_t {
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
-typedef variable_val_scope_t::new_scope_t new_val_scope_t;
-
 //Implicit value typedef
 typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
 
