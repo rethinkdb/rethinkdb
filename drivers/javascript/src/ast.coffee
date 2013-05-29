@@ -51,6 +51,10 @@ class RDBVal extends TermBase
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    insertAt: ar (index, value) -> new InsertAt {}, @, index, value
+    spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
+    deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
+    changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -358,6 +362,22 @@ class GetAttr extends RDBOp
 class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
     mt: 'contains'
+
+class InsertAt extends RDBOp
+    tt: Term.TermType.INSERT_AT
+    mt: 'insert_at'
+
+class SpliceAt extends RDBOp
+    tt: Term.TermType.SPLICE_AT
+    mt: 'splice_at'
+
+class DeleteAt extends RDBOp
+    tt: Term.TermType.DELETE_AT
+    mt: 'delete_at'
+
+class ChangeAt extends RDBOp
+    tt: Term.TermType.CHANGE_AT
+    mt: 'change_at'
 
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
