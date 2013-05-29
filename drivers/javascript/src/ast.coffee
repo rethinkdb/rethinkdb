@@ -124,7 +124,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new RqlDriverError "Unknown datum value `#{@data}`, did you forget a `return`?"
+                    throw new RqlDriverError "Cannot convert `#{@data}` to Datum."
         term = new Term
         term.setType Term.TermType.DATUM
         term.setDatum datum
@@ -167,7 +167,12 @@ translateOptargs = (optargs) ->
 class RDBOp extends RDBVal
     constructor: (optargs, args...) ->
         self = super()
-        self.args = (rethinkdb.expr arg for arg in args)
+        self.args =
+            for arg,i in args
+                if arg isnt undefined
+                    rethinkdb.expr arg
+                else
+                    throw new RqlDriverError "Argument #{i} to #{@st || @mt} may not be `undefined`."
         self.optargs = translateOptargs(optargs)
         return self
 
@@ -560,6 +565,9 @@ class Func extends RDBOp
             i++
 
         body = func(args...)
+        if body is undefined
+            throw new RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
 
