@@ -147,7 +147,7 @@ operation_weights = [ ("read", options.reads, do_read),
                       ("write", options.writes, do_write),
                       ("sindex_read", options.sindex_reads, do_sindex_read),
                       ("delete", options.deletes, do_delete),
-                      ("updates", options.updates, do_update),
+                      ("update", options.updates, do_update),
                       ("non_atomic_update", options.non_atomic_updates, do_non_atomic_update) ]
 
 total_op_weight = sum(weight for (name, weight, fn) in operation_weights)
@@ -195,7 +195,8 @@ def do_operation():
 def interrupt_handler(signal, frame):
     global stats_file
     if stats_file.closed:
-        print "Warning, stats file closed"
+        sys.stderr.write("Warning, stats file closed\n")
+        sys.stderr.flush()
     else:
         write_stats(time.time())
         stats_file.close()
@@ -209,7 +210,7 @@ try:
     sys.stdout.flush()
 
     if sys.stdin.readline().strip() != "go":
-        raise RuntimeError("unexpected message from parent")
+        exit(-1)
 
     # Run until interrupted
     stats_time = time.time() # write an initial stats so we have the start point
@@ -231,13 +232,9 @@ try:
                 time.sleep(0.5)
         except r.RqlDriverError as ex:
             write_error(ex.message)
-            sys.stderr.write("Client exiting due to RqlDriverError\n")
-            sys.stderr.flush()
             break
         except socket.error as ex:
             write_error(ex)
-            sys.stderr.write("Client exiting due to socket error\n")
-            sys.stderr.flush()
             break
 except SystemExit:
     # SystemExit is the normal path for exiting the stress client

@@ -145,8 +145,7 @@ def collect_and_print_results():
 def finish_stress():
     global clients
     print "Stopping client processes..."
-    for client in clients:
-        client.send_signal(signal.SIGINT)
+    [client.send_signal(signal.SIGINT) for client in clients if client.poll() is None]
 
     # Wait up to 5s for clients to exit
     end_time = time.time() + 5
@@ -155,9 +154,7 @@ def finish_stress():
         clients = [client for client in clients if client.poll() is None]
 
     # Kill any remaining clients
-    for client in clients:
-        print "Client didn't stop in time, killing..."
-        client.terminate()
+    [client.terminate() for client in clients]
 
     collect_and_print_results()
 
@@ -202,11 +199,12 @@ def initialize_sindexes(sindexes, connection, db, table):
             sindex_fn = long_sindex_fn
         else:
             raise RuntimeError("Unknown sindex type")
+        print "Adding sindex '%s'..." % sindex_name
         r.db(db).table(table).index_create(sindex_name, sindex_fn).run(connection)
 
 # Get table name, and make sure it exists on the server
 if len(options.db_table) == 0:
-    # Create a new table
+    print "Creating table..."
     random.seed()
     table = "stress_" + "".join(random.sample(string.letters + string.digits, 10))
     db = "test"
@@ -279,13 +277,19 @@ for i in range(options.clients):
         raise RuntimeError("unexpected client output")
 print done_format
 
-print "Starting traffic..."
+print "Running traffic..."
 for client in clients:
     client.stdin.write("go\n")
     client.stdin.flush()
 
 # Wait for timeout or interrupt
-time.sleep(options.timeout)
+end_time = time.time() + options.timeout
+while time.time() < end_time:
+    time.sleep(1)
+    # Check to see if all the clients have exited (perhaps due to the cluster going down)
+    if not any([client.poll() == None for client in clients]):
+        print "All clients have exited prematurely"
+        break
 
 finish_stress()
 
