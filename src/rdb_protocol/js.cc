@@ -3,9 +3,8 @@
 #include <stdint.h>
 
 #include "errors.hpp"
-#include <boost/variant.hpp>
+#include <boost/optional.hpp>
 
-#include "containers/archive/boost_types.hpp"
 #include "containers/scoped.hpp"
 #include "extproc/job.hpp"
 #include "extproc/pool.hpp"
