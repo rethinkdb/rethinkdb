@@ -206,7 +206,7 @@ void run_backfill_test(io_backender_t *io_backender,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.get() != NULL);
-        EXPECT_EQ(query_language::json_cmp(generate_document(it->second)->get(), get_result.data->get()), 0);
+        EXPECT_EQ(0, query_language::json_cmp(generate_document(it->second)->get(), get_result.data->get()));
     }
 }
 
@@ -317,8 +317,8 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
         rdb_protocol_t::rget_read_response_t get_result = boost::get<rdb_protocol_t::rget_read_response_t>(response.response);
         auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
         guarantee(result_stream);
-        ASSERT_EQ(result_stream->size(), 1u);
-        EXPECT_EQ(query_language::json_cmp(generate_document(it->second)->get(), result_stream->at(0).second->get()), 0);
+        ASSERT_EQ(1u, result_stream->size());
+        EXPECT_EQ(0, query_language::json_cmp(generate_document(it->second)->get(), result_stream->at(0).second->get()));
     }
 }
 
