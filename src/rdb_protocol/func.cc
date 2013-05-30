@@ -207,7 +207,7 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
 void wire_func_t::rdb_serialize(write_message_t &msg) const {
     guarantee(source.has());
     msg << *source;
-    msg << *default_filter_val;
+    msg << default_filter_val;
     msg << scope;
 }
 

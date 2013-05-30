@@ -16,6 +16,9 @@ module RethinkDB
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => -1
     }
+    @@literal_opts = {
+      :filter => [:default]
+    }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
       :+ => :add, :- => :sub, :* => :mul, :/ => :div, :% => :mod,
@@ -53,7 +56,12 @@ module RethinkDB
         opt_offset = -1
       end
       if (opt_offset ||= @@opt_off[m])
-        optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
+        if a[opt_offset].class == Hash
+          legal_keys = @@literal_opts[m]
+          if !legal_keys || a[opt_offset].keys - (@@literal_opts[m] || []) == []
+            optargs = a.delete_at(opt_offset)
+          end
+        end
       end
 
       args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])

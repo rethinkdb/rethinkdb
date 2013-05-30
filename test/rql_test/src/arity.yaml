@@ -40,7 +40,9 @@ tests:
       - r.db_create()
       - r.db_drop()
       - r.db()
-      - r.error()
+
+    - cd: r.error()
+      ot: err("RqlRuntimeError", "Empty ERROR term outside a default block.", [])
 
     - cd: r.js()
       ot:

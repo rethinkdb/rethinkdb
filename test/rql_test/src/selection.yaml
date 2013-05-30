@@ -226,7 +226,7 @@ tests:
 
     # test filtering for things by a missing attribute
     - cd: r.expr([{'a':1}]).filter({'b':1})
-      ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
+      ot: []
     
     # what the heck, let's see what happens
     - py: r.expr(5) + tbl
