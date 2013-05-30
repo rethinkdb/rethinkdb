@@ -16,7 +16,7 @@ void routing_http_app_t::add_route(const std::string& route, http_app_t *server)
 
 http_res_t routing_http_app_t::handle(const http_req_t &req) {
     http_req_t::resource_t::iterator it = req.resource.begin();
-    if (it == req.resource.end() || !std_contains(subroutes, *it)) {
+    if (!std_contains(subroutes, *it)) {
         /* if we don't have a route for this, or no route was specified see if the default server knows anything about it */
         if (defaultroute) {
             return defaultroute->handle(req);
@@ -26,6 +26,11 @@ http_res_t routing_http_app_t::handle(const http_req_t &req) {
     } else {
         std::string route(*it);
         ++it;
-        return subroutes[route]->handle(http_req_t(req, it));
+        // We have a special case to handle paths like "/route", which we want
+        // treated like "/route/".
+        const http_req_t::resource_t subresource = it == req.resource.end() ?
+            http_req_t::resource_t("/") :
+            req.resource.subresource(it);
+        return subroutes[route]->handle(http_req_t(req, subresource));
     }
 }

@@ -216,20 +216,21 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     boost::ptr_vector<request_record_t> things_to_destroy;
 
     http_req_t::resource_t::iterator it = req.resource.begin();
+    http_req_t::resource_t::iterator end = req.resource.end_without_trailing_slash();
 
     /* Check to see if we're only requesting the backfills happening on a
      * particular machine. */
     boost::optional<machine_id_t> requested_machine_id;
-    if (it != req.resource.end()) {
+    if (it != end) {
         if (*it != any_machine_id_wildcard) {
             try {
                 requested_machine_id = str_to_uuid(*it);
             } catch (const std::runtime_error &e) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
+                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid on resource %s\n", it->c_str(), req.resource.as_string().c_str()));
             }
 
             if (requested_machine_id->is_nil()) {
-                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid non nil uuid\n", it->c_str()));
+                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid non nil uuid on resource %s\n", it->c_str(), req.resource.as_string().c_str()));
             }
         }
         ++it;
@@ -238,7 +239,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     /* Check to see if we're only requesting the backfills happening for a
      * particular namespace. */
     boost::optional<namespace_id_t> requested_namespace_id;
-    if (it != req.resource.end()) {
+    if (it != end) {
         if (*it != any_machine_id_wildcard) {
             try {
                 requested_namespace_id = str_to_uuid(*it);

@@ -14,8 +14,8 @@ static const char PATH_SEPARATOR = '/';
 
 http_req_t::resource_t::resource_t() { }
 
-http_req_t::resource_t::resource_t(http_req_t::resource_t::iterator resource_start,
-                                   http_req_t::resource_t::iterator resource_end)
+http_req_t::resource_t::resource_t(iterator resource_start,
+                                   iterator resource_end)
     : parts(resource_start, resource_end) {
     if (resource_start == resource_end) {
         throw std::invalid_argument("empty http subresource");
@@ -26,6 +26,10 @@ http_req_t::resource_t::resource_t(const std::string &val) {
     if (!assign(val)) {
         throw std::invalid_argument("invalid resource value '" + val + "'");
     }
+}
+
+http_req_t::resource_t http_req_t::resource_t::subresource(iterator it) const {
+    return resource_t(it, end());
 }
 
 std::vector<std::string> split_by(const char *const beg, const char *const end,
@@ -55,11 +59,19 @@ MUST_USE bool http_req_t::resource_t::assign(const std::string &val) {
 }
 
 http_req_t::resource_t::iterator http_req_t::resource_t::begin() const {
+    guarantee(!parts.empty());
     return parts.begin();
 }
 
 http_req_t::resource_t::iterator http_req_t::resource_t::end() const {
+    guarantee(!parts.empty());
     return parts.end();
+}
+
+http_req_t::resource_t::iterator
+http_req_t::resource_t::end_without_trailing_slash() const {
+    guarantee(!parts.empty());
+    return parts.end() - (parts.back() == "" ? 1 : 0);
 }
 
 std::string http_req_t::resource_t::as_string() const {
@@ -77,8 +89,8 @@ http_req_t::http_req_t() {
 http_req_t::http_req_t(const std::string &resource_path) : resource(resource_path) {
 }
 
-http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
-    : resource(resource_start, from.resource.end()),
+http_req_t::http_req_t(const http_req_t &from, const resource_t& subresource)
+    : resource(subresource),
       method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
 }
 

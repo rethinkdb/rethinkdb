@@ -172,12 +172,12 @@ TEST(HttpResourceTest, SubResource) {
     auto it = resource.begin();
     ASSERT_EQ("foo", *it);
     ++it;
-    http_req_t::resource_t subresource(it, resource.end());
+    http_req_t::resource_t subresource = resource.subresource(it);
     ASSERT_EQ("/bar/baz", subresource.as_string());
     auto jt = subresource.begin();
     ASSERT_EQ("bar", *jt);
     ++jt;
-    http_req_t::resource_t subsubresource(jt, subresource.end());
+    http_req_t::resource_t subsubresource = subresource.subresource(jt);
     ASSERT_EQ("/baz", subsubresource.as_string());
     auto kt = subsubresource.begin();
     ASSERT_EQ("baz", *kt);
@@ -187,7 +187,7 @@ TEST(HttpResourceTest, SubResource) {
     // An empty subresource!
     bool caught_exception = false;
     try {
-        http_req_t::resource_t sub3resource(kt, subsubresource.end());
+        http_req_t::resource_t sub3resource = subsubresource.subresource(kt);
     } catch (const std::invalid_argument &ex) {
         caught_exception = true;
     }

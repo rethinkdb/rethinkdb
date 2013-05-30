@@ -46,16 +46,24 @@ struct http_req_t {
         resource_t();
         explicit resource_t(const std::string &_val);
 
-        // It must be that resource_start < resource_end.
-        resource_t(iterator resource_start, iterator resource_end);
-
         MUST_USE bool assign(const std::string &_val);
+
+        // It must be that subresource_start < end().
+        resource_t subresource(iterator subresource_start) const;
 
         iterator begin() const;
         iterator end() const;
+
+        // Returns the same as end() on URLs like /foo/bar, but returns one before
+        // the end on URLs like /foo/bar/, so that they get treated the same.
+        iterator end_without_trailing_slash() const;
+
         std::string as_string() const;
 
     private:
+        // It must be that resource_start < resource_end.
+        resource_t(iterator resource_start, iterator resource_end);
+
         std::vector<std::string> parts;
     } resource;
 
@@ -68,7 +76,7 @@ struct http_req_t {
 
     http_req_t();
     explicit http_req_t(const std::string &resource_path);
-    http_req_t(const http_req_t &from, const resource_t::iterator& resource_start);
+    http_req_t(const http_req_t &from, const resource_t& subresource);
 
     boost::optional<std::string> find_query_param(const std::string&) const;
     boost::optional<std::string> find_header_line(const std::string&) const;
