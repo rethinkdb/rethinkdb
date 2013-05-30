@@ -139,6 +139,9 @@ TEST(HttpResourceTest, SlashSlash) {
     ASSERT_NE(jt, it);
     ASSERT_EQ("", *it);
     ++it;
+    ASSERT_NE(jt, it);
+    ASSERT_EQ("", *it);
+    ++it;
     ASSERT_EQ(jt, it);
 }
 
