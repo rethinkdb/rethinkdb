@@ -48,10 +48,9 @@ struct http_req_t {
 
         resource_t();
         explicit resource_t(const std::string &_val);
-        resource_t(const char *_val, size_t size);
 
         MUST_USE bool assign(const std::string &_val);
-        MUST_USE bool assign(const char *_val, size_t size);
+
         iterator begin() const;
         iterator end() const;
         std::string as_string() const;

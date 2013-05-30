@@ -26,31 +26,19 @@ http_req_t::resource_t::resource_t(const std::string &_val) {
     }
 }
 
-http_req_t::resource_t::resource_t(const char * _val, size_t size) {
-    if (!assign(_val, size)) {
-        throw std::invalid_argument("invalid http resource value '" +
-                                    std::string(_val, size) + "'");
-    }
-}
-
 // Returns false if the assignment fails.
 MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
-    return assign(_val.data(), _val.length());
-}
-
-// Returns false if the assignment fails.
-MUST_USE bool http_req_t::resource_t::assign(const char * _val, size_t size) {
-    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) {
+    if (!(_val.size() > 0 && _val[0] == resource_parts_sep_char[0])) {
         return false;
     }
 
-    std::unique_ptr<char[]> tmp(new char[size]);
-    memcpy(tmp.get(), _val, size);
+    std::unique_ptr<char[]> tmp(new char[_val.size()]);
+    memcpy(tmp.get(), _val.data(), _val.size());
     val.reset(tmp.release());
-    val_size = size;
+    val_size = _val.size();
 
     // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.
-    tokenizer t(val.get() + 1, val.get() + size, resource_parts_sep);
+    tokenizer t(val.get() + 1, val.get() + val_size, resource_parts_sep);
     b = t.begin();
     e = t.end();
     return true;
@@ -361,7 +349,9 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req, signal_t *c
         return false;
     }
 
-    if (!req->resource.assign(resource_string.resource)) return false;
+    if (!req->resource.assign(resource_string.resource)) {
+        return false;
+    }
     req->query_params = resource_string.query_params;
 
     std::string version_str = parser.readLine(closer);
