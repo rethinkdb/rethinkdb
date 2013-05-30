@@ -11,6 +11,7 @@ module RethinkDB
       :replace => :non_atomic, :update => :non_atomic, :insert => :upsert
     }
     @@opt_off = {
+      :replace => -1, :update => -1, :insert => -1, :delete => -1,
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
