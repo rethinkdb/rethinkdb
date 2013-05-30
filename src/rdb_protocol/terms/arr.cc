@@ -156,10 +156,10 @@ public:
     at_term_t(env_t *env, protob_t<const Term> term,
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
-    virtual void modify(int64_t index, datum_t *array) = 0;
+    virtual void modify(size_t index, datum_t *array) = 0;
     counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(arg(0)->as_datum()->as_array()));
-        int index;
+        size_t index;
         if (index_method_ == ELEMENTS) {
             index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
         } else if (index_method_ == SPACES) {
@@ -180,7 +180,7 @@ public:
     insert_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(int64_t index, datum_t *array) {
+    void modify(size_t index, datum_t *array) {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
         array->insert(index, new_el);
     }
@@ -193,7 +193,7 @@ public:
     splice_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(int64_t index, datum_t *array) {
+    void modify(size_t index, datum_t *array) {
         counted_t<const datum_t> new_els = arg(2)->as_datum();
         array->splice(index, new_els->as_array());
     }
@@ -205,7 +205,7 @@ public:
     delete_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
-    void modify(int64_t index, datum_t *array) {
+    void modify(size_t index, datum_t *array) {
         if (num_args() == 2) {
             array->erase(index);
         } else {
@@ -221,7 +221,7 @@ public:
     change_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
-    void modify(int64_t index, datum_t *array) {
+    void modify(size_t index, datum_t *array) {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
         array->change(index, new_el);
     }
