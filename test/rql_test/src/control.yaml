@@ -108,18 +108,7 @@ tests:
     # r.error()
     - cd: r.error('Hello World')
       ot: err("RqlRuntimeError", "Hello World", [0])
-      
-    # r.error() negative cases
-    - cd: r.error()
-      py: [] # Here we rely on a native python error
-      rb: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [0])
-      
-    - cd: r.error('foo', 'bar')
-      py: [] # Here we rely on a native python error
-      rb: []
-      ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [0])
-      
+
     - cd: r.error(5) # we might want to allow this eventually
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [0])
 

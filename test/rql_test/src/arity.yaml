@@ -81,11 +81,8 @@ tests:
       - r.db_drop(1,2)
       - r.db(1,2)
 
-    - ot:
-        js: err("RqlDriverError", "Expected between 0 and 1 arguments but found 2.", [])
-        rb: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
-        py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
-      cd: r.error(1, 2)
+    - cd: r.error(1, 2)
+      ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
 
     - cd:
       - db.table_drop()
