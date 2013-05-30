@@ -91,6 +91,7 @@ class RDBVal extends TermBase
         new GroupBy {}, @, attrs, collector
 
     info: ar () -> new Info {}, @
+    sample: ar (count) -> new Sample {}, @, count
 
 class DatumTerm extends RDBVal
     args: []
@@ -450,6 +451,10 @@ class TypeOf extends RDBOp
 class Info extends RDBOp
     tt: Term.TermType.INFO
     mt: 'info'
+
+class Sample extends RDBOp
+    tt: Term.TermType.SAMPLE
+    mt: 'sample'
 
 class Update extends RDBOp
     tt: Term.TermType.UPDATE
