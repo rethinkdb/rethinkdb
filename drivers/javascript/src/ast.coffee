@@ -78,6 +78,7 @@ class RDBVal extends TermBase
     delete: ar () -> new Delete {}, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
+    default: ar (x) -> new Default {}, @, x
 
     or: varar(1, null, (others...) -> new Any {}, @, others...)
     and: varar(1, null, (others...) -> new All {}, @, others...)
@@ -512,6 +513,10 @@ class FunCall extends RDBOp
             if shouldWrap(@args[1])
                 args[1] = ['r(', args[1], ')']
             [args[1], '.do(', args[0], ')']
+
+class Default extends RDBOp
+    tt: Term.TermType.DEFAULT
+    mt: 'default'
 
 class Branch extends RDBOp
     tt: Term.TermType.BRANCH
