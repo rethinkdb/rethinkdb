@@ -66,7 +66,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
         http_req_t::resource_t::iterator it = req.resource.begin();
 
         boost::optional<std::string> requested_machine_id;
-        if (it != req.resource.end()) {
+        if (it != req.resource.end_without_trailing_slash()) {
             std::string machine_id_token = *it;
             if (any_machine_id_wildcard != machine_id_token) {
                 requested_machine_id = machine_id_token;
@@ -79,7 +79,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
-                body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
+                body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end_without_trailing_slash()));
             }
             return http_json_res(body.get());
         } else {
@@ -87,7 +87,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
                 if (*requested_machine_id == machine_id) {
-                    scoped_cJSON_t machine_json(get_metadata_json(&metadata, it, req.resource.end()));
+                    scoped_cJSON_t machine_json(get_metadata_json(&metadata, it, req.resource.end_without_trailing_slash()));
                     return http_json_res(machine_json.get());
                 }
             }

@@ -48,12 +48,12 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     }
 
     http_req_t::resource_t::iterator it = req.resource.begin();
-    if (it == req.resource.end()) {
+    if (it == req.resource.end_without_trailing_slash()) {
         return http_res_t(HTTP_NOT_FOUND);
     }
     std::string machine_id_str = *it;
     it++;
-    if (it != req.resource.end()) {
+    if (it != req.resource.end_without_trailing_slash()) {
         return http_res_t(HTTP_NOT_FOUND);
     }
 

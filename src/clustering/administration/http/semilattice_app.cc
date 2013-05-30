@@ -35,7 +35,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         http_req_t::resource_t::iterator it = req.resource.begin();
 
         //Traverse through the subfields until we're done with the url
-        while (it != req.resource.end()) {
+        while (it != req.resource.end_without_trailing_slash()) {
             json_adapter_if_t::json_adapter_map_t subfields = json_adapter_head->get_subfields();
             if (subfields.find(*it) == subfields.end()) {
                 return http_res_t(HTTP_NOT_FOUND); //someone tried to walk off the edge of the world
@@ -71,7 +71,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 {
                     scoped_cJSON_t absolute_change(change.release());
-                    std::vector<std::string> parts(req.resource.begin(), req.resource.end());
+                    std::vector<std::string> parts(req.resource.begin(), req.resource.end_without_trailing_slash());
                     for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());
@@ -124,7 +124,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 {
                     scoped_cJSON_t absolute_change(change.release());
-                    std::vector<std::string> parts(req.resource.begin(), req.resource.end());
+                    std::vector<std::string> parts(req.resource.begin(), req.resource.end_without_trailing_slash());
                     for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
                         scoped_cJSON_t inner(absolute_change.release());
                         absolute_change.reset(cJSON_CreateObject());

@@ -17,7 +17,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 dummy_protocol_t::read_t read;
 
                 http_req_t::resource_t::iterator it = req.resource.begin();
-                rassert(it != req.resource.end());
+                rassert(it != req.resource.end_without_trailing_slash());
 
                 read.keys.keys.insert(*it);
                 cond_t cond;
@@ -40,7 +40,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 dummy_protocol_t::write_t write;
 
                 http_req_t::resource_t::iterator it = req.resource.begin();
-                rassert(it != req.resource.end());
+                rassert(it != req.resource.end_without_trailing_slash());
 
                 write.values.insert(std::make_pair(*it, req.body));
                 cond_t cond;

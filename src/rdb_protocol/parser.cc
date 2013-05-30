@@ -27,7 +27,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 http_req_t::resource_t::iterator it = req.resource.begin();
 
-                if (it == req.resource.end()) {
+                if (it == req.resource.end_without_trailing_slash()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "No namespace specified");
                 }
 
@@ -44,7 +44,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 ++it;
 
-                if (it == req.resource.end()) {
+                if (it == req.resource.end_without_trailing_slash()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Key not specified");
                 }
 
@@ -79,7 +79,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 http_req_t::resource_t::iterator it = req.resource.begin();
 
-                if (it == req.resource.end()) {
+                if (it == req.resource.end_without_trailing_slash()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Namespace not specified");
                 }
 
@@ -96,7 +96,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 ++it;
 
-                if (it == req.resource.end()) {
+                if (it == req.resource.end_without_trailing_slash()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Key not specified");
                 }
 
