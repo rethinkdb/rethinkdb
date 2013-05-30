@@ -48,6 +48,7 @@ struct http_req_t {
 
         resource_t();
         explicit resource_t(const std::string &_val);
+        resource_t(const resource_t &from, const iterator &resource_start);
 
         MUST_USE bool assign(const std::string &_val);
 
@@ -56,7 +57,6 @@ struct http_req_t {
         std::string as_string() const;
 
     private:
-        resource_t(const resource_t &from, const iterator &resource_start);
         friend struct http_req_t;
 
         // This function returns a pointer to the beginning of the token (without the leading '/')

@@ -163,5 +163,22 @@ TEST(HttpResourceTest, SlashSlash) {
     ASSERT_EQ(str, resource.as_string());
 }
 
+TEST(HttpResourceTest, SubResource) {
+    http_req_t::resource_t resource("/foo/bar/baz");
+    ASSERT_EQ("/foo/bar/baz", resource.as_string());
+    auto it = resource.begin();
+    ASSERT_EQ("foo", *it);
+    ++it;
+    http_req_t::resource_t subresource(resource, it);
+    ASSERT_EQ("/bar/baz", subresource.as_string());
+    auto jt = subresource.begin();
+    auto kt = subresource.end();
+    ASSERT_EQ("bar", *jt);
+    ++jt;
+    ASSERT_EQ("baz", *jt);
+    ++jt;
+    ASSERT_EQ(kt, jt);
+}
+
 
 }  // namespace unittest
