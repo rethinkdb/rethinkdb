@@ -26,6 +26,7 @@ public:
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f) = 0;
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f) = 0;
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f) = 0;
+    virtual counted_t<datum_stream_t> indexes_of(counted_t<func_t> f) = 0;
 
     // stream -> atom
     virtual counted_t<const datum_t> count() = 0;
@@ -35,6 +36,7 @@ public:
                                          counted_t<func_t> m,
                                          counted_t<const datum_t> d,
                                          counted_t<func_t> r) = 0;
+
 
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
@@ -70,6 +72,7 @@ public:
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> indexes_of(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
     virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,
@@ -109,6 +112,21 @@ private:
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> source;
+};
+
+class indexes_of_datum_stream_t : public eager_datum_stream_t {
+public:
+    indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source), index(0) {
+        guarantee(f.has() && source.has());
+    }
+private:
+    counted_t<const datum_t> next_impl();
+
+    counted_t<func_t> f;
+    counted_t<datum_stream_t> source;
+
+    int64_t index;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {
@@ -159,6 +177,7 @@ public:
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> indexes_of(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count();
     virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,

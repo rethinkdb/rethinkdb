@@ -144,6 +144,22 @@ private:
     virtual const char *name() const { return "limit"; }
 };
 
+class indexes_of_term_t : public op_term_t {
+public:
+    indexes_of_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(1);
+        counted_t<func_t> fun;
+        if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
+            fun = v->as_func();
+        } else {
+            fun = func_t::new_eq_comparison_func(env, v->as_datum(), backtrace());
+        }
+        return new_val(arg(0)->as_seq()->indexes_of(fun));
+    }
+    virtual const char *name() const { return "indexes_of"; }
+};
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);
@@ -159,6 +175,10 @@ counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
 
 counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
     return make_counted<limit_term_t>(env, term);
+}
+
+counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<indexes_of_term_t>(env, term);
 }
 
 }  // namespace ql

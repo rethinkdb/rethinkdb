@@ -58,6 +58,10 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
     return make_counted<datum_t>(static_cast<double>(i));
 }
 
+counted_t<datum_stream_t> eager_datum_stream_t::indexes_of(counted_t<func_t> f) {
+    return make_counted<indexes_of_datum_stream_t>(env, f, counted_from_this());
+}
+
 counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
                                                       counted_t<func_t> f) {
     counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
@@ -162,6 +166,10 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
     return counted_t<datum_stream_t>(out.release());
 }
 
+counted_t<datum_stream_t> lazy_datum_stream_t::indexes_of(counted_t<func_t> f) {
+    return make_counted<indexes_of_datum_stream_t>(env, f, counted_from_this());
+}
+
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
 rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
@@ -254,6 +262,20 @@ counted_t<const datum_t> map_datum_stream_t::next_impl() {
         return counted_t<const datum_t>();
     } else {
         return f->call(arg)->as_datum();
+    }
+}
+
+// INDEXES_OF_DATUM_STREAM_T
+counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
+    for (;;) {
+        counted_t<const datum_t> arg = source->next();
+        if (!arg.has()) {
+            return counted_t<const datum_t>();
+        } else if (f->call(arg)->as_bool()) {
+            return make_counted<datum_t>(static_cast<double>(index++));
+        } else {
+            index++;
+        }
     }
 }
 

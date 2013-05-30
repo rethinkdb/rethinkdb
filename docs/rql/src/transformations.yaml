@@ -214,6 +214,22 @@ commands:
           can_try: true
           dataset: marvel
 
+  - tag: indexes_of
+    section: transformations
+    description: Get the indexes of an element in a sequence. If the argument is a predicate,
+      get the indexes of all elements matching it.
+
+    body: datum | predicate
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Find the position of the letter 'c'.
+        code:
+          js: r.expr(['a','b','c']).indexesOf('c').run(conn, callback)
+          py: r.expr(['a','b','c']).indexes_of('c').run(conn)
+          rb: r(['a','b','c']).indexes_of('c').run(conn)
+
   - tag: union
     section: transformations
     description: Concatenate two sequences.
