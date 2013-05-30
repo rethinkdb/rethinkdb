@@ -21,11 +21,16 @@ http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const htt
 }
 
 http_req_t::resource_t::resource_t(const std::string &_val) {
-    if (!assign(_val)) throw std::invalid_argument(_val);
+    if (!assign(_val)) {
+        throw std::invalid_argument("invalid http resource value '" + _val + "'");
+    }
 }
 
 http_req_t::resource_t::resource_t(const char * _val, size_t size) {
-    if (!assign(_val, size)) throw std::invalid_argument(_val);
+    if (!assign(_val, size)) {
+        throw std::invalid_argument("invalid http resource value '" +
+                                    std::string(_val, size) + "'");
+    }
 }
 
 // Returns false if the assignment fails.
