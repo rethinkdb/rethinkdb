@@ -18,9 +18,9 @@ http_req_t::resource_t::resource_t() { }
 http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, http_req_t::resource_t::iterator resource_start)
     : parts(resource_start, from.parts.end()) { }
 
-http_req_t::resource_t::resource_t(const std::string &_val) {
-    if (!assign(_val)) {
-        throw std::invalid_argument("invalid http resource value '" + _val + "'");
+http_req_t::resource_t::resource_t(const std::string &val) {
+    if (!assign(val)) {
+        throw std::invalid_argument("invalid http resource value '" + val + "'");
     }
 }
 
