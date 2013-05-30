@@ -4,7 +4,7 @@
 
 namespace unittest {
 
-TEST(ResourceTest, EmptyResource) {
+TEST(HttpResourceTest, EmptyResource) {
     bool caught_exception = false;
     try {
         http_req_t::resource_t resource("");
