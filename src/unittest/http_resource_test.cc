@@ -172,12 +172,19 @@ TEST(HttpResourceTest, SubResource) {
     http_req_t::resource_t subresource(resource, it);
     ASSERT_EQ("/bar/baz", subresource.as_string());
     auto jt = subresource.begin();
-    auto kt = subresource.end();
     ASSERT_EQ("bar", *jt);
     ++jt;
-    ASSERT_EQ("baz", *jt);
-    ++jt;
-    ASSERT_EQ(kt, jt);
+    http_req_t::resource_t subsubresource(subresource, jt);
+    ASSERT_EQ("/baz", subsubresource.as_string());
+    auto kt = subsubresource.begin();
+    ASSERT_EQ("baz", *kt);
+    ++kt;
+    ASSERT_EQ(subsubresource.end(), kt);
+
+    // An empty subresource!
+    http_req_t::resource_t sub3resource(subresource, kt);
+    ASSERT_EQ(sub3resource.begin(), sub3resource.end());
+    ASSERT_EQ("", sub3resource.as_string());
 }
 
 
