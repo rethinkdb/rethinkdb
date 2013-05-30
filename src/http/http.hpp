@@ -8,8 +8,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/tokenizer.hpp>
-#include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"

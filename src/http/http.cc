@@ -6,7 +6,6 @@
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
@@ -90,8 +89,9 @@ boost::optional<std::string> http_req_t::find_query_param(const std::string& key
 boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key))
+        if (0 == strcasecmp(it->key.c_str(), key.c_str())) {
             return boost::optional<std::string>(it->val);
+        }
     }
     return boost::none;
 }
@@ -99,7 +99,7 @@ boost::optional<std::string> http_req_t::find_header_line(const std::string& key
 bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-        if (boost::iequals(it->key, key)) {
+        if (0 == strcasecmp(it->key.c_str(), key.c_str())) {
             return true;
         }
     }
