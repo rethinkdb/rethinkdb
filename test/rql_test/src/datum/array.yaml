@@ -48,7 +48,7 @@ tests:
     - cd: r.expr([1,2,3]).insert_at(4, 5)
       ot: "err('RqlRuntimeError', 'Index `4` out of bounds for array of size: `3`.', [0])"
     - cd: r.expr([1,2,3]).insert_at(-5, -1)
-      ot: "err('RqlCompileError', 'Index out of bounds: -5', [0])"
+      ot: "err('RqlRuntimeError', 'Index out of bounds: -5', [0])"
 
     - cd: r.expr([1,4]).splice_at(1, [2,3])
       ot: [1,2,3,4]
@@ -61,7 +61,7 @@ tests:
     - cd: r.expr([1,2]).splice_at(3, [3,4])
       ot: "err('RqlRuntimeError', 'Index `3` out of bounds for array of size: `2`.', [0])"
     - cd: r.expr([1,2]).splice_at(-4, [3,4])
-      ot: "err('RqlCompileError', 'Index out of bounds: -4', [0])"
+      ot: "err('RqlRuntimeError', 'Index out of bounds: -4', [0])"
 
     - cd: r.expr([1,2,3,4]).delete_at(0)
       ot: [2,3,4]
@@ -74,7 +74,7 @@ tests:
     - cd: r.expr([1,2,3,4]).delete_at(4)
       ot: "err('RqlRuntimeError', 'Index `4` out of bounds for array of size: `4`.', [0])"
     - cd: r.expr([1,2,3,4]).delete_at(-5)
-      ot: "err('RqlCompileError', 'Index out of bounds: -5', [0])"
+      ot: "err('RqlRuntimeError', 'Index out of bounds: -5', [0])"
 
     - cd: r.expr([0,2,3]).change_at(0, 1)
       ot: [1,2,3]
@@ -84,5 +84,5 @@ tests:
       ot: [1,2,3]
     - cd: r.expr([1,2,3]).change_at(3, 4)
       ot: "err('RqlRuntimeError', 'Index `3` out of bounds for array of size: `3`.', [0])"
-    - cd: r.expr([1,2,3,4]).delete_at(-5)
-      ot: "err('RqlCompileError', 'Index out of bounds: -5', [0])"
+    - cd: r.expr([1,2,3,4]).change_at(-5, 1)
+      ot: "err('RqlRuntimeError', 'Index out of bounds: -5', [0])"

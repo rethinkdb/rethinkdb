@@ -129,6 +129,11 @@ tests:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 2 arguments \(3 given\)", [])
 
+    - cd: r.expr([]).delete_at()
+      ot:
+        rb: err("RqlCompileError", "Expected between 2 and 3 arguments but found 1.", [])
+        js: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.", [])
+        py: err("RqlCompileError", "Expected between 2 and 3 arguments but found 1.", [])
 
     - cd: db.table_create(1,2)
       ot:
@@ -160,8 +165,12 @@ tests:
       cd:
       - tbl.inner_join()
       - tbl.outer_join()
+      - r.expr([]).insert_at()
+      - r.expr([]).splice_at()
+      - r.expr([]).change_at()
 
-    - cd: tbl.eq_join(1)
+    - cd:
+      - tbl.eq_join(1)
       ot:
         js: err("RqlDriverError", "Expected 2 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
@@ -174,6 +183,9 @@ tests:
       cd:
       - tbl.inner_join(1)
       - tbl.outer_join(1)
+      - r.expr([]).insert_at(1)
+      - r.expr([]).splice_at(1)
+      - r.expr([]).change_at(1)
 
     - cd: tbl.eq_join(1,2,3,4)
       ot:
@@ -188,6 +200,9 @@ tests:
       cd:
       - tbl.inner_join(1,2,3)
       - tbl.outer_join(1,2,3)
+      - r.expr([]).insert_at(1, 2, 3)
+      - r.expr([]).splice_at(1, 2, 3)
+      - r.expr([]).change_at(1, 2, 3)
 
     - ot:
         js: err("RqlDriverError", "Expected 2 or more argument(s) but found 0.", [])
