@@ -162,6 +162,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::DEFAULT:
             return false;
         default: unreachable();
         }
@@ -257,6 +258,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::DEFAULT:
             return false;
         default: unreachable();
         }

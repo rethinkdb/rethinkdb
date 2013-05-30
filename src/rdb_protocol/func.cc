@@ -156,6 +156,10 @@ std::string func_t::print_src() const {
     return source->DebugString();
 }
 
+void func_t::set_default_filter_val(counted_t<func_t> func) {
+    default_filter_val = func;
+}
+
 // This JS evaluation resulted in an error
 counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
     rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
@@ -175,6 +179,9 @@ counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)) {
+    if (func->default_filter_val.has()) {
+        default_filter_val = *func->default_filter_val->source.get();
+    }
     if (env) {
         cached_funcs[env->uuid] = func;
     }
@@ -188,6 +195,10 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env->uuid) == 0) {
         env->push_scope(&scope);
         cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
+        if (default_filter_val) {
+            cached_funcs[env->uuid]->set_default_filter_val(
+                make_counted<func_t>(env, make_counted_term_copy(*default_filter_val)));
+        }
         env->pop_scope();
     }
     return cached_funcs[env->uuid];
@@ -196,12 +207,15 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
 void wire_func_t::rdb_serialize(write_message_t &msg) const {
     guarantee(source.has());
     msg << *source;
+    msg << *default_filter_val;
     msg << scope;
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     guarantee(source.has());
     archive_result_t res = deserialize(stream, source.get());
+    if (res != ARCHIVE_SUCCESS) { return res; }
+    res = deserialize(stream, &default_filter_val);
     if (res != ARCHIVE_SUCCESS) { return res; }
     return deserialize(stream, &scope);
 }
@@ -218,26 +232,44 @@ bool func_term_t::is_deterministic_impl() const {
 }
 
 bool func_t::filter_call(counted_t<const datum_t> arg) {
-    counted_t<const datum_t> d = call(arg)->as_datum();
-    if (d->get_type() == datum_t::R_OBJECT) {
-        const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second.has());
-            counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
-            if (!elt.has()) {
-                rfail(base_exc_t::NON_EXISTENCE,
-                      "No attribute `%s` in object.", it->first.c_str());
-            } else if (*elt != *it->second) {
-                return false;
+    try {
+        counted_t<const datum_t> d = call(arg)->as_datum();
+        if (d->get_type() == datum_t::R_OBJECT) {
+            const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
+            for (auto it = obj.begin(); it != obj.end(); ++it) {
+                r_sanity_check(it->second.has());
+                counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
+                if (!elt.has()) {
+                    rfail(base_exc_t::NON_EXISTENCE,
+                          "No attribute `%s` in object.", it->first.c_str());
+                } else if (*elt != *it->second) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (d->get_type() == datum_t::R_BOOL) {
+            return d->as_bool();
+        } else {
+            d->type_error(
+                strprintf(
+                    "FILTER must be passed either an OBJECT or a predicate (got %s).",
+                    d->get_type_name()));
+        }
+    } catch (const base_exc_t &e) {
+        if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+            try {
+                if (default_filter_val) {
+                    return default_filter_val->call()->as_bool();
+                } else {
+                    return false;
+                }
+            } catch (const base_exc_t &e2) {
+                if (e2.get_type() != base_exc_t::EMPTY_USER) {
+                    throw;
+                }
             }
         }
-        return true;
-    } else if (d->get_type() == datum_t::R_BOOL) {
-        return d->as_bool();
-    } else {
-        d->type_error(
-            strprintf("FILTER must be passed either an OBJECT or a predicate (got %s).",
-                      d->get_type_name()));
+        throw;
     }
 }
 

@@ -37,6 +37,7 @@ public:
     void assert_deterministic(const char *extra_msg) const;
 
     std::string print_src() const;
+    void set_default_filter_val(counted_t<func_t> func);
 private:
     // Pointers to this function's arguments.
     scoped_array_t<counted_t<const datum_t> > argptrs;
@@ -45,6 +46,7 @@ private:
     // This is what's serialized over the wire.
     friend class wire_func_t;
     protob_t<const Term> source;
+    counted_t<func_t> default_filter_val;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<int64_t, counted_t<const datum_t> *> scope;
@@ -103,6 +105,7 @@ private:
 
     // source is never null, even when wire_func_t is default-constructed.
     protob_t<Term> source;
+    boost::optional<Term> default_filter_val;
     std::map<int64_t, Datum> scope;
 };
 

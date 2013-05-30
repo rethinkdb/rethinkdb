@@ -25,6 +25,7 @@ public:
         WELL_FORMEDNESS,
         TYPE,
         USER,
+        EMPTY_USER,
         TIMEOUT,
         INTERRUPTED,
         CONFLICT,
