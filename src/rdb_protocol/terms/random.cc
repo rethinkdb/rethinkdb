@@ -4,26 +4,13 @@
 
 namespace ql {
 
-class random_term_t : public op_term_t {
-public:
-    random_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(0)) { }
-    counted_t<val_t> eval_impl() {
-        return new_val(counted_t<const datum_t>(new datum_t(randdouble())));
-    }
-    bool is_deterministic_impl() const {
-        return false;
-    }
-    virtual const char *name() const { return "random"; }
-};
-
 class sample_term_t : public op_term_t {
 public:
     sample_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
     counted_t<val_t> eval_impl() {
         int num_int = arg(1)->as_int();
-        rcheck(num_int >= 0, 
+        rcheck(num_int >= 0,
                strprintf("Number of items to sample must be non-negative, got `%d`.", num_int));
         size_t num = num_int;
         counted_t<table_t> t;
@@ -55,11 +42,11 @@ public:
             }
         }
 
-        rcheck(result.size() == num, 
+        rcheck(result.size() == num,
                 strprintf("Trying to sample `%zu` elements from" \
                           "a sequence of size `%zu`.", num, result.size()));
         counted_t<datum_stream_t> new_ds(
-                new array_datum_stream_t(env, make_counted<const datum_t>(result), 
+                new array_datum_stream_t(env, make_counted<const datum_t>(result),
                                          backtrace()));
 
         return t.has() ? new_val(new_ds, t) : new_val(new_ds);
@@ -69,10 +56,6 @@ public:
     }
     virtual const char *name() const { return "sample"; }
 };
-
-counted_t<term_t> make_random_term(env_t *env, protob_t<const Term> term) {
-    return counted_t<random_term_t>(new random_term_t(env, term));
-}
 
 counted_t<term_t> make_sample_term(env_t *env, protob_t<const Term> term) {
     return counted_t<sample_term_t>(new sample_term_t(env, term));

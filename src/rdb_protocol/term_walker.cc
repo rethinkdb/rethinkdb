@@ -160,7 +160,6 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
-        case Term::RANDOM:
         case Term::SAMPLE:
             return false;
         default: unreachable();
@@ -257,7 +256,6 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
-        case Term::RANDOM:
         case Term::SAMPLE:
             return false;
         default: unreachable();

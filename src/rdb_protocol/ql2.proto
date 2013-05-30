@@ -422,11 +422,8 @@ message Term {
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
 
-        // Generate a random number in the range [0.0, 1.0)
-        RANDOM = 80; // -> NUMBER
-
         // Select a number of elements from sequence with uniform distribution.
-        SAMPLE = 81; // Sequence, NUMBER -> Sequence
+        SAMPLE = 80; // Sequence, NUMBER -> Sequence
     }
     optional TermType type = 1;
 
