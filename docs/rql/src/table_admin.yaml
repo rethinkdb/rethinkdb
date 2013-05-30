@@ -14,7 +14,7 @@ commands:
       <br /><br />When creating a table you can specify the following options:
       <ul>
       <li><code>primary_key</code>(string): the name of the primary key. The default primary key is <code>id</code>;</li>
-      <li><code>durability</code>(boolean): if set to <code>'soft'</code>, this enables <strong>soft durability</strong>
+      <li><code>durability</code>(string): if set to <code>'soft'</code>, this enables <strong>soft durability</strong>
        on this table: writes will be acknowledged by the server immediately and flushed to disk in the background.
        Default is <code>'hard'</code> (acknowledgement of writes happens after data has been written to disk);</li>
       <li><code>cache_size</code>(number): set the cache size (in MB) to be used by the table. Default is 1024MB;</li>

@@ -14,19 +14,26 @@ tests:
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 0 argument(s) but found 1.", [])
-        py: err_regex("TypeError", ".* takes no arguments .1 given.", [])
+        py: err_regex("TypeError", ".* takes no arguments \(1 given\)", [])
       cd:
       - r.db_list(1)
 
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
-        py: err_regex("TypeError", ".* takes exactly 1 argument .2 given.", [])
+        py: err_regex("TypeError", ".* takes exactly 1 argument \(2 given\)", [])
       cd:
-      - tbl.delete(1)
       - tbl.zip(1)
       - tbl.count(1)
       - tbl.distinct(1)
+
+
+    - ot:
+        js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
+        py: err_regex("RqlRuntimeError", u'Expected type STRING but found NUMBER.')
+      cd:
+      - tbl.delete(1)
 
     - rb: db.table_list(1)
       ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])

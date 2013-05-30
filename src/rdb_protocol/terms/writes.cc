@@ -60,7 +60,10 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
     std::string str = arg->as_str();
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
-    rfail_target(target, "durability option '%s' unrecognized", str.c_str());
+    rfail_target(target,
+                 "Durability option `%s` unrecognized "
+                 "(options are \"hard\" and \"soft\").",
+                 str.c_str());
     unreachable();
 }
 

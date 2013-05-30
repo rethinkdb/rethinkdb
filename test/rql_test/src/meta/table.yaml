@@ -50,7 +50,7 @@ tests:
       ot: ({'dropped':1})
 
     - cd: db.table_create('ab', primary_key='bar', cache_size=123, durability='wrong')
-      ot: err('RqlRuntimeError', 'TODO figure out what this error should be.', [0])
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
 
     # Table errors
