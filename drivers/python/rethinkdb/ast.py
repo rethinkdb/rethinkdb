@@ -182,6 +182,9 @@ class RqlQuery(object):
     def do(self, func):
         return FunCall(func_wrap(func), self)
 
+    def default(self, handler):
+        return Default(self, handler)
+
     def update(self, func, non_atomic=()):
         return Update(self, func_wrap(func), non_atomic=non_atomic)
 
@@ -232,8 +235,8 @@ class RqlQuery(object):
     def map(self, func):
         return Map(self, func_wrap(func))
 
-    def filter(self, func):
-        return Filter(self, func_wrap(func))
+    def filter(self, func, default=()):
+        return Filter(self, func_wrap(func), default=default)
 
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
@@ -411,6 +414,10 @@ class JavaScript(RqlTopLevelQuery):
 class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
+
+class Default(RqlQuery):
+    tt = p.Term.DEFAULT
+    st = "default"
 
 class ImplicitVar(RqlQuery):
     tt = p.Term.IMPLICIT_VAR

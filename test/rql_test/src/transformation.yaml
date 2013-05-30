@@ -136,7 +136,7 @@ tests:
       ot: ({'id':0,'a':0})
       
     - cd: tbl.pluck('id', 'missing').order_by('id').nth(0)
-      ot: err('RqlRuntimeError', 'No attribute `missing` in object.', [0])
+      ot: ({'id':0})
       
     # without
     - cd: tbl.without().order_by('id').nth(0)
