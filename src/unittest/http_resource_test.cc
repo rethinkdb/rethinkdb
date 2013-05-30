@@ -26,23 +26,28 @@ TEST(HttpResourceTest, DoesNotStartWithSlash) {
 }
 
 TEST(HttpResourceTest, Slash) {
-    http_req_t::resource_t resource("/");
+    const char *str = "/";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ(it, jt);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, OneElt) {
-    http_req_t::resource_t resource("/foo");
+    const char *str = "/foo";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, OneEltSlash) {
-    http_req_t::resource_t resource("/foo/");
+    const char *str = "/foo/";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -51,10 +56,12 @@ TEST(HttpResourceTest, OneEltSlash) {
     ASSERT_EQ("", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, TwoElt) {
-    http_req_t::resource_t resource("/foo/bar");
+    const char *str = "/foo/bar";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -62,10 +69,12 @@ TEST(HttpResourceTest, TwoElt) {
     ASSERT_EQ("bar", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, TwoEltSlash) {
-    http_req_t::resource_t resource("/foo/bar/");
+    const char *str = "/foo/bar/";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -76,10 +85,12 @@ TEST(HttpResourceTest, TwoEltSlash) {
     ASSERT_EQ("", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, TwoEltSlashSlash) {
-    http_req_t::resource_t resource("/foo/bar//");
+    const char *str = "/foo/bar//";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -93,11 +104,13 @@ TEST(HttpResourceTest, TwoEltSlashSlash) {
     ASSERT_EQ("", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 
 TEST(HttpResourceTest, TwoEltSlashSlashSlash) {
-    http_req_t::resource_t resource("/foo/bar///");
+    const char *str = "/foo/bar///";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -114,10 +127,12 @@ TEST(HttpResourceTest, TwoEltSlashSlashSlash) {
     ASSERT_EQ("", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, TwoEltSlashSlashElt) {
-    http_req_t::resource_t resource("/foo/bar//baz");
+    const char *str = "/foo/bar//baz";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_EQ("foo", *it);
@@ -130,10 +145,12 @@ TEST(HttpResourceTest, TwoEltSlashSlashElt) {
     ASSERT_EQ("baz", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
 
 TEST(HttpResourceTest, SlashSlash) {
-    http_req_t::resource_t resource("//");
+    const char *str = "//";
+    http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
     ASSERT_NE(jt, it);
@@ -143,8 +160,8 @@ TEST(HttpResourceTest, SlashSlash) {
     ASSERT_EQ("", *it);
     ++it;
     ASSERT_EQ(jt, it);
+    ASSERT_EQ(str, resource.as_string());
 }
-
 
 
 }  // namespace unittest
