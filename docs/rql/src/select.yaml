@@ -169,7 +169,6 @@ commands:
           js: "r.table('users').filter({active: true, age: 30}).run(conn, callback)"
           py: "r.table('users').filter({'active': True, 'age': 30}).run(conn)"
           rb: r.table('users').filter('active' => true, 'age' => 30).run(conn)
-      - description: Get all active users aged 30, and throw if any users don't have the `age` field.
       - description: Select all documents where the 'magazines' field is greater than 5.
         code:
           js: r.table('marvel').filter(r.row('magazines').gt(5)).run(conn, callback)
