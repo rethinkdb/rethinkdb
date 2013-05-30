@@ -14,12 +14,17 @@ static const char PATH_SEPARATOR = '/';
 
 http_req_t::resource_t::resource_t() { }
 
-http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, http_req_t::resource_t::iterator resource_start)
-    : parts(resource_start, from.parts.end()) { }
+http_req_t::resource_t::resource_t(http_req_t::resource_t::iterator resource_start,
+                                   http_req_t::resource_t::iterator resource_end)
+    : parts(resource_start, resource_end) {
+    if (resource_start == resource_end) {
+        throw std::invalid_argument("empty http subresource");
+    }
+}
 
 http_req_t::resource_t::resource_t(const std::string &val) {
     if (!assign(val)) {
-        throw std::invalid_argument("invalid http resource value '" + val + "'");
+        throw std::invalid_argument("invalid resource value '" + val + "'");
     }
 }
 
@@ -73,7 +78,7 @@ http_req_t::http_req_t(const std::string &resource_path) : resource(resource_pat
 }
 
 http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
-    : resource(from.resource, resource_start),
+    : resource(resource_start, from.resource.end()),
       method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
 }
 

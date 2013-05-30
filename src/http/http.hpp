@@ -45,7 +45,9 @@ struct http_req_t {
 
         resource_t();
         explicit resource_t(const std::string &_val);
-        resource_t(const resource_t &from, iterator resource_start);
+
+        // It must be that resource_start < resource_end.
+        resource_t(iterator resource_start, iterator resource_end);
 
         MUST_USE bool assign(const std::string &_val);
 
