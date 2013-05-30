@@ -59,21 +59,17 @@ http_req_t::resource_t::iterator http_req_t::resource_t::end() const {
     return e;
 }
 
-std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iterator& it) const {
-    if (it == e) {
+std::string http_req_t::resource_t::as_string() const {
+    if (b == e) {
         return std::string();
     } else {
         // -1 for the '/' before the token start
-        const char* sub_resource = token_start_position(it) - 1;
+        const char* sub_resource = token_start_position(b) - 1;
         guarantee(sub_resource >= val.get() && sub_resource < val.get() + val_size);
 
         size_t sub_resource_len = val_size - (sub_resource - val.get());
         return std::string(sub_resource, sub_resource_len);
     }
-}
-
-std::string http_req_t::resource_t::as_string() const {
-    return as_string(b);
 }
 
 const char* http_req_t::resource_t::token_start_position(const http_req_t::resource_t::iterator& it) const {

@@ -57,8 +57,6 @@ struct http_req_t {
         std::string as_string() const;
 
     private:
-        std::string as_string(const iterator &from) const;
-
         resource_t(const resource_t &from, const iterator &resource_start);
         friend struct http_req_t;
 
