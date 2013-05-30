@@ -30,7 +30,10 @@ TEST(HttpResourceTest, Slash) {
     http_req_t::resource_t resource(str);
     auto it = resource.begin();
     auto jt = resource.end();
-    ASSERT_EQ(it, jt);
+    ASSERT_NE(jt, it);
+    ASSERT_EQ("", *it);
+    ++it;
+    ASSERT_EQ(jt, it);
     ASSERT_EQ(str, resource.as_string());
 }
 
