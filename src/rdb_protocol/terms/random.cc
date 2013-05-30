@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"
@@ -42,9 +44,8 @@ public:
             }
         }
 
-        rcheck(result.size() == num,
-                strprintf("Trying to sample `%zu` elements from" \
-                          "a sequence of size `%zu`.", num, result.size()));
+        std::random_shuffle(result.begin(), result.end());
+
         counted_t<datum_stream_t> new_ds(
                 new array_datum_stream_t(env, make_counted<const datum_t>(result),
                                          backtrace()));
