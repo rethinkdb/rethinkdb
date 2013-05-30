@@ -35,9 +35,13 @@ MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
 
 // Returns false if the assignment fails.
 MUST_USE bool http_req_t::resource_t::assign(const char * _val, size_t size) {
-    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) return false;
-    val.reset(new char[size]);
-    memcpy(val.get(), _val, size);
+    if (!(size > 0 && _val[0] == resource_parts_sep_char[0])) {
+        return false;
+    }
+
+    std::unique_ptr<char[]> tmp(new char[size]);
+    memcpy(tmp.get(), _val, size);
+    val.reset(tmp.release());
     val_size = size;
 
     // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.

@@ -43,15 +43,15 @@ struct header_line_t {
 struct http_req_t {
     class resource_t {
     public:
-        typedef boost::tokenizer<boost::char_separator<char>, char *> tokenizer;
+        typedef boost::tokenizer<boost::char_separator<char>, const char *> tokenizer;
         typedef tokenizer::iterator iterator;
 
         resource_t();
         explicit resource_t(const std::string &_val);
-        resource_t(const char* _val, size_t size);
+        resource_t(const char *_val, size_t size);
 
         MUST_USE bool assign(const std::string &_val);
-        MUST_USE bool assign(const char* _val, size_t size);
+        MUST_USE bool assign(const char *_val, size_t size);
         iterator begin() const;
         iterator end() const;
         std::string as_string(const iterator &from) const;
@@ -61,9 +61,9 @@ struct http_req_t {
         friend struct http_req_t;
 
         // This function returns a pointer to the beginning of the token (without the leading '/')
-        const char* token_start_position(const iterator& it) const;
+        const char* token_start_position(const iterator &it) const;
 
-        boost::shared_array<char> val;
+        boost::shared_array<const char> val;
         size_t val_size;
         iterator b;
         iterator e;
