@@ -49,7 +49,9 @@ tests:
     - cd: db.table_drop('ab')
       ot: ({'dropped':1})
 
-    - cd: db.table_create('ab', primary_key='bar', cache_size=123, durability='wrong')
+    - py: db.table_create('ab', primary_key='bar', cache_size=123, durability='wrong')
+      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, durability:'wrong'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :durability => 'wrong'})
       ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
 
