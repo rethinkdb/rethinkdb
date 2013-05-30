@@ -1,6 +1,7 @@
 desc: Tests r.default
 tests:
 
+    # The test driver sometimes rewrites `null` to `None` in Ruby for unknown reasons.
     - def:
         rb: None = nil
 
@@ -95,3 +96,40 @@ tests:
       ot: [{'a':1}]
     - cd: r(1).do{|i| arr.filter{|x| x[:a].default(i).eq(1)}}.orderby(:a)
       ot: [{}, {'a':null}, {'a':1}]
+
+    - cd: r.table_create('default_test')
+      ot: ({'created':1})
+
+    - def: tbl = r.table('default_test')
+
+    - cd: tbl.insert(arr)
+      ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(3,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
+
+    - cd: tbl.filter{|x| x[:a].eq(1)}.pluck('a')
+      ot: [{'a':1}]
+    - cd: tbl.filter(:default => false){|x| x[:a].eq(1)}.pluck('a')
+      ot: [{'a':1}]
+    - cd: tbl.filter(:default => true){|x| x[:a].eq(1)}.pluck('a')
+      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+    - cd: tbl.filter(:default => r.error){|x| x[:a].eq(1)}.pluck('a')
+      ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
+
+    - cd: r(false).do{|d| tbl.filter(:default => d){|x| x[:a].eq(1)}}.pluck('a')
+      ot: [{'a':1}]
+    - cd: r(true).do{|d| tbl.filter(:default => d){|x| x[:a].eq(1)}}.pluck('a')
+      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+
+    - cd: tbl.filter{|x| x[:a].default(0).eq(1)}.pluck('a')
+      ot: [{'a':1}]
+    - cd: tbl.filter{|x| x[:a].default(1).eq(1)}.orderby(:a).pluck('a')
+      ot: [{}, {'a':null}, {'a':1}]
+    - cd: tbl.filter{|x| x[:a].default(r.error).eq(1)}.pluck('a')
+      ot: [{'a':1}] # gets caught by `filter` default
+
+    - cd: r(0).do{|i| tbl.filter{|x| x[:a].default(i).eq(1)}}.pluck('a')
+      ot: [{'a':1}]
+    - cd: r(1).do{|i| tbl.filter{|x| x[:a].default(i).eq(1)}}.orderby(:a).pluck('a')
+      ot: [{}, {'a':null}, {'a':1}]
+
+    - cd: r.table_drop('default_test')
+      ot: ({'dropped':1})
