@@ -1,6 +1,9 @@
 desc: Tests r.default
 tests:
 
+    - def:
+        rb: None = nil
+
     # tst
     - cd: r.expr(1).default(2)
       ot: 1
@@ -83,7 +86,12 @@ tests:
 
     - cd: arr.filter{|x| x[:a].default(0).eq(1)}
       ot: [{'a':1}]
-    - cd: arr.filter{|x| x[:a].default(1).eq(1)}
-      ot: [{'a':null}, {'a':1}, {}]
+    - cd: arr.filter{|x| x[:a].default(1).eq(1)}.orderby(:a)
+      ot: [{}, {'a':null}, {'a':1}]
     - cd: arr.filter{|x| x[:a].default(r.error).eq(1)}
       ot: [{'a':1}] # gets caught by `filter` default
+
+    - cd: r(0).do{|i| arr.filter{|x| x[:a].default(i).eq(1)}}
+      ot: [{'a':1}]
+    - cd: r(1).do{|i| arr.filter{|x| x[:a].default(i).eq(1)}}.orderby(:a)
+      ot: [{}, {'a':null}, {'a':1}]
