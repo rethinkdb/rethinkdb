@@ -33,6 +33,33 @@ tests:
       rb: tbl.get(12).update{ |row| row}
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':1,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
+    # Soft durability point update
+    - py: tbl.get(12).update(lambda row:{'a':row['id'] + 1}, durability='soft')
+      js: tbl.get(12).update(function(row) { return {'a':row('id').add(1)}; }, {durability:'soft'})
+      rb: tbl.get(12).update({ :durability => 'soft' }) { |row| { :a => row[:id] + 1 } }
+      ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
+    - cd: tbl.get(12)
+      ot: ({'id':12, 'a':13})
+
+    # Hard durability point update
+    - py: tbl.get(12).update(lambda row:{'a':row['id'] + 2}, durability='hard')
+      js: tbl.get(12).update(function(row) { return {'a':row('id').add(2)}; }, {durability:'hard'})
+      rb: tbl.get(12).update({ :durability => 'hard' }) { |row| { :a => row[:id] + 2 } }
+      ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
+    - cd: tbl.get(12)
+      ot: ({'id':12, 'a':14})
+
+    # Wrong durability point update
+    - py: tbl.get(12).update(lambda row:{'a':row['id'] + 3}, durability='wrong')
+      js: tbl.get(12).update(function(row) { return {'a':row('id').add(3)}; }, {durability:'wrong'})
+      rb: tbl.get(12).update({ :durability => 'wrong' }) { |row| { :a => row[:id] + 3 } }
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").')
+
+    - cd: tbl.get(12)
+      ot: ({'id':12, 'a':14})
+
     # Point update
     - py: tbl.get(12).update(lambda row:{'a':row['id']})
       js: tbl.get(12).update(function(row) { return {'a':row('id')}; })
