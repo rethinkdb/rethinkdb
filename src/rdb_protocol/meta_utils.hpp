@@ -20,7 +20,8 @@ uuid_u meta_get_uuid(T *searcher, const U &predicate,
                      const std::string &message, V *caller) {
     metadata_search_status_t status;
     typename T::iterator entry = searcher->find_uniq(predicate, &status);
-    rcheck_target(caller, status == METADATA_SUCCESS, message);
+    rcheck_target(caller, base_exc_t::RESOURCE_ACCESS,
+                  status == METADATA_SUCCESS, message);
     return entry->first;
 }
 

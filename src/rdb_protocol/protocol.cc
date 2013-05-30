@@ -1054,12 +1054,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
                 if (!found) {
                     res->result = ql::datum_exc_t(
+                        ql::base_exc_t::GENERIC,
                         strprintf("Index `%s` was not found.",
                                   rget.sindex->c_str()));
                     return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
                 res->result = ql::datum_exc_t(
+                    ql::base_exc_t::GENERIC,
                     strprintf("Index `%s` was accessed before "
                               "its construction was finished.",
                               rget.sindex->c_str()));

@@ -21,8 +21,9 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
     uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
-    rcheck(b, strprintf("Table name `%s` invalid (%s).",
-                        name.c_str(), name_string_t::valid_char_msg));
+    rcheck(b, base_exc_t::WELL_FORMEDNESS,
+           strprintf("Table name `%s` invalid (%s).",
+                     name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
         namespaces_metadata = env->namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
@@ -42,6 +43,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
         ns_metadata_it = ns_searcher.find_uniq(pred, &status);
     rcheck(status == METADATA_SUCCESS,
+           base_exc_t::NOT_FOUND,
            strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
     r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
@@ -294,7 +296,7 @@ counted_t<const datum_t> table_t::sindex_list() {
             array->add(make_counted<datum_t>(*it));
         }
     } catch (const cannot_perform_query_exc_t &ex) {
-        rfail("cannot perform read: %s", ex.what());
+        rfail(ql::base_exc_t::RESOURCE_ACCESS, "cannot perform read: %s", ex.what());
     }
 
     return counted_t<const datum_t>(array.release());
@@ -584,7 +586,7 @@ bool val_t::as_bool() {
         r_sanity_check(d.has());
         return d->as_bool();
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -594,7 +596,7 @@ double val_t::as_num() {
         r_sanity_check(d.has());
         return d->as_num();
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -604,7 +606,7 @@ int64_t val_t::as_int() {
         r_sanity_check(d.has());
         return d->as_int();
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -614,15 +616,16 @@ const std::string &val_t::as_str() {
         r_sanity_check(d.has());
         return d->as_str();
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
 
 void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
-    rcheck(type.raw_type == expected_raw_type,
-           strprintf("Expected type %s but found %s:\n%s",
-                     type_t(expected_raw_type).name(), type.name(), print().c_str()));
+    rcheck_typed_target(
+        this, type.raw_type == expected_raw_type,
+        strprintf("Expected type %s but found %s:\n%s",
+                  type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
 } //namespace ql

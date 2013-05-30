@@ -78,7 +78,8 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string unprint_secondary(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
-    void check_type(type_t desired) const;
+    void check_type(type_t desired, const char *msg = NULL) const;
+    void type_error(const std::string &msg) const NORETURN;
 
     bool as_bool() const;
     double as_num() const;
@@ -127,9 +128,10 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    virtual void runtime_check(const char *test, const char *file, int line,
+    virtual void runtime_check(base_exc_t::type_t exc_type,
+                               const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg);
+        ql::runtime_check(exc_type, test, file, line, pred, msg);
     }
 
 private:

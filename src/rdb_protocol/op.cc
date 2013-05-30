@@ -46,6 +46,7 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
+           base_exc_t::WELL_FORMEDNESS,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
 
@@ -53,9 +54,11 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         const Term_AssocPair *ap = &term->optargs(i);
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
+                   base_exc_t::WELL_FORMEDNESS,
                    strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
+               base_exc_t::WELL_FORMEDNESS,
                strprintf("Duplicate %s: %s",
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
@@ -68,7 +71,8 @@ op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(size_t i) {
-    rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
+    rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
+           strprintf("Index out of range: %zu", i));
     return args[i]->eval();
 }
 

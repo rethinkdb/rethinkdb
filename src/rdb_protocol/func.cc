@@ -21,19 +21,24 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
       js_env(NULL), js_id(js::INVALID_ID) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
-    rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
-    rcheck(t->args_size() == 2, strprintf("Func takes exactly two arguments (got %d)",
-                                          t->args_size()));
+    rcheck(t->optargs_size() == 0,
+           base_exc_t::WELL_FORMEDNESS,
+           "FUNC takes no optional arguments.");
+    rcheck(t->args_size() == 2,
+           base_exc_t::WELL_FORMEDNESS,
+           strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
     std::vector<int> args;
     const Term *vars = &t->args(0);
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
+               base_exc_t::WELL_FORMEDNESS,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
         for (int i = 0; i < d->r_array_size(); ++i) {
             const Datum *dnum = &d->r_array(i);
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::WELL_FORMEDNESS,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
@@ -41,14 +46,17 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
         for (int i = 0; i < vars->args_size(); ++i) {
             const Term *arg = &vars->args(i);
             rcheck(arg->type() == Term_TermType_DATUM,
+                   base_exc_t::WELL_FORMEDNESS,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::WELL_FORMEDNESS,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
     } else {
-        rfail("CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
+        rfail(base_exc_t::WELL_FORMEDNESS,
+              "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
     argptrs.init(args.size());
@@ -93,6 +101,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
+                   base_exc_t::WELL_FORMEDNESS,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
             for (ssize_t i = 0; i < argptrs.size(); ++i) {
@@ -102,7 +111,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             return body->eval();
         }
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -138,6 +147,7 @@ bool func_t::is_deterministic() const {
 }
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
+           base_exc_t::WELL_FORMEDNESS,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
@@ -148,7 +158,7 @@ std::string func_t::print_src() const {
 
 // This JS evaluation resulted in an error
 counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
-    rfail_target(parent, "%s", err_val.c_str());
+    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();
 }
 
@@ -215,7 +225,8 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
             r_sanity_check(it->second.has());
             counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
             if (!elt.has()) {
-                rfail("No attribute `%s` in object.", it->first.c_str());
+                rfail(base_exc_t::NON_EXISTENCE,
+                      "No attribute `%s` in object.", it->first.c_str());
             } else if (*elt != *it->second) {
                 return false;
             }
@@ -224,8 +235,9 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
     } else if (d->get_type() == datum_t::R_BOOL) {
         return d->as_bool();
     } else {
-        rfail("FILTER must be passed either an OBJECT or a predicate (got %s).",
-              d->get_type_name());
+        d->type_error(
+            strprintf("FILTER must be passed either an OBJECT or a predicate (got %s).",
+                      d->get_type_name()));
     }
 }
 

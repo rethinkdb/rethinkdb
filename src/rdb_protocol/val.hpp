@@ -167,6 +167,7 @@ public:
         int64_t i = as_int();
         T t = static_cast<T>(i);
         rcheck(static_cast<int64_t>(t) == i,
+               base_exc_t::NUMERIC_LIMIT,
                strprintf("Integer too large: %" PRIi64, i));
         return t;
     }

@@ -61,7 +61,8 @@ public:
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck_target(caller, it != map.end(), strprintf("Unknown Type: %s", s.c_str()));
+        rcheck_target(caller, base_exc_t::NOT_FOUND, it != map.end(),
+                      strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
     std::string get_name(int type) const {
@@ -183,7 +184,8 @@ private:
             try {
                 ds = val->as_seq();
             } catch (const base_exc_t &e) {
-                rfail("Cannot coerce %s to %s (failed to produce intermediate stream).",
+                rfail(base_exc_t::TYPE,
+                      "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();
             }
@@ -204,20 +206,20 @@ private:
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj->add(key, keyval);
-                        rcheck(!b, strprintf("Duplicate key %s in coerced object.  "
-                                             "(got %s and %s as values)",
-                                             key.c_str(),
-                                             obj->get(key)->print().c_str(),
-                                             keyval->print().c_str()));
+                        rcheck(!b, base_exc_t::WELL_FORMEDNESS,
+                               strprintf("Duplicate key %s in coerced object.  "
+                                         "(got %s and %s as values)",
+                                         key.c_str(),
+                                         obj->get(key)->print().c_str(),
+                                         keyval->print().c_str()));
                     }
                     return new_val(counted_t<const datum_t>(obj.release()));
                 }
             }
         }
 
-        rfail("Cannot coerce %s to %s.",
-              get_name(start_type).c_str(), get_name(end_type).c_str());
-        unreachable();
+        rfail_typed_target(val, "Cannot coerce %s to %s.",
+                           get_name(start_type).c_str(), get_name(end_type).c_str());
     }
     virtual const char *name() const { return "coerce_to"; }
 };

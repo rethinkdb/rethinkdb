@@ -11,7 +11,7 @@ public:
     error_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        rfail("%s", arg(0)->as_str().c_str());
+        rfail(base_exc_t::USER, "%s", arg(0)->as_str().c_str());
         unreachable();
     }
     virtual const char *name() const { return "error"; }
