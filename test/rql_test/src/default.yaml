@@ -37,12 +37,8 @@ tests:
       ot: nil
     - cd: r.expr({})['b'].default(r.error)
       ot: err("RqlRuntimeError", "No attribute `b` in object.", [])
-    - cd: r.expr(r.expr('a')['b']).default(r.error)
-      ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [])
     - cd: r.expr([]).reduce{|a,b| a+b}.default(r.error)
       ot: err("RqlRuntimeError", "Cannot reduce over an empty stream with no base.", [])
-    - cd: r.expr('a').reduce{|a,b| a+b}.default(r.error)
-      ot: err("RqlRuntimeError", "Cannot convert STRING to SEQUENCE", [])
     - cd: (r.expr(nil) + 5).default(r.error)
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [])
     - cd: (5 + r.expr(nil)).default(r.error)
@@ -51,14 +47,6 @@ tests:
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [])
     - cd: (r.expr(nil) - 5).default(r.error)
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [])
-    - cd: (r.expr('a') + 5).default(r.error)
-      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
-    - cd: (5 + r.expr('a')).default(r.error)
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
-    - cd: (r.expr('a') - 5).default(r.error)
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
-    - cd: (5 - r.expr('a')).default(r.error)
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
 
     - cd: r.expr(1).default{|e| e}
       ot: 1
@@ -66,12 +54,8 @@ tests:
       ot: nil
     - cd: r.expr({})['b'].default{|e| e}
       ot: ("No attribute `b` in object:\n{\n}")
-    - cd: r.expr(r.expr('a')['b']).default{|e| e}
-      ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [])
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       ot: ("Cannot reduce over an empty stream with no base.")
-    - cd: r.expr('a').reduce{|a,b| a+b}.default{|e| e}
-      ot: err("RqlRuntimeError", "Cannot convert STRING to SEQUENCE", [])
     - cd: (r.expr(nil) + 5).default{|e| e}
       ot: ("Expected type NUMBER but found NULL.")
     - cd: (5 + r.expr(nil)).default{|e| e}
@@ -80,11 +64,19 @@ tests:
       ot: ("Expected type NUMBER but found NULL.")
     - cd: (r.expr(nil) - 5).default{|e| e}
       ot: ("Expected type NUMBER but found NULL.")
-    - cd: (r.expr('a') + 5).default{|e| e}
-      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
-    - cd: (5 + r.expr('a')).default{|e| e}
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
-    - cd: (r.expr('a') - 5).default{|e| e}
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
-    - cd: (5 - r.expr('a')).default{|e| e}
-      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+
+    - def: arr = r([{:a => 1}, {:a => nil}, {}])
+
+    - cd: arr.filter{|x| x[:a].eq(1)}
+      ot: [{'a':1}]
+    - cd: arr.filter(:default => false){|x| x[:a].eq(1)}
+      ot: [{'a':1}]
+    - cd: arr.filter(:default => true){|x| x[:a].eq(1)}
+      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+    - cd: arr.filter(:default => r.error){|x| x[:a].eq(1)}
+      ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
+
+    - cd: r(false).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}
+      ot: [{'a':1}]
+    - cd: r(true).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}
+      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
