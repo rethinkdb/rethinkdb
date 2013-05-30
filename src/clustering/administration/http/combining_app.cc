@@ -14,8 +14,7 @@ http_res_t combining_http_app_t::handle(const http_req_t &req) {
 
     typedef std::map<std::string, http_json_app_t *>::const_iterator components_iterator;
 
-    std::string resource = req.resource.as_string();
-    if (resource != "/" && resource != "") return http_res_t(HTTP_NOT_FOUND);
+    if (req.resource.as_string() != "/") { return http_res_t(HTTP_NOT_FOUND); }
 
     if (req.method == POST) {
         scoped_cJSON_t req_json(cJSON_Parse(req.body.c_str()));

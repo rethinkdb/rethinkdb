@@ -25,18 +25,12 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
-    std::string resource(req.resource.as_string());
-    if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
-        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
+    const std::string resource = req.resource.as_string();
+    const std::string filename = resource + (resource.back() == '/' ? "index.html" : "");
+
+    if (!std_contains(whitelist, filename)) {
+        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", filename.c_str());
         return http_res_t(HTTP_FORBIDDEN);
-    }
-
-    std::string filename;
-
-    if (resource == "/" || resource == "") {
-        filename = "/index.html";
-    } else {
-        filename = resource;
     }
 
     http_res_t res;

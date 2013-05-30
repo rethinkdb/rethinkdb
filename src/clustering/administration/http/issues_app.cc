@@ -18,8 +18,7 @@ http_res_t issues_http_app_t::handle(const http_req_t &req) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
 
-    std::string resource = req.resource.as_string();
-    if (resource != "/" && resource != "") {
+    if (req.resource.as_string() != "/") {
         return http_res_t(HTTP_NOT_FOUND);
     }
 
