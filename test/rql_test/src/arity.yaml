@@ -88,7 +88,10 @@ tests:
       - tbl.filter()
 
     - cd: r.error(1, 2)
-      ot: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
+      ot:
+        rb: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
+        py: err("RqlCompileError", "Expected between 0 and 1 arguments but found 2.", [])
+        js: err("RqlDriverError", "Expected between 0 and 1 argument(s) but found 2.", [])
 
     - cd:
       - db.table_drop()
