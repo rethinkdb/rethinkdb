@@ -82,8 +82,8 @@ tests:
 
     - cd: r(false).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}
       ot: [{'a':1}]
-    - cd: r(true).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}
-      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+    - cd: r(true).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}.orderby('a')
+      ot: [{}, {'a':1}] # `nil` compares not equal to 1 with no error
 
     - cd: arr.filter{|x| x[:a].default(0).eq(1)}
       ot: [{'a':1}]
@@ -97,6 +97,15 @@ tests:
     - cd: r(1).do{|i| arr.filter{|x| x[:a].default(i).eq(1)}}.orderby(:a)
       ot: [{}, {'a':null}, {'a':1}]
 
+    - cd: arr.filter{|x| x[:a].eq(1).or(x[:a][:b].eq(2))}
+      ot: [{'a':1}]
+    - cd: arr.filter(:default => false){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}
+      ot: [{'a':1}]
+    - cd: arr.filter(:default => true){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}.orderby('a')
+      ot: [{}, {'a':null}, {'a':1}]
+    - cd: arr.filter(:default => r.error){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found NULL.", [])
+
     - cd: r.table_create('default_test')
       ot: ({'created':1})
 
@@ -109,8 +118,8 @@ tests:
       ot: [{'a':1}]
     - cd: tbl.filter(:default => false){|x| x[:a].eq(1)}.pluck('a')
       ot: [{'a':1}]
-    - cd: tbl.filter(:default => true){|x| x[:a].eq(1)}.pluck('a')
-      ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+    - cd: tbl.filter(:default => true){|x| x[:a].eq(1)}.orderby('a').pluck('a')
+      ot: [{}, {'a':1}] # `nil` compares not equal to 1 with no error
     - cd: tbl.filter(:default => r.error){|x| x[:a].eq(1)}.pluck('a')
       ot: err("RqlRuntimeError", "No attribute `a` in object.", [])
 
