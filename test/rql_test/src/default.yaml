@@ -80,3 +80,10 @@ tests:
       ot: [{'a':1}]
     - cd: r(true).do{|d| arr.filter(:default => d){|x| x[:a].eq(1)}}
       ot: [{'a':1}, {}] # `nil` compares not equal to 1 with no error
+
+    - cd: arr.filter{|x| x[:a].default(0).eq(1)}
+      ot: [{'a':1}]
+    - cd: arr.filter{|x| x[:a].default(1).eq(1)}
+      ot: [{'a':null}, {'a':1}, {}]
+    - cd: arr.filter{|x| x[:a].default(r.error).eq(1)}
+      ot: [{'a':1}] # gets caught by `filter` default
