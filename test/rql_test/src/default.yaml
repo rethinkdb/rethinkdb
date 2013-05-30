@@ -1,0 +1,25 @@
+desc: Tests r.default
+tests:
+
+    # tst
+    - cd: r.expr(1).default(2)
+      ot: 1
+    - cd: r.expr(nil).default(2)
+      ot: 2
+    - cd: r.expr({})['b'].default(2)
+      ot: 2
+    - cd: r.expr(r.expr('a')['b']).default(2)
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found STRING.", [])
+    - cd: r.expr([]).reduce{|a,b| a+b}.default(2)
+      ot: 2
+    - cd: r.expr('a').reduce{|a,b| a+b}.default(2)
+      ot: err("RqlRuntimeError", "Cannot convert STRING to SEQUENCE", [])
+    - cd: (r.expr(nil) + 5).default(2)
+      ot: 2
+    - cd: (5 + r.expr(nil)).default(2)
+      ot: 2
+    - cd: (r.expr('a') + 5).default(2)
+      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
+    - cd: (5 + r.expr('a')).default(2)
+      ot: err("RqlRuntimeError", "Expected type NUMBER but found STRING.", [])
+
