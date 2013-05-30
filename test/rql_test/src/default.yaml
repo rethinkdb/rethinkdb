@@ -104,15 +104,15 @@ tests:
       js: (r.expr(null).sub(5)).default(function(e){return e})
       ot: ("Expected type NUMBER but found NULL.")
 
-    - def: arr = r.expr([{'a':1}, {'a':null}, {}])
+    - def: arr = r.expr([{'a':1},{'a':null},{}])
 
     - cd: arr.filter{|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1))
-      js: arr.filter(function(x){return x('a').eq(1}))
+      js: arr.filter(function(x){return x('a').eq(1)})
       ot: [{'a':1}]
     - cd: arr.filter(:default => false){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=False)
-      js: arr.filter(function(x){return x['a'].eq(1}), default=False)
+      js: arr.filter(function(x){return x('a').eq(1)}, {'default':false})
       ot: [{'a':1}]
     - cd: arr.filter(:default => true){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=True)
