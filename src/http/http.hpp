@@ -54,9 +54,11 @@ struct http_req_t {
         MUST_USE bool assign(const char *_val, size_t size);
         iterator begin() const;
         iterator end() const;
-        std::string as_string(const iterator &from) const;
         std::string as_string() const;
+
     private:
+        std::string as_string(const iterator &from) const;
+
         resource_t(const resource_t &from, const iterator &resource_start);
         friend struct http_req_t;
 
