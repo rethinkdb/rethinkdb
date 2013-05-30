@@ -380,12 +380,13 @@ void datum_t::erase_range(size_t start, size_t end) {
     r_array->erase(r_array->begin() + start, r_array->begin() + end + 1);
 }
 
-void datum_t::splice(size_t index, const std::vector<counted_t<const datum_t> > &values) {
+void datum_t::splice(size_t index, counted_t<const datum_t> values) {
     check_type(R_ARRAY);
     rcheck(index <= r_array->size(), 
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
                      index, r_array->size()));
-    r_array->insert(r_array->begin() + index, values.begin(), values.end());
+    r_array->insert(r_array->begin() + index, 
+            values->as_array().begin(), values->as_array().end());
 }
 
 size_t datum_t::size() const {

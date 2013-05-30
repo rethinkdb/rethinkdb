@@ -195,7 +195,7 @@ public:
 private:
     void modify(size_t index, datum_t *array) {
         counted_t<const datum_t> new_els = arg(2)->as_datum();
-        array->splice(index, new_els->as_array());
+        array->splice(index, new_els);
     }
     const char *name() const { return "splice_at"; }
 };

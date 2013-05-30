@@ -92,7 +92,7 @@ public:
     void insert(size_t index, counted_t<const datum_t> val); //insert into an array
     void erase(size_t index); //erase from an array
     void erase_range(size_t start, size_t end); //erase a range from an array
-    void splice(size_t index, const std::vector<counted_t<const datum_t> > &values);
+    void splice(size_t index, counted_t<const datum_t> values);
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
