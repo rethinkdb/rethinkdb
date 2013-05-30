@@ -153,24 +153,26 @@ public:
      * indexes so we need to make it here. */
     enum index_method_t { ELEMENTS, SPACES};
 
-    at_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec, index_method_t index_method)
-        : op_term_t(env, term, argspec), arr(new datum_t(arg(0)->as_datum()->as_array())) {
-        if (index_method == ELEMENTS) {
+    at_term_t(env_t *env, protob_t<const Term> term,
+              argspec_t argspec, index_method_t index_method)
+        : op_term_t(env, term, argspec), index_method_(index_method) { }
+    virtual void modify(int64_t index, datum_t *array) = 0;
+    counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_t> arr(new datum_t(arg(0)->as_datum()->as_array()));
+        int index;
+        if (index_method_ == ELEMENTS) {
             index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
-        } else if (index_method == SPACES) {
+        } else if (index_method_ == SPACES) {
             index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size() + 1);
         } else {
             unreachable();
         }
-    }
-    virtual void modify() = 0;
-    virtual counted_t<val_t> eval_impl() {
-        modify();
+
+        modify(index, arr.get());
         return new_val(counted_t<const datum_t>(arr.release()));
     }
-protected:
-    scoped_ptr_t<datum_t> arr;
-    int64_t index;
+private:
+    index_method_t index_method_;
 };
 
 class insert_at_term_t : public at_term_t {
@@ -178,11 +180,11 @@ public:
     insert_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    virtual void modify() {
+    void modify(int64_t index, datum_t *array) {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
-        arr->insert(index, new_el);
+        array->insert(index, new_el);
     }
-    virtual const char *name() const { return "insert_at"; }
+    const char *name() const { return "insert_at"; }
 };
 
 
@@ -191,11 +193,11 @@ public:
     splice_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    virtual void modify() {
+    void modify(int64_t index, datum_t *array) {
         counted_t<const datum_t> new_els = arg(2)->as_datum();
-        arr->splice(index, new_els->as_array());
+        array->splice(index, new_els->as_array());
     }
-    virtual const char *name() const { return "splice_at"; }
+    const char *name() const { return "splice_at"; }
 };
 
 class delete_at_term_t : public at_term_t {
@@ -203,15 +205,15 @@ public:
     delete_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
-    virtual void modify() {
+    void modify(int64_t index, datum_t *array) {
         if (num_args() == 2) {
-            arr->erase(index);
+            array->erase(index);
         } else {
-            int end_index = canonicalize(this, arg(2)->as_datum()->as_int(), arr->size());
-            arr->erase_range(index, end_index);
+            int end_index = canonicalize(this, arg(2)->as_datum()->as_int(), array->size());
+            array->erase_range(index, end_index);
         }
     }
-    virtual const char *name() const { return "delete_at"; }
+    const char *name() const { return "delete_at"; }
 };
 
 class change_at_term_t : public at_term_t {
@@ -219,11 +221,11 @@ public:
     change_at_term_t(env_t *env, protob_t<const Term> term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
-    virtual void modify() {
+    void modify(int64_t index, datum_t *array) {
         counted_t<const datum_t> new_el = arg(2)->as_datum();
-        arr->change(index, new_el);
+        array->change(index, new_el);
     }
-    virtual const char *name() const { return "change_at"; }
+    const char *name() const { return "change_at"; }
 };
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
