@@ -281,6 +281,9 @@ class RqlQuery(object):
     def info(self):
         return Info(self)
 
+    def sample(self, count):
+        return Sample(self, count)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -722,6 +725,10 @@ class ForEach(RqlMethodQuery):
 class Info(RqlMethodQuery):
     tt = p.Term.INFO
     st = 'info'
+
+class Sample(RqlMethodQuery):
+    tt = p.Term.SAMPLE
+    st = 'sample'
 
 # Called on arguments that should be functions
 def func_wrap(val):
