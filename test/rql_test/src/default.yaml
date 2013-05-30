@@ -140,5 +140,14 @@ tests:
     - cd: r(1).do{|i| tbl.filter{|x| x[:a].default(i).eq(1)}}.orderby(:a).pluck('a')
       ot: [{}, {'a':null}, {'a':1}]
 
+    - cd: tbl.filter{|x| x[:a].eq(1).or(x[:a][:b].eq(2))}.pluck('a')
+      ot: [{'a':1}]
+    - cd: tbl.filter(:default => false){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}.pluck('a')
+      ot: [{'a':1}]
+    - cd: tbl.filter(:default => true){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}.orderby('a').pluck('a')
+      ot: [{}, {'a':null}, {'a':1}]
+    - cd: tbl.filter(:default => r.error){|x| x[:a].eq(1).or(x[:a][:b].eq(2))}.pluck('a')
+      ot: err("RqlRuntimeError", "Expected type OBJECT but found NULL.", [])
+
     - cd: r.table_drop('default_test')
       ot: ({'dropped':1})
