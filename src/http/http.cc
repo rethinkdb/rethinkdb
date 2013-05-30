@@ -1,6 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
+#include <algorithm>
 #include <exception>
 
 #include "utils.hpp"
@@ -10,15 +11,12 @@
 #include "arch/io/network.hpp"
 #include "logger.hpp"
 
-static const char *resource_parts_sep_char = "/";
-static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
+static const char PATH_SEPARATOR = '/';
 
-http_req_t::resource_t::resource_t() {
-}
+http_req_t::resource_t::resource_t() { }
 
-http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const http_req_t::resource_t::iterator& resource_start)
-    : val(from.val), val_size(from.val_size), b(resource_start), e(from.e) {
-}
+http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, http_req_t::resource_t::iterator resource_start)
+    : parts(resource_start, from.parts.end()) { }
 
 http_req_t::resource_t::resource_t(const std::string &_val) {
     if (!assign(_val)) {
@@ -26,55 +24,47 @@ http_req_t::resource_t::resource_t(const std::string &_val) {
     }
 }
 
+std::vector<std::string> split_by(const char *const beg, const char *const end,
+                                  const char separator) {
+    std::vector<std::string> ret;
+    const char *p = beg;
+    for (;;) {
+        const char *const q = std::find(p, end, separator);
+        ret.push_back(std::string(p, q));
+        if (q == end) {
+            return ret;
+        }
+        p = q + 1;
+    }
+}
+
 // Returns false if the assignment fails.
-MUST_USE bool http_req_t::resource_t::assign(const std::string &_val) {
-    if (!(_val.size() > 0 && _val[0] == resource_parts_sep_char[0])) {
+MUST_USE bool http_req_t::resource_t::assign(const std::string &val) {
+    if (!(val.size() > 0 && val[0] == PATH_SEPARATOR)) {
         return false;
     }
 
-    std::unique_ptr<char[]> tmp(new char[_val.size()]);
-    memcpy(tmp.get(), _val.data(), _val.size());
-    val.reset(tmp.release());
-    val_size = _val.size();
-
-    // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.
-    tokenizer t(val.get() + 1, val.get() + val_size, resource_parts_sep);
-    b = t.begin();
-    e = t.end();
+    // We skip the first '/' that begins the path.
+    const char *data = val.data();
+    parts = split_by(data + 1, data + val.size(), PATH_SEPARATOR);
     return true;
 }
 
 http_req_t::resource_t::iterator http_req_t::resource_t::begin() const {
-    return b;
+    return parts.begin();
 }
 
 http_req_t::resource_t::iterator http_req_t::resource_t::end() const {
-    return e;
+    return parts.end();
 }
 
 std::string http_req_t::resource_t::as_string() const {
-    if (b == e) {
-        return std::string();
-    } else {
-        // -1 for the '/' before the token start
-        const char* sub_resource = token_start_position(b) - 1;
-        guarantee(sub_resource >= val.get() && sub_resource < val.get() + val_size);
-
-        size_t sub_resource_len = val_size - (sub_resource - val.get());
-        return std::string(sub_resource, sub_resource_len);
+    std::string ret;
+    for (auto it = parts.begin(); it != parts.end(); ++it) {
+        ret += "/";
+        ret += *it;
     }
-}
-
-const char* http_req_t::resource_t::token_start_position(const http_req_t::resource_t::iterator& it) const {
-    if (it == e) {
-        return val.get() + val_size;
-    } else {
-        // Ugh, this is quite awful, but boost tokenizer iterator can't give us the pointer to the beginning of the data.
-        //
-        // it.base() points to the '/' before the next token.
-        // it->length() is the length of the current token.
-        return it.base() - it->length();
-    }
+    return ret;
 }
 
 http_req_t::http_req_t() {

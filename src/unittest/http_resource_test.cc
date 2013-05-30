@@ -182,7 +182,7 @@ TEST(HttpResourceTest, SubResource) {
     ASSERT_EQ(subsubresource.end(), kt);
 
     // An empty subresource!
-    http_req_t::resource_t sub3resource(subresource, kt);
+    http_req_t::resource_t sub3resource(subsubresource, kt);
     ASSERT_EQ(sub3resource.begin(), sub3resource.end());
     ASSERT_EQ("", sub3resource.as_string());
 }
