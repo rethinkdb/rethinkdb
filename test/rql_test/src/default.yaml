@@ -71,38 +71,48 @@ tests:
       js: (r.expr(null).sub(5)).default(r.error)
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [])
 
-    - cd: r.expr(1).default{|e| e}
+    - rb: r.expr(1).default{|e| e}
       py: r.expr(1).default(lambda e:e)
+      js: r.expr(1).default(function(e){return e})
       ot: 1
     - cd: r.expr(null).default{|e| e}
       py: r.expr(null).default(lambda e:e)
+      js: r.expr(null).default(function(e){return e})
       ot: (null)
     - cd: r.expr({})['b'].default{|e| e}
       py: r.expr({})['b'].default(lambda e:e)
+      js: r.expr({})('b').default(function(e){return e})
       ot: ("No attribute `b` in object:\n{\n}")
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
+      js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
       ot: ("Cannot reduce over an empty stream with no base.")
     - cd: (r.expr(null) + 5).default{|e| e}
       py: (r.expr(null) + 5).default(lambda e:e)
+      js: (r.expr(null).add(5)).default(function(e){return e})
       ot: ("Expected type NUMBER but found NULL.")
     - cd: (5 + r.expr(null)).default{|e| e}
       py: (5 + r.expr(null)).default(lambda e:e)
+      js: (r.expr(5).add(null)).default(function(e){return e})
       ot: ("Expected type NUMBER but found NULL.")
     - cd: (5 - r.expr(null)).default{|e| e}
       py: (5 - r.expr(null)).default(lambda e:e)
+      js: (r.expr(5).sub(null)).default(function(e){return e})
       ot: ("Expected type NUMBER but found NULL.")
     - cd: (r.expr(null) - 5).default{|e| e}
       py: (r.expr(null) - 5).default(lambda e:e)
+      js: (r.expr(null).sub(5)).default(function(e){return e})
       ot: ("Expected type NUMBER but found NULL.")
 
     - def: arr = r.expr([{'a':1}, {'a':null}, {}])
 
     - cd: arr.filter{|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1))
+      js: arr.filter(function(x){return x('a').eq(1}))
       ot: [{'a':1}]
     - cd: arr.filter(:default => false){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=False)
+      js: arr.filter(function(x){return x['a'].eq(1}), default=False)
       ot: [{'a':1}]
     - cd: arr.filter(:default => true){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=True)
