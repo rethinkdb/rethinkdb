@@ -18,7 +18,6 @@ namespace ql {
 class base_exc_t : public std::exception {
 public:
     enum type_t {
-        // TODO: go through and replace generic with something more specific.
         GENERIC,
         SANITY_CHECK,
         NUMERIC_LIMIT,
@@ -30,7 +29,6 @@ public:
         INTERRUPTED,
         CONFLICT,
 
-        // TODO: merge these?
         NOT_FOUND,
         RESOURCE_ACCESS,
 
