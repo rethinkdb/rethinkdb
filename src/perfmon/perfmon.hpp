@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 /* Please avoid #include'ing this file from other headers unless you absolutely
  * need to. Please #include "perfmon/types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the
@@ -13,12 +13,9 @@
 #include <string>
 #include <map>
 
-#include "config/args.hpp"
-#include "containers/intrusive_list.hpp"
 #include "perfmon/types.hpp"
-#include "concurrency/rwi_lock.hpp"
-#include "utils.hpp"
 #include "perfmon/core.hpp"
+#include "utils.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();

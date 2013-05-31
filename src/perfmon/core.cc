@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <stdarg.h>
 
 #include <list>
@@ -9,6 +9,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
+#include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef PERFMON_CORE_HPP_
 #define PERFMON_CORE_HPP_
 
@@ -8,14 +8,13 @@
 #include <vector>
 #include <set>
 
-#include "containers/intrusive_list.hpp"
-#include "containers/scoped_regex.hpp"
-#include "containers/scoped.hpp"
-#include "utils.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "containers/intrusive_list.hpp"
+#include "utils.hpp"
 
 class perfmon_collection_t;
 class perfmon_result_t;
+class scoped_regex_t;
 
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering
  * data about various parts of the server.
