@@ -11,9 +11,9 @@ public:
     sample_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
     counted_t<val_t> eval_impl() {
-        int num_int = arg(1)->as_int();
+        int64_t num_int = arg(1)->as_int();
         rcheck(num_int >= 0,
-               strprintf("Number of items to sample must be non-negative, got `%d`.", num_int));
+               strprintf("Number of items to sample must be non-negative, got `%"PRId64"`.", num_int));
         size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
@@ -29,7 +29,7 @@ public:
         }
 
         std::vector<counted_t<const datum_t> > result;
-        int element_number = 0;
+        size_t element_number = 0;
         while (counted_t<const datum_t> row = seq->next()) {
             element_number++;
             if (result.size() < num) {
