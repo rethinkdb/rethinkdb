@@ -316,7 +316,8 @@ store_key_t datum_t::truncated_secondary() const {
 void datum_t::check_type(type_t desired, const char *msg) const {
     rcheck_typed_target(
         this, get_type() == desired,
-        msg ? std::string(msg)
+        (msg == NULL)
+            ? std::string(msg)
             : strprintf("Expected type %s but found %s.",
                         datum_type_name(desired), datum_type_name(get_type())));
 }
