@@ -46,6 +46,10 @@ private:
     // This is what's serialized over the wire.
     friend class wire_func_t;
     protob_t<const Term> source;
+    // This is set by `filter_term_t` and used by `filter_call`.
+    // `filter_term_t` will set this if the user provides the `default` optarg,
+    // in which case it will be used to handle the case where a non-existence
+    // error is produced while filtering a stream.
     counted_t<func_t> default_filter_val;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
