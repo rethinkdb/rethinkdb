@@ -13,7 +13,6 @@ counted_t<term_t> make_arith_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term);
 
 // random.cc
-counted_t<term_t> make_random_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_sample_term(env_t *env, protob_t<const Term> term);
 
 // arr.cc
