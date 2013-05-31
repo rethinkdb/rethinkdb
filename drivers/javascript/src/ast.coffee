@@ -12,20 +12,30 @@ class TermBase
         return self
 
     run: (conn, cb) ->
-        useOutdated = undefined
-        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
-            useOutdated = !!conn.useOutdated
-            noreply = !!conn.noreply
-            for own key of conn
-                unless key in ['connection', 'useOutdated', 'noreply']
-                    throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
-            conn = conn.connection
-        unless conn instanceof Connection
-            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
+        # Obviously, we can't pass this error to the callback so we have to just throw it
         unless typeof(cb) is 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb, useOutdated, noreply
+
+        try
+            useOutdated = undefined
+            if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
+                useOutdated = !!conn.useOutdated
+                noreply = !!conn.noreply
+                for own key of conn
+                    unless key in ['connection', 'useOutdated', 'noreply']
+                        throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
+                conn = conn.connection
+            unless conn instanceof Connection
+                throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
+
+            conn._start @, cb, useOutdated, noreply
+        catch e
+            # It was decided that, if we can, we prefer to invoke the callback
+            # with any errors rather than throw them as normal exceptions.
+            # Thus we catch errors here and invoke the callback instead of
+            # letting the error bubble up.
+            cb(e)
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
