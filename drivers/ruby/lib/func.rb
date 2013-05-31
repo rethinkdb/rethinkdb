@@ -89,15 +89,6 @@ module RethinkDB
     end
     def groupby(*a, &b); group_by(*a, &b); end
 
-    def optarg_jiggle(args, optarg)
-      if (ind = args.map{|x| x.class == Symbol ? x : nil}.index(optarg))
-        args << {args.delete_at(ind) => true}
-      else
-        args << {}
-      end
-      return args
-    end
-
     def connect(*args)
       unbound_if @body
       Connection.new(*args)
