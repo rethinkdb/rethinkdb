@@ -217,6 +217,9 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def match(self, pattern):
+        return Match(self, pattern)
+
     def slice(self, left=None, right=None):
         return Slice(self, left, right)
 
@@ -618,6 +621,10 @@ class Nth(RqlQuery):
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
+
+class Match(RqlQuery):
+    tt = p.Term.MATCH
+    st = 'match'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
