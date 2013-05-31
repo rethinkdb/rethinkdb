@@ -1,0 +1,8 @@
+desc: Tests randomization functions
+tests:
+    - cd: r.expr([1,2,3]).sample(3).distinct().count()
+      ot: 3
+    - cd: r.expr([1,2,3]).sample(4).distinct().count()
+      ot: 3
+    - cd: r.expr([1,2,3]).sample(-1).distinct().count()
+      ot: err('RqlRuntimeError', 'Number of items to sample must be non-negative, got `-1`.', [0])
