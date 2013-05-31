@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
@@ -52,6 +53,25 @@ void remove_pid_file() {
     }
 }
 
+int check_pid_file(const std::string &pid_filepath) {
+    guarantee(pid_filepath.size() > 0);
+
+    if (access(pid_filepath.c_str(), F_OK) == 0) {
+        logERR("The pid-file specified already exists. This might mean that an instance is already running.");
+        return EXIT_FAILURE;
+    }
+
+    // Make a copy of the filename since `dirname` may modify it
+    char pid_dir[PATH_MAX + 1];
+    strncpy(pid_dir, pid_filepath.c_str(), PATH_MAX + 1);
+    if (access(dirname(pid_dir), W_OK) == -1) {
+        logERR("Cannot access the pid-file directory.");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
 int write_pid_file(const std::string &pid_filepath) {
     guarantee(pid_filepath.size() > 0);
 
@@ -59,15 +79,16 @@ int write_pid_file(const std::string &pid_filepath) {
     // pid-file only run if the checks here pass. Right now, this is guaranteed by the return on
     // failure here.
     if (!pid_file.empty()) {
-        fprintf(stderr, "ERROR: Attempting to write pid-file twice.\n");
+        logERR("Attempting to write pid-file twice.");
         return EXIT_FAILURE;
     }
-    if (!access(pid_filepath.c_str(), F_OK)) {
-        fprintf(stderr, "ERROR: The pid-file specified already exists. This might mean that an instance is already running.\n");
+
+    if (check_pid_file(pid_filepath) == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
+
     if (!numwrite(pid_filepath.c_str(), getpid())) {
-        fprintf(stderr, "ERROR: Writing to the specified pid-file failed.\n");
+        logERR("Writing to the specified pid-file failed.");
         return EXIT_FAILURE;
     }
     pid_file = pid_filepath;
@@ -232,6 +253,15 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
     }
 }
 
+int check_pid_file(const std::map<std::string, options::values_t> &opts) {
+    boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
+    if (!pid_filepath || pid_filepath->empty()) {
+        return EXIT_SUCCESS;
+    }
+
+    return check_pid_file(*pid_filepath);
+}
+
 // Maybe writes a pid file, using the --pid-file option, if it's present.
 int write_pid_file(const std::map<std::string, options::values_t> &opts) {
     boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
@@ -320,7 +350,7 @@ serializer_filepath_t metadata_file(const base_path_t& dirpath) {
 }
 
 void initialize_logfile(const std::map<std::string, options::values_t> &opts,
-                               const base_path_t& dirpath) {
+                        const base_path_t& dirpath) {
     std::string filename;
     if (exists_option(opts, "--log-file")) {
         filename = get_single_option(opts, "--log-file");
@@ -1145,6 +1175,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
 
+        if (check_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
             return EXIT_SUCCESS;
@@ -1253,6 +1287,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
+
+        if (check_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
@@ -1465,6 +1503,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         base_path.make_absolute();
         initialize_logfile(opts, base_path);
+
+        if (check_pid_file(opts) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit

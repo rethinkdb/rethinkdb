@@ -3,6 +3,9 @@ language: cpp
 compiler:
   - gcc
   - clang
+env:
+  - DEBUG=1
+  - DEBUG=0
 
 # Install build dependencies
 before_script:
@@ -22,8 +25,8 @@ before_script:
 # Build script
 script:
   - ./configure
-  - make -j 3 test-deps
-  - make test TEST=travis RUN_TEST_ARGS='-j3 -w-'
+  - make -j 3 test-deps DEBUG=$DEBUG
+  - make test TEST=travis RUN_TEST_ARGS='-j3 -w-' DEBUG=$DEBUG
 
 # Notify only on change
 notifications:

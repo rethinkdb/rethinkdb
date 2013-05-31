@@ -67,6 +67,10 @@ def cmp_test(one, two)
     return 1
   end
 
+  if one.class == String then
+    one = one.sub(/\nFailed assertion:(.|\n)*/, "")
+  end
+
   case "#{two.class}"
   when "Err"
     if one.kind_of? Exception

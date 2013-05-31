@@ -297,10 +297,8 @@ private:
 // Making mock cache do proper snapshotting seems deceivingly simple (just copy the blocks when you are snapshotting),
 // but unfortunately it's not (I tried).  There are some pretty tricky cases with snapshotting that these tests are
 // catching, and implementing that logic in the mock cache is more trouble than it's worth.
-#ifndef MOCK_CACHE_CHECK
 TEST(SnapshotsTest, all_tests) {
     snapshots_tester_t().run();
 }
-#endif
 
 }  // namespace unittest
