@@ -241,5 +241,4 @@ void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
 
-
 } // namespace ql

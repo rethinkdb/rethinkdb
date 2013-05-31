@@ -2,7 +2,7 @@ desc: These tests are aimed at &&, ||, and !
 tests:
 
     ## basic operator usage
-    
+
     # Python overloads '&' for 'and'
     - py: [r.expr(True) & True, True & r.expr(True), "r.all(True,True)"]
       js: r(true).and(true)
@@ -21,7 +21,7 @@ tests:
       rb: [r(true).or(true), r(true) | true]
       ot: true
     - py: [r.expr(True) | False, True | r.expr(False)]
-      cd: r(true).or(false) 
+      cd: r(true).or(false)
       ot: true
     - py: [r.expr(False) | False, False | r.expr(False)]
       cd: r(false).or(false)
@@ -29,7 +29,7 @@ tests:
 
     # Python overloads '~' for 'not'
     - py: ~r.expr(True)
-      cd: r(true).not() 
+      cd: r(true).not()
       ot: false
     - py: ~r.expr(False)
       cd: r(false).not()
@@ -73,16 +73,16 @@ tests:
     # Type errors
     - py: r.expr(1) & True
       cd: r(1).and(true)
-      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+      ot: true
 
     - py: r.expr(False) | 'str'
       cd: r(false).or('str')
-      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [1])
+      ot: ("str")
 
     - py: ~r.expr(1)
       cd: r(1).not()
-      ot: err('RqlRuntimeError', 'Expected type BOOL but found NUMBER.', [0])
+      ot: false
 
-    - py: ~r.expr('abc')
-      cd: r('abc').not()
-      ot: err('RqlRuntimeError', 'Expected type BOOL but found STRING.', [0])
+    - py: ~r.expr(null)
+      cd: r(null).not()
+      ot: true

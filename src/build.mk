@@ -5,7 +5,7 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-LDFLAGS ?=
+LDFLAGS ?= -I/usr/local/include -L/usr/local/lib -lre2
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)
@@ -34,7 +34,7 @@ ifeq ($(COMPILER),CLANG)
     # RT_LDFLAGS += -Wl,--no-as-needed
     RT_LDFLAGS += -lc++
   else
-    RT_LDFLAGS += -lstdc++ -I/usr/local/include -L/usr/local/lib -lre2
+    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
