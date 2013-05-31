@@ -11,31 +11,43 @@ class TermBase
         self.__proto__ = @.__proto__
         return self
 
-    run: (conn, cb) ->
-        # Obviously, we can't pass this error to the callback so we have to just throw it
-        unless typeof(cb) is 'function'
+    run: (connOrOptions, cb) ->
+        useOutdated = undefined
+
+        # Parse out run options from connOrOptions object
+        if connOrOptions? and typeof(connOrOptions) is 'object' and not (connOrOptions instanceof Connection)
+            useOutdated = !!connOrOptions.useOutdated
+            noreply = !!connOrOptions.noreply
+            for own key of connOrOptions
+                unless key in ['connection', 'useOutdated', 'noreply']
+                    throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
+            conn = connOrOptions.connection
+        else
+            useOutdated = null
+            noreply = null
+            conn = connOrOptions
+
+        # This only checks that the argument is of the right type, connection
+        # closed errors will be handled elsewhere
+        unless conn instanceof Connection
+            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."
+
+        # We only require a callback if noreply isn't set
+        if not noreply and typeof(cb) isnt 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
 
         try
-            useOutdated = undefined
-            if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
-                useOutdated = !!conn.useOutdated
-                noreply = !!conn.noreply
-                for own key of conn
-                    unless key in ['connection', 'useOutdated', 'noreply']
-                        throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
-                conn = conn.connection
-            unless conn instanceof Connection
-                throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
-
             conn._start @, cb, useOutdated, noreply
         catch e
             # It was decided that, if we can, we prefer to invoke the callback
             # with any errors rather than throw them as normal exceptions.
             # Thus we catch errors here and invoke the callback instead of
             # letting the error bubble up.
-            cb(e)
+            if typeof(cb) is 'function'
+                cb(e)
+            else
+                throw e
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
