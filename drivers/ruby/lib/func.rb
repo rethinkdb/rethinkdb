@@ -7,8 +7,19 @@ module RethinkDB
       RQL.new.func(args, body)
     end
 
-    @@opt_off = {
-      :replace => -1, :update => -1, :insert => -1, :delete => -1,
+    # Offsets of the "optarg" optional arguments hash in respective
+    # methods.  Some methods change this depending on whether they're
+    # passed a block -- they take a hash specifying the offset for
+    # each circumstance, instead of an integer.  -1 can be supplied to
+    # mean the "last" argument -- whatever argument is specified will
+    # only be removed from the argument list and treated as an optarg
+    # if it's a Hash.  A positive value is necessary for functions
+    # that can take a hash for the last non-optarg argument.
+    @@optarg_offsets = {
+      :replace => { :with_block => 1, :without => 0 },
+      :update => { :with_block => 1, :without => 0 },
+      :insert => 1,
+      :delete => -1,
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
@@ -46,7 +57,14 @@ module RethinkDB
       termtype = Term::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
-      if (opt_offset = @@opt_off[m])
+      if (opt_offset = @@optarg_offsets[m])
+        if opt_offset.class == Hash
+          opt_offset = opt_offset[b ? :with_block : :without]
+        end
+        # TODO: This should drop the Hash comparison and
+        # @@optarg_offsets should stop specifying -1.  Any time an
+        # operation is changed to support a hash argument, you'll
+        # have to remember to fix opt_off, otherwise.
         optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end
 

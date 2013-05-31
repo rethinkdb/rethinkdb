@@ -38,7 +38,7 @@ tests:
     - py: tbl.insert({'id':3, 'a':3}, durability='wrong')
       js: tbl.insert({id:3, a:3}, {durability:'wrong'})
       rb: tbl.insert({ :id => 3, :a => 3 }, { :durability => 'wrong' })
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").')
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
     - cd: tbl.count()
       ot: 3
 

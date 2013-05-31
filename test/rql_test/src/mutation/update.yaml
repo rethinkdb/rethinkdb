@@ -55,7 +55,7 @@ tests:
     - py: tbl.get(12).update(lambda row:{'a':row['id'] + 3}, durability='wrong')
       js: tbl.get(12).update(function(row) { return {'a':row('id').add(3)}; }, {durability:'wrong'})
       rb: tbl.get(12).update({ :durability => 'wrong' }) { |row| { :a => row[:id] + 3 } }
-      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").')
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
 
     - cd: tbl.get(12)
       ot: ({'id':12, 'a':14})
