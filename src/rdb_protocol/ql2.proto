@@ -421,6 +421,10 @@ message Term {
 
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
+
+        // `a.match(b)` returns a match object if the string `a`
+        // matches the regular expression `b`.
+        MATCH = 81; // STRING, STRING -> DATUM
     }
     optional TermType type = 1;
 

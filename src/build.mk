@@ -34,7 +34,7 @@ ifeq ($(COMPILER),CLANG)
     # RT_LDFLAGS += -Wl,--no-as-needed
     RT_LDFLAGS += -lc++
   else
-    RT_LDFLAGS += -lstdc++
+    RT_LDFLAGS += -lstdc++ -I/usr/local/include -L/usr/local/lib -lre2
   endif
 
   ifeq ($(STATICFORCE),1)

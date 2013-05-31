@@ -312,8 +312,11 @@ void datum_t::check_type(type_t desired) const {
 }
 
 bool datum_t::as_bool() const {
-    check_type(R_BOOL);
-    return r_bool;
+    if (get_type() == R_BOOL) {
+        return r_bool;
+    } else {
+        return get_type() != R_NULL;
+    }
 }
 double datum_t::as_num() const {
     check_type(R_NUM);
