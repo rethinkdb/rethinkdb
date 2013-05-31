@@ -15,6 +15,7 @@ struct log_serializer_stats_t {
     perfmon_sampler_t pm_serializer_index_writes_size;
 
     /* used in serializer/log/extent_manager.cc */
+    perfmon_counter_t pm_extent_size;
     perfmon_counter_t pm_extents_in_use;
     perfmon_counter_t pm_bytes_in_use;
 

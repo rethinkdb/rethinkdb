@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
 #include "arch/arch.hpp"
@@ -40,7 +40,7 @@ public:
 
 class extent_zone_t {
     int64_t start, end;
-    size_t extent_size;
+    const size_t extent_size;
 
     unsigned int offset_to_id(int64_t extent) {
         rassert(extent < end);
@@ -160,6 +160,8 @@ extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_st
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
       dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
+    stats->pm_extent_size += extent_size;
+
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     // TODO: Why does dynamic_config have the possibility of setting a file size?
