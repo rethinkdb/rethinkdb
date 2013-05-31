@@ -61,10 +61,11 @@ module RethinkDB
         if opt_offset.class == Hash
           opt_offset = opt_offset[b ? :with_block : :without]
         end
-        # TODO: This should drop the Hash comparison and
-        # @@optarg_offsets should stop specifying -1.  Any time an
-        # operation is changed to support a hash argument, you'll
-        # have to remember to fix opt_off, otherwise.
+        # TODO: This should drop the Hash comparison or at least
+        # @@optarg_offsets should stop specifying -1, where possible.
+        # Any time one of these operations is changed to support a
+        # hash argument, we'll have to remember to fix
+        # @@optarg_offsets, otherwise.
         optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end
 
