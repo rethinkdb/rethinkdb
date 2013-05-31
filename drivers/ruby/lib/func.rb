@@ -46,7 +46,7 @@ module RethinkDB
       termtype = Term::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
-      if (opt_offset ||= @@opt_off[m])
+      if (opt_offset = @@opt_off[m])
         optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end
 
