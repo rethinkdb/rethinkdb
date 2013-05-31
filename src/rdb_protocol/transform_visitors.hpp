@@ -26,7 +26,6 @@ void transform_exception(const datum_exc_t &exc,
 namespace query_language {
 
 void transform_apply(ql::env_t *ql_env,
-                     const scopes_t &scopes,
                      const backtrace_t &backtrace,
                      boost::shared_ptr<scoped_cJSON_t> json,
                      rdb_protocol_details::transform_variant_t *t,
@@ -34,13 +33,11 @@ void transform_apply(ql::env_t *ql_env,
 
 // Sets the result type based on a terminal.
 void terminal_initialize(ql::env_t *ql_env,
-                         const scopes_t &scopes,
                          const backtrace_t &backtrace,
                          rdb_protocol_details::terminal_variant_t *t,
                          rdb_protocol_t::rget_read_response_t::result_t *out);
 
 void terminal_apply(ql::env_t *ql_env,
-                    const scopes_t &scopes,
                     const backtrace_t &backtrace,
                     boost::shared_ptr<scoped_cJSON_t> _json,
                     rdb_protocol_details::terminal_variant_t *t,
