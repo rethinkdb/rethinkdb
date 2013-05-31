@@ -214,7 +214,7 @@ message Term {
         // Inside of a `default` block, you can omit the first
         // argument to rethrow whatever error you catch (this is most
         // useful as an argument to the `default` filter optarg).
-        ERROR        = 12; // STRING -> Error | -> ERROR
+        ERROR        = 12; // STRING -> Error | -> Error
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
 
