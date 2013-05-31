@@ -75,7 +75,7 @@ class RDBVal extends TermBase
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
-    delete: ar () -> new Delete {}, @
+    delete: aropt (opts) -> new Delete opts, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
 
