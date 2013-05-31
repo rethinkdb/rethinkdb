@@ -16,8 +16,8 @@ module RethinkDB
     # if it's a Hash.  A positive value is necessary for functions
     # that can take a hash for the last non-optarg argument.
     @@optarg_offsets = {
-      :replace => { :with_block => 1, :without => 0 },
-      :update => { :with_block => 1, :without => 0 },
+      :replace => { :with_block => 0, :without => 1 },
+      :update => { :with_block => 0, :without => 1 },
       :insert => 1,
       :delete => -1,
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
