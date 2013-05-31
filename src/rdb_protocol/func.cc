@@ -257,6 +257,11 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
         }
     } catch (const base_exc_t &e) {
         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+            // If a non-existence error is thrown inside a `filter`, we return
+            // the default value.  Note that we will enter this branch if the
+            // function passed to `filter` returns NULL, since the type error
+            // above will produce a non-existence error in the case where `d` is
+            // NULL.
             try {
                 if (default_filter_val) {
                     return default_filter_val->call()->as_bool();
@@ -265,10 +270,15 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
                 }
             } catch (const base_exc_t &e2) {
                 if (e2.get_type() != base_exc_t::EMPTY_USER) {
+                    // If the default value throws a non-EMPTY_USER exception,
+                    // we re-throw that exception.
                     throw;
                 }
             }
         }
+        // If we caught a non-NON_EXISTENCE exception or we caught a
+        // NON_EXISTENCE exception and the default value threw an EMPTY_USER
+        // exception, we re-throw the original exception.
         throw;
     }
 }
