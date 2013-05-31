@@ -7,9 +7,6 @@ module RethinkDB
       RQL.new.func(args, body)
     end
 
-    @@special_optargs = {
-      :replace => :non_atomic, :update => :non_atomic, :insert => :upsert
-    }
     @@opt_off = {
       :replace => -1, :update => -1, :insert => -1, :delete => -1,
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
@@ -49,10 +46,6 @@ module RethinkDB
       termtype = Term::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
-      if (opt_name = @@special_optargs[m])
-        a = optarg_jiggle(a, opt_name)
-        opt_offset = -1
-      end
       if (opt_offset ||= @@opt_off[m])
         optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end

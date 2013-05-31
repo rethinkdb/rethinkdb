@@ -24,7 +24,7 @@ commands:
     body:
       js: json | [json][, {upsert:true}]
       py: json | [json][, upsert=False]
-      rb: json | [json][, :upsert]
+      rb: json | [json][, { :upsert => false }]
     parent: table
     returns: object
 
@@ -72,7 +72,7 @@ commands:
           rb: |
             r.table('marvel').insert(
               {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
-              :upsert
+              {:upsert => true }
             ).run(conn)
 
     js:

@@ -61,7 +61,7 @@ tests:
     # test upsert option (object exists)
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 2, :b => 20}, :upsert)
+      rb: tbl.insert({:id => 2, :b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - cd: tbl.get(2)
@@ -70,7 +70,7 @@ tests:
     # test upsert option (object doesn't exit)
     - py: tbl.insert({'id':20,'b':20}, upsert=True)
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 20, :b => 20}, :upsert)
+      rb: tbl.insert({:id => 20, :b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: tbl.get(20)
@@ -93,7 +93,7 @@ tests:
     # test upsert pkey generation
     - py: tblpkey.insert({'b':20}, upsert=True)
       js: tblpkey.insert({'b':20}, {upsert:true})
-      rb: tblpkey.insert({:b => 20}, :upsert)
+      rb: tblpkey.insert({:b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: r.db('test').table_drop('testpkey')

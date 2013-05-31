@@ -51,7 +51,7 @@ commands:
             r.table('marvel').update(
                 lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
           rb: |
-            r.table('marvel').update(:non_atomic) {|hero| {:age => hero[:age] + r.js('1')}
+            r.table('marvel').update({ :non_atomic => true }) {|hero| {:age => hero[:age] + r.js('1')}
              }.run(conn)
 
     js:

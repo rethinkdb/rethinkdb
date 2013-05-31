@@ -48,7 +48,7 @@ commands:
                 { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
           rb: |
             r.table('marvel').get('superman').replace(
-               :non_atomic, {:id => 'superman', :age => 30}).run(conn)
+               { :non_atomic => true }, {:id => 'superman', :age => 30}).run(conn)
       - description: Mark all Marvel heroes as favorites, specifying soft durability.
         code:
           js: |
