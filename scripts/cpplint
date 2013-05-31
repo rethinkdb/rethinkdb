@@ -233,7 +233,7 @@ _DEFAULT_FILTERS = ['-build/include_alpha']
 _STL_HEADERS = frozenset([
     'algobase.h', 'algorithm', 'alloc.h', 'bitset', 'deque', 'exception',
     'function.h', 'functional', 'hash_map', 'hash_map.h', 'hash_set',
-    'hash_set.h', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
+    'hash_set.h', 'initializer_list', 'iterator', 'list', 'list.h', 'map', 'memory', 'new',
     'pair.h', 'pthread_alloc', 'queue', 'set', 'set.h', 'sstream', 'stack',
     'stl_alloc.h', 'stl_relops.h', 'type_traits.h',
     'utility', 'vector', 'vector.h',
@@ -2421,6 +2421,10 @@ def _ClassifyInclude(fileinfo, include, is_system):
       include_first_component.group(0)):
     return _POSSIBLE_MY_HEADER
 
+  if (include == 'rdb_protocol/terms/terms.hpp' and
+      fileinfo.RepositoryName().startswith('rdb_protocol/terms/')):
+    return _LIKELY_MY_HEADER
+
   # errors.hpp or utils.hpp must be used before boost.  This isn't to
   # ensure that it's used before boost, unfortunately.
   if include == 'errors.hpp' or include == 'utils.hpp':
@@ -2930,6 +2934,7 @@ _HEADERS_CONTAINING_TEMPLATES = (
                       'const_mem_fun_ref_t', 'const_mem_fun1_ref_t',
                       'mem_fun_ref',
                      )),
+    ('<initializer_list>', ('initializer_list',)),
     ('<limits>', ('numeric_limits',)),
     ('<list>', ('list',)),
     ('<map>', ('map', 'multimap',)),

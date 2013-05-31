@@ -114,7 +114,9 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
 
 
 #include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
 #include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 
 template class pinnings_shards_mismatch_issue_t<mock::dummy_protocol_t>;
 template class pinnings_shards_mismatch_issue_tracker_t<mock::dummy_protocol_t>;

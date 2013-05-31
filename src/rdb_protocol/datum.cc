@@ -15,7 +15,8 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str)
@@ -100,7 +101,8 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Number: {
         type = R_NUM;
         r_num = json->valuedouble;
-        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        using namespace std;  // NOLINT(build/namespaces)
         r_sanity_check(isfinite(r_num));
     } break;
     case cJSON_String: {
@@ -548,7 +550,8 @@ datum_t::datum_t(const Datum *d, env_t *env) {
     case Datum_DatumType_R_NUM: {
         type = R_NUM;
         r_num = d->r_num();
-        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        using namespace std;  // NOLINT(build/namespaces)
         rcheck(isfinite(r_num),
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
@@ -589,7 +592,8 @@ void datum_t::write_to_protobuf(Datum *d) const {
     } break;
     case R_NUM: {
         d->set_type(Datum_DatumType_R_NUM);
-        using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        // so we can use `isfinite` in a GCC 4.4.3-compatible way
+        using namespace std;  // NOLINT(build/namespaces)
         r_sanity_check(isfinite(r_num));
         d->set_r_num(r_num);
     } break;

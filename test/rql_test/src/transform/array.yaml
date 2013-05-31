@@ -12,6 +12,13 @@ tests:
     - cd: arr.append('a')
       ot: [1,2,3,'a']
 
+    ## Prepend
+
+    - cd: arr.prepend(0)
+      ot: [0,1,2,3]
+    - cd: arr.prepend('a')
+      ot: ['a',1,2,3]
+
     ## Slice
 
     # Python uses the slice syntax

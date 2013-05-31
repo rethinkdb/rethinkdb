@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_VALIDATE
-#define RDB_PROTOCOL_VALIDATE
+#ifndef RDB_PROTOCOL_VALIDATE_HPP_
+#define RDB_PROTOCOL_VALIDATE_HPP_
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
@@ -14,4 +14,4 @@ void validate_pb(const Datum::AssocPair &ap);
 void validate_pb(const Term &t);
 void validate_pb(const Term::AssocPair &ap);
 
-#endif // RDB_PROTOCOL_VALIDATE
+#endif  // RDB_PROTOCOL_VALIDATE_HPP_

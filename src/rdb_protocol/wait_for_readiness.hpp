@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
-#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
+#ifndef RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_
+#define RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -16,4 +16,4 @@ class uuid_u;
 
 void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo, uuid_u namespace_id, signal_t *interruptor, boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata) THROWS_ONLY(interrupted_exc_t);
 
-#endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */
+#endif /* RDB_PROTOCOL_WAIT_FOR_READINESS_HPP_ */

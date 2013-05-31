@@ -3,6 +3,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
@@ -44,20 +45,24 @@ public:
 
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
-                                     bool nondet_ok);
+                                     bool nondet_ok,
+                                     durability_requirement_t durability_requirement);
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
-                                     bool upsert);
+                                     bool upsert,
+                                     durability_requirement_t durability_requirement);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
         counted_t<func_t> replacement_generator,
-        bool nondeterministic_replacements_ok);
+        bool nondeterministic_replacements_ok,
+        durability_requirement_t durability_requirement);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
         const std::vector<counted_t<const datum_t> > &replacement_values,
-        bool upsert);
+        bool upsert,
+        durability_requirement_t durability_requirement);
 
     MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
     MUST_USE bool sindex_drop(const std::string &name);
@@ -82,16 +87,20 @@ private:
     };
 
     std::vector<counted_t<const datum_t> > batch_replace(
-        const std::vector<datum_func_pair_t> &replacements);
+        const std::vector<datum_func_pair_t> &replacements,
+        durability_requirement_t durability_requirement);
 
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
-                                        const map_wire_func_t &mwf);
+                                        const map_wire_func_t &mwf,
+                                        durability_requirement_t durability_requirement);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
-                                        bool nondet_ok);
+                                        bool nondet_ok,
+                                        durability_requirement_t durability_requirement);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
-                                        bool upsert);
+                                        bool upsert,
+                                        durability_requirement_t durability_requirement);
 
     env_t *env;
     bool use_outdated;

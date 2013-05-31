@@ -86,6 +86,8 @@ class TestWithConnection(unittest.TestCase):
         self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir)
         self.servers.__enter__()
         self.port = self.servers.driver_port()
+        conn = r.connect(port=self.port)
+        r.db_create('test').run(conn)
 
     def tearDown(self):
         self.servers.__exit__(None, None, None)
