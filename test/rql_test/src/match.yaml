@@ -37,5 +37,9 @@ tests:
       js: tbl.filter(function(row){return row('a').match('^b$')}).order_by('id')
       ot: ([])
 
+    - cd: r.expr("").match("ab\\9")
+      ot: |
+         err("RqlRuntimeError", "Error in regexp `ab\\9` (portion `\\9`): invalid escape sequence: \\9", [])
+
     - cd: r.table_drop('test_match')
       ot: ({'dropped':1})
