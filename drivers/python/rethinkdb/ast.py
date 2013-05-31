@@ -204,6 +204,9 @@ class RqlQuery(object):
     def append(self, val):
         return Append(self, val)
 
+    def prepend(self, val):
+        return Prepend(self, val)
+
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
     def __getitem__(self, index):
@@ -473,6 +476,10 @@ class Mod(RqlBiOperQuery):
 class Append(RqlMethodQuery):
     tt = p.Term.APPEND
     st = "append"
+
+class Prepend(RqlMethodQuery):
+    tt = p.Term.PREPEND
+    st = "prepend"
 
 class Slice(RqlQuery):
     tt = p.Term.SLICE
