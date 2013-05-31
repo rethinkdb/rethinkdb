@@ -67,6 +67,7 @@ class RDBVal extends TermBase
     count: ar () -> new Count {}, @
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    match: ar (pattern) -> new Match {}, @, pattern
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
@@ -410,6 +411,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
+
+class Match extends RDBOp
+    tt: Term.TermType.MATCH
+    mt: 'match'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE

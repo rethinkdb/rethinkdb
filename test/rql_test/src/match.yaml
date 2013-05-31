@@ -12,6 +12,7 @@ tests:
 
     - cd: r.expr(["aba", "aca", "ada", "aea"]).filter{|row| row.match("a(.)a")[:groups][0][:str].match("[cd]")}
       py: r.expr(["aba", "aca", "ada", "aea"]).filter(lambda row:row.match("a(.)a")['groups'][0]['str'].match("[cd]"))
+      js: r.expr(["aba", "aca", "ada", "aea"]).filter(function(row){return row.match("a(.)a")('groups').nth(0)('str').match("[cd]")})
       ot: (["aca", "ada"])
 
     - def: tbl = r.table('test_match')
@@ -21,15 +22,19 @@ tests:
 
     - cd: tbl.filter{|row| row['a'].match('b')}.orderby('id')
       py: tbl.filter(lambda row:row['a'].match('b')).order_by('id')
+      js: tbl.filter(function(row){return row('a').match('b')}).order_by('id')
       ot: ([{'id':0,'a':'abc'},{'id':1,'a':'ab'},{'id':2,'a':'bc'}])
     - cd: tbl.filter{|row| row['a'].match('ab')}.orderby('id')
       py: tbl.filter(lambda row:row['a'].match('ab')).order_by('id')
+      js: tbl.filter(function(row){return row('a').match('ab')}).order_by('id')
       ot: ([{'id':0,'a':'abc'},{'id':1,'a':'ab'}])
     - cd: tbl.filter{|row| row['a'].match('ab$')}.orderby('id')
       py: tbl.filter(lambda row:row['a'].match('ab$')).order_by('id')
+      js: tbl.filter(function(row){return row('a').match('ab$')}).order_by('id')
       ot: ([{'id':1,'a':'ab'}])
     - cd: tbl.filter{|row| row['a'].match('^b$')}.orderby('id')
       py: tbl.filter(lambda row:row['a'].match('^b$')).order_by('id')
+      js: tbl.filter(function(row){return row('a').match('^b$')}).order_by('id')
       ot: ([])
 
     - cd: r.table_drop('test_match')
