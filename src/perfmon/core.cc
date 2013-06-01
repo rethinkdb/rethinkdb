@@ -336,14 +336,21 @@ void perfmon_filter_t::filter(perfmon_result_t *p) const {
    that are still active (i.e. that haven't failed a match yet).  This should
    only be called by [filter]. */
 perfmon_result_t *perfmon_filter_t::subfilter(
-    perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+    perfmon_result_t *const p, const size_t depth,
+    const std::vector<bool> active) const {
     bool keep_this_perfmon = true;
     if (p->is_string()) {
         std::string *str = p->get_string();
         for (size_t i = 0; i < regexps.size(); ++i) {
-            if (!active[i]) continue;
-            if (depth >= regexps[i].size()) return p;
-            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) return p;
+            if (!active[i]) {
+                continue;
+            }
+            if (depth >= regexps[i].size()) {
+                return p;
+            }
+            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) {
+                return p;
+            }
         }
         keep_this_perfmon = false;
     } else if (p->is_map()) {
@@ -352,13 +359,21 @@ perfmon_result_t *perfmon_filter_t::subfilter(
             std::vector<bool> subactive = active;
             bool some_subpath = false;
             for (size_t i = 0; i < regexps.size(); ++i) {
-                if (!active[i]) continue;
-                if (depth >= regexps[i].size()) return p;
+                if (!active[i]) {
+                    continue;
+                }
+                if (depth >= regexps[i].size()) {
+                    return p;
+                }
                 subactive[i] = regexps[i][depth]->matches(it->first);
                 some_subpath |= subactive[i];
             }
-            if (some_subpath) it->second = subfilter(it->second, depth + 1, subactive);
-            if (!some_subpath || !it->second) to_delete.push_back(it);
+            if (some_subpath) {
+                it->second = subfilter(it->second, depth + 1, subactive);
+            }
+            if (!some_subpath || !it->second) {
+                to_delete.push_back(it);
+            }
         }
         for (std::list<perfmon_result_t::iterator>::const_iterator
                  it = to_delete.begin(); it != to_delete.end(); ++it) {
@@ -369,7 +384,7 @@ perfmon_result_t *perfmon_filter_t::subfilter(
 
     if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
         delete p;
-        return 0;
+        return NULL;
     } else {
         return p;
     }
