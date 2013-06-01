@@ -358,8 +358,8 @@ void perfmon_filter_t::subfilter(
         }
         keep_this_perfmon = false;
     } else if (p->is_map()) {
-        std::vector<perfmon_result_t::iterator> to_delete;
-        for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
+        perfmon_result_t::iterator it = p->begin();
+        while (it != p->end()) {
             std::vector<bool> subactive = active;
             bool some_subpath = false;
             for (size_t i = 0; i < regexps.size(); ++i) {
@@ -367,8 +367,6 @@ void perfmon_filter_t::subfilter(
                     continue;
                 }
                 if (depth >= regexps[i].size()) {
-                    // TODO: What???  What about things that were pushed onto
-                    // to_delete?
                     return;
                 }
                 subactive[i] = regexps[i][depth]->matches(it->first);
@@ -379,20 +377,19 @@ void perfmon_filter_t::subfilter(
                 subfilter(&tmp, depth + 1, subactive);
                 it->second = tmp.release();
             }
+            perfmon_result_t::iterator prev_it = it;
+            ++it;
             if (!some_subpath || !it->second) {
-                to_delete.push_back(it);
+                p->erase(prev_it);
             }
         }
-        for (std::vector<perfmon_result_t::iterator>::const_iterator
-                 it = to_delete.begin(); it != to_delete.end(); ++it) {
-            p->erase(*it);
-        }
+
         if (p->get_map()->empty()) {
             keep_this_perfmon = false;
         }
     }
 
-    if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
+    if (!keep_this_perfmon && depth > 0) {  // Never delete the topmost node.
         p_ptr->reset();
     }
 }
