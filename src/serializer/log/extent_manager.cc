@@ -24,18 +24,21 @@ public:
 
     state_t state() const { return state_; }
 
-    // Valid and non-zero when state_in_use.  There are two ways to own a part of this refcount.
-    // One is if you believe you're currently "using" the extent (if you're the LBA or
-    // data_block_manager_t).  The other is (at the time of writing) for every
-    // (extent_transaction_t, block_id) for live extent transactions that have set an i_array entry
-    // to zero (in the data block manager) but have not yet been commmitted.  The
-    // data_block_manager_t and LBA ownership of the refcount also can get passed into the
-    // extent_transaction_t object.
+    // Valid and non-zero when state_in_use.  There are two ways to own a part of
+    // this refcount.  One is if you believe you're currently "using" the extent (if
+    // you're the LBA or data_block_manager_t).  The other is (at the time of
+    // writing) for every (extent_transaction_t, block_id) for live extent
+    // transactions that have set an i_array entry to zero (in the data block
+    // manager) but have not yet been commmitted.  The data_block_manager_t and LBA
+    // ownership of the refcount also can get passed into the extent_transaction_t
+    // object.
     int32_t extent_use_refcount;
 
     int64_t next_in_free_list;   // Valid if state == state_free
 
-    extent_info_t() : state_(state_unreserved), extent_use_refcount(0), next_in_free_list(-1) {}
+    extent_info_t() : state_(state_unreserved),
+                      extent_use_refcount(0),
+                      next_in_free_list(-1) {}
 };
 
 class extent_zone_t {
@@ -97,7 +100,9 @@ public:
     void reconstruct_free_list() {
         free_list_head = NULL_OFFSET;
 
-        for (int64_t extent = start; extent < start + (int64_t)(extents.get_size() * extent_size); extent += extent_size) {
+        for (int64_t extent = start;
+             extent < start + static_cast<int64_t>(extents.get_size() * extent_size);
+             extent += extent_size) {
             if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
                 extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
                 extents[offset_to_id(extent)].next_in_free_list = free_list_head;
@@ -155,7 +160,8 @@ public:
     }
 };
 
-extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_static_config_t *static_config,
+extent_manager_t::extent_manager_t(file_t *file,
+                                   const log_serializer_on_disk_static_config_t *static_config,
                                    const log_serializer_dynamic_config_t *_dynamic_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
@@ -171,23 +177,26 @@ extent_manager_t::extent_manager_t(file_t *file, const log_serializer_on_disk_st
             if (file->get_size() <= dynamic_config->file_size) {
                 file->set_size(dynamic_config->file_size);
             } else {
-                logWRN("File size specified is smaller than the file actually is. To avoid "
-                    "risk of smashing database, ignoring file size specification.");
+                logWRN("File size specified is smaller than the file actually is. "
+                       "To avoid risk of smashing database, ignoring file size "
+                       "specification.");
             }
         }
 
-        /* On a block device, chop the block device up into equal-sized zones, the number of
-        which is determined by a configuration parameter. */
+        /* On a block device, chop the block device up into equal-sized zones, the
+        number of which is determined by a configuration parameter. */
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
         int64_t end = 0;
-        while (end != static_cast<int64_t>(floor_aligned(file->get_size(), extent_size))) {
+        while (end != static_cast<int64_t>(floor_aligned(file->get_size(),
+                                                         extent_size))) {
             int64_t start = end;
-            end = std::min<int64_t>(start + zone_size, floor_aligned(file->get_size(), extent_size));
+            end = std::min<int64_t>(start + zone_size,
+                                    floor_aligned(file->get_size(), extent_size));
             zones.push_back(new extent_zone_t(start, end, extent_size));
         }
     } else {
-        /* On an ordinary file on disk, make one "zone" that is large enough to encompass
-        any file. */
+        /* On an ordinary file on disk, make one "zone" that is large enough to
+        encompass any file. */
         guarantee(zones.size() == 0);
         zones.push_back(new extent_zone_t(0, TERABYTE * 1024, extent_size));
     }
