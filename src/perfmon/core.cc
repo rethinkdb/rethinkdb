@@ -72,12 +72,11 @@ scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
         rassert(i < ctx->size);
-        perfmon_result_t *stat = p->get()->end_stats(ctx->contexts[i]).release();
+        scoped_ptr_t<perfmon_result_t> stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             stat->splice_into(map.get());
-            delete stat; // `stat` is empty now, we can delete it safely
         } else {
-            map->insert(p->name, scoped_ptr_t<perfmon_result_t>(stat));
+            map->insert(p->name, std::move(stat));
         }
     }
 
