@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <deque>
 
 #include "utils.hpp"
@@ -29,13 +30,20 @@ class extent_reference_t {
 public:
     extent_reference_t() : extent_offset_(-1) { }
     ~extent_reference_t() { guarantee(extent_offset_ == -1); }
+    extent_reference_t(extent_reference_t &&movee)
+        : extent_offset_(movee.release()) {}
+
+    void operator=(extent_reference_t &&movee) {
+        extent_reference_t tmp(std::move(movee));
+        std::swap(extent_offset_, tmp.extent_offset_);
+    }
 
     void init(int64_t offset) {
         guarantee(extent_offset_ == -1);
         extent_offset_ = offset;
     }
 
-    int64_t offset() {
+    int64_t offset() const {
         guarantee(extent_offset_ != -1);
         return extent_offset_;
     }
@@ -61,16 +69,16 @@ public:
     ~extent_reference_set_t() { guarantee(extent_offsets_.empty()); }
 
     void move_extent_reference(extent_reference_t *ref) {
-        extent_offsets_.push_back(ref->release());
+        extent_offsets_.push_back(std::move(*ref));
     }
 
-    void reset(std::deque<int64_t> *extents_out) {
+    void reset(std::deque<extent_reference_t> *extents_out) {
         guarantee(extents_out->empty());
-        extents_out->swap(extent_offsets_);
+        *extents_out = std::move(extent_offsets_);
     }
 
 private:
-    std::deque<int64_t> extent_offsets_;
+    std::deque<extent_reference_t> extent_offsets_;
     DISABLE_COPYING(extent_reference_set_t);
 };
 
@@ -94,7 +102,7 @@ public:
         guarantee(state_ == begun);
         state_ = ended;
     }
-    void reset(std::deque<int64_t> *extents_out) {
+    void reset(std::deque<extent_reference_t> *extents_out) {
         guarantee(state_ == ended);
         extent_ref_set_.reset(extents_out);
         state_ = committed;
