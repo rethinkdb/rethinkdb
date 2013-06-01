@@ -45,9 +45,11 @@ void perfmon_counter_t::get_thread_stat(padded_int64_t *stat) {
     stat->value = get();
 }
 
-int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
+int64_t perfmon_counter_t::combine_stats(const padded_int64_t *data) {
     int64_t value = 0;
-    for (int i = 0; i < get_num_threads(); i++) value += data[i].value;
+    for (int i = 0; i < get_num_threads(); i++) {
+        value += data[i].value;
+    }
     return value;
 }
 
@@ -105,7 +107,7 @@ void perfmon_sampler_t::get_thread_stat(stats_t *stat) {
     *stat = thread_data[get_thread_id()].last_stats;
 }
 
-perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
+perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(const stats_t *stats) {
     stats_t aggregated;
     for (int i = 0; i < get_num_threads(); i++) {
         aggregated.aggregate(stats[i]);
@@ -166,7 +168,7 @@ double stddev_t::mean() const { return M; }
 double stddev_t::standard_variance() const { return Q / N; }
 double stddev_t::standard_deviation() const { return sqrt(standard_variance()); }
 
-stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
+stddev_t stddev_t::combine(size_t nelts, const stddev_t *data) {
     // See http://en.wikipedia.org/wiki/Standard_deviation#Combining_standard_deviations
     // N{,_i}: datapoints in {total,ith thread}
     // M{,_i}: mean of {total,ith thread}
@@ -201,7 +203,7 @@ void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     *stat = thread_data[get_thread_id()];
 }
 
-stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
+stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
@@ -272,9 +274,11 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
     *stat = thread_data[get_thread_id()].last_count;
 }
 
-double perfmon_rate_monitor_t::combine_stats(double *stats) {
+double perfmon_rate_monitor_t::combine_stats(const double *stats) {
     double total = 0;
-    for (int i = 0; i < get_num_threads(); i++) total += stats[i];
+    for (int i = 0; i < get_num_threads(); i++) {
+        total += stats[i];
+    }
     return total;
 }
 

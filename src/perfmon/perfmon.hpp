@@ -49,7 +49,7 @@ struct perfmon_perthread_t : public perfmon_t {
 
 protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
-    virtual combined_stat_t combine_stats(thread_stat_t *) = 0;
+    virtual combined_stat_t combine_stats(const thread_stat_t *) = 0;
     virtual perfmon_result_t *output_stat(const combined_stat_t &) = 0;
 };
 
@@ -66,7 +66,7 @@ protected:
     int64_t &get();
 
     void get_thread_stat(padded_int64_t *);
-    int64_t combine_stats(padded_int64_t *);
+    int64_t combine_stats(const padded_int64_t *);
     perfmon_result_t *output_stat(const int64_t&);
 public:
     perfmon_counter_t();
@@ -127,7 +127,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     thread_info_t *thread_data;
 
     void get_thread_stat(stats_t *);
-    stats_t combine_stats(stats_t *);
+    stats_t combine_stats(const stats_t *);
     perfmon_result_t *output_stat(const stats_t&);
 
     void update(ticks_t now);
@@ -151,8 +151,7 @@ struct stddev_t {
     double mean() const;
     double standard_deviation() const;
     double standard_variance() const;
-    //stddev_t merge(const stddev_t &other);
-    static stddev_t combine(size_t nelts, stddev_t *data);
+    static stddev_t combine(size_t nelts, const stddev_t *data);
 
 private:
     // N is the number of datapoints, M is the current mean, Q/N is
@@ -177,7 +176,7 @@ public:
 
 protected:
     void get_thread_stat(stddev_t *);
-    stddev_t combine_stats(stddev_t *);
+    stddev_t combine_stats(const stddev_t *);
     perfmon_result_t *output_stat(const stddev_t&);
 private:
     stddev_t thread_data[MAX_THREADS]; // TODO(rntz) should this be cache-line padded?
@@ -201,7 +200,7 @@ private:
     ticks_t length;
 
     void get_thread_stat(double *);
-    double combine_stats(double *);
+    double combine_stats(const double *);
     perfmon_result_t *output_stat(const double&);
 public:
     explicit perfmon_rate_monitor_t(ticks_t length);
