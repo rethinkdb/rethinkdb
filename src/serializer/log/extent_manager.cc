@@ -169,32 +169,19 @@ extent_manager_t::extent_manager_t(file_t *file,
 
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    /* On an ordinary file on disk, make one "zone" that is large enough to
-       encompass any file. */
-    guarantee(zones.size() == 0);
-    zones.push_back(new extent_zone_t(0, TERABYTE * 1024, extent_size));
-
-    next_zone = 0;
+    zone.init(new extent_zone_t(0, TERABYTE * 1024, extent_size));
 }
 
 extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
 }
 
-// RSI: Remove file zones.
-extent_zone_t *extent_manager_t::zone_for_offset(UNUSED int64_t offset) {
-    assert_thread();
-    /* There is only one zone on a non-block device */
-    return &zones[0];
-}
-
-
 void extent_manager_t::reserve_extent(int64_t extent, extent_reference_t *extent_ref) {
     assert_thread();
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
-    zone_for_offset(extent)->reserve_extent(extent, extent_ref);
+    zone->reserve_extent(extent, extent_ref);
 }
 
 void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
@@ -205,9 +192,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
     assert_thread();
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
-    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
-        it->reconstruct_free_list();
-    }
+    zone->reconstruct_free_list();
     state = state_running;
 
 }
@@ -239,17 +224,10 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
     stats->pm_bytes_in_use += extent_size;
 
     extent_reference_t extent_ref;
-    int first_zone = next_zone;
-    for (;;) {   /* Loop looking for a zone with a free extent */
-        bool success = zones[next_zone].gen_extent(&extent_ref);
-        next_zone = (next_zone+1) % zones.size();
-
-        if (success) break;
-
-        if (next_zone == first_zone) {
-            /* We tried every zone and there were no free extents */
-            crash("RethinkDB ran out of disk space.");
-        }
+    // RSI: Can gen_extent even fail anymore?  We only have one zone.
+    if (!zone->gen_extent(&extent_ref)) {
+        /* We tried every zone and there were no free extents */
+        crash("RethinkDB ran out of disk space.");
     }
 
     /* In case we are not on a block device */
@@ -260,7 +238,7 @@ void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
 
 void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
     int64_t offset = extent_ref->offset();
-    zone_for_offset(offset)->make_extent_reference(offset, extent_ref_out);
+    zone->make_extent_reference(offset, extent_ref_out);
 }
 
 void extent_manager_t::release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn) {
@@ -271,7 +249,7 @@ void extent_manager_t::release_extent_into_transaction(extent_reference_t *exten
 
 void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
     release_extent_preliminaries();
-    zone_for_offset(extent_ref->offset())->release_extent(extent_ref);
+    zone->release_extent(extent_ref);
 }
 
 void extent_manager_t::release_extent_preliminaries() {
@@ -297,16 +275,11 @@ void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     for (std::deque<int64_t>::const_iterator it = extents.begin(); it != extents.end(); ++it) {
         extent_reference_t extent_ref;
         extent_ref.init(*it);
-        zone_for_offset(extent_ref.offset())->release_extent(&extent_ref);
+        zone->release_extent(&extent_ref);
     }
 }
 
 int extent_manager_t::held_extents() {
     assert_thread();
-    int total = 0;
-
-    for (boost::ptr_vector<extent_zone_t>::iterator it = zones.begin(); it != zones.end(); ++it) {
-        total += it->held_extents();
-    }
-    return total;
+    return zone->held_extents();
 }

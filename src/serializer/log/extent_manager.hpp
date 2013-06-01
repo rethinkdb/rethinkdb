@@ -155,11 +155,9 @@ public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
 private:
-    extent_zone_t *zone_for_offset(int64_t offset);
     void release_extent_preliminaries();
 
-    boost::ptr_vector<extent_zone_t> zones;
-    int next_zone;    /* Which zone to give the next extent from */
+    scoped_ptr_t<extent_zone_t> zone;
 
     file_t *const dbfile;
 
