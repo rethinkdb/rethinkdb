@@ -253,7 +253,7 @@ void extent_manager_t::end_transaction(extent_transaction_t *t) {
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
-    std::deque<extent_reference_t> extents;
+    std::vector<extent_reference_t> extents;
     t->reset(&extents);
     for (auto it = extents.begin(); it != extents.end(); ++it) {
         extent_reference_t extent_ref = std::move(*it);

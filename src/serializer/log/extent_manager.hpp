@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <deque>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -80,7 +80,7 @@ public:
         guarantee(state_ == begun);
         state_ = ended;
     }
-    void reset(std::deque<extent_reference_t> *extents_out) {
+    void reset(std::vector<extent_reference_t> *extents_out) {
         guarantee(state_ == ended);
         *extents_out = std::move(extent_ref_set_);
         state_ = committed;
@@ -88,7 +88,7 @@ public:
 
 private:
     enum { uninitialized, begun, ended, committed } state_;
-    std::deque<extent_reference_t> extent_ref_set_;
+    std::vector<extent_reference_t> extent_ref_set_;
 
     DISABLE_COPYING(extent_transaction_t);
 };
