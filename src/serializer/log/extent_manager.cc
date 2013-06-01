@@ -162,42 +162,17 @@ public:
 
 extent_manager_t::extent_manager_t(file_t *file,
                                    const log_serializer_on_disk_static_config_t *static_config,
-                                   const log_serializer_dynamic_config_t *_dynamic_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
-      dynamic_config(_dynamic_config), dbfile(file), state(state_reserving_extents) {
+      dbfile(file), state(state_reserving_extents) {
     stats->pm_extent_size += extent_size;
 
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    // TODO: Why does dynamic_config have the possibility of setting a file size?
-    if (dynamic_config->file_size > 0) {
-        /* If we are given a fixed file size, we pretend to be on a block device. */
-        if (file->get_size() <= dynamic_config->file_size) {
-            file->set_size(dynamic_config->file_size);
-        } else {
-            logWRN("File size specified is smaller than the file actually is. "
-                   "To avoid risk of smashing database, ignoring file size "
-                   "specification.");
-        }
-
-        /* On a block device, chop the block device up into equal-sized zones, the
-        number of which is determined by a configuration parameter. */
-        size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
-        int64_t end = 0;
-        while (end != static_cast<int64_t>(floor_aligned(file->get_size(),
-                                                         extent_size))) {
-            int64_t start = end;
-            end = std::min<int64_t>(start + zone_size,
-                                    floor_aligned(file->get_size(), extent_size));
-            zones.push_back(new extent_zone_t(start, end, extent_size));
-        }
-    } else {
-        /* On an ordinary file on disk, make one "zone" that is large enough to
-        encompass any file. */
-        guarantee(zones.size() == 0);
-        zones.push_back(new extent_zone_t(0, TERABYTE * 1024, extent_size));
-    }
+    /* On an ordinary file on disk, make one "zone" that is large enough to
+       encompass any file. */
+    guarantee(zones.size() == 0);
+    zones.push_back(new extent_zone_t(0, TERABYTE * 1024, extent_size));
 
     next_zone = 0;
 }
@@ -206,15 +181,11 @@ extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
 }
 
-extent_zone_t *extent_manager_t::zone_for_offset(int64_t offset) {
+// RSI: Remove file zones.
+extent_zone_t *extent_manager_t::zone_for_offset(UNUSED int64_t offset) {
     assert_thread();
-    if (dynamic_config->file_size > 0) {
-        size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
-        return &zones[offset / zone_size];
-    } else {
-        /* There is only one zone on a non-block device */
-        return &zones[0];
-    }
+    /* There is only one zone on a non-block device */
+    return &zones[0];
 }
 
 

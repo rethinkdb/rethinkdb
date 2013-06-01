@@ -115,7 +115,6 @@ public:
 
     extent_manager_t(file_t *file,
                      const log_serializer_on_disk_static_config_t *static_config,
-                     const log_serializer_dynamic_config_t *dynamic_config,
                      log_serializer_stats_t *);
     ~extent_manager_t();
 
@@ -158,8 +157,6 @@ public:
 private:
     extent_zone_t *zone_for_offset(int64_t offset);
     void release_extent_preliminaries();
-
-    const log_serializer_dynamic_config_t *const dynamic_config;
 
     boost::ptr_vector<extent_zone_t> zones;
     int next_zone;    /* Which zone to give the next extent from */
