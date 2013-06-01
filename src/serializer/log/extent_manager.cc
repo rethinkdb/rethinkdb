@@ -42,16 +42,12 @@ public:
 };
 
 class extent_zone_t {
-    int64_t start, end;
+    int64_t start;
     const size_t extent_size;
 
     unsigned int offset_to_id(int64_t extent) {
-        rassert(extent < end);
         rassert(extent >= start);
-#ifndef NDEBUG
-        bool extent_mod_extent_size_equals_zero = extent % extent_size == 0;
-        rassert(extent_mod_extent_size_equals_zero);
-#endif
+        rassert(divides(extent_size, extent));
         return (extent - start) / extent_size;
     }
 
@@ -73,15 +69,10 @@ public:
     }
 
 public:
-    extent_zone_t(int64_t _start, int64_t _end, size_t _extent_size)
-        : start(_start), end(_end), extent_size(_extent_size), held_extents_(0)
+    extent_zone_t(int64_t _start, size_t _extent_size)
+        : start(_start), extent_size(_extent_size), held_extents_(0)
     {
-#ifndef NDEBUG
-        bool start_aligned = start % extent_size == 0;
-        rassert(start_aligned);
-        bool end_aligned = end % extent_size == 0;
-        rassert(end_aligned);
-#endif
+        rassert(divides(extent_size, start));
     }
 
     void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out) {
@@ -117,9 +108,6 @@ public:
 
         if (free_list_head == NULL_OFFSET) {
             extent = start + extents.get_size() * extent_size;
-            if (extent == end) {
-                return false;
-            }
 
             extents.set_size(extents.get_size() + 1);
         } else {
@@ -169,7 +157,7 @@ extent_manager_t::extent_manager_t(file_t *file,
 
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    zone.init(new extent_zone_t(0, TERABYTE * 1024, extent_size));
+    zone.init(new extent_zone_t(0, extent_size));
 }
 
 extent_manager_t::~extent_manager_t() {
