@@ -42,13 +42,11 @@ public:
 };
 
 class extent_zone_t {
-    int64_t start;
     const size_t extent_size;
 
     unsigned int offset_to_id(int64_t extent) {
-        rassert(extent >= start);
         rassert(divides(extent_size, extent));
-        return (extent - start) / extent_size;
+        return extent / extent_size;
     }
 
     /* Combination free-list and extent map. Contains one entry per extent.
@@ -69,11 +67,8 @@ public:
     }
 
 public:
-    extent_zone_t(int64_t _start, size_t _extent_size)
-        : start(_start), extent_size(_extent_size), held_extents_(0)
-    {
-        rassert(divides(extent_size, start));
-    }
+    extent_zone_t(size_t _extent_size)
+        : extent_size(_extent_size), held_extents_(0) { }
 
     void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out) {
         unsigned int id = offset_to_id(extent);
@@ -91,8 +86,8 @@ public:
     void reconstruct_free_list() {
         free_list_head = NULL_OFFSET;
 
-        for (int64_t extent = start;
-             extent < start + static_cast<int64_t>(extents.get_size() * extent_size);
+        for (int64_t extent = 0;
+             extent < static_cast<int64_t>(extents.get_size() * extent_size);
              extent += extent_size) {
             if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
                 extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
@@ -107,7 +102,7 @@ public:
         int64_t extent;
 
         if (free_list_head == NULL_OFFSET) {
-            extent = start + extents.get_size() * extent_size;
+            extent = extents.get_size() * extent_size;
 
             extents.set_size(extents.get_size() + 1);
         } else {
@@ -157,7 +152,7 @@ extent_manager_t::extent_manager_t(file_t *file,
 
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    zone.init(new extent_zone_t(0, extent_size));
+    zone.init(new extent_zone_t(extent_size));
 }
 
 extent_manager_t::~extent_manager_t() {
