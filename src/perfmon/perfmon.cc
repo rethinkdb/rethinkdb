@@ -116,8 +116,7 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(const stats_t *stats
 }
 
 perfmon_result_t *perfmon_sampler_t::output_stat(const stats_t &aggregated) {
-    perfmon_result_t *stat;
-    perfmon_result_t::alloc_map_result(&stat);
+    scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
     if (aggregated.count > 0) {
         stat->insert(stat_avg, new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
@@ -131,7 +130,8 @@ perfmon_result_t *perfmon_sampler_t::output_stat(const stats_t &aggregated) {
     if (include_rate) {
         stat->insert(stat_per_sec, new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
-    return stat;
+
+    return stat.release();
 }
 
 /* perfmon_stddev_t */
@@ -208,8 +208,7 @@ stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
 }
 
 perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
-    perfmon_result_t *stat;
-    perfmon_result_t::alloc_map_result(&stat);
+    scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
     stat->insert(stat_count, new perfmon_result_t(strprintf("%zu", stat_data.datapoints())));
     if (stat_data.datapoints()) {
@@ -220,7 +219,7 @@ perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
         stat->insert(stat_mean, new perfmon_result_t(no_value));
         stat->insert(stat_std_dev, new perfmon_result_t(no_value));
     }
-    return stat;
+    return stat.release();
 }
 
 void perfmon_stddev_t::record(double value) {
@@ -319,7 +318,7 @@ void perfmon_duration_sampler_t::visit_stats(void *data) {
     stat.visit_stats(data);
 }
 
-perfmon_result_t *perfmon_duration_sampler_t::end_stats(void *data) {
+scoped_ptr_t<perfmon_result_t> perfmon_duration_sampler_t::end_stats(void *data) {
     return stat.end_stats(data);
 }
 

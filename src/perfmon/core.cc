@@ -66,18 +66,17 @@ void perfmon_collection_t::visit_stats(void *_context) {
     }
 }
 
-perfmon_result_t * perfmon_collection_t::end_stats(void *_context) {
+scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    perfmon_result_t *map;
-    perfmon_result_t::alloc_map_result(&map);
+    scoped_ptr_t<perfmon_result_t> map = perfmon_result_t::alloc_map_result();
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
         rassert(i < ctx->size);
-        perfmon_result_t * stat = p->get()->end_stats(ctx->contexts[i]);
+        perfmon_result_t *stat = p->get()->end_stats(ctx->contexts[i]).release();
         if (p->splice()) {
-            stat->splice_into(map);
+            stat->splice_into(map.get());
             delete stat; // `stat` is empty now, we can delete it safely
         } else {
             map->insert(p->name, stat);
@@ -201,20 +200,8 @@ void perfmon_result_t::erase(perfmon_result_t::iterator it) {
     map_.erase(it);
 }
 
-perfmon_result_t perfmon_result_t::make_string() {
-    return perfmon_result_t(std::string());
-}
-
-void perfmon_result_t::alloc_string_result(perfmon_result_t **out) {
-    *out = new perfmon_result_t(std::string());
-}
-
-perfmon_result_t perfmon_result_t::make_map() {
-    return perfmon_result_t(perfmon_result_t::internal_map_t());
-}
-
-void perfmon_result_t::alloc_map_result(perfmon_result_t **out) {
-    *out = new perfmon_result_t(perfmon_result_t::internal_map_t());
+scoped_ptr_t<perfmon_result_t> perfmon_result_t::alloc_map_result() {
+    return scoped_ptr_t<perfmon_result_t>(new perfmon_result_t(internal_map_t()));
 }
 
 std::string *perfmon_result_t::get_string() {

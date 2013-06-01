@@ -10,6 +10,7 @@
 
 #include "concurrency/rwi_lock.hpp"
 #include "containers/intrusive_list.hpp"
+#include "containers/scoped.hpp"
 #include "utils.hpp"
 
 class perfmon_collection_t;
@@ -42,7 +43,7 @@ public:
      */
     virtual void *begin_stats() = 0;
     virtual void visit_stats(void *ctx) = 0;
-    virtual perfmon_result_t *end_stats(void *ctx) = 0;
+    virtual scoped_ptr_t<perfmon_result_t> end_stats(void *ctx) = 0;
 };
 
 class perfmon_membership_t;
@@ -55,7 +56,7 @@ public:
     /* Perfmon interface */
     void *begin_stats();
     void visit_stats(void *_contexts);
-    perfmon_result_t *end_stats(void *_contexts);
+    scoped_ptr_t<perfmon_result_t> end_stats(void *_contexts);
 
 private:
     friend class perfmon_membership_t;
@@ -127,10 +128,7 @@ public:
     explicit perfmon_result_t(const std::string &);
     virtual ~perfmon_result_t();
 
-    static perfmon_result_t make_string();
-    static void alloc_string_result(perfmon_result_t **out);
-    static perfmon_result_t make_map();
-    static void alloc_map_result(perfmon_result_t **out);
+    static scoped_ptr_t<perfmon_result_t> alloc_map_result();
 
     std::string *get_string();
     const std::string *get_string() const;

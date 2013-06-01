@@ -12,6 +12,7 @@
 #include <limits>
 #include <string>
 #include <map>
+#include <memory>
 
 #include "perfmon/types.hpp"
 #include "perfmon/core.hpp"
@@ -39,12 +40,11 @@ struct perfmon_perthread_t : public perfmon_t {
     void visit_stats(void *data) {
         get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
-    perfmon_result_t *end_stats(void *v_data) {
-        thread_stat_t *data = static_cast<thread_stat_t *>(v_data);
-        combined_stat_t combined = combine_stats(data);
+    scoped_ptr_t<perfmon_result_t> end_stats(void *v_data) {
+        std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));
+        combined_stat_t combined = combine_stats(data.get());
         perfmon_result_t *result = output_stat(combined);
-        delete[] data;
-        return result;
+        return scoped_ptr_t<perfmon_result_t>(result);
     }
 
 protected:
@@ -238,7 +238,7 @@ public:
 
     void *begin_stats();
     void visit_stats(void *data);
-    perfmon_result_t *end_stats(void *data);
+    scoped_ptr_t<perfmon_result_t> end_stats(void *data);
 
 public:
     //Control interface used for enabling and disabling duration samplers at run time
