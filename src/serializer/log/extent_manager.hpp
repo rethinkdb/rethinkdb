@@ -60,28 +60,6 @@ private:
     DISABLE_COPYING(extent_reference_t);
 };
 
-// extent_reference_t is noncopyable and this is C++03 so we can't nonchalantly use a
-// standard collection for them.  So we have extent_reference_set_t to safely store
-// sets of extent references without violating RAII rules.
-class extent_reference_set_t {
-public:
-    extent_reference_set_t() { }
-    ~extent_reference_set_t() { guarantee(extent_offsets_.empty()); }
-
-    void move_extent_reference(extent_reference_t *ref) {
-        extent_offsets_.push_back(std::move(*ref));
-    }
-
-    void reset(std::deque<extent_reference_t> *extents_out) {
-        guarantee(extents_out->empty());
-        *extents_out = std::move(extent_offsets_);
-    }
-
-private:
-    std::deque<extent_reference_t> extent_offsets_;
-    DISABLE_COPYING(extent_reference_set_t);
-};
-
 class extent_transaction_t {
 public:
     friend class extent_manager_t;
@@ -96,7 +74,7 @@ public:
     }
     void push_extent(extent_reference_t *extent_ref) {
         guarantee(state_ == begun);
-        extent_ref_set_.move_extent_reference(extent_ref);
+        extent_ref_set_.push_back(std::move(*extent_ref));
     }
     void mark_end() {
         guarantee(state_ == begun);
@@ -104,13 +82,13 @@ public:
     }
     void reset(std::deque<extent_reference_t> *extents_out) {
         guarantee(state_ == ended);
-        extent_ref_set_.reset(extents_out);
+        *extents_out = std::move(extent_ref_set_);
         state_ = committed;
     }
 
 private:
     enum { uninitialized, begun, ended, committed } state_;
-    extent_reference_set_t extent_ref_set_;
+    std::deque<extent_reference_t> extent_ref_set_;
 
     DISABLE_COPYING(extent_transaction_t);
 };
