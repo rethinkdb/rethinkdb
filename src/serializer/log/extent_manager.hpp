@@ -28,10 +28,11 @@ struct log_serializer_stats_t;
 // all of the references go away (unless the server is shutting down).
 class extent_reference_t {
 public:
-    extent_reference_t() : extent_offset_(-1) { }
-    ~extent_reference_t() { guarantee(extent_offset_ == -1); }
+    extent_reference_t() : extent_offset_(-1) {}
+    extent_reference_t(int64_t extent_offset) : extent_offset_(extent_offset) {}
     extent_reference_t(extent_reference_t &&movee)
         : extent_offset_(movee.release()) {}
+    ~extent_reference_t() { guarantee(extent_offset_ == -1); }
 
     void operator=(extent_reference_t &&movee) {
         extent_reference_t tmp(std::move(movee));
@@ -72,9 +73,9 @@ public:
         guarantee(state_ == uninitialized);
         state_ = begun;
     }
-    void push_extent(extent_reference_t *extent_ref) {
+    void push_extent(extent_reference_t &&extent_ref) {
         guarantee(state_ == begun);
-        extent_ref_set_.push_back(std::move(*extent_ref));
+        extent_ref_set_.push_back(std::move(extent_ref));
     }
     void mark_end() {
         guarantee(state_ == begun);
@@ -107,7 +108,7 @@ public:
     /* When we load a database, we use reserve_extent() to inform the extent manager
     which extents were already in use */
 
-    void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out);
+    MUST_USE extent_reference_t reserve_extent(int64_t extent);
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(metablock_mixin_t *last_metablock);
@@ -123,14 +124,13 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    void copy_extent_reference(extent_reference_t *extent_ref,
-                               extent_reference_t *extent_ref_out);
+    MUST_USE extent_reference_t copy_extent_reference(const extent_reference_t &copyee);
 
     void begin_transaction(extent_transaction_t *out);
-    void gen_extent(extent_reference_t *extent_ref_out);
-    void release_extent_into_transaction(extent_reference_t *extent_ref,
+    MUST_USE extent_reference_t gen_extent();
+    void release_extent_into_transaction(extent_reference_t &&extent_ref,
                                          extent_transaction_t *txn);
-    void release_extent(extent_reference_t *extent_ref);
+    void release_extent(extent_reference_t &&extent_ref);
     void end_transaction(extent_transaction_t *t);
     void commit_transaction(extent_transaction_t *t);
 

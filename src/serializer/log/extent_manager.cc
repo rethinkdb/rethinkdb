@@ -70,7 +70,7 @@ public:
     extent_zone_t(size_t _extent_size)
         : extent_size(_extent_size), held_extents_(0) { }
 
-    void reserve_extent(int64_t extent, extent_reference_t *extent_ref_out) {
+    extent_reference_t reserve_extent(int64_t extent) {
         unsigned int id = offset_to_id(extent);
 
         if (id >= extents.get_size()) {
@@ -80,7 +80,7 @@ public:
 
         rassert(extents[id].state() == extent_info_t::state_unreserved);
         extents[id].set_state(extent_info_t::state_in_use);
-        make_extent_reference(extent, extent_ref_out);
+        return make_extent_reference(extent);
     }
 
     void reconstruct_free_list() {
@@ -98,7 +98,7 @@ public:
         }
     }
 
-    bool gen_extent(extent_reference_t *extent_ref_out) {
+    extent_reference_t gen_extent() {
         int64_t extent;
 
         if (free_list_head == NULL_OFFSET) {
@@ -114,22 +114,20 @@ public:
         extent_info_t *info = &extents[offset_to_id(extent)];
         info->set_state(extent_info_t::state_in_use);
 
-        make_extent_reference(extent, extent_ref_out);
-
-        return true;
+        return make_extent_reference(extent);
     }
 
-    void make_extent_reference(int64_t extent, extent_reference_t *extent_ref_out) {
+    extent_reference_t make_extent_reference(int64_t extent) {
         unsigned int id = offset_to_id(extent);
         guarantee(id < extents.get_size());
         extent_info_t *info = &extents[id];
         guarantee(info->state() == extent_info_t::state_in_use);
         ++info->extent_use_refcount;
-        extent_ref_out->init(extent);
+        return extent_reference_t(extent);
     }
 
-    void release_extent(extent_reference_t *extent_ref) {
-        int64_t extent = extent_ref->release();
+    void release_extent(extent_reference_t &&extent_ref) {
+        int64_t extent = extent_ref.release();
         extent_info_t *info = &extents[offset_to_id(extent)];
         guarantee(info->state() == extent_info_t::state_in_use);
         guarantee(info->extent_use_refcount > 0);
@@ -159,12 +157,12 @@ extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
 }
 
-void extent_manager_t::reserve_extent(int64_t extent, extent_reference_t *extent_ref) {
+extent_reference_t extent_manager_t::reserve_extent(int64_t extent) {
     assert_thread();
     rassert(state == state_reserving_extents);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
-    zone->reserve_extent(extent, extent_ref);
+    return zone->reserve_extent(extent);
 }
 
 void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
@@ -200,39 +198,35 @@ void extent_manager_t::begin_transaction(extent_transaction_t *out) {
     out->init();
 }
 
-void extent_manager_t::gen_extent(extent_reference_t *extent_ref_out) {
+extent_reference_t extent_manager_t::gen_extent() {
     assert_thread();
     rassert(state == state_running);
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
-    extent_reference_t extent_ref;
-    // RSI: Can gen_extent even fail anymore?  We only have one zone.
-    if (!zone->gen_extent(&extent_ref)) {
-        /* We tried every zone and there were no free extents */
-        crash("RethinkDB ran out of disk space.");
-    }
+    extent_reference_t extent_ref = zone->gen_extent();
 
     /* In case we are not on a block device */
     dbfile->set_size_at_least(extent_ref.offset() + extent_size);
 
-    extent_ref_out->init(extent_ref.release());
+    return extent_ref;
 }
 
-void extent_manager_t::copy_extent_reference(extent_reference_t *extent_ref, extent_reference_t *extent_ref_out) {
-    int64_t offset = extent_ref->offset();
-    zone->make_extent_reference(offset, extent_ref_out);
+extent_reference_t
+extent_manager_t::copy_extent_reference(const extent_reference_t &extent_ref) {
+    int64_t offset = extent_ref.offset();
+    return zone->make_extent_reference(offset);
 }
 
-void extent_manager_t::release_extent_into_transaction(extent_reference_t *extent_ref, extent_transaction_t *txn) {
+void extent_manager_t::release_extent_into_transaction(extent_reference_t &&extent_ref, extent_transaction_t *txn) {
     release_extent_preliminaries();
     rassert(current_transaction);
-    txn->push_extent(extent_ref);
+    txn->push_extent(std::move(extent_ref));
 }
 
-void extent_manager_t::release_extent(extent_reference_t *extent_ref) {
+void extent_manager_t::release_extent(extent_reference_t &&extent_ref) {
     release_extent_preliminaries();
-    zone->release_extent(extent_ref);
+    zone->release_extent(std::move(extent_ref));
 }
 
 void extent_manager_t::release_extent_preliminaries() {
@@ -256,8 +250,7 @@ void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     std::vector<extent_reference_t> extents;
     t->reset(&extents);
     for (auto it = extents.begin(); it != extents.end(); ++it) {
-        extent_reference_t extent_ref = std::move(*it);
-        zone->release_extent(&extent_ref);
+        zone->release_extent(std::move(*it));
     }
 }
 

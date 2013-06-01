@@ -333,11 +333,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // held until we commit the transaction.
     entry->i_array.set(block_id, 0);
 
-    {
-        extent_reference_t local_extent_ref;
-        extent_manager->copy_extent_reference(&entry->extent_ref, &local_extent_ref);
-        txn->push_extent(&local_extent_ref);
-    }
+    txn->push_extent(extent_manager->copy_extent_reference(entry->extent_ref));
 
     entry->update_g_array(block_id);
 
@@ -804,7 +800,7 @@ gc_entry::gc_entry(data_block_manager_t *_parent)
       timestamp(current_microtime()),
       was_written(false)
 {
-    parent->extent_manager->gen_extent(&extent_ref);
+    extent_ref = parent->extent_manager->gen_extent();
     offset = extent_ref.offset();
     rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
     parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
@@ -821,7 +817,7 @@ gc_entry::gc_entry(data_block_manager_t *_parent, int64_t _offset)
       timestamp(current_microtime()),
       was_written(false)
 {
-    parent->extent_manager->reserve_extent(_offset, &extent_ref);
+    extent_ref = parent->extent_manager->reserve_extent(_offset);
     offset = extent_ref.offset();
     rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
     parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
@@ -838,7 +834,7 @@ gc_entry::~gc_entry() {
 }
 
 void gc_entry::destroy() {
-    parent->extent_manager->release_extent(&extent_ref);
+    parent->extent_manager->release_extent(std::move(extent_ref));
     delete this;
 }
 

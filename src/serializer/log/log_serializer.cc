@@ -227,8 +227,8 @@ struct ls_start_existing_fsm_t :
             {
                 // We never end up releasing the static header extent reference.  Nobody says we
                 // have to.
-                extent_reference_t extent_ref;
-                ser->extent_manager->reserve_extent(0, &extent_ref);   /* For static header */
+                extent_reference_t extent_ref
+                    = ser->extent_manager->reserve_extent(0);  // For static header.
                 UNUSED int64_t extent = extent_ref.release();
             }
 
