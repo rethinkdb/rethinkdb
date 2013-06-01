@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <stdarg.h>
 
-#include <list>
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
@@ -360,7 +358,7 @@ void perfmon_filter_t::subfilter(
         }
         keep_this_perfmon = false;
     } else if (p->is_map()) {
-        std::list<perfmon_result_t::iterator> to_delete;
+        std::vector<perfmon_result_t::iterator> to_delete;
         for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
             std::vector<bool> subactive = active;
             bool some_subpath = false;
@@ -385,7 +383,7 @@ void perfmon_filter_t::subfilter(
                 to_delete.push_back(it);
             }
         }
-        for (std::list<perfmon_result_t::iterator>::const_iterator
+        for (std::vector<perfmon_result_t::iterator>::const_iterator
                  it = to_delete.begin(); it != to_delete.end(); ++it) {
             p->erase(*it);
         }
