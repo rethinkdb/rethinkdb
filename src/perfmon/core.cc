@@ -327,17 +327,23 @@ perfmon_filter_t::~perfmon_filter_t() {
     }
 }
 
-void perfmon_filter_t::filter(perfmon_result_t *p) const {
-    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+void perfmon_filter_t::filter(const scoped_ptr_t<perfmon_result_t> *p) const {
+    guarantee(p->has(), "perfmon_filter_t::filter needs a perfmon_result_t");
+    subfilter(const_cast<scoped_ptr_t<perfmon_result_t> *>(p),
+              0, std::vector<bool>(regexps.size(), true));
+    guarantee(p->has(), "subfilter is not supposed to delete the top-most node.");
 }
 
 /* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
    the [perfmon_filter_t] was constructed from, and [active] is the set of paths
    that are still active (i.e. that haven't failed a match yet).  This should
    only be called by [filter]. */
-perfmon_result_t *perfmon_filter_t::subfilter(
-    perfmon_result_t *const p, const size_t depth,
+void perfmon_filter_t::subfilter(
+    scoped_ptr_t<perfmon_result_t> *p_ptr, const size_t depth,
     const std::vector<bool> active) const {
+
+    perfmon_result_t *const p = p_ptr->get();
+
     bool keep_this_perfmon = true;
     if (p->is_string()) {
         std::string *str = p->get_string();
@@ -346,10 +352,10 @@ perfmon_result_t *perfmon_filter_t::subfilter(
                 continue;
             }
             if (depth >= regexps[i].size()) {
-                return p;
+                return;
             }
             if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) {
-                return p;
+                return;
             }
         }
         keep_this_perfmon = false;
@@ -363,13 +369,17 @@ perfmon_result_t *perfmon_filter_t::subfilter(
                     continue;
                 }
                 if (depth >= regexps[i].size()) {
-                    return p;
+                    // TODO: What???  What about things that were pushed onto
+                    // to_delete?
+                    return;
                 }
                 subactive[i] = regexps[i][depth]->matches(it->first);
                 some_subpath |= subactive[i];
             }
             if (some_subpath) {
-                it->second = subfilter(it->second, depth + 1, subactive);
+                scoped_ptr_t<perfmon_result_t> tmp(it->second);
+                subfilter(&tmp, depth + 1, subactive);
+                it->second = tmp.release();
             }
             if (!some_subpath || !it->second) {
                 to_delete.push_back(it);
@@ -379,14 +389,13 @@ perfmon_result_t *perfmon_filter_t::subfilter(
                  it = to_delete.begin(); it != to_delete.end(); ++it) {
             p->erase(*it);
         }
-        if (p->get_map()->empty()) keep_this_perfmon = false;
+        if (p->get_map()->empty()) {
+            keep_this_perfmon = false;
+        }
     }
 
     if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
-        delete p;
-        return NULL;
-    } else {
-        return p;
+        p_ptr->reset();
     }
 }
 
