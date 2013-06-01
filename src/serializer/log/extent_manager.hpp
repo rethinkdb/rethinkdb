@@ -81,10 +81,10 @@ public:
         guarantee(state_ == begun);
         state_ = ended;
     }
-    void reset(std::vector<extent_reference_t> *extents_out) {
+    MUST_USE std::vector<extent_reference_t> reset() {
         guarantee(state_ == ended);
-        *extents_out = std::move(extent_ref_set_);
         state_ = committed;
+        return std::move(extent_ref_set_);
     }
 
 private:

@@ -247,8 +247,7 @@ void extent_manager_t::end_transaction(extent_transaction_t *t) {
 
 void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     assert_thread();
-    std::vector<extent_reference_t> extents;
-    t->reset(&extents);
+    std::vector<extent_reference_t> extents = t->reset();
     for (auto it = extents.begin(); it != extents.end(); ++it) {
         zone->release_extent(std::move(*it));
     }
