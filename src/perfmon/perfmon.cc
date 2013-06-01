@@ -53,8 +53,8 @@ int64_t perfmon_counter_t::combine_stats(const padded_int64_t *data) {
     return value;
 }
 
-perfmon_result_t *perfmon_counter_t::output_stat(const int64_t &stat) {
-    return new perfmon_result_t(strprintf("%" PRIi64, stat));
+scoped_ptr_t<perfmon_result_t> perfmon_counter_t::output_stat(const int64_t &stat) {
+    return make_scoped<perfmon_result_t>(strprintf("%" PRIi64, stat));
 }
 
 /* perfmon_sampler_t */
@@ -115,7 +115,7 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(const stats_t *stats
     return aggregated;
 }
 
-perfmon_result_t *perfmon_sampler_t::output_stat(const stats_t &aggregated) {
+scoped_ptr_t<perfmon_result_t> perfmon_sampler_t::output_stat(const stats_t &aggregated) {
     scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
     if (aggregated.count > 0) {
@@ -131,7 +131,7 @@ perfmon_result_t *perfmon_sampler_t::output_stat(const stats_t &aggregated) {
         stat->insert(stat_per_sec, make_scoped<perfmon_result_t>(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
 
-    return stat.release();
+    return stat;
 }
 
 /* perfmon_stddev_t */
@@ -207,7 +207,7 @@ stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
+scoped_ptr_t<perfmon_result_t> perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
     scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
     stat->insert(stat_count, make_scoped<perfmon_result_t>(strprintf("%zu", stat_data.datapoints())));
@@ -219,7 +219,7 @@ perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
         stat->insert(stat_mean, make_scoped<perfmon_result_t>(no_value));
         stat->insert(stat_std_dev, make_scoped<perfmon_result_t>(no_value));
     }
-    return stat.release();
+    return stat;
 }
 
 void perfmon_stddev_t::record(double value) {
@@ -281,8 +281,8 @@ double perfmon_rate_monitor_t::combine_stats(const double *stats) {
     return total;
 }
 
-perfmon_result_t *perfmon_rate_monitor_t::output_stat(const double &stat) {
-    return new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length)));
+scoped_ptr_t<perfmon_result_t> perfmon_rate_monitor_t::output_stat(const double &stat) {
+    return make_scoped<perfmon_result_t>(strprintf("%.8f", stat / ticks_to_secs(length)));
 }
 
 perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon)
