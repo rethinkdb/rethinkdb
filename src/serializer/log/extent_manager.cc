@@ -171,16 +171,14 @@ extent_manager_t::extent_manager_t(file_t *file,
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     // TODO: Why does dynamic_config have the possibility of setting a file size?
-    if (file->is_block_device() || dynamic_config->file_size > 0) {
+    if (dynamic_config->file_size > 0) {
         /* If we are given a fixed file size, we pretend to be on a block device. */
-        if (!file->is_block_device()) {
-            if (file->get_size() <= dynamic_config->file_size) {
-                file->set_size(dynamic_config->file_size);
-            } else {
-                logWRN("File size specified is smaller than the file actually is. "
-                       "To avoid risk of smashing database, ignoring file size "
-                       "specification.");
-            }
+        if (file->get_size() <= dynamic_config->file_size) {
+            file->set_size(dynamic_config->file_size);
+        } else {
+            logWRN("File size specified is smaller than the file actually is. "
+                   "To avoid risk of smashing database, ignoring file size "
+                   "specification.");
         }
 
         /* On a block device, chop the block device up into equal-sized zones, the
@@ -210,7 +208,7 @@ extent_manager_t::~extent_manager_t() {
 
 extent_zone_t *extent_manager_t::zone_for_offset(int64_t offset) {
     assert_thread();
-    if (dbfile->is_block_device() || dynamic_config->file_size > 0) {
+    if (dynamic_config->file_size > 0) {
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
         return &zones[offset / zone_size];
     } else {
