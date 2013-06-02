@@ -61,7 +61,7 @@ class extent_zone_t {
     // any given time, is the one with the smallest id (i.e. smallest offset),
     // because unused extents at the end of the file give us room to shrink the file.
     std::priority_queue<unsigned int,
-                        std::deque<unsigned int>,
+                        std::vector<unsigned int>,
                         std::greater<unsigned int> > free_extents;
 
 private:
