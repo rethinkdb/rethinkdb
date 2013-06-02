@@ -1,7 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "parsing/util.hpp"
 
+#ifdef __FreeBSD__
+#include <stdlib.h>
+#else
 #include <alloca.h>
+#endif
 
 #include "arch/io/network.hpp"
 

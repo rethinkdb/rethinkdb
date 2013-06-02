@@ -92,7 +92,16 @@ NORETURN void generic_crash_handler(int signum) {
 }
 
 NORETURN void terminate_handler() {
+#if defined(__FreeBSD__) && defined(__clang__)
+    std::type_info *t = NULL;
+    abi::__cxa_eh_globals *globals = abi::__cxa_get_globals();
+    if (globals && globals->caughtExceptions) {
+        t = globals->caughtExceptions->exceptionType;
+    }
+#else
+    // __cxa_current_exception_type is supported on GCC 4.x ABI.
     std::type_info *t = abi::__cxa_current_exception_type();
+#endif
     if (t) {
         std::string name;
         try {

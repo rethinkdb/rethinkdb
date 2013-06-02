@@ -8,7 +8,11 @@
 #include "logger.hpp"
 
 int _gettid() {
+#ifdef __FreeBSD__
+    return getpid();
+#else
     return syscall(SYS_gettid);
+#endif
 }
 
 fd_t scoped_fd_t::reset(fd_t f2) {

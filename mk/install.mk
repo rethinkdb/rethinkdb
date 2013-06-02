@@ -86,8 +86,10 @@ install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	install -m755 -d $(DESTDIR)$(man1_dir)
 	m4 -D "SHORT_VERSION=$(RETHINKDB_SHORT_VERSION)" \
 	   -D "CURRENT_DATE=$(shell date +%F)" \
-	   < $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 | \
-	   install -m644 /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
+	   < $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 > \
+	   $(BUILD_DIR)/man_rethinkdb.1.gz
+	install -m644 $(BUILD_DIR)/man_rethinkdb.1.gz \
+	   $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
 
 .PHONY: install-tools
 install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
@@ -97,8 +99,10 @@ install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 	install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	m4 -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
 	   -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	   $(ASSETS_DIR)/scripts/rethinkdb.bash | \
-	  install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	   $(ASSETS_DIR)/scripts/rethinkdb.bash > \
+	   $(BUILD_DIR)/script_rethinkdb.bash
+	install -m644 $(BUILD_DIR)/script_rethinkdb.bash \
+	   $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	install -m644 $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash \
 	              $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	$P INSTALL $(ASSET_SCRIPTS) $(DESTDIR)$(scripts_dir)

@@ -23,6 +23,9 @@ STATICFORCE := $(STATIC)
 
 ifeq ($(OS),Linux)
   LDPTHREADFLAG := -pthread
+else ifeq ($(OS),FreeBSD)
+  # Required by ports/devel/boost-libs.
+  LDPTHREADFLAG := -pthread
 else
   LDPTHREADFLAG :=
 endif
@@ -32,6 +35,8 @@ ifeq ($(COMPILER),CLANG)
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
+    RT_LDFLAGS += -lc++
+  else ifeq ($(OS), FreeBSD)
     RT_LDFLAGS += -lc++
   else
     RT_LDFLAGS += -lstdc++
@@ -65,6 +70,10 @@ else ifeq ($(COMPILER),GCC)
     RT_LDFLAGS += -Wl,--no-as-needed
   endif
 
+  ifeq ($(OS),FreeBSD)
+    RT_LDFLAGS += -lstdc++
+  endif
+
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
@@ -77,6 +86,12 @@ else ifeq ($(COMPILER),GCC)
 endif
 
 ifeq ($(OS),Linux)
+  LIBRARY_PATHS += -lrt
+endif
+ifeq ($(OS),FreeBSD)
+  RT_CXXFLAGS += -I/usr/local/include
+  RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
+  RT_LDFLAGS += -L/usr/local/lib
   LIBRARY_PATHS += -lrt
 endif
 
@@ -116,7 +131,8 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations
+RT_CXXSTDFLAGS = -std=gnu++0x  # Default C++ standard - must be c++0x compatible
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
@@ -126,7 +142,9 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
   ifeq ($(OS), Darwin)
-    RT_CXXFLAGS += -stdlib=libc++
+    RT_CXXSTDFLAGS = -std=gnu++0x -stdlib=libc++
+  else ifeq ($(OS), FreeBSD)
+    RT_CXXSTDFLAGS = -std=c++0x -stdlib=libc++
   endif
 
 else ifeq ($(COMPILER), GCC)
@@ -136,6 +154,8 @@ else ifeq ($(COMPILER), GCC)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
   endif
 endif
+
+RT_CXXFLAGS += $(RT_CXXSTDFLAGS)
 
 ifeq ($(COVERAGE), 1)
   ifeq ($(COMPILER), GCC)
