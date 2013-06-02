@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
+#include <queue>
+
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
@@ -34,17 +36,14 @@ public:
     // object.
     int32_t extent_use_refcount;
 
-    int64_t next_in_free_list;   // Valid if state == state_free
-
     extent_info_t() : state_(state_unreserved),
-                      extent_use_refcount(0),
-                      next_in_free_list(-1) {}
+                      extent_use_refcount(0) {}
 };
 
 class extent_zone_t {
     const size_t extent_size;
 
-    unsigned int offset_to_id(int64_t extent) {
+    unsigned int offset_to_id(int64_t extent) const {
         rassert(divides(extent_size, extent));
         return extent / extent_size;
     }
@@ -58,7 +57,13 @@ class extent_zone_t {
 
     segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
 
-    int64_t free_list_head;
+    // A min-queue of free extents' extent ids.  The next extent we wish to use, at
+    // any given time, is the one with the smallest id (i.e. smallest offset),
+    // because unused extents at the end of the file give us room to shrink the file.
+    std::priority_queue<unsigned int,
+                        std::deque<unsigned int>,
+                        std::greater<unsigned int> > free_extents;
+
 private:
     int held_extents_;
 public:
@@ -83,16 +88,15 @@ public:
         return make_extent_reference(extent);
     }
 
+    // Initializes `free_extents`.
     void reconstruct_free_list() {
-        free_list_head = NULL_OFFSET;
-
         for (int64_t extent = 0;
              extent < static_cast<int64_t>(extents.get_size() * extent_size);
              extent += extent_size) {
-            if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
-                extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
-                extents[offset_to_id(extent)].next_in_free_list = free_list_head;
-                free_list_head = extent;
+            const unsigned int extent_id = offset_to_id(extent);
+            if (extents[extent_id].state() == extent_info_t::state_unreserved) {
+                extents[extent_id].set_state(extent_info_t::state_free);
+                free_extents.push(extent_id);
                 held_extents_++;
             }
         }
@@ -101,13 +105,13 @@ public:
     extent_reference_t gen_extent() {
         int64_t extent;
 
-        if (free_list_head == NULL_OFFSET) {
+        if (free_extents.empty()) {
             extent = extents.get_size() * extent_size;
 
             extents.set_size(extents.get_size() + 1);
         } else {
-            extent = free_list_head;
-            free_list_head = extents[offset_to_id(free_list_head)].next_in_free_list;
+            extent = free_extents.top() * extent_size;
+            free_extents.pop();
             held_extents_--;
         }
 
@@ -127,15 +131,16 @@ public:
     }
 
     void release_extent(extent_reference_t &&extent_ref) {
-        int64_t extent = extent_ref.release();
-        extent_info_t *info = &extents[offset_to_id(extent)];
+        const int64_t extent = extent_ref.release();
+        const unsigned int extent_id = offset_to_id(extent);
+        extent_info_t *info = &extents[extent_id];
         guarantee(info->state() == extent_info_t::state_in_use);
         guarantee(info->extent_use_refcount > 0);
         --info->extent_use_refcount;
         if (info->extent_use_refcount == 0) {
             info->set_state(extent_info_t::state_free);
-            info->next_in_free_list = free_list_head;
-            free_list_head = extent;
+            // RSI: If this is the last extent, we want to shrink the file.
+            free_extents.push(extent_id);
             held_extents_++;
         }
     }
