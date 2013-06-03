@@ -18,7 +18,7 @@ commands:
       - description: Get all users whose name starts with A.
         code:
           rb: r.table('users').filter{|row| row[:name].match("^A")}.run(conn)
-          py: r.table('users').filter(lambda row: row['name'].match("^A")).run(conn)
+          py: r.table('users').filter(lambda row:row['name'].match("^A")).run(conn)
           js: r.table('users').filter(function(row){return row('name').match("^A")}).run(conn, callback)
       - description: Parse out a name (returns "mlucy").
         code:

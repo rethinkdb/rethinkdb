@@ -101,6 +101,22 @@ tests:
     - cd: r.branch(null, {}, [])
       ot: ([])
 
+    - cd: r.branch(r.db('test'), 1, 2)
+      ot: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+    - cd: r.branch(r.db('test').table('test1'), 1, 2)
+      ot: err("RqlRuntimeError", "Expected type DATUM but found TABLE.", [])
+    - cd: r.branch(r.error("a"), 1, 2)
+      ot: err("RqlRuntimeError", "a", [])
+
+    - cd: r.branch([], 1, 2)
+      ot: 1
+    - cd: r.branch({}, 1, 2)
+      ot: 1
+    - cd: r.branch("a", 1, 2)
+      ot: 1
+    - cd: r.branch(1.2, 1, 2)
+      ot: 1
+
     # r.error()
     - cd: r.error('Hello World')
       ot: err("RqlRuntimeError", "Hello World", [0])
