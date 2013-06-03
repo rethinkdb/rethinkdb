@@ -290,4 +290,8 @@ commands:
 
     examples:
       - description: Select 3 random heroes.
-        code: r.table('marvel').sample(3).run(conn)
+        code:
+          js: r.table('marvel').sample(3).run(conn, callback)
+          rb: r.table('marvel').sample(3).run(conn)
+          py: r.table('marvel').sample(3).run(conn)
+
