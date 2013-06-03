@@ -13,13 +13,19 @@ namespace ql {
 // from it just need to implement evaluation on objects (`obj_eval`).
 class obj_or_seq_op_term_t : public op_term_t {
 public:
-    obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
-        : op_term_t(env, term, argspec), map_func(make_counted_term()) {
+    enum poly_type_t {
+        MAP = 0,
+        FILTER = 1
+    };
+    obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term,
+                         poly_type_t _poly_type, argspec_t argspec)
+        : op_term_t(env, term, argspec), poly_type(_poly_type),
+          func(make_counted_term()) {
         int varnum = env->gensym();
-        Term *body = pb::set_func(map_func.get(), varnum);
+        Term *body = pb::set_func(func.get(), varnum);
         *body = *term;
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
-        prop_bt(map_func.get());
+        prop_bt(func.get());
     }
 private:
     virtual counted_t<val_t> obj_eval() = 0;
@@ -29,19 +35,27 @@ private:
             if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
         }
         if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-            return new_val(v0->as_seq()->map(make_counted<func_t>(env, map_func)));
+            switch (poly_type) {
+            case MAP:
+                return new_val(v0->as_seq()->map(make_counted<func_t>(env, func)));
+            case FILTER:
+                return new_val(v0->as_seq()->filter(make_counted<func_t>(env, func)));
+            default: unreachable();
+            }
+            unreachable();
         }
         rfail("Cannot perform %s on a non-object non-sequence.", name());
         unreachable();
     }
 
-    protob_t<Term> map_func;
+    poly_type_t poly_type;
+    protob_t<Term> func;
 };
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
     pluck_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
@@ -64,7 +78,7 @@ private:
 class without_term_t : public obj_or_seq_op_term_t {
 public:
     without_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
@@ -83,7 +97,7 @@ private:
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
     merge_term_t(env_t *env, protob_t<const Term> term) :
-        obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
+        obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> d = arg(0)->as_datum();
@@ -95,6 +109,25 @@ private:
     virtual const char *name() const { return "merge"; }
 };
 
+class has_fields_term_t : public obj_or_seq_op_term_t {
+public:
+    has_fields_term_t(env_t *env, protob_t<const Term> term)
+        : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
+private:
+    virtual counted_t<val_t> obj_eval() {
+        counted_t<const datum_t> obj = arg(0)->as_datum();
+        bool contains = true;
+        for (size_t i = 1; i < num_args(); ++i) {
+            contains = contains && obj->get(arg(i)->as_str(), NOTHROW).has();
+        }
+        return new_val(make_counted<const datum_t>(datum_t::R_BOOL, contains));
+    }
+    virtual const char *name() const { return "has_fields"; }
+};
+
+counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<has_fields_term_t>(env, term);
+}
 
 counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term) {
     return make_counted<pluck_term_t>(env, term);

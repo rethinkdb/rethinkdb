@@ -7,7 +7,7 @@ tests:
         rb: obj = r.expr({ :a => 1, :b => 2, :c => 'str' })
 
     ##  Get attr
-    
+
     - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
       ot: 1
@@ -15,18 +15,24 @@ tests:
       js: [obj('c'), obj.getAttr('c')]
       ot: "'str'"
 
-    ## Contains
+    ## Has_Fields
 
-    - cd: obj.contains('b')
+    - cd: obj.has_fields('b')
       ot: true
-    - cd: obj.contains('d')
+    - cd: obj.has_fields('d')
       ot: false
 
-    # Contains is variatic
-    - cd: obj.contains('a', 'b')
+    # Has_Fields is variadic
+    - cd: obj.has_fields('a', 'b')
       ot: true
-    - cd: obj.contains('a', 'd')
+    - cd: obj.has_fields('a', 'd')
       ot: false
+
+    # Has_Fields is polymorphic
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'b').count
+      ot: 2
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'c').count
+      ot: 1
 
     ## Pluck
 
@@ -36,7 +42,7 @@ tests:
       ot: ({'a':1, 'b':2})
 
     ## Without
-    
+
     - cd: obj.without('a')
       ot: ({'b':2, 'c':'str'})
     - cd: obj.without('a', 'b')
