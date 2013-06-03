@@ -53,6 +53,7 @@ counted_t<term_t> make_gmr_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_javascript_term(env_t *env, protob_t<const Term> term);
 
 // obj.cc
+counted_t<term_t> make_keys_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_getattr_term(env_t *env, protob_t<const Term> term);
 
 // obj_or_seq.cc

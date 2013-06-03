@@ -116,11 +116,13 @@ public:
 private:
     virtual counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
-        bool contains = true;
         for (size_t i = 1; i < num_args(); ++i) {
-            contains = contains && obj->get(arg(i)->as_str(), NOTHROW).has();
+            counted_t<const datum_t> el = obj->get(arg(i)->as_str(), NOTHROW);
+            if (!el.has() || el->get_type() == datum_t::R_NULL) {
+                return new_val_bool(false);
+            }
         }
-        return new_val(make_counted<const datum_t>(datum_t::R_BOOL, contains));
+        return new_val_bool(true);
     }
     virtual const char *name() const { return "has_fields"; }
 };

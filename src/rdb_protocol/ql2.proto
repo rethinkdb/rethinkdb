@@ -253,6 +253,8 @@ message Term {
         // Get a particular attribute out of an object, or map that over a
         // sequence.
         GETATTR  = 31; // OBJECT, STRING -> DATUM
+        // Return an array containing the keys of the object.
+        KEYS = 82; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
