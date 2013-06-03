@@ -148,7 +148,8 @@ private:
 
 class limit_term_t : public op_term_t {
 public:
-    limit_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+    limit_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
@@ -170,6 +171,27 @@ private:
     virtual const char *name() const { return "limit"; }
 };
 
+class contains_term_t : public op_term_t {
+public:
+    contains_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<datum_stream_t> seq = arg(0)->as_seq();
+        counted_t<const datum_t> desired_el = arg(1)->as_datum();
+        while (counted_t<const datum_t> el = seq->next()) {
+            if (*el == *desired_el) {
+                return new_val_bool(true);
+            }
+        }
+        return new_val_bool(false);
+    }
+    virtual const char *name() const { return "contains"; }
+};
+
+counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<contains_term_t>(env, term);
+}
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);

@@ -13,6 +13,7 @@ counted_t<term_t> make_arith_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term);
 
 // arr.cc
+counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term);
