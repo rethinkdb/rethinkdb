@@ -166,6 +166,14 @@ tests:
     - cd: r.expr([1,2,3]).union(tbl2).count()
       ot: 103
 
+    # Contains
+    - cd: tbl.contains(tbl[0])
+      js: tbl.contains(tbl.nth(0))
+      ot: true
+    - cd: tbl.contains(tbl[0].pluck('id'))
+      js: tbl.contains(tbl.nth(0).pluck('id'))
+      ot: false
+
     # Clean up
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})
