@@ -21,13 +21,18 @@
 #define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
 #endif
 
+// Max concurrent IO requests per event queue
+#define DEFAULT_MAX_CONCURRENT_IO_REQUESTS                64
+
+
+
 class linux_iocallback_t;
 
 class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    io_backender_t();
+    io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
 

@@ -41,12 +41,15 @@ public:
     };
 
 
-    linux_disk_manager_t(linux_event_queue_t *queue, const int batch_factor, perfmon_collection_t *stats) :
+    linux_disk_manager_t(linux_event_queue_t *queue,
+                         int batch_factor,
+                         int max_concurrent_io_requests,
+                         perfmon_collection_t *stats) :
         stack_stats(stats, "stack"),
         conflict_resolver(stats),
         accounter(batch_factor),
         backend_stats(stats, "backend", accounter.producer),
-        backend(queue, backend_stats.producer),
+        backend(queue, backend_stats.producer, max_concurrent_io_requests),
         outstanding_txn(0)
     {
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
@@ -151,8 +154,11 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-io_backender_t::io_backender_t()
-    : diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue, DEFAULT_IO_BATCH_FACTOR, &stats)) { }
+io_backender_t::io_backender_t(int max_concurrent_io_requests)
+    : diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+                                       DEFAULT_IO_BATCH_FACTOR,
+                                       max_concurrent_io_requests,
+                                       &stats)) { }
 
 io_backender_t::~io_backender_t() { }
 
