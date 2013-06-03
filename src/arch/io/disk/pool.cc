@@ -6,6 +6,10 @@
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
 
+// Max concurrent IO requests per event queue
+#define MAX_CONCURRENT_IO_REQUESTS                64
+
+// RSI: Why is this twice MAX_CONCURRENT_IO_REQUESTS?
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
 
