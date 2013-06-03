@@ -336,7 +336,6 @@ private:
      virtual const char *name() const { return "skip"; }
 };
 
-
 counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
     return make_counted<skip_term_t>(env, term);
 }

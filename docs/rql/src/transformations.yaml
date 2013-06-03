@@ -232,3 +232,17 @@ commands:
           can_try: true
           dataset: marvel
           code: r.table('marvel').union(r.table('dc')).run(conn, callback)
+
+  - tag: sample
+    section: transformations
+    description: |
+      Select a given number of elements from a sequence with uniform random
+      distribution. Selection is done without replacement.
+
+    body: number
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Select 3 random heroes.
+        code: r.table('marvel').sample(3).run(conn)
