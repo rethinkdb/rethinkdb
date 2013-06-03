@@ -91,6 +91,7 @@ class RDBVal extends TermBase
     count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
@@ -442,6 +443,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
+
+class IsEmpty extends RDBOp
+    tt: Term.TermType.IS_EMPTY
+    mt: 'is_empty'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE

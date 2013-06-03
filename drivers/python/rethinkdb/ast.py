@@ -220,6 +220,9 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def is_empty(self):
+        return IsEmpty(self)
+
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
@@ -634,6 +637,14 @@ class Nth(RqlQuery):
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
+
+class IsEmpty(RqlMethodQuery):
+    tt = p.Term.IS_EMPTY
+    st = 'is_empty'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF

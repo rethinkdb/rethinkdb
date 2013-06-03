@@ -25,6 +25,7 @@ tests:
       cd:
       - tbl.zip(1)
       - tbl.distinct(1)
+      - tbl.is_empty(1)
 
 
     - ot:

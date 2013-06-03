@@ -40,7 +40,7 @@ public:
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
     counted_t<datum_stream_t> zip();
-    counted_t<datum_stream_t> indexes_of(counted_t<func_t> f) = 0;
+    counted_t<datum_stream_t> indexes_of(counted_t<func_t> f);
 
     // Returns false or NULL respectively if stream is lazy.
     virtual bool is_array() = 0;

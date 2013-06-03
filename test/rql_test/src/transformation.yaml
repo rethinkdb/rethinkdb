@@ -124,6 +124,16 @@ tests:
       ot: ({'id':99,'a':3})
     - cd: tbl.order_by('id').nth('foo').count()
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+
+    # test is_empty
+    - cd: tbl.is_empty()
+      ot: false
+    - cd: tbl.limit(0).is_empty()
+      ot: true
+    - cd: r.expr(1).is_empty()
+      ot: err('RqlRuntimeError', 'Cannot convert NUMBER to SEQUENCE', [])
+    - cd: r.expr("").is_empty()
+      ot: err('RqlRuntimeError', 'Cannot convert STRING to SEQUENCE', [])
     
     # Pluck
     - cd: tbl.pluck().nth(0)

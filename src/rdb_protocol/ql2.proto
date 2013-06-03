@@ -246,7 +246,7 @@ message Term {
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
-        INDEXES_OF = 81; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
+        INDEXES_OF = 83; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a
@@ -279,6 +279,7 @@ message Term {
         // Count the number of elements in a sequence, or only the elements that match
         // a given filter.
         COUNT     = 43; // Sequence -> NUMBER | Sequence, DATUM -> NUMBER | Sequence, Function(1) -> NUMBER
+        IS_EMPTY = 82; // Sequence -> BOOL
         // Take the union of multiple sequences (preserves duplicate elements! (use distinct)).
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.

@@ -244,6 +244,21 @@ commands:
               |row| row[:superpowers].contains('invisibility')
             }.run(conn)
 
+  - tag: is_empty
+    section: transformations
+    description: Test if a sequence is empty.
+
+    body: index
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: Are there any documents in the marvel table?
+        code:
+          js: r.table('marvel').isEmpty().run(conn, callback)
+          py: r.table('marvel').is_empty().run(conn)
+          rb: r.table('marvel').is_empty().run(conn)
+
   - tag: union
     section: transformations
     description: Concatenate two sequences.

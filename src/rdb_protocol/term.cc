@@ -91,6 +91,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);
+    case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     default: unreachable();
     }
     unreachable();

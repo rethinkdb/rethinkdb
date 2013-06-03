@@ -163,6 +163,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }
@@ -261,6 +262,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }
