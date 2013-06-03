@@ -16,7 +16,7 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
     std::string raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
-    rcheck_target(caller, base_exc_t::WELL_FORMEDNESS, assignment_successful,
+    rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
                   strprintf("Database name `%s` invalid (%s).",
                             raw_name.c_str(), name_string_t::valid_char_msg));
     return name;
@@ -74,7 +74,7 @@ private:
     void init() {
         on_thread_t rethreader(metadata_home_thread);
         rcheck(env->directory_read_manager,
-               base_exc_t::WELL_FORMEDNESS,
+               base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
         guarantee(env->directory_read_manager->home_thread() == metadata_home_thread);
         directory_metadata = env->directory_read_manager->get_root_view();
@@ -124,7 +124,7 @@ private:
         metadata_search_status_t status;
         meta.db_searcher.find_uniq(db_name, &status);
         rcheck(status == METADATA_ERR_NONE,
-               base_exc_t::CONFLICT,
+               base_exc_t::GENERIC,
                strprintf("Database `%s` already exists.", db_name.c_str()));
 
         // Create database, insert into metadata, then join into real metadata.
@@ -136,7 +136,7 @@ private:
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::RESOURCE_ACCESS, "%s", e.what());
+            rfail(base_exc_t::GENERIC, "%s", e.what());
         }
         env->join_and_wait_to_propagate(meta.metadata);
 
@@ -199,7 +199,7 @@ private:
         rethreading_metadata_accessor_t meta(this);
         meta.ns_searcher.find_uniq(pred, &status);
         rcheck(status == METADATA_ERR_NONE,
-               base_exc_t::CONFLICT,
+               base_exc_t::GENERIC,
                strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
         // Create namespace (DB + table pair) and insert into metadata.
@@ -224,7 +224,7 @@ private:
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::RESOURCE_ACCESS, "%s", e.what());
+            rfail(base_exc_t::GENERIC, "%s", e.what());
         }
         env->join_and_wait_to_propagate(meta.metadata);
 
@@ -237,7 +237,7 @@ private:
             wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
                                          env->interruptor, env->semilattice_metadata);
         } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::INTERRUPTED, "Query interrupted, probably by user.");
+            rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
 
         return "created";
@@ -259,8 +259,7 @@ private:
         metadata_search_status_t status;
         metadata_searcher_t<database_semilattice_metadata_t>::iterator
             db_metadata = meta.db_searcher.find_uniq(db_name, &status);
-        rcheck(status == METADATA_SUCCESS,
-               base_exc_t::NOT_FOUND,
+        rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
                strprintf("Database `%s` does not exist.", db_name.c_str()));
         guarantee(!db_metadata->second.is_deleted());
         uuid_u db_id = db_metadata->first;
@@ -282,7 +281,7 @@ private:
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::RESOURCE_ACCESS, "%s", e.what());
+            rfail(base_exc_t::GENERIC, "%s", e.what());
         }
         env->join_and_wait_to_propagate(meta.metadata);
 
@@ -316,8 +315,7 @@ private:
         namespace_predicate_t pred(&tbl_name, &db_id);
         metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
             ns_metadata = meta.ns_searcher.find_uniq(pred, &status);
-        rcheck(status == METADATA_SUCCESS,
-               base_exc_t::NOT_FOUND,
+        rcheck(status == METADATA_SUCCESS, base_exc_t::GENERIC,
                strprintf("Table `%s` does not exist.", tbl_name.c_str()));
         guarantee(!ns_metadata->second.is_deleted());
 
@@ -327,7 +325,7 @@ private:
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
                                env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::RESOURCE_ACCESS, "%s", e.what());
+            rfail(base_exc_t::GENERIC, "%s", e.what());
         }
         env->join_and_wait_to_propagate(meta.metadata);
 

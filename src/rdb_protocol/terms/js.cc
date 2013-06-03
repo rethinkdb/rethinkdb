@@ -38,7 +38,7 @@ private:
                                                             this->counted_from_this()),
                                         result);
         } catch (const interrupted_exc_t &e) {
-            rfail(base_exc_t::TIMEOUT,
+            rfail(base_exc_t::GENERIC,
                   "JavaScript query `%s` timed out after %.2G seconds.",
                   source.c_str(), timeout_s);
         }

@@ -22,10 +22,10 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
-           base_exc_t::WELL_FORMEDNESS,
+           base_exc_t::GENERIC,
            "FUNC takes no optional arguments.");
     rcheck(t->args_size() == 2,
-           base_exc_t::WELL_FORMEDNESS,
+           base_exc_t::GENERIC,
            strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
     std::vector<int> args;
@@ -33,12 +33,12 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
-               base_exc_t::WELL_FORMEDNESS,
+               base_exc_t::GENERIC,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
         for (int i = 0; i < d->r_array_size(); ++i) {
             const Datum *dnum = &d->r_array(i);
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
@@ -46,16 +46,16 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
         for (int i = 0; i < vars->args_size(); ++i) {
             const Term *arg = &vars->args(i);
             rcheck(arg->type() == Term_TermType_DATUM,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
     } else {
-        rfail(base_exc_t::WELL_FORMEDNESS,
+        rfail(base_exc_t::GENERIC,
               "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
@@ -101,7 +101,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
             for (ssize_t i = 0; i < argptrs.size(); ++i) {
@@ -147,7 +147,7 @@ bool func_t::is_deterministic() const {
 }
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
-           base_exc_t::WELL_FORMEDNESS,
+           base_exc_t::GENERIC,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 

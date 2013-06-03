@@ -332,7 +332,7 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
 
     counted_t<const datum_t> left = datum->get("left", NOTHROW);
     counted_t<const datum_t> right = datum->get("right", NOTHROW);
-    rcheck(left.has(), base_exc_t::WELL_FORMEDNESS,
+    rcheck(left.has(), base_exc_t::GENERIC,
            "ZIP can only be called on the result of a join.");
     return right.has() ? left->merge(right) : left;
 }

@@ -52,15 +52,14 @@ private:
         } else {
             counted_t<datum_stream_t> s = v->as_seq();
             rcheck(n >= -1,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             counted_t<const datum_t> last_d;
             for (int32_t i = 0; ; ++i) {
                 counted_t<const datum_t> d = s->next();
                 if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(),
-                           base_exc_t::NOT_FOUND,
+                    rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
                            strprintf("Index out of bounds: %d", n));
                     return new_val(last_d);
                 }
@@ -112,9 +111,9 @@ private:
                 seq = v->as_seq();
             }
 
-            rcheck(fake_l >= 0, base_exc_t::WELL_FORMEDNESS,
+            rcheck(fake_l >= 0, base_exc_t::GENERIC,
                    "Cannot use a negative left index on a stream.");
-            rcheck(fake_r >= -1, base_exc_t::WELL_FORMEDNESS,
+            rcheck(fake_r >= -1, base_exc_t::GENERIC,
                    "Cannot use a right index < -1 on a stream");
             counted_t<datum_stream_t> new_ds = seq->slice(fake_l, fake_r);
             return t.has() ? new_val(new_ds, t) : new_val(new_ds);
@@ -137,7 +136,7 @@ private:
         }
         counted_t<datum_stream_t> ds = v->as_seq();
         int32_t r = arg(1)->as_int<int32_t>();
-        rcheck(r >= 0, base_exc_t::NUMERIC_LIMIT,
+        rcheck(r >= 0, base_exc_t::GENERIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
         counted_t<datum_stream_t> new_ds;
         if (r == 0) {

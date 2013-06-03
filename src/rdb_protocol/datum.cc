@@ -16,7 +16,7 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
-    rcheck(isfinite(r_num), base_exc_t::NUMERIC_LIMIT,
+    rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str)
@@ -129,7 +129,7 @@ void datum_t::init_json(cJSON *json, env_t *env) {
 void datum_t::check_str_validity(const std::string &str) {
     size_t null_offset = str.find('\0');
     rcheck(null_offset == std::string::npos,
-           base_exc_t::WELL_FORMEDNESS,
+           base_exc_t::GENERIC,
            // We truncate because lots of other places can call `c_str` on the
            // error message.
            strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
@@ -239,7 +239,7 @@ std::string datum_t::print_primary() const {
             print().c_str(), datum_type_name(type)));
     }
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
-        rfail(base_exc_t::NUMERIC_LIMIT,
+        rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
               rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
@@ -251,7 +251,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
-        rfail(base_exc_t::NUMERIC_LIMIT,
+        rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
               rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1,
               key_to_debug_str(primary_key).c_str());
@@ -339,12 +339,12 @@ static const double min_dbl_int = max_dbl_int * -1;
 int64_t datum_t::as_int() const {
     static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
     double d = as_num();
-    rcheck(d <= max_dbl_int, base_exc_t::NUMERIC_LIMIT,
+    rcheck(d <= max_dbl_int, base_exc_t::GENERIC,
            strprintf("Number not an integer (>2^53): " DBLPRI, d));
-    rcheck(d >= min_dbl_int, base_exc_t::NUMERIC_LIMIT,
+    rcheck(d >= min_dbl_int, base_exc_t::GENERIC,
            strprintf("Number not an integer (<-2^53): " DBLPRI, d));
     int64_t i = d;
-    rcheck(static_cast<double>(i) == d, base_exc_t::NUMERIC_LIMIT,
+    rcheck(static_cast<double>(i) == d, base_exc_t::GENERIC,
            strprintf("Number not an integer: " DBLPRI, d));
     return i;
 }
@@ -558,7 +558,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
         r_num = d->r_num();
         using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
         rcheck(isfinite(r_num),
-               base_exc_t::NUMERIC_LIMIT,
+               base_exc_t::GENERIC,
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
     case Datum_DatumType_R_STR: {
@@ -579,7 +579,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
             const std::string &key = ap->key();
             check_str_validity(key);
             rcheck(r_object->count(key) == 0,
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val(), env);
         }

@@ -15,7 +15,7 @@ private:
         if (num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
-            rfail(base_exc_t::USER, "%s", arg(0)->as_str().c_str());
+            rfail(base_exc_t::GENERIC, "%s", arg(0)->as_str().c_str());
         }
         unreachable();
     }

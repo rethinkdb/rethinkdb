@@ -29,7 +29,7 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
 
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_target(
-        caller, base_exc_t::TYPE,
+        caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
                   l->get_type_name(), r->get_type_name()));

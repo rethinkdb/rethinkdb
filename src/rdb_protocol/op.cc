@@ -48,7 +48,7 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
-           base_exc_t::WELL_FORMEDNESS,
+           base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
 
@@ -56,11 +56,11 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         const Term_AssocPair *ap = &term->optargs(i);
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
-                   base_exc_t::WELL_FORMEDNESS,
+                   base_exc_t::GENERIC,
                    strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
-               base_exc_t::WELL_FORMEDNESS,
+               base_exc_t::GENERIC,
                strprintf("Duplicate %s: %s",
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),

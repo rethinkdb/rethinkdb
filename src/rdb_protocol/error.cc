@@ -32,7 +32,7 @@ void runtime_check(base_exc_t::type_t type,
 void runtime_sanity_check(bool test) {
     if (!test) {
         lazy_backtrace_t bt;
-        throw exc_t(base_exc_t::SANITY_CHECK,
+        throw exc_t(base_exc_t::GENERIC,
                     "SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
                     backtrace_t());
     }
@@ -42,7 +42,7 @@ base_exc_t::type_t exc_type(const datum_t *d) {
     r_sanity_check(d);
     return d->get_type() == datum_t::R_NULL
         ? base_exc_t::NON_EXISTENCE
-        : base_exc_t::TYPE;
+        : base_exc_t::GENERIC;
 }
 base_exc_t::type_t exc_type(const counted_t<const datum_t> &d) {
     r_sanity_check(d.has());
@@ -53,7 +53,7 @@ base_exc_t::type_t exc_type(val_t *v) {
     if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
         return exc_type(v->as_datum());
     } else {
-        return base_exc_t::TYPE;
+        return base_exc_t::GENERIC;
     }
 }
 base_exc_t::type_t exc_type(const counted_t<val_t> &v) {

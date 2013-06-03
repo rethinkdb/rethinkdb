@@ -61,7 +61,7 @@ public:
     }
     int get_type(const std::string &s, const rcheckable_t *caller) const {
         std::map<std::string, int>::const_iterator it = map.find(s);
-        rcheck_target(caller, base_exc_t::NOT_FOUND, it != map.end(),
+        rcheck_target(caller, base_exc_t::GENERIC, it != map.end(),
                       strprintf("Unknown Type: %s", s.c_str()));
         return it->second;
     }
@@ -184,7 +184,7 @@ private:
             try {
                 ds = val->as_seq();
             } catch (const base_exc_t &e) {
-                rfail(base_exc_t::TYPE,
+                rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
                 unreachable();
@@ -206,7 +206,7 @@ private:
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj->add(key, keyval);
-                        rcheck(!b, base_exc_t::WELL_FORMEDNESS,
+                        rcheck(!b, base_exc_t::GENERIC,
                                strprintf("Duplicate key %s in coerced object.  "
                                          "(got %s and %s as values)",
                                          key.c_str(),

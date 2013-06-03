@@ -139,7 +139,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 if (ap.key() != "noreply") {
                     bool conflict = env->add_optarg(ap.key(), ap.val());
                     rcheck_toplevel(
-                        !conflict, base_exc_t::WELL_FORMEDNESS,
+                        !conflict, base_exc_t::GENERIC,
                         strprintf("Duplicate global optarg: %s", ap.key().c_str()));
                 }
             }
@@ -166,7 +166,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
         try {
             rcheck_toplevel(!stream_cache2->contains(token),
-                            base_exc_t::CONFLICT,
+                            base_exc_t::GENERIC,
                             strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
@@ -196,7 +196,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
-                rfail_toplevel(base_exc_t::TYPE,
+                rfail_toplevel(base_exc_t::GENERIC,
                                "Query result must be of type DATUM or STREAM (got %s).",
                                val->get_type().name());
             }
@@ -212,7 +212,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
     case Query_QueryType_CONTINUE: {
         try {
             bool b = stream_cache2->serve(token, res, env->interruptor);
-            rcheck_toplevel(b, base_exc_t::NOT_FOUND,
+            rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
@@ -221,7 +221,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
     } break;
     case Query_QueryType_STOP: {
         try {
-            rcheck_toplevel(stream_cache2->contains(token), base_exc_t::NOT_FOUND,
+            rcheck_toplevel(stream_cache2->contains(token), base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {

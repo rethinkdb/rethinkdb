@@ -18,21 +18,11 @@ namespace ql {
 class base_exc_t : public std::exception {
 public:
     enum type_t {
-        GENERIC,
-        SANITY_CHECK,
-        NUMERIC_LIMIT,
-        WELL_FORMEDNESS,
-        TYPE,
-        USER,
-        EMPTY_USER,
-        TIMEOUT,
-        INTERRUPTED,
-        CONFLICT,
+        GENERIC, // All errors except those below.
 
-        NOT_FOUND,
-        RESOURCE_ACCESS,
-
-        NON_EXISTENCE
+        // The only thing that cares about these is `default`.
+        EMPTY_USER, // An error caused by `r.error` with no arguments.
+        NON_EXISTENCE // An error related to the absence of an expected value.
     };
     base_exc_t(type_t type) : type_(type) { }
     virtual ~base_exc_t() throw () { }

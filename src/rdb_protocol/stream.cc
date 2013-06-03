@@ -200,7 +200,7 @@ result_t batched_rget_stream_t::apply_terminal(
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
             // No backtrace for these.
-            rfail_toplevel(ql::base_exc_t::RESOURCE_ACCESS,
+            rfail_toplevel(ql::base_exc_t::GENERIC,
                            "cannot perform read: %s", e.what());
         }
     }
@@ -263,7 +263,7 @@ void batched_rget_stream_t::read_more() {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
             // No backtrace.
-            rfail_toplevel(ql::base_exc_t::RESOURCE_ACCESS,
+            rfail_toplevel(ql::base_exc_t::GENERIC,
                            "cannot perform read: %s", e.what());
         }
     }

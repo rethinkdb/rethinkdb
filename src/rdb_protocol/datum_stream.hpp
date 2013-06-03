@@ -247,7 +247,7 @@ private:
         if (counted_t<const datum_t> arr = src->as_array()) {
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
-                   base_exc_t::NUMERIC_LIMIT,
+                   base_exc_t::GENERIC,
                    strprintf("Can only sort at most %zu elements.",
                              sort_el_limit));
             for (size_t i = 0; i < arr->size(); ++i) {
@@ -258,7 +258,7 @@ private:
             size_t sort_els = 0;
             while (counted_t<const datum_t> d = src->next()) {
                 rcheck(++sort_els <= sort_el_limit,
-                       base_exc_t::NUMERIC_LIMIT,
+                       base_exc_t::GENERIC,
                        strprintf("Can only sort at most %zu elements.",
                                  sort_el_limit));
                 data.push_back(d);
