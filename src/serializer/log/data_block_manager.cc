@@ -283,6 +283,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
             /* Remove from the young extent queue */
             case gc_entry::state_young:
                 young_extent_queue.remove(entry);
+                --stats->pm_serializer_young_extent_queue_size;
                 break;
 
             /* Remove from the priority queue */
@@ -699,6 +700,7 @@ void data_block_manager_t::actually_shutdown() {
 
     while (gc_entry *entry = young_extent_queue.head()) {
         young_extent_queue.remove(entry);
+        --stats->pm_serializer_young_extent_queue_size;
         UNUSED int64_t extent = entry->extent_ref.release();
         delete entry;
     }
@@ -748,6 +750,7 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
         rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent(), "g_array.count() == %zu, blocks_per_extent=%" PRIu64, active_extents[next_active_extent]->g_array.count(), static_config->blocks_per_extent());
         active_extents[next_active_extent]->state = gc_entry::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
+        ++stats->pm_serializer_young_extent_queue_size;
         mark_unyoung_entries();
         active_extents[next_active_extent] = NULL;
     }
@@ -787,6 +790,7 @@ void data_block_manager_t::mark_unyoung_entries() {
 void data_block_manager_t::remove_last_unyoung_entry() {
     gc_entry *entry = young_extent_queue.head();
     young_extent_queue.remove(entry);
+    --stats->pm_serializer_young_extent_queue_size;
 
     rassert(entry->state == gc_entry::state_young);
     entry->state = gc_entry::state_old;
