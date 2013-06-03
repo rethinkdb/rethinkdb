@@ -9,6 +9,7 @@ NPM_DEP :=
 TCMALLOC_DEP :=
 PROTOC_DEP :=
 COFFEE_DEP :=
+RE2_DEP :=
 
 ifdef WGET
   GETURL := $(WGET) --quiet --output-document=-
@@ -53,6 +54,9 @@ TC_HANDLEBARS_INT_EXE := $(SUPPORT_DIR)/usr/bin/handlebars
 V8_SRC_DIR := $(TC_SRC_DIR)/v8
 V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
+RE2_SRC_DIR := $(TC_SRC_DIR)/re2
+RE2_INT_DIR := $(TC_BUILD_DIR)/re2
+RE2_INT_LIB := $(RE2_INT_DIR)/obj/libre2.a
 
 $(shell mkdir -p $(SUPPORT_DIR) $(TOOLCHAIN_DIR) $(TC_BUILD_DIR) $(TC_SRC_DIR))
 
@@ -78,8 +82,10 @@ endif
 ifneq (,$(filter $(V8_INT_LIB),$(LIBRARY_PATHS)))
   V8_DEP := $(V8_INT_LIB)
   CXXPATHDS += -isystem $(V8_INT_DIR)/include
-else
-  V8_CXXFLAGS :=
+endif
+
+ifneq (,$(filter $(RE2_INT_LIB),$(LIBRARY_PATHS)))
+  RE2_DEP := $(RE2_INT_LIB)
 endif
 
 ifneq (,$(filter $(PROTOBUF_INT_LIB),$(LIBRARY_PATHS)))
@@ -101,7 +107,7 @@ ifneq (,$(filter $(TCMALLOC_MINIMAL_INT_LIB),$(LIBRARY_PATHS)))
 endif
 
 .PHONY: support
-support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
+support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP) $(RE2_DEP)
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
@@ -139,6 +145,15 @@ $(NODE_MODULES_DIR)/handlebars: $(NPM_DEP)
 	$P NPM-I handlebars
 	cd $(TOOLCHAIN_DIR) && \
 	  $(abspath $(NPM)) install handlebars $(SUPPORT_LOG_REDIRECT)
+
+$(RE2_SRC_DIR):
+	$P HG-CLONE re2
+	( cd $(TC_SRC_DIR) && \
+	  hg clone -r 7f91923f3ad4 https://code.google.com/p/re2/ ) $(SUPPORT_LOG_REDIRECT)
+
+$(RE2_INT_LIB): $(RE2_INT_DIR)
+	$P MAKE re2
+	$(EXTERN_MAKE) -C $(RE2_INT_DIR) install prefix=$(SUPPORT_INST_DIR) $(SUPPORT_LOG_REDIRECT)
 
 $(V8_SRC_DIR):
 	$P SVN-CO v8

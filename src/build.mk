@@ -5,7 +5,7 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-LDFLAGS ?= -I/usr/local/include -L/usr/local/lib -lre2
+LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS)
 RT_CXXFLAGS := $(CXXFLAGS)

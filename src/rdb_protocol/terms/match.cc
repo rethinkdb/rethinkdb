@@ -2,7 +2,7 @@
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
-#include "/usr/local/include/re2/re2.h"
+#include "re2/re2.h"
 
 namespace ql {
 

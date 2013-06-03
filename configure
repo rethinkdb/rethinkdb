@@ -18,10 +18,10 @@ init () {
     min_icc_version=0
     invalid_coffee_versions="1.5.0 1.6 1.6.1"
 
-    required_libs="protobuf v8"
+    required_libs="protobuf v8 re2"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
-    support_libs="unwind tcmalloc_minimal v8 protobuf"
+    support_libs="unwind tcmalloc_minimal v8 protobuf re2"
     default_static="tcmalloc_minimal"
 
     web_assets_deps="lessc coffee handlebars"
