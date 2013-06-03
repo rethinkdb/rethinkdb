@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <list>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,7 +29,6 @@
 #include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
-#include "rdb_protocol/serializable_environment.hpp"
 #include "utils.hpp"
 
 class cluster_directory_metadata_t;
@@ -44,7 +44,6 @@ class traversal_progress_combiner_t;
 
 namespace extproc { class pool_group_t; }
 
-using query_language::scopes_t;
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
 using query_language::runtime_exc_t;
@@ -88,11 +87,10 @@ typedef boost::variant<ql::map_wire_func_t,
 
 struct transform_atom_t {
     transform_atom_t() { }
-    transform_atom_t(const transform_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
-        variant(tv), scopes(s), backtrace(b) { }
+    transform_atom_t(const transform_variant_t &tv, const backtrace_t &b) :
+        variant(tv), backtrace(b) { }
 
     transform_variant_t variant;
-    scopes_t scopes;
     backtrace_t backtrace;
 };
 
@@ -106,11 +104,10 @@ typedef boost::variant<ql::gmr_wire_func_t,
 
 struct terminal_t {
     terminal_t() { }
-    terminal_t(const terminal_variant_t &tv, const scopes_t &s, const backtrace_t &b) :
-        variant(tv), scopes(s), backtrace(b) { }
+    terminal_t(const terminal_variant_t &tv, const backtrace_t &b) :
+        variant(tv), backtrace(b) { }
 
     terminal_variant_t variant;
-    scopes_t scopes;
     backtrace_t backtrace;
 };
 

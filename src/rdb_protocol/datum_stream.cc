@@ -144,7 +144,7 @@ counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f)),
-        env, query_language::scopes_t(), query_language::backtrace_t());
+        env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 
@@ -152,14 +152,14 @@ counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f)),
-        env, query_language::scopes_t(), query_language::backtrace_t());
+        env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f)),
-        env, query_language::scopes_t(), query_language::backtrace_t());
+        env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 
@@ -168,7 +168,6 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
 rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
     return json_stream->apply_terminal(t,
                                        env,
-                                       query_language::scopes_t(),
                                        query_language::backtrace_t());
 }
 
@@ -209,7 +208,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
             rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r)),
-            env, query_language::scopes_t(), query_language::backtrace_t());
+            env, query_language::backtrace_t());
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
     dm->compile(env);

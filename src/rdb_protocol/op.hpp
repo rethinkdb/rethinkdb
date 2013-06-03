@@ -2,6 +2,8 @@
 #define RDB_PROTOCOL_OP_HPP_
 
 #include <algorithm>
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 

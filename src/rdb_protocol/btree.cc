@@ -448,7 +448,7 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
 
 class sindex_key_range_tester_t : public key_tester_t {
 public:
-    sindex_key_range_tester_t(const key_range_t &key_range)
+    explicit sindex_key_range_tester_t(const key_range_t &key_range)
         : key_range_(key_range) { }
 
     bool key_should_be_erased(const btree_key_t *key) {
@@ -619,7 +619,7 @@ public:
             response->last_considered_key = range.left;
 
             if (terminal) {
-                terminal_initialize(ql_env, terminal->scopes, terminal->backtrace,
+                terminal_initialize(ql_env, terminal->backtrace,
                                     &terminal->variant,
                                     &response->result);
             }
@@ -670,7 +670,7 @@ public:
                         for (json_list_t::iterator jt  = data.begin();
                              jt != data.end();
                              ++jt) {
-                            transform_apply(ql_env, it->scopes, it->backtrace,
+                            transform_apply(ql_env, it->backtrace,
                                             *jt, &it->variant,
                                             &tmp);
                         }
@@ -700,7 +700,7 @@ public:
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, terminal->scopes, terminal->backtrace,
+                        terminal_apply(ql_env, terminal->backtrace,
                                        *jt, &terminal->variant, &response->result);
                     }
                     return true;
@@ -749,10 +749,10 @@ public:
     void operator()(const rget_read_response_t::empty_t &) const { }
     void operator()(const rget_read_response_t::vec_t &) const { }
 
-    void operator()(ql::wire_datum_t &d) const {
+    void operator()(ql::wire_datum_t &d) const {  // NOLINT(runtime/references)
         d.finalize();
     }
-    void operator()(ql::wire_datum_map_t &dm) const {
+    void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
         dm.finalize();
     }
 };
@@ -917,7 +917,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
 
     write_message_t wm;
-    wm << mod_report;
+    wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
     rdb_update_sindexes(sindexes_, &mod_report, txn_);
@@ -974,8 +974,10 @@ void rdb_update_single_sindex(
                                                  &sindex->btree->stats,
                                                  &return_superblock_local);
 
-                kv_location_delete(&kv_location, sindex_key,
-                                   sindex->btree, repli_timestamp_t::distant_past, txn);
+                if (kv_location.value.has()) {
+                    kv_location_delete(&kv_location, sindex_key,
+                                       sindex->btree, repli_timestamp_t::distant_past, txn);
+                }
                 //The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();

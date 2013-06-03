@@ -33,7 +33,7 @@ public:
         return fd;
     }
 
-    void swap(scoped_fd_t &other) {
+    void swap(scoped_fd_t &other) {  // NOLINT(build/include_what_you_use)
         fd_t tmp = fd;
         fd = other.fd;
         other.fd = tmp;

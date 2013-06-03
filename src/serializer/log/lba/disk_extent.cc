@@ -54,7 +54,7 @@ void lba_disk_extent_t::read_step_1(read_info_t *info_out, extent_t::read_callba
 void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index) {
     em->assert_thread();
     lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer);
-    rassert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
+    guarantee(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
     for (int i = 0; i < info->count; i++) {
         lba_entry_t *e = &extent->entries[i];

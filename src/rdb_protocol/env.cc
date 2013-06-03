@@ -222,7 +222,7 @@ env_t::env_t(
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
     js_runner(_js_runner),
-    DEBUG_ONLY(eval_callback(NULL),)
+    DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor),
     this_machine(_this_machine) {
 
@@ -236,7 +236,7 @@ env_t::env_t(signal_t *_interruptor)
     pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
-    DEBUG_ONLY(eval_callback(NULL),)
+    DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor) { }
 
 env_t::~env_t() { }

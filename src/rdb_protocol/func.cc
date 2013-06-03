@@ -204,7 +204,7 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
     return cached_funcs[env->uuid];
 }
 
-void wire_func_t::rdb_serialize(write_message_t &msg) const {
+void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
     guarantee(source.has());
     msg << *source;
     msg << default_filter_val;

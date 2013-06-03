@@ -1,6 +1,7 @@
 import random
 import socket
 import os
+import sys
 from time import sleep
 from subprocess import call, Popen, PIPE
 
@@ -28,7 +29,7 @@ class RethinkDBTestServers(object):
             server.join(cluster_port)
 
     def stop(self):
-        for server in self.servers:     
+        for server in self.servers:
             server.stop()
         self.clear_data()
 
@@ -48,6 +49,12 @@ class RethinkDBTestServers(object):
 
     def executable(self):
         return self.servers[0].executable
+
+    def alive(self):
+        for s in self.servers:
+            if not s.alive():
+                return False
+        return True
 
 # Manages starting and stopping an instance of the Rethindb server
 class RethinkDBTestServer(object):
@@ -83,7 +90,7 @@ class RethinkDBTestServer(object):
             return False
         return True
 
-    def start(self): 
+    def start(self):
         if self.use_default_port:
             self.cpp_port = 28015
         else:
@@ -97,44 +104,49 @@ class RethinkDBTestServer(object):
                                  '--http-port', '0',
                                  '--cluster-port', str(self.cluster_port)],
                                 stdout=log_out, stderr=log_out)
-        sleep(0.2)
+        sleep(2)
 
-        # Create database 'test' which the tests assume but doesn't get created when we
-        # start up rethinkdb like this
-        call([self.executable, 'admin', '--join', 'localhost:%d' % self.cluster_port, 'create', 'database', 'test'],
-            stdout=log_out, stderr=log_out)
         return self.cluster_port
 
     # Join a cluster headed by a server previously invoked with start
     def join(self, cluster_port):
         self.cpp_port = self.find_available_port()
+        self.cluster_port = self.find_available_port()
         directory, log_out = self.create()
         self.cpp_server = Popen([self.executable, 'serve',
                                  '--driver-port', str(self.cpp_port),
+                                 '--cluster-port', str(self.cluster_port),
                                  '--directory', directory,
                                  '--http-port', '0',
                                  '--join', 'localhost:%d' % cluster_port],
                                 stdout=log_out, stderr=log_out)
-        sleep(0.2)
+        sleep(2)
 
     def create(self):
-        # Really I should use python's directory tools to ensure compatibility with platforms
-        # that use an alternative path separator but I'm not going to.
         directory = 'run/server_%s/' % self.cpp_port
         rdbfile = directory+'rdb'
         call(['mkdir', '-p', directory])
-        log_out = open(directory+'server-log.txt','a')
+        self.log_file = directory+'server-log.txt'
+        log_out = open(self.log_file, 'a')
         self.executable = os.path.join(self.server_build_dir or os.getenv('RETHINKDB_BUILD_DIR') or '../../build/debug', 'rethinkdb')
         call([self.executable, 'create', '--directory', rdbfile], stdout=log_out, stderr=log_out)
         return rdbfile, log_out
 
     def stop(self):
-        self.cpp_server.terminate()
+        code = self.cpp_server.poll()
+        if code == None:
+            self.cpp_server.terminate()
+            code = self.cpp_server.wait()
+        if code != 0:
+            raise Exception("Error: rethinkdb process %d failed with error code %d\n%s" % (self.cpp_server.pid, code, open(self.log_file).read()))
         sleep(0.1)
 
-    def restart(self):
+    def resstart(self):
         self.stop()
         self.start()
+
+    def alive(self):
+        return self.cpp_server.poll() == None
 
 def shard_table(port, build, table_name):
     rtn_sum = 0

@@ -94,8 +94,8 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 namespace rdb_protocol_details {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
-RDB_IMPL_SERIALIZABLE_3(transform_atom_t, variant, scopes, backtrace);
-RDB_IMPL_SERIALIZABLE_3(terminal_t, variant, scopes, backtrace);
+RDB_IMPL_SERIALIZABLE_2(transform_atom_t, variant, backtrace);
+RDB_IMPL_SERIALIZABLE_2(terminal_t, variant, backtrace);
 
 void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
@@ -1110,7 +1110,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
             sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
-                                            sindex_filter, scopes_t(), backtrace_t()));
+                                            sindex_filter, backtrace_t()));
 
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),

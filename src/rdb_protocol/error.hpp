@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_ERR_HPP_
-#define RDB_PROTOCOL_ERR_HPP_
+#ifndef RDB_PROTOCOL_ERROR_HPP_
+#define RDB_PROTOCOL_ERROR_HPP_
 
 #include <list>
 #include <string>
@@ -283,4 +283,4 @@ void fill_error(Response *res, Response_ResponseType type, std::string msg,
 
 } // namespace ql
 
-#endif // RDB_PROTOCOL_ERR_HPP_
+#endif  // RDB_PROTOCOL_ERROR_HPP_

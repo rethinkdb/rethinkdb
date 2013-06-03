@@ -25,7 +25,7 @@ struct protob_pointee_t : public slow_atomic_countable_t<protob_pointee_t> {
 };
 
 struct protob_term_t : public protob_pointee_t {
-    protob_term_t(const Term &t) : term(t) { }
+    explicit protob_term_t(const Term &t) : term(t) { }
 
     Term term;
 };
@@ -66,7 +66,7 @@ public:
         return get();
     }
 
-    void swap(protob_t &other) {
+    void swap(protob_t &other) {  // NOLINT(build/include_what_you_use)
         T *tmp = pointee_;
         pointee_ = other.pointee_;
         other.pointee_ = tmp;

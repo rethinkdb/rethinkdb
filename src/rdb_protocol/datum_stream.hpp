@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_DATUM_STREAM_HPP_
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include "rdb_protocol/stream.hpp"

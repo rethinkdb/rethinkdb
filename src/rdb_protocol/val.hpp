@@ -3,6 +3,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"

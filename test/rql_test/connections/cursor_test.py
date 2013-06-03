@@ -1,7 +1,7 @@
 from sys import argv
 from random import randint
 from subprocess import call
-from sys import path, exit
+from sys import path, exit, stdout
 path.insert(0, ".")
 from test_util import RethinkDBTestServers
 
@@ -17,14 +17,19 @@ else:
 with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
     port = servers.driver_port()
     c = r.connect(port=port)
-
+    r.db_create('test').run(c)
     r.db('test').table_create('test').run(c)
     tbl = r.table('test')
 
     num_rows = randint(1111, 2222)
 
     print "Inserting %d rows" % num_rows
-    tbl.insert([{'id':i, 'nums':range(0, 500)} for i in xrange(0, num_rows)]).run(c)
+    documents = [{'id':i, 'nums':range(0, 500)} for i in xrange(0, num_rows)]
+    chunks = (documents[i : i+100] for i in range(0, len(documents), 100))
+    for chunk in chunks:
+        tbl.insert(chunk).run(c)
+        print '.',
+        stdout.flush()
     print "Done\n"
 
     res = 0

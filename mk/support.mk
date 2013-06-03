@@ -8,6 +8,7 @@ PROTOBUF_DEP :=
 NPM_DEP :=
 TCMALLOC_DEP :=
 PROTOC_DEP :=
+COFFEE_DEP :=
 
 ifdef WGET
   GETURL := $(WGET) --quiet --output-document=-
@@ -53,9 +54,6 @@ V8_SRC_DIR := $(TC_SRC_DIR)/v8
 V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
 
-.PHONY: support
-support: $(COFFEE) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
-
 $(shell mkdir -p $(SUPPORT_DIR) $(TOOLCHAIN_DIR) $(TC_BUILD_DIR) $(TC_SRC_DIR))
 
 ifeq (0,$(VERBOSE))
@@ -93,9 +91,17 @@ ifeq ($(NPM),$(TC_NPM_INT_EXE))
   NPM_DEP := $(NPM)
 endif
 
+COFFEE ?= NO_COFFEE
+ifeq ($(COFFEE),$(TC_COFFEE_INT_EXE))
+  COFFEE_DEP := $(COFFEE)
+endif
+
 ifneq (,$(filter $(TCMALLOC_MINIMAL_INT_LIB),$(LIBRARY_PATHS)))
   TCMALLOC_DEP := $(TCMALLOC_MINIMAL_INT_LIB)
 endif
+
+.PHONY: support
+support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP

@@ -67,6 +67,10 @@ def cmp_test(one, two)
     return 1
   end
 
+  if one.class == String then
+    one = one.sub(/\nFailed assertion:(.|\n)*/, "")
+  end
+
   case "#{two.class}"
   when "Err"
     if one.kind_of? Exception
@@ -135,6 +139,7 @@ $defines = eval_env
 # $js_conn = RethinkDB::Connection.new('localhost', JSPORT)
 
 $cpp_conn = RethinkDB::Connection.new('localhost', CPPPORT)
+r.db_create('test').run($cpp_conn)
 
 $test_count = 0
 $success_count = 0
