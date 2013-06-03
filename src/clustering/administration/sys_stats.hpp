@@ -20,7 +20,7 @@ private:
         explicit instantaneous_stats_collector_t(const base_path_t &path);
         void *begin_stats();
         void visit_stats(void *);
-        perfmon_result_t *end_stats(void *);
+        scoped_ptr_t<perfmon_result_t> end_stats(void *);
     private:
         const base_path_t base_path;
 

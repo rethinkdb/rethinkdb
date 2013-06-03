@@ -143,6 +143,7 @@ private:
 
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
+    void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
 
     type_t type;

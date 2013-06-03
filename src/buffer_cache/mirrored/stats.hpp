@@ -54,7 +54,7 @@ struct mc_cache_stats_t {
         perfmon_cache_custom_t();
         void *begin_stats();
         void visit_stats(void *);
-        perfmon_result_t *end_stats(void *);
+        scoped_ptr_t<perfmon_result_t> end_stats(void *);
     public:
         uint32_t block_size;
     };

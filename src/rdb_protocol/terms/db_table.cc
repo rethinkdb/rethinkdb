@@ -11,6 +11,9 @@
 
 namespace ql {
 
+durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
+                                                 pb_rcheckable_t *target);
+
 name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
     r_sanity_check(val.has());
     std::string raw_name = val->as_str();
@@ -144,17 +147,28 @@ private:
     virtual const char *name() const { return "db_create"; }
 };
 
-static const char *const table_create_optargs[] =
-    {"datacenter", "primary_key", "cache_size", "hard_durability"};
+bool is_hard(durability_requirement_t requirement) {
+    switch (requirement) {
+    case DURABILITY_REQUIREMENT_DEFAULT:
+    case DURABILITY_REQUIREMENT_HARD:
+        return true;
+    case DURABILITY_REQUIREMENT_SOFT:
+        return false;
+    default:
+        unreachable();
+    }
+}
+
 class table_create_term_t : public meta_write_op_t {
 public:
     table_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
-                        optargspec_t(table_create_optargs)) { }
+                        optargspec_t({"datacenter", "primary_key",
+                                    "cache_size", "durability"})) { }
 private:
     virtual std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
-        if (counted_t<val_t> v = optarg("datacenter", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("datacenter")) {
             name_string_t name = get_name(v, this);
             {
                 rethreading_metadata_accessor_t meta(this);
@@ -165,25 +179,23 @@ private:
             }
         }
 
-        bool hard_durability = true;
-        if (counted_t<val_t> v = optarg("hard_durability", counted_t<val_t>())) {
-            hard_durability = v->as_datum()->as_bool();
-        }
+        const bool hard_durability
+            = is_hard(parse_durability_optarg(optarg("durability"), this));
 
         std::string primary_key = "id";
-        if (counted_t<val_t> v = optarg("primary_key", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("primary_key")) {
             primary_key = v->as_str();
         }
 
         int cache_size = 1073741824;
-        if (counted_t<val_t> v = optarg("cache_size", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("cache_size")) {
             cache_size = v->as_int<int>();
         }
 
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            counted_t<val_t> dbv = optarg("db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
@@ -297,7 +309,7 @@ private:
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            counted_t<val_t> dbv = optarg("db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
             tbl_name = get_name(arg(0), this);
@@ -367,7 +379,7 @@ private:
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         uuid_u db_id;
         if (num_args() == 0) {
-            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            counted_t<val_t> dbv = optarg("db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
         } else {
@@ -393,19 +405,18 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
-static const char *const table_optargs[] = {"use_outdated"};
 class table_term_t : public op_term_t {
 public:
     table_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
+        : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
+        counted_t<val_t> t = optarg("use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
         std::string name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db", counted_t<val_t>());
+            counted_t<val_t> dbv = optarg("db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
             name = arg(0)->as_str();
@@ -433,17 +444,15 @@ private:
     virtual const char *name() const { return "get"; }
 };
 
-static const char *const get_all_optargs[] = { "index" };
-
 class get_all_term_t : public op_term_t {
 public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
-        if (counted_t<val_t> v = optarg("index", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("index")) {
             if (v->as_str() != table->get_pkey()) {
                 counted_t<datum_stream_t> seq =
                     table->get_sindex_rows(pkey, pkey, v->as_str(), backtrace());

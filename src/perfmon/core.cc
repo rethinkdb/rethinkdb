@@ -1,7 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <stdarg.h>
-
-#include <list>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -9,6 +7,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
+#include "containers/scoped_regex.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
 
@@ -65,21 +64,19 @@ void perfmon_collection_t::visit_stats(void *_context) {
     }
 }
 
-perfmon_result_t * perfmon_collection_t::end_stats(void *_context) {
+scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    perfmon_result_t *map;
-    perfmon_result_t::alloc_map_result(&map);
+    scoped_ptr_t<perfmon_result_t> map = perfmon_result_t::alloc_map_result();
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
         rassert(i < ctx->size);
-        perfmon_result_t * stat = p->get()->end_stats(ctx->contexts[i]);
+        scoped_ptr_t<perfmon_result_t> stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
-            stat->splice_into(map);
-            delete stat; // `stat` is empty now, we can delete it safely
+            stat->splice_into(map.get());
         } else {
-            map->insert(p->name, stat);
+            map->insert(p->name, std::move(stat));
         }
     }
 
@@ -165,9 +162,9 @@ perfmon_result_t::perfmon_result_t() {
 
 perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
     : type(copyee.type), value_(copyee.value_), map_() {
-    for (perfmon_result_t::internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
-        perfmon_result_t *subcopy = new perfmon_result_t(*it->second);
-        map_.insert(std::pair<std::string, perfmon_result_t *>(it->first, subcopy));
+    for (auto it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
+        map_.insert(std::make_pair(it->first,
+                                   make_scoped<perfmon_result_t>(*it->second)));
     }
 }
 
@@ -176,44 +173,17 @@ perfmon_result_t::perfmon_result_t(const std::string &s) {
     value_ = s;
 }
 
-perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
-    type = type_map;
-    map_ = m;
-}
+perfmon_result_t::perfmon_result_t(std::map<std::string, scoped_ptr_t<perfmon_result_t> > &&m)
+    : type(type_map), map_(std::move(m)) { }
 
-perfmon_result_t::~perfmon_result_t() {
-    if (type == type_map) {
-        clear_map();
-    }
-    rassert(map_.empty());
-}
-
-void perfmon_result_t::clear_map() {
-    for (perfmon_result_t::internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
-        delete it->second;
-    }
-    map_.clear();
-}
+perfmon_result_t::~perfmon_result_t() { }
 
 void perfmon_result_t::erase(perfmon_result_t::iterator it) {
-    delete it->second;
     map_.erase(it);
 }
 
-perfmon_result_t perfmon_result_t::make_string() {
-    return perfmon_result_t(std::string());
-}
-
-void perfmon_result_t::alloc_string_result(perfmon_result_t **out) {
-    *out = new perfmon_result_t(std::string());
-}
-
-perfmon_result_t perfmon_result_t::make_map() {
-    return perfmon_result_t(perfmon_result_t::internal_map_t());
-}
-
-void perfmon_result_t::alloc_map_result(perfmon_result_t **out) {
-    *out = new perfmon_result_t(perfmon_result_t::internal_map_t());
+scoped_ptr_t<perfmon_result_t> perfmon_result_t::alloc_map_result() {
+    return scoped_ptr_t<perfmon_result_t>(new perfmon_result_t(internal_map_t()));
 }
 
 std::string *perfmon_result_t::get_string() {
@@ -255,15 +225,15 @@ perfmon_result_t::perfmon_result_type_t perfmon_result_t::get_type() const {
 
 void perfmon_result_t::reset_type(perfmon_result_type_t new_type) {
     value_.clear();
-    clear_map();
+    map_.clear();
     type = new_type;
 }
 
-std::pair<perfmon_result_t::iterator, bool> perfmon_result_t::insert(const std::string &name, perfmon_result_t *val) {
+std::pair<perfmon_result_t::iterator, bool> perfmon_result_t::insert(const std::string &name, scoped_ptr_t<perfmon_result_t> &&val) {
     std::string s(name);
     perfmon_result_t::internal_map_t *map = get_map();
     rassert(map->count(name) == 0, "Duplicate perfmons for: %s\n", name.c_str());
-    return map->insert(std::pair<std::string, perfmon_result_t *>(s, val));
+    return map->insert(std::make_pair(s, std::move(val)));
 }
 
 perfmon_result_t::iterator perfmon_result_t::begin() {
@@ -289,8 +259,8 @@ void perfmon_result_t::splice_into(perfmon_result_t *map) {
     // Unfortunately we can't use here std::map::insert(InputIterator first, InputIterator last),
     // because that way we can overwrite an entry in the target map and thus leak a
     // perfmon_result_t value.
-    for (const_iterator it = begin(); it != end(); ++it) {
-        map->insert(it->first, it->second);
+    for (auto it = map_.begin(); it != map_.end(); ++it) {
+        map->insert(it->first, std::move(it->second));
     }
     map_.clear();
 }
@@ -339,51 +309,70 @@ perfmon_filter_t::~perfmon_filter_t() {
     }
 }
 
-void perfmon_filter_t::filter(perfmon_result_t *p) const {
-    subfilter(p, 0, std::vector<bool>(regexps.size(), true));
+void perfmon_filter_t::filter(const scoped_ptr_t<perfmon_result_t> *p) const {
+    guarantee(p->has(), "perfmon_filter_t::filter needs a perfmon_result_t");
+    subfilter(const_cast<scoped_ptr_t<perfmon_result_t> *>(p),
+              0, std::vector<bool>(regexps.size(), true));
+    guarantee(p->has(), "subfilter is not supposed to delete the top-most node.");
 }
 
 /* Filter a [perfmon_result_t].  [depth] is how deep we are in the paths that
    the [perfmon_filter_t] was constructed from, and [active] is the set of paths
    that are still active (i.e. that haven't failed a match yet).  This should
    only be called by [filter]. */
-perfmon_result_t *perfmon_filter_t::subfilter(
-    perfmon_result_t *p, size_t depth, std::vector<bool> active) const {
+void perfmon_filter_t::subfilter(
+    scoped_ptr_t<perfmon_result_t> *p_ptr, const size_t depth,
+    const std::vector<bool> active) const {
+
+    perfmon_result_t *const p = p_ptr->get();
+
     bool keep_this_perfmon = true;
     if (p->is_string()) {
         std::string *str = p->get_string();
         for (size_t i = 0; i < regexps.size(); ++i) {
-            if (!active[i]) continue;
-            if (depth >= regexps[i].size()) return p;
-            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) return p;
+            if (!active[i]) {
+                continue;
+            }
+            if (depth >= regexps[i].size()) {
+                return;
+            }
+            if (depth == regexps[i].size() && regexps[i][depth]->matches(*str)) {
+                return;
+            }
         }
         keep_this_perfmon = false;
     } else if (p->is_map()) {
-        std::list<perfmon_result_t::iterator> to_delete;
-        for (perfmon_result_t::iterator it = p->begin(); it != p->end(); ++it) {
+        perfmon_result_t::iterator it = p->begin();
+        while (it != p->end()) {
             std::vector<bool> subactive = active;
             bool some_subpath = false;
             for (size_t i = 0; i < regexps.size(); ++i) {
-                if (!active[i]) continue;
-                if (depth >= regexps[i].size()) return p;
+                if (!active[i]) {
+                    continue;
+                }
+                if (depth >= regexps[i].size()) {
+                    return;
+                }
                 subactive[i] = regexps[i][depth]->matches(it->first);
                 some_subpath |= subactive[i];
             }
-            if (some_subpath) it->second = subfilter(it->second, depth + 1, subactive);
-            if (!some_subpath || !it->second) to_delete.push_back(it);
+            if (some_subpath) {
+                subfilter(&it->second, depth + 1, subactive);
+            }
+            perfmon_result_t::iterator prev_it = it;
+            ++it;
+            if (!some_subpath || !it->second.has()) {
+                p->erase(prev_it);
+            }
         }
-        for (std::list<perfmon_result_t::iterator>::const_iterator
-                 it = to_delete.begin(); it != to_delete.end(); ++it) {
-            p->erase(*it);
+
+        if (p->get_map()->empty()) {
+            keep_this_perfmon = false;
         }
-        if (p->get_map()->empty()) keep_this_perfmon = false;
     }
 
-    if (!keep_this_perfmon && depth > 0) { //Never delete topmost node
-        delete p;
-        return 0;
-    } else {
-        return p;
+    if (!keep_this_perfmon && depth > 0) {  // Never delete the topmost node.
+        p_ptr->reset();
     }
 }
 

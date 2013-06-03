@@ -40,6 +40,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::DIV:                return make_arith_term(env, t);
     case Term::MOD:                return make_mod_term(env, t);
     case Term::APPEND:             return make_append_term(env, t);
+    case Term::PREPEND:            return make_prepend_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
     case Term::GETATTR:            return make_getattr_term(env, t);
     case Term::CONTAINS:           return make_contains_term(env, t);
@@ -88,6 +89,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::ASC:                return make_asc_term(env, t);
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
+    case Term::SAMPLE:             return make_sample_term(env, t);
     default: unreachable();
     }
     unreachable();

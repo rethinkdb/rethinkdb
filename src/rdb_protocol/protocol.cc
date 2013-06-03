@@ -835,13 +835,16 @@ region_t write_t::get_region() const THROWS_NOTHING {
 
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     rdb_w_shard_visitor_t(const region_t *_region,
+                          durability_requirement_t _durability_requirement,
                           write_t *_write_out)
-        : region(_region), write_out(_write_out) {}
+        : region(_region),
+          durability_requirement(_durability_requirement),
+          write_out(_write_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg);
+            *write_out = write_t(arg, durability_requirement);
             return true;
         } else {
             return false;
@@ -862,7 +865,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
 
         if (!sharded_replaces.empty()) {
-            *write_out = write_t(batched_replaces_t());
+            *write_out = write_t(batched_replaces_t(), durability_requirement);
             batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
             batched->point_replaces.swap(sharded_replaces);
             return true;
@@ -902,12 +905,14 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const region_t *region;
+    durability_requirement_t durability_requirement;
     write_t *write_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_w_shard_visitor_t(&region, write_out), write);
+    const rdb_w_shard_visitor_t v(&region, durability_requirement, write_out);
+    return boost::apply_visitor(v, write);
 }
 
 template <class T>
@@ -1627,7 +1632,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_create_t, id, mapping, region);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_t, write);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);

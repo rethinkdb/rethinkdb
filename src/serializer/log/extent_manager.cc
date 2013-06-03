@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
 #include "arch/arch.hpp"
@@ -40,7 +40,7 @@ public:
 
 class extent_zone_t {
     int64_t start, end;
-    size_t extent_size;
+    const size_t extent_size;
 
     unsigned int offset_to_id(int64_t extent) {
         rassert(extent < end);
