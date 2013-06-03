@@ -74,6 +74,7 @@ class RDBVal extends TermBase
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -389,6 +390,10 @@ class Contains extends RDBOp
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
     mt: 'pluck'
+
+class IndexesOf extends RDBOp
+    tt: Term.TermType.INDEXES_OF
+    mt: 'indexesOf'
 
 class Without extends RDBOp
     tt: Term.TermType.WITHOUT

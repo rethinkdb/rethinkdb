@@ -246,6 +246,7 @@ message Term {
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
+        INDEXES_OF = 81; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a

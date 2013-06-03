@@ -127,6 +127,7 @@ private:
         case Term::APPEND:
         case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:
@@ -225,6 +226,7 @@ private:
         case Term::APPEND:
         case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:

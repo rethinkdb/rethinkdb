@@ -220,6 +220,9 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def indexes_of(self, val):
+        return IndexesOf(self,func_wrap(val))
+
     def slice(self, left=None, right=None):
         return Slice(self, left, right)
 
@@ -631,6 +634,10 @@ class Nth(RqlQuery):
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE

@@ -21,6 +21,7 @@ counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term);
 
 // control.cc
 counted_t<term_t> make_all_term(env_t *env, protob_t<const Term> term);

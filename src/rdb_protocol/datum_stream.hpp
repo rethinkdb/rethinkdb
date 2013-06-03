@@ -36,9 +36,11 @@ public:
                                          counted_t<const datum_t> d,
                                          counted_t<func_t> r) = 0;
 
+
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
     counted_t<datum_stream_t> zip();
+    counted_t<datum_stream_t> indexes_of(counted_t<func_t> f) = 0;
 
     // Returns false or NULL respectively if stream is lazy.
     virtual bool is_array() = 0;
@@ -109,6 +111,21 @@ private:
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> source;
+};
+
+class indexes_of_datum_stream_t : public eager_datum_stream_t {
+public:
+    indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
+        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source), index(0) {
+        guarantee(f.has() && source.has());
+    }
+private:
+    counted_t<const datum_t> next_impl();
+
+    counted_t<func_t> f;
+    counted_t<datum_stream_t> source;
+
+    int64_t index;
 };
 
 class filter_datum_stream_t : public eager_datum_stream_t {

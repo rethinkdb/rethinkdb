@@ -78,6 +78,7 @@ tests:
       - tbl.filter()
       - tbl.get()
       - r.expr([]).sample()
+      - tbl.indexes_of()
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
@@ -132,6 +133,7 @@ tests:
       - tbl.filter(1,2)
       - tbl.get(1,2)
       - r.expr([]).sample(1,2)
+      - tbl.indexes_of(1,2)
 
     - cd: db.table_drop(1,2)
       ot:
