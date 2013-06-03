@@ -1176,10 +1176,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const int max_concurrent_io_requests = get_single_int(opts, "--io-load");
+        const int max_concurrent_io_requests = get_single_int(opts, "--io-load-limit");
         if (max_concurrent_io_requests <= 0
             || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-            fprintf(stderr, "ERROR: io-load must be between 1 and %lld\n",
+            fprintf(stderr, "ERROR: io-load-limit must be between 1 and %lld\n",
                     MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
             return EXIT_FAILURE;
         }
@@ -1508,10 +1508,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const int max_concurrent_io_requests = get_single_int(opts, "--io-load");
+        const int max_concurrent_io_requests = get_single_int(opts, "--io-load-limit");
         if (max_concurrent_io_requests <= 0
             || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-            fprintf(stderr, "ERROR: io-load must be between 1 and %lld\n",
+            fprintf(stderr, "ERROR: io-load-limit must be between 1 and %lld\n",
                     MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
             return EXIT_FAILURE;
         }
