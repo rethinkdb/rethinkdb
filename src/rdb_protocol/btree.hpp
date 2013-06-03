@@ -2,6 +2,8 @@
 #ifndef RDB_PROTOCOL_BTREE_HPP_
 #define RDB_PROTOCOL_BTREE_HPP_
 
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -176,7 +178,7 @@ struct rdb_modification_info_t {
 
 struct rdb_modification_report_t {
     rdb_modification_report_t() { }
-    rdb_modification_report_t(const store_key_t &_primary_key)
+    explicit rdb_modification_report_t(const store_key_t &_primary_key)
         : primary_key(_primary_key) { }
 
     store_key_t primary_key;
@@ -188,7 +190,7 @@ struct rdb_modification_report_t {
 
 struct rdb_erase_range_report_t {
     rdb_erase_range_report_t() { }
-    rdb_erase_range_report_t(const key_range_t &_range_to_erase)
+    explicit rdb_erase_range_report_t(const key_range_t &_range_to_erase)
         : range_to_erase(_range_to_erase) { }
     key_range_t range_to_erase;
 

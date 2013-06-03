@@ -19,7 +19,7 @@ template <class request_t, class response_t, class context_t>
 protob_server_t<request_t, response_t, context_t>::protob_server_t(
     const std::set<ip_address_t> &local_addresses,
     int port,
-    boost::function<bool(request_t, response_t *, context_t *)> _f,
+    boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
     response_t (*_on_unparsable_query)(request_t, std::string),
     protob_server_callback_mode_t _cb_mode)
     : f(_f),

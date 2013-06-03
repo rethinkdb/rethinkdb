@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <list>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -34,10 +35,9 @@ public:
     // Returns a null value when end of stream is reached.
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;  // MAY THROW
 
-    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
                                     ql::env_t *ql_env,
-                                    const scopes_t &scopes,
                                     const backtrace_t &backtrace);
 
     virtual ~json_stream_t() { }
@@ -76,7 +76,7 @@ public:
     transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
 
     boost::shared_ptr<scoped_cJSON_t> next();
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
 
 private:
     boost::shared_ptr<json_stream_t> stream;
@@ -105,10 +105,9 @@ public:
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
                             ql::env_t *ql_env,
-                            const scopes_t &scopes,
                             const backtrace_t &backtrace);
 
     virtual void reset_interruptor(signal_t *new_interruptor) {

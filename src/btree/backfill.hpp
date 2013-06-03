@@ -3,6 +3,7 @@
 #define BTREE_BACKFILL_HPP_
 
 #include <map>
+#include <string>
 
 #include "btree/btree_store.hpp"
 #include "btree/secondary_operations.hpp"

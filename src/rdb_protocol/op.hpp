@@ -2,7 +2,10 @@
 #define RDB_PROTOCOL_OP_HPP_
 
 #include <algorithm>
+#include <initializer_list>
+#include <map>
 #include <string>
+#include <set>
 #include <vector>
 
 #include "rdb_protocol/env.hpp"
@@ -26,9 +29,7 @@ private:
 // Specifies the optional arguments a function can take.
 struct optargspec_t {
 public:
-    optargspec_t(int num_args, const char *const *args) { init(num_args, args); }
-    template<int n>
-    optargspec_t(const char *const (&arg_array)[n]) { init(n, arg_array); }
+    explicit optargspec_t(std::initializer_list<const char *> args);
 
     static optargspec_t make_object();
     bool is_make_object() const;
@@ -48,13 +49,14 @@ private:
 class op_term_t : public term_t {
 public:
     op_term_t(env_t *env, protob_t<const Term> term,
-              argspec_t argspec, optargspec_t optargspec = optargspec_t(0, 0));
+              argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
     counted_t<val_t> arg(size_t i); // returns argument `i`
-    // Tries to get an optional argument, returns `def` if not found.
-    counted_t<val_t> optarg(const std::string &key, counted_t<val_t> default_value);
+    // Tries to get an optional argument, returns `counted_t<val_t>()` if not
+    // found.
+    counted_t<val_t> optarg(const std::string &key);
 private:
     virtual bool is_deterministic_impl() const;
     std::vector<counted_t<term_t> > args;

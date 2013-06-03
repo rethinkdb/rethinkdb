@@ -3,6 +3,7 @@
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include <map>
+#include <set>
 #include <string>
 
 #include "arch/io/disk.hpp"

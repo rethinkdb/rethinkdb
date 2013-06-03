@@ -269,7 +269,7 @@ module 'NamespaceView', ->
                     type: 'database'
             else
                 for database in databases.models
-                    if database.get('name').toLowerCase() is @formdata.name.toLowerCase()
+                    if database.get('name') is @formdata.name
                         no_error = false
                         $('.alert_modal').html @error_template
                             database_exists: true
@@ -399,7 +399,7 @@ module 'NamespaceView', ->
                 template_error.type = 'table'
             else # And a name that doesn't exist
                 for namespace in namespaces.models
-                    if namespace.get('name').toLowerCase() is formdata.name.toLowerCase() and namespace.get('database').toLowerCase() is formdata.database.toLowerCase()
+                    if namespace.get('name') is formdata.name and namespace.get('database') is formdata.database
                         input_error = true
                         template_error.namespace_exists = true
                         break

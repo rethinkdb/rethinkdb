@@ -11,12 +11,13 @@ var r = require('../../../drivers/javascript/build/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
-var port = Math.floor(Math.random()*(65535 - 1025)+1025)
+var port = null;
 
 var assertErr = function(err, type, msg) {
     assertNotNull(err);
     assert.equal(err.constructor.name, type);
     var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+    _msg = _msg.replace(/\nFailed assertion:(.|\n)*/m, "")
     assert.equal(_msg, msg);
 };
 
@@ -68,13 +69,25 @@ var assertNotNull = function(x){
     assert.notEqual(x, null);
 }
 
+var ifTestDefault = function(f, c){
+    if(testDefault){
+        return f(c);
+    }else{
+        return c();
+    }
+}
+
 describe('Javascript connection API', function(){
     describe('With no server', function(){
         it("fails when trying to connect", function(done){
-            r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
-                r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
-                    r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", function(){
-                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))}))}));
+            ifTestDefault(
+                function(cont){
+                    console.log('FOO');
+                    r.connect({}, givesError("RqlDriverError", "Could not connect to localhost:28015.", function(){
+                        r.connect({host:'0.0.0.0'}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:28015.", cont))})); },
+                function(){
+                    r.connect({port:11221}, givesError("RqlDriverError", "Could not connect to localhost:11221.", function(){
+                        r.connect({host:'0.0.0.0', port:11221}, givesError("RqlDriverError", "Could not connect to 0.0.0.0:11221.", done))}))});
         });
 
         it("empty run", function(done) {
@@ -92,6 +105,7 @@ describe('Javascript connection API', function(){
         var server_err_log
 
         beforeEach(function(done){
+            port = Math.floor(Math.random()*(65535 - 1025)+1025)
             server_out_log = fs.openSync('run/server-log.txt', 'a');
             server_err_log = fs.openSync('run/server-error-log.txt', 'a');
             cpp_server = spawn(

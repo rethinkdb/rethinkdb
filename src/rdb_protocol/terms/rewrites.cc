@@ -297,7 +297,6 @@ public:
     update_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {

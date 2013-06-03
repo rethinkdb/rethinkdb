@@ -125,6 +125,7 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
         case Term::GETATTR:
         case Term::CONTAINS:
@@ -221,6 +222,7 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
         case Term::GETATTR:
         case Term::CONTAINS:

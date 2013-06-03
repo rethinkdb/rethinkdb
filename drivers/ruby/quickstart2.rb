@@ -4,4 +4,3 @@ load 'rethinkdb.rb'
 include RethinkDB::Shortcuts
 $port_offset = ENV['PORT_OFFSET'].to_i
 $c = r.connect('localhost', $port_offset + 28015, 'test').repl
-$rdb = r.db('test').table('test')

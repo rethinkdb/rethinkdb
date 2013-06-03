@@ -53,8 +53,8 @@ public:
     }
 
     void report(const std::string &type, std::list<clone_ptr_t<global_issue_t> > *out) const {
-        for (std::map<name_string_t, std::set<uuid_u>, case_insensitive_less_t>::const_iterator it =
-                by_name.begin(); it != by_name.end(); it++) {
+        for (std::map<name_string_t, std::set<uuid_u> >::const_iterator it =
+                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, it->first.str(), it->second)));
             }
@@ -62,14 +62,7 @@ public:
     }
 
 private:
-    class case_insensitive_less_t {
-    public:
-        bool operator()(const name_string_t &a, const name_string_t &b) const {
-            return strcasecmp(a.c_str(), b.c_str()) < 0;
-        }
-    };
-
-    std::map<name_string_t, std::set<uuid_u>, case_insensitive_less_t> by_name;
+    std::map<name_string_t, std::set<uuid_u>> by_name;
 };
 
 class namespace_map_t {
@@ -97,7 +90,7 @@ public:
 
     void report(const std::string &type,
             std::list<clone_ptr_t<global_issue_t> > *out) const {
-        for (std::map<db_table_name_t, std::set<uuid_u>, case_insensitive_less_t>::const_iterator it =
+        for (std::map<db_table_name_t, std::set<uuid_u>, less_t>::const_iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 // TODO: This is awful, why is name_conflict_issue_t a single type for different kinds of issues?
@@ -115,16 +108,16 @@ private:
             : db_name(_db_name), table_name(_table_name) { }
     };
 
-    class case_insensitive_less_t {
+    class less_t {
     public:
         bool operator()(const db_table_name_t &a, const db_table_name_t &b) const {
-            int cmp = strcasecmp(a.db_name.c_str(), b.db_name.c_str());
+            int cmp = strcmp(a.db_name.c_str(), b.db_name.c_str());
             if (cmp != 0) { return cmp < 0; }
-            return strcasecmp(a.table_name.c_str(), b.table_name.c_str()) < 0;
+            return strcmp(a.table_name.c_str(), b.table_name.c_str()) < 0;
         }
     };
 
-    std::map<db_table_name_t, std::set<uuid_u>, case_insensitive_less_t> by_name;
+    std::map<db_table_name_t, std::set<uuid_u>, less_t> by_name;
     std::map<uuid_u, deletable_t<database_semilattice_metadata_t> > databases;
 };
 
