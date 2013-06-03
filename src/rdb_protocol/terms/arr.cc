@@ -174,13 +174,22 @@ private:
 class contains_term_t : public op_term_t {
 public:
     contains_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<datum_stream_t> seq = arg(0)->as_seq();
-        counted_t<const datum_t> desired_el = arg(1)->as_datum();
+        std::list<counted_t<const datum_t> > required_els;
+        for (size_t i = 1; i < num_args(); ++i) {
+            required_els.push_back(arg(i)->as_datum());
+        }
         while (counted_t<const datum_t> el = seq->next()) {
-            if (*el == *desired_el) {
+            for (auto it = required_els.begin(); it != required_els.end(); ++it) {
+                if (**it == *el) {
+                    it = required_els.erase(it);
+                    break; // Bag semantics for contains
+                }
+            }
+            if (required_els.size() == 0) {
                 return new_val_bool(true);
             }
         }

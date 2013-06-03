@@ -166,8 +166,16 @@ tests:
     ## Contains
     - cd: arr.contains(2)
       ot: true
+    - cd: arr.contains(2, 3)
+      ot: true
     - cd: arr.contains(4)
       ot: false
+    - cd: arr.contains(2, 4)
+      ot: false
+    - cd: arr.contains(2, 2)
+      ot: false
+    - cd: arr.union(arr).contains(2, 2)
+      ot: true
 
     ## Grouped Map Reduce
 
