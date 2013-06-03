@@ -252,8 +252,11 @@ class RqlQuery(object):
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
-    def count(self):
-        return Count(self)
+    def count(self, filter=()):
+        if filter == ():
+            return Count(self)
+        else:
+            return Count(self, func_wrap(filter))
 
     def union(self, *others):
         return Union(self, *others)

@@ -87,7 +87,7 @@ class RDBVal extends TermBase
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
-    count: ar () -> new Count {}, @
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)

@@ -196,6 +196,7 @@ private:
         case Term::DELETE:
         case Term::REPLACE:
         case Term::INSERT:
+        case Term::COUNT:
             return true;
 
         case Term::DATUM:
@@ -232,7 +233,6 @@ private:
         case Term::BETWEEN:
         case Term::ORDERBY:
         case Term::DISTINCT:
-        case Term::COUNT:
         case Term::UNION:
         case Term::NTH:
         case Term::LIMIT:
