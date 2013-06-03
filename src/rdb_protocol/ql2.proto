@@ -444,7 +444,7 @@ message Term {
         // function.  If the second argument is a function, it will be
         // passed either the text of the error or NULL as its
         // argument.
-        DEFAULT = 80; // Top, Top -> Top
+        DEFAULT = 81; // Top, Top -> Top
     }
     optional TermType type = 1;
 

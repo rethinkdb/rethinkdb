@@ -62,6 +62,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target,
+                 base_exc_t::GENERIC,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
                  str.c_str());

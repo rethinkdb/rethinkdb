@@ -45,11 +45,10 @@ private:
     virtual const char *name() const { return "concatmap"; }
 };
 
-static const char *const filter_optargs[] = {"default"};
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(filter_optargs)),
+        : op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
           default_filter_val(lazy_literal_optarg("default")) { }
 private:
     virtual counted_t<val_t> eval_impl() {
