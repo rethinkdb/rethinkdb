@@ -127,6 +127,7 @@ private:
         case Term::APPEND:
         case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:
@@ -166,6 +167,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }
@@ -200,6 +202,7 @@ private:
         case Term::DELETE:
         case Term::REPLACE:
         case Term::INSERT:
+        case Term::COUNT:
             return true;
 
         case Term::DATUM:
@@ -228,6 +231,7 @@ private:
         case Term::APPEND:
         case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:
@@ -236,7 +240,6 @@ private:
         case Term::BETWEEN:
         case Term::ORDERBY:
         case Term::DISTINCT:
-        case Term::COUNT:
         case Term::UNION:
         case Term::NTH:
         case Term::LIMIT:
@@ -267,6 +270,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }

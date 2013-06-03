@@ -96,6 +96,18 @@ private:
     virtual const char *name() const { return "nth"; }
 };
 
+class is_empty_term_t : public op_term_t {
+public:
+    is_empty_term_t(env_t *env, protob_t<const Term> term) :
+        op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+      bool emptyp = ! arg(0)->as_seq()->next().has();
+      return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, emptyp));
+    }
+    virtual const char *name() const { return "is_empty"; }
+};
+
 // TODO: this kinda sucks.
 class slice_term_t : public op_term_t {
 public:
@@ -254,6 +266,23 @@ private:
     const char *name() const { return "change_at"; }
 };
 
+class indexes_of_term_t : public op_term_t {
+public:
+    indexes_of_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(1);
+        counted_t<func_t> fun;
+        if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
+            fun = v->as_func();
+        } else {
+            fun = func_t::new_eq_comparison_func(env, v->as_datum(), backtrace());
+        }
+        return new_val(arg(0)->as_seq()->indexes_of(fun));
+    }
+    virtual const char *name() const { return "indexes_of"; }
+};
+
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);
 }
@@ -264,6 +293,10 @@ counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term) {
 
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term) {
     return make_counted<nth_term_t>(env, term);
+}
+
+counted_t<term_t> make_is_empty_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<is_empty_term_t>(env, term);
 }
 
 counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
@@ -288,6 +321,10 @@ counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term) {
 
 counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term) {
     return make_counted<splice_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<indexes_of_term_t>(env, term);
 }
 
 }  // namespace ql

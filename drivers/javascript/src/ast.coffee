@@ -11,21 +11,43 @@ class TermBase
         self.__proto__ = @.__proto__
         return self
 
-    run: (conn, cb) ->
+    run: (connOrOptions, cb) ->
         useOutdated = undefined
-        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
-            useOutdated = !!conn.useOutdated
-            noreply = !!conn.noreply
-            for own key of conn
+
+        # Parse out run options from connOrOptions object
+        if connOrOptions? and typeof(connOrOptions) is 'object' and not (connOrOptions instanceof Connection)
+            useOutdated = !!connOrOptions.useOutdated
+            noreply = !!connOrOptions.noreply
+            for own key of connOrOptions
                 unless key in ['connection', 'useOutdated', 'noreply']
                     throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
-            conn = conn.connection
+            conn = connOrOptions.connection
+        else
+            useOutdated = null
+            noreply = null
+            conn = connOrOptions
+
+        # This only checks that the argument is of the right type, connection
+        # closed errors will be handled elsewhere
         unless conn instanceof Connection
-            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
-        unless typeof(cb) is 'function'
+            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."
+
+        # We only require a callback if noreply isn't set
+        if not noreply and typeof(cb) isnt 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb, useOutdated, noreply
+
+        try
+            conn._start @, cb, useOutdated, noreply
+        catch e
+            # It was decided that, if we can, we prefer to invoke the callback
+            # with any errors rather than throw them as normal exceptions.
+            # Thus we catch errors here and invoke the callback instead of
+            # letting the error bubble up.
+            if typeof(cb) is 'function'
+                cb(e)
+            else
+                throw e
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
@@ -56,6 +78,7 @@ class RDBVal extends TermBase
     spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
     changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
+    indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -69,9 +92,10 @@ class RDBVal extends TermBase
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
-    count: ar () -> new Count {}, @
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
@@ -388,6 +412,10 @@ class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
     mt: 'pluck'
 
+class IndexesOf extends RDBOp
+    tt: Term.TermType.INDEXES_OF
+    mt: 'indexesOf'
+
 class Without extends RDBOp
     tt: Term.TermType.WITHOUT
     mt: 'without'
@@ -435,6 +463,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
+
+class IsEmpty extends RDBOp
+    tt: Term.TermType.IS_EMPTY
+    mt: 'is_empty'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE

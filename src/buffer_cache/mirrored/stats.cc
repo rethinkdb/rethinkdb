@@ -16,8 +16,9 @@ void *mc_cache_stats_t::perfmon_cache_custom_t::begin_stats() {
 void mc_cache_stats_t::perfmon_cache_custom_t::visit_stats(void *) {
 }
 
-perfmon_result_t *mc_cache_stats_t::perfmon_cache_custom_t::end_stats(void *) {
-    return new perfmon_result_t(strprintf("%" PRIu32, block_size));
+scoped_ptr_t<perfmon_result_t>
+mc_cache_stats_t::perfmon_cache_custom_t::end_stats(void *) {
+    return make_scoped<perfmon_result_t>(strprintf("%" PRIu32, block_size));
 }
 
 mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)

@@ -220,6 +220,12 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def is_empty(self):
+        return IsEmpty(self)
+
+    def indexes_of(self, val):
+        return IndexesOf(self,func_wrap(val))
+
     def slice(self, left=None, right=None):
         return Slice(self, left, right)
 
@@ -252,8 +258,11 @@ class RqlQuery(object):
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
-    def count(self):
-        return Count(self)
+    def count(self, filter=()):
+        if filter == ():
+            return Count(self)
+        else:
+            return Count(self, func_wrap(filter))
 
     def union(self, *others):
         return Union(self, *others)
@@ -641,6 +650,18 @@ class Nth(RqlQuery):
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
+
+class IsEmpty(RqlMethodQuery):
+    tt = p.Term.IS_EMPTY
+    st = 'is_empty'
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE

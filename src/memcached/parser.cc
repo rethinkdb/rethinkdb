@@ -1078,8 +1078,8 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
             break;
         case perfmon_result_t::type_map:
             for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); ++i) {
-                std::string sub_name(name.empty() ? i->first : name + "." + i->first);
-                format_stats(i->second, sub_name, names_to_match, result);
+                std::string sub_name = name.empty() ? i->first : name + "." + i->first;
+                format_stats(i->second.get(), sub_name, names_to_match, result);
             }
             break;
         default:

@@ -24,8 +24,8 @@ tests:
         py: err_regex("TypeError", ".* takes exactly 1 argument \(2 given\)", [])
       cd:
       - tbl.zip(1)
-      - tbl.count(1)
       - tbl.distinct(1)
+      - tbl.is_empty(1)
 
 
     - ot:
@@ -79,6 +79,7 @@ tests:
       - tbl.filter()
       - tbl.get()
       - r.expr([]).sample()
+      - tbl.indexes_of()
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
@@ -133,6 +134,7 @@ tests:
       - tbl.filter(1,2)
       - tbl.get(1,2)
       - r.expr([]).sample(1,2)
+      - tbl.indexes_of(1,2)
 
     - cd: db.table_drop(1,2)
       ot:
@@ -151,6 +153,12 @@ tests:
         rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         py: err_regex('RqlRuntimeError', "Expected type STRING but found NUMBER", [])
+
+    - cd: tbl.count(1,2)
+      ot:
+        rb: err("RqlCompileError", "Expected between 1 and 2 arguments but found 3.", [])
+        js: err("RqlDriverError", "Expected between 0 and 1 argument(s) but found 2.", [])
+        py: err("TypeError", "count() takes at most 2 arguments (3 given)", [])
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])
