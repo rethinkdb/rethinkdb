@@ -187,11 +187,6 @@
 #define MIN_GC_LOW_RATIO                          0.099999
 
 
-// What's the maximum number of "young" extents we can have?
-#define GC_YOUNG_EXTENT_MAX_SIZE                  50
-// What's the definition of a "young" extent in microseconds?
-#define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
-
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
 // TODO: Maybe change this back to 20 megabytes?

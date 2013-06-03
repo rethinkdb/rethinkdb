@@ -10,6 +10,12 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
+
+// What's the maximum number of "young" extents we can have?
+#define GC_YOUNG_EXTENT_MAX_SIZE                  50
+// What's the definition of a "young" extent in microseconds?
+#define GC_YOUNG_EXTENT_TIMELIMIT_MICROS          50000
+
 /* TODO: Right now we perform garbage collection via the do_write() interface on the
 log_serializer_t. This leads to bugs in a couple of ways:
 1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The data block
