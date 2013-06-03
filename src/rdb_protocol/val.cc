@@ -72,9 +72,10 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 
 counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
                                           counted_t<func_t> replacement_generator,
-                                          bool nondet_ok) {
+                                          bool nondet_ok,
+                                          durability_requirement_t durability_requirement) {
     try {
-        return do_replace(original, replacement_generator, nondet_ok);
+        return do_replace(original, replacement_generator, nondet_ok, durability_requirement);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
@@ -82,9 +83,10 @@ counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
 
 counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
                                           counted_t<const datum_t> replacement,
-                                          bool upsert) {
+                                          bool upsert,
+                                          durability_requirement_t durability_requirement) {
     try {
-        return do_replace(original, replacement, upsert);
+        return do_replace(original, replacement, upsert, durability_requirement);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
@@ -94,7 +96,8 @@ counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
     const std::vector<counted_t<const datum_t> > &original_values,
     counted_t<func_t> replacement_generator,
-    const bool nondeterministic_replacements_ok) {
+    const bool nondeterministic_replacements_ok,
+    const durability_requirement_t durability_requirement) {
     if (replacement_generator->is_deterministic()) {
         std::vector<datum_func_pair_t> pairs(original_values.size());
         map_wire_func_t wire_func = map_wire_func_t(env, replacement_generator);
@@ -106,7 +109,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
             }
         }
 
-        return batch_replace(pairs);
+        return batch_replace(pairs, durability_requirement);
     } else {
         r_sanity_check(nondeterministic_replacements_ok);
 
@@ -130,14 +133,15 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
             }
         }
 
-        return batch_replace(pairs);
+        return batch_replace(pairs, durability_requirement);
     }
 }
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
     const std::vector<counted_t<const datum_t> > &original_values,
     const std::vector<counted_t<const datum_t> > &replacement_values,
-    bool upsert) {
+    const bool upsert,
+    const durability_requirement_t durability_requirement) {
     r_sanity_check(original_values.size() == replacement_values.size());
     scoped_array_t<map_wire_func_t> funcs(original_values.size());
     std::vector<datum_func_pair_t> pairs(original_values.size());
@@ -163,7 +167,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         }
     }
 
-    return batch_replace(pairs);
+    return batch_replace(pairs, durability_requirement);
 }
 
 bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
@@ -185,7 +189,8 @@ bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
 
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
-    const std::vector<datum_func_pair_t> &replacements) {
+    const std::vector<datum_func_pair_t> &replacements,
+    const durability_requirement_t durability_requirement) {
     std::vector<counted_t<const datum_t> > ret(replacements.size());
 
     std::vector<std::pair<int64_t, rdb_protocol_t::point_replace_t> > point_replaces;
@@ -228,7 +233,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     }
 
     if (!point_replaces.empty()) {
-        rdb_protocol_t::write_t write((rdb_protocol_t::batched_replaces_t(point_replaces)));
+        rdb_protocol_t::write_t write(rdb_protocol_t::batched_replaces_t(point_replaces),
+                                      durability_requirement);
         rdb_protocol_t::write_response_t response;
         access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
@@ -305,7 +311,8 @@ counted_t<const datum_t> table_t::sindex_list() {
 }
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
-                                             const map_wire_func_t &mwf) {
+                                             const map_wire_func_t &mwf,
+                                             durability_requirement_t durability_requirement) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -318,8 +325,10 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
         }
     }
     store_key_t store_key(orig->get(pk)->print_primary());
-    rdb_protocol_t::write_t write(
-        rdb_protocol_t::point_replace_t(pk, store_key, mwf, env->get_all_optargs()));
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_replace_t(pk, store_key,
+                                                                  mwf,
+                                                                  env->get_all_optargs()),
+                                  durability_requirement);
 
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if()->write(
@@ -330,18 +339,20 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              counted_t<func_t> f,
-                                             bool nondet_ok) {
+                                             bool nondet_ok,
+                                             durability_requirement_t durability_requirement) {
     if (f->is_deterministic()) {
-        return do_replace(orig, map_wire_func_t(env, f));
+        return do_replace(orig, map_wire_func_t(env, f), durability_requirement);
     } else {
         r_sanity_check(nondet_ok);
-        return do_replace(orig, f->call(orig)->as_datum(), true);
+        return do_replace(orig, f->call(orig)->as_datum(), true, durability_requirement);
     }
 }
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              counted_t<const datum_t> d,
-                                             bool upsert) {
+                                             bool upsert,
+                                             durability_requirement_t durability_requirement) {
     Term t;
     int x = env->gensym();
     Term *arg = pb::set_func(&t, x);
@@ -355,7 +366,8 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
     }
 
     propagate(&t);
-    return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()));
+    return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()),
+                      durability_requirement);
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

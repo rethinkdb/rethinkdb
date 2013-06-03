@@ -22,8 +22,6 @@ Additionally, the javascript tests depend on the mocha test framework.
 
 ```
 make -C ../..
-make -C ../../drivers/ruby
-make -C ../../drivers/python
 sudo npm install -g mocha
 ```
 

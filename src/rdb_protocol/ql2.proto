@@ -246,6 +246,7 @@ message Term {
         // DATUM Array Ops
         // Append a single element to the end of an array (like `snoc`).
         APPEND = 29; // ARRAY, DATUM -> ARRAY
+        PREPEND = 80; // ARRAY, DATUM -> ARRAY
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence

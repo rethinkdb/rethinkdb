@@ -185,14 +185,14 @@ class RqlQuery(object):
     def default(self, handler):
         return Default(self, handler)
 
-    def update(self, func, non_atomic=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic)
+    def update(self, func, non_atomic=(), durability=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
 
-    def replace(self, func, non_atomic=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic)
+    def replace(self, func, non_atomic=(), durability=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
 
-    def delete(self):
-        return Delete(self)
+    def delete(self, durability=()):
+        return Delete(self, durability=durability)
 
     # Rql type inspection
     def coerce_to(self, other_type):
@@ -206,6 +206,9 @@ class RqlQuery(object):
 
     def append(self, val):
         return Append(self, val)
+
+    def prepend(self, val):
+        return Prepend(self, val)
 
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
@@ -481,6 +484,10 @@ class Append(RqlMethodQuery):
     tt = p.Term.APPEND
     st = "append"
 
+class Prepend(RqlMethodQuery):
+    tt = p.Term.PREPEND
+    st = "prepend"
+
 class Slice(RqlQuery):
     tt = p.Term.SLICE
 
@@ -528,8 +535,8 @@ class DB(RqlTopLevelQuery):
     def table_list(self):
         return TableList(self)
 
-    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), hard_durability=()):
-        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, hard_durability=hard_durability)
+    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
+        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
 
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
@@ -553,8 +560,8 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=()):
-        return Insert(self, records, upsert=upsert)
+    def insert(self, records, upsert=(), durability=()):
+        return Insert(self, records, upsert=upsert, durability=durability)
 
     def get(self, key):
         return Get(self, key)

@@ -444,8 +444,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
             boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
 
             rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
-            rdb_protocol_t::write_t rdb_write;
-            rdb_write.write = point_write;
+            rdb_protocol_t::write_t rdb_write(point_write, DURABILITY_REQUIREMENT_SOFT);
             rdb_protocol_t::write_response_t response;
             ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 

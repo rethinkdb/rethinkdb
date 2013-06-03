@@ -3,16 +3,19 @@ commands:
     section: writing_data
     order: 3
     description: |
-      Delete one or more documents from a table.<br /><br />
+      Delete one or more documents from a table.  The optional argument
+      <code>durability</code> with value <code>'hard'</code> or
+      <code>'soft'</code> will override the table or query's default
+      durability setting.<br/><br/>
       Delete returns an object that contains the following attributes:
       <ul>
       <li><code>deleted</code> - the number of documents that were deleted;</li>
-      <li><code>skipped</code> - the number of documents from the selection that were left unmodified 
-      because there was nothing to do. For example, if you delete a row that has already been deleted, 
+      <li><code>skipped</code> - the number of documents from the selection that were left unmodified
+      because there was nothing to do. For example, if you delete a row that has already been deleted,
       that row will be skipped;</li>
       <li><code>errors</code> - the number of errors encountered while deleting;</li>
       <li>if errors occured, <code>first_error</code> contains the text of the first error;</li>
-      <li><code>inserted</code>, <code>replaced</code>, and <code>unchanged</code> - all 
+      <li><code>inserted</code>, <code>replaced</code>, and <code>unchanged</code> - all
       <code>0</code> for a <code>delete</code> operation.</li>
       </ul>
 
@@ -25,11 +28,12 @@ commands:
           js: r.table('marvel').get('superman').delete().run(conn, callback)
           py: r.table('marvel').get('superman').delete().run(conn)
           rb: r.table('marvel').get('superman').delete.run(conn)
-      - description: Delete every document from the table 'marvel'.
+      - description: Delete every document from the table 'marvel'.  Also, don't wait for the operation to be flushed to disk.
         code:
-          js: r.table('marvel').delete().run(conn, callback)
-          py: r.table('marvel').delete().run(conn)
-          rb: r.table('marvel').delete.run(conn)
+          js: |
+            r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
+          py: r.table('marvel').delete(durability='soft').run(conn)
+          rb: r.table('marvel').delete(:durability => 'soft').run(conn)
 
     rb:
       dont_need_parenthesis: true

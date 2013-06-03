@@ -46,6 +46,7 @@ class RDBVal extends TermBase
     mod: ar (other) -> new Mod {}, @, other
 
     append: ar (val) -> new Append {}, @, val
+    prepend: ar (val) -> new Prepend {}, @, val
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
@@ -75,7 +76,7 @@ class RDBVal extends TermBase
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
-    delete: ar () -> new Delete {}, @
+    delete: aropt (opts) -> new Delete opts, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
     default: ar (x) -> new Default {}, @, x
@@ -158,7 +159,6 @@ translateOptargs = (optargs) ->
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'hardDurability' then 'hard_durability'
             else key
 
         if key is undefined or val is undefined then continue
@@ -339,6 +339,10 @@ class Mod extends RDBOp
 class Append extends RDBOp
     tt: Term.TermType.APPEND
     mt: 'append'
+
+class Prepend extends RDBOp
+    tt: Term.TermType.PREPEND
+    mt: 'prepend'
 
 class Slice extends RDBOp
     tt: Term.TermType.SLICE

@@ -80,17 +80,14 @@ r.connect({port:port}, function(err, c) {
         cur.each(function(err, row) {
             assertNoError(err);
             i++;
-
-            // This is the only way to know if the `each` has ended
-            if (!cur.hasNext()) {
-                if (i === num_rows) {
-                    console.log("Test passed!");
-                } else {
-                    console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
-                    process.exit(1)
-                }
-                c.close();
+        }, function() {
+            if (i === num_rows) {
+                console.log("Test passed!");
+            } else {
+                console.log("Test failed: expected "+num_rows+" rows but found "+i+".");
+                process.exit(1)
             }
+            c.close();
         });
     });
 });
