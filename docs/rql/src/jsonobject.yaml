@@ -150,6 +150,27 @@ commands:
           can_try: true
           dataset: marvel
 
+  - tag: prepend
+    section: jsonobject
+    description: Prepend a value to an array.
+
+    body: value
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').prepend('newBoots').run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
   - tag: getattr
     section: jsonobject
     description: Get a single attribute from an object.

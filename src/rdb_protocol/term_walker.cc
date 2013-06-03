@@ -125,6 +125,7 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
         case Term::GETATTR:
         case Term::CONTAINS:
@@ -164,6 +165,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::SAMPLE:
             return false;
         default: unreachable();
         }
@@ -224,6 +226,7 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
         case Term::GETATTR:
         case Term::CONTAINS:
@@ -263,6 +266,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::SAMPLE:
             return false;
         default: unreachable();
         }

@@ -13,7 +13,7 @@ ar = (fun) -> (args...) ->
         throw new RqlDriverError "Expected #{fun.length} argument(s) but found #{args.length}."
     fun.apply(@, args)
 
-# Like ar for varaible argument functions. Takes minimum
+# Like ar for variable argument functions. Takes minimum
 # and maximum argument parameters.
 varar = (min, max, fun) -> (args...) ->
     if (min? and args.length < min) or (max? and args.length > max)

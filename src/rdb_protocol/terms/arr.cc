@@ -5,21 +5,47 @@
 
 namespace ql {
 
-class append_term_t : public op_term_t {
+class pend_term_t : public op_term_t {
 public:
-    append_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
-private:
-    virtual counted_t<val_t> eval_impl() {
+    pend_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+protected:
+    enum which_pend_t {PRE, AP};
+    counted_t<val_t> pend(which_pend_t which_pend) {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
         arr->check_type(datum_t::R_ARRAY);
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
-        // TODO: this is horrendously inefficient.
-        for (size_t i = 0; i < arr->size(); ++i) out->add(arr->get(i));
-        out->add(new_el);
+        if (which_pend == PRE) {
+            // TODO: this is horrendously inefficient.
+            out->add(new_el);
+            for (size_t i = 0; i < arr->size(); ++i) out->add(arr->get(i));
+        } else {
+            // TODO: this is horrendously inefficient.
+            for (size_t i = 0; i < arr->size(); ++i) out->add(arr->get(i));
+            out->add(new_el);
+        }
         return new_val(counted_t<const datum_t>(out.release()));
     }
+};
+
+class append_term_t : public pend_term_t {
+public:
+    append_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        return pend(AP);
+    }
     virtual const char *name() const { return "append"; }
+};
+
+class prepend_term_t : public pend_term_t {
+public:
+    prepend_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        return pend(PRE);
+    }
+    virtual const char *name() const { return "prepend"; }
 };
 
 // This gets the literal index of a (possibly negative) index relative to a
@@ -230,6 +256,10 @@ private:
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);
+}
+
+counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<prepend_term_t>(env, term);
 }
 
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term) {

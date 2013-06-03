@@ -474,8 +474,24 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
         to every dispatchee. */
         fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
         if (it->first->is_readable) {
+            durability_requirement_t durability_requirement = write.durability();
+            write_durability_t durability;
+            switch (durability_requirement) {
+            case DURABILITY_REQUIREMENT_DEFAULT:
+                durability = ack_checker->get_write_durability(it->first->get_peer());
+                break;
+            case DURABILITY_REQUIREMENT_SOFT:
+                durability = WRITE_DURABILITY_SOFT;
+                break;
+            case DURABILITY_REQUIREMENT_HARD:
+                durability = WRITE_DURABILITY_HARD;
+                break;
+            default:
+                unreachable();
+            }
+
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
-                it->first, it->second, write_ref, order_token, fifo_enforcer_token, ack_checker->get_write_durability(it->first->get_peer())));
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token));
