@@ -21,8 +21,12 @@
 #define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
 #endif
 
-// Max concurrent IO requests per event queue
-#define DEFAULT_MAX_CONCURRENT_IO_REQUESTS                64
+// The maximum concurrent IO requests per event queue.. the default value.
+#define DEFAULT_MAX_CONCURRENT_IO_REQUESTS 64
+
+// The maximum user-specifiable value how many concurrent I/O requests may be done per event
+// queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
+#define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
 
 
 

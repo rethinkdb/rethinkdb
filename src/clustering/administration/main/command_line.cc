@@ -506,7 +506,8 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 }
 
 
-void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name, bool *const result_out) {
+void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name,
+                          bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
     logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
@@ -616,6 +617,7 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          const serve_info_t& serve_info,
+                         const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *semilattice_metadata,
                          bool *const result_out) {
@@ -631,7 +633,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -672,11 +674,14 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
+                             const int max_concurrent_io_requests,
                              const bool new_directory,
                              const serve_info_t &serve_info,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info, NULL, NULL, result_out);
+        run_rethinkdb_serve(base_path, serve_info, max_concurrent_io_requests,
+                            NULL, NULL,
+                            result_out);
     } else {
         logINF("Creating directory %s\n", base_path.path().c_str());
 
@@ -706,6 +711,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         }
 
         run_rethinkdb_serve(base_path, serve_info,
+                            max_concurrent_io_requests,
                             &our_machine_id, &semilattice_metadata, result_out);
     }
 }
@@ -754,6 +760,11 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              options::OPTIONAL,
                                              "rethinkdb_data"));
     help.add("-d [ --directory ] path", "specify directory to store data and metadata");
+    options_out->push_back(options::option_t(options::names_t("--io-load-limit"),
+                                             options::OPTIONAL,
+                                             stringify(DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
+    help.add("--io-load-limit n",
+             "how many simultaneous I/O operations can happen at the same time");
     return help;
 }
 
@@ -1161,7 +1172,15 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         const int num_workers = get_single_int(opts, "--cores");
         if (num_workers <= 0 || num_workers > MAX_THREADS) {
-            fprintf(stderr, "ERROR: number specified for cores to utilize must be between 1 and %d\n", MAX_THREADS);
+            fprintf(stderr, "ERROR: number specified for cores to use must be between 1 and %d\n", MAX_THREADS);
+            return EXIT_FAILURE;
+        }
+
+        const int max_concurrent_io_requests = get_single_int(opts, "--io-load");
+        if (max_concurrent_io_requests <= 0
+            || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
+            fprintf(stderr, "ERROR: io-load must be between 1 and %lld\n",
+                    MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
             return EXIT_FAILURE;
         }
 
@@ -1197,6 +1216,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
                                        serve_info,
+                                       max_concurrent_io_requests,
                                        static_cast<machine_id_t*>(NULL),
                                        static_cast<cluster_semilattice_metadata_t*>(NULL),
                                        &result),
@@ -1488,6 +1508,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        const int max_concurrent_io_requests = get_single_int(opts, "--io-load");
+        if (max_concurrent_io_requests <= 0
+            || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
+            fprintf(stderr, "ERROR: io-load must be between 1 and %lld\n",
+                    MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
+            return EXIT_FAILURE;
+        }
+
         bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
         if (!check_existence(base_path)) {
@@ -1527,6 +1555,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
                                        base_path,
                                        machine_name,
+                                       max_concurrent_io_requests,
                                        new_directory,
                                        serve_info,
                                        &result),
