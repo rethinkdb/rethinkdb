@@ -424,7 +424,7 @@ message Term {
         INFO = 79; // Top -> OBJECT
 
         // Select a number of elements from sequence with uniform distribution.
-        SAMPLE = 80; // Sequence, NUMBER -> Sequence
+        SAMPLE = 81; // Sequence, NUMBER -> Sequence
     }
     optional TermType type = 1;
 
