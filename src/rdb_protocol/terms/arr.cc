@@ -186,7 +186,7 @@ private:
             for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                 if (**it == *el) {
                     it = required_els.erase(it);
-                    break; // Bag semantics for contains
+                    break; // Bag semantics for contains.
                 }
             }
             if (required_els.size() == 0) {
