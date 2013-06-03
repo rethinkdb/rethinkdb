@@ -14,7 +14,7 @@ write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &x) {
         msg << size;
         for (perfmon_result_t::const_iterator it = x.begin(); it != x.end(); ++it) {
             msg << it->first;
-            rassert(it->second != NULL);
+            rassert(it->second.has());
             msg << *it->second;
         }
     } break;
