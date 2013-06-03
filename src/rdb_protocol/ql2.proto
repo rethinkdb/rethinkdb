@@ -302,14 +302,14 @@ message Term {
 
         // Array Ops
         // Insert an element in to an array at a given index.
-        INSERT_AT          = 81; // ARRAY, NUMBER, DATUM -> ARRAY
+        INSERT_AT          = 82; // ARRAY, NUMBER, DATUM -> ARRAY
         // Remove an element at a given index from an array.
-        DELETE_AT          = 82; // ARRAY, NUMBER -> ARRAY |
+        DELETE_AT          = 83; // ARRAY, NUMBER -> ARRAY |
                                  // ARRAY, NUMBER, NUMBER -> ARRAY
         // Change the element at a given index of an array.
-        CHANGE_AT          = 83; // ARRAY, NUMBER, DATUM -> ARRAY
+        CHANGE_AT          = 84; // ARRAY, NUMBER, DATUM -> ARRAY
         // Splice one array in to another array.
-        SPLICE_AT          = 84; // ARRAY, NUMBER, ARRAY -> ARRAY
+        SPLICE_AT          = 85; // ARRAY, NUMBER, ARRAY -> ARRAY
 
         // * Type Ops
         // Coerces a datum to a named type (e.g. "bool").
