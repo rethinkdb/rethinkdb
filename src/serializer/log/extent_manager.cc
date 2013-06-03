@@ -146,8 +146,6 @@ extent_manager_t::extent_manager_t(file_t *file,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
       dbfile(file), state(state_reserving_extents) {
-    stats->pm_extent_size += extent_size;
-
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
     zone.init(new extent_zone_t(extent_size));
