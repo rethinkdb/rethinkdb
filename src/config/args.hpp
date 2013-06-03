@@ -169,23 +169,6 @@
 // id.
 #define SUPERBLOCK_ID                             0
 
-// The ratio at which we should start GCing.  (HEY: What's the extra
-// 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
-// that 0.99 was too high?)
-#define DEFAULT_GC_HIGH_RATIO                     0.20
-// TODO: MAX_GC_HIGH_RATIO is unused.  Use it!
-// TODO: Probably this value is way too high.
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MAX_GC_HIGH_RATIO                         0.990001
-
-// The ratio at which we don't want to keep GC'ing.
-#define DEFAULT_GC_LOW_RATIO                      0.15
-// TODO: MIN_GC_LOW_RATIO is unused.  Use it!
-//  - Keeping this around because if it becomes configurable again, we
-//    should have these limits.  Before then at least rassert it.
-#define MIN_GC_LOW_RATIO                          0.099999
-
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
