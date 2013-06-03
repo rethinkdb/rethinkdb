@@ -422,6 +422,9 @@ message Term {
 
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
+
+        // Select a number of elements from sequence with uniform distribution.
+        SAMPLE = 81; // Sequence, NUMBER -> Sequence
     }
     optional TermType type = 1;
 

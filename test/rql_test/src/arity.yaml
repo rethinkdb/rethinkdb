@@ -78,6 +78,7 @@ tests:
       - tbl.for_each()
       - tbl.filter()
       - tbl.get()
+      - r.expr([]).sample()
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
         rb: err("RqlCompileError", "Expected 1 argument(s) but found 2.", [])
@@ -131,6 +132,7 @@ tests:
       - tbl.for_each(1,2)
       - tbl.filter(1,2)
       - tbl.get(1,2)
+      - r.expr([]).sample(1,2)
 
     - cd: db.table_drop(1,2)
       ot:

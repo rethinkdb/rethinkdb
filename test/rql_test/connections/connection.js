@@ -93,7 +93,7 @@ describe('Javascript connection API', function(){
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."));
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."));
           done();
         });
     });
@@ -140,9 +140,7 @@ describe('Javascript connection API', function(){
 
         it("fails to query after close", withConnection(function(done, c){
             c.close();
-            assert.throws(function(){ r(1).run(c, function(){}); },
-                          checkError("RqlDriverError", "Connection is closed."));
-            done();
+            r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
         }));
 
         it("test use", withConnection(function(done, c){
@@ -165,10 +163,7 @@ describe('Javascript connection API', function(){
         it("fails to query after kill", withConnection(function(done, c){
             cpp_server.kill();
             setTimeout(function() {
-                assert.throws(function(){
-                    r(1).run(c, function(err, res) { assert.ok(false, "This callback should never get called"); });
-                }, checkError("RqlDriverError", "Connection is closed."));
-                done();
+                r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
             }, 100);
         }));
 

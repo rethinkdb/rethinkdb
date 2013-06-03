@@ -11,21 +11,43 @@ class TermBase
         self.__proto__ = @.__proto__
         return self
 
-    run: (conn, cb) ->
+    run: (connOrOptions, cb) ->
         useOutdated = undefined
-        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
-            useOutdated = !!conn.useOutdated
-            noreply = !!conn.noreply
-            for own key of conn
+
+        # Parse out run options from connOrOptions object
+        if connOrOptions? and typeof(connOrOptions) is 'object' and not (connOrOptions instanceof Connection)
+            useOutdated = !!connOrOptions.useOutdated
+            noreply = !!connOrOptions.noreply
+            for own key of connOrOptions
                 unless key in ['connection', 'useOutdated', 'noreply']
                     throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
-            conn = conn.connection
+            conn = connOrOptions.connection
+        else
+            useOutdated = null
+            noreply = null
+            conn = connOrOptions
+
+        # This only checks that the argument is of the right type, connection
+        # closed errors will be handled elsewhere
         unless conn instanceof Connection
-            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
-        unless typeof(cb) is 'function'
+            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."
+
+        # We only require a callback if noreply isn't set
+        if not noreply and typeof(cb) isnt 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb, useOutdated, noreply
+
+        try
+            conn._start @, cb, useOutdated, noreply
+        catch e
+            # It was decided that, if we can, we prefer to invoke the callback
+            # with any errors rather than throw them as normal exceptions.
+            # Thus we catch errors here and invoke the callback instead of
+            # letting the error bubble up.
+            if typeof(cb) is 'function'
+                cb(e)
+            else
+                throw e
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
@@ -92,6 +114,7 @@ class RDBVal extends TermBase
         new GroupBy {}, @, attrs, collector
 
     info: ar () -> new Info {}, @
+    sample: ar (count) -> new Sample {}, @, count
 
 class DatumTerm extends RDBVal
     args: []
@@ -454,6 +477,10 @@ class TypeOf extends RDBOp
 class Info extends RDBOp
     tt: Term.TermType.INFO
     mt: 'info'
+
+class Sample extends RDBOp
+    tt: Term.TermType.SAMPLE
+    mt: 'sample'
 
 class Update extends RDBOp
     tt: Term.TermType.UPDATE
