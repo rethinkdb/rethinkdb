@@ -103,7 +103,7 @@ private:
         arg = pb::set_func(arg, obj);
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
-              N2(CONTAINS, NVAR(obj), NVAR(attr)),
+              N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
     }
@@ -116,14 +116,14 @@ private:
         } else if (dc == "SUM") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
-                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
-                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
                   N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
                *arg = *dc_arg);

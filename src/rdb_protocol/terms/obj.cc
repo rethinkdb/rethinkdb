@@ -16,9 +16,9 @@ private:
     virtual const char *name() const { return "getattr"; }
 };
 
-class contains_term_t : public op_term_t {
+class has_fields_term_t : public op_term_t {
 public:
-    contains_term_t(env_t *env, protob_t<const Term> term)
+    has_fields_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -29,15 +29,15 @@ private:
         }
         return new_val(make_counted<const datum_t>(datum_t::R_BOOL, contains));
     }
-    virtual const char *name() const { return "contains"; }
+    virtual const char *name() const { return "has_fields"; }
 };
 
 counted_t<term_t> make_getattr_term(env_t *env, protob_t<const Term> term) {
     return make_counted<getattr_term_t>(env, term);
 }
 
-counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
-    return make_counted<contains_term_t>(env, term);
+counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<has_fields_term_t>(env, term);
 }
 
 } // namespace ql

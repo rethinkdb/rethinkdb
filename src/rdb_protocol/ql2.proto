@@ -251,9 +251,10 @@ message Term {
         // Get a particular attribute out of an object, or map that over a
         // sequence.
         GETATTR  = 31; // OBJECT, STRING -> DATUM
-        // Check whether an object contains all of a set of attributes, or map
-        // that over a sequence.
-        CONTAINS = 32; // OBJECT, STRING... -> BOOL
+        // Check whether an object contains all the specified fields,
+        // or filters a sequence so that all objects inside of it
+        // contain all the specified fields.
+        HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
