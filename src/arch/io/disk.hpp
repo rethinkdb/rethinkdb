@@ -68,7 +68,6 @@ public:
         mode_truncate = 1 << 3
     };
 
-    bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
     void set_size_at_least(size_t size);
