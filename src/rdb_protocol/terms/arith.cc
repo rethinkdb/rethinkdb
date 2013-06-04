@@ -40,6 +40,16 @@ private:
         } else if (lhs->get_type() == datum_t::R_STR) {
             rhs->check_type(datum_t::R_STR);
             return make_counted<datum_t>(lhs->as_str() + rhs->as_str());
+        } else if (lhs->get_type() == datum_t::R_ARRAY) {
+            rhs->check_type(datum_t::R_ARRAY);
+            scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
+            for (size_t i = 0; i < lhs->size(); ++i) {
+                out->add(lhs->get(i));
+            }
+            for (size_t i = 0; i < rhs->size(); ++i) {
+                out->add(rhs->get(i));
+            }
+            return counted_t<const datum_t>(out.release());
         }
 
         // If we get here lhs is neither number nor string
@@ -57,6 +67,24 @@ private:
     }
     counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
+        if (lhs->get_type() == datum_t::R_ARRAY ||
+            rhs->get_type() == datum_t::R_ARRAY) {
+            counted_t<const datum_t> array =
+                (lhs->get_type() == datum_t::R_ARRAY ? lhs : rhs);
+            counted_t<const datum_t> num =
+                (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
+            num->check_type(datum_t::R_NUM);
+
+            scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
+            int num_copies = num->as_num();
+
+            while (--num_copies >= 0) {
+                for (size_t i = 0; i < array->size(); ++i) {
+                    out->add(array->get(i));
+                }
+            }
+            return counted_t<const datum_t>(out.release());
+        }
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
