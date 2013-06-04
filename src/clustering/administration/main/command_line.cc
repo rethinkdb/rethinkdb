@@ -760,10 +760,10 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              options::OPTIONAL,
                                              "rethinkdb_data"));
     help.add("-d [ --directory ] path", "specify directory to store data and metadata");
-    options_out->push_back(options::option_t(options::names_t("--io-load-limit"),
+    options_out->push_back(options::option_t(options::names_t("--max-io-threads"),
                                              options::OPTIONAL,
                                              strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
-    help.add("--io-load-limit n",
+    help.add("--max-io-threads n",
              "how many simultaneous I/O operations can happen at the same time");
     return help;
 }
@@ -1176,10 +1176,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const int max_concurrent_io_requests = get_single_int(opts, "--io-load-limit");
+        const int max_concurrent_io_requests = get_single_int(opts, "--max-io-threads");
         if (max_concurrent_io_requests <= 0
             || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-            fprintf(stderr, "ERROR: io-load-limit must be between 1 and %lld\n",
+            fprintf(stderr, "ERROR: max-io-threads must be between 1 and %lld\n",
                     MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
             return EXIT_FAILURE;
         }
@@ -1508,10 +1508,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const int max_concurrent_io_requests = get_single_int(opts, "--io-load-limit");
+        const int max_concurrent_io_requests = get_single_int(opts, "--max-io-threads");
         if (max_concurrent_io_requests <= 0
             || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-            fprintf(stderr, "ERROR: io-load-limit must be between 1 and %lld\n",
+            fprintf(stderr, "ERROR: max-io-threads must be between 1 and %lld\n",
                     MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
             return EXIT_FAILURE;
         }
