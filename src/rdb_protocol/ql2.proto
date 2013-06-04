@@ -249,10 +249,10 @@ message Term {
         // performance characteristics you would expect from arrays rather than
         // from sets. All set operations have the post condition that they
         // array they return contains no duplicate values.
-        SET_INSERT = 81;
-        SET_INTERSECTION = 82;
-        SET_UNION = 83;
-        SET_DIFFERENCE = 84;
+        SET_INSERT = 81; // ARRAY, DATUM -> ARRAY
+        SET_INTERSECTION = 82; // ARRAY, ARRAY -> ARRAY
+        SET_UNION = 83; // ARRAY, ARRAY -> ARRAY
+        SET_DIFFERENCE = 84; // ARRAY, ARRAY -> ARRAY
 
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
