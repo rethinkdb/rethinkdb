@@ -47,10 +47,10 @@ class RDBVal extends TermBase
 
     append: ar (val) -> new Append {}, @, val
     prepend: ar (val) -> new Prepend {}, @, val
-    set_insert: ar (val) -> new SetInsert {}, @, val
-    set_union: ar (val) -> new SetUnion {}, @, val
-    set_intersection: ar (val) -> new SetIntersection {}, @, val
-    set_difference: ar (val) -> new SetDifference {}, @, val
+    setInsert: ar (val) -> new SetInsert {}, @, val
+    setUnion: ar (val) -> new SetUnion {}, @, val
+    setIntersection: ar (val) -> new SetIntersection {}, @, val
+    setDifference: ar (val) -> new SetDifference {}, @, val
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
