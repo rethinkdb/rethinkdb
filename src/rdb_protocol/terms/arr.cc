@@ -178,14 +178,16 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<datum_stream_t> seq = arg(0)->as_seq();
-        std::list<counted_t<const datum_t> > required_els;
+        std::vector<counted_t<const datum_t> > required_els;
         for (size_t i = 1; i < num_args(); ++i) {
             required_els.push_back(arg(i)->as_datum());
         }
         while (counted_t<const datum_t> el = seq->next()) {
             for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                 if (**it == *el) {
-                    it = required_els.erase(it);
+                    auto last_el = required_els.end() - 1;
+                    std::swap(*it, *last_el);
+                    required_els.erase(last_el);
                     break; // Bag semantics for contains.
                 }
             }
