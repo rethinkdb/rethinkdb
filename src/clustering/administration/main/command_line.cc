@@ -762,7 +762,7 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
     help.add("-d [ --directory ] path", "specify directory to store data and metadata");
     options_out->push_back(options::option_t(options::names_t("--io-load-limit"),
                                              options::OPTIONAL,
-                                             stringify(DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
+                                             strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
     help.add("--io-load-limit n",
              "how many simultaneous I/O operations can happen at the same time");
     return help;
