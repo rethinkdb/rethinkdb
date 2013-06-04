@@ -51,13 +51,18 @@ private:
 
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();
-        ls_buf_data_t *ser_data = reinterpret_cast<ls_buf_data_t *>(fake_buf);
+        ls_buf_data_t *ser_data = static_cast<ls_buf_data_t *>(fake_buf);
         ser_data--;
         ser_data->block_id = serializer->translate_block_id(block_A);
         ser_data->block_sequence_id = 1;
 
         EXPECT_FALSE(cache->contains_block(block_A));
         cache->offer_read_ahead_buf(block_A,
+                                    cache->get_block_size().value(),  // RSI: Would we ever want
+                                                                      // to specify a different
+                                                                      // value in this test (or
+                                                                      // otherwise test this
+                                                                      // feature)?
                                     ser_data + 1,
                                     counted_t<standard_block_token_t>(),
                                     repli_timestamp_t::distant_past);

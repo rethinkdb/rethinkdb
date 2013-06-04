@@ -145,7 +145,9 @@ public:
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, uint32_t this_block_size,
+                              void *buf, const counted_t<standard_block_token_t>& token,
+                              repli_timestamp_t recency_timestamp);
 };
 
 #endif /* SERIALIZER_TRANSLATOR_HPP_ */

@@ -942,7 +942,11 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
+        // RSI: The serializer needs to actually support custom block sizes, instead of passing
+        // get_block_size().value() to the read-ahead callback.
+        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
+                                                          get_block_size().value(), buf,
+                                                          token, recency_timestamp)) {
             return true;
         }
     }

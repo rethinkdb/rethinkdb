@@ -29,6 +29,7 @@ public:
                    bool leave_clone)
         : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
           parent(buf), snapshotted_version(buf->version_id),
+          this_block_size(buf->this_block_size),
           token(buf->data_token),
           subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
@@ -131,6 +132,9 @@ private:
 
     mutable mutex_t data_mutex;
 
+    // The size of the block, for the snapshot we hold.
+    uint32_t this_block_size;
+
     // The buffer of the snapshot we hold.
     serializer_data_ptr_t data;
 
@@ -180,6 +184,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
+      this_block_size(valgrind_undefined<uint32_t>(0)),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
@@ -209,10 +214,14 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id,
+                               uint32_t _this_block_size, void *_buf,
+                               const counted_t<standard_block_token_t>& token,
+                               repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
+      this_block_size(_this_block_size),
       subtree_recency(_recency_timestamp),
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
@@ -234,7 +243,8 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_
     refcount--;
 }
 
-mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
+mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version,
+                                         repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
 
     if (snapshot_version == faux_version_id)
@@ -242,7 +252,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
 
     block_id_t block_id = cache->free_list.gen_block_id();
     mc_inner_buf_t *inner_buf = cache->find_buf(block_id);
-    if (!inner_buf) {
+    if (inner_buf == NULL) {
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
@@ -251,11 +261,12 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         // as that would cause a conflict in the page map.
         // Instead, we keep the snapshots around and reset the remaining state of
         // the buffer to make it behave just like a freshly constructed one.
-        
+
         rassert(inner_buf->do_delete);
         rassert(!inner_buf->data.has());
 
-        inner_buf->initialize_to_new(snapshot_version, recency_timestamp);
+        inner_buf->initialize_to_new(snapshot_version, recency_timestamp,
+                                     cache->get_block_size().value());
         inner_buf->writeback_buf().reset();
 
         return inner_buf;
@@ -266,16 +277,22 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
 // allocate() method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without
 // requiring the creation of a new mc_inner_buf_t object.
 // See the comment in allocate() for why this is necessary.
-void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
+void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp,
+                                       uint32_t _this_block_size) {
     rassert(!data.has());
-    
+
     subtree_recency = _recency_timestamp;
     data.init_malloc(cache->serializer);
+
+    // RSI: This preprocessor conditional is messed up, no?
 #if !defined(NDEBUG) || defined(VALGRIND)
         // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
         // between problems with uninitialized memory and problems with uninitialized blocks
-        memset(data.get(), 0xCD, cache->serializer->get_block_size().value());
+        memset(data.get(), 0xCD, cache->get_block_size().value());
 #endif
+    rassert(_this_block_size > 0);
+    this_block_size = _this_block_size;
+
     version_id = _snapshot_version;
     do_delete = false;
     cow_refcount = 0;
@@ -291,13 +308,14 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
+      this_block_size(valgrind_undefined<uint32_t>(0)),
       lock(),
       refcount(0) {
 
     rassert(_snapshot_version != faux_version_id);
     _cache->assert_thread();
 
-    initialize_to_new(_snapshot_version, _recency_timestamp);
+    initialize_to_new(_snapshot_version, _recency_timestamp, _cache->get_block_size().value());
 
     array_map_t::constructing_inner_buf(this);
 
@@ -1307,19 +1325,30 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
-    // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, uint32_t this_block_size,
+                                      void *buf,
+                                      const counted_t<standard_block_token_t>& token,
+                                      repli_timestamp_t recency_timestamp) {
+    // Note that the offered block might get deleted between the point where the serializer
+    // offers it and the message gets delivered!
+    do_on_thread(home_thread(),
+                 boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this,
+                             block_id, this_block_size, buf, token, recency_timestamp));
+    // RSI: There is no point to this boolean return value, probably.  Well the
+    // translator_serializer_t can return false.  It seems to mean the block was not accepted,
+    // or something.  See how the log_serializer_t handles the value.
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, uint32_t this_block_size,
+                                                  void *buf, const counted_t<standard_block_token_t>& token,
+                                                  repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
     // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
     if (can_read_ahead_block_be_accepted(block_id)) {
-        new mc_inner_buf_t(this, block_id, buf, token, recency_timestamp);
+        new mc_inner_buf_t(this, block_id, this_block_size, buf, token, recency_timestamp);
     } else {
         serializer->free(buf);
     }

@@ -64,7 +64,7 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, uint32_t this_block_size, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -91,10 +91,15 @@ class mc_inner_buf_t : public evictable_t,
 private:
     // Initializes an mc_inner_buf_t for use with a new block.
     // This is used by allocate() and the new buf constructor mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp)
-    void initialize_to_new(version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    void initialize_to_new(version_id_t snapshot_version, repli_timestamp_t recency_timestamp,
+                           uint32_t this_block_size);
 
     // Our block's block id.
     block_id_t block_id;
+
+    // The size of the block.  It must be true that 0 < this_block_size <=
+    // cache->get_block_size().value().  (This is set to 0 when uninitialized.)
+    uint32_t this_block_size;
 
     // The subtree recency value associated with our block.
     repli_timestamp_t subtree_recency;
@@ -139,7 +144,8 @@ public:
     mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode,
             buffer_cache_order_mode_t order_mode = buffer_cache_order_mode_check,
             lock_in_line_callback_t *call_when_in_line = 0) THROWS_NOTHING;
-    explicit mc_buf_lock_t(mc_transaction_t *txn) THROWS_NOTHING; // Constructor used to allocate a new block
+    // Allocates a new block.
+    explicit mc_buf_lock_t(mc_transaction_t *txn) THROWS_NOTHING;
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 
@@ -156,6 +162,14 @@ public:
 
     bool is_acquired() const;
 
+    // Increases or decreases the block's size, in bytes.  Constraint: 0 < size <=
+    // cache->get_block_size().value().  This affects how much space the block uses on disk
+    // (RSI: make this sentence true).
+    void resize(uint32_t size);
+
+    // Returns the block's size, in bytes.
+    uint32_t size() const;
+
     // Get the data buffer for reading
     const void *get_data_read() const;
     // Gets data for writing, also means the block will have to be flushed.
@@ -165,6 +179,7 @@ public:
 
     bool is_deleted() const;
     void mark_deleted();
+
 
     eviction_priority_t get_eviction_priority() const;
     void set_eviction_priority(eviction_priority_t val);
@@ -348,10 +363,15 @@ private:
     void on_transaction_commit(mc_transaction_t *txn);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, uint32_t this_block_size,
+                              void *buf, const counted_t<standard_block_token_t>& token,
+                              repli_timestamp_t recency_timestamp);
 
 private:
-    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf_home_thread(block_id_t block_id, uint32_t this_block_size,
+                                          void *buf,
+                                          const counted_t<standard_block_token_t>& token,
+                                          repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 
