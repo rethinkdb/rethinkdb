@@ -47,6 +47,10 @@ class RDBVal extends TermBase
 
     append: ar (val) -> new Append {}, @, val
     prepend: ar (val) -> new Prepend {}, @, val
+    set_insert: ar (val) -> new SetInsert {}, @, val
+    set_union: ar (val) -> new SetUnion {}, @, val
+    set_intersection: ar (val) -> new SetIntersection {}, @, val
+    set_difference: ar (val) -> new SetDifference {}, @, val
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
@@ -343,6 +347,22 @@ class Append extends RDBOp
 class Prepend extends RDBOp
     tt: Term.TermType.PREPEND
     mt: 'prepend'
+
+class SetInsert extends RDBOp
+    tt: Term.TermType.SET_INSERT
+    mt: 'set_insert'
+
+class SetUnion extends RDBOp
+    tt: Term.TermType.SET_UNION
+    mt: 'set_union'
+
+class SetIntersection extends RDBOp
+    tt: Term.TermType.SET_INTERSECTION
+    mt: 'set_intersection'
+
+class SetDifference extends RDBOp
+    tt: Term.TermType.SET_DIFFERENCE
+    mt: 'set_difference'
 
 class Slice extends RDBOp
     tt: Term.TermType.SLICE
