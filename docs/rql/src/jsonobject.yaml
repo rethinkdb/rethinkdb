@@ -223,3 +223,68 @@ commands:
         0:
           can_try: true
           dataset: marvel
+
+  - tag: insert_at
+    section: jsonobject
+    description: Insert a value in to an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk decides to join the avengers.
+        code:
+          js: r(["Iron Man", "Spider-Man"]).insertAt(1, "Hulk").run(conn, callback)
+          py: r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+          rb: r(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+
+  - tag: splice_at
+    section: jsonobject
+    description: Insert several values in to an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk and Thor decide to join the avengers.
+        code:
+          js: r(["Iron Man", "Spider-Man"]).spliceAt(1, ["Hulk", "Thor"]).run(conn, callback)
+          py: r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+          rb: r(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+
+  - tag: delete_at
+    section: jsonobject
+    description: Remove an element from an array at a given index. Returns the modified array.
+
+    body: index [,endIndex]
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk decides to leave the avengers.
+        code:
+          js: r(["Iron Man", "Hulk", "Spider-Man"]).deleteAt(1).run(conn, callback)
+          py: r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+          rb: r(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+      - description: Hulk and Thor decide to leave the avengers.
+        code:
+          js: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).deleteAt(1,2).run(conn, callback)
+          py: r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
+          rb: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
+
+  - tag: change_at
+    section: jsonobject
+    description: Change a value in an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Bruce Banner hulks out.
+        code:
+          js: r(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
+          py: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+          rb: r(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)

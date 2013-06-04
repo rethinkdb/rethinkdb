@@ -220,6 +220,12 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def is_empty(self):
+        return IsEmpty(self)
+
+    def indexes_of(self, val):
+        return IndexesOf(self,func_wrap(val))
+
     def slice(self, left=None, right=None):
         return Slice(self, left, right)
 
@@ -252,8 +258,11 @@ class RqlQuery(object):
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
-    def count(self):
-        return Count(self)
+    def count(self, filter=()):
+        if filter == ():
+            return Count(self)
+        else:
+            return Count(self, func_wrap(filter))
 
     def union(self, *others):
         return Union(self, *others)
@@ -283,6 +292,19 @@ class RqlQuery(object):
 
     def info(self):
         return Info(self)
+
+    # Array only operations
+    def insert_at(self, index, value):
+        return InsertAt(self, index, value)
+
+    def splice_at(self, index, values):
+        return SpliceAt(self, index, values)
+
+    def delete_at(self, *indexes):
+        return DeleteAt(self, *indexes);
+
+    def change_at(self, index, value):
+        return ChangeAt(self, index, value);
 
     def sample(self, count):
         return Sample(self, count)
@@ -629,6 +651,18 @@ class Nth(RqlQuery):
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
+
+class IsEmpty(RqlMethodQuery):
+    tt = p.Term.IS_EMPTY
+    st = 'is_empty'
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
+
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
     st = 'grouped_map_reduce'
@@ -732,6 +766,22 @@ class ForEach(RqlMethodQuery):
 class Info(RqlMethodQuery):
     tt = p.Term.INFO
     st = 'info'
+
+class InsertAt(RqlMethodQuery):
+    tt = p.Term.INSERT_AT
+    st = 'insert_at'
+
+class SpliceAt(RqlMethodQuery):
+    tt = p.Term.SPLICE_AT
+    st = 'splice_at'
+
+class DeleteAt(RqlMethodQuery):
+    tt = p.Term.DELETE_AT
+    st = 'delete_at'
+
+class ChangeAt(RqlMethodQuery):
+    tt = p.Term.CHANGE_AT
+    st = 'change_at'
 
 class Sample(RqlMethodQuery):
     tt = p.Term.SAMPLE

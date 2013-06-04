@@ -74,6 +74,11 @@ class RDBVal extends TermBase
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    insertAt: ar (index, value) -> new InsertAt {}, @, index, value
+    spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
+    deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
+    changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
+    indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -87,9 +92,10 @@ class RDBVal extends TermBase
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
-    count: ar () -> new Count {}, @
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
@@ -386,9 +392,29 @@ class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
     mt: 'contains'
 
+class InsertAt extends RDBOp
+    tt: Term.TermType.INSERT_AT
+    mt: 'insert_at'
+
+class SpliceAt extends RDBOp
+    tt: Term.TermType.SPLICE_AT
+    mt: 'splice_at'
+
+class DeleteAt extends RDBOp
+    tt: Term.TermType.DELETE_AT
+    mt: 'delete_at'
+
+class ChangeAt extends RDBOp
+    tt: Term.TermType.CHANGE_AT
+    mt: 'change_at'
+
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
     mt: 'pluck'
+
+class IndexesOf extends RDBOp
+    tt: Term.TermType.INDEXES_OF
+    mt: 'indexesOf'
 
 class Without extends RDBOp
     tt: Term.TermType.WITHOUT
@@ -437,6 +463,10 @@ class Union extends RDBOp
 class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
+
+class IsEmpty extends RDBOp
+    tt: Term.TermType.IS_EMPTY
+    mt: 'is_empty'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE

@@ -96,6 +96,18 @@ private:
     virtual const char *name() const { return "nth"; }
 };
 
+class is_empty_term_t : public op_term_t {
+public:
+    is_empty_term_t(env_t *env, protob_t<const Term> term) :
+        op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+      bool emptyp = ! arg(0)->as_seq()->next().has();
+      return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, emptyp));
+    }
+    virtual const char *name() const { return "is_empty"; }
+};
+
 // TODO: this kinda sucks.
 class slice_term_t : public op_term_t {
 public:
@@ -170,6 +182,106 @@ private:
     virtual const char *name() const { return "limit"; }
 };
 
+class at_term_t : public op_term_t {
+public:
+    /* This is a bit of a pain here. Some array operations are referencing
+     * elements of the array (such as change_at and delete_at) while others are
+     * actually referencing the spaces between the elements (such as insert_at
+     * and splice_at). This distinction changes how we canonicalize negative
+     * indexes so we need to make it here. */
+    enum index_method_t { ELEMENTS, SPACES};
+
+    at_term_t(env_t *env, protob_t<const Term> term,
+              argspec_t argspec, index_method_t index_method)
+        : op_term_t(env, term, argspec), index_method_(index_method) { }
+    virtual void modify(size_t index, datum_t *array) = 0;
+    counted_t<val_t> eval_impl() {
+        scoped_ptr_t<datum_t> arr(new datum_t(arg(0)->as_datum()->as_array()));
+        size_t index;
+        if (index_method_ == ELEMENTS) {
+            index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size());
+        } else if (index_method_ == SPACES) {
+            index = canonicalize(this, arg(1)->as_datum()->as_int(), arr->size() + 1);
+        } else {
+            unreachable();
+        }
+
+        modify(index, arr.get());
+        return new_val(counted_t<const datum_t>(arr.release()));
+    }
+private:
+    index_method_t index_method_;
+};
+
+class insert_at_term_t : public at_term_t {
+public:
+    insert_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3), SPACES) { }
+private:
+    void modify(size_t index, datum_t *array) {
+        counted_t<const datum_t> new_el = arg(2)->as_datum();
+        array->insert(index, new_el);
+    }
+    const char *name() const { return "insert_at"; }
+};
+
+
+class splice_at_term_t : public at_term_t {
+public:
+    splice_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3), SPACES) { }
+private:
+    void modify(size_t index, datum_t *array) {
+        counted_t<const datum_t> new_els = arg(2)->as_datum();
+        array->splice(index, new_els);
+    }
+    const char *name() const { return "splice_at"; }
+};
+
+class delete_at_term_t : public at_term_t {
+public:
+    delete_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
+private:
+    void modify(size_t index, datum_t *array) {
+        if (num_args() == 2) {
+            array->erase(index);
+        } else {
+            int end_index = canonicalize(this, arg(2)->as_datum()->as_int(), array->size());
+            array->erase_range(index, end_index);
+        }
+    }
+    const char *name() const { return "delete_at"; }
+};
+
+class change_at_term_t : public at_term_t {
+public:
+    change_at_term_t(env_t *env, protob_t<const Term> term)
+        : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
+private:
+    void modify(size_t index, datum_t *array) {
+        counted_t<const datum_t> new_el = arg(2)->as_datum();
+        array->change(index, new_el);
+    }
+    const char *name() const { return "change_at"; }
+};
+
+class indexes_of_term_t : public op_term_t {
+public:
+    indexes_of_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> v = arg(1);
+        counted_t<func_t> fun;
+        if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
+            fun = v->as_func();
+        } else {
+            fun = func_t::new_eq_comparison_func(env, v->as_datum(), backtrace());
+        }
+        return new_val(arg(0)->as_seq()->indexes_of(fun));
+    }
+    virtual const char *name() const { return "indexes_of"; }
+};
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);
@@ -183,12 +295,36 @@ counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term) {
     return make_counted<nth_term_t>(env, term);
 }
 
+counted_t<term_t> make_is_empty_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<is_empty_term_t>(env, term);
+}
+
 counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
     return make_counted<slice_term_t>(env, term);
 }
 
 counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
     return make_counted<limit_term_t>(env, term);
+}
+
+counted_t<term_t> make_insert_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<insert_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_delete_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<delete_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<change_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<splice_at_term_t>(env, term);
+}
+
+counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<indexes_of_term_t>(env, term);
 }
 
 }  // namespace ql
