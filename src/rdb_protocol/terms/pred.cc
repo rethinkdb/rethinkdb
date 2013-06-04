@@ -41,7 +41,7 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> lhs = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<const datum_t> rhs = arg(i)->as_datum();
@@ -53,7 +53,7 @@ private:
         return new_val_bool(static_cast<bool>(true ^ invert));
     }
     const char *namestr;
-    virtual const char *name() const { return namestr; }
+    const char *name() const { return namestr; }
     bool invert;
     bool (datum_t::*pred)(const datum_t &rhs) const;
 };
@@ -62,10 +62,10 @@ class not_term_t : public op_term_t {
 public:
     not_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val_bool(!arg(0)->as_bool());
     }
-    virtual const char *name() const { return "not"; }
+    const char *name() const { return "not"; }
 };
 
 counted_t<term_t> make_predicate_term(env_t *env, protob_t<const Term> term) {

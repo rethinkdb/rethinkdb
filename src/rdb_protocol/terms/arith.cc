@@ -21,7 +21,7 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> acc = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             acc = (this->*op)(acc, arg(i)->as_datum());
@@ -29,7 +29,7 @@ public:
         return new_val(acc);
     }
 
-    virtual const char *name() const { return namestr; }
+    const char *name() const { return namestr; }
 
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
@@ -78,7 +78,7 @@ class mod_term_t : public op_term_t {
 public:
     mod_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
         rcheck(i1, "Cannot take a number modulo 0.");
@@ -86,7 +86,7 @@ private:
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
     }
-    virtual const char *name() const { return "mod"; }
+    const char *name() const { return "mod"; }
 };
 
 

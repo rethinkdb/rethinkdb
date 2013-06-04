@@ -15,7 +15,7 @@ public:
         : op_term_t(env, term, argspec_t(1), optargspec_t(js_optargs)) { }
 private:
 
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         std::string source = arg(0)->as_datum()->as_str();
 
         boost::shared_ptr<js::runner_t> js = env->get_js_runner();
@@ -41,10 +41,10 @@ private:
             rfail("JavaScript query \"%s\" timed out after %.2G seconds", source.c_str(), timeout_s);
         }
     }
-    virtual const char *name() const { return "javascript"; }
+    const char *name() const { return "javascript"; }
 
     // No JS term is considered deterministic
-    virtual bool is_deterministic_impl() const {
+    bool is_deterministic_impl() const {
         return false;
     }
 };

@@ -60,7 +60,7 @@ protected:
     };
 private:
     friend class meta_write_op_t;
-    virtual bool is_deterministic_impl() const { return false; }
+    bool is_deterministic_impl() const { return false; }
     int original_thread, metadata_home_thread;
 };
 
@@ -81,7 +81,7 @@ private:
     }
 
     virtual std::string write_eval_impl() = 0;
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         std::string op = write_eval_impl();
         scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
         UNUSED bool b = res->add(op, make_counted<datum_t>(1.0));
@@ -96,7 +96,7 @@ class db_term_t : public meta_op_t {
 public:
     db_term_t(env_t *env, protob_t<const Term> term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
         uuid_u uuid;
         {
@@ -107,7 +107,7 @@ private:
         }
         return new_val(make_counted<const db_t>(uuid, db_name.str()));
     }
-    virtual const char *name() const { return "db"; }
+    const char *name() const { return "db"; }
 };
 
 class db_create_term_t : public meta_write_op_t {
@@ -115,7 +115,7 @@ public:
     db_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl() {
+    std::string write_eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
 
         rethreading_metadata_accessor_t meta(this);
@@ -141,7 +141,7 @@ private:
 
         return "created";
     }
-    virtual const char *name() const { return "db_create"; }
+    const char *name() const { return "db_create"; }
 };
 
 static const char *const table_create_optargs[] =
@@ -152,7 +152,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1, 2),
                         optargspec_t(table_create_optargs)) { }
 private:
-    virtual std::string write_eval_impl() {
+    std::string write_eval_impl() {
         uuid_u dc_id = nil_uuid();
         if (counted_t<val_t> v = optarg("datacenter", counted_t<val_t>())) {
             name_string_t name = get_name(v, this);
@@ -240,7 +240,7 @@ private:
 
         return "created";
     }
-    virtual const char *name() const { return "table_create"; }
+    const char *name() const { return "table_create"; }
 };
 
 class db_drop_term_t : public meta_write_op_t {
@@ -248,7 +248,7 @@ public:
     db_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl() {
+    std::string write_eval_impl() {
         name_string_t db_name = get_name(arg(0), this);
 
         rethreading_metadata_accessor_t meta(this);
@@ -285,7 +285,7 @@ private:
 
         return "dropped";
     }
-    virtual const char *name() const { return "db_drop"; }
+    const char *name() const { return "db_drop"; }
 };
 
 class table_drop_term_t : public meta_write_op_t {
@@ -293,7 +293,7 @@ public:
     table_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual std::string write_eval_impl() {
+    std::string write_eval_impl() {
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
@@ -329,7 +329,7 @@ private:
 
         return "dropped";
     }
-    virtual const char *name() const { return "table_drop"; }
+    const char *name() const { return "table_drop"; }
 };
 
 class db_list_term_t : public meta_op_t {
@@ -337,7 +337,7 @@ public:
     db_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         std::vector<std::string> dbs;
         {
@@ -355,7 +355,7 @@ private:
         }
         return new_val(counted_t<const datum_t>(arr.release()));
     }
-    virtual const char *name() const { return "db_list"; }
+    const char *name() const { return "db_list"; }
 };
 
 class table_list_term_t : public meta_op_t {
@@ -363,7 +363,7 @@ public:
     table_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         uuid_u db_id;
         if (num_args() == 0) {
@@ -390,7 +390,7 @@ private:
         }
         return new_val(counted_t<const datum_t>(arr.release()));
     }
-    virtual const char *name() const { return "table_list"; }
+    const char *name() const { return "table_list"; }
 };
 
 static const char *const table_optargs[] = {"use_outdated"};
@@ -399,7 +399,7 @@ public:
     table_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t(table_optargs)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> t = optarg("use_outdated", counted_t<val_t>());
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
@@ -416,21 +416,21 @@ private:
         }
         return new_val(make_counted<table_t>(env, db, name, use_outdated, backtrace()));
     }
-    virtual bool is_deterministic_impl() const { return false; }
-    virtual const char *name() const { return "table"; }
+    bool is_deterministic_impl() const { return false; }
+    const char *name() const { return "table"; }
 };
 
 class get_term_t : public op_term_t {
 public:
     get_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
         counted_t<const datum_t> row = table->get_row(pkey);
         return new_val(row, table);
     }
-    virtual const char *name() const { return "get"; }
+    const char *name() const { return "get"; }
 };
 
 static const char *const get_all_optargs[] = { "index" };
@@ -440,7 +440,7 @@ public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2), optargspec_t(get_all_optargs)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
         if (counted_t<val_t> v = optarg("index", counted_t<val_t>())) {
@@ -461,7 +461,7 @@ private:
                                                  backtrace());
         return new_val(stream, table);
     }
-    virtual const char *name() const { return "get_all"; }
+    const char *name() const { return "get_all"; }
 };
 
 counted_t<term_t> make_db_term(env_t *env, protob_t<const Term> term) {

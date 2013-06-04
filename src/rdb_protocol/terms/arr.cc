@@ -32,20 +32,20 @@ class append_term_t : public pend_term_t {
 public:
     append_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return pend(AP);
     }
-    virtual const char *name() const { return "append"; }
+    const char *name() const { return "append"; }
 };
 
 class prepend_term_t : public pend_term_t {
 public:
     prepend_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return pend(PRE);
     }
-    virtual const char *name() const { return "prepend"; }
+    const char *name() const { return "prepend"; }
 };
 
 // This gets the literal index of a (possibly negative) index relative to a
@@ -68,7 +68,7 @@ class nth_term_t : public op_term_t {
 public:
     nth_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
         int32_t n = arg(1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -93,7 +93,7 @@ private:
             }
         }
     }
-    virtual const char *name() const { return "nth"; }
+    const char *name() const { return "nth"; }
 };
 
 // TODO: this kinda sucks.
@@ -102,7 +102,7 @@ public:
     slice_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
         int32_t fake_l = arg(1)->as_int<int32_t>();
         int32_t fake_r = arg(2)->as_int<int32_t>();
@@ -143,7 +143,7 @@ private:
         rfail("Cannot slice non-sequences.");
         unreachable();
     }
-    virtual const char *name() const { return "slice"; }
+    const char *name() const { return "slice"; }
 };
 
 class limit_term_t : public op_term_t {
@@ -151,7 +151,7 @@ public:
     limit_term_t(env_t *env, protob_t<const Term> term) 
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
         counted_t<table_t> t;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -168,7 +168,7 @@ private:
         }
         return t.has() ? new_val(new_ds, t) : new_val(new_ds);
     }
-    virtual const char *name() const { return "limit"; }
+    const char *name() const { return "limit"; }
 };
 
 class set_insert_term_t : public op_term_t {
@@ -176,7 +176,7 @@ public:
     set_insert_term_t(env_t *env, protob_t<const Term> term) 
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
         arr->check_type(datum_t::R_ARRAY);
@@ -194,7 +194,7 @@ private:
         return new_val(counted_t<const datum_t>(out.release()));
     }
 
-    virtual const char *name() const { return "set_insert"; }
+    const char *name() const { return "set_insert"; }
 };
 
 class set_union_term_t : public op_term_t {
@@ -202,7 +202,7 @@ public:
     set_union_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         arr1->check_type(datum_t::R_ARRAY);
@@ -223,7 +223,7 @@ private:
         return new_val(counted_t<const datum_t>(out.release()));
     }
 
-    virtual const char *name() const { return "set_union"; }
+    const char *name() const { return "set_union"; }
 };
 
 class set_intersection_term_t : public op_term_t {
@@ -231,7 +231,7 @@ public:
     set_intersection_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         arr1->check_type(datum_t::R_ARRAY);
@@ -251,7 +251,7 @@ private:
         return new_val(counted_t<const datum_t>(out.release()));
     }
 
-    virtual const char *name() const { return "set_intersection"; }
+    const char *name() const { return "set_intersection"; }
 };
 
 class set_difference_term_t : public op_term_t {
@@ -259,7 +259,7 @@ public:
     set_difference_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         arr1->check_type(datum_t::R_ARRAY);
@@ -279,7 +279,7 @@ private:
         return new_val(counted_t<const datum_t>(out.release()));
     }
 
-    virtual const char *name() const { return "set_difference"; }
+    const char *name() const { return "set_difference"; }
 };
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {

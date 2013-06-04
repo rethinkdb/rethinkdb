@@ -127,7 +127,7 @@ public:
     coerce_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> val = arg(0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
@@ -219,7 +219,7 @@ private:
               get_name(start_type).c_str(), get_name(end_type).c_str());
         unreachable();
     }
-    virtual const char *name() const { return "coerce_to"; }
+    const char *name() const { return "coerce_to"; }
 };
 
 int val_type(counted_t<val_t> v) {
@@ -235,17 +235,17 @@ public:
     typeof_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
     }
-    virtual const char *name() const { return "typeof"; }
+    const char *name() const { return "typeof"; }
 };
 
 class info_term_t : public op_term_t {
 public:
     info_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(val_info(arg(0)));
     }
 
@@ -295,7 +295,7 @@ private:
         return counted_t<const datum_t>(info.release());
     }
 
-    virtual const char *name() const { return "info"; }
+    const char *name() const { return "info"; }
 };
 
 counted_t<term_t> make_coerce_term(env_t *env, protob_t<const Term> term) {

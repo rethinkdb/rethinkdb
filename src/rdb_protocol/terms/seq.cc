@@ -17,10 +17,10 @@ public:
     count_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->count());
     }
-    virtual const char *name() const { return "count"; }
+    const char *name() const { return "count"; }
 };
 
 class map_term_t : public op_term_t {
@@ -28,10 +28,10 @@ public:
     map_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
     }
-    virtual const char *name() const { return "map"; }
+    const char *name() const { return "map"; }
 };
 
 class concatmap_term_t : public op_term_t {
@@ -39,10 +39,10 @@ public:
     concatmap_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
     }
-    virtual const char *name() const { return "concatmap"; }
+    const char *name() const { return "concatmap"; }
 };
 
 class filter_term_t : public op_term_t {
@@ -50,7 +50,7 @@ public:
     filter_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);
         counted_t<val_t> v1 = arg(1);
         counted_t<func_t> f = v1->as_func(IDENTITY_SHORTCUT);
@@ -62,7 +62,7 @@ private:
             return new_val(v0->as_seq()->filter(f));
         }
     }
-    virtual const char *name() const { return "filter"; }
+    const char *name() const { return "filter"; }
 };
 
 static const char *const reduce_optargs[] = {"base"};
@@ -71,11 +71,11 @@ public:
     reduce_term_t(env_t *env, protob_t<const Term> term) :
         op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
                                                 arg(1)->as_func()));
     }
-    virtual const char *name() const { return "reduce"; }
+    const char *name() const { return "reduce"; }
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
@@ -85,7 +85,7 @@ public:
     between_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<table_t> tbl = arg(0)->as_table();
         counted_t<const datum_t> lb = arg(1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
@@ -114,7 +114,7 @@ private:
 
         return new_val(tbl->get_rows(lb, rb, backtrace()), tbl);
     }
-    virtual const char *name() const { return "between"; }
+    const char *name() const { return "between"; }
 
     protob_t<Term> filter_func;
 };
@@ -124,7 +124,7 @@ public:
     union_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < num_args(); ++i) {
             streams.push_back(arg(i)->as_seq());
@@ -133,7 +133,7 @@ private:
             = make_counted<union_datum_stream_t>(env, streams, backtrace());
         return new_val(union_stream);
     }
-    virtual const char *name() const { return "union"; }
+    const char *name() const { return "union"; }
 };
 
 class zip_term_t : public op_term_t {
@@ -141,10 +141,10 @@ public:
     zip_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_seq()->zip());
     }
-    virtual const char *name() const { return "zip"; }
+    const char *name() const { return "zip"; }
 };
 
 counted_t<term_t> make_between_term(env_t *env, protob_t<const Term> term) {

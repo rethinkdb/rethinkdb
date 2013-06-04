@@ -34,8 +34,8 @@ public:
     }
 
 private:
-    virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual counted_t<val_t> eval_impl() { return real->eval(); }
+    bool is_deterministic_impl() const { return real->is_deterministic(); }
+    counted_t<val_t> eval_impl() { return real->eval(); }
     protob_t<const Term> in;
     protob_t<Term> out;
 
@@ -162,7 +162,7 @@ private:
         }
         return argout;
     }
-    virtual const char *name() const { return "groupby"; }
+    const char *name() const { return "groupby"; }
 };
 
 class inner_join_term_t : public rewrite_term_t {
@@ -195,7 +195,7 @@ public:
         return out;
     }
 
-    virtual const char *name() const { return "inner_join"; }
+    const char *name() const { return "inner_join"; }
 };
 
 class outer_join_term_t : public rewrite_term_t {
@@ -242,7 +242,7 @@ public:
         return out;
     }
 
-    virtual const char *name() const { return "outer_join"; }
+    const char *name() const { return "outer_join"; }
 };
 
 class eq_join_term_t : public rewrite_term_t {
@@ -271,7 +271,7 @@ private:
         r_sanity_check(optarg_inheritor != NULL);
         return out.make_child(optarg_inheritor);
     }
-    virtual const char *name() const { return "inner_join"; }
+    const char *name() const { return "inner_join"; }
 };
 
 class delete_term_t : public rewrite_term_t {
@@ -289,7 +289,7 @@ private:
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
         return out;
      }
-     virtual const char *name() const { return "delete"; }
+     const char *name() const { return "delete"; }
 };
 
 class update_term_t : public rewrite_term_t {
@@ -318,7 +318,7 @@ private:
                  N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
         return out;
     }
-    virtual const char *name() const { return "update"; }
+    const char *name() const { return "update"; }
 };
 
 class skip_term_t : public rewrite_term_t {
@@ -334,7 +334,7 @@ private:
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
         return out;
      }
-     virtual const char *name() const { return "skip"; }
+     const char *name() const { return "skip"; }
 };
 
 

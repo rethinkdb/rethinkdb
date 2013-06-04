@@ -23,10 +23,10 @@ public:
     asc_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
     }
-    virtual const char *name() const { return "asc"; }
+    const char *name() const { return "asc"; }
 };
 
 class desc_term_t : public op_term_t {
@@ -34,10 +34,10 @@ public:
     desc_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
     }
-    virtual const char *name() const { return "desc"; }
+    const char *name() const { return "desc"; }
 };
 
 class orderby_term_t : public op_term_t {
@@ -77,7 +77,7 @@ private:
         counted_t<const datum_t> attrs;
     };
 
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             Term::TermType type = src_term->args(i).type();
@@ -107,7 +107,7 @@ private:
         return tbl.has() ? new_val(s, tbl) : new_val(s);
     }
 
-    virtual const char *name() const { return "orderby"; }
+    const char *name() const { return "orderby"; }
 
 private:
     protob_t<const Term> src_term;
@@ -119,7 +119,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         counted_t<const datum_t> last;
@@ -136,7 +136,7 @@ private:
                                                  backtrace());
         return new_val(out);
     }
-    virtual const char *name() const { return "distinct"; }
+    const char *name() const { return "distinct"; }
 };
 
 counted_t<term_t> make_orderby_term(env_t *env, protob_t<const Term> term) {

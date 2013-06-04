@@ -75,7 +75,7 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
         const counted_t<val_t> upsert_val = optarg("upsert", counted_t<val_t>());
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
@@ -138,7 +138,7 @@ private:
 
         return new_val(stats);
     }
-    virtual const char *name() const { return "insert"; }
+    const char *name() const { return "insert"; }
 };
 
 static const char *const replace_optargs[] = { "non_atomic" };
@@ -148,7 +148,7 @@ public:
         : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
             nondet_ok = v->as_bool();
@@ -189,7 +189,7 @@ private:
         return new_val(stats);
     }
 
-    virtual const char *name() const { return "replace"; }
+    const char *name() const { return "replace"; }
 };
 
 // DELETE and UPDATE are in rewrites.hpp
@@ -200,7 +200,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         const char *fail_msg = "FOREACH expects one or more write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
@@ -225,7 +225,7 @@ private:
         return new_val(stats);
     }
 
-    virtual const char *name() const { return "foreach"; }
+    const char *name() const { return "foreach"; }
 };
 
 counted_t<term_t> make_insert_term(env_t *env, protob_t<const Term> term) {

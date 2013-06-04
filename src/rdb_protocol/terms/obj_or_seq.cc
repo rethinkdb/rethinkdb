@@ -23,7 +23,7 @@ public:
     }
 private:
     virtual counted_t<val_t> obj_eval() = 0;
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
             if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
@@ -43,7 +43,7 @@ public:
     pluck_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
+    counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
@@ -58,7 +58,7 @@ private:
         }
         return new_val(counted_t<const datum_t>(out.release()));
     }
-    virtual const char *name() const { return "pluck"; }
+    const char *name() const { return "pluck"; }
 };
 
 class without_term_t : public obj_or_seq_op_term_t {
@@ -66,7 +66,7 @@ public:
     without_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
+    counted_t<val_t> obj_eval() {
         counted_t<const datum_t> obj = arg(0)->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
@@ -77,7 +77,7 @@ private:
         }
         return new_val(counted_t<const datum_t>(out.release()));
     }
-    virtual const char *name() const { return "without"; }
+    const char *name() const { return "without"; }
 };
 
 class merge_term_t : public obj_or_seq_op_term_t {
@@ -85,14 +85,14 @@ public:
     merge_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
+    counted_t<val_t> obj_eval() {
         counted_t<const datum_t> d = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             d = d->merge(arg(i)->as_datum());
         }
         return new_val(d);
     }
-    virtual const char *name() const { return "merge"; }
+    const char *name() const { return "merge"; }
 };
 
 

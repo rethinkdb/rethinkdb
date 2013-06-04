@@ -14,10 +14,10 @@ public:
     }
 private:
     counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(*datum_val);
     }
-    virtual const char *name() const { return "var"; }
+    const char *name() const { return "var"; }
 };
 
 class implicit_var_term_t : public op_term_t {
@@ -28,10 +28,10 @@ public:
     }
 private:
     counted_t<const datum_t> *datum_val;
-    virtual counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl() {
         return new_val(*datum_val);
     }
-    virtual const char *name() const { return "implicit_var"; }
+    const char *name() const { return "implicit_var"; }
 };
 
 counted_t<term_t> make_var_term(env_t *env, protob_t<const Term> term) {
