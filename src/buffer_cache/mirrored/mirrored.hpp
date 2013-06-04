@@ -70,7 +70,7 @@ class mc_inner_buf_t : public evictable_t,
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
-    
+
     ~mc_inner_buf_t();
 
     // Loads data from the serializer.
