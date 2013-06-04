@@ -31,17 +31,19 @@ class Connection
 
         @buffer = new ArrayBuffer 0
 
-        @_events = {}
+        @_events = @_events || {}
 
-        errCallback =  =>
+        errCallback = (e) =>
+            @removeListener 'connect', conCallback
             callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+        @once 'error', errCallback
 
-        @on 'error', errCallback
-
-        @on 'connect', =>
-            @open = true
+        conCallback = =>
             @removeListener 'error', errCallback
+            @open = true
             callback null, @
+        @once 'connect', conCallback
+
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -60,8 +62,6 @@ class Connection
 
             # For some reason, Arraybuffer.slice is not in my version of node
             @buffer = bufferSlice @buffer, (4 + responseLength)
-
-    _end: -> @close()
 
     mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
@@ -125,13 +125,9 @@ class Connection
     close: ar () ->
         @open = false
 
-    cancel: ar () ->
-        @outstandingCallbacks = {}
-        @close()
-
     reconnect: ar (callback) ->
         @cancel()
-        new @constructor({host:@host, port:@port}, callback)
+        @constructor.call(@, {host:@host, port:@port}, callback)
 
     use: ar (db) ->
         @db = db
@@ -206,6 +202,7 @@ class Connection
 
     ## Emulate the event emitter interface
 
+
     addListener: (event, listener) ->
         unless @_events[event]?
             @_events[event] = []
@@ -215,7 +212,7 @@ class Connection
 
     once: (event, listener) ->
         listener._once = true
-        addListener(event, listener)
+        @addListener(event, listener)
 
     removeListener: (event, listener) ->
         if @_events[event]?
@@ -226,13 +223,12 @@ class Connection
     listeners: (event) -> @_events[event]
 
     emit: (event, args...) ->
-        toRemove = []
-        for lst in @_events[event]
-            lst.apply(null, args)
-            if lst._once
-                toRemove.push(lst)
-        for lst in toRemove
-            @removeListener(event, lst)
+        if @_events[event]?
+            listeners = @_events[event].concat()
+            for lst in listeners
+                if lst._once?
+                    @removeListener(event, lst)
+                lst.apply(null, args)
 
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
@@ -250,7 +246,7 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
-        @rawSocket.on 'connect', =>
+        @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
             buf = new ArrayBuffer 4
             (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
@@ -259,8 +255,6 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'end', => @_end()
-
         @rawSocket.on 'data', (buf) =>
             # Convert from node buffer to array buffer
             arr = new Uint8Array new ArrayBuffer buf.length
@@ -268,16 +262,15 @@ class TcpConnection extends Connection
                 arr[i] = byte
             @_data(arr.buffer)
 
-        @rawSocket.on 'close', =>
-            @close()
+        @rawSocket.on 'close', => @open = false; @emit 'close'
 
-    close: ->
+    close: ar () ->
+        @open = false
         @rawSocket.end()
-        super()
 
-    cancel: ->
+    cancel: ar () ->
+        @outstandingCallbacks = {}
         @rawSocket.destroy()
-        super()
 
     write: (chunk) ->
         # Alas we must convert to a node buffer
