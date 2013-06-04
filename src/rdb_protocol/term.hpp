@@ -24,7 +24,6 @@ class val_t;
 
 class term_t : public slow_atomic_countable_t<term_t>, public pb_rcheckable_t {
 public:
-    term_t();
     explicit term_t(env_t *_env, protob_t<const Term> _src);
     virtual ~term_t();
 
