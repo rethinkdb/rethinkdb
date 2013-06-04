@@ -8,7 +8,7 @@
 
 int blocker_pool_queue_depth(int max_concurrent_io_requests) {
     guarantee(max_concurrent_io_requests > 0);
-    guarantee(max_concurrent_io_requests < MILLION);
+    guarantee(max_concurrent_io_requests < MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
     // TODO: Why make this twice MAX_CONCURRENT_IO_REQUESTS?
     return max_concurrent_io_requests * 2;
 }
