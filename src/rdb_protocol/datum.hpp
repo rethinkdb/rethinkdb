@@ -88,6 +88,7 @@ public:
     // Use of `size` and `el` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
     void add(counted_t<const datum_t> val); // add to an array
+    void make_set(); //filter out duplicate items
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;

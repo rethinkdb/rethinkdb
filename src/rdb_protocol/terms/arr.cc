@@ -2,6 +2,7 @@
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/terms/set.hpp"
 
 namespace ql {
 
@@ -189,6 +190,11 @@ counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
 
 counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
     return make_counted<limit_term_t>(env, term);
+}
+
+counted_t<term_t> make_set_insert_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<set_adapter_term_t>(
+            env, term, new append_term_t(env, term), "set_insert");
 }
 
 }  // namespace ql

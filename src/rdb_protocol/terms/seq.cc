@@ -7,6 +7,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/terms/set.hpp"
 
 namespace ql {
 
@@ -170,6 +171,10 @@ counted_t<term_t> make_union_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_zip_term(env_t *env, protob_t<const Term> term) {
     return make_counted<zip_term_t>(env, term);
+}
+counted_t<term_t> make_set_union_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<set_adapter_term_t>(
+            env, term, new union_term_t(env, term), "set_union");
 }
 
 } //namespace ql

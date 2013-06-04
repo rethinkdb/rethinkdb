@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <algorithm>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
@@ -417,6 +418,12 @@ void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val.has());
     r_array->push_back(val);
+}
+
+void datum_t::make_set() {
+    check_type(R_ARRAY);
+    std::sort(r_array->begin(), r_array->end());
+    std::unique(r_array->begin(), r_array->end());
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
