@@ -27,17 +27,6 @@ commands:
           py: (r.expr("foo") + "bar").run(conn)
           rb: (r("foo") + "bar").run(conn)
 
-    js:
-      name: add
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-
   - tag: sub
     section: operators
     description: Subtract two numbers.
@@ -54,14 +43,6 @@ commands:
           js: r.expr(2).sub(2).run(conn, callback)
           py: (r.expr(2) - 2).run(conn)
           rb: (r(2) - 2).run(conn)
-
-    js:
-      name: sub
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: mul
     section: operators
@@ -80,14 +61,6 @@ commands:
           py: (r.expr(2) * 2).run(conn)
           rb: (r(2) * 2).run(conn)
 
-    js:
-      name: mul
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: div
     section: operators
     description: Divide two numbers.
@@ -104,14 +77,6 @@ commands:
           js: r.expr(2).div(2).run(conn, callback)
           py: (r.expr(2) / 2).run(conn)
           rb: (r(2) / 2).run(conn)
-
-    js:
-      name: div
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: mod
     section: operators
@@ -130,14 +95,6 @@ commands:
           py: (r.expr(2) % 2).run(conn)
           rb: (r(2) % 2).run(conn)
 
-    js:
-      name: mod
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: and
     section: operators
     description: Compute the logical and of two values.
@@ -155,15 +112,6 @@ commands:
           py: (r.expr(True) & False).run(conn)
           rb: (r(true) & false).run(conn)
 
-    js:
-      name: and
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-
   - tag: or
     section: operators
     description: Compute the logical or of two values.
@@ -180,14 +128,6 @@ commands:
           js: r.expr(true).or(false).run(conn, callback)
           py: (r.expr(True) | False).run(conn)
           rb: (r(true) | false).run(conn)
-
-    js:
-      name: or
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: eq
     section: operators
@@ -208,13 +148,6 @@ commands:
     py:
       name: '=='
 
-    js:
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: ne
     section: operators
     description: Test if two values are not equal.
@@ -234,14 +167,6 @@ commands:
     py:
       name: '!='
 
-    js:
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-
   - tag: gt
     section: operators
     description: Test if the first value is greater than other.
@@ -258,14 +183,6 @@ commands:
           js: r.expr(2).gt(2).run(conn, callback)
           py: (r.expr(2) > 2).run(conn)
           rb: (r(2) > 2).run(conn)
-
-    js:
-      name: gt
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: ge
     section: operators
@@ -284,14 +201,6 @@ commands:
           py: (r.expr(2) >= 2).run(conn)
           rb: (r(2) >= 2).run(conn)
 
-    js:
-      name: ge
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: lt
     section: operators
     description: Test if the first value is less than other.
@@ -309,14 +218,6 @@ commands:
           py: (r.expr(2) < 2).run(conn)
           rb: (r(2) < 2).run(conn)
 
-    js:
-      name: lt
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: le
     section: operators
     description: Test if the first value is less than or equal to other.
@@ -333,14 +234,6 @@ commands:
           js: r.expr(2).le(2).run(conn, callback)
           py: (r.expr(2) <= 2).run(conn)
           rb: (r(2) <= 2).run(conn)
-
-    js:
-      name: le
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: not
     section: operators
@@ -364,11 +257,4 @@ commands:
     py:
       name: '~'
       operator_first: true
-
-    js:
-      is_operator: false
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 

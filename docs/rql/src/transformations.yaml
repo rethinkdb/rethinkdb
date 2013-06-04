@@ -29,14 +29,6 @@ commands:
              hero[:combat_power] + hero[:compassion_power] * 2
             }.run(conn)
 
-    js:
-      body: mappingFunction
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-
   - tag: concat_map
     section: transformations
     description: Flattens a sequence of arrays returned by the <code>mappingFunction</code>
@@ -60,14 +52,6 @@ commands:
             r.table('marvel').concat_map {|hero|
               hero[:defeated_monsters]
             }.run(conn)
-
-    js:
-      name: concatMap
-      body: mappingFunction
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: order_by
     section: transformations
@@ -97,16 +81,6 @@ commands:
             r.table('marvel').order_by(r.desc(:enemies_vanquished),
                                        r.asc(:damsels_saved)      ).run(conn)
 
-    js:
-      name: orderBy
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-
   - tag: skip
     section: transformations
     description: Skip a number of elements from the head of the sequence.
@@ -123,11 +97,6 @@ commands:
           py: r.table('marvel').order_by('successMetric').skip(10).run(conn)
           rb: r.table('marvel').order_by(:success_metric).skip(10).run(conn)
 
-    js:
-      0:
-        can_try: true
-        dataset: marvel
-
   - tag: limit
     section: transformations
     description: End the sequence after the given number of elements.
@@ -142,12 +111,6 @@ commands:
           js: r.table('marvel').orderBy('belovedness').limit(10).run(conn, callback)
           py: r.table('marvel').order_by('belovedness').limit(10).run(conn)
           rb: r.table('marvel').order_by(:belovedness).limit(10).run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: slice
     section: transformations
@@ -176,11 +139,6 @@ commands:
       name1: '['
       name2: ']'
 
-    js:
-      0:
-        can_try: true
-        dataset: marvel
-
   - tag: nth
     section: transformations
     description: Get the nth element of a sequence.
@@ -208,12 +166,6 @@ commands:
       name1: '['
       name2: ']'
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: union
     section: transformations
     description: Concatenate two sequences.
@@ -226,9 +178,3 @@ commands:
       - description: Construct a stream of all heroes.
         code: r.table('marvel').union(r.table('dc')).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').union(r.table('dc')).run(conn, callback)

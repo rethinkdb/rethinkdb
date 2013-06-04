@@ -34,11 +34,3 @@ commands:
     rb:
       dont_need_parenthesis: true
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel

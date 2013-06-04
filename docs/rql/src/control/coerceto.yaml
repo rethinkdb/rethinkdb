@@ -19,22 +19,3 @@ commands:
       - description: Convert a number to a string.
         code: r.expr(1).coerce_to('string').run(conn)
 
-    js:
-      name: coerceTo
-      examples:
-        0:
-          code: r.table('marvel').coerceTo('array').run(conn, callback)
-          can_try: true
-          dataset: marvel
-        1:
-          code: | 
-            r.expr([['name', 'Ironman'], ['victories', 2000]]).coerceTo('object')
-             .run(conn, callback)
-          can_try: true
-          dataset: marvel
-        2:
-          code: r.expr(1).coerceTo('string').run(conn, callback)
-          can_try: true
-          dataset: marvel
-
-

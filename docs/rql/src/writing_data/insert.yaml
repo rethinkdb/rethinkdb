@@ -72,14 +72,3 @@ commands:
               :upsert
             ).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-        2:
-          can_try: true
-          dataset: marvel

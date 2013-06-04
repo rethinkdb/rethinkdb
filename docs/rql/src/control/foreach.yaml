@@ -28,10 +28,3 @@ commands:
               r.table('villains').get(hero[:villain_defeated]).delete
             }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-

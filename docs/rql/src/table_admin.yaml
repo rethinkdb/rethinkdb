@@ -44,23 +44,6 @@ commands:
           py: r.db('test').table_create('hero_actions', hard_durability=False).run(conn)
           rb: r.db('test').table_create('dc_universe', :hard_durability => false).run(conn)
 
-
-    js:
-      name: tableCreate
-      examples:
-        0:
-          code: r.db('test').tableCreate('dc_universe').run(conn, callback)
-          can_try: true
-          dataset: marvel
-        1:
-          code: r.db('test').tableCreate('dc_universe', {primaryKey:'name'}).run(conn, callback)
-          can_try: true
-          dataset: marvel
-        2:
-          code: r.db('test').tableCreate('dc_universe', {hardDurability:false}).run(conn, callback)
-          can_try: true
-          dataset: marvel
-
   - tag: table_drop
     section: table_admin
     description: |
@@ -76,15 +59,6 @@ commands:
       - description: Drop a table named 'dc_universe'.
         code: r.db('test').table_drop('dc_universe').run(conn)
 
-    js:
-      name: tableDrop
-      body: tableName
-      examples:
-        0:
-          code: r.db('test').tableDrop('dc_universe').run(conn, callback)
-          can_try: true
-          dataset: marvel
-
   - tag: table_list
     section: table_admin
     description: | 
@@ -97,14 +71,6 @@ commands:
     examples:
       - description: List all tables of the 'test' database.
         code: r.db('test').table_list().run(conn)
-
-    js:
-      name: tableList
-      examples:
-        0:
-          code: r.db('test').tableList().run(conn, callback)
-          can_try: true
-          dataset: marvel
 
     rb:
       dont_need_parenthesis: true
