@@ -221,3 +221,17 @@ commands:
         0:
           can_try: true
           dataset: marvel
+
+  - tag: keys
+    section: jsonobject
+    description: Return an array containing all of the object's keys.
+
+    parent: json
+    returns: json
+
+    examples:
+      - description: Get all the keys of a row.
+        code:
+          rb: r.table('marvel').get('ironman').keys
+          py: r.table('marvel').get('ironman').keys()
+          js: r.table('marvel').get('ironman').keys()
