@@ -88,7 +88,7 @@ commands:
     section: jsonobject
     description: Append a value to an array.
 
-    body: value
+    body: json
     parent: json
     returns: json
 
@@ -103,7 +103,7 @@ commands:
     section: jsonobject
     description: Prepend a value to an array.
 
-    body: value
+    body: json
     parent: json
     returns: json
 
@@ -113,6 +113,76 @@ commands:
           js: r.table('marvel').get('IronMan')('equipment').prepend('newBoots').run(conn, callback)
           py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
+
+  - tag: set_insert
+    section: jsonobject
+    description: |
+      Add a value to an <code>array</code> and return it as a <code>set</code>
+      (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setInsert('newBoots').run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_insert('newBoots').run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_insert('new_boots').run(conn)
+
+  - tag: set_union
+    section: jsonobject
+    description: |
+      Add a several values to an <code>array</code> and return it as a
+      <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: |
+          Retrieve Iron Man's equipment list with the addition of some new
+          boots and an arc reactor.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setUnion(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_union(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_union(['newBoots', 'arc_reactor']).run(conn)
+
+  - tag: set_intersection
+    section: jsonobject
+    description: |
+      Intersect two <code>arrays</code> returning values that occur in both of
+      them as a <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Check which pieces of equipment Iron Man has from a fixed list.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setIntersect(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+
+  - tag: set_difference
+    section: jsonobject
+    description: |
+      Remove the elements of one array from another and them as a
+      <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Check which pieces of equipment Iron Man has, excluding a fixed list.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setDifference(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_difference(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_difference(['newBoots', 'arc_reactor']).run(conn)
 
   - tag: getattr
     section: jsonobject
