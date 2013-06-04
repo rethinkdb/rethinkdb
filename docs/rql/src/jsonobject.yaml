@@ -199,13 +199,11 @@ commands:
           can_try: true
           dataset: marvel
 
-  - tag: contains
+  - tag: has_fields
     section: jsonobject
-    description: Test if an object has the given attribute. <br /><br />
-      <code>contains</code> can only be called on objects and not on
-      <code>string</code> or <code>array</code> attributes.
+    description: Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
 
-    body: attr
+    body: field1[, field2...]
     parent: json
     returns: bool
 
@@ -213,10 +211,10 @@ commands:
       - description: Which heroes are married?
         code:
           js: |
-            r.table('marvel').filter(function(hero) {return hero.contains('spouse')})
+            r.table('marvel').filter(function(hero) {return hero.has_fields('spouse')})
              .run(conn, callback)
-          py: "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
-          rb: r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)
+          py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
+          rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
 
     js:
       examples:

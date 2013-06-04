@@ -173,14 +173,14 @@ commands:
         code:
           js: |
             r.table('marvel').filter(function(hero) {
-              return hero('abilities').contains('super-strength')
+              return hero('abilities').has_fields('super-strength')
             }).run(conn, callback)
           py: |
             r.table('marvel').filter(
-                lambda hero: hero['abilities'].contains('super-strength')).run(conn)
+                lambda hero: hero['abilities'].has_fields('super-strength')).run(conn)
           rb: |
             r.table('marvel').filter {|hero|
-              hero[:abilities].contains('super-strength')
+              hero[:abilities].has_fields('super-strength')
             }.run(conn)
       - description: Select all documents where the field 'powers' containing an array has an element equal to 10.
         code:
