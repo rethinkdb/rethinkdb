@@ -125,6 +125,8 @@ configure () {
         if contains "$fetch_list" tcmalloc_minimal; then
             check_lib unwind
         fi
+    else
+        var TCMALLOC_MINIMAL_LIBS ""
     fi
     test_protobuf
     boolvar STATIC_V8 contains "$static_libs" v8
@@ -796,7 +798,7 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$pbdir/test.pb.cc" "$pbdir/main.cc" 2>&1)
+            "$CXX" -I "`dirname $0`" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$pbdir/test.pb.cc" "$pbdir/main.cc" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file"
