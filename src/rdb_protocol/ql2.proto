@@ -290,7 +290,7 @@ message Term {
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> Sequence
+        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> ARRAY
         // Groups a sequence by one or more attributes, and then applies a reduction.
         // The third argument is a special object literal giving the kind of operation to be
         // performed and any necessary arguments.
