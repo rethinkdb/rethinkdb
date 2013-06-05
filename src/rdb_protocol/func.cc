@@ -249,7 +249,7 @@ counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const dat
     return make_counted<func_t>(env, twrap);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func) {
+void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
 

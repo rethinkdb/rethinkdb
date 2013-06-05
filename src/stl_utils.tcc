@@ -1,5 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef STL_UTILS_TCC_
 #define STL_UTILS_TCC_
 
@@ -10,6 +9,8 @@
 #include <set>
 #include <utility>
 #include <vector>
+
+#include "containers/printf_buffer.hpp"
 
 template <class K, class V>
 std::set<K> keys(const std::map<K, V> &map) {
@@ -27,7 +28,7 @@ bool std_contains(const container_t &container, const typename container_t::key_
 }
 
 template <class It>
-void debug_print_iterators(append_only_printf_buffer_t *buf, It beg, It end) {
+void debug_print_iterators(printf_buffer_t *buf, It beg, It end) {
     for (It it = beg; it != end; ++it) {
         if (it != beg) {
             buf->appendf(", ");
@@ -37,28 +38,28 @@ void debug_print_iterators(append_only_printf_buffer_t *buf, It beg, It end) {
 }
 
 template <class K, class V>
-void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map) {
+void debug_print(printf_buffer_t *buf, const std::map<K, V> &map) {
     buf->appendf("{");
     debug_print_iterators(buf, map.begin(), map.end());
     buf->appendf("}");
 }
 
 template <class T>
-void debug_print(append_only_printf_buffer_t *buf, const std::set<T> &set) {
+void debug_print(printf_buffer_t *buf, const std::set<T> &set) {
     buf->appendf("#{");
     debug_print_iterators(buf, set.begin(), set.end());
     buf->appendf("}");
 }
 
 template <class T>
-void debug_print(append_only_printf_buffer_t *buf, const std::vector<T> &vec) {
+void debug_print(printf_buffer_t *buf, const std::vector<T> &vec) {
     buf->appendf("[");
     debug_print_iterators(buf, vec.begin(), vec.end());
     buf->appendf("]");
 }
 
 template <class T, class U>
-void debug_print(append_only_printf_buffer_t *buf, const std::pair<T, U> &p) {
+void debug_print(printf_buffer_t *buf, const std::pair<T, U> &p) {
     debug_print(buf, p.first);
     buf->appendf(" => ");
     debug_print(buf, p.second);

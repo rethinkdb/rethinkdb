@@ -113,11 +113,11 @@ key_range_t key_range_t::intersection(const key_range_t &other) const {
     return ixn;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const store_key_t &k) {
+void debug_print(printf_buffer_t *buf, const store_key_t &k) {
     debug_print_quoted_string(buf, k.contents(), k.size());
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const key_range_t &kr) {
+void debug_print(printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf("[");
     debug_print(buf, kr.left);
     buf->appendf(", ");
@@ -129,7 +129,7 @@ void debug_print(append_only_printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf(")");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const store_key_t *k) {
+void debug_print(printf_buffer_t *buf, const store_key_t *k) {
     if (k) {
         debug_print(buf, *k);
     } else {

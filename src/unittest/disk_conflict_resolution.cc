@@ -37,7 +37,7 @@ struct core_action_t : public intrusive_list_node_t<core_action_t> {
     fd_t fd;
 };
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                   const core_action_t &action) {
     buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
                  "offset=%" PRIi64 ", has_begun=%s, done=%s, fd=%d}",
