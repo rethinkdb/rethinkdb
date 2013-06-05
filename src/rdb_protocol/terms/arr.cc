@@ -181,7 +181,7 @@ private:
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr->size(); ++i) {
-            if(el_set.insert(arr->get(i)).second) {
+            if (el_set.insert(arr->get(i)).second) {
                 out->add(arr->get(i));
             }
         }
@@ -206,12 +206,12 @@ private:
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr1->size(); ++i) {
-            if(el_set.insert(arr1->get(i)).second) {
+            if (el_set.insert(arr1->get(i)).second) {
                 out->add(arr1->get(i));
             }
         }
         for (size_t i = 0; i < arr2->size(); ++i) {
-            if(el_set.insert(arr2->get(i)).second) {
+            if (el_set.insert(arr2->get(i)).second) {
                 out->add(arr2->get(i));
             }
         }
