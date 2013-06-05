@@ -59,8 +59,11 @@ configure () {
     require "OS Version"
     show "`uname -msr`"
     case "$OS" in
-        Darwin) with_tcmalloc=false ;;
-        Linux) true ;;
+        Darwin)
+            with_tcmalloc=false ;
+            var PTHREAD_LIBS "" ;;
+        Linux)
+            var PTHREAD_LIBS -pthread ;;
         *) error "unsupported operating system: $OS" ;;
     esac
     require "Without tcmalloc"
@@ -626,7 +629,7 @@ fetch_bin () {
 # Instruct make to fetch and build the library
 fetch_lib () {
     show fetch
-    var_append LIBRARIES "\$($(uc $1)_INT_LIB)"
+    var_append $(uc $1)_LIBS "\$($(uc $1)_INT_LIB)"
     macro $(uc $1) "\$($(uc $1)_INT_LIB)"
     fetch_list="$fetch_list $1"
 }
@@ -681,7 +684,7 @@ check_lib () {
     fi
     if lookup "$force_paths" $1 path; then
         require_dep $1
-        var_append LIBRARIES $path
+        var_append $(uc $1)_LIBS $path
         return
     fi
     local check
@@ -697,7 +700,7 @@ check_lib () {
     local aliases
     lookup "$lib_alias" $1 aliases || aliases=
     for lib in $1 $aliases; do
-	$check $lib
+	$check $lib $1
 	$can_show || return
     done
     if contains "$support_deps" $1 && $allow_fetch; then
@@ -709,7 +712,7 @@ check_lib () {
 
 check_dyn_lib () {
     # TODO: pkg_config
-    check_lib_compile $1
+    check_lib_compile $1 $2
 }
 
 # Test if the c++ compiler knows about the library
@@ -721,7 +724,7 @@ check_lib_compile () {
     # fi
     echo "$code" > "$bfile.cc"
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
-	var_append LIBRARIES -l$1
+	var_append $(uc $2)_LIBS -l$1
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
@@ -731,7 +734,7 @@ check_static_lib () {
     # TODO: pkg-config
     local path=$(static_lib_lookup $1)
     if [[ -n "$path" ]]; then
-        var_append LIBRARIES "$path"
+        var_append $(uc $2)_LIBS "$path"
     fi
 }
 
@@ -793,13 +796,13 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" -lprotobuf -pthread ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$pbdir/test.pb.cc" "$pbdir/main.cc" 2>&1)
+            "$CXX" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$pbdir/test.pb.cc" "$pbdir/main.cc" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file"
         return
     fi
-    show success
+    show ok
 }
 
 # Call the main command with the command line arguments
