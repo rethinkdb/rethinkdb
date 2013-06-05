@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/arch.hpp"
-#include "arch/runtime/runtime.hpp"
+
+#include "arch/runtime/coroutines.hpp"
 
 struct io_coroutine_adapter_t : public iocallback_t {
     coro_t *cont;

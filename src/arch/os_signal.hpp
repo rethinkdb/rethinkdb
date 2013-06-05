@@ -3,7 +3,7 @@
 #define ARCH_OS_SIGNAL_HPP_
 
 #include "concurrency/cond_var.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 class os_signal_cond_t : public thread_message_t,
                          public cond_t

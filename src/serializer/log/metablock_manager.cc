@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/metablock_manager.hpp"
 
 #include <sys/types.h>
@@ -9,7 +9,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 
 #include "serializer/log/log_serializer.hpp"

@@ -8,7 +8,7 @@
 #include "utils.hpp"
 
 
-void debug_print(append_only_printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr) {
+void debug_print(printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr) {
     if (!ptr.has()) {
         buf->appendf("databuf_ptr{null}");
     } else {

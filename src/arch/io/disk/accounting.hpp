@@ -75,7 +75,7 @@ struct accounting_diskmgr_action_t
     accounting_diskmgr_account_t *account;
 };
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const accounting_diskmgr_action_t &action);
 
 class accounting_diskmgr_t : public home_thread_mixin_t {
