@@ -26,7 +26,7 @@ tests:
       - tbl.zip(1)
       - tbl.count(1)
       - tbl.distinct(1)
-
+      - obj.keys(1)
 
     - ot:
         js: err("RqlDriverError", "Expected 0 argument(s) but found 1.", [])

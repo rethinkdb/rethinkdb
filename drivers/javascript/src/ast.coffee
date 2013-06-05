@@ -52,6 +52,8 @@ class RDBVal extends TermBase
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    hasFields: varar(1, null, (fields...) -> new HasFields {}, @, fields...)
+    keys: ar(-> new Keys {}, @)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -361,6 +363,18 @@ class GetAttr extends RDBOp
 
 class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
+    mt: 'contains'
+
+class Contains extends RDBOp
+    tt: Term.TermType.CONTAINS
+    mt: 'contains'
+
+class HasFields extends RDBOp
+    tt: Term.TermType.HAS_FIELDS
+    mt: 'contains'
+
+class Keys extends RDBOp
+    tt: Term.TermType.KEYS
     mt: 'contains'
 
 class Pluck extends RDBOp

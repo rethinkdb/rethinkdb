@@ -33,9 +33,9 @@ tests:
       ot: false
 
     # Has_Fields is polymorphic
-    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'b').count
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'b').count()
       ot: 2
-    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'c').count
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'c').count()
       ot: 1
 
     ## Pluck

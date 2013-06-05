@@ -171,6 +171,10 @@ class RqlQuery(object):
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)
+    def has_fields(self, *attr):
+        return HasFields(self, *attr)
+    def keys(self):
+        return Keys(self)
 
     # Polymorphic object/sequence operations
     def pluck(self, *attrs):
@@ -503,6 +507,14 @@ class GetAttr(RqlQuery):
 
 class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
+    st = 'contains'
+
+class HasFields(RqlMethodQuery):
+    tt = p.Term.HAS_FIELDS
+    st = 'contains'
+
+class Keys(RqlMethodQuery):
+    tt = p.Term.KEYS
     st = 'contains'
 
 class Pluck(RqlMethodQuery):
