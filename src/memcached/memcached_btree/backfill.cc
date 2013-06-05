@@ -57,7 +57,7 @@ void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repl
 }
 
 
-void debug_print(append_only_printf_buffer_t *buf, const backfill_atom_t& atom) {
+void debug_print(printf_buffer_t *buf, const backfill_atom_t& atom) {
     buf->appendf("bf_atom{key=");
     debug_print(buf, atom.key);
     buf->appendf(", value=");

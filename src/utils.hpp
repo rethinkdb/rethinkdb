@@ -116,19 +116,19 @@ double ticks_to_secs(ticks_t ticks);
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
 // debugf.hpp (and debugf.cc).
 /* Debugging printing API (prints current thread in addition to message) */
-void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n);
-void debugf_prefix_buf(printf_buffer_t<1000> *buf);
-void debugf_dump_buf(printf_buffer_t<1000> *buf);
+void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n);
+void debugf_prefix_buf(printf_buffer_t *buf);
+void debugf_dump_buf(printf_buffer_t *buf);
 
 // Primitive debug_print declarations.
-void debug_print(append_only_printf_buffer_t *buf, uint64_t x);
-void debug_print(append_only_printf_buffer_t *buf, const std::string& s);
+void debug_print(printf_buffer_t *buf, uint64_t x);
+void debug_print(printf_buffer_t *buf, const std::string& s);
 
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
 void debugf_print(const char *msg, const T& obj) {
-    printf_buffer_t<1000> buf;
+    printf_buffer_t buf;
     debugf_prefix_buf(&buf);
     buf.appendf("%s: ", msg);
     debug_print(&buf, obj);
@@ -138,7 +138,7 @@ void debugf_print(const char *msg, const T& obj) {
 #else
 #define debugf(...) ((void)0)
 #define debugf_print(...) ((void)0)
-#endif
+#endif  // NDEBUG
 
 class debugf_in_dtor_t {
 public:
@@ -153,6 +153,7 @@ public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
+    double randdouble();
     explicit rng_t(int seed = -1);
 private:
     unsigned short xsubi[3];  // NOLINT(runtime/int)
@@ -163,6 +164,7 @@ private:
 void get_dev_urandom(void *out, int64_t nbytes);
 
 int randint(int n);
+double randdouble();
 std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
@@ -185,7 +187,7 @@ std::string vstrprintf(const char *format, va_list ap) __attribute__((format (pr
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, append_only_printf_buffer_t *buf);
+void format_time(struct timespec time, printf_buffer_t *buf);
 std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);

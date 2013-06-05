@@ -15,10 +15,18 @@ namespace ql {
 class count_term_t : public op_term_t {
 public:
     count_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->count());
+        if (num_args() == 1) {
+            return new_val(arg(0)->as_seq()->count());
+        } else if (arg(1)->get_type().is_convertible(val_t::type_t::FUNC)) {
+            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func())->count());
+        } else {
+            counted_t<func_t> f =
+                func_t::new_eq_comparison_func(env, arg(1)->as_datum(), backtrace());
+            return new_val(arg(0)->as_seq()->filter(f)->count());
+        }
     }
     virtual const char *name() const { return "count"; }
 };
@@ -65,25 +73,23 @@ private:
     virtual const char *name() const { return "filter"; }
 };
 
-static const char *const reduce_optargs[] = {"base"};
 class reduce_term_t : public op_term_t {
 public:
     reduce_term_t(env_t *env, protob_t<const Term> term) :
-        op_term_t(env, term, argspec_t(2), optargspec_t(reduce_optargs)) { }
+        op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base", counted_t<val_t>()),
+        return new_val(arg(0)->as_seq()->reduce(optarg("base"),
                                                 arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
 };
 
 // TODO: this sucks.  Change to use the same macros as rewrites.hpp?
-static const char *const between_optargs[] = {"index"};
 class between_term_t : public op_term_t {
 public:
     between_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(3), optargspec_t(between_optargs)) { }
+        : op_term_t(env, term, argspec_t(3), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> tbl = arg(0)->as_table();
@@ -104,7 +110,7 @@ private:
             return new_val(ds, tbl);
         }
 
-        counted_t<val_t> sindex = optarg("index", counted_t<val_t>());
+        counted_t<val_t> sindex = optarg("index");
         if (sindex.has()) {
             std::string sid = sindex->as_str();
             if (sid != tbl->get_pkey()) {

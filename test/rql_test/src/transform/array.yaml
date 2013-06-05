@@ -12,6 +12,13 @@ tests:
     - cd: arr.append('a')
       ot: [1,2,3,'a']
 
+    ## Prepend
+
+    - cd: arr.prepend(0)
+      ot: [0,1,2,3]
+    - cd: arr.prepend('a')
+      ot: ['a',1,2,3]
+
     ## Slice
 
     # Python uses the slice syntax
@@ -155,6 +162,13 @@ tests:
       rb: arr[0]
       js: arr.nth(0)
       ot: 1
+
+    ## Is Empty
+
+    - cd: r.expr([]).is_empty()
+      ot: true
+    - cd: arr.is_empty()
+      ot: false
 
     ## Grouped Map Reduce
 

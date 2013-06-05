@@ -33,13 +33,27 @@ tests:
       ot: []
 
     # Table create options
-    - py: db.table_create('ab', primary_key='bar', cache_size=123, hard_durability=False)
-      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, hard_durability:false})
-      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :hard_durability => false})
+    - py: db.table_create('ab', primary_key='bar', cache_size=123, durability='soft')
+      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, durability:'soft'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :durability => 'soft'})
       ot: ({'created':1})
 
     - cd: db.table_drop('ab')
       ot: ({'dropped':1})
+
+    - py: db.table_create('ab', primary_key='bar', cache_size=123, durability='hard')
+      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, durability:'hard'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :durability => 'hard'})
+      ot: ({'created':1})
+
+    - cd: db.table_drop('ab')
+      ot: ({'dropped':1})
+
+    - py: db.table_create('ab', primary_key='bar', cache_size=123, durability='wrong')
+      js: db.tableCreate('ab', {primary_key:'bar', cache_size:123, durability:'wrong'})
+      rb: db.table_create('ab', {:primary_key => 'bar', :cache_size => 123, :durability => 'wrong'})
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+
 
     # Table errors
     - cd: db.table_create('foo')

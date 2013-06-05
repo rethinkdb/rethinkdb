@@ -33,7 +33,7 @@ const std::string connectivity_cluster_t::cluster_build_mode("release");
 const std::string connectivity_cluster_t::cluster_build_mode("debug");
 #endif
 
-void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address) {
+void debug_print(printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address{ips=[");
     const std::set<ip_address_t> *ips = address.all_ips();
     for (std::set<ip_address_t>::const_iterator
@@ -491,7 +491,7 @@ void connectivity_cluster_t::run_t::handle(
         return;
     }
     if (expected_address && !is_similar_peer_address(other_address, *expected_address)) {
-        printf_buffer_t<500> buf;
+        printf_buffer_t buf;
         buf.appendf("expected_address = ");
         debug_print(&buf, *expected_address);
         buf.appendf(", other_address = ");
@@ -771,7 +771,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
     {
-        printf_buffer_t<500> buf;
+        printf_buffer_t buf;
         buf.appendf("from ");
         debug_print(&buf, me);
         buf.appendf(" to ");

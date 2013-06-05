@@ -180,6 +180,27 @@ commands:
                                   function (err, cursor) { ... });
           py: r.table('marvel').run(conn, noreply=True)
           rb: r.table('marvel').run(conn, :noreply => true)
+      - description: |
+          If you want to specify whether to wait for a write to be
+          written to disk (overriding the table's default settings),
+          you can set `durability` to `'hard'` or `'soft'` in the
+          options.
+        validate: false
+        code:
+          js: |
+            r.table('marvel')
+             .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+             .run({connection:conn, noreply:true, durability: 'soft'},
+                  function (err, cursor) { ... });
+          py: |
+            r.table('marvel')
+             .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
+             .run(conn, noreply=True, durability='soft')
+          rb: |
+            r.table('marvel')
+             .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
+             .run(conn, :noreply => true, :durability => 'soft')
+
 
   - tag: next
     section: module
@@ -217,7 +238,7 @@ commands:
     section: module
     description: Lazily iterate over the result set one element at a time.
 
-    body: callback
+    body: callback[, onFinished]
 
     parent: cursor
     returns: null
@@ -226,8 +247,23 @@ commands:
       - description: Let's process all the elements!
         code: |
           cur.each(function(err, row) {
-            return processRow(row);
+            processRow(row);
           });
+      - description: If we need to know when iteration is complete
+                     each also accepts a second `onFinished` callback.
+        code: |
+          cur.each(function(err, row) {
+            return processRow(row);
+          }, function() {
+            doneProcessing();
+          });
+      - description: Iteration can be stopped prematurely by returning `false`
+                     from the callback.
+        code: |
+            cur.each(function(err, row) {
+                if (processRow(row) < 0)
+                    return false;
+            });
 
     py: false
     rb: false

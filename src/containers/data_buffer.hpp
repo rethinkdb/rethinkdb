@@ -5,7 +5,7 @@
 #include "containers/counted.hpp"
 #include "errors.hpp"
 
-class append_only_printf_buffer_t;
+class printf_buffer_t;
 
 struct data_buffer_t {
 private:
@@ -44,7 +44,7 @@ inline void counted_release(data_buffer_t *buffer) {
     }
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr);
+void debug_print(printf_buffer_t *buf, const counted_t<data_buffer_t>& ptr);
 
 
 

@@ -11,12 +11,13 @@ var r = require('../../../drivers/javascript/build/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
-var port = Math.floor(Math.random()*(65535 - 1025)+1025)
+var port = null;
 
 var assertErr = function(err, type, msg) {
     assertNotNull(err);
     assert.equal(err.constructor.name, type);
     var _msg = err.message.replace(/ in:\n([\r\n]|.)*/m, "");
+    _msg = _msg.replace(/\nFailed assertion:(.|\n)*/m, "")
     assert.equal(_msg, msg);
 };
 
@@ -92,7 +93,7 @@ describe('Javascript connection API', function(){
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."));
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."));
           done();
         });
     });
@@ -104,6 +105,7 @@ describe('Javascript connection API', function(){
         var server_err_log
 
         beforeEach(function(done){
+            port = Math.floor(Math.random()*(65535 - 1025)+1025)
             server_out_log = fs.openSync('run/server-log.txt', 'a');
             server_err_log = fs.openSync('run/server-error-log.txt', 'a');
             cpp_server = spawn(
@@ -138,9 +140,7 @@ describe('Javascript connection API', function(){
 
         it("fails to query after close", withConnection(function(done, c){
             c.close();
-            assert.throws(function(){ r(1).run(c, function(){}); },
-                          checkError("RqlDriverError", "Connection is closed."));
-            done();
+            r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
         }));
 
         it("test use", withConnection(function(done, c){
@@ -163,10 +163,7 @@ describe('Javascript connection API', function(){
         it("fails to query after kill", withConnection(function(done, c){
             cpp_server.kill();
             setTimeout(function() {
-                assert.throws(function(){
-                    r(1).run(c, function(err, res) { assert.ok(false, "This callback should never get called"); });
-                }, checkError("RqlDriverError", "Connection is closed."));
-                done();
+                r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
             }, 100);
         }));
 

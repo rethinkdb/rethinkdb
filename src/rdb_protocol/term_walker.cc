@@ -125,7 +125,9 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:
@@ -149,6 +151,10 @@ private:
         case Term::OUTER_JOIN:
         case Term::EQ_JOIN:
         case Term::ZIP:
+        case Term::INSERT_AT:
+        case Term::DELETE_AT:
+        case Term::CHANGE_AT:
+        case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::TYPEOF:
         case Term::FUNCALL:
@@ -160,6 +166,8 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }
@@ -194,6 +202,7 @@ private:
         case Term::DELETE:
         case Term::REPLACE:
         case Term::INSERT:
+        case Term::COUNT:
             return true;
 
         case Term::DATUM:
@@ -220,7 +229,9 @@ private:
         case Term::DIV:
         case Term::MOD:
         case Term::APPEND:
+        case Term::PREPEND:
         case Term::SLICE:
+        case Term::INDEXES_OF:
         case Term::GETATTR:
         case Term::CONTAINS:
         case Term::PLUCK:
@@ -229,12 +240,15 @@ private:
         case Term::BETWEEN:
         case Term::ORDERBY:
         case Term::DISTINCT:
-        case Term::COUNT:
         case Term::UNION:
         case Term::NTH:
         case Term::LIMIT:
         case Term::SKIP:
         case Term::ZIP:
+        case Term::INSERT_AT:
+        case Term::DELETE_AT:
+        case Term::CHANGE_AT:
+        case Term::SPLICE_AT:
         case Term::COERCE_TO:
         case Term::TYPEOF:
         case Term::DB_CREATE:
@@ -255,6 +269,8 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::SAMPLE:
+        case Term::IS_EMPTY:
             return false;
         default: unreachable();
         }

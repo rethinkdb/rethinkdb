@@ -20,14 +20,7 @@
 
 /**
  * Basic configuration parameters.
- * TODO: Many of these should be runtime switches.
  */
-// Max concurrent IO requests per event queue
-#define MAX_CONCURRENT_IO_REQUESTS                64
-
-// Don't send more IO requests to the system until the per-thread
-// queue of IO requests is higher than this depth
-#define TARGET_IO_QUEUE_DEPTH                     64
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -212,9 +205,6 @@
 // metablock or LBA
 #define MAX_ACTIVE_DATA_EXTENTS                   64
 #define DEFAULT_ACTIVE_DATA_EXTENTS               1
-
-// The size of zones the serializer will divide a block device into
-#define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE
 
 #define COROUTINE_STACK_SIZE                      131072
 

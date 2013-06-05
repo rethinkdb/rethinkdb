@@ -49,7 +49,7 @@ private:
     friend void semilattice_join(vclock_t<TT> *, const vclock_t<TT> &);
 
     template <class TT>
-    friend void debug_print(append_only_printf_buffer_t *buf, const vclock_t<TT> &x);
+    friend void debug_print(printf_buffer_t *buf, const vclock_t<TT> &x);
 
     typedef std::pair<vclock_details::version_map_t, T> stamped_value_t;
 
@@ -101,7 +101,7 @@ template <class T>
 void semilattice_join(vclock_t<T> *, const vclock_t<T> &);
 
 template <class T>
-void debug_print(append_only_printf_buffer_t *buf, const vclock_t<T> &x);
+void debug_print(printf_buffer_t *buf, const vclock_t<T> &x);
 
 
 // vclock context type for use with json adapters.

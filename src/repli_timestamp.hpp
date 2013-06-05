@@ -6,7 +6,7 @@
 
 #include "containers/archive/archive.hpp"
 
-class append_only_printf_buffer_t;
+class printf_buffer_t;
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -35,6 +35,6 @@ public:
 write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
 archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
 
-void debug_print(append_only_printf_buffer_t *buf, repli_timestamp_t tstamp);
+void debug_print(printf_buffer_t *buf, repli_timestamp_t tstamp);
 
 #endif  // REPLI_TIMESTAMP_HPP_

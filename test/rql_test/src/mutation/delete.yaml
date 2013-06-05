@@ -6,7 +6,7 @@ tests:
       ot: ({'created':1})
 
     - def: tbl = r.db('test').table('test1')
-      
+
     - cd: r.db('test').table_create('test2')
       ot: ({'created':1})
 
@@ -32,14 +32,25 @@ tests:
     - cd: tbl.get(12).delete()
       ot: ({'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    # Delete selection of table
+    # Attempt deletion with bad durability flag.
 
-    - cd: tbl.skip(50).delete()
+    - js: tbl.skip(50).delete({durability:'wrong'})
+      rb: tbl.skip(50).delete({ :durability => 'wrong' })
+      py: tbl.skip(50).delete(durability='wrong')
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+
+    # Delete selection of table, soft durability flag.
+
+    - js: tbl.skip(50).delete({durability:'soft'})
+      rb: tbl.skip(50).delete({ :durability => 'soft' })
+      py: tbl.skip(50).delete(durability='soft')
       ot: ({'deleted':49,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
-    # Delete whole table
+    # Delete whole table, hard durability flag.
 
-    - cd: tbl.delete()
+    - js: tbl.delete({durability:'hard'})
+      rb: tbl.delete({ :durability => 'hard' })
+      py: tbl.delete(durability='hard')
       ot: ({'deleted':50,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     # clean up

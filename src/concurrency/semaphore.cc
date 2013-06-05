@@ -1,8 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/semaphore.hpp"
 
-#include "arch/runtime/runtime.hpp"
-
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 
 void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {

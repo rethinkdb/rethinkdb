@@ -42,6 +42,6 @@ void disconnect_watcher_t::on_disconnect(peer_id_t p) {
 }
 
 
-void debug_print(append_only_printf_buffer_t *buf, const peer_id_t &peer_id) {
+void debug_print(printf_buffer_t *buf, const peer_id_t &peer_id) {
     debug_print(buf, peer_id.get_uuid());
 }

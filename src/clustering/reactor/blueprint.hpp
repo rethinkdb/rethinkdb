@@ -30,7 +30,7 @@ public:
 };
 
 template <class protocol_t>
-void debug_print(append_only_printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint);
+void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint);
 
 #endif /* CLUSTERING_REACTOR_BLUEPRINT_HPP_ */
 

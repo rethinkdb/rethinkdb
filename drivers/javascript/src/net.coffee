@@ -174,8 +174,8 @@ class Connection
 
         @_sendQuery(query)
 
-        if noreply? and noreply
-            cb null # There is no error and result is `undefined`
+        if noreply? and noreply and typeof(cb) is 'function'
+                cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
         query = new Query

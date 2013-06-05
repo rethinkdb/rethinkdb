@@ -617,7 +617,7 @@ public:
             response->last_considered_key = range.left;
 
             if (terminal) {
-                terminal_initialize(ql_env, terminal->scopes, terminal->backtrace,
+                terminal_initialize(ql_env, terminal->backtrace,
                                     &terminal->variant,
                                     &response->result);
             }
@@ -668,7 +668,7 @@ public:
                         for (json_list_t::iterator jt  = data.begin();
                              jt != data.end();
                              ++jt) {
-                            transform_apply(ql_env, it->scopes, it->backtrace,
+                            transform_apply(ql_env, it->backtrace,
                                             *jt, &it->variant,
                                             &tmp);
                         }
@@ -698,7 +698,7 @@ public:
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, terminal->scopes, terminal->backtrace,
+                        terminal_apply(ql_env, terminal->backtrace,
                                        *jt, &terminal->variant, &response->result);
                     }
                     return true;
