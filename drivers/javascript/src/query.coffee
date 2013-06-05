@@ -4,7 +4,10 @@ goog.require("rethinkdb.base")
 goog.require("rethinkdb.ast")
 
 rethinkdb.expr = ar (val) ->
-    if val instanceof TermBase
+    if val is undefined
+        throw new RqlDriverError "Cannot wrap undefined with r.expr()."
+
+    else if val instanceof TermBase
         val
     else if val instanceof Function
         new Func {}, val

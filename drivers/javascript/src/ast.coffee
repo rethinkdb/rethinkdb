@@ -221,10 +221,13 @@ shouldWrap = (arg) ->
 
 class MakeArray extends RDBOp
     tt: Term.TermType.MAKE_ARRAY
+    st: '[...]' # This is only used by the `undefined` argument checker
+
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
     tt: Term.TermType.MAKE_OBJ
+    st: '{...}' # This is only used by the `undefined` argument checker
 
     constructor: (obj) ->
         self = super({})
@@ -359,6 +362,8 @@ class Limit extends RDBOp
 
 class GetAttr extends RDBOp
     tt: Term.TermType.GETATTR
+    st: '(...)' # This is only used by the `undefined` argument checker
+
     compose: (args) -> [args[0], '(', args[1], ')']
 
 class Contains extends RDBOp
@@ -511,6 +516,8 @@ class IndexList extends RDBOp
 
 class FunCall extends RDBOp
     tt: Term.TermType.FUNCALL
+    st: 'do' # This is only used by the `undefined` argument checker
+
     compose: (args) ->
         if args.length > 2
             ['r.do(', intsp(args[1..]), ', ', args[0], ')']
