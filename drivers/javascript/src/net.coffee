@@ -125,9 +125,13 @@ class Connection
     close: ar () ->
         @open = false
 
+    cancel: ar () ->
+        @outstandingCallbacks = {}
+
     reconnect: ar (callback) ->
-        @cancel()
-        @constructor.call(@, {host:@host, port:@port}, callback)
+        setTimeout(
+            () => @constructor.call(@, {host:@host, port:@port}, callback)
+           ,0)
 
     use: ar (db) ->
         @db = db
@@ -240,7 +244,7 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @rawSocket.end()
+            @close()
 
         net = require('net')
         @rawSocket = net.connect @port, @host
@@ -264,13 +268,13 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
 
-    close: ar () ->
-        @open = false
+    close: () ->
+        super()
         @rawSocket.end()
 
-    cancel: ar () ->
-        @outstandingCallbacks = {}
+    cancel: () ->
         @rawSocket.destroy()
+        super()
 
     write: (chunk) ->
         # Alas we must convert to a node buffer
