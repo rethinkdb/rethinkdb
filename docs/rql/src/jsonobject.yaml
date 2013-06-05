@@ -170,7 +170,7 @@ commands:
   - tag: set_difference
     section: jsonobject
     description: |
-      Remove the elements of one array from another and them as a
+      Remove the elements of one array from another and return them as a
       <code>set</code> (an <code>array</code> with distinct values).
 
     body: json
