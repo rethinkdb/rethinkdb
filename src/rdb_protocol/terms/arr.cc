@@ -13,7 +13,6 @@ protected:
     counted_t<val_t> pend(which_pend_t which_pend) {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
-        arr->check_type(datum_t::R_ARRAY);
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         if (which_pend == PRE) {
             // TODO: this is horrendously inefficient.
@@ -173,13 +172,12 @@ private:
 
 class set_insert_term_t : public op_term_t {
 public:
-    set_insert_term_t(env_t *env, protob_t<const Term> term) 
+    set_insert_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
-        arr->check_type(datum_t::R_ARRAY);
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr->size(); ++i) {
@@ -205,8 +203,6 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
-        arr1->check_type(datum_t::R_ARRAY);
-        arr2->check_type(datum_t::R_ARRAY);
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr1->size(); ++i) {
@@ -234,8 +230,6 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
-        arr1->check_type(datum_t::R_ARRAY);
-        arr2->check_type(datum_t::R_ARRAY);
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr1->size(); ++i) {
@@ -262,8 +256,6 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
-        arr1->check_type(datum_t::R_ARRAY);
-        arr2->check_type(datum_t::R_ARRAY);
         std::set<counted_t<const datum_t> > el_set;
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 0; i < arr2->size(); ++i) {
