@@ -125,7 +125,7 @@ configure () {
     else
         var TCMALLOC_MINIMAL_LIBS ""
     fi
-    # test_protobuf
+    test_protobuf
     boolvar STATIC_V8 contains "$static_libs" v8
     var FETCH_LIST "$fetch_list"
     boolvar FETCH_INTERNAL_TOOLS $allow_fetch
@@ -826,7 +826,7 @@ test_protobuf () {
     local out
     if ! out=$(
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            "$CXX" -I "`dirname $0`" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$pbdir/test.pb.cc" "$pbdir/main.cc" 2>&1)
+            "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "`dirname $0`" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
         error "Unable to compile sample protobuf file"
