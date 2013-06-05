@@ -99,6 +99,9 @@ public:
 
     struct write_t {
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
+
+        durability_requirement_t durability() const { return DURABILITY_REQUIREMENT_DEFAULT; }
+
         region_t get_region() const THROWS_NOTHING;
 
         // Returns true if the write had any applicability to the region, and a non-empty

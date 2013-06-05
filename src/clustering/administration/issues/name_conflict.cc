@@ -53,8 +53,8 @@ public:
     }
 
     void report(const std::string &type, std::list<clone_ptr_t<global_issue_t> > *out) const {
-        for (std::map<name_string_t, std::set<uuid_u>>::const_iterator it =
-                by_name.begin(); it != by_name.end(); it++) {
+        for (std::map<name_string_t, std::set<uuid_u> >::const_iterator it =
+                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(new name_conflict_issue_t(type, it->first.str(), it->second)));
             }

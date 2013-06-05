@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef PERFMON_CORE_HPP_
 #define PERFMON_CORE_HPP_
 
@@ -8,10 +8,10 @@
 #include <vector>
 #include <set>
 
+#include "concurrency/rwi_lock.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
-#include "concurrency/rwi_lock.hpp"
 
 class perfmon_collection_t;
 class perfmon_result_t;
@@ -43,7 +43,7 @@ public:
      */
     virtual void *begin_stats() = 0;
     virtual void visit_stats(void *ctx) = 0;
-    virtual perfmon_result_t *end_stats(void *ctx) = 0;
+    virtual scoped_ptr_t<perfmon_result_t> end_stats(void *ctx) = 0;
 };
 
 class perfmon_membership_t;
@@ -56,7 +56,7 @@ public:
     /* Perfmon interface */
     void *begin_stats();
     void visit_stats(void *_contexts);
-    perfmon_result_t *end_stats(void *_contexts);
+    scoped_ptr_t<perfmon_result_t> end_stats(void *_contexts);
 
 private:
     friend class perfmon_membership_t;
@@ -104,17 +104,18 @@ class perfmon_filter_t {
 public:
     explicit perfmon_filter_t(const std::set<std::string> &paths);
     ~perfmon_filter_t();
-    void filter(perfmon_result_t *target) const;
+    // This takes a const scoped_ptr_t because subfilter needs one to sanely work.
+    void filter(const scoped_ptr_t<perfmon_result_t> *target) const;
 private:
-    perfmon_result_t *subfilter(perfmon_result_t *target,
-                                size_t depth, std::vector<bool> active) const;
+    void subfilter(scoped_ptr_t<perfmon_result_t> *target,
+                   size_t depth, std::vector<bool> active) const;
     std::vector<std::vector<scoped_regex_t *> > regexps; //regexps[PATH][DEPTH]
     DISABLE_COPYING(perfmon_filter_t);
 };
 
 class perfmon_result_t {
 public:
-    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
+    typedef std::map<std::string, scoped_ptr_t<perfmon_result_t> > internal_map_t;
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
 
@@ -128,10 +129,7 @@ public:
     explicit perfmon_result_t(const std::string &);
     virtual ~perfmon_result_t();
 
-    static perfmon_result_t make_string();
-    static void alloc_string_result(perfmon_result_t **out);
-    static perfmon_result_t make_map();
-    static void alloc_map_result(perfmon_result_t **out);
+    static scoped_ptr_t<perfmon_result_t> alloc_map_result();
 
     std::string *get_string();
     const std::string *get_string() const;
@@ -146,7 +144,8 @@ public:
     perfmon_result_type_t get_type() const;
     void reset_type(perfmon_result_type_t new_type);
 
-    std::pair<iterator, bool> insert(const std::string &name, perfmon_result_t *val);
+    std::pair<iterator, bool> insert(const std::string &name,
+                                     scoped_ptr_t<perfmon_result_t> &&val);
 
     iterator begin();
     iterator end();
@@ -157,8 +156,7 @@ public:
     // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
     void splice_into(perfmon_result_t *map);
 private:
-    void clear_map();
-    explicit perfmon_result_t(const internal_map_t &);
+    explicit perfmon_result_t(internal_map_t &&);
 
     perfmon_result_type_t type;
 

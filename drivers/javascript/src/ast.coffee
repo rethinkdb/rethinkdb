@@ -11,21 +11,43 @@ class TermBase
         self.__proto__ = @.__proto__
         return self
 
-    run: (conn, cb) ->
+    run: (connOrOptions, cb) ->
         useOutdated = undefined
-        if conn? and typeof(conn) is 'object' and not (conn instanceof Connection)
-            useOutdated = !!conn.useOutdated
-            noreply = !!conn.noreply
-            for own key of conn
+
+        # Parse out run options from connOrOptions object
+        if connOrOptions? and typeof(connOrOptions) is 'object' and not (connOrOptions instanceof Connection)
+            useOutdated = !!connOrOptions.useOutdated
+            noreply = !!connOrOptions.noreply
+            for own key of connOrOptions
                 unless key in ['connection', 'useOutdated', 'noreply']
                     throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
-            conn = conn.connection
+            conn = connOrOptions.connection
+        else
+            useOutdated = null
+            noreply = null
+            conn = connOrOptions
+
+        # This only checks that the argument is of the right type, connection
+        # closed errors will be handled elsewhere
         unless conn instanceof Connection
-            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool> }."
-        unless typeof(cb) is 'function'
+            throw new RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."
+
+        # We only require a callback if noreply isn't set
+        if not noreply and typeof(cb) isnt 'function'
             throw new RqlDriverError "Second argument to `run` must be a callback to invoke "+
                                      "with either an error or the result of the query."
-        conn._start @, cb, useOutdated, noreply
+
+        try
+            conn._start @, cb, useOutdated, noreply
+        catch e
+            # It was decided that, if we can, we prefer to invoke the callback
+            # with any errors rather than throw them as normal exceptions.
+            # Thus we catch errors here and invoke the callback instead of
+            # letting the error bubble up.
+            if typeof(cb) is 'function'
+                cb(e)
+            else
+                throw e
 
     toString: -> RqlQueryPrinter::printQuery(@)
 
@@ -46,11 +68,17 @@ class RDBVal extends TermBase
     mod: ar (other) -> new Mod {}, @, other
 
     append: ar (val) -> new Append {}, @, val
+    prepend: ar (val) -> new Prepend {}, @, val
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getAttr: ar (field) -> new GetAttr {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    insertAt: ar (index, value) -> new InsertAt {}, @, index, value
+    spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
+    deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
+    changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
+    indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -64,9 +92,10 @@ class RDBVal extends TermBase
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
-    count: ar () -> new Count {}, @
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
@@ -75,7 +104,7 @@ class RDBVal extends TermBase
     coerceTo: ar (type) -> new CoerceTo {}, @, type
     typeOf: ar () -> new TypeOf {}, @
     update: aropt (func, opts) -> new Update opts, @, funcWrap(func)
-    delete: ar () -> new Delete {}, @
+    delete: aropt (opts) -> new Delete opts, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
 
@@ -91,6 +120,7 @@ class RDBVal extends TermBase
         new GroupBy {}, @, attrs, collector
 
     info: ar () -> new Info {}, @
+    sample: ar (count) -> new Sample {}, @, count
 
 class DatumTerm extends RDBVal
     args: []
@@ -157,7 +187,6 @@ translateOptargs = (optargs) ->
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
-            when 'hardDurability' then 'hard_durability'
             else key
 
         if key is undefined or val is undefined then continue
@@ -339,6 +368,10 @@ class Append extends RDBOp
     tt: Term.TermType.APPEND
     mt: 'append'
 
+class Prepend extends RDBOp
+    tt: Term.TermType.PREPEND
+    mt: 'prepend'
+
 class Slice extends RDBOp
     tt: Term.TermType.SLICE
     st: 'slice'
@@ -359,9 +392,29 @@ class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
     mt: 'contains'
 
+class InsertAt extends RDBOp
+    tt: Term.TermType.INSERT_AT
+    mt: 'insert_at'
+
+class SpliceAt extends RDBOp
+    tt: Term.TermType.SPLICE_AT
+    mt: 'splice_at'
+
+class DeleteAt extends RDBOp
+    tt: Term.TermType.DELETE_AT
+    mt: 'delete_at'
+
+class ChangeAt extends RDBOp
+    tt: Term.TermType.CHANGE_AT
+    mt: 'change_at'
+
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
     mt: 'pluck'
+
+class IndexesOf extends RDBOp
+    tt: Term.TermType.INDEXES_OF
+    mt: 'indexesOf'
 
 class Without extends RDBOp
     tt: Term.TermType.WITHOUT
@@ -411,6 +464,10 @@ class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
 
+class IsEmpty extends RDBOp
+    tt: Term.TermType.IS_EMPTY
+    mt: 'is_empty'
+
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE
     mt: 'groupedMapReduce'
@@ -450,6 +507,10 @@ class TypeOf extends RDBOp
 class Info extends RDBOp
     tt: Term.TermType.INFO
     mt: 'info'
+
+class Sample extends RDBOp
+    tt: Term.TermType.SAMPLE
+    mt: 'sample'
 
 class Update extends RDBOp
     tt: Term.TermType.UPDATE

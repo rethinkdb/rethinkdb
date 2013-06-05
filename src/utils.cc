@@ -360,6 +360,10 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+double rng_t::randdouble() {
+    return erand48(xsubi);
+}
+
 struct nrand_xsubi_t {
     unsigned short xsubi[3];  // NOLINT(runtime/int)
 };
@@ -386,6 +390,20 @@ int randint(int n) {
     long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
+}
+
+double randdouble() {
+    nrand_xsubi_t buffer;
+    if (!TLS_get_rng_initialized()) {
+        CT_ASSERT(sizeof(buffer.xsubi) == 6);
+        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
+        TLS_set_rng_initialized(true);
+    } else {
+        buffer = TLS_get_rng_data();
+    }
+    double x = erand48(buffer.xsubi);  // NOLINT(runtime/int)
+    TLS_set_rng_data(buffer);
+    return x;
 }
 
 std::string rand_string(int len) {

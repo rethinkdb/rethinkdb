@@ -16,6 +16,9 @@ counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
 counted_t<datum_stream_t> datum_stream_t::zip() {
     return make_counted<zip_datum_stream_t>(env, this->counted_from_this());
 }
+counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
+    return make_counted<indexes_of_datum_stream_t>(env, f, counted_from_this());
+}
 
 counted_t<const datum_t> datum_stream_t::next() {
     // This is a hook for unit tests to change things mid-query.
@@ -253,6 +256,20 @@ counted_t<const datum_t> map_datum_stream_t::next_impl() {
         return counted_t<const datum_t>();
     } else {
         return f->call(arg)->as_datum();
+    }
+}
+
+// INDEXES_OF_DATUM_STREAM_T
+counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
+    for (;;) {
+        counted_t<const datum_t> arg = source->next();
+        if (!arg.has()) {
+            return counted_t<const datum_t>();
+        } else if (f->filter_call(arg)) {
+            return make_counted<datum_t>(static_cast<double>(index++));
+        } else {
+            index++;
+        }
     }
 }
 

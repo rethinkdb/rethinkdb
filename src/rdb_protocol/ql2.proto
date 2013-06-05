@@ -242,9 +242,11 @@ message Term {
         // DATUM Array Ops
         // Append a single element to the end of an array (like `snoc`).
         APPEND = 29; // ARRAY, DATUM -> ARRAY
+        PREPEND = 80; // ARRAY, DATUM -> ARRAY
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
+        INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a
@@ -274,8 +276,10 @@ message Term {
         ORDERBY   = 41; // Sequence, (!STRING | Ordering)... -> Sequence
         // Get all distinct elements of a sequence (like `uniq`).
         DISTINCT  = 42; // Sequence -> Sequence
-        // Count the number of elements in a sequence.
-        COUNT     = 43; // Sequence -> NUMBER
+        // Count the number of elements in a sequence, or only the elements that match
+        // a given filter.
+        COUNT     = 43; // Sequence -> NUMBER | Sequence, DATUM -> NUMBER | Sequence, Function(1) -> NUMBER
+        IS_EMPTY = 86; // Sequence -> BOOL
         // Take the union of multiple sequences (preserves duplicate elements! (use distinct)).
         UNION     = 44; // Sequence... -> Sequence
         // Get the Nth element of a sequence.
@@ -299,6 +303,16 @@ message Term {
         EQ_JOIN            = 50; // Sequence, !STRING, Sequence, {index:!STRING} -> Sequence
         ZIP                = 72; // Sequence -> Sequence
 
+        // Array Ops
+        // Insert an element in to an array at a given index.
+        INSERT_AT          = 82; // ARRAY, NUMBER, DATUM -> ARRAY
+        // Remove an element at a given index from an array.
+        DELETE_AT          = 83; // ARRAY, NUMBER -> ARRAY |
+                                 // ARRAY, NUMBER, NUMBER -> ARRAY
+        // Change the element at a given index of an array.
+        CHANGE_AT          = 84; // ARRAY, NUMBER, DATUM -> ARRAY
+        // Splice one array in to another array.
+        SPLICE_AT          = 85; // ARRAY, NUMBER, ARRAY -> ARRAY
 
         // * Type Ops
         // Coerces a datum to a named type (e.g. "bool").
@@ -421,6 +435,9 @@ message Term {
 
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
+
+        // Select a number of elements from sequence with uniform distribution.
+        SAMPLE = 81; // Sequence, NUMBER -> Sequence
     }
     optional TermType type = 1;
 

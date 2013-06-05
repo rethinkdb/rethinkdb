@@ -332,6 +332,20 @@ struct write_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
 };
 
+// Specifies the durability requirements of a write operation.
+//  - DURABILITY_REQUIREMENT_DEFAULT: Use the table's durability settings.
+//  - DURABILITY_REQUIREMENT_HARD: Override the table's durability settings with
+//    hard durability.
+//  - DURABILITY_REQUIREMENT_SOFT: Override the table's durability settings with
+//    soft durability.
+enum durability_requirement_t { DURABILITY_REQUIREMENT_DEFAULT,
+                                DURABILITY_REQUIREMENT_HARD,
+                                DURABILITY_REQUIREMENT_SOFT };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(durability_requirement_t,
+                                      int8_t,
+                                      DURABILITY_REQUIREMENT_DEFAULT,
+                                      DURABILITY_REQUIREMENT_SOFT);
 
 template <class protocol_t>
 class store_view_t : public home_thread_mixin_t {

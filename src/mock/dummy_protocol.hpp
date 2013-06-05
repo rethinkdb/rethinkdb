@@ -68,6 +68,8 @@ public:
 
     class write_t {
     public:
+        durability_requirement_t durability() const { return DURABILITY_REQUIREMENT_DEFAULT; }
+
         region_t get_region() const;
         // Returns true if the write had any applicability to the region, and a non-empty
         // write was written to write_out.

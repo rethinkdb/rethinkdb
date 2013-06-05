@@ -153,6 +153,7 @@ public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
+    double randdouble();
     explicit rng_t(int seed = -1);
 private:
     unsigned short xsubi[3];  // NOLINT(runtime/int)
@@ -163,6 +164,7 @@ private:
 void get_dev_urandom(void *out, int64_t nbytes);
 
 int randint(int n);
+double randdouble();
 std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);

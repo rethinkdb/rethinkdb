@@ -124,6 +124,16 @@ tests:
       ot: ({'id':99,'a':3})
     - cd: tbl.order_by('id').nth('foo').count()
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
+
+    # test is_empty
+    - cd: tbl.is_empty()
+      ot: false
+    - cd: tbl.limit(0).is_empty()
+      ot: true
+    - cd: r.expr(1).is_empty()
+      ot: err('RqlRuntimeError', 'Cannot convert NUMBER to SEQUENCE', [])
+    - cd: r.expr("").is_empty()
+      ot: err('RqlRuntimeError', 'Cannot convert STRING to SEQUENCE', [])
     
     # Pluck
     - cd: tbl.pluck().nth(0)
@@ -165,6 +175,25 @@ tests:
       ot: 103
     - cd: r.expr([1,2,3]).union(tbl2).count()
       ot: 103
+
+
+    ## Indexes Of
+    - def: ord = tbl.order_by('id')
+      js: ord.indexesOf(r.row('id').lt(2))
+      py: ord.indexes_of(r.row['id'] < 2)
+      rb: ord.indexes_of{ |row| row['id'] < 2 }
+      ot: [0,1]
+
+    - cd: r.expr([1,2,3,4]).indexes_of(3)
+      ot: [2]
+
+    - cd: r.expr([1]).indexes_of(tbl)
+      ot: err('RqlRuntimeError', 'Expected type DATUM but found TABLE.', [])
+
+    - py: "r.expr(1).do(lambda x: r.expr([2,1,0]).indexes_of(x))"
+      js: r.expr(1).do(function(x){ return r.expr([2,1,0]).indexes_of(x); })
+      rb: r(1).do{ |x| r([2,1,0]).indexes_of x }
+      ot: [1]
 
     # Clean up
     - cd: r.db('test').table_drop('test1')

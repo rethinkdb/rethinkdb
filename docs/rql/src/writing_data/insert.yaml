@@ -3,8 +3,11 @@ commands:
     section: writing_data
     order: 0
     description: |
-      Insert JSON documents into a table. Accepts a single JSON document
-      or an array of documents. <br /><br />
+      Insert JSON documents into a table. Accepts a single JSON
+      document or an array of documents.  You may also pass the
+      optional argument <code>durability</code> with value
+      <code>'hard'</code> or <code>'soft'</code>, to override the
+      table or query's default durability setting.<br/><br/>
       Insert returns an object that contains the following attributes:
       <ul>
       <li><code>inserted</code> - the number of documents that were succesfully inserted;</li>
@@ -14,14 +17,14 @@ commands:
       <li><code>errors</code> - the number of errors encountered while inserting;</li>
       <li>if errors where encountered while inserting, <code>first_error</code> contains the text of the first error;</li>
       <li><code>generated_keys</code> - a list of generated primary key values;</li>
-      <li><code>deleted</code> and <code>skipped</code> 
+      <li><code>deleted</code> and <code>skipped</code>
       - <code>0</code> for an <code>insert</code> operation.</li>
       </ul>
 
     body:
       js: json | [json][, {upsert:true}]
       py: json | [json][, upsert=False]
-      rb: json | [json][, :upsert]
+      rb: json | [json][, { :upsert => false }]
     parent: table
     returns: object
 
@@ -37,23 +40,23 @@ commands:
           rb: |
             r.table('marvel').insert(
                 { :superhero => 'Iron Man', :superpower => 'Arc Reactor' }).run(conn)
-      - description: Insert multiple rows into a table named 'marvel'.
+      - description: Insert multiple rows into a table named 'marvel'.  Also, specify that only soft durability is required.
         code:
           js: |
             r.table('marvel').insert([
               { superhero: 'Wolverine', superpower: 'Adamantium' },
               { superhero: 'Spiderman', superpower: 'spidy sense' }
-            ]).run(conn, callback)
+            ], { durability: 'soft' }).run(conn, callback)
           py: |
             r.table('marvel').insert([
               { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },
               { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }
-            ]).run(conn)
+            ], durability='soft').run(conn)
           rb: |
             r.table('marvel').insert([
               {:superhero => 'Wolverine', :superpower => 'Adamantium'},
               {:superhero => 'Spiderman', :superpower => 'spidy sense'}
-            ]).run(conn)
+            ], :durability => 'soft').run(conn)
       - description: Insert a row into a table named 'marvel', overwriting if the document already exists.
         code:
           js: |
@@ -69,7 +72,7 @@ commands:
           rb: |
             r.table('marvel').insert(
               {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
-              :upsert
+              {:upsert => true }
             ).run(conn)
 
     js:

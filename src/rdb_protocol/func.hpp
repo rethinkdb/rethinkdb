@@ -10,6 +10,7 @@
 
 #include "containers/counted.hpp"
 #include "protob/protob.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -24,6 +25,9 @@ public:
     // function as their argument.
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                                const protob_t<const Backtrace> &root);
+    static counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+                                                    const protob_t<const Backtrace> &bt_src);
+
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
 
     // Prefer these versions of call.

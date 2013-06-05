@@ -9,6 +9,6 @@
  * blocks until it is done. The caller must destroy the `perfmon_result_t` object
  * when it's done with it.
  */
-perfmon_result_t *perfmon_get_stats();
+scoped_ptr_t<perfmon_result_t> perfmon_get_stats();
 
 #endif  // PERFMON_COLLECT_HPP_

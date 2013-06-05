@@ -16,6 +16,11 @@ bool argspec_t::contains(int n) const {
     return min <= n && (max < 0 || n <= max);
 }
 
+optargspec_t::optargspec_t(std::initializer_list<const char *> args) {
+    init(args.size(), args.begin());
+}
+
+
 optargspec_t::optargspec_t(bool _is_make_object_val)
     : is_make_object_val(_is_make_object_val) { }
 
@@ -72,14 +77,13 @@ counted_t<val_t> op_term_t::arg(size_t i) {
     return args[i]->eval();
 }
 
-counted_t<val_t> op_term_t::optarg(const std::string &key,
-                                   counted_t<val_t> default_value) {
+counted_t<val_t> op_term_t::optarg(const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
         return it->second->eval();
     }
-    counted_t<val_t> v = env->get_optarg(key);
-    return v.has() ? v : default_value;
+    counted_t<val_t> ret = env->get_optarg(key);
+    return ret;
 }
 
 bool op_term_t::is_deterministic_impl() const {
