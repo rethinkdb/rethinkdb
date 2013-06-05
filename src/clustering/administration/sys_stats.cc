@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/sys_stats.hpp"
 
 #include <sys/statvfs.h>
@@ -49,15 +49,9 @@ sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
     scoped_ptr_t<perfmon_result_t> result = perfmon_result_t::alloc_map_result();
 
     disk_stat_t disk_stat(base_path.path());
-    result->insert("global_disk_space_free",
-                   make_scoped<perfmon_result_t>(strprintf("%" PRIi64,
-                                                           disk_stat.disk_space_free)));
-    result->insert("global_disk_space_used",
-                   make_scoped<perfmon_result_t>(strprintf("%" PRIi64,
-                                                           disk_stat.disk_space_used)));
-    result->insert("global_disk_space_total",
-                   make_scoped<perfmon_result_t>(strprintf("%" PRIi64,
-                                                           disk_stat.disk_space_total)));
+    result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_free)));
+    result->insert("global_disk_space_used", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_used)));
+    result->insert("global_disk_space_total", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_total)));
 
     return result;
 }
