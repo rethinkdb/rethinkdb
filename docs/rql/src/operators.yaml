@@ -7,13 +7,13 @@ sections:
 commands:
   - tag: add
     section: operators
-    description: Sum two numbers or concatenate two strings.
+    description: Sum two numbers, concatenate two strings, or concatenate 2 arrays.
 
     name: +
     is_operator: true
-    body: other
-    parent: number | string
-    returns: number | string
+    body: number | string | array
+    parent: number | string | array
+    returns: number | string | array
 
     examples:
       - description: It's as easy as 2 + 2 = 4.
@@ -26,6 +26,11 @@ commands:
           js: r.expr("foo").add("bar").run(conn, callback)
           py: (r.expr("foo") + "bar").run(conn)
           rb: (r("foo") + "bar").run(conn)
+      - description: Arrays can be concatenated too.
+        code:
+          js: r.expr(["foo", "bar"]).add("buzz").run(conn, callback)
+          py: (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
+          rb: (r(["foo", "bar"]) + ["buzz"]).run(conn)
 
     js:
       name: add
@@ -65,13 +70,13 @@ commands:
 
   - tag: mul
     section: operators
-    description: Multiply two numbers.
+    description: Multiply two numbers, or make a periodic array.
 
     name: '*'
-    body: number
+    body: number | array
     is_operator: true
-    parent: number
-    returns: number
+    parent: number | array
+    returns: number | array
 
     examples:
       - description: It's as easy as 2 * 2 = 4.
@@ -79,6 +84,11 @@ commands:
           js: r.expr(2).mul(2).run(conn, callback)
           py: (r.expr(2) * 2).run(conn)
           rb: (r(2) * 2).run(conn)
+      - description: Arrays can be multiplied by numbers as well.
+        code:
+          js: r.expr(["This", "is", "the", "song", "that", "never", "ends."]).mul(100).run(conn, callback)
+          py: (r.expr(["This", "is", "the", "song", "that", "never", "ends."]) * 100).run(conn)
+          rb: (r(["This", "is", "the", "song", "that", "never", "ends."]) * 100).run(conn)
 
     js:
       name: mul
