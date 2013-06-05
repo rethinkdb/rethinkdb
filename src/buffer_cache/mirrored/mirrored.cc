@@ -775,9 +775,9 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
 void *mc_buf_lock_t::get_data_write() {
     ASSERT_NO_CORO_WAITING;
 
+    rassert(mode == rwi_write);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
-    rassert(mode == rwi_write);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
