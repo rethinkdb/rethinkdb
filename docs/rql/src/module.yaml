@@ -251,3 +251,41 @@ commands:
 
     py: false
     rb: false
+
+  - tag: addListener
+    section: module
+    description: |
+        The connection object also supports the event emitter interface so you can listen for
+        changes in connection state.
+
+    body: event, listener
+    parent: connection
+
+    examples:
+      - description: Monitor connection state with events 'connect', 'close', and 'error'.
+        code: |
+
+          r.connect({}, function(err, conn) {
+              if (err) throw err;
+
+              conn.addListener('error', function(e) {
+                processNetworkError(e);
+              });
+
+              conn.addListener('close', function() {
+                cleanup();
+              });
+
+              runQueries(conn);
+          });
+
+      - description: As in Node, 'on' is a synonym for 'addListener'.
+        code: |
+            conn.on('close', function() {
+                cleanup();
+            });
+
+            conn.close();
+
+    py: false
+    rb: false
