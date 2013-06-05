@@ -180,6 +180,7 @@ class Connection
         query.setToken token
 
         @_sendQuery(query)
+        @_delQuery(token)
 
     _sendQuery: (query) ->
 
