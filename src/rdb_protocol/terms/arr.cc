@@ -185,9 +185,8 @@ private:
         while (counted_t<const datum_t> el = seq->next()) {
             for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                 if (**it == *el) {
-                    auto last_el = required_els.end() - 1;
-                    std::swap(*it, *last_el);
-                    required_els.erase(last_el);
+                    std::swap(*it, required_els.back());
+                    required_els.pop_back();
                     break; // Bag semantics for contains.
                 }
             }
