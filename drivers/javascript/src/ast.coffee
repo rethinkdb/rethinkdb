@@ -543,6 +543,11 @@ class ForEach extends RDBOp
     mt: 'forEach'
 
 funcWrap = (val) ->
+    if val is undefined
+        # Pass through the undefined value so it's caught by
+        # the appropriate undefined checker
+        return val
+
     val = rethinkdb.expr(val)
 
     ivarScan = (node) ->
