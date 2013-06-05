@@ -61,7 +61,7 @@ private:
     bool hard_durability_;
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x);
+void debug_print(printf_buffer_t *buf, const ack_expectation_t &x);
 
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
@@ -85,7 +85,7 @@ public:
 };
 
 template <class protocol_t>
-void debug_print(append_only_printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
+void debug_print(printf_buffer_t *buf, const namespace_semilattice_metadata_t<protocol_t> &m) {
     buf->appendf("ns_sl_metadata{blueprint=");
     debug_print(buf, m.blueprint);
     buf->appendf(", primary_datacenter=");

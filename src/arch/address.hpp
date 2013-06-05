@@ -16,7 +16,7 @@
 #include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
 
-class append_only_printf_buffer_t;
+class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
@@ -77,6 +77,6 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(s_addr);
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const ip_address_t &addr);
+void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
 
 #endif /* ARCH_ADDRESS_HPP_ */

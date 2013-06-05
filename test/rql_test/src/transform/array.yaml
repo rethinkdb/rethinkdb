@@ -185,6 +185,13 @@ tests:
       js: arr.nth(0)
       ot: 1
 
+    ## Is Empty
+
+    - cd: r.expr([]).is_empty()
+      ot: true
+    - cd: arr.is_empty()
+      ot: false
+
     ## Grouped Map Reduce
 
     ## Group by

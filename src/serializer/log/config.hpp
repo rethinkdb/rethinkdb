@@ -15,8 +15,6 @@ struct log_serializer_dynamic_config_t {
         gc_low_ratio = DEFAULT_GC_LOW_RATIO;
         gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
         num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
-        file_size = 0;   // Unlimited file size  // TODO: What?  No, that is a fantasy.
-        file_zone_size = DEFAULT_FILE_ZONE_SIZE;
         read_ahead = true;
         io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     }
@@ -26,25 +24,17 @@ struct log_serializer_dynamic_config_t {
     double gc_low_ratio, gc_high_ratio;
 
     /* How many data block extents the serializer will be writing to at once */
-    unsigned num_active_data_extents;
-
-    /* If file_size is nonzero and the serializer is not running on a block device, then it will
-    pretend to be running on a block device by immediately resizing the file to file_size and then
-    zoning it like a block device. */
-    size_t file_size;
-
-    /* How big to make each zone if the database is on a block device or if file_size is given */
-    size_t file_zone_size;
+    uint32_t num_active_data_extents;
 
     /* The (minimal) batch size of i/o requests being taken from a single i/o account.
     It is a factor because the actual batch size is this factor multiplied by the
     i/o priority of the account. */
-    int io_batch_factor;
+    int32_t io_batch_factor;
 
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
 
-    RDB_MAKE_ME_SERIALIZABLE_7(gc_low_ratio, gc_high_ratio, num_active_data_extents, file_size, file_zone_size, io_batch_factor, read_ahead);
+    RDB_MAKE_ME_SERIALIZABLE_5(gc_low_ratio, gc_high_ratio, num_active_data_extents, io_batch_factor, read_ahead);
 };
 
 /* This is equivalent to log_serializer_static_config_t below, but is an on-disk

@@ -168,10 +168,6 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, uint64_t _file_size, linux_disk_ma
     }
 }
 
-bool linux_file_t::is_block_device() {
-    return false;
-}
-
 uint64_t linux_file_t::get_size() {
     return file_size;
 }

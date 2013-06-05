@@ -4,7 +4,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 
 void cond_t::pulse() {

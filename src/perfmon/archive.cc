@@ -14,7 +14,7 @@ write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &x) {
         msg << size;
         for (perfmon_result_t::const_iterator it = x.begin(); it != x.end(); ++it) {
             msg << it->first;
-            rassert(it->second != NULL);
+            rassert(it->second.has());
             msg << *it->second;
         }
     } break;
@@ -48,21 +48,20 @@ archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
         }
 
         for (int64_t i = 0; i < size; ++i) {
-            std::pair<std::string, perfmon_result_t *> p;
-            res = deserialize(s, &p.first);
+            std::string name;
+            res = deserialize(s, &name);
             if (res) {
                 return res;
             }
-            p.second = new perfmon_result_t;
-            res = deserialize(s, p.second);
+            scoped_ptr_t<perfmon_result_t> subthing(new perfmon_result_t);
+            res = deserialize(s, subthing.get());
             if (res) {
-                delete p.second;
                 return res;
             }
 
-            std::pair<perfmon_result_t::iterator, bool> insert_result = thing->insert(p.first, p.second);
+            std::pair<perfmon_result_t::iterator, bool> insert_result
+                = thing->insert(name, std::move(subthing));
             if (!insert_result.second) {
-                delete p.second;
                 return ARCHIVE_RANGE_ERROR;
             }
         }

@@ -17,6 +17,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstam
 const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint32_t>(-1) };
 const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 
-void debug_print(append_only_printf_buffer_t *buf, repli_timestamp_t tstamp) {
+void debug_print(printf_buffer_t *buf, repli_timestamp_t tstamp) {
     buf->appendf("%" PRIu64, tstamp.longtime);
 }

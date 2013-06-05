@@ -421,7 +421,7 @@ void linux_tcp_conn_t::writef(signal_t *closer, const char *format, ...) THROWS_
     va_list ap;
     va_start(ap, format);
 
-    printf_buffer_t<1000> b(ap, format);
+    printf_buffer_t b(ap, format);
     write(b.data(), b.size(), closer);
 
     va_end(ap);

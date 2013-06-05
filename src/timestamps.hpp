@@ -8,9 +8,10 @@
 
 #include <inttypes.h>
 
-#include "containers/printf_buffer.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
+
+class printf_buffer_t;
 
 
 /* These are the timestamp types used by the clustering code.
@@ -44,7 +45,7 @@ public:
         return ts;
     }
 
-    friend void debug_print(append_only_printf_buffer_t *buf, state_timestamp_t ts);
+    friend void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
 private:
     friend class transition_timestamp_t;
@@ -52,11 +53,7 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
 
-inline void debug_print(append_only_printf_buffer_t *buf, state_timestamp_t ts) {
-    buf->appendf("st_t{");
-    debug_print(buf, ts.num);
-    buf->appendf("}");
-}
+void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
 class transition_timestamp_t {
 public:

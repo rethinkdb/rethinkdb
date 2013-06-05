@@ -200,6 +200,16 @@ void datum_t::str_to_str_key(std::string *str_out) const {
     str_out->append(as_str());
 }
 
+void datum_t::bool_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_BOOL);
+    str_out->append("B");
+    if (as_bool()) {
+        str_out->append("t");
+    } else {
+        str_out->append("f");
+    }
+}
+
 // The key for an array is stored as a string of all its elements, each separated by a
 //  null character, with another null character at the end to signify the end of the
 //  array (this is necessary to prevent ambiguity when nested arrays are involved).
@@ -215,10 +225,12 @@ void datum_t::array_to_str_key(std::string *str_out) const {
             item->num_to_str_key(str_out);
         } else if (item->type == R_STR) {
             item->str_to_str_key(str_out);
+        } else if (item->type == R_BOOL) {
+            item->bool_to_str_key(str_out);
         } else if (item->type == R_ARRAY) {
             item->array_to_str_key(str_out);
         } else {
-            rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+            rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
                   item->print().c_str(), datum_type_name(item->type));
         }
 
@@ -232,8 +244,10 @@ std::string datum_t::print_primary() const {
         num_to_str_key(&s);
     } else if (type == R_STR) {
         str_to_str_key(&s);
+    } else if (type == R_BOOL) {
+        bool_to_str_key(&s);
     } else {
-        rfail("Primary keys must be either a number or a string (got %s of type %s).",
+        rfail("Primary keys must be either a number, bool, or string (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
@@ -256,10 +270,12 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
         num_to_str_key(&s);
     } else if (type == R_STR) {
         str_to_str_key(&s);
+    } else if (type == R_BOOL) {
+        bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
     } else {
-        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+        rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
 
@@ -286,10 +302,12 @@ store_key_t datum_t::truncated_secondary() const {
         num_to_str_key(&s);
     } else if (type == R_STR) {
         str_to_str_key(&s);
+    } else if (type == R_BOOL) {
+        bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
     } else {
-        rfail("Secondary keys must be a number, string, or array (got %s of type %s).",
+        rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
               print().c_str(), datum_type_name(type));
     }
 
@@ -332,14 +350,64 @@ int64_t datum_t::as_int() const {
     rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: " DBLPRI, d));
     return i;
 }
+
 const std::string &datum_t::as_str() const {
     check_type(R_STR);
     return *r_str;
 }
+
 const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
     check_type(R_ARRAY);
     return *r_array;
 }
+
+void datum_t::change(size_t index, counted_t<const datum_t> val) {
+    check_type(R_ARRAY);
+    rcheck(index < r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     index, r_array->size()));
+    (*r_array)[index] = val;
+}
+
+void datum_t::insert(size_t index, counted_t<const datum_t> val) {
+    check_type(R_ARRAY);
+    rcheck(index <= r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     index, r_array->size()));
+    r_array->insert(r_array->begin() + index, val);
+}
+
+void datum_t::erase(size_t index) {
+    check_type(R_ARRAY);
+    rcheck(index < r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     index, r_array->size()));
+    r_array->erase(r_array->begin() + index);
+}
+
+void datum_t::erase_range(size_t start, size_t end) {
+    check_type(R_ARRAY);
+    rcheck(start < r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     start, r_array->size()));
+    rcheck(end < r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     end, r_array->size()));
+    rcheck(start <= end,
+           strprintf("Start index `%zu` is greater than end index `%zu`.",
+                      start, end));
+    r_array->erase(r_array->begin() + start, r_array->begin() + end + 1);
+}
+
+void datum_t::splice(size_t index, counted_t<const datum_t> values) {
+    check_type(R_ARRAY);
+    rcheck(index <= r_array->size(), 
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+                     index, r_array->size()));
+    r_array->insert(r_array->begin() + index, 
+            values->as_array().begin(), values->as_array().end());
+}
+
 size_t datum_t::size() const {
     return as_array().size();
 }

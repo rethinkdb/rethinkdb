@@ -38,7 +38,7 @@ void blueprint_t<protocol_t>::add_role(const peer_id_t &id, const typename proto
 }
 
 template <class protocol_t>
-void debug_print(append_only_printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint) {
+void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint) {
     buf->appendf("blueprint{roles=");
     debug_print(buf, blueprint.peers_roles);
     buf->appendf("}");
@@ -46,12 +46,12 @@ void debug_print(append_only_printf_buffer_t *buf, const blueprint_t<protocol_t>
 
 #include "memcached/protocol.hpp"
 template class blueprint_t<memcached_protocol_t>;
-template void debug_print<memcached_protocol_t>(append_only_printf_buffer_t *buf, const blueprint_t<memcached_protocol_t> &blueprint);
+template void debug_print<memcached_protocol_t>(printf_buffer_t *buf, const blueprint_t<memcached_protocol_t> &blueprint);
 
 #include "mock/dummy_protocol.hpp"
 template class blueprint_t<mock::dummy_protocol_t>;
-template void debug_print<mock::dummy_protocol_t>(append_only_printf_buffer_t *buf, const blueprint_t<mock::dummy_protocol_t> &blueprint);
+template void debug_print<mock::dummy_protocol_t>(printf_buffer_t *buf, const blueprint_t<mock::dummy_protocol_t> &blueprint);
 
 #include "rdb_protocol/protocol.hpp"
 template class blueprint_t<rdb_protocol_t>;
-template void debug_print<rdb_protocol_t>(append_only_printf_buffer_t *buf, const blueprint_t<rdb_protocol_t> &blueprint);
+template void debug_print<rdb_protocol_t>(printf_buffer_t *buf, const blueprint_t<rdb_protocol_t> &blueprint);

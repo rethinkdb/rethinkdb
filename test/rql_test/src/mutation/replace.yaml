@@ -94,7 +94,7 @@ tests:
       
     - py: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), non_atomic=True)
       js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'nonAtomic':true})
-      rb: tbl.get(1).replace(:non_atomic){ |row| row.merge({ :c => r.js('5') })}
+      rb: tbl.get(1).replace({ :non_atomic => true }){ |row| row.merge({ :c => r.js('5') })}
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
       
     - js: tbl.get(1).replace({}, 'foo')

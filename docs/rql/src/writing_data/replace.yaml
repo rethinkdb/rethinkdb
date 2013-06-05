@@ -3,9 +3,14 @@ commands:
     section: writing_data
     order: 2
     description: |
-      Replace documents in a table. Accepts a JSON document or a RQL expression,
-      and replaces the original document with the new one. The new document must have
-      the same primary key as the original document.<br /><br />
+      Replace documents in a table. Accepts a JSON document or a RQL
+      expression, and replaces the original document with the new
+      one. The new document must have the same primary key as the
+      original document.  The optional argument
+      <code>durability</code> with value <code>'hard'</code> or
+      <code>'soft'</code> will override the table or query's default
+      durability setting.  The optional argument
+      <code>non_atomic</code> lets you permit non-atomic updates.<br/><br/>
       Replace returns an object that contains the following attributes:
       <ul>
       <li><code>replaced</code> - the number of documents that were replaced;</li>
@@ -43,18 +48,18 @@ commands:
                 { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
           rb: |
             r.table('marvel').get('superman').replace(
-               :non_atomic, {:id => 'superman', :age => 30}).run(conn)
-      - description: Mark all Marvel heroes as favorites.
+               { :non_atomic => true }, {:id => 'superman', :age => 30}).run(conn)
+      - description: Mark all Marvel heroes as favorites, specifying soft durability.
         code:
           js: |
             r.table('heroes').filter(r.row('universe').eq('marvel'))
-             .replace(function(doc) {return doc.merge({is_fav: true})})
+             .replace(function(doc) {return doc.merge({is_fav: true})}, { durability: 'soft' })
              .run(conn, callback)
           py: |
             r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
-                lambda hero: hero.merge({'is_fav': True})).run(conn)
+                lambda hero: hero.merge({'is_fav': True}), durability='soft').run(conn)
           rb: |
             r.table('heroes').filter { |hero| hero[:universe].eq 'marvel'
-             }.replace { |hero| hero.merge(:is_fav => true)
+             }.replace(:durability => 'soft') { |hero| hero.merge(:is_fav => true)
              }.run(conn)
 

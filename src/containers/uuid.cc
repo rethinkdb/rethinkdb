@@ -95,7 +95,7 @@ uuid_u nil_uuid() {
     return ret;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const uuid_u& id) {
+void debug_print(printf_buffer_t *buf, const uuid_u& id) {
     buf->appendf("%s", uuid_to_str(id).c_str());
 }
 

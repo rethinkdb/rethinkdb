@@ -7,7 +7,7 @@
 #include "http/json/json_adapter.hpp"
 
 template <class protocol_t>
-void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {
+void debug_print(printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x) {
     buf->appendf("persistable_blueprint{machines_roles=");
     debug_print(buf, x.machines_roles);
     buf->appendf("}");
@@ -73,16 +73,16 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target) {
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template cJSON *render_as_json<memcached_protocol_t>(persistable_blueprint_t<memcached_protocol_t> *);
 template void apply_json_to<memcached_protocol_t>(cJSON *, persistable_blueprint_t<memcached_protocol_t> *);
-template void debug_print<memcached_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<memcached_protocol_t> &x);
+template void debug_print<memcached_protocol_t>(printf_buffer_t *buf, const persistable_blueprint_t<memcached_protocol_t> &x);
 
 #include "rdb_protocol/protocol.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template cJSON *render_as_json<rdb_protocol_t>(persistable_blueprint_t<rdb_protocol_t> *);
 template void apply_json_to<rdb_protocol_t>(cJSON *, persistable_blueprint_t<rdb_protocol_t> *);
-template void debug_print<rdb_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<rdb_protocol_t> &x);
+template void debug_print<rdb_protocol_t>(printf_buffer_t *buf, const persistable_blueprint_t<rdb_protocol_t> &x);
 
 #include "mock/dummy_protocol_json_adapter.hpp"
 template json_adapter_if_t::json_adapter_map_t get_json_subfields<mock::dummy_protocol_t>(persistable_blueprint_t<mock::dummy_protocol_t> *);
 template cJSON *render_as_json<mock::dummy_protocol_t>(persistable_blueprint_t<mock::dummy_protocol_t> *);
 template void apply_json_to<mock::dummy_protocol_t>(cJSON *, persistable_blueprint_t<mock::dummy_protocol_t> *);
-template void debug_print<mock::dummy_protocol_t>(append_only_printf_buffer_t *buf, const persistable_blueprint_t<mock::dummy_protocol_t> &x);
+template void debug_print<mock::dummy_protocol_t>(printf_buffer_t *buf, const persistable_blueprint_t<mock::dummy_protocol_t> &x);

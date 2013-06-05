@@ -12,16 +12,25 @@ class env_t;
 counted_t<term_t> make_arith_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term);
 
+// random.cc
+counted_t<term_t> make_sample_term(env_t *env, protob_t<const Term> term);
+
 // arr.cc
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_is_empty_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_set_insert_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_set_union_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_set_intersection_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_set_difference_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_insert_at_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_delete_at_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term);
 
 // control.cc
 counted_t<term_t> make_all_term(env_t *env, protob_t<const Term> term);

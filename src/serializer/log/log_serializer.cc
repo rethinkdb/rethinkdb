@@ -222,12 +222,13 @@ struct ls_start_existing_fsm_t :
 
         if (start_existing_state == state_find_metablock) {
             // STATE D
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats.get());
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config,
+                                                       ser->stats.get());
             {
                 // We never end up releasing the static header extent reference.  Nobody says we
                 // have to.
-                extent_reference_t extent_ref;
-                ser->extent_manager->reserve_extent(0, &extent_ref);   /* For static header */
+                extent_reference_t extent_ref
+                    = ser->extent_manager->reserve_extent(0);  // For static header.
                 UNUSED int64_t extent = extent_ref.release();
             }
 
