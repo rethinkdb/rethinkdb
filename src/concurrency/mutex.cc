@@ -1,6 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "arch/runtime/runtime.hpp"
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "concurrency/mutex.hpp"
+
+#include "arch/runtime/coroutines.hpp"
 
 mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(NULL), eager_(false) {
     reset(l, eager);

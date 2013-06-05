@@ -70,7 +70,7 @@ private:
     DISABLE_COPYING(pool_diskmgr_action_t);
 };
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action);
 
 class pool_diskmgr_t : private availability_callback_t, public home_thread_mixin_debug_only_t {

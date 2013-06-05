@@ -14,7 +14,7 @@ int blocker_pool_queue_depth(int max_concurrent_io_requests) {
 }
 
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action) {
     buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
                  "offset=%" PRIi64 ", errno=%d}",
