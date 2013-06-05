@@ -76,7 +76,7 @@ private:
             num->check_type(datum_t::R_NUM);
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
-            int num_copies = num->as_num();
+            int num_copies = num->as_int();
 
             while (--num_copies >= 0) {
                 for (size_t i = 0; i < array->size(); ++i) {
