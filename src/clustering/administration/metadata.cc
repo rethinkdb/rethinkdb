@@ -10,7 +10,7 @@ bool ack_expectation_t::operator==(ack_expectation_t other) const {
     return expectation_ == other.expectation_ && hard_durability_ == other.hard_durability_;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const ack_expectation_t &x) {
+void debug_print(printf_buffer_t *buf, const ack_expectation_t &x) {
     buf->appendf("ack_expectation{durability=%s, acks=%" PRIu32 "}",
                  x.is_hardly_durable() ? "hard" : "soft", x.expectation());
 }
@@ -86,7 +86,7 @@ void with_ctx_apply_json_to(cJSON *change, datacenter_semilattice_metadata_t *ta
 void with_ctx_on_subfield_change(datacenter_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 // Just going to put this here...
-void debug_print(append_only_printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m) {
+void debug_print(printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m) {
     buf->appendf("dc_sl_metadata{name=");
     debug_print(buf, m.name);
     buf->appendf("}");
@@ -128,7 +128,7 @@ void with_ctx_apply_json_to(cJSON *change, database_semilattice_metadata_t *targ
 void with_ctx_on_subfield_change(database_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 // Just going to put this here thankyou.
-void debug_print(append_only_printf_buffer_t *buf, const database_semilattice_metadata_t &x) {
+void debug_print(printf_buffer_t *buf, const database_semilattice_metadata_t &x) {
     buf->appendf("db_sl_metadata{name=");
     debug_print(buf, x.name);
     buf->appendf("}");

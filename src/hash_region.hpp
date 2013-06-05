@@ -237,7 +237,7 @@ bool operator<(const hash_region_t<inner_region_t> &r1, const hash_region_t<inne
 
 
 template <class inner_region_t>
-void debug_print(append_only_printf_buffer_t *buf, const hash_region_t<inner_region_t> &r) {
+void debug_print(printf_buffer_t *buf, const hash_region_t<inner_region_t> &r) {
     buf->appendf("hash_region_t{beg: 0x%" PRIx64 ", end: 0x%" PRIx64 ", inner: ", r.beg, r.end);
     debug_print(buf, r.inner);
     buf->appendf("}");

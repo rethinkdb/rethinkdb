@@ -58,7 +58,7 @@ struct conflict_resolving_diskmgr_action_t : public payload_t {
 };
 
 template <class payload_t>
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const conflict_resolving_diskmgr_action_t<payload_t> &action);
 
 template <class payload_t>

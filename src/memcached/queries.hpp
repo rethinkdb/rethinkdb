@@ -114,7 +114,7 @@ struct get_cas_mutation_t {
     explicit get_cas_mutation_t(const store_key_t &k) : key(k) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const get_cas_mutation_t& mut);
+void debug_print(printf_buffer_t *buf, const get_cas_mutation_t& mut);
 
 /* `set`, `add`, `replace`, `cas` */
 
@@ -177,7 +177,7 @@ struct sarc_mutation_t {
         old_cas(_old_cas) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const sarc_mutation_t& mut);
+void debug_print(printf_buffer_t *buf, const sarc_mutation_t& mut);
 
 enum set_result_t {
     /* Returned on success */
@@ -207,7 +207,7 @@ struct delete_mutation_t {
     delete_mutation_t(const store_key_t& _key, bool _dont_put_in_delete_queue) : key(_key), dont_put_in_delete_queue(_dont_put_in_delete_queue) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut);
+void debug_print(printf_buffer_t *buf, const delete_mutation_t& mut);
 
 enum delete_result_t {
     dr_deleted,
@@ -235,7 +235,7 @@ struct incr_decr_mutation_t {
         kind(idk), key(k), amount(a) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const incr_decr_mutation_t& mut);
+void debug_print(printf_buffer_t *buf, const incr_decr_mutation_t& mut);
 
 struct incr_decr_result_t {
     enum result_t {
@@ -268,7 +268,7 @@ struct append_prepend_mutation_t {
         : kind(_kind), key(_key), data(_data) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation_t& mut);
+void debug_print(printf_buffer_t *buf, const append_prepend_mutation_t& mut);
 
 enum append_prepend_result_t {
     apr_success,

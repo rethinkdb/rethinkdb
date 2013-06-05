@@ -6,6 +6,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "containers/scoped.hpp"
