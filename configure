@@ -348,7 +348,7 @@ error () {
     fi
     write "CONFIGURE_ERROR := $*"
     if $req; then
-        echo "${error_details:-}"
+        echo "${error_details:-}" | head -n 5
         if $exit_on_error; then
             exit 1
         fi
