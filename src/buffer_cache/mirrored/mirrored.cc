@@ -168,6 +168,8 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
     {
         on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
+        // RSI: We'll actually want to read this value from the serializer somehow.
+        this_block_size = cache->get_block_size().value();
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
         guarantee(data_token.has());
@@ -415,11 +417,15 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *subtree_recency_out) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access,
+                                            file_account_t *io_account,
+                                            repli_timestamp_t *subtree_recency_out,
+                                            uint32_t *this_block_size_out) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
             *subtree_recency_out = snap->subtree_recency;
+            *this_block_size_out = snap->this_block_size;
             return snap->acquire_data(io_account);
         }
     }
@@ -479,6 +485,7 @@ mc_buf_lock_t::mc_buf_lock_t() :
     snapshotted(false),
     non_locking_access(false),
     inner_buf(NULL),
+    this_block_size(valgrind_undefined<uint32_t>(0)),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),
     parent_transaction(NULL)
@@ -495,6 +502,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction,
     non_locking_access(snapshotted),
     mode(_mode),
     inner_buf(transaction->cache->find_buf(block_id)),
+    this_block_size(valgrind_undefined<uint32_t>(0)),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),
     parent_transaction(transaction)
@@ -566,7 +574,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // acquire the snapshotted block; no need to lock
-        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &this_block_size);
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
@@ -586,7 +594,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
             inner_buf->lock.unlock();
 
             // acquire the snapshotted block; no need to lock
-            data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
+            data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &this_block_size);
             guarantee(data != NULL);
 
         } else {
@@ -647,6 +655,8 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
     rassert(!inner_buf->do_delete);
 
     subtree_recency = inner_buf->subtree_recency;
+    guarantee(inner_buf->this_block_size != 0);
+    this_block_size = inner_buf->this_block_size;
 
     switch (mode) {
         case rwi_read_sync:
@@ -708,6 +718,7 @@ void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
     std::swap(start_time, swapee.start_time);
     std::swap(mode, swapee.mode);
     std::swap(inner_buf, swapee.inner_buf);
+    std::swap(this_block_size, swapee.this_block_size);
     std::swap(data, swapee.data);
     std::swap(subtree_recency, swapee.subtree_recency);
 #ifndef NDEBUG
@@ -776,18 +787,41 @@ void *mc_buf_lock_t::get_data_write() {
     ASSERT_NO_CORO_WAITING;
 
     rassert(mode == rwi_write);
-    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+    inner_buf->assert_thread();
+
+    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably
+                                           // means that you're trying to access a
+                                           // buf you don't own.
     rassert(!inner_buf->do_delete);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
 
-    inner_buf->assert_thread();
-
     inner_buf->writeback_buf().set_dirty();
     inner_buf->data_token.reset();
 
     return data;
+}
+
+void mc_buf_lock_t::resize(uint32_t new_size) {
+    // Run the assertions and side effects associated with having written the buf.
+    (void)get_data_write();
+
+    guarantee(0 < new_size && new_size < inner_buf->cache->get_block_size().value());
+    if (inner_buf->this_block_size != new_size) {
+        inner_buf->this_block_size = new_size;
+
+        // There is no "set_size_dirty()" like there is with "set_recency_dirty()",
+        // because nobody in any practical situation would want to change the size
+        // without changing some content.  (This is partly because we no longer
+        // unappend large bufs.)  It might also be very tricky to support multiple
+        // block references with the same offset but different block size.
+        inner_buf->writeback_buf().set_dirty();
+    }
+}
+
+uint32_t mc_buf_lock_t::size() const {
+    return inner_buf->this_block_size;
 }
 
 void mc_buf_lock_t::mark_deleted() {
@@ -810,6 +844,7 @@ void mc_buf_lock_t::mark_deleted() {
 
     rassert(!inner_buf->data.has());
     data = NULL;
+    this_block_size = valgrind_undefined<uint32_t>(0);
 
     inner_buf->do_delete = true;
     inner_buf->data_token.reset();
@@ -1334,9 +1369,6 @@ bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, uint32_t this_block_s
     do_on_thread(home_thread(),
                  boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this,
                              block_id, this_block_size, buf, token, recency_timestamp));
-    // RSI: There is no point to this boolean return value, probably.  Well the
-    // translator_serializer_t can return false.  It seems to mean the block was not accepted,
-    // or something.  See how the log_serializer_t handles the value.
     return true;
 }
 
