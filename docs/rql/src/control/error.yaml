@@ -2,7 +2,7 @@ commands:
   - tag: error
     section: control
     order: 3
-    description: Throw a runtime error.
+    description: Throw a runtime error.  If called with no arguments inside the second argument to `default`, re-throw the current error.
 
     body: message
     parent: r
@@ -29,4 +29,29 @@ commands:
                 r.error('impossible code path'),
                 ironman)
             }.run(conn)
+
+  - tag: default
+    section: control
+    order: 4
+    description: Handle non-existence errors.  Tries to evaluate and return its first argument.  If an error related to the absence of a value is thrown in the process, or if its first argument returns null, returns its second argument.  (Alternatively, the second argument may be a function which will be called with either the text of the non-existence error or null.)
+
+    body: query, default_case
+    parent: r
+    returns: query
+
+    examples:
+      - description: 'Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.'
+        code:
+          js: |-
+            r.table('projects').map(function(p) {
+              return p('staff').default(0).add(p('management').default(0))
+            }).run(conn, callback)
+          py: |-
+            r.table('projects').map(
+              lambda p: p['staff'].default(0) + p['management'].default(0)
+            ).run(conn)
+          rb: |-
+            r.table('projects').map {|p|
+              p[:staff].default(0) + p[:management].default(0)
+            ).run(conn)
 

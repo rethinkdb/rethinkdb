@@ -56,7 +56,7 @@ size_t canonicalize(const term_t *t, int32_t index, size_t size, bool *oob_out =
         if (oob_out) {
             *oob_out = true;
         } else {
-            rfail_target(t, "Index out of bounds: %d", index);
+            rfail_target(t, base_exc_t::NON_EXISTENCE, "Index out of bounds: %d", index);
         }
         return 0;
     }
@@ -76,13 +76,15 @@ private:
             return new_val(arr->get(real_n));
         } else {
             counted_t<datum_stream_t> s = v->as_seq();
-            rcheck(n >= -1, strprintf("Cannot use an index < -1 (%d) on a stream.", n));
+            rcheck(n >= -1,
+                   base_exc_t::GENERIC,
+                   strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             counted_t<const datum_t> last_d;
             for (int32_t i = 0; ; ++i) {
                 counted_t<const datum_t> d = s->next();
                 if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(),
+                    rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
                            strprintf("Index out of bounds: %d", n));
                     return new_val(last_d);
                 }
@@ -119,7 +121,7 @@ private:
         int32_t fake_r = arg(2)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> arr = v->as_datum();
-            rcheck(arr->get_type() == datum_t::R_ARRAY, "Cannot slice non-sequences.");
+            arr->check_type(datum_t::R_ARRAY);
             bool l_oob = false;
             size_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
             if (l_oob) real_l = 0;
@@ -146,12 +148,14 @@ private:
                 seq = v->as_seq();
             }
 
-            rcheck(fake_l >= 0, "Cannot use a negative left index on a stream.");
-            rcheck(fake_r >= -1, "Cannot use a right index < -1 on a stream");
+            rcheck(fake_l >= 0, base_exc_t::GENERIC,
+                   "Cannot use a negative left index on a stream.");
+            rcheck(fake_r >= -1, base_exc_t::GENERIC,
+                   "Cannot use a right index < -1 on a stream");
             counted_t<datum_stream_t> new_ds = seq->slice(fake_l, fake_r);
             return t.has() ? new_val(new_ds, t) : new_val(new_ds);
         }
-        rfail("Cannot slice non-sequences.");
+        rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         unreachable();
     }
     virtual const char *name() const { return "slice"; }
@@ -159,7 +163,7 @@ private:
 
 class limit_term_t : public op_term_t {
 public:
-    limit_term_t(env_t *env, protob_t<const Term> term) 
+    limit_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
@@ -170,7 +174,8 @@ private:
         }
         counted_t<datum_stream_t> ds = v->as_seq();
         int32_t r = arg(1)->as_int<int32_t>();
-        rcheck(r >= 0, strprintf("LIMIT takes a non-negative argument (got %d)", r));
+        rcheck(r >= 0, base_exc_t::GENERIC,
+               strprintf("LIMIT takes a non-negative argument (got %d)", r));
         counted_t<datum_stream_t> new_ds;
         if (r == 0) {
             new_ds = ds->slice(1, 0); // (0, -1) has a different meaning
@@ -386,6 +391,38 @@ private:
     }
     virtual const char *name() const { return "indexes_of"; }
 };
+
+class contains_term_t : public op_term_t {
+public:
+    contains_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1, -1)) { }
+private:
+    virtual counted_t<val_t> eval_impl() {
+        counted_t<datum_stream_t> seq = arg(0)->as_seq();
+        std::vector<counted_t<const datum_t> > required_els;
+        for (size_t i = 1; i < num_args(); ++i) {
+            required_els.push_back(arg(i)->as_datum());
+        }
+        while (counted_t<const datum_t> el = seq->next()) {
+            for (auto it = required_els.begin(); it != required_els.end(); ++it) {
+                if (**it == *el) {
+                    std::swap(*it, required_els.back());
+                    required_els.pop_back();
+                    break; // Bag semantics for contains.
+                }
+            }
+            if (required_els.size() == 0) {
+                return new_val_bool(true);
+            }
+        }
+        return new_val_bool(false);
+    }
+    virtual const char *name() const { return "contains"; }
+};
+
+counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<contains_term_t>(env, term);
+}
 
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
     return make_counted<append_term_t>(env, term);

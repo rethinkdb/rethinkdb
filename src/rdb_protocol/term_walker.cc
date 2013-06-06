@@ -35,6 +35,7 @@ public:
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
             rcheck_src(&t->GetExtension(ql2::extension::backtrace),
+                       base_exc_t::GENERIC,
                        parent && parent->type() == Term::ORDERBY,
                        strprintf("%s may only be used as an argument to ORDERBY.",
                                  (t->type() == Term::ASC ? "ASC" : "DESC")));
@@ -42,6 +43,7 @@ public:
 
         bool writes_still_legal = writes_are_still_legal(parent, frame);
         rcheck_src(&t->GetExtension(ql2::extension::backtrace),
+                   base_exc_t::GENERIC,
                    writes_still_legal || !term_is_write_or_meta(t),
                    strprintf("Cannot nest writes or meta ops in stream operations.  "
                              "Use FOREACH instead."));
@@ -133,7 +135,7 @@ private:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
@@ -172,6 +174,9 @@ private:
         case Term::INFO:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
+        case Term::DEFAULT:
+        case Term::CONTAINS:
+        case Term::KEYS:
             return false;
         default: unreachable();
         }
@@ -241,7 +246,7 @@ private:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
@@ -279,6 +284,9 @@ private:
         case Term::INFO:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
+        case Term::DEFAULT:
+        case Term::CONTAINS:
+        case Term::KEYS:
             return false;
         default: unreachable();
         }

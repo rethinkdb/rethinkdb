@@ -113,10 +113,15 @@ commands:
   - tag: filter
     section: select
     description: |
-      Get all the documents for which the given predicate is true.<br /><br />
-      <code>filter</code> can be called on a sequence, selection, or a
-      field containing an array of elements. The return type is the
-      same as the type on which the function was called on.
+      Get all the documents for which the given predicate is true.<br
+      /><br /> <code>filter</code> can be called on a sequence,
+      selection, or a field containing an array of elements. The
+      return type is the same as the type on which the function was
+      called on.  The body of every filter is wrapped in an implicit
+      `.default(false)`, and the default value can be changed by
+      passing the optional argument `default`.  Setting this optional
+      argument to `r.error()` will cause any non-existence errors to
+      abort the filter.
 
     body: predicate
     parent: selection
@@ -137,14 +142,14 @@ commands:
         code:
           js: |
             r.table('marvel').filter(function(hero) {
-              return hero('abilities').contains('super-strength')
+              return hero('abilities').has_fields('super-strength')
             }).run(conn, callback)
           py: |
             r.table('marvel').filter(
-                lambda hero: hero['abilities'].contains('super-strength')).run(conn)
+                lambda hero: hero['abilities'].has_fields('super-strength')).run(conn)
           rb: |
             r.table('marvel').filter {|hero|
-              hero[:abilities].contains('super-strength')
+              hero[:abilities].has_fields('super-strength')
             }.run(conn)
       - description: Select all documents where the field 'powers' containing an array has an element equal to 10.
         code:
@@ -159,7 +164,7 @@ commands:
               r.row['powers'].filter(lambda el: el == 10).count() > 0
             ).run(conn)
           rb: |
-            r.table('marvel').filter { |hero| 
+            r.table('marvel').filter { |hero|
               hero[:powers].filter { |power_rank| power_rank.eq(10) }.count() > 0
             }.run(conn)
 

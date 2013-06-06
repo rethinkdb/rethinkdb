@@ -361,7 +361,7 @@ void perfmon_filter_t::subfilter(
             }
             perfmon_result_t::iterator prev_it = it;
             ++it;
-            if (!some_subpath || !it->second.has()) {
+            if (!some_subpath || !prev_it->second.has()) {
                 p->erase(prev_it);
             }
         }

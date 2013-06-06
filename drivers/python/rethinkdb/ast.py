@@ -171,6 +171,10 @@ class RqlQuery(object):
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)
+    def has_fields(self, *attr):
+        return HasFields(self, *attr)
+    def keys(self):
+        return Keys(self)
 
     # Polymorphic object/sequence operations
     def pluck(self, *attrs):
@@ -181,6 +185,9 @@ class RqlQuery(object):
 
     def do(self, func):
         return FunCall(func_wrap(func), self)
+
+    def default(self, handler):
+        return Default(self, handler)
 
     def update(self, func, non_atomic=(), durability=()):
         return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
@@ -253,8 +260,8 @@ class RqlQuery(object):
     def map(self, func):
         return Map(self, func_wrap(func))
 
-    def filter(self, func):
-        return Filter(self, func_wrap(func))
+    def filter(self, func, default=()):
+        return Filter(self, func_wrap(func), default=default)
 
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
@@ -452,6 +459,10 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
+class Default(RqlQuery):
+    tt = p.Term.DEFAULT
+    st = "default"
+
 class ImplicitVar(RqlQuery):
     tt = p.Term.IMPLICIT_VAR
 
@@ -556,6 +567,14 @@ class GetAttr(RqlQuery):
 
 class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
+    st = 'contains'
+
+class HasFields(RqlMethodQuery):
+    tt = p.Term.HAS_FIELDS
+    st = 'contains'
+
+class Keys(RqlMethodQuery):
+    tt = p.Term.KEYS
     st = 'contains'
 
 class Pluck(RqlMethodQuery):

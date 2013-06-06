@@ -83,6 +83,8 @@ class RDBVal extends TermBase
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
     changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
     indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
+    hasFields: varar(1, null, (fields...) -> new HasFields {}, @, fields...)
+    keys: ar(-> new Keys {}, @)
 
     # pluck and without on zero fields are allowed
     pluck: (fields...) -> new Pluck {}, @, fields...
@@ -92,7 +94,7 @@ class RDBVal extends TermBase
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: aropt (func, base) -> new Reduce {base:base}, @, funcWrap(func)
     map: ar (func) -> new Map {}, @, funcWrap(func)
-    filter: ar (predicate) -> new Filter {}, @, funcWrap(predicate)
+    filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
@@ -111,6 +113,7 @@ class RDBVal extends TermBase
     delete: aropt (opts) -> new Delete opts, @
     replace: aropt (func, opts) -> new Replace opts, @, funcWrap(func)
     do: ar (func) -> new FunCall {}, funcWrap(func), @
+    default: ar (x) -> new Default {}, @, x
 
     or: varar(1, null, (others...) -> new Any {}, @, others...)
     and: varar(1, null, (others...) -> new All {}, @, others...)
@@ -158,7 +161,7 @@ class DatumTerm extends RDBVal
                     datum.setType Datum.DatumType.R_STR
                     datum.setRStr @data
                 else
-                    throw new RqlDriverError "Unknown datum value `#{@data}`, did you forget a `return`?"
+                    throw new RqlDriverError "Cannot convert `#{@data}` to Datum."
         term = new Term
         term.setType Term.TermType.DATUM
         term.setDatum datum
@@ -200,7 +203,12 @@ translateOptargs = (optargs) ->
 class RDBOp extends RDBVal
     constructor: (optargs, args...) ->
         self = super()
-        self.args = (rethinkdb.expr arg for arg in args)
+        self.args =
+            for arg,i in args
+                if arg isnt undefined
+                    rethinkdb.expr arg
+                else
+                    throw new RqlDriverError "Argument #{i} to #{@st || @mt} may not be `undefined`."
         self.optargs = translateOptargs(optargs)
         return self
 
@@ -249,10 +257,13 @@ shouldWrap = (arg) ->
 
 class MakeArray extends RDBOp
     tt: Term.TermType.MAKE_ARRAY
+    st: '[...]' # This is only used by the `undefined` argument checker
+
     compose: (args) -> ['[', intsp(args), ']']
 
 class MakeObject extends RDBOp
     tt: Term.TermType.MAKE_OBJ
+    st: '{...}' # This is only used by the `undefined` argument checker
 
     constructor: (obj) ->
         self = super({})
@@ -293,6 +304,7 @@ class Db extends RDBOp
 
 class Table extends RDBOp
     tt: Term.TermType.TABLE
+    st: 'table'
 
     get: ar (key) -> new Get {}, @, key
     getAll: aropt (key, opts) -> new GetAll opts, @, key
@@ -406,6 +418,8 @@ class Limit extends RDBOp
 
 class GetAttr extends RDBOp
     tt: Term.TermType.GETATTR
+    st: '(...)' # This is only used by the `undefined` argument checker
+
     compose: (args) -> [args[0], '(', args[1], ')']
 
 class Contains extends RDBOp
@@ -427,6 +441,18 @@ class DeleteAt extends RDBOp
 class ChangeAt extends RDBOp
     tt: Term.TermType.CHANGE_AT
     mt: 'change_at'
+
+class Contains extends RDBOp
+    tt: Term.TermType.CONTAINS
+    mt: 'contains'
+
+class HasFields extends RDBOp
+    tt: Term.TermType.HAS_FIELDS
+    mt: 'contains'
+
+class Keys extends RDBOp
+    tt: Term.TermType.KEYS
+    mt: 'contains'
 
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
@@ -586,6 +612,8 @@ class IndexList extends RDBOp
 
 class FunCall extends RDBOp
     tt: Term.TermType.FUNCALL
+    st: 'do' # This is only used by the `undefined` argument checker
+
     compose: (args) ->
         if args.length > 2
             ['r.do(', intsp(args[1..]), ', ', args[0], ')']
@@ -593,6 +621,10 @@ class FunCall extends RDBOp
             if shouldWrap(@args[1])
                 args[1] = ['r(', args[1], ')']
             [args[1], '.do(', args[0], ')']
+
+class Default extends RDBOp
+    tt: Term.TermType.DEFAULT
+    mt: 'default'
 
 class Branch extends RDBOp
     tt: Term.TermType.BRANCH
@@ -611,6 +643,11 @@ class ForEach extends RDBOp
     mt: 'forEach'
 
 funcWrap = (val) ->
+    if val is undefined
+        # Pass through the undefined value so it's caught by
+        # the appropriate undefined checker
+        return val
+
     val = rethinkdb.expr(val)
 
     ivarScan = (node) ->
@@ -641,6 +678,9 @@ class Func extends RDBOp
             i++
 
         body = func(args...)
+        if body is undefined
+            throw new RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
 
