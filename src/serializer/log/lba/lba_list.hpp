@@ -22,7 +22,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
 
 public:
-    explicit lba_list_t(extent_manager_t *em);
+    explicit lba_list_t(extent_manager_t *em, block_size_t default_block_size);
     ~lba_list_t();
 
 public:
@@ -35,7 +35,7 @@ public:
     bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
 public:
-    flagged_off64_t get_block_offset(block_id_t block);
+    block_size_t get_block_offset(block_id_t block, flagged_off64_t *offset_out);
     repli_timestamp_t get_block_recency(block_id_t block);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
@@ -76,6 +76,8 @@ private:
     bool shutdown_now();
 
 private:
+    // RSI: Do we really need this variable?
+    const block_size_t default_block_size;
     extent_manager_t *const extent_manager;
 
     enum state_t {

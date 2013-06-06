@@ -235,7 +235,8 @@ struct ls_start_existing_fsm_t :
             }
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_list_t(ser->extent_manager);
+            ser->lba_index = new lba_list_t(ser->extent_manager,
+                                            ser->static_config.block_size());
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
@@ -270,7 +271,10 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+                flagged_off64_t offset;
+                // RSI: We probably need to use the block size somehow.
+                block_size_t block_size = ser->lba_index->get_block_offset(id, &offset);
+                guarantee(block_size.value() == ser->static_config.block_size().value());
                 if (offset.has_value()) {
                     ser->data_block_manager->mark_live(offset.get_value());
                 }
@@ -498,7 +502,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
              write_op_it != write_ops.end();
              ++write_op_it) {
             const index_write_op_t& op = *write_op_it;
-            flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+
+            flagged_off64_t offset;
+            // RSI: Maybe we need to use the block size somehow.
+            block_size_t block_size = lba_index->get_block_offset(op.block_id, &offset);
+            guarantee(block_size.value() == get_block_size().value());
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
@@ -767,10 +775,10 @@ log_serializer_t::index_read(block_id_t block_id,
         return counted_t<ls_block_token_pointee_t>();
     }
 
-    flagged_off64_t offset = lba_index->get_block_offset(block_id);
+    flagged_off64_t offset;
+    block_size_t block_size = lba_index->get_block_offset(block_id, &offset);
     if (offset.has_value()) {
-        // RSI: Actually get the block size from the LBA.
-        *this_block_size_out = get_block_size().value();
+        *this_block_size_out = block_size.value();
         guarantee(*this_block_size_out != 0);
         counted_t<ls_block_token_pointee_t> ret(
             new ls_block_token_pointee_t(this, offset.get_value()));
@@ -785,7 +793,8 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     assert_thread();
     rassert(state == state_ready);
 
-    flagged_off64_t offset = lba_index->get_block_offset(id);
+    flagged_off64_t offset;
+    UNUSED block_size_t block_size = lba_index->get_block_offset(id, &offset);
     return !offset.has_value();
 }
 

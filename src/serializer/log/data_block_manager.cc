@@ -177,8 +177,14 @@ public:
 
                 // Determine whether the block is live.
                 bool block_is_live = block_id != 0;
+
                 // Do this by checking the LBA
-                const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
+                flagged_off64_t flagged_lba_offset;
+                // RSI: Maybe we want to use the block size for something.
+                block_size_t block_size = parent->serializer->lba_index->get_block_offset(block_id, &flagged_lba_offset);
+                guarantee(block_size.value()
+                          == parent->serializer->get_block_size().value());
+
                 block_is_live = block_is_live && flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
 
                 if (!block_is_live) {

@@ -9,11 +9,15 @@
 
 // TODO: Some of the code in this file is bullshit disgusting shit.
 
-lba_list_t::lba_list_t(extent_manager_t *em)
-    : shutdown_callback(NULL), gc_count(0), extent_manager(em),
-      state(state_unstarted)
-{
-    for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
+lba_list_t::lba_list_t(extent_manager_t *em, block_size_t _default_block_size)
+    : shutdown_callback(NULL),
+      gc_count(0),
+      default_block_size(_default_block_size),
+      extent_manager(em),
+      state(state_unstarted) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        disk_structures[i] = NULL;
+    }
 }
 
 void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
@@ -92,10 +96,13 @@ block_id_t lba_list_t::end_block_id() {
     return in_memory_index.end_block_id();
 }
 
-flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
+block_size_t lba_list_t::get_block_offset(block_id_t block,
+                                          flagged_off64_t *offset_out) {
     rassert(state == state_ready);
 
-    return in_memory_index.get_block_info(block).offset;
+    // RSI: Actually support per-block block size.
+    *offset_out = in_memory_index.get_block_info(block).offset;
+    return default_block_size;
 }
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
@@ -199,9 +206,16 @@ public:
              id < end_id;
              id += LBA_SHARD_FACTOR) {
             block_id_t block_id = id;
-            flagged_off64_t off = owner->get_block_offset(block_id);
-            if (off.has_value()) {
-                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account, txn);
+
+            // RSI: Actually use the block size when garbage collecting.
+            flagged_off64_t offset;
+            block_size_t block_size = owner->get_block_offset(block_id, &offset);
+            guarantee(block_size.value() == owner->default_block_size.value());
+
+            if (offset.has_value()) {
+                owner->disk_structures[i]->add_entry(block_id,
+                                                     owner->get_block_recency(block_id),
+                                                     offset, io_account, txn);
             }
         }
 
