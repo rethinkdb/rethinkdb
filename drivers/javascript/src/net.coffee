@@ -70,47 +70,48 @@ class Connection
         # This query is done, delete this cursor
         delete @outstandingCallbacks[token]
 
-        if (k for own k of @outstandingCallbacks).length < 1 and not @open
+        if Object.keys(@outstandingCallbacks).length < 1 and not @open
             @cancel()
 
     _processResponse: (response) ->
         token = response.getToken()
-        {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
-        if cursor?
-            if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
-                cursor._addData mkSeq response
-            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
-                cursor._endData mkSeq response
-                @_delQuery(token)
-        else if cb
-            # Behavior varies considerably based on response type
-            if response.getType() is Response.ResponseType.COMPILE_ERROR
-                cb mkErr(RqlCompileError, response, root)
-                @_delQuery(token)
-            else if response.getType() is Response.ResponseType.CLIENT_ERROR
-                cb mkErr(RqlClientError, response, root)
-                @_delQuery(token)
-            else if response.getType() is Response.ResponseType.RUNTIME_ERROR
-                cb mkErr(RqlRuntimeError, response, root)
-                @_delQuery(token)
-            else if response.getType() is Response.ResponseType.SUCCESS_ATOM
-                response = mkAtom response
-                if goog.isArray response
-                    response = ArrayResult::makeIterable response
-                cb null, response
-                @_delQuery(token)
-            else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
-                cursor = new Cursor @, token
-                @outstandingCallbacks[token].cursor = cursor
-                cb null, cursor._addData(mkSeq response)
-            else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
-                cursor = new Cursor @, token
-                @_delQuery(token)
-                cb null, cursor._endData(mkSeq response)
+        if @outstandingCallbacks[token]?
+            {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
+            if cursor?
+                if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
+                    cursor._addData mkSeq response
+                else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
+                    cursor._endData mkSeq response
+                    @_delQuery(token)
+            else if cb?
+                # Behavior varies considerably based on response type
+                if response.getType() is Response.ResponseType.COMPILE_ERROR
+                    cb mkErr(RqlCompileError, response, root)
+                    @_delQuery(token)
+                else if response.getType() is Response.ResponseType.CLIENT_ERROR
+                    cb mkErr(RqlClientError, response, root)
+                    @_delQuery(token)
+                else if response.getType() is Response.ResponseType.RUNTIME_ERROR
+                    cb mkErr(RqlRuntimeError, response, root)
+                    @_delQuery(token)
+                else if response.getType() is Response.ResponseType.SUCCESS_ATOM
+                    response = mkAtom response
+                    if goog.isArray response
+                        response = ArrayResult::makeIterable response
+                    cb null, response
+                    @_delQuery(token)
+                else if response.getType() is Response.ResponseType.SUCCESS_PARTIAL
+                    cursor = new Cursor @, token
+                    @outstandingCallbacks[token].cursor = cursor
+                    cb null, cursor._addData(mkSeq response)
+                else if response.getType() is Response.ResponseType.SUCCESS_SEQUENCE
+                    cursor = new Cursor @, token
+                    @_delQuery(token)
+                    cb null, cursor._endData(mkSeq response)
+                else
+                    cb new RqlDriverError "Unknown response type"
             else
-                cb new RqlDriverError "Unknown response type"
-        else
-            @_error new RqlDriverError "Unknown token in response"
+                @_error new RqlDriverError "Unknown token in response"
 
     close: ar () ->
         @open = false
