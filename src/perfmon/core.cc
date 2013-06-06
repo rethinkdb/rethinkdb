@@ -260,11 +260,19 @@ perfmon_result_t::iterator perfmon_result_t::end() {
 }
 
 perfmon_result_t::const_iterator perfmon_result_t::begin() const {
-    return map_.begin();
+    return map_.cbegin();
 }
 
 perfmon_result_t::const_iterator perfmon_result_t::end() const {
-    return map_.end();
+    return map_.cend();
+}
+
+perfmon_result_t::const_iterator perfmon_result_t::cbegin() const {
+    return map_.cbegin();
+}
+
+perfmon_result_t::const_iterator perfmon_result_t::cend() const {
+    return map_.cend();
 }
 
 void perfmon_result_t::splice_into(perfmon_result_t *map) {
@@ -378,7 +386,7 @@ void perfmon_filter_t::subfilter(
             }
             perfmon_result_t::iterator prev_it = it;
             ++it;
-            if (!some_subpath || !it->second) {
+            if (!some_subpath || prev_it->second == NULL) {
                 p->erase(prev_it);
             }
         }

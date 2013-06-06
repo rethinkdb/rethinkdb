@@ -39,7 +39,7 @@ cJSON *render_as_json(perfmon_result_t *target) {
     if (target->is_map()) {
         cJSON *res = cJSON_CreateObject();
 
-        for (perfmon_result_t::iterator it  = target->begin(); it != target->end(); ++it) {
+        for (auto it = target->cbegin(); it != target->cend(); ++it) {
             cJSON_AddItemToObject(res, it->first.c_str(), render_as_json(it->second));
         }
 

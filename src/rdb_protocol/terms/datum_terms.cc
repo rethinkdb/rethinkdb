@@ -44,7 +44,8 @@ private:
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
         for (auto it = optargs.begin(); it != optargs.end(); ++it) {
             bool dup = acc->add(it->first, it->second->eval()->as_datum());
-            rcheck(!dup, strprintf("Duplicate key in object: %s.", it->first.c_str()));
+            rcheck(!dup, base_exc_t::GENERIC,
+                   strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
         return new_val(counted_t<const datum_t>(acc.release()));
     }

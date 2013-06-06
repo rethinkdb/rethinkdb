@@ -145,15 +145,21 @@ public:
 
     std::pair<iterator, bool> insert(const std::string &name, perfmon_result_t *val);
 
-    iterator begin();
-    iterator end();
+    const_iterator cbegin() const;
+    const_iterator cend() const;
     const_iterator begin() const;
     const_iterator end() const;
+
     void erase(iterator);
 
     // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
     void splice_into(perfmon_result_t *map);
 private:
+    friend class perfmon_filter_t;
+
+    iterator begin();
+    iterator end();
+
     internal_map_t *get_map();
 
     void clear_map();
