@@ -77,6 +77,7 @@ counted_t<term_t> make_predicate_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_not_term(env_t *env, protob_t<const Term> term);
 
 // rewrites.cc
+counted_t<term_t> make_with_fields_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_groupby_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_inner_join_term(env_t *env, protob_t<const Term> term);
