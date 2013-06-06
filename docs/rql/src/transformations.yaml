@@ -36,6 +36,21 @@ commands:
           can_try: true
           dataset: marvel
 
+  - tag: with_fields
+    section: transformations
+    description: Takes a sequence of objects and a list of fields.  If any objects in the sequence don't have all of the specified fields, they're dropped from the sequence.  The remaining objects have the specified fields plucked out.  (This is identical to `has_fields` followed by `pluck` on a sequence.)
+
+    body: field1[, field2...]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Get a list of heroes and their arch-nemeses, excluding any heroes that lack one.
+        code:
+          rb: r.table('marvel').with_fields('id', 'nemesis')
+          py: r.table('marvel').with_fields('id', 'nemesis')
+          js: r.table('marvel').with_fields('id', 'nemesis')
+
 
   - tag: concat_map
     section: transformations
