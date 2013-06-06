@@ -20,6 +20,15 @@ tests:
     - cd: arr.prepend('a')
       ot: ['a',1,2,3]
 
+    ## Difference
+
+    - cd: arr.difference([1,2,2])
+      ot: [3]
+    - cd: arr.difference([])
+      ot: [1,2,3]
+    - cd: arr.difference(["foo", "bar"])
+      ot: [1,2,3]
+
     ## Set operations
     - cd: dupe_arr.set_insert(1)
       ot: [1,2,3]
