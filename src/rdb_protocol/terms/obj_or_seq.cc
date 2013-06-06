@@ -28,11 +28,11 @@ public:
         prop_bt(func.get());
     }
 private:
-    virtual counted_t<val_t> obj_eval() = 0;
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) = 0;
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
-            if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval();
+            if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval(v0);
         }
         if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             switch (poly_type) {
@@ -58,8 +58,8 @@ public:
     pluck_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
-        counted_t<const datum_t> obj = arg(0)->as_datum();
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
+        counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_OBJECT));
@@ -81,8 +81,8 @@ public:
     without_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
-        counted_t<const datum_t> obj = arg(0)->as_datum();
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
+        counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         scoped_ptr_t<datum_t> out(new datum_t(obj->as_object()));
@@ -100,8 +100,8 @@ public:
     merge_term_t(env_t *env, protob_t<const Term> term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
-        counted_t<const datum_t> d = arg(0)->as_datum();
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
+        counted_t<const datum_t> d = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             d = d->merge(arg(i)->as_datum());
         }
@@ -115,8 +115,8 @@ public:
     has_fields_term_t(env_t *env, protob_t<const Term> term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval() {
-        counted_t<const datum_t> obj = arg(0)->as_datum();
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
+        counted_t<const datum_t> obj = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<const datum_t> el = obj->get(arg(i)->as_str(), NOTHROW);
             if (!el.has() || el->get_type() == datum_t::R_NULL) {
