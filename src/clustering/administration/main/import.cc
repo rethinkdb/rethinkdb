@@ -444,10 +444,7 @@ bool do_json_importation(namespace_repo_t<rdb_protocol_t> *repo,
             boost::shared_ptr<scoped_cJSON_t> json_copy_fml(new scoped_cJSON_t(json.DeepCopy()));
 
             rdb_protocol_t::point_write_t point_write(key, json_copy_fml, false);
-            // RSI: Change this back to DURABILITY_REQUIREMENT_SOFT.  It was set to
-            // hard for the sake of more interesting disk usage performance testing
-            // while working on issue #310.
-            rdb_protocol_t::write_t rdb_write(point_write, DURABILITY_REQUIREMENT_HARD);
+            rdb_protocol_t::write_t rdb_write(point_write, DURABILITY_REQUIREMENT_SOFT);
             rdb_protocol_t::write_response_t response;
             ni->write(rdb_write, &response, order_source.check_in("do_json_importation"), interruptor);
 
