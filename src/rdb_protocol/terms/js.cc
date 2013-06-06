@@ -8,11 +8,10 @@
 
 namespace ql {
 
-static const char *const js_optargs[] = {"timeout"};
 class javascript_term_t : public op_term_t {
 public:
     javascript_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1), optargspec_t(js_optargs)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t({ "timeout" })) { }
 private:
 
     virtual counted_t<val_t> eval_impl() {
@@ -23,7 +22,7 @@ private:
         // Optarg seems designed to take a default value as the second argument
         // but nowhere else is this actually used.
         double timeout_s = 5.0;
-        counted_t<val_t> timeout_opt = optarg("timeout", counted_t<val_t>());
+        counted_t<val_t> timeout_opt = optarg("timeout");
         if (timeout_opt) {
             timeout_s = timeout_opt->as_num();
         }
@@ -38,7 +37,9 @@ private:
                                                             this->counted_from_this()),
                                         result);
         } catch (const interrupted_exc_t &e) {
-            rfail("JavaScript query \"%s\" timed out after %.2G seconds", source.c_str(), timeout_s);
+            rfail(base_exc_t::GENERIC,
+                  "JavaScript query `%s` timed out after %.2G seconds.",
+                  source.c_str(), timeout_s);
         }
     }
     virtual const char *name() const { return "javascript"; }

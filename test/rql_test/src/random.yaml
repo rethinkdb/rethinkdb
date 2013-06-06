@@ -1,0 +1,18 @@
+desc: Tests randomization functions
+tests:
+    - cd: r.expr([1,2,3]).sample(3).distinct().count()
+      ot: 3
+    - cd: r.expr([1,2,3]).sample(3).count()
+      ot: 3
+    - cd: r.expr([1,2,3,4,5,6]).sample(3).distinct().count()
+      ot: 3
+    - cd: r.expr([1,2,3]).sample(4).distinct().count()
+      ot: 3
+    - rb: r.expr([[1,2,3], 2]).do{|x| x[0].sample(x[1])}.distinct().count()
+      ot: 2
+    - cd: r.expr([1,2,3]).sample(-1)
+      ot: err('RqlRuntimeError', 'Number of items to sample must be non-negative, got `-1`.', [0])
+    - cd: r.expr(1).sample(1)
+      ot: err('RqlRuntimeError', 'Cannot convert NUMBER to SEQUENCE', [0])
+    - cd: r.expr({}).sample(1)
+      ot: err('RqlRuntimeError', 'Cannot convert OBJECT to SEQUENCE', [0])

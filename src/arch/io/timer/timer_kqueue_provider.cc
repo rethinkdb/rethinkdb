@@ -58,7 +58,7 @@ void timer_kqueue_provider_t::unschedule_oneshot() {
     callback_ = NULL;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const struct kevent64_s& event) {
+void debug_print(printf_buffer_t *buf, const struct kevent64_s& event) {
     buf->appendf("kevent64_s{ident=%" PRIu64 ", filter=%" PRIi16 ", flags=%" PRIu16
                  ", fflags=%" PRIu32 ", data=%" PRIi64 ", udata=%" PRIu64
                  ", ext[0]=%" PRIu64 ", ext[1]=%" PRIu64,

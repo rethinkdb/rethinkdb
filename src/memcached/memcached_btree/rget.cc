@@ -5,7 +5,6 @@
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
-#include "arch/runtime/runtime.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"

@@ -214,6 +214,51 @@ commands:
           can_try: true
           dataset: marvel
 
+  - tag: indexes_of
+    section: transformations
+    description: Get the indexes of an element in a sequence. If the argument is a predicate,
+      get the indexes of all elements matching it.
+
+    body: datum | predicate
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Find the position of the letter 'c'.
+        code:
+          js: r.expr(['a','b','c']).indexesOf('c').run(conn, callback)
+          py: r.expr(['a','b','c']).indexes_of('c').run(conn)
+          rb: r(['a','b','c']).indexes_of('c').run(conn)
+      - description: Find the popularity ranking of invisible heroes.
+        code:
+          py: |-
+            r.table('marvel').union(r.table('dc')).order_by('popularity').indexes_of(
+              r.row['superpowers'].contains('invisibility')
+            ).run(conn)
+          js: |-
+            r.table('marvel').union(r.table('dc')).orderBy('popularity').indexesOf(
+              r.row('superpowers').contains('invisibility')
+            ).run(conn, callback)
+          rb: |-
+            r.table('marvel').union(r.table('dc')).order_by(:popularity).indexes_of{
+              |row| row[:superpowers].contains('invisibility')
+            }.run(conn)
+
+  - tag: is_empty
+    section: transformations
+    description: Test if a sequence is empty.
+
+    body: index
+    parent: sequence
+    returns: json
+
+    examples:
+      - description: Are there any documents in the marvel table?
+        code:
+          js: r.table('marvel').isEmpty().run(conn, callback)
+          py: r.table('marvel').is_empty().run(conn)
+          rb: r.table('marvel').is_empty().run(conn)
+
   - tag: union
     section: transformations
     description: Concatenate two sequences.
@@ -232,3 +277,21 @@ commands:
           can_try: true
           dataset: marvel
           code: r.table('marvel').union(r.table('dc')).run(conn, callback)
+
+  - tag: sample
+    section: transformations
+    description: |
+      Select a given number of elements from a sequence with uniform random
+      distribution. Selection is done without replacement.
+
+    body: number
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Select 3 random heroes.
+        code:
+          js: r.table('marvel').sample(3).run(conn, callback)
+          rb: r.table('marvel').sample(3).run(conn)
+          py: r.table('marvel').sample(3).run(conn)
+

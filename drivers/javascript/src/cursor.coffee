@@ -6,14 +6,17 @@ class IterableResult
     hasNext: -> throw "Abstract Method"
     next: -> throw "Abstract Method"
 
-    each: ar (cb) ->
+    each: varar(1, 2, (cb, onFinished) ->
+        brk = false
         n = =>
-            @next (err, row) =>
-                cb(err, row)
-                if @hasNext()
+            if not brk and @hasNext()
+                @next (err, row) =>
+                    brk = (cb(err, row) is false)
                     n()
-        if @hasNext()
-            n()
+            else if onFinished?
+                onFinished()
+        n()
+    )
 
     toArray: ar (cb) ->
         arr = []
@@ -109,7 +112,7 @@ class Cursor extends IterableResult
 
     close: ar () ->
         unless @_endFlag
-            @_conn._end(@_token)
+            @_conn._endQuery(@_token)
 
     toString: ar () -> "[object Cursor]"
 

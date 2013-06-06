@@ -1,6 +1,6 @@
 desc: Tests manipulation operations on arrays
 tests:
-    
+
     # Define a sequence to work with
     - def: arr = r.expr([1, 2, 3])
     - def: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
@@ -11,6 +11,13 @@ tests:
       ot: [1,2,3,4]
     - cd: arr.append('a')
       ot: [1,2,3,'a']
+
+    ## Prepend
+
+    - cd: arr.prepend(0)
+      ot: [0,1,2,3]
+    - cd: arr.prepend('a')
+      ot: ['a',1,2,3]
 
     ## Slice
 
@@ -119,7 +126,7 @@ tests:
     - cd: objArr.order_by('b')
       rb: objArr.order_by :b
       ot: [{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}]
-      
+
     - cd: objArr.order_by(r.desc('b'))
       ot: [{'a':3, 'b':'c'}, {'a':2, 'b':'b'}, {'a':1, 'b':'a'}]
 
@@ -135,7 +142,7 @@ tests:
       ot: [1,2,3,4]
 
     ## Count
-    
+
     - cd: arr.count()
       ot: 3
       cd: objArr.count()
@@ -155,6 +162,27 @@ tests:
       rb: arr[0]
       js: arr.nth(0)
       ot: 1
+
+    ## Is Empty
+
+    - cd: r.expr([]).is_empty()
+      ot: true
+    - cd: arr.is_empty()
+      ot: false
+
+    ## Contains
+    - cd: arr.contains(2)
+      ot: true
+    - cd: arr.contains(2, 3)
+      ot: true
+    - cd: arr.contains(4)
+      ot: false
+    - cd: arr.contains(2, 4)
+      ot: false
+    - cd: arr.contains(2, 2)
+      ot: false
+    - cd: arr.union(arr).contains(2, 2)
+      ot: true
 
     ## Grouped Map Reduce
 

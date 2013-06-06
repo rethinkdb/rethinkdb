@@ -23,6 +23,7 @@ public:
         : term_t(env, term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
+               base_exc_t::GENERIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
         protob_t<Term> optarg_inheritor = rewrite(env, in, out, this);
@@ -72,27 +73,33 @@ private:
                          Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
         std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
-            rcheck_target(bt_src, t->optargs_size() == 1, errmsg);
+            rcheck_target(bt_src, base_exc_t::GENERIC,
+                          t->optargs_size() == 1, errmsg);
             const Term_AssocPair *ap = &t->optargs(0);
             *dc_out = ap->key();
             rcheck_target(
-                bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+                bt_src, base_exc_t::GENERIC,
+                *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             *dc_arg_out = ap->val();
         } else if (t->type() == Term::DATUM) {
-            rcheck_target(bt_src, t->has_datum(), errmsg);
+            rcheck_target(bt_src, base_exc_t::GENERIC, t->has_datum(), errmsg);
             const Datum *d = &t->datum();
-            rcheck_target(bt_src, d->type() == Datum::R_OBJECT, errmsg);
-            rcheck_target(bt_src, d->r_object_size() == 1, errmsg);
+            rcheck_target(bt_src, base_exc_t::GENERIC,
+                          d->type() == Datum::R_OBJECT, errmsg);
+            rcheck_target(bt_src, base_exc_t::GENERIC,
+                          d->r_object_size() == 1, errmsg);
             const Datum_AssocPair *ap = &d->r_object(0);
             *dc_out = ap->key();
             rcheck_target(
-                bt_src, *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
+                bt_src, base_exc_t::GENERIC,
+                *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
             dc_arg_out->set_type(Term::DATUM);
             *dc_arg_out->mutable_datum() = ap->val();
         } else {
-            rcheck_target(bt_src, t->type() == Term::MAKE_OBJ, errmsg);
+            rcheck_target(bt_src, base_exc_t::GENERIC,
+                          t->type() == Term::MAKE_OBJ, errmsg);
             unreachable();
         }
     }
@@ -103,7 +110,7 @@ private:
         arg = pb::set_func(arg, obj);
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
-              N2(CONTAINS, NVAR(obj), NVAR(attr)),
+              N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
               N2(GETATTR, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
     }
@@ -116,14 +123,14 @@ private:
         } else if (dc == "SUM") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
-                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(GETATTR, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
-                  N2(CONTAINS, NVAR(obj), NVAR(attr)),
+                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
                   N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
                *arg = *dc_arg);
@@ -297,7 +304,6 @@ public:
     update_term_t(env_t *env, protob_t<const Term> term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
@@ -336,7 +342,6 @@ private:
      }
      virtual const char *name() const { return "skip"; }
 };
-
 
 counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
     return make_counted<skip_term_t>(env, term);

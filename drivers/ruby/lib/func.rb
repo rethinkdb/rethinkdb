@@ -7,14 +7,23 @@ module RethinkDB
       RQL.new.func(args, body)
     end
 
-    @@special_optargs = {
-      :replace => :non_atomic, :update => :non_atomic, :insert => :upsert
-    }
-    @@opt_off = {
+    # Offsets of the "optarg" optional arguments hash in respective
+    # methods.  Some methods change this depending on whether they're
+    # passed a block -- they take a hash specifying the offset for
+    # each circumstance, instead of an integer.  -1 can be supplied to
+    # mean the "last" argument -- whatever argument is specified will
+    # only be removed from the argument list and treated as an optarg
+    # if it's a Hash.  A positive value is necessary for functions
+    # that can take a hash for the last non-optarg argument.
+    @@optarg_offsets = {
+      :replace => {:with_block => 0, :without => 1},
+      :update => {:with_block => 0, :without => 1},
+      :insert => 1,
+      :delete => -1,
       :reduce => -1, :between => -1, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
-      :javascript => -1
+      :javascript => -1, :filter => {:with_block => 0, :without => 1}
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -48,11 +57,15 @@ module RethinkDB
       termtype = Term::TermType.values[m.to_s.upcase.to_sym]
       unbound_if(!termtype, m)
 
-      if (opt_name = @@special_optargs[m])
-        a = optarg_jiggle(a, opt_name)
-        opt_offset = -1
-      end
-      if (opt_offset ||= @@opt_off[m])
+      if (opt_offset = @@optarg_offsets[m])
+        if opt_offset.class == Hash
+          opt_offset = opt_offset[b ? :with_block : :without]
+        end
+        # TODO: This should drop the Hash comparison or at least
+        # @@optarg_offsets should stop specifying -1, where possible.
+        # Any time one of these operations is changed to support a
+        # hash argument, we'll have to remember to fix
+        # @@optarg_offsets, otherwise.
         optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
       end
 
@@ -75,15 +88,6 @@ module RethinkDB
       RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
     end
     def groupby(*a, &b); group_by(*a, &b); end
-
-    def optarg_jiggle(args, optarg)
-      if (ind = args.map{|x| x.class == Symbol ? x : nil}.index(optarg))
-        args << {args.delete_at(ind) => true}
-      else
-        args << {}
-      end
-      return args
-    end
 
     def connect(*args)
       unbound_if @body

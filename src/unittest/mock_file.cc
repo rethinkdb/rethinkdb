@@ -15,7 +15,6 @@ mock_file_t::mock_file_t(mode_t mode, std::vector<char> *data) : mode_(mode), da
 }
 mock_file_t::~mock_file_t() { }
 
-bool mock_file_t::is_block_device() { return false; }
 uint64_t mock_file_t::get_size() { return data_->size(); }
 void mock_file_t::set_size(size_t size) { data_->resize(size, 0); }
 void mock_file_t::set_size_at_least(size_t size) {

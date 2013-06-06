@@ -150,6 +150,27 @@ commands:
           can_try: true
           dataset: marvel
 
+  - tag: prepend
+    section: jsonobject
+    description: Prepend a value to an array.
+
+    body: value
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').prepend('newBoots').run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
+
+    js:
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
   - tag: getattr
     section: jsonobject
     description: Get a single attribute from an object.
@@ -178,13 +199,11 @@ commands:
           can_try: true
           dataset: marvel
 
-  - tag: contains
+  - tag: has_fields
     section: jsonobject
-    description: Test if an object has the given attribute. <br /><br />
-      <code>contains</code> can only be called on objects and not on
-      <code>string</code> or <code>array</code> attributes.
+    description: Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
 
-    body: attr
+    body: field1[, field2...]
     parent: json
     returns: bool
 
@@ -192,13 +211,93 @@ commands:
       - description: Which heroes are married?
         code:
           js: |
-            r.table('marvel').filter(function(hero) {return hero.contains('spouse')})
+            r.table('marvel').filter(function(hero) {return hero.has_fields('spouse')})
              .run(conn, callback)
-          py: "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
-          rb: r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)
+          py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
+          rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
 
     js:
       examples:
         0:
           can_try: true
           dataset: marvel
+
+  - tag: insert_at
+    section: jsonobject
+    description: Insert a value in to an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk decides to join the avengers.
+        code:
+          js: r(["Iron Man", "Spider-Man"]).insertAt(1, "Hulk").run(conn, callback)
+          py: r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+          rb: r(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+
+  - tag: splice_at
+    section: jsonobject
+    description: Insert several values in to an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk and Thor decide to join the avengers.
+        code:
+          js: r(["Iron Man", "Spider-Man"]).spliceAt(1, ["Hulk", "Thor"]).run(conn, callback)
+          py: r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+          rb: r(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+
+  - tag: delete_at
+    section: jsonobject
+    description: Remove an element from an array at a given index. Returns the modified array.
+
+    body: index [,endIndex]
+    parent: json
+    returns: json
+
+    examples:
+      - description: Hulk decides to leave the avengers.
+        code:
+          js: r(["Iron Man", "Hulk", "Spider-Man"]).deleteAt(1).run(conn, callback)
+          py: r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+          rb: r(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+      - description: Hulk and Thor decide to leave the avengers.
+        code:
+          js: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).deleteAt(1,2).run(conn, callback)
+          py: r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
+          rb: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
+
+  - tag: change_at
+    section: jsonobject
+    description: Change a value in an array at a given index. Returns the modified array.
+
+    body: index, json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Bruce Banner hulks out.
+        code:
+          js: r(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
+          py: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+          rb: r(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+
+  - tag: keys
+    section: jsonobject
+    description: Return an array containing all of the object's keys.
+
+    parent: json
+    returns: json
+
+    examples:
+      - description: Get all the keys of a row.
+        code:
+          rb: r.table('marvel').get('ironman').keys
+          py: r.table('marvel').get('ironman').keys()
+          js: r.table('marvel').get('ironman').keys()
+

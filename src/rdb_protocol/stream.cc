@@ -6,25 +6,24 @@
 
 namespace query_language {
 
-boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const scopes_t &scopes, const backtrace_t &backtrace) {
+boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace) {
     rdb_protocol_details::transform_t transform;
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
+    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
     return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
 }
 
 result_t json_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
     ql::env_t *ql_env,
-    const scopes_t &scopes,
     const backtrace_t &backtrace) {
     rdb_protocol_details::terminal_variant_t t = _t;
     result_t res;
 
-    terminal_initialize(ql_env, scopes, backtrace, &t, &res);
+    terminal_initialize(ql_env, backtrace, &t, &res);
 
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) {
-        terminal_apply(ql_env, scopes, backtrace, json, &t, &res);
+        terminal_apply(ql_env, backtrace, json, &t, &res);
     }
     return res;
 }
@@ -78,7 +77,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
             for (json_list_t::iterator jt  = accumulator.begin();
                                        jt != accumulator.end();
                                        ++jt) {
-                transform_apply(ql_env, it->scopes, it->backtrace, *jt, &it->variant, &tmp);
+                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
             }
 
             accumulator.swap(tmp);
@@ -92,8 +91,8 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
     return datum;
 }
 
-boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &backtrace) {
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, backtrace));
+boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &backtrace) {
+    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
     return shared_from_this();
 }
 
@@ -161,19 +160,18 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     return datum;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const scopes_t &scopes, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &per_op_backtrace) {
     guarantee(!started);
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, scopes, per_op_backtrace));
+    transform.push_back(rdb_protocol_details::transform_atom_t(t, per_op_backtrace));
     return shared_from_this();
 }
 
 result_t batched_rget_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &t,
     UNUSED ql::env_t *ql_env,
-    const scopes_t &scopes,
     const backtrace_t &per_op_backtrace) {
     rdb_protocol_t::rget_read_t rget_read = get_rget();
-    rget_read.terminal = rdb_protocol_details::terminal_t(t, scopes, per_op_backtrace);
+    rget_read.terminal = rdb_protocol_details::terminal_t(t, per_op_backtrace);
     rdb_protocol_t::read_t read(rget_read);
     try {
         rdb_protocol_t::read_response_t res;
@@ -200,8 +198,8 @@ result_t batched_rget_stream_t::apply_terminal(
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
             // No backtrace for these.
-            throw ql::exc_t("cannot perform read: " + std::string(e.what()),
-                            ql::backtrace_t());
+            rfail_toplevel(ql::base_exc_t::GENERIC,
+                           "cannot perform read: %s", e.what());
         }
     }
 }
@@ -263,8 +261,8 @@ void batched_rget_stream_t::read_more() {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
         } else {
             // No backtrace.
-            throw ql::exc_t("cannot perform read: " + std::string(e.what()),
-                            ql::backtrace_t());
+            rfail_toplevel(ql::base_exc_t::GENERIC,
+                           "cannot perform read: %s", e.what());
         }
     }
 }
