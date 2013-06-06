@@ -267,13 +267,8 @@ tests:
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"
       cd: []
-<<<<<<< HEAD
       ot: err("RqlDriverError", 'Annonymous function returned `undefined`. Did you forget a `return`?', [1])
-    
-=======
-      ot: err("RqlDriverError", 'Unknown datum value `undefined`, did you forget a `return`?', [1])
 
->>>>>>> next
     # Make sure write queries can't be nested into stream ops
     - cd: r.expr(1).do(tbl.insert({'foo':r.row}))
       rb: r(1).do{ |row| tbl.insert({ :foo => row }) }
