@@ -187,7 +187,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
-            if (!stats.get_map()->empty()) {
+            if (stats.get_map_size() != 0) {
                 body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
             }
         } else {

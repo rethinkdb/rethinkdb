@@ -134,7 +134,6 @@ public:
     std::string *get_string();
     const std::string *get_string() const;
 
-    internal_map_t *get_map();
     const internal_map_t *get_map() const;
     size_t get_map_size() const;
 
@@ -155,6 +154,8 @@ public:
     // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
     void splice_into(perfmon_result_t *map);
 private:
+    internal_map_t *get_map();
+
     void clear_map();
     explicit perfmon_result_t(const internal_map_t &);
 

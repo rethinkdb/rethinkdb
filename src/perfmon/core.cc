@@ -383,7 +383,7 @@ void perfmon_filter_t::subfilter(
             }
         }
 
-        if (p->get_map()->empty()) {
+        if (p->get_map_size() == 0) {
             keep_this_perfmon = false;
         }
     }
