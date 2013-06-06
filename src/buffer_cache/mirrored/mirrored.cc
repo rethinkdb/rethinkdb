@@ -286,9 +286,9 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
     data.init_malloc(cache->serializer);
 
 #if !(defined(NDEBUG) || defined(VALGRIND))
-        // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
-        // between problems with uninitialized memory and problems with uninitialized blocks
-        memset(data.get(), 0xCD, cache->get_block_size().value());
+    // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+    // between problems with uninitialized memory and problems with uninitialized blocks
+    memset(data.get(), 0xCD, cache->get_block_size().value());
 #endif
     rassert(_this_block_size > 0);
     this_block_size = _this_block_size;
