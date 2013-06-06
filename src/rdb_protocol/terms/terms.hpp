@@ -16,6 +16,7 @@ counted_t<term_t> make_mod_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_sample_term(env_t *env, protob_t<const Term> term);
 
 // arr.cc
+counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term);
@@ -62,13 +63,14 @@ counted_t<term_t> make_gmr_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_javascript_term(env_t *env, protob_t<const Term> term);
 
 // obj.cc
+counted_t<term_t> make_keys_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_getattr_term(env_t *env, protob_t<const Term> term);
-counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term);
 
 // obj_or_seq.cc
 counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_without_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_merge_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term);
 
 // pred.cc
 counted_t<term_t> make_predicate_term(env_t *env, protob_t<const Term> term);

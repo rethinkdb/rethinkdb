@@ -131,7 +131,7 @@ private:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
@@ -171,6 +171,8 @@ private:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
+        case Term::CONTAINS:
+        case Term::KEYS:
             return false;
         default: unreachable();
         }
@@ -236,7 +238,7 @@ private:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:
-        case Term::CONTAINS:
+        case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
@@ -275,6 +277,8 @@ private:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
+        case Term::CONTAINS:
+        case Term::KEYS:
             return false;
         default: unreachable();
         }
