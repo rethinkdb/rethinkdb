@@ -31,7 +31,8 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
             return new_val(v0->as_seq()->map(make_counted<func_t>(env, map_func)));
         }
-        rfail("Cannot perform %s on a non-object non-sequence.", name());
+        rfail_typed_target(
+            v0, "Cannot perform %s on a non-object non-sequence.", name());
         unreachable();
     }
 
@@ -50,7 +51,7 @@ private:
         scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_OBJECT));
         for (size_t i = 1; i < num_args(); ++i) {
             const std::string &key = arg(i)->as_str();
-            counted_t<const datum_t> el = obj->get(key);
+            counted_t<const datum_t> el = obj->get(key, NOTHROW);
             if (el.has()) {
                 bool conflict = out->add(key, el);
                 r_sanity_check(!conflict);

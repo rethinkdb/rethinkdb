@@ -209,8 +209,12 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+
         // Takes a string and throws an error with that message.
-        ERROR        = 12; // STRING -> Error
+        // Inside of a `default` block, you can omit the first
+        // argument to rethrow whatever error you catch (this is most
+        // useful as an argument to the `default` filter optarg).
+        ERROR        = 12; // STRING -> Error | -> Error
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
 
@@ -269,7 +273,16 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
+
+        // Filter a sequence with either a function or a shortcut
+        // object (see API docs for details).  The body of FILTER is
+        // wrapped in an implicit `.default(false)`, and you can
+        // change the default value by specifying the `default`
+        // optarg.  If you make the default `r.error`, all errors
+        // caught by `default` will be rethrown as if the `default`
+        // did not exist.
+        FILTER    = 39; // Sequence, Function(1), {default:DATUM} -> Sequence |
+                        // Sequence, OBJECT, {default:DATUM} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
@@ -438,6 +451,16 @@ message Term {
 
         // Select a number of elements from sequence with uniform distribution.
         SAMPLE = 81; // Sequence, NUMBER -> Sequence
+
+        // Evaluates its first argument.  If that argument returns
+        // NULL or throws an error related to the absence of an
+        // expected value (for instance, accessing a non-existent
+        // field or adding NULL to an integer), DEFAULT will either
+        // return its second argument or execute it if it's a
+        // function.  If the second argument is a function, it will be
+        // passed either the text of the error or NULL as its
+        // argument.
+        DEFAULT = 88; // Top, Top -> Top
     }
     optional TermType type = 1;
 

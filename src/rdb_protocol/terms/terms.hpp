@@ -53,6 +53,7 @@ counted_t<term_t> make_table_list_term(env_t *env, protob_t<const Term> term);
 
 // error.cc
 counted_t<term_t> make_error_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_default_term(env_t *env, protob_t<const Term> term);
 
 // gmr.cc
 counted_t<term_t> make_gmr_term(env_t *env, protob_t<const Term> term);
