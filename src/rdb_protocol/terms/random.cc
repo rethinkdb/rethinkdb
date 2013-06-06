@@ -13,7 +13,9 @@ public:
     counted_t<val_t> eval_impl() {
         int64_t num_int = arg(1)->as_int();
         rcheck(num_int >= 0,
-               strprintf("Number of items to sample must be non-negative, got `%" PRId64 "`.", num_int));
+               base_exc_t::GENERIC,
+               strprintf("Number of items to sample must be non-negative, got `%"
+                         PRId64 "`.", num_int));
         size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;

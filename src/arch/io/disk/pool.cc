@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/disk/pool.hpp"
 
 #include <fcntl.h>
@@ -6,10 +6,15 @@
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
 
-#define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
+int blocker_pool_queue_depth(int max_concurrent_io_requests) {
+    guarantee(max_concurrent_io_requests > 0);
+    guarantee(max_concurrent_io_requests < MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
+    // TODO: Why make this twice MAX_CONCURRENT_IO_REQUESTS?
+    return max_concurrent_io_requests * 2;
+}
 
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action) {
     buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
                  "offset=%" PRIi64 ", errno=%d}",
@@ -21,12 +26,14 @@ void debug_print(append_only_printf_buffer_t *buf,
                  action.get_succeeded() ? 0 : action.get_errno());
 }
 
-pool_diskmgr_t::pool_diskmgr_t(
-        linux_event_queue_t *queue, passive_producer_t<action_t *> *_source)
-    : source(_source),
-      blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue),
+pool_diskmgr_t::pool_diskmgr_t(linux_event_queue_t *queue,
+                               passive_producer_t<action_t *> *_source,
+                               int max_concurrent_io_requests)
+    : queue_depth(blocker_pool_queue_depth(max_concurrent_io_requests)),
+      source(_source),
+      blocker_pool(max_concurrent_io_requests, queue),
       n_pending(0) {
-    if (source->available->get()) pump();
+    if (source->available->get()) { pump(); }
     source->available->set_callback(this);
 }
 
@@ -82,7 +89,7 @@ void pool_diskmgr_t::on_source_availability_changed() {
 
 void pool_diskmgr_t::pump() {
     assert_thread();
-    while (source->available->get() && n_pending < BLOCKER_POOL_QUEUE_DEPTH) {
+    while (source->available->get() && n_pending < queue_depth) {
         action_t *a = source->pop();
         a->parent = this;
         n_pending++;

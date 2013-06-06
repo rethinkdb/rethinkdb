@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_DISK_POOL_HPP_
 #define ARCH_IO_DISK_POOL_HPP_
 
@@ -70,7 +70,7 @@ private:
     DISABLE_COPYING(pool_diskmgr_action_t);
 };
 
-void debug_print(append_only_printf_buffer_t *buf,
+void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action);
 
 class pool_diskmgr_t : private availability_callback_t, public home_thread_mixin_debug_only_t {
@@ -80,11 +80,13 @@ public:
 
     /* The `pool_diskmgr_t` will draw actions to run from `source`. It will call `done_fun`
     on each one when it's done. */
-    pool_diskmgr_t(linux_event_queue_t *queue, passive_producer_t<action_t *> *source);
+    pool_diskmgr_t(linux_event_queue_t *queue, passive_producer_t<action_t *> *source,
+                   int max_concurrent_io_requests);
     boost::function<void(action_t *)> done_fun;
     ~pool_diskmgr_t();
 
 private:
+    const int queue_depth;
     passive_producer_t<action_t *> *source;
     blocker_pool_t blocker_pool;
 

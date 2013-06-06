@@ -10,7 +10,6 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
-#include "containers/printf_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"

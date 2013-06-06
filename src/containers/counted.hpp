@@ -114,6 +114,10 @@ public:
         return p_ != NULL ? &counted_t<T>::dummy_method : NULL;
     }
 
+    bool operator <(const counted_t<T> &other) const {
+        return *p_ < *other.p_;
+    }
+
 private:
     static void dummy_method(hidden_t) { }
 

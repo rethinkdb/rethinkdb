@@ -14,12 +14,33 @@
 
 namespace ql {
 
+// Catch this if you want to handle either `exc_t` or `datum_exc_t`.
+class base_exc_t : public std::exception {
+public:
+    enum type_t {
+        GENERIC, // All errors except those below.
+
+        // The only thing that cares about these is `default`.
+        EMPTY_USER, // An error caused by `r.error` with no arguments.
+        NON_EXISTENCE // An error related to the absence of an expected value.
+    };
+    base_exc_t(type_t type) : type_(type) { }
+    virtual ~base_exc_t() throw () { }
+    type_t get_type() const { return type_; }
+protected:
+    type_t type_;
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    base_exc_t::type_t, int8_t, base_exc_t::GENERIC, base_exc_t::NON_EXISTENCE);
+
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
-void runtime_check(const char *test, const char *file, int line,
+void runtime_check(base_exc_t::type_t type,
+                   const char *test, const char *file, int line,
                    bool pred, std::string msg, const Backtrace *bt_src,
                    int dummy_frames = 0);
-void runtime_check(const char *test, const char *file, int line,
+void runtime_check(base_exc_t::type_t type,
+                   const char *test, const char *file, int line,
                    bool pred, std::string msg);
 void runtime_sanity_check(bool test);
 
@@ -29,7 +50,8 @@ void runtime_sanity_check(bool test);
 class rcheckable_t {
 public:
     virtual ~rcheckable_t() { }
-    virtual void runtime_check(const char *test, const char *file, int line,
+    virtual void runtime_check(base_exc_t::type_t type,
+                               const char *test, const char *file, int line,
                                bool pred, std::string msg) const = 0;
 };
 // This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
@@ -45,9 +67,10 @@ public:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
         : bt_src(_bt_src) { }
 
-    virtual void runtime_check(const char *test, const char *file, int line,
+    virtual void runtime_check(base_exc_t::type_t type,
+                               const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg, bt_src.get());
+        ql::runtime_check(type, test, file, line, pred, msg, bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
@@ -60,30 +83,59 @@ private:
 };
 
 // Use these macros to return errors to users.
-#define rcheck_target(target, pred, msg) do {                                         \
-        (pred)                                                                        \
-        ? (void)0                                                                     \
-        : (target)->runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg)); \
+#define rcheck_target(target, type, pred, msg) do {                  \
+        (pred)                                                       \
+        ? (void)0                                                    \
+        : (target)->runtime_check(type, stringify(pred),             \
+                                  __FILE__, __LINE__, false, (msg)); \
     } while (0)
-#define rcheck_src(src, pred, msg) do {                                                \
-        (pred)                                                                         \
-        ? (void)0                                                                      \
-        : ql::runtime_check(stringify(pred), __FILE__, __LINE__, false, (msg), (src)); \
+#define rcheck_typed_target(target, pred, msg) do {                     \
+        (pred)                                                          \
+        ? (void)0                                                       \
+        : (target)->runtime_check(exc_type(target), stringify(pred),    \
+                                  __FILE__, __LINE__, false, (msg));    \
+    } while (0)
+#define rcheck_src(src, type, pred, msg) do {                         \
+        (pred)                                                        \
+        ? (void)0                                                     \
+        : ql::runtime_check(type, stringify(pred),                    \
+                            __FILE__, __LINE__, false, (msg), (src)); \
     } while (0)
 
-#define rcheck(pred, msg) rcheck_target(this, pred, msg)
-#define rcheck_toplevel(pred, msg) rcheck_src(NULL, pred, msg)
+#define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
+#define rcheck_typed(pred, typed_arg, msg) \
+    rcheck_target(this, exc_type(typed_arg), typed_arg, pred, msg)
+#define rcheck_toplevel(pred, type, msg) \
+    rcheck_src(NULL, type, pred, msg)
 
-#define rfail_target(target, args...) do {              \
-        rcheck_target(target, false, strprintf(args));  \
-        unreachable();                                  \
+#define rfail_target(target, type, args...) do {                 \
+        rcheck_target(target, type, false, strprintf(args));     \
+        unreachable();                                           \
     } while (0)
-#define rfail(args...) do {                                             \
-        rcheck(false, strprintf(args));                                 \
+#define rfail_typed_target(target, args...) do {                  \
+        rcheck_typed_target(target, false, strprintf(args));      \
         unreachable();                                                  \
     } while (0)
-#define rfail_toplevel(args...) rcheck_toplevel(false, strprintf(args))
+#define rfail(type, args...) do {                                       \
+        rcheck(false, type, strprintf(args));                           \
+        unreachable();                                                  \
+    } while (0)
+#define rfail_toplevel(type, args...) do {               \
+        rcheck_toplevel(false, type, strprintf(args));   \
+        unreachable();                                   \
+    } while (0)
+#define rfail_typed(typed_arg, args...) do {                            \
+        rcheck_typed(false, typed_arg, strprintf(args));                \
+        unreachable();                                                  \
+    } while (0)
 
+
+class datum_t;
+class val_t;
+base_exc_t::type_t exc_type(const datum_t *d);
+base_exc_t::type_t exc_type(const counted_t<const datum_t> &d);
+base_exc_t::type_t exc_type(val_t *d);
+base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 
 // r_sanity_check should be used in place of guarantee if you think the
 // guarantee will almost always fail due to an error in the query logic rather
@@ -171,27 +223,29 @@ private:
 
 const backtrace_t::frame_t head_frame = backtrace_t::frame_t::head();
 
-// Catch this if you want to handle either `exc_t` or `datum_exc_t`.
-class base_exc_t : public std::exception {
-public:
-    virtual ~base_exc_t() throw () { }
-};
-
 // A RQL exception.
 class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
-    exc_t() : exc_msg_("UNINITIALIZED") { }
-    exc_t(const std::string &exc_msg, const Backtrace *bt_src, int dummy_frames = 0)
-        : exc_msg_(exc_msg) {
+    exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
+    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
+          const Backtrace *bt_src, int dummy_frames = 0)
+        : base_exc_t(type), exc_msg_(exc_msg) {
         if (bt_src != NULL) {
             backtrace_ = backtrace_t(bt_src);
         }
         backtrace_.delete_frames(dummy_frames);
     }
-    exc_t(const std::string &exc_msg, const backtrace_t &backtrace,
-          int dummy_frames = 0)
-        : backtrace_(backtrace), exc_msg_(exc_msg) {
+    exc_t(const base_exc_t &e, const Backtrace *bt_src, int dummy_frames = 0)
+        : base_exc_t(e.get_type()), exc_msg_(e.what()) {
+        if (bt_src != NULL) {
+            backtrace_ = backtrace_t(bt_src);
+        }
+        backtrace_.delete_frames(dummy_frames);
+    }
+    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
+          const backtrace_t &backtrace, int dummy_frames = 0)
+        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) {
         backtrace_.delete_frames(dummy_frames);
     }
     virtual ~exc_t() throw () { }
@@ -199,7 +253,7 @@ public:
     const char *what() const throw () { return exc_msg_.c_str(); }
     const backtrace_t &backtrace() const { return backtrace_; }
 
-    RDB_MAKE_ME_SERIALIZABLE_2(backtrace_, exc_msg_);
+    RDB_MAKE_ME_SERIALIZABLE_3(type_, backtrace_, exc_msg_);
 private:
     backtrace_t backtrace_;
     std::string exc_msg_;
@@ -211,8 +265,9 @@ private:
 // turned into a normal `exc_t`.
 class datum_exc_t : public base_exc_t {
 public:
-    datum_exc_t() : exc_msg("UNINITIALIZED") { }
-    explicit datum_exc_t(const std::string &_exc_msg) : exc_msg(_exc_msg) { }
+    datum_exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg("UNINITIALIZED") { }
+    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_exc_msg)
+        : base_exc_t(type), exc_msg(_exc_msg) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
@@ -220,7 +275,7 @@ private:
     std::string exc_msg;
 
 public:
-    RDB_MAKE_ME_SERIALIZABLE_1(exc_msg);
+    RDB_MAKE_ME_SERIALIZABLE_2(type_, exc_msg);
 };
 
 void fill_error(Response *res, Response_ResponseType type, std::string msg,

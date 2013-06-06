@@ -21,15 +21,6 @@ commands:
       - description: Create a database named 'superheroes'.
         code: r.db_create('superheroes').run(conn)
 
-    js:
-      name: dbCreate
-      body: dbName
-      examples:
-        0:
-          code: r.dbCreate('superheroes').run(conn, callback)
-          can_try: true
-          dataset: marvel
-
   - tag: db_drop
     section: db_admin
     description: |
@@ -45,15 +36,6 @@ commands:
     examples:
       - description: Drop a database named 'superheroes'.
         code: r.db_drop('superheroes').run(conn)
-
-    js:
-      name: dbDrop
-      body: dbName
-      examples:
-        0:
-          code: r.dbDrop('superheroes').run(conn, callback)
-          can_try: true
-          dataset: marvel
 
   - tag: db_list
     section: db_admin
@@ -71,11 +53,5 @@ commands:
           py: r.db_list().run(conn)
           rb: r.db_list.run(conn)
 
-    js:
-      name: dbList
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
     rb:
       dont_need_parenthesis: true

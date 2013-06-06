@@ -87,7 +87,7 @@ private:
     std::vector<peer_address_t> vec;
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const peer_address_t &address);
+void debug_print(printf_buffer_t *buf, const peer_address_t &address);
 
 class connectivity_cluster_t :
     public connectivity_service_t,

@@ -209,8 +209,12 @@ message Term {
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
                            // STRING {timeout: !NUMBER} -> Function(*)
+
         // Takes a string and throws an error with that message.
-        ERROR        = 12; // STRING -> Error
+        // Inside of a `default` block, you can omit the first
+        // argument to rethrow whatever error you catch (this is most
+        // useful as an argument to the `default` filter optarg).
+        ERROR        = 12; // STRING -> Error | -> Error
         // Takes nothing and returns a reference to the implicit variable.
         IMPLICIT_VAR = 13; // -> DATUM
 
@@ -242,19 +246,35 @@ message Term {
         // DATUM Array Ops
         // Append a single element to the end of an array (like `snoc`).
         APPEND = 29; // ARRAY, DATUM -> ARRAY
+        // Prepend a single element to the end of an array (like `cons`).
         PREPEND = 80; // ARRAY, DATUM -> ARRAY
+
+        // DATUM Set Ops
+        // Set ops work on arrays. They don't use actual sets and thus have
+        // performance characteristics you would expect from arrays rather than
+        // from sets. All set operations have the post condition that they
+        // array they return contains no duplicate values.
+        SET_INSERT = 88; // ARRAY, DATUM -> ARRAY
+        SET_INTERSECTION = 89; // ARRAY, ARRAY -> ARRAY
+        SET_UNION = 90; // ARRAY, ARRAY -> ARRAY
+        SET_DIFFERENCE = 91; // ARRAY, ARRAY -> ARRAY
+
         SLICE  = 30; // Sequence, NUMBER, NUMBER -> Sequence
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
         INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
+        CONTAINS = 89; // Sequence, DATUM -> BOOL
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a
         // sequence.
         GETATTR  = 31; // OBJECT, STRING -> DATUM
-        // Check whether an object contains all of a set of attributes, or map
-        // that over a sequence.
-        CONTAINS = 32; // OBJECT, STRING... -> BOOL
+        // Return an array containing the keys of the object.
+        KEYS = 90; // OBJECT -> ARRAY
+        // Check whether an object contains all the specified fields,
+        // or filters a sequence so that all objects inside of it
+        // contain all the specified fields.
+        HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
@@ -269,7 +289,16 @@ message Term {
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
-        FILTER    = 39; // Sequence, Function(1) -> Sequence | Sequence, OBJECT -> Sequence
+
+        // Filter a sequence with either a function or a shortcut
+        // object (see API docs for details).  The body of FILTER is
+        // wrapped in an implicit `.default(false)`, and you can
+        // change the default value by specifying the `default`
+        // optarg.  If you make the default `r.error`, all errors
+        // caught by `default` will be rethrown as if the `default`
+        // did not exist.
+        FILTER    = 39; // Sequence, Function(1), {default:DATUM} -> Sequence |
+                        // Sequence, OBJECT, {default:DATUM} -> Sequence
         // Map a function over a sequence and then concatenate the results together.
         CONCATMAP = 40; // Sequence, Function(1) -> Sequence
         // Order a sequence based on one or more attributes.
@@ -288,7 +317,7 @@ message Term {
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> Sequence
+        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> ARRAY
         // Groups a sequence by one or more attributes, and then applies a reduction.
         // The third argument is a special object literal giving the kind of operation to be
         // performed and any necessary arguments.
@@ -438,6 +467,16 @@ message Term {
 
         // Select a number of elements from sequence with uniform distribution.
         SAMPLE = 81; // Sequence, NUMBER -> Sequence
+
+        // Evaluates its first argument.  If that argument returns
+        // NULL or throws an error related to the absence of an
+        // expected value (for instance, accessing a non-existent
+        // field or adding NULL to an integer), DEFAULT will either
+        // return its second argument or execute it if it's a
+        // function.  If the second argument is a function, it will be
+        // passed either the text of the error or NULL as its
+        // argument.
+        DEFAULT = 88; // Top, Top -> Top
     }
     optional TermType type = 1;
 

@@ -70,7 +70,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
-        printf_buffer_t<50> tmp("%" PRIu64, number);
+        printf_buffer_t tmp("%" PRIu64, number);
         b.clear(txn);
         b.append_region(txn, tmp.size());
         buffer_group_t group;
