@@ -33,3 +33,10 @@ notifications:
   email:
     on_success: change
     on_failure: change
+
+  webhooks:
+    urls:
+      - https://zapier.com/hooks/catch/n/ux03n/
+    on_success: never
+    on_failure: always
+
