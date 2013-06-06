@@ -263,14 +263,14 @@ message Term {
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
         INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
-        CONTAINS = 89; // Sequence, DATUM -> BOOL
+        CONTAINS = 93; // Sequence, DATUM -> BOOL
 
         // Stream/Object Ops
         // Get a particular attribute out of an object, or map that over a
         // sequence.
         GETATTR  = 31; // OBJECT, STRING -> DATUM
         // Return an array containing the keys of the object.
-        KEYS = 90; // OBJECT -> ARRAY
+        KEYS = 94; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
@@ -476,7 +476,7 @@ message Term {
         // function.  If the second argument is a function, it will be
         // passed either the text of the error or NULL as its
         // argument.
-        DEFAULT = 88; // Top, Top -> Top
+        DEFAULT = 92; // Top, Top -> Top
     }
     optional TermType type = 1;
 
