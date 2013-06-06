@@ -114,6 +114,21 @@ commands:
           py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
 
+  - tag: difference
+    section: jsonobject
+    description: Remove the elements of one array from another array.
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots, removing a few items.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').difference(['Boots']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].difference(['Boots']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].difference(['Boots']).run(conn)
+
   - tag: set_insert
     section: jsonobject
     description: |
