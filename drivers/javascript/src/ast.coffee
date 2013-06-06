@@ -79,7 +79,8 @@ class RDBVal extends TermBase
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
     changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
     indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
-    hasFields: varar(1, null, (fields...) -> new HasFields {}, @, fields...)
+    hasFields: varar(0, null, (fields...) -> new HasFields {}, @, fields...)
+    withFields: varar(0, null, (fields...) -> new WithFields {}, @, fields...)
     keys: ar(-> new Keys {}, @)
 
     # pluck and without on zero fields are allowed
@@ -428,6 +429,10 @@ class Contains extends RDBOp
 
 class HasFields extends RDBOp
     tt: Term.TermType.HAS_FIELDS
+    mt: 'contains'
+
+class WithFields extends RDBOp
+    tt: Term.TermType.WITH_FIELDS
     mt: 'contains'
 
 class Keys extends RDBOp

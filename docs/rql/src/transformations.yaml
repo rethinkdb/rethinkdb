@@ -49,7 +49,7 @@ commands:
         code:
           rb: r.table('marvel').with_fields('id', 'nemesis')
           py: r.table('marvel').with_fields('id', 'nemesis')
-          js: r.table('marvel').with_fields('id', 'nemesis')
+          js: r.table('marvel').withFields('id', 'nemesis')
 
 
   - tag: concat_map

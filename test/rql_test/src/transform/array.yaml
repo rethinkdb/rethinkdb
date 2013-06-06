@@ -73,7 +73,7 @@ tests:
       ot: [{}, {}, {}]
 
     ## With_Fields
-    - def: wftst = objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union([{'a':nil}])
+    - def: wftst = objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union([{'a':null}])
     - cd: wftst.with_fields('a')
       ot: ([{'a':1},{'a':2},{'a':3},{'a':1},{'a':2},{'a':3}])
     - cd: wftst.with_fields('b')
