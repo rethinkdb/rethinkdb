@@ -170,7 +170,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         subtree_recency = cache->serializer->get_recency(block_id);
         // RSI: We'll actually want to read this value from the serializer somehow.
         this_block_size = cache->get_block_size().value();
-        // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
         guarantee(data_token.has());
         cache->serializer->block_read(data_token, data.get(), io_account);
@@ -286,8 +285,7 @@ void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_tim
     subtree_recency = _recency_timestamp;
     data.init_malloc(cache->serializer);
 
-    // RSI: This preprocessor conditional is messed up, no?
-#if !defined(NDEBUG) || defined(VALGRIND)
+#if !(defined(NDEBUG) || defined(VALGRIND))
         // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
         // between problems with uninitialized memory and problems with uninitialized blocks
         memset(data.get(), 0xCD, cache->get_block_size().value());
