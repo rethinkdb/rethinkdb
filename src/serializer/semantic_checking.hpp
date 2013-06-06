@@ -58,7 +58,8 @@ public:
     void free(void *ptr);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-    counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
+    counted_t< scs_block_token_t<inner_serializer_t> >
+    index_read(block_id_t block_id, uint32_t *this_block_size_out);
 
     void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
     void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);

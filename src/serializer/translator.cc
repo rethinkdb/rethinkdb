@@ -73,7 +73,10 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
-    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
+    uint32_t config_block_size;
+    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id, &config_block_size), c, DEFAULT_DISK_ACCOUNT);
+    // RSI: Must the config block have a full size?
+    guarantee(config_block_size == ser->get_block_size().value());
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -132,7 +135,11 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
             underlying[0]->malloc());
-        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
+        uint32_t this_block_size;
+        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id, &this_block_size),
+                                  c, DEFAULT_DISK_ACCOUNT);
+        // RSI: Why must the size be a full block size?
+        guarantee(this_block_size == underlying[0]->get_block_size().value());
 
         rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
@@ -238,8 +245,9 @@ void translator_serializer_t::block_read(const counted_t<standard_block_token_t>
     return inner->block_read(token, buf, io_account);
 }
 
-counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
-    return inner->index_read(translate_block_id(block_id));
+counted_t<standard_block_token_t>
+translator_serializer_t::index_read(block_id_t block_id, uint32_t *this_block_size_out) {
+    return inner->index_read(translate_block_id(block_id), this_block_size_out);
 }
 
 block_size_t translator_serializer_t::get_block_size()  const {

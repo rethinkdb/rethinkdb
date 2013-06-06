@@ -85,8 +85,12 @@ public:
     /* Reads the block's delete bit. */
     virtual bool get_delete_bit(block_id_t id) = 0;
 
-    /* Reads the block's actual data */
-    virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
+    // If the block `block_id` is not deleted, returns a block token which ensures
+    // that the block continues to exist on disk, and outputs this block's size to
+    // *this_block_size_out.  If the block is deleted, returns an empty counted_t and
+    // outputs 0 to *this_block_size_out.
+    virtual counted_t<standard_block_token_t>
+    index_read(block_id_t block_id, uint32_t *this_block_size_out) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;

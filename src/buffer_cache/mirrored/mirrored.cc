@@ -168,10 +168,9 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
     {
         on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
-        // RSI: We'll actually want to read this value from the serializer somehow.
-        this_block_size = cache->get_block_size().value();
-        data_token = cache->serializer->index_read(block_id);
+        data_token = cache->serializer->index_read(block_id, &this_block_size);
         guarantee(data_token.has());
+        guarantee(this_block_size != 0);
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 

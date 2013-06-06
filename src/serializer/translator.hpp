@@ -142,7 +142,8 @@ public:
 
     void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
     void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);
-    counted_t<standard_block_token_t> index_read(block_id_t block_id);
+    counted_t<standard_block_token_t> index_read(block_id_t block_id,
+                                                 uint32_t *this_block_size_out);
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, uint32_t this_block_size,

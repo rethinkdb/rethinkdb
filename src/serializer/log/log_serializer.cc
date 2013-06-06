@@ -755,7 +755,9 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+counted_t<ls_block_token_pointee_t>
+log_serializer_t::index_read(block_id_t block_id,
+                             uint32_t *this_block_size_out) {
     assert_thread();
     ++stats->pm_serializer_index_reads;
 
@@ -767,10 +769,14 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
+        // RSI: Actually get the block size from the LBA.
+        *this_block_size_out = get_block_size().value();
+        guarantee(*this_block_size_out != 0);
         counted_t<ls_block_token_pointee_t> ret(
             new ls_block_token_pointee_t(this, offset.get_value()));
         return ret;
     } else {
+        *this_block_size_out = 0;
         return counted_t<ls_block_token_pointee_t>();
     }
 }

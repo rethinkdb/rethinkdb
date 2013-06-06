@@ -106,10 +106,12 @@ file_account_t *semantic_checking_serializer_t<inner_serializer_t>::make_io_acco
 }
 
 template<class inner_serializer_t>
-counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::index_read(block_id_t block_id) {
+counted_t< scs_block_token_t<inner_serializer_t> >
+semantic_checking_serializer_t<inner_serializer_t>::index_read(block_id_t block_id,
+                                                               uint32_t *this_block_size_out) {
     scs_block_info_t info = blocks.get(block_id);
     counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> result
-        = inner_serializer.index_read(block_id);
+        = inner_serializer.index_read(block_id, this_block_size_out);
     guarantee(info.state != scs_block_info_t::state_deleted || !result,
               "Cache asked for a deleted block, and serializer didn't complain.");
     if (result) {
