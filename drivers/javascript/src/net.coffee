@@ -6,6 +6,11 @@ goog.require("VersionDummy")
 goog.require("Query")
 goog.require("goog.proto2.WireFormatSerializer")
 
+# Eventually when we ditch Closure we can actually use the node
+# event emitter library. For now it's simple enough that we'll
+# emulate the interface.
+# var events = require('events')
+
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
@@ -26,12 +31,19 @@ class Connection
 
         @buffer = new ArrayBuffer 0
 
-        @_connect = =>
-            @open = true
-            @_error = => # Clear failed to connect callback
-            callback null, @
+        @_events = @_events || {}
 
-        @_error = => callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+        errCallback = (e) =>
+            @removeListener 'connect', conCallback
+            callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+        @once 'error', errCallback
+
+        conCallback = =>
+            @removeListener 'error', errCallback
+            @open = true
+            callback null, @
+        @once 'connect', conCallback
+
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
@@ -50,8 +62,6 @@ class Connection
 
             # For some reason, Arraybuffer.slice is not in my version of node
             @buffer = bufferSlice @buffer, (4 + responseLength)
-
-    _end: -> @close()
 
     mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
@@ -110,18 +120,18 @@ class Connection
             else
                 cb new RqlDriverError "Unknown response type"
         else
-            @_error new RqlDriverError "Unknown token in response"
+            @emit 'error', new RqlDriverError "Unknown token in response"
 
     close: ar () ->
         @open = false
 
     cancel: ar () ->
         @outstandingCallbacks = {}
-        @close()
 
     reconnect: ar (callback) ->
-        @cancel()
-        new @constructor({host:@host, port:@port}, callback)
+        setTimeout(
+            () => @constructor.call(@, {host:@host, port:@port}, callback)
+           ,0)
 
     use: ar (db) ->
         @db = db
@@ -194,6 +204,36 @@ class Connection
 
         @write finalArray.buffer
 
+    ## Emulate the event emitter interface
+
+
+    addListener: (event, listener) ->
+        unless @_events[event]?
+            @_events[event] = []
+        @_events[event].push(listener)
+
+    on: (event, listener) -> @addListener(event, listener)
+
+    once: (event, listener) ->
+        listener._once = true
+        @addListener(event, listener)
+
+    removeListener: (event, listener) ->
+        if @_events[event]?
+            @_events[event] = @_events[event].filter (lst) -> (lst isnt listener)
+
+    removeAllListeners: (event) -> delete @_events[event]
+
+    listeners: (event) -> @_events[event]
+
+    emit: (event, args...) ->
+        if @_events[event]?
+            listeners = @_events[event].concat()
+            for lst in listeners
+                if lst._once?
+                    @removeListener(event, lst)
+                lst.apply(null, args)
+
 class TcpConnection extends Connection
     @isAvailable: -> typeof require isnt 'undefined' and require('net')
 
@@ -204,22 +244,20 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @rawSocket.end()
+            @close()
 
         net = require('net')
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
-        @rawSocket.on 'connect', =>
+        @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
             buf = new ArrayBuffer 4
             (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
             @write buf
-            @_connect()
+            @emit 'connect'
 
-        @rawSocket.on 'error', => @_error()
-
-        @rawSocket.on 'end', => @_end()
+        @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'data', (buf) =>
             # Convert from node buffer to array buffer
@@ -228,14 +266,13 @@ class TcpConnection extends Connection
                 arr[i] = byte
             @_data(arr.buffer)
 
-        @rawSocket.on 'close', =>
-            @close()
+        @rawSocket.on 'close', => @open = false; @emit 'close'
 
-    close: ->
-        @rawSocket.end()
+    close: () ->
         super()
+        @rawSocket.end()
 
-    cancel: ->
+    cancel: () ->
         @rawSocket.destroy()
         super()
 
@@ -268,9 +305,9 @@ class HttpConnection extends Connection
                 if xhr.status is 200
                     @_url = url
                     @_connId = (new DataView xhr.response).getInt32(0, true)
-                    @_connect()
+                    @emit 'connect'
                 else
-                    @_error()
+                    @emit 'error', new RqlDriverError "XHR error, http status #{xhr.status}."
         xhr.send()
 
     cancel: ->
@@ -296,7 +333,7 @@ class EmbeddedConnection extends Connection
     constructor: (embeddedServer, callback) ->
         super({}, callback)
         @_embeddedServer = embeddedServer
-        @_connect()
+        @emit 'connect'
 
     write: (chunk) -> @_data(@_embeddedServer.execute(chunk))
 
