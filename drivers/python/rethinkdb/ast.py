@@ -214,6 +214,9 @@ class RqlQuery(object):
     def prepend(self, val):
         return Prepend(self, val)
 
+    def difference(self, val):
+        return Difference(self, val)
+
     def set_insert(self, val):
         return SetInsert(self, val)
 
@@ -528,6 +531,10 @@ class Append(RqlMethodQuery):
 class Prepend(RqlMethodQuery):
     tt = p.Term.PREPEND
     st = "prepend"
+
+class Difference(RqlMethodQuery):
+    tt = p.Term.DIFFERENCE
+    st = "difference"
 
 class SetInsert(RqlMethodQuery):
     tt = p.Term.SET_INSERT

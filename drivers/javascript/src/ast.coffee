@@ -69,6 +69,7 @@ class RDBVal extends TermBase
 
     append: ar (val) -> new Append {}, @, val
     prepend: ar (val) -> new Prepend {}, @, val
+    difference: ar (val) -> new Difference {}, @, val
     setInsert: ar (val) -> new SetInsert {}, @, val
     setUnion: ar (val) -> new SetUnion {}, @, val
     setIntersection: ar (val) -> new SetIntersection {}, @, val
@@ -387,6 +388,10 @@ class Append extends RDBOp
 class Prepend extends RDBOp
     tt: Term.TermType.PREPEND
     mt: 'prepend'
+
+class Difference extends RDBOp
+    tt: Term.TermType.DIFFERENCE
+    mt: 'difference'
 
 class SetInsert extends RDBOp
     tt: Term.TermType.SET_INSERT
