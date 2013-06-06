@@ -128,6 +128,7 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::DIFFERENCE:
         case Term::SET_INSERT:
         case Term::SET_INTERSECTION:
         case Term::SET_UNION:
@@ -239,6 +240,7 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::DIFFERENCE:
         case Term::SET_INSERT:
         case Term::SET_INTERSECTION:
         case Term::SET_UNION:
