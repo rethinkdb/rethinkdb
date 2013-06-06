@@ -9,7 +9,7 @@
 
 #include "errors.hpp"
 
-class append_only_printf_buffer_t;
+class printf_buffer_t;
 
 // uuid_t is defined on Darwin.  I have given up on what to name it.  Please
 // don't use guid_t, for it has a Windowsian connotation and we might run into
@@ -46,7 +46,7 @@ uuid_u generate_uuid();
 // Returns boost::uuids::nil_generator()().
 uuid_u nil_uuid();
 
-void debug_print(append_only_printf_buffer_t *buf, const uuid_u& id);
+void debug_print(printf_buffer_t *buf, const uuid_u& id);
 
 std::string uuid_to_str(uuid_u id);
 

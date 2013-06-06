@@ -8,7 +8,7 @@
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
-class append_only_printf_buffer_t;
+class printf_buffer_t;
 
 struct backfill_atom_t {
     store_key_t key;
@@ -33,7 +33,7 @@ struct backfill_atom_t {
         cas_or_zero(_cas_or_zero) { }
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const backfill_atom_t& atom);
+void debug_print(printf_buffer_t *buf, const backfill_atom_t& atom);
 
 
 // How to use this class: Send on_delete_range calls before

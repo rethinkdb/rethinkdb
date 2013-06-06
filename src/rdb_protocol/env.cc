@@ -66,9 +66,9 @@ void env_t::push_implicit(counted_t<const datum_t> *val) {
     implicit_var.push(val);
 }
 counted_t<const datum_t> *env_t::top_implicit(const rcheckable_t *caller) {
-    rcheck_target(caller, !implicit_var.empty(),
+    rcheck_target(caller, base_exc_t::GENERIC, !implicit_var.empty(),
                   "r.row is not defined in this context.");
-    rcheck_target(caller, implicit_var.size() == 1,
+    rcheck_target(caller, base_exc_t::GENERIC, implicit_var.size() == 1,
                   "Cannot use r.row in nested queries.  Use functions instead.");
     return implicit_var.top();
 }
@@ -106,10 +106,11 @@ env_t::special_var_shadower_t::~special_var_shadower_t() {
 }
 
 counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
-    rcheck_target(caller, !vars[var].empty(),
+    rcheck_target(caller, base_exc_t::GENERIC, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
     counted_t<const datum_t> *var_val = vars[var].top();
-    rcheck_target(caller, var_val != &sindex_error_dummy_datum,
+    rcheck_target(caller, base_exc_t::GENERIC,
+                  var_val != &sindex_error_dummy_datum,
                   "Cannot reference external variables from inside an index.");
     return var_val;
 }

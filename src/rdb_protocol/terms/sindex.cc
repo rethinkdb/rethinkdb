@@ -24,6 +24,7 @@ public:
         counted_t<const datum_t> name_datum = arg(1)->as_datum();
         std::string name = name_datum->as_str();
         rcheck(name != table->get_pkey(),
+               base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
         counted_t<func_t> index_func;
@@ -48,7 +49,7 @@ public:
             UNUSED bool b = res->add("created", make_counted<datum_t>(1.0));
             return new_val(counted_t<const datum_t>(res.release()));
         } else {
-            rfail("Index `%s` already exists.", name.c_str());
+            rfail(base_exc_t::GENERIC, "Index `%s` already exists.", name.c_str());
         }
     }
 
@@ -69,7 +70,7 @@ public:
             UNUSED bool b = res->add("dropped", make_counted<datum_t>(1.0));
             return new_val(counted_t<const datum_t>(res.release()));
         } else {
-            rfail("Index `%s` does not exist.", name.c_str());
+            rfail(base_exc_t::GENERIC, "Index `%s` does not exist.", name.c_str());
         }
     }
 

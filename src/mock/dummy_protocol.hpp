@@ -192,9 +192,9 @@ dummy_protocol_t::region_t drop_cpu_sharding(const dummy_protocol_t::region_t &r
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region);
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write);
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::backfill_chunk_t& chunk);
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::region_t &region);
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::write_t& write);
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::backfill_chunk_t& chunk);
 
 } // namespace mock
 
