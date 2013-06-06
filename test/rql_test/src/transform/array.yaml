@@ -72,6 +72,22 @@ tests:
     - cd: objArr.pluck()
       ot: [{}, {}, {}]
 
+    ## With_Fields
+    - def: wftst = objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union([{'a':nil}])
+    - cd: wftst.with_fields('a')
+      ot: ([{'a':1},{'a':2},{'a':3},{'a':1},{'a':2},{'a':3}])
+    - cd: wftst.with_fields('b')
+      ot: ([{'b':'a'},{'b':'b'},{'b':'c'},{'b':'a'},{'b':'b'},{'b':'c'}])
+    - cd: wftst.with_fields('a', 'b')
+      ot: ([{'a':1,'b':'a'},{'a':2,'b':'b'},{'a':3,'b':'c'}])
+    - cd: wftst.with_fields()
+      ot: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+
+    - cd: wftst.with_fields(1)
+      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
+    - cd: r.expr(1).with_fields()
+      ot: err("RqlRuntimeError", "Cannot convert NUMBER to SEQUENCE", [])
+
     ## Without
 
     - cd: objArr.without('a', 'b')
