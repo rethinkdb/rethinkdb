@@ -73,10 +73,10 @@ private:
                 (lhs->get_type() == datum_t::R_ARRAY ? lhs : rhs);
             counted_t<const datum_t> num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
-            num->check_type(datum_t::R_NUM);
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
-            int num_copies = num->as_int();
+            int64_t num_copies = num->as_int();
+            rcheck(num_copies > 0, "Cannot multiply an ARRAY by a negative number.");
 
             while (--num_copies >= 0) {
                 for (size_t i = 0; i < array->size(); ++i) {
