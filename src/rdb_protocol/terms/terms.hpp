@@ -32,7 +32,6 @@ counted_t<term_t> make_delete_at_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term);
-counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term);
 
 // control.cc
 counted_t<term_t> make_all_term(env_t *env, protob_t<const Term> term);
@@ -89,6 +88,7 @@ counted_t<term_t> make_outer_join_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_eq_join_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term);
 
 // seq.cc
 counted_t<term_t> make_between_term(env_t *env, protob_t<const Term> term);

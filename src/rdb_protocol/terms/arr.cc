@@ -420,29 +420,6 @@ private:
     virtual const char *name() const { return "contains"; }
 };
 
-class difference_term_t : public op_term_t {
-public:
-    difference_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2)) { }
-private:
-    virtual counted_t<val_t> eval_impl() {
-        counted_t<const datum_t> arr1 = arg(0)->as_datum();
-        counted_t<const datum_t> arr2 = arg(1)->as_datum();
-        std::set<counted_t<const datum_t> > el_set;
-        scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
-        for (size_t i = 0; i < arr2->size(); ++i) {
-            el_set.insert(arr2->get(i));
-        }
-        for (size_t i = 0; i < arr1->size(); ++i) {
-            if (!std_contains(el_set, arr1->get(i))) {
-                out->add(arr1->get(i));
-            }
-        }
-
-        return new_val(counted_t<const datum_t>(out.release()));
-    }
-    virtual const char *name() const { return "difference"; }
-};
 
 counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
     return make_counted<contains_term_t>(env, term);
@@ -508,8 +485,5 @@ counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
     return make_counted<indexes_of_term_t>(env, term);
 }
 
-counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term) {
-    return make_counted<difference_term_t>(env, term);
-}
 
 }  // namespace ql

@@ -343,6 +343,26 @@ private:
      virtual const char *name() const { return "skip"; }
 };
 
+class difference_term_t : public rewrite_term_t {
+public:
+    difference_term_t(env_t *env, protob_t<const Term> term)
+        : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
+private:
+    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+                                  const protob_t<Term> out,
+                                  UNUSED const pb_rcheckable_t *bt_src) {
+        int row = env->gensym(false);
+
+        Term *arg = out.get();
+        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);
+           N1(NOT, N2(CONTAINS, *arg = in->args(1), NVAR(row))));
+
+        return out;
+    }
+
+     virtual const char *name() const { return "skip"; }
+};
+
 counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
     return make_counted<skip_term_t>(env, term);
 }
@@ -363,6 +383,9 @@ counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term) {
     return make_counted<delete_term_t>(env, term);
+}
+counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<difference_term_t>(env, term);
 }
 
 } // namespace ql
