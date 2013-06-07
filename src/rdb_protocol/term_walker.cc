@@ -178,6 +178,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::WITH_FIELDS:
             return false;
         default: unreachable();
         }
@@ -289,6 +290,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::WITH_FIELDS:
             return false;
         default: unreachable();
         }

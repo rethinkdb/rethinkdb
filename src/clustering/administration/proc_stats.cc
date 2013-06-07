@@ -38,11 +38,11 @@ scoped_ptr_t<perfmon_result_t> proc_stats_collector_t::instantaneous_stats_colle
     // Basic process stats (version, pid, uptime)
     struct timespec now = clock_monotonic();
 
-    result->insert("uptime", make_scoped<perfmon_result_t>(strprintf("%" PRIu64, now.tv_sec - start_time)));
-    result->insert("timestamp", make_scoped<perfmon_result_t>(format_time(now)));
+    result->insert("uptime", new perfmon_result_t(strprintf("%" PRIu64, now.tv_sec - start_time)));
+    result->insert("timestamp", new perfmon_result_t(format_time(now)));
 
-    result->insert("version", make_scoped<perfmon_result_t>(std::string(RETHINKDB_VERSION)));
-    result->insert("pid", make_scoped<perfmon_result_t>(strprintf("%d", getpid())));
+    result->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+    result->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
     return result;
 }

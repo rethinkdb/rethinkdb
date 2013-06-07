@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "perfmon/perfmon.hpp"
 
 #include <stdarg.h>
@@ -119,16 +119,16 @@ scoped_ptr_t<perfmon_result_t> perfmon_sampler_t::output_stat(const stats_t &agg
     scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
     if (aggregated.count > 0) {
-        stat->insert(stat_avg, make_scoped<perfmon_result_t>(strprintf("%.8f", aggregated.sum / aggregated.count)));
-        stat->insert(stat_min, make_scoped<perfmon_result_t>(strprintf("%.8f", aggregated.min)));
-        stat->insert(stat_max, make_scoped<perfmon_result_t>(strprintf("%.8f", aggregated.max)));
+        stat->insert(stat_avg, new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
+        stat->insert(stat_min, new perfmon_result_t(strprintf("%.8f", aggregated.min)));
+        stat->insert(stat_max, new perfmon_result_t(strprintf("%.8f", aggregated.max)));
     } else {
-        stat->insert(stat_avg, make_scoped<perfmon_result_t>(no_value));
-        stat->insert(stat_min, make_scoped<perfmon_result_t>(no_value));
-        stat->insert(stat_max, make_scoped<perfmon_result_t>(no_value));
+        stat->insert(stat_avg, new perfmon_result_t(no_value));
+        stat->insert(stat_min, new perfmon_result_t(no_value));
+        stat->insert(stat_max, new perfmon_result_t(no_value));
     }
     if (include_rate) {
-        stat->insert(stat_per_sec, make_scoped<perfmon_result_t>(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
+        stat->insert(stat_per_sec, new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
 
     return stat;
@@ -210,14 +210,14 @@ stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
 scoped_ptr_t<perfmon_result_t> perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
     scoped_ptr_t<perfmon_result_t> stat = perfmon_result_t::alloc_map_result();
 
-    stat->insert(stat_count, make_scoped<perfmon_result_t>(strprintf("%zu", stat_data.datapoints())));
+    stat->insert(stat_count, new perfmon_result_t(strprintf("%zu", stat_data.datapoints())));
     if (stat_data.datapoints()) {
-        stat->insert(stat_mean, make_scoped<perfmon_result_t>(strprintf("%.8f", stat_data.mean())));
-        stat->insert(stat_std_dev, make_scoped<perfmon_result_t>(strprintf("%.8f", stat_data.standard_deviation())));
+        stat->insert(stat_mean, new perfmon_result_t(strprintf("%.8f", stat_data.mean())));
+        stat->insert(stat_std_dev, new perfmon_result_t(strprintf("%.8f", stat_data.standard_deviation())));
     } else {
         // No stats
-        stat->insert(stat_mean, make_scoped<perfmon_result_t>(no_value));
-        stat->insert(stat_std_dev, make_scoped<perfmon_result_t>(no_value));
+        stat->insert(stat_mean, new perfmon_result_t(no_value));
+        stat->insert(stat_std_dev, new perfmon_result_t(no_value));
     }
     return stat;
 }

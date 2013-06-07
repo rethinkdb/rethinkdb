@@ -171,8 +171,13 @@ class RqlQuery(object):
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)
+
     def has_fields(self, *attr):
         return HasFields(self, *attr)
+
+    def with_fields(self, *attr):
+        return WithFields(self, *attr)
+
     def keys(self):
         return Keys(self)
 
@@ -578,11 +583,15 @@ class Contains(RqlMethodQuery):
 
 class HasFields(RqlMethodQuery):
     tt = p.Term.HAS_FIELDS
-    st = 'contains'
+    st = 'has_fields'
+
+class WithFields(RqlMethodQuery):
+    tt = p.Term.WITH_FIELDS
+    st = 'with_fields'
 
 class Keys(RqlMethodQuery):
     tt = p.Term.KEYS
-    st = 'contains'
+    st = 'keys'
 
 class Pluck(RqlMethodQuery):
     tt = p.Term.PLUCK

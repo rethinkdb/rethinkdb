@@ -1276,7 +1276,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 
             // If namespaces were selected, only list stats belonging to those namespaces
             if (!namespace_filters.empty()) {
-                for (perfmon_result_t::const_iterator j = stats.begin(); j != stats.end(); ++j) {
+                for (auto j = stats.cbegin(); j != stats.cend(); ++j) {
                     if (is_uuid(j->first) && namespace_filters.count(str_to_uuid(j->first)) == 1) {
                         // Try to convert the uuid to a (unique) name
                         std::string id = j->first;

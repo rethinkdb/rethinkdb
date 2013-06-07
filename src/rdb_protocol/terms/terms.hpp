@@ -89,6 +89,7 @@ counted_t<term_t> make_eq_join_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_with_fields_term(env_t *env, protob_t<const Term> term);
 
 // seq.cc
 counted_t<term_t> make_between_term(env_t *env, protob_t<const Term> term);
