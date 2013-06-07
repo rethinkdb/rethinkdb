@@ -28,6 +28,8 @@ public:
         block_size_t block_size;
     };
 
+    // RSI: Force callers of this function to handle block_size.  (Change the type signature and
+    // figure out who's calling this.  Right now nobody actually uses the block size.)
     info_t get_block_info(block_id_t id);
     void set_block_info(block_id_t id, repli_timestamp_t recency,
                         flagged_off64_t offset,
