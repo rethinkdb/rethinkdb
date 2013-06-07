@@ -82,7 +82,7 @@ configure () {
         case "$OS" in
             Darwin) var_append LDFLAGS -lc++
                     var_append CXXFLAGS -stdlib=libc++ ;;
-            *) var_append LDFLAGS += -lstdc++ ;;
+            *) var_append LDFLAGS -lstdc++ ;;
         esac
     fi
     require "Precompiled web assets"
