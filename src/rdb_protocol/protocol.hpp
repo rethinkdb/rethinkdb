@@ -573,6 +573,8 @@ struct rdb_protocol_t {
                        sindex_create_t,
                        sindex_drop_t> write;
 
+        durability_requirement_t durability_requirement;
+
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the write had any side effects applicable to the region, and a
         // non-empty write was written to write_out.
@@ -580,13 +582,23 @@ struct rdb_protocol_t {
                    write_t *write_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
 
-        write_t() { }
-        explicit write_t(const point_replace_t &r) : write(r) { }
-        explicit write_t(const batched_replaces_t &br) : write(br) { }
-        explicit write_t(const point_write_t &w) : write(w) { }
-        explicit write_t(const point_delete_t &d) : write(d) { }
-        explicit write_t(const sindex_create_t &c) : write(c) { }
-        explicit write_t(const sindex_drop_t &c) : write(c) { }
+        durability_requirement_t durability() const { return durability_requirement; }
+
+        write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+        explicit write_t(const point_replace_t &r, durability_requirement_t durability)
+            : write(r), durability_requirement(durability) { }
+        explicit write_t(const batched_replaces_t &br, durability_requirement_t durability)
+            : write(br), durability_requirement(durability) { }
+        explicit write_t(const point_write_t &w,
+                         durability_requirement_t durability)
+            : write(w), durability_requirement(durability) { }
+        explicit write_t(const point_delete_t &d,
+                         durability_requirement_t durability)
+            : write(d), durability_requirement(durability) { }
+        explicit write_t(const sindex_create_t &c)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+        explicit write_t(const sindex_drop_t &c)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

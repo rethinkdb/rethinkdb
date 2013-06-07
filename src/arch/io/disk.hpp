@@ -21,13 +21,22 @@
 #define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
 #endif
 
+// The maximum concurrent IO requests per event queue.. the default value.
+#define DEFAULT_MAX_CONCURRENT_IO_REQUESTS 64
+
+// The maximum user-specifiable value how many concurrent I/O requests may be done per event
+// queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
+#define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
+
+
+
 class linux_iocallback_t;
 
 class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    io_backender_t();
+    io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
 
@@ -59,7 +68,6 @@ public:
         mode_truncate = 1 << 3
     };
 
-    bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
     void set_size_at_least(size_t size);

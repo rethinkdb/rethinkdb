@@ -17,10 +17,34 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
     - cd: tbl.count()
       ot: 1
-    - cd: tbl.insert({'id':1,'a':1})
+
+    # Hard durability insert
+    - py: tbl.insert({'id':1, 'a':1}, durability='hard')
+      js: tbl.insert({id:1, a:1}, {durability:'hard'})
+      rb: tbl.insert({ :id => 1, :a => 1 }, { :durability => 'hard' })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
     - cd: tbl.count()
       ot: 2
+
+    # Soft durability insert
+    - py: tbl.insert({'id':2, 'a':2}, durability='soft')
+      js: tbl.insert({id:2, a:2}, {durability:'soft'})
+      rb: tbl.insert({ :id => 2, :a => 2 }, { :durability => 'soft' })
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
+    - cd: tbl.count()
+      ot: 3
+
+    # Wrong durability insert
+    - py: tbl.insert({'id':3, 'a':3}, durability='wrong')
+      js: tbl.insert({id:3, a:3}, {durability:'wrong'})
+      rb: tbl.insert({ :id => 3, :a => 3 }, { :durability => 'wrong' })
+      ot: err('RqlRuntimeError', 'Durability option `wrong` unrecognized (options are "hard" and "soft").', [0])
+    - cd: tbl.count()
+      ot: 3
+
+    # Cleanup.
+    - cd: tbl.get(2).delete()
+      ot: ({'deleted':1,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     # Multi doc insert
     - cd: tbl.insert([{'id':2,'a':2}, {'id':3,'a':3}])
@@ -37,7 +61,7 @@ tests:
     # test upsert option (object exists)
     - py: tbl.insert({'id':2,'b':20}, upsert=True)
       js: tbl.insert({'id':2,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 2, :b => 20}, :upsert)
+      rb: tbl.insert({:id => 2, :b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - cd: tbl.get(2)
@@ -46,7 +70,7 @@ tests:
     # test upsert option (object doesn't exit)
     - py: tbl.insert({'id':20,'b':20}, upsert=True)
       js: tbl.insert({'id':20,'b':20}, {upsert:true})
-      rb: tbl.insert({:id => 20, :b => 20}, :upsert)
+      rb: tbl.insert({:id => 20, :b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: tbl.get(20)
@@ -57,7 +81,7 @@ tests:
       js: r.db('test').tableCreate('testpkey', {primaryKey:'foo'})
       rb: r.db('test').table_create('testpkey', { :primary_key => 'foo' })
       ot: ({'created':1})
-      
+
       def: tblpkey = r.db('test').table('testpkey')
 
     - cd: tblpkey.insert({})
@@ -69,7 +93,7 @@ tests:
     # test upsert pkey generation
     - py: tblpkey.insert({'b':20}, upsert=True)
       js: tblpkey.insert({'b':20}, {upsert:true})
-      rb: tblpkey.insert({:b => 20}, :upsert)
+      rb: tblpkey.insert({:b => 20}, { :upsert => true })
       ot: ({'deleted':0.0,'replaced':0.0,'generated_keys':arrlen(1,uuid()),'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 
     - cd: r.db('test').table_drop('testpkey')

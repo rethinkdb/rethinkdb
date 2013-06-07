@@ -8,8 +8,8 @@ All top level functions defined here are the starting points for RQL queries
 def js(js_str, timeout=()):
     return JavaScript(js_str, timeout=timeout)
 
-def error(msg):
-    return UserError(msg)
+def error(*msg):
+    return UserError(*msg)
 
 def do(arg0, *args):
     args = [arg0]+[x for x in args]
@@ -32,8 +32,8 @@ def db_drop(db_name):
 def db_list():
     return DbList()
 
-def table_create(table_name, primary_key=(), datacenter=(), cache_size=(), hard_durability=()):
-    return TableCreate(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, hard_durability=hard_durability)
+def table_create(table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
+    return TableCreate(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
 
 def table_drop(table_name):
     return TableDrop(table_name)

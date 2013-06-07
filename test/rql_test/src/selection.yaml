@@ -226,7 +226,22 @@ tests:
 
     # test filtering for things by a missing attribute
     - cd: r.expr([{'a':1}]).filter({'b':1})
-      ot: err('RqlRuntimeError', 'No attribute `b` in object.', [0])
+      ot: []
+
+    # Count with parameter
+    - js: tbl.count(function(){ return {'a':1}; })
+      rb: tbl.count{ |row| {:a => 1} }
+      py: "tbl.count(lambda row: {'a':1})"
+      ot: 25
+
+    - js: tbl.count({'a':1})
+      ot: 0
+
+    - cd: r.expr([1,2,3,1]).count(1)
+      ot: 2
+
+    - cd: r.expr([null, 4, null, 'foo']).count(null)
+      ot: 2
 
     # what the heck, let's see what happens
     - py: r.expr(5) + tbl

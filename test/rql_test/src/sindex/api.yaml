@@ -41,9 +41,10 @@ tests:
 
   - cd: tbl.get(true)
     py: tbl.get(True)
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+    # No error
+
   - cd: tbl.get([])
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got [] of type ARRAY).", [])'
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number, bool, or string (got [] of type ARRAY).", [])'
   - cd: tbl.get(-1)
     ot: (null)
   - rb: tbl.get(1)[:id]
@@ -68,7 +69,8 @@ tests:
   - rb: tbl.get_all(true)
     py: tbl.get_all(True)
     js: tbl.getAll(true)
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+    # No error
+
   - cd: tbl.get_all(-1)
     ot: []
   - rb: tbl.get_all(1)[0][:id]
@@ -95,15 +97,17 @@ tests:
   - rb: tbl.get_all(true, :index => :id)
     py: tbl.get_all(True, index='id')
     js: tbl.getAll(true, {index:'id'})
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got true of type BOOL).", [])'
+    # No error
+
   - rb: tbl.get_all([], :index => :id)
     py: tbl.get_all([], index='id')
     js: tbl.getAll([], {index:'id'})
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number or a string (got [] of type ARRAY).", [])'
+    ot: 'err("RqlRuntimeError", "Primary keys must be either a number, bool, or string (got [] of type ARRAY).", [])'
   - rb: tbl.get_all(true, :index => :idi)
     py: tbl.get_all(True, index='idi')
     js: tbl.getAll(true, {index:'idi'})
-    ot: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got true of type BOOL).", [])'
+    # No error
+
   - rb: tbl.get_all([], :index => :idi)
     py: tbl.get_all([], index='idi')
     js: tbl.getAll([], {index:'idi'})
@@ -223,9 +227,9 @@ tests:
     py: tbl.get_all(None, index='nil')
     js: tbl.getAll(null, {index:'nil'})
     ot:
-      py: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got nu""ll of type NULL).", [])'
-      rb: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got nu""ll of type NULL).", [])'
-      js: 'err("RqlRuntimeError", "Secondary keys must be a number, string, or array (got null of type NULL).", [])'
+      py: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])'
+      rb: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])'
+      js: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got null of type NULL).", [])'
 
   - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4})
     cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4})

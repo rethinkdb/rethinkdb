@@ -29,7 +29,8 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
 
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_target(
-        caller, l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        caller, base_exc_t::GENERIC,
+        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
                   l->get_type_name(), r->get_type_name()));
     return l;
@@ -54,11 +55,26 @@ counted_t<const datum_t> new_stats_object() {
     return counted_t<datum_t>(stats.release());
 }
 
-static const char *const insert_optargs[] = { "upsert" };
+durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
+                                                 pb_rcheckable_t *target) {
+    if (!arg.has()) { return DURABILITY_REQUIREMENT_DEFAULT; }
+    std::string str = arg->as_str();
+    if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
+    if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
+    rfail_target(target,
+                 base_exc_t::GENERIC,
+                 "Durability option `%s` unrecognized "
+                 "(options are \"hard\" and \"soft\").",
+                 str.c_str());
+    unreachable();
+}
+
+
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(insert_optargs)) { }
+        : op_term_t(env, term, argspec_t(2),
+                    optargspec_t({ "upsert", "durability" })) { }
 
 private:
     void maybe_generate_key(counted_t<table_t> tbl,
@@ -77,8 +93,11 @@ private:
 
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
-        const counted_t<val_t> upsert_val = optarg("upsert", counted_t<val_t>());
-        bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
+        const counted_t<val_t> upsert_val = optarg("upsert");
+        const bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
+
+        const durability_requirement_t durability_requirement
+            = parse_durability_optarg(optarg("durability"), this);
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
@@ -93,7 +112,7 @@ private:
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                stats = stats->merge(t->replace(d, d, upsert), stats_merge);
+                stats = stats->merge(t->replace(d, d, upsert, durability_requirement), stats_merge);
                 done = true;
             }
         }
@@ -118,7 +137,7 @@ private:
                 }
 
                 std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(datums, datums, upsert);
+                    t->batch_replace(datums, datums, upsert, durability_requirement);
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -141,18 +160,22 @@ private:
     virtual const char *name() const { return "insert"; }
 };
 
-static const char *const replace_optargs[] = { "non_atomic" };
 class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t(replace_optargs)) { }
+        : op_term_t(env, term, argspec_t(2),
+                    optargspec_t({ "non_atomic", "durability" })) { }
 
 private:
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = optarg("non_atomic", counted_t<val_t>())) {
+        if (counted_t<val_t> v = optarg("non_atomic")) {
             nondet_ok = v->as_bool();
         }
+
+        const durability_requirement_t durability_requirement
+            = parse_durability_optarg(optarg("durability"), this);
+
         counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
@@ -165,7 +188,8 @@ private:
                 = v0->as_single_selection();
             counted_t<const datum_t> result = tblrow.first->replace(tblrow.second,
                                                                     f,
-                                                                    nondet_ok);
+                                                                    nondet_ok,
+                                                                    durability_requirement);
             stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
@@ -179,7 +203,7 @@ private:
                     break;
                 }
                 std::vector<counted_t<const datum_t> > results =
-                    tbl->batch_replace(datums, f, nondet_ok);
+                    tbl->batch_replace(datums, f, nondet_ok, durability_requirement);
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(*result, stats_merge);
@@ -217,9 +241,9 @@ private:
                     }
                 }
             } catch (const exc_t &e) {
-                throw exc_t(fail_msg, e.backtrace());
+                throw exc_t(e.get_type(), fail_msg, e.backtrace());
             } catch (const datum_exc_t &de) {
-                rfail_target(v, "%s", fail_msg);
+                rfail_target(v, base_exc_t::GENERIC, "%s", fail_msg);
             }
         }
         return new_val(stats);

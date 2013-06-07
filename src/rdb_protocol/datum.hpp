@@ -78,7 +78,8 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string unprint_secondary(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
-    void check_type(type_t desired) const;
+    void check_type(type_t desired, const char *msg = NULL) const;
+    void type_error(const std::string &msg) const NORETURN;
 
     bool as_bool() const;
     double as_num() const;
@@ -88,6 +89,11 @@ public:
     // Use of `size` and `el` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
     void add(counted_t<const datum_t> val); // add to an array
+    void change(size_t index, counted_t<const datum_t> val); //change an element of an array
+    void insert(size_t index, counted_t<const datum_t> val); //insert into an array
+    void erase(size_t index); //erase from an array
+    void erase_range(size_t start, size_t end); //erase a range from an array
+    void splice(size_t index, counted_t<const datum_t> values);
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
@@ -127,9 +133,10 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    virtual void runtime_check(const char *test, const char *file, int line,
+    virtual void runtime_check(base_exc_t::type_t exc_type,
+                               const char *test, const char *file, int line,
                                bool pred, std::string msg) const {
-        ql::runtime_check(test, file, line, pred, msg);
+        ql::runtime_check(exc_type, test, file, line, pred, msg);
     }
 
 private:
@@ -143,6 +150,7 @@ private:
 
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
+    void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
 
     type_t type;

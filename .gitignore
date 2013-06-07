@@ -43,3 +43,4 @@ config.mk
 mk/gen/*
 test/rql_test/run/
 drivers/python/rethinkdb/ql2_pb2.py
+external/re2/obj/

@@ -21,19 +21,24 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
       js_env(NULL), js_id(js::INVALID_ID) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
-    rcheck(t->optargs_size() == 0, "FUNC takes no optional arguments.");
-    rcheck(t->args_size() == 2, strprintf("Func takes exactly two arguments (got %d)",
-                                          t->args_size()));
+    rcheck(t->optargs_size() == 0,
+           base_exc_t::GENERIC,
+           "FUNC takes no optional arguments.");
+    rcheck(t->args_size() == 2,
+           base_exc_t::GENERIC,
+           strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
     std::vector<int> args;
     const Term *vars = &t->args(0);
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
         rcheck(d->type() == Datum_DatumType_R_ARRAY,
+               base_exc_t::GENERIC,
                "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
         for (int i = 0; i < d->r_array_size(); ++i) {
             const Datum *dnum = &d->r_array(i);
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
@@ -41,14 +46,17 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
         for (int i = 0; i < vars->args_size(); ++i) {
             const Term *arg = &vars->args(i);
             rcheck(arg->type() == Term_TermType_DATUM,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
             const Datum *dnum = &arg->datum();
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
             args.push_back(dnum->r_num());
         }
     } else {
-        rfail("CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
+        rfail(base_exc_t::GENERIC,
+              "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
     argptrs.init(args.size());
@@ -93,6 +101,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
                    || argptrs.size() == 0,
+                   base_exc_t::GENERIC,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
             for (ssize_t i = 0; i < argptrs.size(); ++i) {
@@ -102,7 +111,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             return body->eval();
         }
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -138,6 +147,7 @@ bool func_t::is_deterministic() const {
 }
 void func_t::assert_deterministic(const char *extra_msg) const {
     rcheck(is_deterministic(),
+           base_exc_t::GENERIC,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
@@ -146,9 +156,13 @@ std::string func_t::print_src() const {
     return source->DebugString();
 }
 
+void func_t::set_default_filter_val(counted_t<func_t> func) {
+    default_filter_val = func;
+}
+
 // This JS evaluation resulted in an error
 counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
-    rfail_target(parent, "%s", err_val.c_str());
+    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();
 }
 
@@ -165,6 +179,9 @@ counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)) {
+    if (func->default_filter_val.has()) {
+        default_filter_val = *func->default_filter_val->source.get();
+    }
     if (env) {
         cached_funcs[env->uuid] = func;
     }
@@ -178,6 +195,10 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
     if (cached_funcs.count(env->uuid) == 0) {
         env->push_scope(&scope);
         cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
+        if (default_filter_val) {
+            cached_funcs[env->uuid]->set_default_filter_val(
+                make_counted<func_t>(env, make_counted_term_copy(*default_filter_val)));
+        }
         env->pop_scope();
     }
     return cached_funcs[env->uuid];
@@ -186,12 +207,15 @@ counted_t<func_t> wire_func_t::compile(env_t *env) {
 void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
     guarantee(source.has());
     msg << *source;
+    msg << default_filter_val;
     msg << scope;
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     guarantee(source.has());
     archive_result_t res = deserialize(stream, source.get());
+    if (res != ARCHIVE_SUCCESS) { return res; }
+    res = deserialize(stream, &default_filter_val);
     if (res != ARCHIVE_SUCCESS) { return res; }
     return deserialize(stream, &scope);
 }
@@ -208,23 +232,51 @@ bool func_term_t::is_deterministic_impl() const {
 }
 
 bool func_t::filter_call(counted_t<const datum_t> arg) {
-    counted_t<const datum_t> d = call(arg)->as_datum();
-    if (d->get_type() == datum_t::R_OBJECT &&
-        (source->args(1).type() == Term::MAKE_OBJ ||
-         source->args(1).type() == Term::DATUM)) {
-        const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            r_sanity_check(it->second.has());
-            counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
-            if (!elt.has()) {
-                rfail("No attribute `%s` in object.", it->first.c_str());
-            } else if (*elt != *it->second) {
-                return false;
+    try {
+        counted_t<const datum_t> d = call(arg)->as_datum();
+        if (d->get_type() == datum_t::R_OBJECT &&
+            (source->args(1).type() == Term::MAKE_OBJ ||
+             source->args(1).type() == Term::DATUM)) {
+            const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
+            for (auto it = obj.begin(); it != obj.end(); ++it) {
+                r_sanity_check(it->second.has());
+                counted_t<const datum_t> elt = arg->get(it->first, NOTHROW);
+                if (!elt.has()) {
+                    rfail(base_exc_t::NON_EXISTENCE,
+                          "No attribute `%s` in object.", it->first.c_str());
+                } else if (*elt != *it->second) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return d->as_bool();
+        }
+    } catch (const base_exc_t &e) {
+        if (e.get_type() == base_exc_t::NON_EXISTENCE) {
+            // If a non-existence error is thrown inside a `filter`, we return
+            // the default value.  Note that we will enter this branch if the
+            // function passed to `filter` returns NULL, since the type error
+            // above will produce a non-existence error in the case where `d` is
+            // NULL.
+            try {
+                if (default_filter_val) {
+                    return default_filter_val->call()->as_bool();
+                } else {
+                    return false;
+                }
+            } catch (const base_exc_t &e2) {
+                if (e2.get_type() != base_exc_t::EMPTY_USER) {
+                    // If the default value throws a non-EMPTY_USER exception,
+                    // we re-throw that exception.
+                    throw;
+                }
             }
         }
-        return true;
-    } else {
-        return d->as_bool();
+        // If we caught a non-NON_EXISTENCE exception or we caught a
+        // NON_EXISTENCE exception and the default value threw an EMPTY_USER
+        // exception, we re-throw the original exception.
+        throw;
     }
 }
 
@@ -237,7 +289,18 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     return make_counted<func_t>(env, twrap);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const wire_func_t &func) {
+counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+                    const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    int var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))),
+       N2(EQ, NDATUM(obj), NVAR(var)));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
+void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
 

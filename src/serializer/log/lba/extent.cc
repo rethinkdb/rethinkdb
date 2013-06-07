@@ -65,21 +65,21 @@ struct extent_block_t :
 extent_t::extent_t(extent_manager_t *_em, file_t *_file)
     : amount_filled(0), em(_em),
       file(_file), last_block(NULL), current_block(NULL) {
-    em->gen_extent(&extent_ref);
+    extent_ref = em->gen_extent();
     ++em->stats->pm_serializer_lba_extents;
 }
 
 extent_t::extent_t(extent_manager_t *_em, file_t *_file, int64_t loc, size_t size)
     : amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
-    em->reserve_extent(loc, &extent_ref);
+    extent_ref = em->reserve_extent(loc);
 
     rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     ++em->stats->pm_serializer_lba_extents;
 }
 
 void extent_t::destroy(extent_transaction_t *txn) {
-    em->release_extent_into_transaction(&extent_ref, txn);
+    em->release_extent_into_transaction(std::move(extent_ref), txn);
     delete this;
 }
 

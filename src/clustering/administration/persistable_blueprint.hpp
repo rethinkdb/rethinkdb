@@ -6,6 +6,10 @@
 
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/administration/machine_metadata.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "memcached/protocol.hpp"
+#include "mock/dummy_protocol.hpp"
+
 
 /* This is like `blueprint_t`, except that it is indexed by `machine_id_t`
 instead of `peer_id_t`. This is important because peer IDs chan change when a
@@ -36,7 +40,7 @@ public:
 };
 
 template <class protocol_t>
-void debug_print(append_only_printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x);
+void debug_print(printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x);
 
 
 template <class protocol_t>

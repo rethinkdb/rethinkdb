@@ -39,7 +39,7 @@ cJSON *render_as_json(perfmon_result_t *target) {
     if (target->is_map()) {
         cJSON *res = cJSON_CreateObject();
 
-        for (perfmon_result_t::iterator it  = target->begin(); it != target->end(); ++it) {
+        for (auto it = target->cbegin(); it != target->cend(); ++it) {
             cJSON_AddItemToObject(res, it->first.c_str(), render_as_json(it->second));
         }
 
@@ -187,7 +187,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
-            if (!stats.get_map()->empty()) {
+            if (stats.get_map_size() != 0) {
                 body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
             }
         } else {

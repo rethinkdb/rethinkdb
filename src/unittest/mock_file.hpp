@@ -19,7 +19,6 @@ public:
     mock_file_t(mode_t mode, std::vector<char> *data);
     ~mock_file_t();
 
-    bool is_block_device();
     uint64_t get_size();
     void set_size(size_t size);
     void set_size_at_least(size_t size);

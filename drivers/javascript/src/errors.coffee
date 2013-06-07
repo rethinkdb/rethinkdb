@@ -48,11 +48,11 @@ class RqlQueryPrinter
                         composeTerm(arg)
 
         optargs = {}
-        for own key,arg in term.optargs
+        for own key,arg of term.optargs
             optargs[key] = if key == argNum
                              composeCarrots(arg, frames)
                            else
-                             comoseTerm(arg)
+                             composeTerm(arg)
         if argNum >= 0
             term.compose(args, optargs)
         else

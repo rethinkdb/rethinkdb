@@ -29,6 +29,7 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
@@ -137,7 +138,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
+void format_time(struct timespec time, printf_buffer_t *buf) {
     struct tm t;
     struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
@@ -153,7 +154,7 @@ void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
 }
 
 std::string format_time(struct timespec time) {
-    printf_buffer_t<formatted_time_length + 1> buf;
+    printf_buffer_t buf;
     format_time(time, &buf);
     return std::string(buf.c_str());
 }
@@ -245,7 +246,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
-void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n) {
+void debug_print_quoted_string(printf_buffer_t *buf, const uint8_t *s, size_t n) {
     buf->appendf("\"");
     for (size_t i = 0; i < n; ++i) {
         uint8_t ch = s[i];
@@ -282,7 +283,7 @@ void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *
 
 #ifndef NDEBUG
 // Adds the time/thread id prefix to buf.
-void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
+void debugf_prefix_buf(printf_buffer_t *buf) {
     struct timespec t = clock_realtime();
 
     format_time(t, buf);
@@ -290,7 +291,7 @@ void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
     buf->appendf(" Thread %d: ", get_thread_id());
 }
 
-void debugf_dump_buf(printf_buffer_t<1000> *buf) {
+void debugf_dump_buf(printf_buffer_t *buf) {
     // Writing a single buffer in one shot like this makes it less
     // likely that stderr debugfs and stdout printfs get mixed
     // together, and probably makes it faster too.  (We can't simply
@@ -303,7 +304,7 @@ void debugf_dump_buf(printf_buffer_t<1000> *buf) {
 }
 
 void debugf(const char *msg, ...) {
-    printf_buffer_t<1000> buf;
+    printf_buffer_t buf;
     debugf_prefix_buf(&buf);
 
     va_list ap;
@@ -318,11 +319,11 @@ void debugf(const char *msg, ...) {
 
 #endif
 
-void debug_print(append_only_printf_buffer_t *buf, uint64_t x) {
+void debug_print(printf_buffer_t *buf, uint64_t x) {
     buf->appendf("%" PRIu64, x);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const std::string& s) {
+void debug_print(printf_buffer_t *buf, const std::string& s) {
     const char *data = s.data();
     debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
 }
@@ -359,6 +360,10 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+double rng_t::randdouble() {
+    return erand48(xsubi);
+}
+
 struct nrand_xsubi_t {
     unsigned short xsubi[3];  // NOLINT(runtime/int)
 };
@@ -385,6 +390,20 @@ int randint(int n) {
     long x = nrand48(buffer.xsubi);  // NOLINT(runtime/int)
     TLS_set_rng_data(buffer);
     return x % n;
+}
+
+double randdouble() {
+    nrand_xsubi_t buffer;
+    if (!TLS_get_rng_initialized()) {
+        CT_ASSERT(sizeof(buffer.xsubi) == 6);
+        get_dev_urandom(&buffer.xsubi, sizeof(buffer.xsubi));
+        TLS_set_rng_initialized(true);
+    } else {
+        buffer = TLS_get_rng_data();
+    }
+    double x = erand48(buffer.xsubi);  // NOLINT(runtime/int)
+    TLS_set_rng_data(buffer);
+    return x;
 }
 
 std::string rand_string(int len) {
@@ -552,7 +571,7 @@ bool notf(bool x) {
 }
 
 std::string vstrprintf(const char *format, va_list ap) {
-    printf_buffer_t<500> buf(ap, format);
+    printf_buffer_t buf(ap, format);
 
     return std::string(buf.data(), buf.data() + buf.size());
 }
@@ -563,7 +582,7 @@ std::string strprintf(const char *format, ...) {
     va_list ap;
     va_start(ap, format);
 
-    printf_buffer_t<500> buf(ap, format);
+    printf_buffer_t buf(ap, format);
 
     ret.assign(buf.data(), buf.data() + buf.size());
 

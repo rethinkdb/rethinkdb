@@ -7,8 +7,9 @@ LDPATHDS ?=
 CXXPATHDS ?=
 LDFLAGS ?= -I/usr/local/include -L/usr/local/lib -lre2
 CXXFLAGS ?=
-RT_LDFLAGS := $(LDFLAGS)
-RT_CXXFLAGS := $(CXXFLAGS)
+RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS)
+RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -21,20 +22,11 @@ endif
 
 STATICFORCE := $(STATIC)
 
-ifeq ($(OS),Linux)
-  LDPTHREADFLAG := -pthread
-else
-  LDPTHREADFLAG :=
-endif
-
 ifeq ($(COMPILER),CLANG)
 
   ifeq ($(OS),Darwin)
     # TODO: ld: unknown option: --no-as-needed
     # RT_LDFLAGS += -Wl,--no-as-needed
-    RT_LDFLAGS += -lc++
-  else
-    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)
@@ -45,7 +37,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lm
+  RT_LDFLAGS += $(LDPATHDS) -lm
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -58,7 +50,7 @@ else ifeq ($(COMPILER),INTEL)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG) -lstdc++
+  RT_LDFLAGS += $(LDPATHDS) -lstdc++
 else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
@@ -73,11 +65,11 @@ else ifeq ($(COMPILER),GCC)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) $(LDPTHREADFLAG)
+  RT_LDFLAGS += $(LDPATHDS)
 endif
 
 ifeq ($(OS),Linux)
-  LIBRARY_PATHS += -lrt
+  RT_LDFLAGS += -lrt
 endif
 
 ifeq ($(STATICFORCE),1)
@@ -125,10 +117,6 @@ else ifeq ($(COMPILER), CLANG)
   RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default # -Wno-unneeded-internal-declaration
   RT_CXXFLAGS += -Wused-but-marked-unused -Wundef -Wvla -Wshadow
   RT_CXXFLAGS += -Wconditional-uninitialized -Wmissing-noreturn
-  ifeq ($(OS), Darwin)
-    RT_CXXFLAGS += -stdlib=libc++
-  endif
-
 else ifeq ($(COMPILER), GCC)
   ifeq ($(LEGACY_GCC), 1)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default
@@ -335,9 +323,9 @@ rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(SERVER_EXEC_OBJS) | $(BUILD_DIR)/. $(TCMALLOC_DEP) $(PROTOBUF_DEP)
 	$P LD $@
-	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_EXEC_OBJS) $(LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
+	$(RT_CXX) $(SERVER_EXEC_OBJS) $(RT_LDFLAGS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(LD_OUTPUT_FILTER)
 ifeq ($(NO_TCMALLOC),0) # if we link to tcmalloc
-ifeq ($(filter -ltcmalloc%, $(LIBRARY_PATHS)),) # and it's not dynamic
+ifeq ($(filter -l%, $(TCMALLOC_MINIMAL_LIBS)),) # and it's not dynamic
 # TODO: c++filt may not be installed
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. You may have to run ./configure with the --without-tcmalloc flag." && \
@@ -351,7 +339,7 @@ $(OBJ_DIR)/unittest/%.o: RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFL
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(SERVER_UNIT_TEST_OBJS) $(UNIT_STATIC_LIBRARY_PATH) | $(BUILD_DIR)/. $(TCMALLOC_DEP)
 	$P LD $@
-	$(RT_CXX) $(RT_LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(UNIT_STATIC_LIBRARY_PATH) $(LIBRARY_PATHS) -o $@ $(LD_OUTPUT_FILTER)
+	$(RT_CXX) $(SERVER_UNIT_TEST_OBJS) $(RT_LDFLAGS) $(UNIT_STATIC_LIBRARY_PATH) -o $@ $(LD_OUTPUT_FILTER)
 
 $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 	$P CP $@
@@ -362,7 +350,7 @@ $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADE
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) $(RE2_DEP) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \

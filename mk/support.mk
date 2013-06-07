@@ -75,14 +75,14 @@ else
   PROTOC_RUN := $(PROTOC)
 endif
 
-ifneq (,$(filter $(V8_INT_LIB),$(LIBRARY_PATHS)))
+ifeq ($(V8_INT_LIB),$(V8_LIBS))
   V8_DEP := $(V8_INT_LIB)
   CXXPATHDS += -isystem $(V8_INT_DIR)/include
 else
   V8_CXXFLAGS :=
 endif
 
-ifneq (,$(filter $(PROTOBUF_INT_LIB),$(LIBRARY_PATHS)))
+ifeq ($(PROTOBUF_INT_LIB),$(PROTOBUF_LIBS))
   PROTOBUF_DEP := $(PROTOBUF_INT_LIB)
 endif
 
@@ -96,12 +96,13 @@ ifeq ($(COFFEE),$(TC_COFFEE_INT_EXE))
   COFFEE_DEP := $(COFFEE)
 endif
 
-ifneq (,$(filter $(TCMALLOC_MINIMAL_INT_LIB),$(LIBRARY_PATHS)))
+ifeq ($(TCMALLOC_MINIMAL_INT_LIB),$(TCMALLOC_MINIMAL_LIBS))
   TCMALLOC_DEP := $(TCMALLOC_MINIMAL_INT_LIB)
 endif
 
 .PHONY: support
 support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
+support: $(LESSC) $(HANDLEBARS)
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
@@ -116,7 +117,7 @@ $(TC_LESSC_INT_EXE): $(NODE_MODULES_DIR)/less | $(dir $(TC_LESSC_INT_EXE)).
 
 $(NODE_MODULES_DIR)/less: $(NPM_DEP)
 	$P NPM-I less
-	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less $(SUPPORT_LOG_REDIRECT)
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install https://github.com/cloudhead/less.js/archive/v1.3.3.tar.gz $(SUPPORT_LOG_REDIRECT)
 
 $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_EXE)).
 	$P LN
@@ -138,7 +139,7 @@ $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS
 $(NODE_MODULES_DIR)/handlebars: $(NPM_DEP)
 	$P NPM-I handlebars
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install handlebars $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install https://github.com/wycats/handlebars.js/archive/v1.0.12.tar.gz $(SUPPORT_LOG_REDIRECT)
 
 $(V8_SRC_DIR):
 	$P SVN-CO v8

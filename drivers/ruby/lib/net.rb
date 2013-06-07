@@ -75,6 +75,10 @@ module RethinkDB
   end
 
   class Connection
+    def auto_reconnect(x=true)
+      @auto_reconnect = x
+      self
+    end
     def repl; RQL.set_default_conn self; end
 
     def initialize(host='localhost', port=28015, default_db=nil)
@@ -98,6 +102,7 @@ module RethinkDB
       noreply ? nil : wait(q.token)
     end
     def run(msg, opts)
+      reconnect if @auto_reconnect && (!@socket || !@listener)
       raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::START
@@ -135,9 +140,9 @@ module RethinkDB
     end
 
     def dispatch msg
-      PP.pp msg if $DEBUG
+      # PP.pp msg if $DEBUG
       payload = msg.serialize_to_string
-      #File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
+      # File.open('sexp_payloads.txt', 'a') {|f| f.write(payload.inspect+"\n")}
       send([payload.length].pack('L<') + payload)
       return msg.token
     end

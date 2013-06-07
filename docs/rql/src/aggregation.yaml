@@ -7,12 +7,12 @@ sections:
 commands:
   - tag: reduce
     section: aggregation
-    description: | 
+    description: |
       Produce a single value from a sequence through repeated application
       of a reduction function.<br /><br />
-      The <code>reduce</code> function gets invoked repeatedly not only 
-      for the input values but also for results of previous reduce invocations. 
-      The type and format of the object that is passed in to reduce must be 
+      The <code>reduce</code> function gets invoked repeatedly not only
+      for the input values but also for results of previous reduce invocations.
+      The type and format of the object that is passed in to reduce must be
       the same with the one returned from reduce.
 
     body:
@@ -30,23 +30,20 @@ commands:
                 return acc.add(val)
             }, 0).run(conn, callback)
           py: |-
-            r.table('marvel').map(r.row['monsters_killed']).reduce(
+            r.table('marvel').map(r.row['monstersKilled']).reduce(
                 lambda acc, val: acc + val, 0).run(conn)
           rb: |-
             r.table('marvel').map {|hero| hero['monstersKilled']}.reduce(0) {
                 |acc, val| acc + val }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: count
     section: aggregation
-    description: Count the number of elements in the sequence.
+    description: Count the number of elements in the sequence. With a single argument,
+      count the number of elements equal to it. If the argument is a function, it is
+      equivalent to calling filter before count.
 
     parent: sequence
+    body: [filter]
     returns: number
 
     examples:
@@ -55,12 +52,16 @@ commands:
           js: r.table('marvel').count().add(r.table('dc').count()).run(conn, callback)
           py: (r.table('marvel').count() + r.table('dc').count()).run(conn)
           rb: (r.table('marvel').count + r.table('dc').count).run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
+      - description: Just how many super heroes have invisibility?
+        code:
+          js: r.table('marvel').concatMap(r.row('superpowers')).count('invisibility').run(conn, callback)
+          rb: r.table('marvel').concat_map{ |row| row[:superpowers] }.count('invisibility').run(conn)
+          py: r.table('marvel').concat_map(r.row['superpowers']).count('invisibility').run(conn)
+      - description: Just how many super heroes have defeated the Sphinx?
+        code:
+          js: r.table('marvel').count(r.row('monstersKilled').contains('Sphinx')).run(conn, callback)
+          py: r.table('marvel').count(r.row['monstersKilled'].contains('Sphinx')).run(conn)
+          rb: r.table('marvel').count{ |row| row['monstersKilled'].contains('Sphinx') }.run(conn)
 
   - tag: distinct
     section: aggregation
@@ -80,12 +81,6 @@ commands:
 
     rb:
       dont_need_parenthesis: true
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: groupedmapreduce
     section: aggregation
@@ -127,18 +122,12 @@ commands:
               lambda {|acc, hero| r.branch(acc[:strength] < hero[:strength], hero, acc)}
             ).run(conn)
 
-    js:
-      name: groupedMapReduce
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: group_by
     section: aggregation
     description: Groups elements by the values of the given attributes and then applies
-      the given reduction. Though similar to <code>grouped_map_reduce</code>, 
-      groupby takes a standardized object for specifying the reduction. 
+      the given reduction. Though similar to <code>grouped_map_reduce</code>,
+      groupby takes a standardized object for specifying the reduction.
       Can be used with a number of predefined common reductions.
 
     body: attr1[, attr2...], reduction_object
@@ -153,10 +142,17 @@ commands:
           py: r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
           rb: r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)
 
-    js:
-      name: groupBy
-      body: attr1[, attr2...], reductionObject
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
+  - tag: contains
+    section: aggregation
+    description: Returns whether or not a sequence contains all the specified values.
+
+    body: value1[, value2...]
+    parent: sequence
+    returns: bool
+
+    examples:
+      - description: Iron Man ever fought Superman?
+        code:
+          rb: r.table('marvel').get('ironman')[:opponents].contains('superman')
+          py: r.table('marvel').get('ironman')['opponents'].contains('superman')
+          py: r.table('marvel').get('ironman')('opponents').contains('superman')

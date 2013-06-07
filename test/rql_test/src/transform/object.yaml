@@ -2,12 +2,10 @@ desc: Tests manipulation operations on objects
 tests:
 
     # Define some objects to work with
-    - def:
-        cd: obj = r.expr({'a':1, 'b':2, 'c':"str"})
-        rb: obj = r.expr({ :a => 1, :b => 2, :c => 'str' })
+    - def: obj = r.expr({'a':1, 'b':2,'c':"str",'d':null})
 
     ##  Get attr
-    
+
     - cd: obj['a']
       js: [obj('a'), obj.getAttr('a')]
       ot: 1
@@ -15,18 +13,30 @@ tests:
       js: [obj('c'), obj.getAttr('c')]
       ot: "'str'"
 
-    ## Contains
+    ## Has_Fields
 
-    - cd: obj.contains('b')
+    - cd: obj.has_fields('b')
       ot: true
-    - cd: obj.contains('d')
+    - cd: obj.keys().contains('d')
+      ot: true
+    - cd: obj.has_fields('d')
+      ot: false
+    - cd: obj.has_fields('e')
       ot: false
 
-    # Contains is variatic
-    - cd: obj.contains('a', 'b')
+    # Has_Fields is variadic
+    - cd: obj.has_fields('a', 'b')
       ot: true
-    - cd: obj.contains('a', 'd')
+    - cd: obj.has_fields('a', 'd')
       ot: false
+    - cd: obj.has_fields('a', 'e')
+      ot: false
+
+    # Has_Fields is polymorphic
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'b').count()
+      ot: 2
+    - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'c').count()
+      ot: 1
 
     ## Pluck
 
@@ -36,20 +46,24 @@ tests:
       ot: ({'a':1, 'b':2})
 
     ## Without
-    
+
     - cd: obj.without('a')
-      ot: ({'b':2, 'c':'str'})
+      ot: ({'b':2, 'c':'str', 'd':null})
     - cd: obj.without('a', 'b')
-      ot: ({'c':'str'})
-    - cd: obj.without('a', 'b', 'c')
+      ot: ({'c':'str', 'd':null})
+    - cd: obj.without('a', 'b', 'c', 'd')
       ot: ({})
 
     ## Merge
 
     # add property
-    - cd: "obj.merge({'d':-2})"
-      ot: ({'a':1, 'b':2, 'c':'str', 'd':-2})
+    - cd: "obj.merge({'e':-2})"
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':-2})
 
     # overwrite
     - cd: "obj.merge({'a':-1})"
-      ot: ({'a':-1, 'b':2, 'c':'str'})
+      ot: ({'a':-1, 'b':2, 'c':'str', 'd':null})
+
+    ## keys
+    - cd: obj.keys()
+      ot: (['a', 'b', 'c', 'd'])

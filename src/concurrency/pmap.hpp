@@ -2,7 +2,7 @@
 #ifndef CONCURRENCY_PMAP_HPP_
 #define CONCURRENCY_PMAP_HPP_
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
 

@@ -51,7 +51,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
 };
 
-inline void debug_print(append_only_printf_buffer_t *buf, const version_t& v) {
+inline void debug_print(printf_buffer_t *buf, const version_t& v) {
     buf->appendf("v{");
     debug_print(buf, v.branch);
     buf->appendf(", ");
@@ -93,7 +93,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
 
-inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t& vr) {
+inline void debug_print(printf_buffer_t *buf, const version_range_t& vr) {
     buf->appendf("vr{earliest=");
     debug_print(buf, vr.earliest);
     buf->appendf(", latest=");

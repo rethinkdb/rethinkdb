@@ -2,10 +2,9 @@
 
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
-#include "/usr/local/include/re2/re2.h"
+#include <re2/re2.h>
 
 namespace ql {
-
 
 class match_term_t : public op_term_t {
 public:
@@ -16,7 +15,8 @@ private:
         std::string str = arg(0)->as_str();
         RE2 regexp(arg(1)->as_str());
         if (!regexp.ok()) {
-            rfail("Error in regexp `%s` (portion `%s`): %s",
+            rfail(base_exc_t::GENERIC,
+                  "Error in regexp `%s` (portion `%s`): %s",
                   regexp.pattern().c_str(),
                   regexp.error_arg().c_str(),
                   regexp.error().c_str());

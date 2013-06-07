@@ -24,7 +24,7 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(name);
 };
 
-void debug_print(append_only_printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m);
+void debug_print(printf_buffer_t *buf, const datacenter_semilattice_metadata_t &m);
 
 RDB_MAKE_SEMILATTICE_JOINABLE_1(datacenter_semilattice_metadata_t, name);
 RDB_MAKE_EQUALITY_COMPARABLE_1(datacenter_semilattice_metadata_t, name);

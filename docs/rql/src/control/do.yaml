@@ -24,10 +24,3 @@ commands:
                  lambda ironman: ironman['name']).run(conn)
           rb: r.do(r.table('marvel').get('IronMan')) { |ironman| ironman[:name] }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-

@@ -130,7 +130,7 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
 }
 
 template <class T>
-void debug_print(append_only_printf_buffer_t *buf, const vclock_t<T> &x) {
+void debug_print(printf_buffer_t *buf, const vclock_t<T> &x) {
     buf->appendf("vclock{");
     debug_print(buf, x.values);
     buf->appendf("}");

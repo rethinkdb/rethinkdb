@@ -172,6 +172,15 @@ class RqlQuery(object):
     def contains(self, *attr):
         return Contains(self, *attr)
 
+    def has_fields(self, *attr):
+        return HasFields(self, *attr)
+
+    def with_fields(self, *attr):
+        return WithFields(self, *attr)
+
+    def keys(self):
+        return Keys(self)
+
     # Polymorphic object/sequence operations
     def pluck(self, *attrs):
         return Pluck(self, *attrs)
@@ -182,14 +191,17 @@ class RqlQuery(object):
     def do(self, func):
         return FunCall(func_wrap(func), self)
 
-    def update(self, func, non_atomic=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic)
+    def default(self, handler):
+        return Default(self, handler)
 
-    def replace(self, func, non_atomic=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic)
+    def update(self, func, non_atomic=(), durability=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
 
-    def delete(self):
-        return Delete(self)
+    def replace(self, func, non_atomic=(), durability=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+
+    def delete(self, durability=()):
+        return Delete(self, durability=durability)
 
     # Rql type inspection
     def coerce_to(self, other_type):
@@ -203,6 +215,24 @@ class RqlQuery(object):
 
     def append(self, val):
         return Append(self, val)
+
+    def prepend(self, val):
+        return Prepend(self, val)
+
+    def difference(self, val):
+        return Difference(self, val)
+
+    def set_insert(self, val):
+        return SetInsert(self, val)
+
+    def set_union(self, val):
+        return SetUnion(self, val)
+
+    def set_intersection(self, val):
+        return SetIntersection(self, val)
+
+    def set_difference(self, val):
+        return SetDifference(self, val)
 
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
@@ -220,6 +250,12 @@ class RqlQuery(object):
     def match(self, pattern):
         return Match(self, pattern)
 
+    def is_empty(self):
+        return IsEmpty(self)
+
+    def indexes_of(self, val):
+        return IndexesOf(self,func_wrap(val))
+
     def slice(self, left=None, right=None):
         return Slice(self, left, right)
 
@@ -235,8 +271,8 @@ class RqlQuery(object):
     def map(self, func):
         return Map(self, func_wrap(func))
 
-    def filter(self, func):
-        return Filter(self, func_wrap(func))
+    def filter(self, func, default=()):
+        return Filter(self, func_wrap(func), default=default)
 
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
@@ -252,8 +288,11 @@ class RqlQuery(object):
 
     # NB: Can't overload __len__ because Python doesn't
     #     allow us to return a non-integer
-    def count(self):
-        return Count(self)
+    def count(self, filter=()):
+        if filter == ():
+            return Count(self)
+        else:
+            return Count(self, func_wrap(filter))
 
     def union(self, *others):
         return Union(self, *others)
@@ -283,6 +322,22 @@ class RqlQuery(object):
 
     def info(self):
         return Info(self)
+
+    # Array only operations
+    def insert_at(self, index, value):
+        return InsertAt(self, index, value)
+
+    def splice_at(self, index, values):
+        return SpliceAt(self, index, values)
+
+    def delete_at(self, *indexes):
+        return DeleteAt(self, *indexes);
+
+    def change_at(self, index, value):
+        return ChangeAt(self, index, value);
+
+    def sample(self, count):
+        return Sample(self, count)
 
 # These classes define how nodes are printed by overloading `compose`
 
@@ -415,6 +470,10 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
+class Default(RqlQuery):
+    tt = p.Term.DEFAULT
+    st = "default"
+
 class ImplicitVar(RqlQuery):
     tt = p.Term.IMPLICIT_VAR
 
@@ -477,6 +536,30 @@ class Append(RqlMethodQuery):
     tt = p.Term.APPEND
     st = "append"
 
+class Prepend(RqlMethodQuery):
+    tt = p.Term.PREPEND
+    st = "prepend"
+
+class Difference(RqlMethodQuery):
+    tt = p.Term.DIFFERENCE
+    st = "difference"
+
+class SetInsert(RqlMethodQuery):
+    tt = p.Term.SET_INSERT
+    st = "set_insert"
+
+class SetUnion(RqlMethodQuery):
+    tt = p.Term.SET_UNION
+    st = "set_union"
+
+class SetIntersection(RqlMethodQuery):
+    tt = p.Term.SET_INTERSECTION
+    st = "set_intersection"
+
+class SetDifference(RqlMethodQuery):
+    tt = p.Term.SET_DIFFERENCE
+    st = "set_difference"
+
 class Slice(RqlQuery):
     tt = p.Term.SLICE
 
@@ -501,6 +584,18 @@ class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
     st = 'contains'
 
+class HasFields(RqlMethodQuery):
+    tt = p.Term.HAS_FIELDS
+    st = 'has_fields'
+
+class WithFields(RqlMethodQuery):
+    tt = p.Term.WITH_FIELDS
+    st = 'with_fields'
+
+class Keys(RqlMethodQuery):
+    tt = p.Term.KEYS
+    st = 'keys'
+
 class Pluck(RqlMethodQuery):
     tt = p.Term.PLUCK
     st = 'pluck'
@@ -524,8 +619,8 @@ class DB(RqlTopLevelQuery):
     def table_list(self):
         return TableList(self)
 
-    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), hard_durability=()):
-        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, hard_durability=hard_durability)
+    def table_create(self, table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
+        return TableCreate(self, table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
 
     def table_drop(self, table_name):
         return TableDrop(self, table_name)
@@ -549,8 +644,8 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=()):
-        return Insert(self, records, upsert=upsert)
+    def insert(self, records, upsert=(), durability=()):
+        return Insert(self, records, upsert=upsert, durability=durability)
 
     def get(self, key):
         return Get(self, key)
@@ -625,6 +720,18 @@ class Nth(RqlQuery):
 class Match(RqlQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
+
+class IsEmpty(RqlMethodQuery):
+    tt = p.Term.IS_EMPTY
+    st = 'is_empty'
+
+class IndexesOf(RqlMethodQuery):
+    tt = p.Term.INDEXES_OF
+    st = 'indexes_of'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
@@ -729,6 +836,26 @@ class ForEach(RqlMethodQuery):
 class Info(RqlMethodQuery):
     tt = p.Term.INFO
     st = 'info'
+
+class InsertAt(RqlMethodQuery):
+    tt = p.Term.INSERT_AT
+    st = 'insert_at'
+
+class SpliceAt(RqlMethodQuery):
+    tt = p.Term.SPLICE_AT
+    st = 'splice_at'
+
+class DeleteAt(RqlMethodQuery):
+    tt = p.Term.DELETE_AT
+    st = 'delete_at'
+
+class ChangeAt(RqlMethodQuery):
+    tt = p.Term.CHANGE_AT
+    st = 'change_at'
+
+class Sample(RqlMethodQuery):
+    tt = p.Term.SAMPLE
+    st = 'sample'
 
 # Called on arguments that should be functions
 def func_wrap(val):

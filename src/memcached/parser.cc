@@ -78,7 +78,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
     }
 
     void vwritef(const char *format, va_list args) THROWS_NOTHING __attribute__((format (printf, 2, 0))) {
-        printf_buffer_t<1000> buffer(args, format);
+        printf_buffer_t buffer(args, format);
         write(buffer.data(), buffer.size());
     }
 
@@ -142,7 +142,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_debug_only_t {
         writef("SERVER_ERROR ");
         va_list args;
         va_start(args, format);
-        printf_buffer_t<1000> buffer(args, format);
+        printf_buffer_t buffer(args, format);
         write(buffer.data(), buffer.size());
         va_end(args);
         writef("\r\n");

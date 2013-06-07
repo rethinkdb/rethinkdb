@@ -44,9 +44,9 @@ void *sys_stats_collector_t::instantaneous_stats_collector_t::begin_stats() {
 
 void sys_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *) { }
 
-perfmon_result_t *sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
-    perfmon_result_t *result;
-    perfmon_result_t::alloc_map_result(&result);
+scoped_ptr_t<perfmon_result_t>
+sys_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
+    scoped_ptr_t<perfmon_result_t> result = perfmon_result_t::alloc_map_result();
 
     disk_stat_t disk_stat(base_path.path());
     result->insert("global_disk_space_free", new perfmon_result_t(strprintf("%" PRIi64, disk_stat.disk_space_free)));

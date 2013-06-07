@@ -339,7 +339,7 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 }
 
-void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
+void print_region(printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
     std::set<std::string>::const_iterator it = region.keys.begin(), e = region.keys.end();
     buf->appendf("{ ");
     for (; it != e; ++it) {
@@ -348,7 +348,7 @@ void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::regi
     buf->appendf("}");
 }
 
-void print_dummy_protocol_thing(append_only_printf_buffer_t *buf, const binary_blob_t &blob) {
+void print_dummy_protocol_thing(printf_buffer_t *buf, const binary_blob_t &blob) {
     const uint8_t *data = static_cast<const uint8_t *>(blob.data());
     buf->appendf("'");
     for (size_t i = 0, e = blob.size(); i < e; ++i) {
@@ -357,7 +357,7 @@ void print_dummy_protocol_thing(append_only_printf_buffer_t *buf, const binary_b
     buf->appendf("'");
 }
 
-void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+void print_metainfo(printf_buffer_t *buf, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
     region_map_t<dummy_protocol_t, binary_blob_t>::const_iterator it = m.begin(), e = m.end();
     buf->appendf("region_map_t(");
     for (; it != e; ++it) {
@@ -525,7 +525,7 @@ std::string region_to_debug_str(dummy_protocol_t::region_t r) {
     return ret;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
     buf->appendf("dummy_region{");
     for (std::set<std::string>::const_iterator it = region.keys.begin(); it != region.keys.end(); ++it) {
         if (it != region.keys.begin()) {
@@ -537,7 +537,7 @@ void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::regio
     buf->appendf("}");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write) {
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::write_t& write) {
     buf->appendf("dummy_write{");
     bool first = true;
     for (std::map<std::string, std::string>::const_iterator it = write.values.begin(); it != write.values.end(); ++it) {
@@ -554,7 +554,7 @@ void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write
     buf->appendf("}");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::backfill_chunk_t& chunk) {
+void debug_print(printf_buffer_t *buf, const dummy_protocol_t::backfill_chunk_t& chunk) {
     buf->appendf("dummy_chunk{key=");
     debug_print(buf, chunk.key);
     buf->appendf(", value=");

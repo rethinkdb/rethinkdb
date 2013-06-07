@@ -99,6 +99,9 @@ public:
 
     struct write_t {
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
+
+        durability_requirement_t durability() const { return DURABILITY_REQUIREMENT_DEFAULT; }
+
         region_t get_region() const THROWS_NOTHING;
 
         // Returns true if the write had any applicability to the region, and a non-empty
@@ -228,7 +231,7 @@ RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_
 RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
 
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);
+void debug_print(printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
+void debug_print(printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);
 
 #endif /* MEMCACHED_PROTOCOL_HPP_ */

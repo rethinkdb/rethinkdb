@@ -40,6 +40,16 @@ private:
         } else if (lhs->get_type() == datum_t::R_STR) {
             rhs->check_type(datum_t::R_STR);
             return make_counted<datum_t>(lhs->as_str() + rhs->as_str());
+        } else if (lhs->get_type() == datum_t::R_ARRAY) {
+            rhs->check_type(datum_t::R_ARRAY);
+            scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
+            for (size_t i = 0; i < lhs->size(); ++i) {
+                out->add(lhs->get(i));
+            }
+            for (size_t i = 0; i < rhs->size(); ++i) {
+                out->add(rhs->get(i));
+            }
+            return counted_t<const datum_t>(out.release());
         }
 
         // If we get here lhs is neither number nor string
@@ -57,6 +67,25 @@ private:
     }
     counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
+        if (lhs->get_type() == datum_t::R_ARRAY ||
+            rhs->get_type() == datum_t::R_ARRAY) {
+            counted_t<const datum_t> array =
+                (lhs->get_type() == datum_t::R_ARRAY ? lhs : rhs);
+            counted_t<const datum_t> num =
+                (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
+
+            scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
+            int64_t num_copies = num->as_int();
+            rcheck(num_copies >= 0, base_exc_t::GENERIC,
+                   "Cannot multiply an ARRAY by a negative number.");
+
+            while (--num_copies >= 0) {
+                for (size_t i = 0; i < array->size(); ++i) {
+                    out->add(array->get(i));
+                }
+            }
+            return counted_t<const datum_t>(out.release());
+        }
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
         return make_counted<datum_t>(lhs->as_num() * rhs->as_num());
@@ -65,7 +94,7 @@ private:
                                  counted_t<const datum_t> rhs) {
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
-        rcheck(rhs->as_num() != 0, "Cannot divide by zero.");
+        rcheck(rhs->as_num() != 0, base_exc_t::GENERIC, "Cannot divide by zero.");
         // throws on non-finite values
         return make_counted<datum_t>(lhs->as_num() / rhs->as_num());
     }
@@ -81,8 +110,9 @@ private:
     virtual counted_t<val_t> eval_impl() {
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
-        rcheck(i1, "Cannot take a number modulo 0.");
+        rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
+               base_exc_t::GENERIC,
                strprintf("Cannot take %" PRIi64 " mod %" PRIi64, i0, i1));
         return new_val(make_counted<const datum_t>(static_cast<double>(i0 % i1)));
     }
