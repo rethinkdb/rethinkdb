@@ -88,7 +88,11 @@ public:
     // If the block `block_id` is not deleted, returns a block token which ensures
     // that the block continues to exist on disk, and outputs this block's size to
     // *this_block_size_out.  If the block is deleted, returns an empty counted_t and
-    // outputs 0 to *this_block_size_out.
+    // outputs 0 to *this_block_size_out.  Returns the block size in the buffer
+    // cache's view of the block, not the serializer's view.  (The serializer
+    // reserves sizeof(ls_buf_data_t), which is probably still 12, bytes of header
+    // information, and its internal opinion of the block size is always that much
+    // larger.)
     virtual counted_t<standard_block_token_t>
     index_read(block_id_t block_id, uint32_t *this_block_size_out) = 0;
 

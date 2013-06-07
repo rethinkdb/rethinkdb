@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
 
@@ -11,6 +11,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "utils.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
