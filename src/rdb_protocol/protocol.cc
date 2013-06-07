@@ -565,20 +565,56 @@ public:
 
                 rg_response->result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
-                for (size_t i = 0; i < count; ++i) {
-                    // TODO: we're ignoring the limit when recombining.
-                    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
-                    guarantee(rr != NULL);
 
-                    const stream_t *stream = boost::get<stream_t>(&(rr->result));
+                if (rg.merge_sort) {
+                    for (size_t i = 0; i < count; ++i) {
+                        // TODO: we're ignoring the limit when recombining.
+                        const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                        guarantee(rr != NULL);
 
-                    for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                        if (it->first <= rg_response->last_considered_key) {
-                            res_stream->push_back(*it);
+                        const stream_t *stream = boost::get<stream_t>(&(rr->result));
+
+                        for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
+                            if (it->first <= rg_response->last_considered_key) {
+                                res_stream->push_back(*it);
+                            }
                         }
+
+                        rg_response->truncated = rg_response->truncated || rr->truncated;
+                    }
+                } else {
+                    std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> > iterators;
+
+                    for (size_t i = 0; i < count; ++i) {
+                        // TODO: we're ignoring the limit when recombining.
+                        const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                        guarantee(rr != NULL);
+
+                        const stream_t *stream = boost::get<stream_t>(&(rr->result));
+                        iterators.push_back(std::make_pair(stream->begin(), stream->end()));
                     }
 
-                    rg_response->truncated = rg_response->truncated || rr->truncated;
+                    while (true) {
+                        store_key_t key_to_beat = store_key_t::max();
+                        bool found_value = false;
+                        stream_t::const_iterator *value = NULL;
+
+                        for (auto it = iterators.begin(); it != iterators.end(); ++it) {
+                            if (it->first != it->second &&
+                                it->first->first <= key_to_beat &&
+                                it->first->first < rg_response->last_considered_key) {
+                                key_to_beat = it->first->first;
+                                found_value = true;
+                                value = &it->first;
+                            }
+                        }
+                        if (found_value) {
+                            res_stream->push_back(**value);
+                            ++(*value);
+                        } else {
+                            break;
+                        }
+                    }
                 }
             } else {
                 try {

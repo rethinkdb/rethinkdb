@@ -271,8 +271,8 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), optargs(_optargs) {
+                             bool _merge_sort = false)
+            : region(_region) {
         }
 
         void init_sindexes(counted_t<const ql::datum_t> start,
@@ -289,7 +289,8 @@ struct rdb_protocol_t {
 
         rget_read_t(const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_end_value,
+                    bool _merge_sort = false)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(rdb_protocol_t::sindex_key_range(
                                 _sindex_start_value != NULL
@@ -297,16 +298,18 @@ struct rdb_protocol_t {
                                   : store_key_t::min(),
                                 _sindex_end_value != NULL
                                   ? _sindex_end_value->truncated_secondary()
-                                  : store_key_t::max())) {
+                                  : store_key_t::max())),
+              merge_sort(_merge_sort) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_end_value,
+                    bool _merge_sort = false)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region) {
+              sindex_region(_sindex_region), merge_sort(_merge_sort) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
@@ -315,17 +318,21 @@ struct rdb_protocol_t {
                     counted_t<const ql::datum_t> _sindex_start_value,
                     counted_t<const ql::datum_t> _sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    bool _merge_sort = false)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs) {
+              transform(_transform), optargs(_optargs),
+              merge_sort(_merge_sort) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform), optargs(_optargs) {
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    bool _merge_sort = false)
+            : region(_region), transform(_transform),
+              optargs(_optargs), merge_sort(_merge_sort) {
             rassert(optargs.size() != 0);
         }
 
@@ -345,7 +352,7 @@ struct rdb_protocol_t {
             rassert(optargs.size() != 0);
         }
 
-        /* This region is in the primary indexe's keyspace. */
+        /* This region is in the primary index's keyspace. */
         region_t region;
 
         /* `sindex` and `sindex_region` are both non null if the instance
@@ -369,6 +376,9 @@ struct rdb_protocol_t {
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         std::map<std::string, ql::wire_func_t> optargs;
+
+        /* Whether or not to merge sort the results from different shards. */
+        bool merge_sort;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
