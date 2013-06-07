@@ -115,7 +115,7 @@ private:
 
 class perfmon_result_t {
 public:
-    typedef std::map<std::string, scoped_ptr_t<perfmon_result_t> > internal_map_t;
+    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
 
@@ -134,7 +134,6 @@ public:
     std::string *get_string();
     const std::string *get_string() const;
 
-    internal_map_t *get_map();
     const internal_map_t *get_map() const;
     size_t get_map_size() const;
 
@@ -144,19 +143,27 @@ public:
     perfmon_result_type_t get_type() const;
     void reset_type(perfmon_result_type_t new_type);
 
-    std::pair<iterator, bool> insert(const std::string &name,
-                                     scoped_ptr_t<perfmon_result_t> &&val);
+    std::pair<iterator, bool> insert(const std::string &name, perfmon_result_t *val);
 
-    iterator begin();
-    iterator end();
+    const_iterator cbegin() const;
+    const_iterator cend() const;
     const_iterator begin() const;
     const_iterator end() const;
+
     void erase(iterator);
 
     // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
     void splice_into(perfmon_result_t *map);
 private:
-    explicit perfmon_result_t(internal_map_t &&);
+    friend class perfmon_filter_t;
+
+    iterator begin();
+    iterator end();
+
+    internal_map_t *get_map();
+
+    void clear_map();
+    explicit perfmon_result_t(const internal_map_t &);
 
     perfmon_result_type_t type;
 

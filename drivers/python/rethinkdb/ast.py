@@ -219,6 +219,18 @@ class RqlQuery(object):
     def prepend(self, val):
         return Prepend(self, val)
 
+    def set_insert(self, val):
+        return SetInsert(self, val)
+
+    def set_union(self, val):
+        return SetUnion(self, val)
+
+    def set_intersection(self, val):
+        return SetIntersection(self, val)
+
+    def set_difference(self, val):
+        return SetDifference(self, val)
+
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
     def __getitem__(self, index):
@@ -521,6 +533,22 @@ class Append(RqlMethodQuery):
 class Prepend(RqlMethodQuery):
     tt = p.Term.PREPEND
     st = "prepend"
+
+class SetInsert(RqlMethodQuery):
+    tt = p.Term.SET_INSERT
+    st = "set_insert"
+
+class SetUnion(RqlMethodQuery):
+    tt = p.Term.SET_UNION
+    st = "set_union"
+
+class SetIntersection(RqlMethodQuery):
+    tt = p.Term.SET_INTERSECTION
+    st = "set_intersection"
+
+class SetDifference(RqlMethodQuery):
+    tt = p.Term.SET_DIFFERENCE
+    st = "set_difference"
 
 class Slice(RqlQuery):
     tt = p.Term.SLICE

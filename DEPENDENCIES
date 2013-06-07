@@ -39,3 +39,4 @@ retester: [lib/retester/]
 rethinkdb_memcached: [lib/rethinkdb_memcached/]
 
 netrecord: [scripts/netrecord]
+

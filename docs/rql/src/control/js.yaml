@@ -21,20 +21,4 @@ commands:
           py: r.js('while(true) {}', timeout=1.3).run(conn)
           rb: r.js('while(true) {}', :timeout => 1.3).run(conn)
           js: r.js('while(true) {}', {timeout:1.3}).run(conn, callback)
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.js("'str1' + 'str2'").run(conn, callback)
-        1:
-          can_try: true
-          dataset: marvel
-          code: |-
-            r.table('marvel').filter(
-              r.js('(function (row) { return row.magazines > 5; })')).run(conn, callback)
-        1:
-          can_try: true
-          dataset: marvel
-          code: |-
-            js: r.js('while(true) {}', {timeout:1.3}).run(conn, callback)
+

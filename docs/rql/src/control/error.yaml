@@ -30,12 +30,6 @@ commands:
                 ironman)
             }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: default
     section: control
     order: 4
@@ -60,11 +54,4 @@ commands:
             r.table('projects').map {|p|
               p[:staff].default(0) + p[:management].default(0)
             ).run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
 
