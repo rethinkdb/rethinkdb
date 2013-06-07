@@ -40,7 +40,7 @@ public:
     counted_t<val_t> new_val(counted_t<func_t> f);
     counted_t<val_t> new_val_bool(bool b);
 
-    virtual bool is_deterministic() const;
+    bool is_deterministic() const;
 
     protob_t<const Term> get_src() const;
     void prop_bt(Term *t) const;

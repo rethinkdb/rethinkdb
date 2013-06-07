@@ -54,14 +54,3 @@ commands:
             r.table('marvel').update({ :non_atomic => true }) {|hero| {:age => hero[:age] + r.js('1')}
              }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-        2:
-          can_try: true
-          dataset: marvel

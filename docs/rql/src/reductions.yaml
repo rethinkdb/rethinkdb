@@ -20,12 +20,6 @@ commands:
           py: r.table('marvel').group_by('strength', r.count).run(conn)
           rb: r.table('marvel').group_by(:strength, r.count).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: sum
     section: aggregators
     description: Compute the sum of the given field in the group.
@@ -41,12 +35,6 @@ commands:
           py: r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run(conn)
           rb: r.table('marvel').group_by(:strength, r.sum(:enemies_vanquished)).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: avg
     section: aggregators
     description: Compute the average value of the given attribute for the group.
@@ -61,10 +49,4 @@ commands:
           js: r.table('marvel').groupBy('strength', r.avg('agility')).run(conn, callback)
           py: r.table('marvel').group_by('strength', r.avg('agility')).run(conn)
           rb: r.table('marvel').group_by(:strength, r.avg(:agility)).run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 

@@ -36,12 +36,6 @@ commands:
             r.table('marvel').map {|hero| hero['monstersKilled']}.reduce(0) {
                 |acc, val| acc + val }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: count
     section: aggregation
     description: Count the number of elements in the sequence. With a single argument,
@@ -69,12 +63,6 @@ commands:
           py: r.table('marvel').count(r.row['monstersKilled'].contains('Sphinx')).run(conn)
           rb: r.table('marvel').count{ |row| row['monstersKilled'].contains('Sphinx') }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: distinct
     section: aggregation
     description: Remove duplicate elements from the sequence.
@@ -93,12 +81,6 @@ commands:
 
     rb:
       dont_need_parenthesis: true
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: groupedmapreduce
     section: aggregation
@@ -140,12 +122,6 @@ commands:
               lambda {|acc, hero| r.branch(acc[:strength] < hero[:strength], hero, acc)}
             ).run(conn)
 
-    js:
-      name: groupedMapReduce
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: group_by
     section: aggregation
@@ -165,14 +141,6 @@ commands:
           js: r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn, callback)
           py: r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
           rb: r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)
-
-    js:
-      name: groupBy
-      body: attr1[, attr2...], reductionObject
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: contains
     section: aggregation

@@ -42,6 +42,10 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::CONTAINS:           return make_contains_term(env, t);
     case Term::APPEND:             return make_append_term(env, t);
     case Term::PREPEND:            return make_prepend_term(env, t);
+    case Term::SET_INSERT:         return make_set_insert_term(env, t);
+    case Term::SET_INTERSECTION:   return make_set_intersection_term(env, t);
+    case Term::SET_UNION:          return make_set_union_term(env, t);
+    case Term::SET_DIFFERENCE:     return make_set_difference_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
     case Term::GETATTR:            return make_getattr_term(env, t);
     case Term::INDEXES_OF:         return make_indexes_of_term(env, t);

@@ -128,6 +128,10 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::SET_INSERT:
+        case Term::SET_INTERSECTION:
+        case Term::SET_UNION:
+        case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:
@@ -235,6 +239,10 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::SET_INSERT:
+        case Term::SET_INTERSECTION:
+        case Term::SET_UNION:
+        case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
         case Term::GETATTR:

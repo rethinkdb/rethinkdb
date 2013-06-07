@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <algorithm>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"

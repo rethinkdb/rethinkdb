@@ -37,12 +37,6 @@ commands:
              marvel_row[:strength] < dc_row[:strength]
             }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: outer
     section: joins
     description: Computes a left outer join by retaining each row in the left table
@@ -72,12 +66,6 @@ commands:
             r.table('marvel').outer_join(r.table('dc')) {|marvel_row, dc_row|
              marvel_row[:strength] < dc_row[:strength]
             }.run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
 
   - tag: eqJoin
     section: joins
@@ -125,16 +113,6 @@ commands:
             r.table('marvel').eqJoin('main_weapon_origin',
                 r.table('mythical_weapons'), {index:'origin'}).run(conn, callback)
 
-    js:
-      name: eqJoin
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-
   - tag: zip
     section: joins
     description: Used to 'zip' up the result of a join by merging the 'right' fields into 
@@ -156,8 +134,3 @@ commands:
     rb:
       dont_need_parenthesis: true
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
