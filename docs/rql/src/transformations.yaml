@@ -252,7 +252,10 @@ commands:
 
     examples:
       - description: Construct a stream of all heroes.
-        code: r.table('marvel').union(r.table('dc')).run(conn)
+        code:
+          py: r.table('marvel').union(r.table('dc')).run(conn)
+          rb: r.table('marvel').union(r.table('dc')).run(conn)
+          js: r.table('marvel').union(r.table('dc')).run(conn, callback)
 
   - tag: sample
     section: transformations

@@ -31,7 +31,10 @@ commands:
           Create a table named 'dc_universe' with the primary key set to field 'id'.
           If a new document doesn't contain the field 'id', the database will
           autogenerate a value for it.
-        code: r.db('test').table_create('dc_universe').run(conn)
+        code:
+          py: r.db('test').table_create('dc_universe').run(conn)
+          rb: r.db('test').table_create('dc_universe').run(conn)
+          js: r.db('test').tableCreate('dc_universe').run(conn, callback)
       - description: |
           Create a table named 'dc_universe' using the field 'name'
           as primary key.
@@ -57,7 +60,10 @@ commands:
 
     examples:
       - description: Drop a table named 'dc_universe'.
-        code: r.db('test').table_drop('dc_universe').run(conn)
+        code:
+          py: r.db('test').table_drop('dc_universe').run(conn)
+          rb: r.db('test').table_drop('dc_universe').run(conn)
+          js: r.db('test').tableDrop('dc_universe').run(conn, callback)
 
   - tag: table_list
     section: table_admin
@@ -70,7 +76,10 @@ commands:
 
     examples:
       - description: List all tables of the 'test' database.
-        code: r.db('test').table_list().run(conn)
+        code:
+          py: r.db('test').table_list().run(conn)
+          rb: r.db('test').table_list().run(conn)
+          js: r.db('test').tableList().run(conn, callback)
 
     rb:
       dont_need_parenthesis: true

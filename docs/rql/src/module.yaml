@@ -299,6 +299,7 @@ commands:
 
     examples:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.
+        validate: false
         code: |
 
           r.connect({}, function(err, conn) {
@@ -316,6 +317,7 @@ commands:
           });
 
       - description: As in Node, 'on' is a synonym for 'addListener'.
+        validate: false
         code: |
             conn.on('close', function() {
                 cleanup();
