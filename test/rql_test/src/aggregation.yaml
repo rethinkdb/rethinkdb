@@ -91,7 +91,7 @@ tests:
           }, function(a,b) {
           })
       cd: []
-      ot: err('RqlDriverError', 'Unknown datum value `undefined`, did you forget a `return`?', [0])
+      ot: err('RqlDriverError', 'Annonymous function returned `undefined`. Did you forget a `return`?', [0])
 
     # GroupBy
 

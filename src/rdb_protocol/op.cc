@@ -1,4 +1,6 @@
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 argspec_t::argspec_t(int n) : min(n), max(n) { }
@@ -51,6 +53,7 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
+           base_exc_t::GENERIC,
            strprintf("Expected %s but found %zu.",
                      argspec.print().c_str(), args.size()));
 
@@ -58,9 +61,11 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         const Term_AssocPair *ap = &term->optargs(i);
         if (!optargspec.is_make_object()) {
             rcheck(optargspec.contains(ap->key()),
+                   base_exc_t::GENERIC,
                    strprintf("Unrecognized optional argument `%s`.", ap->key().c_str()));
         }
         rcheck(optargs.count(ap->key()) == 0,
+               base_exc_t::GENERIC,
                strprintf("Duplicate %s: %s",
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
@@ -73,7 +78,8 @@ op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(size_t i) {
-    rcheck(i < num_args(), strprintf("Index out of range: %zu", i));
+    rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
+           strprintf("Index out of range: %zu", i));
     return args[i]->eval();
 }
 
@@ -84,6 +90,17 @@ counted_t<val_t> op_term_t::optarg(const std::string &key) {
     }
     counted_t<val_t> ret = env->get_optarg(key);
     return ret;
+}
+
+counted_t<func_t> op_term_t::lazy_literal_optarg(const std::string &key) {
+    std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
+    if (it != optargs.end()) {
+        protob_t<Term> func(make_counted_term());
+        Term *arg = func.get();
+        N2(FUNC, N0(MAKE_ARRAY), *arg = *it->second->get_src().get());
+        return make_counted<func_t>(env, func);
+    }
+    return counted_t<func_t>();
 }
 
 bool op_term_t::is_deterministic_impl() const {

@@ -27,7 +27,7 @@ counted_t<const datum_t> datum_stream_t::next() {
     try {
         return next_impl();
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -46,7 +46,7 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
             }
         }
     } catch (const datum_exc_t &e) {
-        rfail("%s", e.what());
+        rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
@@ -64,7 +64,8 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
 counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
                                                       counted_t<func_t> f) {
     counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
-    rcheck(base.has(), "Cannot reduce over an empty stream with no base.");
+    rcheck(base.has(), base_exc_t::NON_EXISTENCE,
+           "Cannot reduce over an empty stream with no base.");
 
     while (counted_t<const datum_t> rhs = next()) {
         base = f->call(base, rhs)->as_datum();
@@ -197,7 +198,8 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
         if (base_val.has()) {
             return base_val->as_datum();
         } else {
-            rfail("Cannot reduce over an empty stream with no base.");
+            rfail(base_exc_t::NON_EXISTENCE,
+                  "Cannot reduce over an empty stream with no base.");
         }
     }
 }
@@ -346,7 +348,8 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
 
     counted_t<const datum_t> left = datum->get("left", NOTHROW);
     counted_t<const datum_t> right = datum->get("right", NOTHROW);
-    rcheck(left.has(), "ZIP can only be called on the result of a join.");
+    rcheck(left.has(), base_exc_t::GENERIC,
+           "ZIP can only be called on the result of a join.");
     return right.has() ? left->merge(right) : left;
 }
 

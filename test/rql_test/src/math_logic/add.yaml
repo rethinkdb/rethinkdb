@@ -28,6 +28,12 @@ tests:
       rb: (r 'abc') + 'def'
       ot: "'abcdef'"
 
+    # Add is polymorphic on arrays
+    - py: r.expr([1,2]) + [3] + [4,5] + [6,7,8]
+      js: r([1,2]).add([3]).add([4,5]).add([6,7,8])
+      rb: r([1,2]) + [3] + [4,5] + [6,7,8]
+      ot: [1,2,3,4,5,6,7,8]
+
     # All arithmetic operations (except mod) actually support arbitrary arguments
     # but this feature can't be accessed in Python because it's operators are binary
     - js: r(1).add(2,3,4,5)
@@ -48,4 +54,9 @@ tests:
       js: r('a').add(1)
       rb: r('a') + 1
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [1])
+
+    - py: r.expr([]) + 1
+      js: r([]).add(1)
+      rb: r([]) + 1
+      ot: err("RqlRuntimeError", "Expected type ARRAY but found NUMBER.", [1])
 

@@ -17,14 +17,6 @@ commands:
       - description: Before we can query a table we have to select the correct database.
         code: r.db('heroes').table('marvel').run(conn)
 
-    js:
-      body: dbName
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.db('heroes').table('marvel').run(conn, callback)
-
   - tag: table
     section: select
     description: |
@@ -52,20 +44,6 @@ commands:
           py: r.db('heroes').table('marvel', True).run(conn)
           rb: r.db('heroes').table('marvel', {:use_outdated => true}).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').run(conn, callback)
-        1:
-          can_try: true
-          dataset: marvel
-          code: r.db('heroes').table('marvel').run(conn, callback)
-        2:
-          can_try: true
-          dataset: marvel
-
   - tag: get
     section: select
     description: Get a document by primary key.
@@ -77,13 +55,6 @@ commands:
     examples:
       - description: Find a document with the primary key 'superman'.
         code: r.table('marvel').get('superman').run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').get('superman').run(conn, callback)
 
   - tag: get_all
     section: select
@@ -139,20 +110,18 @@ commands:
             js: r.table('dc').between('dark_knight', 'man_of_steel', {index:'code_name'}).run(conn, callback)
             rb: r.table('dc').between('dark_knight', 'man_of_steel', :index => 'code_name').run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').between(10, 20).run(conn, callback)
-
   - tag: filter
     section: select
     description: |
-      Get all the documents for which the given predicate is true.<br /><br />
-      <code>filter</code> can be called on a sequence, selection, or a
-      field containing an array of elements. The return type is the
-      same as the type on which the function was called on.
+      Get all the documents for which the given predicate is true.<br
+      /><br /> <code>filter</code> can be called on a sequence,
+      selection, or a field containing an array of elements. The
+      return type is the same as the type on which the function was
+      called on.  The body of every filter is wrapped in an implicit
+      `.default(false)`, and the default value can be changed by
+      passing the optional argument `default`.  Setting this optional
+      argument to `r.error()` will cause any non-existence errors to
+      abort the filter.
 
     body: predicate
     parent: selection
@@ -173,14 +142,14 @@ commands:
         code:
           js: |
             r.table('marvel').filter(function(hero) {
-              return hero('abilities').contains('super-strength')
+              return hero('abilities').has_fields('super-strength')
             }).run(conn, callback)
           py: |
             r.table('marvel').filter(
-                lambda hero: hero['abilities'].contains('super-strength')).run(conn)
+                lambda hero: hero['abilities'].has_fields('super-strength')).run(conn)
           rb: |
             r.table('marvel').filter {|hero|
-              hero[:abilities].contains('super-strength')
+              hero[:abilities].has_fields('super-strength')
             }.run(conn)
       - description: Select all documents where the field 'powers' containing an array has an element equal to 10.
         code:
@@ -195,18 +164,7 @@ commands:
               r.row['powers'].filter(lambda el: el == 10).count() > 0
             ).run(conn)
           rb: |
-            r.table('marvel').filter { |hero| 
+            r.table('marvel').filter { |hero|
               hero[:powers].filter { |power_rank| power_rank.eq(10) }.count() > 0
             }.run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-        2:
-          can_try: true
-          dataset: marvel

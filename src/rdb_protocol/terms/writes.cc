@@ -29,7 +29,8 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
 
     // Merging a string is left-preferential, which is just a no-op.
     rcheck_target(
-        caller, l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        caller, base_exc_t::GENERIC,
+        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
                   l->get_type_name(), r->get_type_name()));
     return l;
@@ -61,6 +62,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
     if (str == "hard") { return DURABILITY_REQUIREMENT_HARD; }
     if (str == "soft") { return DURABILITY_REQUIREMENT_SOFT; }
     rfail_target(target,
+                 base_exc_t::GENERIC,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
                  str.c_str());
@@ -239,9 +241,9 @@ private:
                     }
                 }
             } catch (const exc_t &e) {
-                throw exc_t(fail_msg, e.backtrace());
+                throw exc_t(e.get_type(), fail_msg, e.backtrace());
             } catch (const datum_exc_t &de) {
-                rfail_target(v, "%s", fail_msg);
+                rfail_target(v, base_exc_t::GENERIC, "%s", fail_msg);
             }
         }
         return new_val(stats);
