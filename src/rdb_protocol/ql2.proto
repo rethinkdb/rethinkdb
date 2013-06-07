@@ -276,7 +276,7 @@ message Term {
         // contain all the specified fields.
         HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
         // x.with_fields(...) <=> x.has_fields(...).pluck(...)
-        WITH_FIELDS = 93; // Sequence, STRING... -> Sequence
+        WITH_FIELDS = 95; // Sequence, STRING... -> Sequence
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
