@@ -188,6 +188,24 @@ describe('Javascript connection API', function(){
             assert.throws(function(){ c.use(); });
             done();
         }));
+
+        // Test the event emitter interface
+
+        it("Emits connect event on connect", withConnection(function(done, c){
+            c.on('connect', function(err, c2) {
+                done();
+            });
+
+            c.reconnect(function(){});
+        }));
+
+        it("Emits close event on close", withConnection(function(done, c){
+            c.on('close', function() {
+                done();
+            });
+
+            c.close();
+        }));
     });
 });
 

@@ -3,7 +3,7 @@ tests:
   - rb: r.db('test').table_create('metadata', {:primary_key => 'pagename'})
   - rb: r.table('metadata').insert({'pagename' => 'homepage', 'versions' => [1]})
 
-  - rb: r.branch(r.table('metadata').get('homepage').contains('versions'), r.table('metadata').get('homepage'), r(false))
+  - rb: r.branch(r.table('metadata').get('homepage').has_fields('versions'), r.table('metadata').get('homepage'), r(false))
     ot: ({'pagename':'homepage', 'versions':[1]})
 
   - rb: r.db('test').table_drop('metadata')

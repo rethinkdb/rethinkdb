@@ -8,8 +8,8 @@ All top level functions defined here are the starting points for RQL queries
 def js(js_str, timeout=()):
     return JavaScript(js_str, timeout=timeout)
 
-def error(msg):
-    return UserError(msg)
+def error(*msg):
+    return UserError(*msg)
 
 def do(arg0, *args):
     args = [arg0]+[x for x in args]

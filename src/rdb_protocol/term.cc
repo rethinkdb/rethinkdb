@@ -39,12 +39,18 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::MUL:                // fallthru
     case Term::DIV:                return make_arith_term(env, t);
     case Term::MOD:                return make_mod_term(env, t);
+    case Term::CONTAINS:           return make_contains_term(env, t);
     case Term::APPEND:             return make_append_term(env, t);
     case Term::PREPEND:            return make_prepend_term(env, t);
+    case Term::SET_INSERT:         return make_set_insert_term(env, t);
+    case Term::SET_INTERSECTION:   return make_set_intersection_term(env, t);
+    case Term::SET_UNION:          return make_set_union_term(env, t);
+    case Term::SET_DIFFERENCE:     return make_set_difference_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
     case Term::GETATTR:            return make_getattr_term(env, t);
     case Term::INDEXES_OF:         return make_indexes_of_term(env, t);
-    case Term::CONTAINS:           return make_contains_term(env, t);
+    case Term::KEYS:               return make_keys_term(env, t);
+    case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
     case Term::PLUCK:              return make_pluck_term(env, t);
     case Term::WITHOUT:            return make_without_term(env, t);
     case Term::MERGE:              return make_merge_term(env, t);
@@ -96,6 +102,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::INFO:               return make_info_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
+    case Term::DEFAULT:            return make_default_term(env, t);
     default: unreachable();
     }
     unreachable();
@@ -146,7 +153,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 if (ap.key() != "noreply") {
                     bool conflict = env->add_optarg(ap.key(), ap.val());
                     rcheck_toplevel(
-                        !conflict,
+                        !conflict, base_exc_t::GENERIC,
                         strprintf("Duplicate global optarg: %s", ap.key().c_str()));
                 }
             }
@@ -173,7 +180,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 
         try {
             rcheck_toplevel(!stream_cache2->contains(token),
-                strprintf("ERROR: duplicate token %" PRIi64, token));
+                            base_exc_t::GENERIC,
+                            strprintf("ERROR: duplicate token %" PRIi64, token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
@@ -202,8 +210,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
-                rfail_toplevel("Query result must be of type DATUM or STREAM "
-                               "(got %s).", val->get_type().name());
+                rfail_toplevel(base_exc_t::GENERIC,
+                               "Query result must be of type DATUM or STREAM (got %s).",
+                               val->get_type().name());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
@@ -217,8 +226,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
     case Query_QueryType_CONTINUE: {
         try {
             bool b = stream_cache2->serve(token, res, env->interruptor);
-            rcheck_toplevel(b, strprintf("Token %" PRIi64 " not in stream cache.",
-                                         token));
+            rcheck_toplevel(b, base_exc_t::GENERIC,
+                            strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
@@ -226,8 +235,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
     } break;
     case Query_QueryType_STOP: {
         try {
-            rcheck_toplevel(stream_cache2->contains(token),
-                strprintf("Token %" PRIi64 " not in stream cache.", token));
+            rcheck_toplevel(stream_cache2->contains(token), base_exc_t::GENERIC,
+                            strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
@@ -293,7 +302,7 @@ counted_t<val_t> term_t::eval() {
         } catch (const datum_exc_t &e) {
             DEC_DEPTH;
             DBG("%s THREW\n", name());
-            rfail("%s", e.what());
+            rfail(e.get_type(), "%s", e.what());
         }
     } catch (...) {
         DEC_DEPTH;

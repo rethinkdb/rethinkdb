@@ -112,7 +112,7 @@ class Cursor extends IterableResult
 
     close: ar () ->
         unless @_endFlag
-            @_conn._end(@_token)
+            @_conn._endQuery(@_token)
 
     toString: ar () -> "[object Cursor]"
 

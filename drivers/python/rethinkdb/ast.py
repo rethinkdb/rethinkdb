@@ -171,6 +171,10 @@ class RqlQuery(object):
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *attr)
+    def has_fields(self, *attr):
+        return HasFields(self, *attr)
+    def keys(self):
+        return Keys(self)
 
     # Polymorphic object/sequence operations
     def pluck(self, *attrs):
@@ -181,6 +185,9 @@ class RqlQuery(object):
 
     def do(self, func):
         return FunCall(func_wrap(func), self)
+
+    def default(self, handler):
+        return Default(self, handler)
 
     def update(self, func, non_atomic=(), durability=()):
         return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
@@ -206,6 +213,18 @@ class RqlQuery(object):
 
     def prepend(self, val):
         return Prepend(self, val)
+
+    def set_insert(self, val):
+        return SetInsert(self, val)
+
+    def set_union(self, val):
+        return SetUnion(self, val)
+
+    def set_intersection(self, val):
+        return SetIntersection(self, val)
+
+    def set_difference(self, val):
+        return SetDifference(self, val)
 
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
@@ -241,8 +260,8 @@ class RqlQuery(object):
     def map(self, func):
         return Map(self, func_wrap(func))
 
-    def filter(self, func):
-        return Filter(self, func_wrap(func))
+    def filter(self, func, default=()):
+        return Filter(self, func_wrap(func), default=default)
 
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
@@ -440,6 +459,10 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
+class Default(RqlQuery):
+    tt = p.Term.DEFAULT
+    st = "default"
+
 class ImplicitVar(RqlQuery):
     tt = p.Term.IMPLICIT_VAR
 
@@ -506,6 +529,22 @@ class Prepend(RqlMethodQuery):
     tt = p.Term.PREPEND
     st = "prepend"
 
+class SetInsert(RqlMethodQuery):
+    tt = p.Term.SET_INSERT
+    st = "set_insert"
+
+class SetUnion(RqlMethodQuery):
+    tt = p.Term.SET_UNION
+    st = "set_union"
+
+class SetIntersection(RqlMethodQuery):
+    tt = p.Term.SET_INTERSECTION
+    st = "set_intersection"
+
+class SetDifference(RqlMethodQuery):
+    tt = p.Term.SET_DIFFERENCE
+    st = "set_difference"
+
 class Slice(RqlQuery):
     tt = p.Term.SLICE
 
@@ -528,6 +567,14 @@ class GetAttr(RqlQuery):
 
 class Contains(RqlMethodQuery):
     tt = p.Term.CONTAINS
+    st = 'contains'
+
+class HasFields(RqlMethodQuery):
+    tt = p.Term.HAS_FIELDS
+    st = 'contains'
+
+class Keys(RqlMethodQuery):
+    tt = p.Term.KEYS
     st = 'contains'
 
 class Pluck(RqlMethodQuery):

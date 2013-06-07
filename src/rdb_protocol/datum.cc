@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <algorithm>
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
@@ -15,9 +16,9 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    // so we can use `isfinite` in a GCC 4.4.3-compatible way
-    using namespace std;  // NOLINT(build/namespaces)
-    rcheck(isfinite(r_num), strprintf("Non-finite number: " DBLPRI, r_num));
+    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    rcheck(isfinite(r_num), base_exc_t::GENERIC,
+           strprintf("Non-finite number: " DBLPRI, r_num));
 }
 datum_t::datum_t(const std::string &_str)
     : type(R_STR), r_str(new std::string(_str)) {
@@ -130,6 +131,7 @@ void datum_t::init_json(cJSON *json, env_t *env) {
 void datum_t::check_str_validity(const std::string &str) {
     size_t null_offset = str.find('\0');
     rcheck(null_offset == std::string::npos,
+           base_exc_t::GENERIC,
            // We truncate because lots of other places can call `c_str` on the
            // error message.
            strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
@@ -229,8 +231,10 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         } else if (item->type == R_ARRAY) {
             item->array_to_str_key(str_out);
         } else {
-            rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
-                  item->print().c_str(), datum_type_name(item->type));
+            item->type_error(
+                strprintf("Secondary keys must be a number, string, bool, or array "
+                          "(got %s of type %s).", item->print().c_str(),
+                          datum_type_name(item->type)));
         }
 
         str_out->append(std::string(1, '\0'));
@@ -246,11 +250,13 @@ std::string datum_t::print_primary() const {
     } else if (type == R_BOOL) {
         bool_to_str_key(&s);
     } else {
-        rfail("Primary keys must be either a number, bool, or string (got %s of type %s).",
-              print().c_str(), datum_type_name(type));
+        type_error(strprintf(
+            "Primary keys must be either a number, bool, or string (got %s of type %s).",
+            print().c_str(), datum_type_name(type)));
     }
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
-        rfail("Primary key too long (max %zu characters): %s",
+        rfail(base_exc_t::GENERIC,
+              "Primary key too long (max %zu characters): %s",
               rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, print().c_str());
     }
     return s;
@@ -261,8 +267,10 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
-        rfail("Primary key too long (max %zu characters): %s",
-              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1, key_to_debug_str(primary_key).c_str());
+        rfail(base_exc_t::GENERIC,
+              "Primary key too long (max %zu characters): %s",
+              rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1,
+              key_to_debug_str(primary_key).c_str());
     }
 
     if (type == R_NUM) {
@@ -274,8 +282,10 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
     } else {
-        rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
-              print().c_str(), datum_type_name(type));
+        type_error(strprintf(
+            "Secondary keys must be a number, string, bool, or array "
+            "(got %s of type %s).",
+            print().c_str(), datum_type_name(type)));
     }
 
     s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
@@ -306,8 +316,10 @@ store_key_t datum_t::truncated_secondary() const {
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
     } else {
-        rfail("Secondary keys must be a number, string, bool, or array (got %s of type %s).",
-              print().c_str(), datum_type_name(type));
+        type_error(strprintf(
+            "Secondary keys must be a number, string, bool, or array "
+            "(got %s of type %s).",
+            print().c_str(), datum_type_name(type)));
     }
 
     const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
@@ -323,10 +335,16 @@ store_key_t datum_t::truncated_secondary() const {
     return store_key_t(s);
 }
 
-void datum_t::check_type(type_t desired) const {
-    rcheck(get_type() == desired,
-           strprintf("Expected type %s but found %s.",
-                     datum_type_name(desired), datum_type_name(get_type())));
+void datum_t::check_type(type_t desired, const char *msg) const {
+    rcheck_typed_target(
+        this, get_type() == desired,
+        (msg != NULL)
+            ? std::string(msg)
+            : strprintf("Expected type %s but found %s.",
+                        datum_type_name(desired), datum_type_name(get_type())));
+}
+void datum_t::type_error(const std::string &msg) const {
+    rfail_typed_target(this, "%s", msg.c_str());
 }
 
 bool datum_t::as_bool() const {
@@ -343,10 +361,13 @@ static const double min_dbl_int = max_dbl_int * -1;
 int64_t datum_t::as_int() const {
     static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
     double d = as_num();
-    rcheck(d <= max_dbl_int, strprintf("Number not an integer (>2^53): " DBLPRI, d));
-    rcheck(d >= min_dbl_int, strprintf("Number not an integer (<-2^53): " DBLPRI, d));
+    rcheck(d <= max_dbl_int, base_exc_t::GENERIC,
+           strprintf("Number not an integer (>2^53): " DBLPRI, d));
+    rcheck(d >= min_dbl_int, base_exc_t::GENERIC,
+           strprintf("Number not an integer (<-2^53): " DBLPRI, d));
     int64_t i = d;
-    rcheck(static_cast<double>(i) == d, strprintf("Number not an integer: " DBLPRI, d));
+    rcheck(static_cast<double>(i) == d, base_exc_t::GENERIC,
+           strprintf("Number not an integer: " DBLPRI, d));
     return i;
 }
 
@@ -362,37 +383,43 @@ const std::vector<counted_t<const datum_t> > &datum_t::as_array() const {
 
 void datum_t::change(size_t index, counted_t<const datum_t> val) {
     check_type(R_ARRAY);
-    rcheck(index < r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(index < r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      index, r_array->size()));
     (*r_array)[index] = val;
 }
 
 void datum_t::insert(size_t index, counted_t<const datum_t> val) {
     check_type(R_ARRAY);
-    rcheck(index <= r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(index <= r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      index, r_array->size()));
     r_array->insert(r_array->begin() + index, val);
 }
 
 void datum_t::erase(size_t index) {
     check_type(R_ARRAY);
-    rcheck(index < r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(index < r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      index, r_array->size()));
     r_array->erase(r_array->begin() + index);
 }
 
 void datum_t::erase_range(size_t start, size_t end) {
     check_type(R_ARRAY);
-    rcheck(start < r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(start < r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      start, r_array->size()));
-    rcheck(end < r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(end < r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      end, r_array->size()));
     rcheck(start <= end,
+           base_exc_t::GENERIC,
            strprintf("Start index `%zu` is greater than end index `%zu`.",
                       start, end));
     r_array->erase(r_array->begin() + start, r_array->begin() + end + 1);
@@ -400,11 +427,12 @@ void datum_t::erase_range(size_t start, size_t end) {
 
 void datum_t::splice(size_t index, counted_t<const datum_t> values) {
     check_type(R_ARRAY);
-    rcheck(index <= r_array->size(), 
-           strprintf("Index `%zu` out of bounds for array of size: `%zu`.", 
+    rcheck(index <= r_array->size(),
+           base_exc_t::NON_EXISTENCE,
+           strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      index, r_array->size()));
-    r_array->insert(r_array->begin() + index, 
-            values->as_array().begin(), values->as_array().end());
+    r_array->insert(r_array->begin() + index,
+                    values->as_array().begin(), values->as_array().end());
 }
 
 size_t datum_t::size() const {
@@ -412,9 +440,13 @@ size_t datum_t::size() const {
 }
 
 counted_t<const datum_t> datum_t::get(size_t index, throw_bool_t throw_bool) const {
-    if (index < size()) return as_array()[index];
-    if (throw_bool == THROW) rfail("Index out of bounds: %zu", index);
-    return counted_t<const datum_t>();
+    if (index < size()) {
+        return as_array()[index];
+    } else if (throw_bool == THROW) {
+        rfail(base_exc_t::NON_EXISTENCE, "Index out of bounds: %zu", index);
+    } else {
+        return counted_t<const datum_t>();
+    }
 }
 
 counted_t<const datum_t> datum_t::get(const std::string &key,
@@ -423,7 +455,8 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
         = as_object().find(key);
     if (it != as_object().end()) return it->second;
     if (throw_bool == THROW) {
-        rfail("No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
+        rfail(base_exc_t::NON_EXISTENCE,
+              "No attribute `%s` in object:\n%s", key.c_str(), print().c_str());
     }
     return counted_t<const datum_t>();
 }
@@ -471,7 +504,9 @@ datum_t::as_datum_stream(env_t *env,
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
-    case R_OBJECT: rfail("Cannot convert %s to SEQUENCE", datum_type_name(get_type()));
+    case R_OBJECT:
+        type_error(strprintf("Cannot convert %s to SEQUENCE",
+                             datum_type_name(get_type())));
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(env,
                                                   this->counted_from_this(),
@@ -603,6 +638,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
         rcheck(isfinite(r_num),
+               base_exc_t::GENERIC,
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
     case Datum_DatumType_R_STR: {
@@ -623,6 +659,7 @@ datum_t::datum_t(const Datum *d, env_t *env) {
             const std::string &key = ap->key();
             check_str_validity(key);
             rcheck(r_object->count(key) == 0,
+                   base_exc_t::GENERIC,
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val(), env);
         }

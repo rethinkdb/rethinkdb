@@ -12,7 +12,7 @@ public:
         : exc(_exc), res_out(_res_out) { }
 
     void operator()(const gmr_wire_func_t &func) const {
-        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+        *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
     NORETURN void operator()(const count_wire_func_t &) const {
@@ -21,7 +21,7 @@ public:
     }
 
     void operator()(const reduce_wire_func_t &func) const {
-        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+        *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
 private:
@@ -45,15 +45,15 @@ public:
         : exc(_exc), res_out(_res_out) { }
 
     void operator()(const map_wire_func_t &func) const {
-        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+        *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
     void operator()(const filter_wire_func_t &func) const {
-        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+        *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
     void operator()(const concatmap_wire_func_t &func) const {
-        *res_out = exc_t(exc.what(), func.get_bt().get(), 1);
+        *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
 private:

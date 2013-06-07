@@ -38,18 +38,6 @@ commands:
 
     rb: false
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-        2:
-          can_try: true
-          dataset: marvel
-
   - tag: pluck
     section: jsonobject
     description: Plucks out one or more attributes from either an object or a sequence
@@ -64,19 +52,6 @@ commands:
         code: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
       - description: For the hero beauty contest we only care about certain qualities.
         code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: |
-            r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower')
-             .run(conn, callback)
-        1:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn, callback)
 
   - tag: without
     section: jsonobject
@@ -94,17 +69,6 @@ commands:
       - description: Without their prized weapons, our enemies will quickly be vanquished.
         code: r.table('enemies').without('weapons').run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn, callback)
-        1:
-          can_try: true
-          dataset: marvel
-          code: r.table('enemies').without('weapons').run(conn, callback)
-
   - tag: merge
     section: jsonobject
     description: Merge two objects together to construct a new object with properties
@@ -120,20 +84,11 @@ commands:
           r.table('marvel').get('IronMan').merge(
             r.table('loadouts').get('alienInvasionKit')).run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-          code: |-
-            r.table('marvel').get('IronMan').merge(
-              r.table('loadouts').get('alienInvasionKit')).run(conn, callback)
-
   - tag: append
     section: jsonobject
     description: Append a value to an array.
 
-    body: value
+    body: json
     parent: json
     returns: json
 
@@ -144,17 +99,11 @@ commands:
           py: r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].append('new_boots').run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: prepend
     section: jsonobject
     description: Prepend a value to an array.
 
-    body: value
+    body: json
     parent: json
     returns: json
 
@@ -165,11 +114,75 @@ commands:
           py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
+  - tag: set_insert
+    section: jsonobject
+    description: |
+      Add a value to an <code>array</code> and return it as a <code>set</code>
+      (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setInsert('newBoots').run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_insert('newBoots').run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_insert('new_boots').run(conn)
+
+  - tag: set_union
+    section: jsonobject
+    description: |
+      Add a several values to an <code>array</code> and return it as a
+      <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: |
+          Retrieve Iron Man's equipment list with the addition of some new
+          boots and an arc reactor.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setUnion(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_union(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_union(['newBoots', 'arc_reactor']).run(conn)
+
+  - tag: set_intersection
+    section: jsonobject
+    description: |
+      Intersect two <code>arrays</code> returning values that occur in both of
+      them as a <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Check which pieces of equipment Iron Man has from a fixed list.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setIntersect(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+
+  - tag: set_difference
+    section: jsonobject
+    description: |
+      Remove the elements of one array from another and return them as a
+      <code>set</code> (an <code>array</code> with distinct values).
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Check which pieces of equipment Iron Man has, excluding a fixed list.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').setDifference(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_difference(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_difference(['newBoots', 'arc_reactor']).run(conn)
 
   - tag: getattr
     section: jsonobject
@@ -190,22 +203,11 @@ commands:
           js: r.table('marvel').get('IronMan')('firstAppearance').run(conn, callback)
           rb: r.table('marvel').get('IronMan')[:first_appearance].run(conn)
 
-    js:
-      name: ()
-      name1: (
-      name2: )
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-  - tag: contains
+  - tag: has_fields
     section: jsonobject
-    description: Test if an object has the given attribute. <br /><br />
-      <code>contains</code> can only be called on objects and not on
-      <code>string</code> or <code>array</code> attributes.
+    description: Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
 
-    body: attr
+    body: field1[, field2...]
     parent: json
     returns: bool
 
@@ -213,16 +215,10 @@ commands:
       - description: Which heroes are married?
         code:
           js: |
-            r.table('marvel').filter(function(hero) {return hero.contains('spouse')})
+            r.table('marvel').filter(function(hero) {return hero.has_fields('spouse')})
              .run(conn, callback)
-          py: "r.table('marvel').filter(lambda hero: hero.contains('spouse')).run(conn)"
-          rb: r.table('marvel').filter{|hero| hero.contains(:spouse)}.run(conn)
-
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
+          py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
+          rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
 
   - tag: insert_at
     section: jsonobject
@@ -288,3 +284,18 @@ commands:
           js: r(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
           py: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
           rb: r(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+
+  - tag: keys
+    section: jsonobject
+    description: Return an array containing all of the object's keys.
+
+    parent: json
+    returns: json
+
+    examples:
+      - description: Get all the keys of a row.
+        code:
+          rb: r.table('marvel').get('ironman').keys
+          py: r.table('marvel').get('ironman').keys()
+          js: r.table('marvel').get('ironman').keys()
+

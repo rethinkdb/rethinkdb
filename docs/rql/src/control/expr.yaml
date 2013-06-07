@@ -26,13 +26,3 @@ commands:
       examples:
         1: {} # This turns off example 1 for python as it does not apply
 
-    js:
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-        1:
-          can_try: true
-          dataset: marvel
-
-
