@@ -128,7 +128,7 @@ configure () {
     else
         var TCMALLOC_MINIMAL_LIBS ""
     fi
-    test_protobuf
+    # test_protobuf
     boolvar STATIC_V8 contains "$static_libs" v8
     var FETCH_LIST "$fetch_list"
     boolvar FETCH_INTERNAL_TOOLS $allow_fetch
