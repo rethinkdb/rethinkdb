@@ -566,7 +566,7 @@ public:
                 rg_response->result = stream_t();
                 stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
 
-                if (rg.merge_sort) {
+                if (!rg.merge_sort) {
                     for (size_t i = 0; i < count; ++i) {
                         // TODO: we're ignoring the limit when recombining.
                         const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);

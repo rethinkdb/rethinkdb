@@ -272,7 +272,7 @@ struct rdb_protocol_t {
 
         explicit rget_read_t(const region_t &_region,
                              bool _merge_sort = false)
-            : region(_region) {
+            : region(_region), merge_sort(_merge_sort) {
         }
 
         void init_sindexes(counted_t<const ql::datum_t> start,
