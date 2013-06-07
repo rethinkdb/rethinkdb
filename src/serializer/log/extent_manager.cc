@@ -150,6 +150,7 @@ extent_manager_t::extent_manager_t(file_t *file,
                                    const log_serializer_on_disk_static_config_t *static_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
+      default_block_size(static_config->block_size()),
       dbfile(file), state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 

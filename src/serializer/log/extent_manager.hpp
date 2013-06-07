@@ -140,6 +140,9 @@ public:
     log_serializer_stats_t *const stats;
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
+    // RSI: Do we really need this variable?
+    const block_size_t default_block_size;
+
 private:
     void release_extent_preliminaries();
 

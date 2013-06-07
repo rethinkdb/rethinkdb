@@ -44,9 +44,25 @@ public:
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
     // the wrong value as a block_size_t.
+    // RSI: Remove the unsafe_make function.
     static block_size_t unsafe_make(uint32_t ser_bs) {
         return block_size_t(ser_bs);
     }
+
+    static block_size_t make_from_serializer(uint32_t ser_bs) {
+        guarantee(ser_bs > sizeof(ls_buf_data_t));
+        return block_size_t(ser_bs);
+    }
+
+    static block_size_t make_from_buffer_cache(uint32_t cache_bs) {
+        guarantee(cache_bs > 0);
+        return block_size_t(cache_bs + sizeof(ls_buf_data_t));
+    }
+
+    static block_size_t make_undefined() {
+        return block_size_t(valgrind_undefined<uint32_t>(sizeof(ls_buf_data_t)));
+    }
+
 private:
     explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }
     uint32_t ser_bs_;

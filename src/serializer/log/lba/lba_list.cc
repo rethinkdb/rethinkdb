@@ -9,10 +9,9 @@
 
 // TODO: Some of the code in this file is bullshit disgusting shit.
 
-lba_list_t::lba_list_t(extent_manager_t *em, block_size_t _default_block_size)
+lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL),
       gc_count(0),
-      default_block_size(_default_block_size),
       extent_manager(em),
       state(state_unstarted) {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -102,7 +101,7 @@ block_size_t lba_list_t::get_block_offset(block_id_t block,
 
     // RSI: Actually support per-block block size.
     *offset_out = in_memory_index.get_block_info(block).offset;
-    return default_block_size;
+    return extent_manager->default_block_size;
 }
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
@@ -114,7 +113,8 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account, extent_transaction_t *txn) {
     rassert(state == state_ready);
 
-    in_memory_index.set_block_info(block, recency, offset);
+    // RSI: Take the block size from the parameter list?  What is this used for?
+    in_memory_index.set_block_info(block, recency, offset, extent_manager->default_block_size);
 
     /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
     waiting for the disk structure lock, then sync() will never be called again on the
@@ -210,7 +210,7 @@ public:
             // RSI: Actually use the block size when garbage collecting.
             flagged_off64_t offset;
             block_size_t block_size = owner->get_block_offset(block_id, &offset);
-            guarantee(block_size.value() == owner->default_block_size.value());
+            guarantee(block_size.value() == owner->extent_manager->default_block_size.value());
 
             if (offset.has_value()) {
                 owner->disk_structures[i]->add_entry(block_id,

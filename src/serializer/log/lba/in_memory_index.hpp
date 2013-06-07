@@ -11,10 +11,10 @@
 
 class in_memory_index_t
 {
-    // blocks.get_size() == timestamps.get_size().  We use parallel
-    // arrays to avoid wasting memory from alignment.
+    // {blocks,timestamps,block_sizes}.get_size() are all equal.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
     segmented_vector_t<repli_timestamp_t, MAX_BLOCK_ID> timestamps;
+    segmented_vector_t<uint32_t, MAX_BLOCK_ID> block_sizes;
 
 public:
     in_memory_index_t();
@@ -25,11 +25,13 @@ public:
     struct info_t {
         flagged_off64_t offset;
         repli_timestamp_t recency;
+        block_size_t block_size;
     };
 
     info_t get_block_info(block_id_t id);
     void set_block_info(block_id_t id, repli_timestamp_t recency,
-                        flagged_off64_t offset);
+                        flagged_off64_t offset,
+                        block_size_t block_size);
 
     bool is_offset_indexed(int64_t offset);
     block_id_t get_block_id(int64_t offset);

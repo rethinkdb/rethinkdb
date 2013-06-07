@@ -22,7 +22,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
 
 public:
-    explicit lba_list_t(extent_manager_t *em, block_size_t default_block_size);
+    explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -76,8 +76,6 @@ private:
     bool shutdown_now();
 
 private:
-    // RSI: Do we really need this variable?
-    const block_size_t default_block_size;
     extent_manager_t *const extent_manager;
 
     enum state_t {

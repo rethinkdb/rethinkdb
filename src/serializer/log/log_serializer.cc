@@ -235,8 +235,7 @@ struct ls_start_existing_fsm_t :
             }
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_list_t(ser->extent_manager,
-                                            ser->static_config.block_size());
+            ser->lba_index = new lba_list_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             // STATE E
