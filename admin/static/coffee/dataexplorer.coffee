@@ -2867,7 +2867,9 @@ module 'DataExplorerView', ->
         # Build the table
         # We order by the most frequent keys then by alphabetic order
         json_to_table: (result) =>
-            if not (result.constructor? and result.constructor is ArrayResult)
+            # While an Array type is never returned by the driver, we still build an Array in the data explorer
+            # when a cursor is returned (since we just print @limit results)
+            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
                 result = [result]
 
             keys_count =
