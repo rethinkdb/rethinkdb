@@ -360,7 +360,7 @@ private:
         return out;
     }
 
-     virtual const char *name() const { return "skip"; }
+     virtual const char *name() const { return "difference"; }
 };
 
 counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
