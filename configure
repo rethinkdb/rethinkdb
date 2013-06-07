@@ -17,6 +17,7 @@ init () {
     min_clang_version=0
     min_icc_version=0
     invalid_coffee_versions="1.5.0 1.6 1.6.1"
+    max_lessc_version="1.3.3"
 
     required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
@@ -99,10 +100,6 @@ configure () {
             require_dep $bin
             check_bin $bin
         done
-        if ! contains "$fetch_list" coffee; then
-            require CoffeeScript version
-            check_coffee_version
-        fi
     fi
     for bin in $required_bin_deps; do
         require_dep $bin
@@ -517,7 +514,7 @@ check_cxx () {
         error "Could not determine C++ compiler version (>= $(write_version $min_version) required)"
         return
     else
-        test_version_gt $(uc $type) $min_version $(read_version "$version_string") || return
+        test_version_ge $(uc $type) $(read_version "$version_string") $min_version || return
     fi
 
     show "$(uc $type) $version_string ($full_CXX)"
@@ -549,11 +546,49 @@ write_version () {
     printf %d.%d.%d ${v:0:2} ${v:2:2} ${v:4:2}
 }
 
-# test_version_gt <name> <version> <wanted version>
-test_version_gt () {
-    if [[ $2 -gt $3 ]]; then
-        show "too old"
-        error "$1 $(write_version $3) is too old. At least $1 $(write_version $2) is required"
+# test_version_ge <name> <version> <min version>
+test_version_ge () {
+    if ! [[ $2 -ge $3 ]]; then
+        show "$1 $(write_version $2)"
+        error "$1 $(write_version $2) is too old. At least $1 $(write_version $3) is required"
+        return 1
+    fi
+}
+
+# test_version_le <name> <version> <max version>
+test_version_le () {
+    if ! [[ $2 -le $3 ]]; then
+        show "$1 $(write_version $2)"
+        error "$1 $(write_version $2) is too recent. At most $1 $(write_version $3) is required"
+        return 1
+    fi
+}
+
+# test_bin_version <name> <path>
+test_bin_version () {
+    local min_var=min_$1_version
+    local min=${!min_var:-}
+    local max_var=max_$1_version
+    local max=${!max_var:-}
+    local invalid_var=invalid_$1_versions
+    local invalid=${!invalid_var:-}
+    test -z "$min$max$invalid" && return 0
+    local output
+    local ver
+    if output=$("$2" --version) &&
+       ver=$(echo "$output" | extract_version_string) &&
+       test -n "$ver" ;
+    then
+        local version=$(read_version "$ver")
+        test -z "$min" || test_version_ge $1 $version $(read_version $min) || return 1
+        test -z "$max" || test_version_le $1 $version $(read_version $max) || return 1
+        if contains "$invalid" "$ver" ; then
+            show "$ver"
+            error "$1 ($ver) is not supported"
+            return 1
+        fi
+    else
+        error "Could not determine $1 version"
         return 1
     fi
 }
@@ -613,6 +648,8 @@ check_bin () {
             return
         fi
     fi
+    local version
+    test_bin_version $1 "$bin" || return
     var "$(uc $1)" "$bin"
 }
 
@@ -773,15 +810,6 @@ niceabspath () {
         echo "$1"
     else
         echo "$(pwd)/$1"
-    fi
-}
-
-check_coffee_version () {
-    local version=`$COFFEE --version | extract_version_string`
-    if contains "$invalid_coffee_versions" "$version"; then
-        error "CoffeeScript $version is broken. Upgrade to a newer version, or configure with --allow-fetch"
-    else
-        show $version
     fi
 }
 
