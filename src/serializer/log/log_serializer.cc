@@ -85,7 +85,7 @@ void filepath_file_opener_t::unlink_serializer_file() {
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) {
     const std::string semantic_filepath = filepath_.permanent_path() + "_semantic";
     int semantic_fd;
     do {
@@ -96,7 +96,7 @@ void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     if (semantic_fd == INVALID_FD) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
     } else {
-        *fd_out = semantic_fd;
+        file_out->init(new linux_semantic_checking_file_t(semantic_fd));
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
