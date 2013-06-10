@@ -505,7 +505,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             flagged_off64_t offset;
             // RSI: Maybe we need to use the block size somehow.
             block_size_t block_size = lba_index->get_block_offset(op.block_id, &offset);
-            guarantee(block_size.value() == get_block_size().value(), "ser_value is %" PRIu32, block_size.ser_value());
+            guarantee(!offset.has_value() || block_size.value() == get_block_size().value());
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
