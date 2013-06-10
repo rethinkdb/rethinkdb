@@ -99,9 +99,9 @@ block_size_t lba_list_t::get_block_offset(block_id_t block,
                                           flagged_off64_t *offset_out) {
     rassert(state == state_ready);
 
-    // RSI: Actually support per-block block size.
-    *offset_out = in_memory_index.get_block_info(block).offset;
-    return extent_manager->default_block_size;
+    in_memory_index_t::info_t info = in_memory_index.get_block_info(block);
+    *offset_out = info.offset;
+    return info.block_size;
 }
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
