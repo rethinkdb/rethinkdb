@@ -247,6 +247,9 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def match(self, pattern):
+        return Match(self, pattern)
+
     def is_empty(self):
         return IsEmpty(self)
 
@@ -713,6 +716,10 @@ class Nth(RqlQuery):
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
+
+class Match(RqlQuery):
+    tt = p.Term.MATCH
+    st = 'match'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF

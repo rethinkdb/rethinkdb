@@ -234,7 +234,9 @@ bool func_term_t::is_deterministic_impl() const {
 bool func_t::filter_call(counted_t<const datum_t> arg) {
     try {
         counted_t<const datum_t> d = call(arg)->as_datum();
-        if (d->get_type() == datum_t::R_OBJECT) {
+        if (d->get_type() == datum_t::R_OBJECT &&
+            (source->args(1).type() == Term::MAKE_OBJ ||
+             source->args(1).type() == Term::DATUM)) {
             const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
             for (auto it = obj.begin(); it != obj.end(); ++it) {
                 r_sanity_check(it->second.has());
@@ -247,13 +249,8 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
                 }
             }
             return true;
-        } else if (d->get_type() == datum_t::R_BOOL) {
-            return d->as_bool();
         } else {
-            d->type_error(
-                strprintf(
-                    "FILTER must be passed either an OBJECT or a predicate (got %s).",
-                    d->get_type_name()));
+            return d->as_bool();
         }
     } catch (const base_exc_t &e) {
         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
@@ -306,6 +303,5 @@ counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const dat
 void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
-
 
 } // namespace ql
