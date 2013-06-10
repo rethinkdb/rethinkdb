@@ -96,6 +96,9 @@ RUN_TEST_ARGS ?=
 # For each triggered rule, show one of the dependencies that caused it to be run
 SHOW_BUILD_REASON ?= 0
 
+# Enable backtraces for RQL errors
+RQL_ERROR_BT ?= 0
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
