@@ -41,12 +41,13 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None):
+    def __init__(self, host, port, db=None, auth_key=""):
         self.socket = None
         self.host = host
         self.port = port
         self.next_token = 1
         self.db = db
+        self.auth_key = auth_key
         self.reconnect()
 
     def __enter__(self):
@@ -66,6 +67,7 @@ class Connection(object):
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
+        self.socket.sendall(self.auth_key + "\0")
 
     def close(self):
         if self.socket:
@@ -203,5 +205,5 @@ class Connection(object):
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-def connect(host='localhost', port=28015, db=None):
-    return Connection(host, port, db)
+def connect(host='localhost', port=28015, db=None, auth_key=""):
+    return Connection(host, port, db, auth_key)

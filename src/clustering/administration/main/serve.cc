@@ -215,6 +215,7 @@ bool do_serve(
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
+                                          auth_manager_cluster.get_root_view(),
                                           &directory_read_manager,
                                           machine_id);
 

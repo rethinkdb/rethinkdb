@@ -21,9 +21,11 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     int port,
     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
     response_t (*_on_unparsable_query)(request_t, std::string),
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
+      auth_metadata(_auth_metadata),
       cb_mode(_cb_mode),
       shutting_down_conds(get_num_threads()),
       pulse_sdc_on_shutdown(&main_shutting_down_cond),
@@ -55,9 +57,24 @@ int protob_server_t<request_t, response_t, context_t>::get_port() const {
 }
 
 template <class request_t, class response_t, class context_t>
+std::string protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
+    const int64_t buffer_size = auth_semilattice_metadata_t::max_auth_length + 1;
+    char buffer[buffer_size];
+    for (int64_t i = 0; i < buffer_size; ++i) {
+        conn->read(buffer + i, 1, interruptor);
+        if (buffer[i] == '\0') {
+            return std::string(buffer);
+        }
+    }
+    logWRN("Client provided an authorization key that is too long");
+    return std::string("");
+}
+
+template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle_conn(
     const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
     auto_drainer_t::lock_t keepalive) {
+    const vclock_t<std::string> auth_vclock = auth_metadata->get().auth_key;
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
@@ -71,6 +88,21 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
         if (client_magic_number != context_t::magic_number) {
             const char *msg =
                 "ERROR: This is the rdb protocol port! (bad magic number)\n";
+            conn->write(msg, strlen(msg), &ct_keepalive);
+            conn->shutdown_write();
+            return;
+        }
+
+        if (auth_vclock.in_conflict()) {
+            const char *msg = "ERROR: authorization key is in conflict, resolve it through the admin UI before connecting clients\n";
+            conn->write(msg, strlen(msg), &ct_keepalive);
+            conn->shutdown_write();
+            return;
+        }
+
+        std::string provided_auth = read_auth_key(conn.get(), &ct_keepalive);
+        if (provided_auth != auth_vclock.get()) {
+            const char *msg = "ERROR: incorrect authorization key\n";
             conn->write(msg, strlen(msg), &ct_keepalive);
             conn->shutdown_write();
             return;

@@ -2328,6 +2328,10 @@ void admin_cluster_link_t::do_admin_set_auth(const admin_command_parser_t::comma
     auth_semilattice_metadata_t auth_metadata = change_request.get();
 
     std::string key = guarantee_param_0(data.params, "key");
+    if (key.length() > auth_semilattice_metadata_t::max_auth_length) {
+        throw admin_cluster_exc_t(strprintf("the provided authorization key is too long, max length: %zu",
+                                            auth_semilattice_metadata_t::max_auth_length));
+    }
     auth_metadata.auth_key.get_mutable() = key;
     auth_metadata.auth_key.upgrade_version(change_request_id);
 
