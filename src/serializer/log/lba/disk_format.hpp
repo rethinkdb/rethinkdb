@@ -80,31 +80,37 @@ static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 struct lba_entry_t {
     block_id_t block_id;
 
-    // TODO: Remove the need for these fields.  Remove the requirement
-    // that lba_entry_t be a divisor of DEVICE_BLOCK_SIZE.
-    uint32_t zero1;
+    uint32_t ser_block_size;
+
+    // TODO: Remove the need for these fields (or this zero field).  Remove the
+    // requirement that lba_entry_t be a divisor of DEVICE_BLOCK_SIZE.  When doing
+    // so, be sure to make lba entries backwards compatiblizable for now.  (We could
+    // in the future use this value being non-zero to mean the lba entry is a
+    // new-style entry.)
     uint64_t zero2;
 
     repli_timestamp_t recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
-    static inline lba_entry_t make(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset) {
+    static lba_entry_t make(block_id_t block_id, repli_timestamp_t recency,
+                            flagged_off64_t offset, uint32_t ser_block_size) {
+        guarantee(block_id == PADDING_BLOCK_ID || ser_block_size != 0);
         lba_entry_t entry;
         entry.block_id = block_id;
-        entry.zero1 = 0;
+        entry.ser_block_size = ser_block_size;
         entry.zero2 = 0;
         entry.recency = recency;
         entry.offset = offset;
         return entry;
     }
 
-    static inline bool is_padding(const lba_entry_t* entry) {
+    static bool is_padding(const lba_entry_t* entry) {
         return entry->block_id == PADDING_BLOCK_ID  && entry->offset.is_padding();
     }
 
-    static inline lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding());
+    static lba_entry_t make_padding_entry() {
+        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding(), 0);
     }
 } __attribute__((__packed__));
 

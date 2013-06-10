@@ -526,7 +526,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             repli_timestamp_t recency = op.recency ? op.recency.get()
                 : lba_index->get_block_recency(op.block_id);
 
-            lba_index->set_block_info(op.block_id, recency, offset, io_account, &context.extent_txn);
+            // RSI: Pass a block-specific block size, not
+            // get_block_size().ser_value().
+            lba_index->set_block_info(op.block_id, recency,
+                                      offset, get_block_size().ser_value(),
+                                      io_account, &context.extent_txn);
         }
     }
 

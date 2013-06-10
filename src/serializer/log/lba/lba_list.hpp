@@ -35,7 +35,11 @@ public:
     bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
 public:
+    // RSI: Just combine get_block_offset and get_block_recency into one function?
+    // RSI: Make sure that everything using get_block_offset also uses
+    // get_ser_block_size.  Maybe by combining just those two.
     flagged_off64_t get_block_offset(block_id_t block);
+    uint32_t get_ser_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
@@ -50,7 +54,8 @@ public:
 
 public:
     void set_block_info(block_id_t block, repli_timestamp_t recency,
-                        flagged_off64_t offset, file_account_t *io_account,
+                        flagged_off64_t offset, uint32_t ser_block_size,
+                        file_account_t *io_account,
                         extent_transaction_t *txn);
 
     struct sync_callback_t {
