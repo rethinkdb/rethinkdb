@@ -11,15 +11,18 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    char *data;
-    extent_t *parent;
-    size_t offset;
-    std::vector< extent_t::sync_callback_t* > sync_cbs;
-    bool waiting_for_prev, have_finished_sync, is_last_block;
+    char *const data;
+    extent_t *const parent;
+    const size_t offset;
+    std::vector<extent_t::sync_callback_t *> sync_cbs;
+
+    bool waiting_for_prev;
+    bool have_finished_sync;
+    bool is_last_block;
 
     extent_block_t(extent_t *_parent, size_t _offset)
-        : parent(_parent), offset(_offset) {
-        data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+        : data(static_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE))),
+          parent(_parent), offset(_offset) {
     }
     ~extent_block_t() {
         free(data);
