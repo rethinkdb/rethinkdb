@@ -22,7 +22,7 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
     scs_persisted_block_info_t buf;
     buf.block_id = block_id;
     buf.block_info = info;
-    int res = write(semantic_fd, &buf, sizeof(buf));
+    size_t res = semantic_file->semantic_blocking_write(&buf, sizeof(buf));
     guarantee_err(res == sizeof(buf), "Could not write data to semantic checker file");
 }
 
@@ -39,19 +39,18 @@ create(serializer_file_opener_t *file_opener, static_config_t static_config) {
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection)
+semantic_checking_serializer_t(dynamic_config_t config,
+                               serializer_file_opener_t *file_opener,
+                               perfmon_collection_t *perfmon_collection)
     : inner_serializer(config, file_opener, perfmon_collection),
-      last_index_write_started(0), last_index_write_finished(0),
-      semantic_fd(-1)
-{
-    file_opener->open_semantic_checking_file(&semantic_fd);
+      last_index_write_started(0), last_index_write_finished(0) {
+    file_opener->open_semantic_checking_file(&semantic_file);
 
     // fill up the blocks from the semantic checking file
-    int res = -1;
+    size_t res = 0;
     do {
         scs_persisted_block_info_t buf;
-        res = read(semantic_fd, &buf, sizeof(buf));
-        guarantee_err(res != -1, "Could not read from the semantic checker file");
+        res = semantic_file->semantic_blocking_read(&buf, sizeof(buf));
         if (res == sizeof(scs_persisted_block_info_t)) {
             blocks.set(buf.block_id, buf.block_info);
         }
@@ -59,10 +58,7 @@ semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t
 }
 
 template<class inner_serializer_t>
-semantic_checking_serializer_t<inner_serializer_t>::
-~semantic_checking_serializer_t() {
-    close(semantic_fd);
-}
+semantic_checking_serializer_t<inner_serializer_t>::~semantic_checking_serializer_t() { }
 
 template<class inner_serializer_t>
 void *semantic_checking_serializer_t<inner_serializer_t>::malloc() {

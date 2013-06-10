@@ -55,7 +55,7 @@ public:
     void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
     void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    void open_semantic_checking_file(int *fd_out);
+    void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);
 #endif
 
 private:

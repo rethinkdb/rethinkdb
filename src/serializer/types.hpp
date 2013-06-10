@@ -82,6 +82,7 @@ struct serializer_traits_t<log_serializer_t> {
 };
 
 class file_t;
+class semantic_checking_file_t;
 
 class serializer_file_opener_t {
 public:
@@ -96,7 +97,7 @@ public:
     virtual void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out) = 0;
     virtual void unlink_serializer_file() = 0;
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    virtual void open_semantic_checking_file(int *fd_out) = 0;
+    virtual void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) = 0;
 #endif
 };
 

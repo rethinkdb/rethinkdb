@@ -99,6 +99,17 @@ private:
     DISABLE_COPYING(linux_file_t);
 };
 
+class linux_semantic_checking_file_t : public semantic_checking_file_t {
+public:
+    linux_semantic_checking_file_t(int fd);
+
+    virtual size_t semantic_blocking_read(void *buf, size_t length);
+    virtual size_t semantic_blocking_write(const void *buf, size_t length);
+
+private:
+    scoped_fd_t fd_;
+};
+
 file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
