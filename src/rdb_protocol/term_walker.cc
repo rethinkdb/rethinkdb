@@ -173,6 +173,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
@@ -285,6 +286,7 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
