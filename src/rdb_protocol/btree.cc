@@ -576,6 +576,7 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
+                                              direction_t _direction,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -583,7 +584,8 @@ public:
         cumulative_size(0),
         ql_env(_ql_env),
         transform(_transform),
-        terminal(_terminal)
+        terminal(_terminal),
+        direction(_direction)
     {
         init(range);
     }
@@ -602,6 +604,7 @@ public:
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
+                                              direction_t _direction,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -610,7 +613,8 @@ public:
         ql_env(_ql_env),
         transform(_transform),
         terminal(_terminal),
-        primary_key_range(_primary_key_range)
+        primary_key_range(_primary_key_range),
+        direction(_direction)
     {
         init(range);
     }
@@ -732,6 +736,7 @@ public:
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
+    direction_t direction;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -762,9 +767,10 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -781,9 +787,10 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
+                    direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, direction, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;

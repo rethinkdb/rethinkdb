@@ -16,6 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -271,8 +272,9 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             bool _merge_sort = false)
-            : region(_region), merge_sort(_merge_sort) {
+                             bool _merge_sort = false,
+                             direction_t _direction = FORWARD)
+            : region(_region), merge_sort(_merge_sort), direction(_direction) {
         }
 
         void init_sindexes(counted_t<const ql::datum_t> start,
@@ -290,7 +292,8 @@ struct rdb_protocol_t {
         rget_read_t(const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
                     counted_t<const ql::datum_t> _sindex_end_value,
-                    bool _merge_sort = false)
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(rdb_protocol_t::sindex_key_range(
                                 _sindex_start_value != NULL
@@ -299,7 +302,7 @@ struct rdb_protocol_t {
                                 _sindex_end_value != NULL
                                   ? _sindex_end_value->truncated_secondary()
                                   : store_key_t::max())),
-              merge_sort(_merge_sort) {
+              merge_sort(_merge_sort), direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
@@ -307,9 +310,11 @@ struct rdb_protocol_t {
                     const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
                     counted_t<const ql::datum_t> _sindex_end_value,
-                    bool _merge_sort = false)
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region), merge_sort(_merge_sort) {
+              sindex_region(_sindex_region), merge_sort(_merge_sort),
+              direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
@@ -319,20 +324,23 @@ struct rdb_protocol_t {
                     counted_t<const ql::datum_t> _sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    bool _merge_sort = false)
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs),
-              merge_sort(_merge_sort) {
+              merge_sort(_merge_sort), direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    bool _merge_sort = false)
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(_region), transform(_transform),
-              optargs(_optargs), merge_sort(_merge_sort) {
+              optargs(_optargs), merge_sort(_merge_sort),
+              direction(_direction) {
             rassert(optargs.size() != 0);
         }
 
@@ -379,6 +387,10 @@ struct rdb_protocol_t {
 
         /* Whether or not to merge sort the results from different shards. */
         bool merge_sort;
+
+        /* Whether to start with the minimum key and work our way up or go the
+         * other way around. */
+        direction_t direction;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

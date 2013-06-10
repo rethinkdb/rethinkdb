@@ -4,6 +4,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
+#include "containers/archive/archive.hpp"
 
 class superblock_t;
 
@@ -20,6 +21,8 @@ enum direction_t {
     FORWARD,
     BACKWARD
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */

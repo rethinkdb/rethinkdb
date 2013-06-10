@@ -1083,7 +1083,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (!rget.sindex) {
             //Normal rget
-            rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env, rget.transform, rget.terminal, res);
+            rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env,
+                    rget.transform, rget.terminal, rget.direction, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1157,7 +1158,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     store->get_sindex_slice(*rget.sindex),
                     rget.sindex_region->inner,
                     txn, sindex_sb.get(), &ql_env, sindex_transform,
-                    rget.terminal, rget.region.inner, res);
+                    rget.terminal, rget.region.inner, rget.direction, res);
         }
     }
 
@@ -1644,9 +1645,9 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
+RDB_IMPL_ME_SERIALIZABLE_10(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_start_value, sindex_end_value,
-                           transform, terminal, optargs);
+                           transform, terminal, optargs, merge_sort, direction);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
