@@ -147,7 +147,7 @@ private:
 
 template <class inner_serializer_t>
 void counted_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    UNUSED const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    DEBUG_VAR const intptr_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
