@@ -5,7 +5,7 @@
 # We assemble path directives.
 LDPATHDS ?=
 CXXPATHDS ?=
-LDFLAGS ?= -I/usr/local/include -L/usr/local/lib -lre2
+LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
@@ -156,6 +156,10 @@ ifeq ($(RT_COPY_NATIVE),1)
 endif
 ifeq ($(RT_REDUCE_NATIVE),1)
   RT_CXXFLAGS+=-march="$(GCC_ARCH_REDUCED)"
+endif
+
+ifeq ($(RQL_ERROR_BT),1)
+  RT_CXXFLAGS+=-DRQL_ERROR_BT
 endif
 
 # Configure debug vs. release
