@@ -69,6 +69,7 @@ class RDBVal extends TermBase
 
     append: ar (val) -> new Append {}, @, val
     prepend: ar (val) -> new Prepend {}, @, val
+    difference: ar (val) -> new Difference {}, @, val
     setInsert: ar (val) -> new SetInsert {}, @, val
     setUnion: ar (val) -> new SetUnion {}, @, val
     setIntersection: ar (val) -> new SetIntersection {}, @, val
@@ -83,7 +84,8 @@ class RDBVal extends TermBase
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
     changeAt: ar (index, value) -> new ChangeAt {}, @, index, value
     indexesOf: ar (which) -> new IndexesOf {}, @, funcWrap(which)
-    hasFields: varar(1, null, (fields...) -> new HasFields {}, @, fields...)
+    hasFields: varar(0, null, (fields...) -> new HasFields {}, @, fields...)
+    withFields: varar(0, null, (fields...) -> new WithFields {}, @, fields...)
     keys: ar(-> new Keys {}, @)
 
     # pluck and without on zero fields are allowed
@@ -388,6 +390,10 @@ class Prepend extends RDBOp
     tt: Term.TermType.PREPEND
     mt: 'prepend'
 
+class Difference extends RDBOp
+    tt: Term.TermType.DIFFERENCE
+    mt: 'difference'
+
 class SetInsert extends RDBOp
     tt: Term.TermType.SET_INSERT
     mt: 'set_insert'
@@ -448,6 +454,10 @@ class Contains extends RDBOp
 
 class HasFields extends RDBOp
     tt: Term.TermType.HAS_FIELDS
+    mt: 'contains'
+
+class WithFields extends RDBOp
+    tt: Term.TermType.WITH_FIELDS
     mt: 'contains'
 
 class Keys extends RDBOp

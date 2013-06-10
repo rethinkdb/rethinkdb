@@ -29,6 +29,37 @@ commands:
              hero[:combat_power] + hero[:compassion_power] * 2
             }.run(conn)
 
+    js:
+      body: mappingFunction
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+  - tag: with_fields
+    section: transformations
+    description: Takes a sequence of objects and a list of fields.  If any objects in the sequence don't have all of the specified fields, they're dropped from the sequence.  The remaining objects have the specified fields plucked out.  (This is identical to `has_fields` followed by `pluck` on a sequence.)
+
+    body: field1[, field2...]
+    parent: sequence
+    returns: sequence
+
+    examples:
+      - description: Get a list of heroes and their arch-nemeses, excluding any heroes that lack one.
+        code:
+          rb: r.table('marvel').with_fields('id', 'nemesis')
+          py: r.table('marvel').with_fields('id', 'nemesis')
+          js: r.table('marvel').withFields('id', 'nemesis')
+
+
+    js:
+      body: mappingFunction
+      examples:
+        0:
+          can_try: true
+          dataset: marvel
+
+
   - tag: concat_map
     section: transformations
     description: Flattens a sequence of arrays returned by the <code>mappingFunction</code>
@@ -221,7 +252,10 @@ commands:
 
     examples:
       - description: Construct a stream of all heroes.
-        code: r.table('marvel').union(r.table('dc')).run(conn)
+        code:
+          py: r.table('marvel').union(r.table('dc')).run(conn)
+          rb: r.table('marvel').union(r.table('dc')).run(conn)
+          js: r.table('marvel').union(r.table('dc')).run(conn, callback)
 
   - tag: sample
     section: transformations

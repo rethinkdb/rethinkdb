@@ -153,6 +153,6 @@ commands:
     examples:
       - description: Iron Man ever fought Superman?
         code:
-          rb: r.table('marvel').get('ironman')[:opponents].contains('superman')
-          py: r.table('marvel').get('ironman')['opponents'].contains('superman')
-          py: r.table('marvel').get('ironman')('opponents').contains('superman')
+          rb: r.table('marvel').get('ironman')[:opponents].contains('superman').run(conn)
+          py: r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
+          js: r.table('marvel').get('ironman')('opponents').contains('superman').run(conn, callback)

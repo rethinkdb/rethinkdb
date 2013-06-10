@@ -53,5 +53,5 @@ commands:
           rb: |-
             r.table('projects').map {|p|
               p[:staff].default(0) + p[:management].default(0)
-            ).run(conn)
+            }.run(conn)
 

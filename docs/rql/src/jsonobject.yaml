@@ -49,9 +49,15 @@ commands:
 
     examples:
       - description: We just need information about IronMan's reactor and not the rest of the document.
-        code: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+        code:
+          py: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+          rb: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+          js: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn, callback)
       - description: For the hero beauty contest we only care about certain qualities.
-        code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+        code:
+          py: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+          rb: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+          js: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn, callback)
 
   - tag: without
     section: jsonobject
@@ -65,9 +71,15 @@ commands:
     examples:
       - description: Since we don't need it for this computation we'll save bandwidth
           and leave out the list of IronMan's romantic conquests.
-        code: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+        code:
+          py: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+          rb: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+          js: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn, callback)
       - description: Without their prized weapons, our enemies will quickly be vanquished.
-        code: r.table('enemies').without('weapons').run(conn)
+        code:
+          py: r.table('enemies').without('weapons').run(conn)
+          rb: r.table('enemies').without('weapons').run(conn)
+          js: r.table('enemies').without('weapons').run(conn, callback)
 
   - tag: merge
     section: jsonobject
@@ -80,9 +92,16 @@ commands:
 
     examples:
       - description: Equip IronMan for battle.
-        code: |-
-          r.table('marvel').get('IronMan').merge(
-            r.table('loadouts').get('alienInvasionKit')).run(conn)
+        code:
+          py: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn)
+          rb: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn)
+          js: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn, callback)
 
   - tag: append
     section: jsonobject
@@ -113,6 +132,21 @@ commands:
           js: r.table('marvel').get('IronMan')('equipment').prepend('newBoots').run(conn, callback)
           py: r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].prepend('new_boots').run(conn)
+
+  - tag: difference
+    section: jsonobject
+    description: Remove the elements of one array from another array.
+
+    body: json
+    parent: json
+    returns: json
+
+    examples:
+      - description: Retrieve Iron Man's equipment list with the addition of some new boots, removing a few items.
+        code:
+          js: r.table('marvel').get('IronMan')('equipment').difference(['Boots']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].difference(['Boots']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].difference(['Boots']).run(conn)
 
   - tag: set_insert
     section: jsonobject
@@ -163,9 +197,9 @@ commands:
     examples:
       - description: Check which pieces of equipment Iron Man has from a fixed list.
         code:
-          js: r.table('marvel').get('IronMan')('equipment').setIntersect(['newBoots', 'arc_reactor']).run(conn, callback)
-          py: r.table('marvel').get('IronMan')['equipment'].set_intersect(['newBoots', 'arc_reactor']).run(conn)
-          rb: r.table('marvel').get('IronMan')[:equipment].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+          js: r.table('marvel').get('IronMan')('equipment').setIntersection(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_intersection(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_intersection(['newBoots', 'arc_reactor']).run(conn)
 
   - tag: set_difference
     section: jsonobject
@@ -215,7 +249,7 @@ commands:
       - description: Which heroes are married?
         code:
           js: |
-            r.table('marvel').filter(function(hero) {return hero.has_fields('spouse')})
+            r.table('marvel').filter(function(hero) {return hero.hasFields('spouse')})
              .run(conn, callback)
           py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
           rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
@@ -295,7 +329,7 @@ commands:
     examples:
       - description: Get all the keys of a row.
         code:
-          rb: r.table('marvel').get('ironman').keys
-          py: r.table('marvel').get('ironman').keys()
-          js: r.table('marvel').get('ironman').keys()
+          rb: r.table('marvel').get('ironman').keys.run(conn)
+          py: r.table('marvel').get('ironman').keys().run(conn)
+          js: r.table('marvel').get('ironman').keys().run(conn, callback)
 

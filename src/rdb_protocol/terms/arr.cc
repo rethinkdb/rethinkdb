@@ -420,6 +420,7 @@ private:
     virtual const char *name() const { return "contains"; }
 };
 
+
 counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
     return make_counted<contains_term_t>(env, term);
 }
@@ -483,5 +484,6 @@ counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term) {
 counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
     return make_counted<indexes_of_term_t>(env, term);
 }
+
 
 }  // namespace ql

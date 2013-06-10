@@ -128,9 +128,8 @@ class Connection
         @outstandingCallbacks = {}
 
     reconnect: ar (callback) ->
-        setTimeout(
-            () => @constructor.call(@, {host:@host, port:@port}, callback)
-           ,0)
+        cb = => @constructor.call(@, {host:@host, port:@port}, callback)
+        setTimeout(cb, 0)
 
     use: ar (db) ->
         @db = db

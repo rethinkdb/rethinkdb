@@ -248,6 +248,8 @@ message Term {
         APPEND = 29; // ARRAY, DATUM -> ARRAY
         // Prepend a single element to the end of an array (like `cons`).
         PREPEND = 80; // ARRAY, DATUM -> ARRAY
+        //Remove the elements of one array from another array.
+        DIFFERENCE = 95; // ARRAY, ARRAY -> ARRAY
 
         // DATUM Set Ops
         // Set ops work on arrays. They don't use actual sets and thus have
@@ -275,6 +277,8 @@ message Term {
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
         HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
+        // x.with_fields(...) <=> x.has_fields(...).pluck(...)
+        WITH_FIELDS = 96; // Sequence, STRING... -> Sequence
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
         PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT

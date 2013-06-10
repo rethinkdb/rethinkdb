@@ -20,6 +20,15 @@ tests:
     - cd: arr.prepend('a')
       ot: ['a',1,2,3]
 
+    ## Difference
+
+    - cd: arr.difference([1,2,2])
+      ot: [3]
+    - cd: arr.difference([])
+      ot: [1,2,3]
+    - cd: arr.difference(["foo", "bar"])
+      ot: [1,2,3]
+
     ## Set operations
     - cd: dupe_arr.set_insert(1)
       ot: [1,2,3]
@@ -93,6 +102,22 @@ tests:
       ot: [{'a':1}, {'a':2}, {'a':3}]
     - cd: objArr.pluck()
       ot: [{}, {}, {}]
+
+    ## With_Fields
+    - def: wftst = objArr.union(objArr.pluck('a')).union(objArr.pluck('b')).union([{'a':null}])
+    - cd: wftst.with_fields('a')
+      ot: ([{'a':1},{'a':2},{'a':3},{'a':1},{'a':2},{'a':3}])
+    - cd: wftst.with_fields('b')
+      ot: ([{'b':'a'},{'b':'b'},{'b':'c'},{'b':'a'},{'b':'b'},{'b':'c'}])
+    - cd: wftst.with_fields('a', 'b')
+      ot: ([{'a':1,'b':'a'},{'a':2,'b':'b'},{'a':3,'b':'c'}])
+    - cd: wftst.with_fields()
+      ot: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+
+    - cd: wftst.with_fields(1)
+      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
+    - cd: r.expr(1).with_fields()
+      ot: err("RqlRuntimeError", "Cannot convert NUMBER to SEQUENCE", [])
 
     ## Without
 

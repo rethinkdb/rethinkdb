@@ -128,6 +128,7 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::DIFFERENCE:
         case Term::SET_INSERT:
         case Term::SET_INTERSECTION:
         case Term::SET_UNION:
@@ -177,6 +178,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::WITH_FIELDS:
             return false;
         default: unreachable();
         }
@@ -239,6 +241,7 @@ private:
         case Term::MOD:
         case Term::APPEND:
         case Term::PREPEND:
+        case Term::DIFFERENCE:
         case Term::SET_INSERT:
         case Term::SET_INTERSECTION:
         case Term::SET_UNION:
@@ -287,6 +290,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::WITH_FIELDS:
             return false;
         default: unreachable();
         }

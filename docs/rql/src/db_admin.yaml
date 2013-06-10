@@ -19,7 +19,10 @@ commands:
 
     examples:
       - description: Create a database named 'superheroes'.
-        code: r.db_create('superheroes').run(conn)
+        code:
+          py: r.db_create('superheroes').run(conn)
+          rb: r.db_create('superheroes').run(conn)
+          js: r.dbCreate('superheroes').run(conn, callback)
 
   - tag: db_drop
     section: db_admin
@@ -35,7 +38,10 @@ commands:
 
     examples:
       - description: Drop a database named 'superheroes'.
-        code: r.db_drop('superheroes').run(conn)
+        code:
+          rb: r.db_drop('superheroes').run(conn)
+          py: r.db_drop('superheroes').run(conn)
+          js: r.dbDrop('superheroes').run(conn, callback)
 
   - tag: db_list
     section: db_admin
