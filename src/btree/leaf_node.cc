@@ -1525,6 +1525,14 @@ bool live_iter_t::step(const leaf_node_t *node) {
     return index_ < node->num_pairs;
 }
 
+bool live_iter_t::step_back(const leaf_node_t *node) {
+    do {
+        --index_;
+    } while (index_ > 0 && !entry_is_live(get_entry(node, node->pair_offsets[index_])));
+
+    return index_ > 0;
+}
+
 const btree_key_t *live_iter_t::get_key(const leaf_node_t *node) const {
     rassert(index_ <= node->num_pairs);
     if (index_ == node->num_pairs) {
@@ -1558,6 +1566,17 @@ live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_
     find_key(node, key, &index);
     while (index < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
         ++index;
+    }
+    return live_iter_t(index);
+}
+
+// Returns an iterator that starts at the last entry whose key is
+// less than or equal to key.
+live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key) {
+    int index;
+    find_key(node, key, &index);
+    while (index > 0 && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
+        --index;
     }
     return live_iter_t(index);
 }

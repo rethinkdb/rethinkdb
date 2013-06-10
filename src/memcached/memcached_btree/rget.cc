@@ -90,7 +90,7 @@ rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &rang
         int maximum, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
 
     rget_depth_first_traversal_callback_t callback(txn, maximum, effective_time);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.result.truncated = true;
     } else {

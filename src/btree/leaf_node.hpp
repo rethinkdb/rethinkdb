@@ -150,6 +150,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
 class live_iter_t {
 public:
     bool step(const leaf_node_t *node);
+    bool step_back(const leaf_node_t *node);
     const btree_key_t *get_key(const leaf_node_t *node) const;
     const void *get_value(const leaf_node_t *node) const;
 
@@ -157,12 +158,14 @@ private:
     explicit live_iter_t(int index) : index_(index) { }
 
     friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
+    friend live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
 
     int index_;
 };
 
 live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
+live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
 live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
 
 }  // namespace leaf

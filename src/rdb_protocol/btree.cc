@@ -764,7 +764,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -783,7 +783,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const key_range_t &pk_range,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
