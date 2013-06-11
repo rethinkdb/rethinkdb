@@ -652,25 +652,29 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
     try {
-        object_buffer_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
-        object_buffer_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
+        scoped_ptr_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
+        scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
         if (our_machine_id && cluster_metadata) {
-            cluster_metadata_file.create(&io_backender,
-                                         get_cluster_metadata_filename(base_path),
-                                         &metadata_perfmon_collection,
-                                         *our_machine_id,
-                                         *cluster_metadata);
-            auth_metadata_file.create(&io_backender,
-                                      get_auth_metadata_filename(base_path),
-                                      &metadata_perfmon_collection,
-                                      auth_semilattice_metadata_t());
+            cluster_metadata_file.init(
+                new metadata_persistence::cluster_persistent_file_t(&io_backender,
+                                                                    get_cluster_metadata_filename(base_path),
+                                                                    &metadata_perfmon_collection,
+                                                                    *our_machine_id,
+                                                                    *cluster_metadata));
+            auth_metadata_file.init(
+                new metadata_persistence::auth_persistent_file_t(&io_backender,
+                                                                 get_auth_metadata_filename(base_path),
+                                                                 &metadata_perfmon_collection,
+                                                                 auth_semilattice_metadata_t()));
         } else {
-            cluster_metadata_file.create(&io_backender,
-                                         get_cluster_metadata_filename(base_path),
-                                         &metadata_perfmon_collection);
-            auth_metadata_file.create(&io_backender,
-                                      get_auth_metadata_filename(base_path),
-                                      &metadata_perfmon_collection);
+            cluster_metadata_file.init(
+                new metadata_persistence::cluster_persistent_file_t(&io_backender,
+                                                                    get_cluster_metadata_filename(base_path),
+                                                                    &metadata_perfmon_collection));
+            auth_metadata_file.init(
+                new metadata_persistence::auth_persistent_file_t(&io_backender,
+                                                                 get_auth_metadata_filename(base_path),
+                                                                 &metadata_perfmon_collection));
         }
 
         *result_out = serve(serve_info.spawner_info,
