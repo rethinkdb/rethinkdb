@@ -59,9 +59,8 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
     for (int i = 0; i < info->count; i++) {
         lba_entry_t *e = &extent->entries[i];
         if (!lba_entry_t::is_padding(e)) {
-            // RSI: Actually read the block size from the entry.
             index->set_block_info(e->block_id, e->recency, e->offset,
-                                  em->default_ser_block_size);
+                                  e->ser_block_size);
         }
     }
 
