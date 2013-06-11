@@ -35,9 +35,7 @@ public:
     bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
 public:
-    // RSI: Just combine get_block_offset and get_block_recency into one function?
-    // RSI: Make sure that everything using get_block_offset also uses
-    // get_ser_block_size.  Maybe by combining just those two.
+    // RSI: Just combine these into one function?
     flagged_off64_t get_block_offset(block_id_t block);
     uint32_t get_ser_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);

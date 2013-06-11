@@ -268,6 +268,8 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
+                // RSI: We're not going to want to or be able to mark blocks live via
+                // offset.  We'll need offset and block size, for starters...
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (offset.has_value()) {
                     ser->data_block_manager->mark_live(offset.get_value());
@@ -767,6 +769,8 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
         return counted_t<ls_block_token_pointee_t>();
     }
 
+    // RSI: How should a block token refer to a block?  Purely by offset?  Or should
+    // the token also have block size information?
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
         counted_t<ls_block_token_pointee_t> ret(

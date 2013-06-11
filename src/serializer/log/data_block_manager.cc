@@ -169,6 +169,7 @@ public:
             } else {
                 const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
+                // RSI: Why do we care if the block_id is 0?
                 // Determine whether the block is live.
                 bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
@@ -189,6 +190,7 @@ public:
                     new ls_block_token_pointee_t(parent->serializer, current_offset));
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
+                // RSI: Presumably we also need to offer up the block size.
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
