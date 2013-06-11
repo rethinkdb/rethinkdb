@@ -28,9 +28,22 @@ struct gc_entry_less_t {
 // Identifies an extent, the time we started writing to the
 // extent, whether it's the extent we're currently writing to, and
 // describes blocks are garbage.
-class gc_entry_t :
-    public intrusive_list_node_t<gc_entry_t>
-{
+class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
+public:
+    /* This constructor is for starting a new extent. */
+    explicit gc_entry_t(data_block_manager_t *parent);
+
+    /* This constructor is for reconstructing extents that the LBA tells us contained
+       data blocks. */
+    gc_entry_t(data_block_manager_t *parent, int64_t offset);
+
+    void destroy();
+    ~gc_entry_t();
+
+#ifndef NDEBUG
+    void print();
+#endif
+
 public:
     data_block_manager_t *parent;
 
@@ -38,10 +51,13 @@ public:
     bitset_t g_array; /* !< bit array for whether or not each block is garbage */
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
-    // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
+
+    // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
+    // it for its .count().
     void update_g_array(unsigned int block_id) {
         g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
     }
+
     microtime_t timestamp; /* !< when we started writing to the extent */
     priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
     bool was_written; /* true iff the extent has been written to after starting up the serializer */
@@ -59,20 +75,6 @@ public:
         state_in_gc
     } state;
 
-public:
-    /* This constructor is for starting a new extent. */
-    explicit gc_entry_t(data_block_manager_t *parent);
-
-    /* This constructor is for reconstructing extents that the LBA tells us contained
-       data blocks. */
-    gc_entry_t(data_block_manager_t *parent, int64_t offset);
-
-    void destroy();
-    ~gc_entry_t();
-
-#ifndef NDEBUG
-    void print();
-#endif
 
 private:
     // Only to be used by the destructor, used to look up the gc entry in the parent's entries
