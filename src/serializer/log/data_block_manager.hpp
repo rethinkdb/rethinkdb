@@ -81,10 +81,12 @@ public:
 
     uint64_t index_bytes() const;
 
-public:
-    data_block_manager_t *parent;
+private:
+    data_block_manager_t *const parent;
 
+public:
     extent_reference_t extent_ref;
+
 private:
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
