@@ -361,8 +361,8 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
         info->path.push_back(base);
         info->path.push_back(uuid_str);
 
-        if (!i->second.get().name.in_conflict()) {
-            info->name = i->second.get().name.get().str();
+        if (!i->second.get_ref().name.in_conflict()) {
+            info->name = i->second.get_ref().name.get().str();
             name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
         }
         uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
@@ -518,11 +518,11 @@ datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t
         throw admin_cluster_exc_t("unexpected error, machine is deleted: " + uuid_to_str(machine));
     }
 
-    if (i->second.get().datacenter.in_conflict()) {
+    if (i->second.get_ref().datacenter.in_conflict()) {
         throw admin_cluster_exc_t("datacenter is in conflict for machine " + id);
     }
 
-    return i->second.get().datacenter.get();
+    return i->second.get_ref().datacenter.get();
 }
 
 void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::command_data_t& data) {
@@ -1166,28 +1166,28 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
                 throw admin_cluster_exc_t("unexpected error, blueprint invalid");
             }
 
-            if (m->second.get().name.in_conflict()) {
+            if (m->second.get_ref().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get().str());
+                delta.push_back(m->second.get_ref().name.get().str());
             }
 
-            if (m->second.get().datacenter.in_conflict()) {
+            if (m->second.get_ref().datacenter.in_conflict()) {
                 delta.push_back("<conflict>");
                 delta.push_back("");
             } else {
-                delta.push_back(truncate_uuid(m->second.get().datacenter.get()));
+                delta.push_back(truncate_uuid(m->second.get_ref().datacenter.get()));
 
                 // Find the datacenter to get the name
-                datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator dc = cluster_metadata.datacenters.datacenters.find(m->second.get().datacenter.get());
+                datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator dc = cluster_metadata.datacenters.datacenters.find(m->second.get_ref().datacenter.get());
                 if (dc == cluster_metadata.datacenters.datacenters.end() || dc->second.is_deleted()) {
                     throw admin_cluster_exc_t("unexpected error, blueprint invalid");
                 }
 
-                if (dc->second.get().name.in_conflict()) {
+                if (dc->second.get_ref().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(dc->second.get().name.get().str());
+                    delta.push_back(dc->second.get_ref().name.get().str());
                 }
             }
 
@@ -1349,10 +1349,10 @@ void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t:
         if (m != cluster_metadata.machines.machines.end()) {
             if (m->second.is_deleted()) {
                 delta.push_back("<deleted>");
-            } else if (m->second.get().name.in_conflict()) {
+            } else if (m->second.get_ref().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(m->second.get().name.get().str());
+                delta.push_back(m->second.get_ref().name.get().str());
             }
         } else {
             delta.push_back("");
@@ -1399,10 +1399,10 @@ void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_
                 delta.push_back(truncate_uuid(i->first));
             }
 
-            if (i->second.get().name.in_conflict()) {
+            if (i->second.get_ref().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get().str());
+                delta.push_back(i->second.get_ref().name.get().str());
             }
 
             table->push_back(delta);
@@ -1438,8 +1438,8 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
 
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
-        if (!i->second.is_deleted() && !i->second.get().datacenter.in_conflict()) {
-            datacenter_id_t datacenter = i->second.get().datacenter.get();
+        if (!i->second.is_deleted() && !i->second.get_ref().datacenter.in_conflict()) {
+            datacenter_id_t datacenter = i->second.get_ref().datacenter.get();
 
             results[datacenter].machines += 1;
 
@@ -1471,8 +1471,8 @@ template <class map_type>
 void admin_cluster_link_t::add_database_tables(const map_type& ns_map, std::map<database_id_t, database_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() &&
-            !i->second.get().database.in_conflict()) {
-            ++(*results)[i->second.get().database.get()].tables;
+            !i->second.get_ref().database.in_conflict()) {
+            ++(*results)[i->second.get_ref().database.get()].tables;
         }
     }
 }
@@ -1481,14 +1481,14 @@ template <class map_type>
 void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            if (!i->second.get().primary_datacenter.in_conflict()) {
+            if (!i->second.get_ref().primary_datacenter.in_conflict()) {
                 // TODO: Is this correct?  Are we creating a new value
                 // here?  Do maps of ints initialize the value to 0?
-                ++(*results)[i->second.get().primary_datacenter.get()].tables;
+                ++(*results)[i->second.get_ref().primary_datacenter.get()].tables;
             }
 
-            if (!i->second.get().replica_affinities.in_conflict()) {
-                std::map<datacenter_id_t, int32_t> affinities = i->second.get().replica_affinities.get();
+            if (!i->second.get_ref().replica_affinities.in_conflict()) {
+                std::map<datacenter_id_t, int32_t> affinities = i->second.get_ref().replica_affinities.get();
                 for (std::map<datacenter_id_t, int32_t>::iterator j = affinities.begin(); j != affinities.end(); ++j) {
                     if (j->second > 0) {
                         ++(*results)[j->first].tables;
@@ -1530,10 +1530,10 @@ void admin_cluster_link_t::do_admin_list_databases(const admin_command_parser_t:
                 delta.push_back(truncate_uuid(i->first));
             }
 
-            if (i->second.get().name.in_conflict()) {
+            if (i->second.get_ref().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get().str());
+                delta.push_back(i->second.get_ref().name.get().str());
             }
 
             if (long_format) {
@@ -1582,10 +1582,10 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
                 delta.push_back(truncate_uuid(i->first));
             }
 
-            if (i->second.get().name.in_conflict()) {
+            if (i->second.get_ref().name.in_conflict()) {
                 delta.push_back("<conflict>");
             } else {
-                delta.push_back(i->second.get().name.get().str());
+                delta.push_back(i->second.get_ref().name.get().str());
             }
 
             if (long_format) {
@@ -1729,8 +1729,8 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
                 delta.push_back(truncate_uuid(i->first));
             }
 
-            if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get().str());
+            if (!i->second.get_ref().name.in_conflict()) {
+                delta.push_back(i->second.get_ref().name.get().str());
             } else {
                 delta.push_back("<conflict>");
             }
@@ -1740,7 +1740,7 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
 
             if (long_format) {
                 char buffer[64];
-                namespace_info_t info = get_namespace_info(i->second.get());
+                namespace_info_t info = get_namespace_info(i->second.get_copy());
 
                 if (info.shards != -1) {
                     snprintf(buffer, sizeof(buffer), "%i", info.shards);
@@ -1798,8 +1798,8 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
 template <class map_type>
 void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
-        if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
-            add_machine_info_from_blueprint(i->second.get().blueprint.get_mutable(), results);
+        if (!i->second.is_deleted() && !i->second.get_copy().blueprint.in_conflict()) {
+            add_machine_info_from_blueprint(i->second.get_copy().blueprint.get_mutable(), results);
         }
     }
 }
@@ -1864,19 +1864,19 @@ void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::
                 delta.push_back(truncate_uuid(i->first));
             }
 
-            if (!i->second.get().name.in_conflict()) {
-                delta.push_back(i->second.get().name.get().str());
+            if (!i->second.get_ref().name.in_conflict()) {
+                delta.push_back(i->second.get_ref().name.get().str());
             } else {
                 delta.push_back("<conflict>");
             }
 
-            if (!i->second.get().datacenter.in_conflict()) {
-                if (i->second.get().datacenter.get().is_nil()) {
+            if (!i->second.get_ref().datacenter.in_conflict()) {
+                if (i->second.get_ref().datacenter.get().is_nil()) {
                     delta.push_back("none");
                 } else if (long_format) {
-                    delta.push_back(uuid_to_str(i->second.get().datacenter.get()));
+                    delta.push_back(uuid_to_str(i->second.get_ref().datacenter.get()));
                 } else {
-                    delta.push_back(truncate_uuid(i->second.get().datacenter.get()));
+                    delta.push_back(truncate_uuid(i->second.get_ref().datacenter.get()));
                 }
             } else {
                 delta.push_back("<conflict>");
@@ -2401,7 +2401,7 @@ void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THR
 template <class map_type>
 void admin_cluster_link_t::do_admin_set_name_internal(const uuid_u& id, const std::string& name, map_type *obj_map) {
     typename map_type::iterator i = obj_map->find(id);
-    if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get().name.in_conflict()) {
+    if (i != obj_map->end() && !i->second.is_deleted() && !i->second.get_ref().name.in_conflict()) {
         do_assign_string_to_name(i->second.get_mutable()->name.get_mutable(), name);
         i->second.get_mutable()->name.upgrade_version(change_request_id);
     } else {
@@ -2855,11 +2855,11 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator dc = cluster_metadata.datacenters.datacenters.find(ns.primary_datacenter.get());
         if (dc == cluster_metadata.datacenters.datacenters.end() ||
             dc->second.is_deleted() ||
-            dc->second.get().name.in_conflict() ||
-            dc->second.get().name.get().empty()) {
+            dc->second.get_ref().name.in_conflict() ||
+            dc->second.get_ref().name.get().empty()) {
             printf("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
         } else {
-            printf("primary datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
+            printf("primary datacenter '%s' %s\n", dc->second.get_ref().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
         }
     } else {
         printf("primary datacenter <conflict>\n");
@@ -2870,11 +2870,11 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         databases_semilattice_metadata_t::database_map_t::const_iterator db = cluster_metadata.databases.databases.find(ns.database.get());
         if (db == cluster_metadata.databases.databases.end() ||
             db->second.is_deleted() ||
-            db->second.get().name.in_conflict() ||
-            db->second.get().name.get().empty()) {
+            db->second.get_ref().name.in_conflict() ||
+            db->second.get_ref().name.get().empty()) {
             printf("in database %s\n", uuid_to_str(ns.database.get()).c_str());
         } else {
-            printf("in database '%s' %s\n", db->second.get().name.get().c_str(), uuid_to_str(ns.database.get()).c_str());
+            printf("in database '%s' %s\n", db->second.get_ref().name.get().c_str(), uuid_to_str(ns.database.get()).c_str());
         }
     } else {
         printf ("in database <conflict>\n");
@@ -2918,7 +2918,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                 std::vector<std::string> delta;
 
                 delta.push_back(uuid_to_str(i->first));
-                delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());
+                delta.push_back(i->second.get_ref().name.in_conflict() ? "<conflict>" : i->second.get_ref().name.get().str());
 
                 std::map<datacenter_id_t, int32_t>::const_iterator replica_it = replica_affinities.find(i->first);
                 int replicas = 0;
@@ -3032,10 +3032,10 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 if (m == machine_map.end() || m->second.is_deleted()) {
                     // This shouldn't really happen, but oh well
                     delta.push_back(std::string());
-                } else if (m->second.get().name.in_conflict()) {
+                } else if (m->second.get_ref().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get().str());
+                    delta.push_back(m->second.get_ref().name.get().str());
                 }
 
                 delta.push_back("yes");
@@ -3057,10 +3057,10 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
                 if (m == machine_map.end() || m->second.is_deleted()) {
                     // This shouldn't really happen, but oh well
                     delta.push_back(std::string());
-                } else if (m->second.get().name.in_conflict()) {
+                } else if (m->second.get_ref().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get().name.get().str());
+                    delta.push_back(m->second.get_ref().name.get().str());
                 }
 
                 delta.push_back("no");
@@ -3092,11 +3092,11 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted() &&
-            !i->second.get().datacenter.in_conflict() &&
-            i->second.get().datacenter.get() == dc_id) {
+            !i->second.get_ref().datacenter.in_conflict() &&
+            i->second.get_ref().datacenter.get() == dc_id) {
             std::vector<std::string> delta;
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get().str());
+            delta.push_back(i->second.get_ref().name.in_conflict() ? "<conflict>" : i->second.get_ref().name.get().str());
             table.push_back(delta);
         }
     }
@@ -3137,7 +3137,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
                                                             std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get();
+            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
             size_t replicas = 0;
 
             std::vector<std::string> delta;
@@ -3214,7 +3214,7 @@ void admin_cluster_link_t::add_single_database_affinities(const datacenter_id_t&
                                                           std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            const typename map_type::mapped_type::value_t ns = i->second.get();
+            const typename map_type::mapped_type::value_t ns = i->second.get_ref();
 
             if (!ns.database.in_conflict() && ns.database.get() == db_id) {
                 std::vector<std::string> delta;
@@ -3250,11 +3250,11 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
         datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator dc = cluster_metadata.datacenters.datacenters.find(machine.datacenter.get());
         if (dc == cluster_metadata.datacenters.datacenters.end() ||
             dc->second.is_deleted() ||
-            dc->second.get().name.in_conflict() ||
-            dc->second.get().name.get().empty()) {
+            dc->second.get_ref().name.in_conflict() ||
+            dc->second.get_ref().name.get().empty()) {
             printf("in datacenter %s\n", uuid_to_str(machine.datacenter.get()).c_str());
         } else {
-            printf("in datacenter '%s' %s\n", dc->second.get().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
+            printf("in datacenter '%s' %s\n", dc->second.get_ref().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
         }
     } else {
         printf("in datacenter <conflict>\n");
@@ -3290,8 +3290,8 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
 
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         // TODO: if there is a blueprint conflict, the values won't be accurate
-        if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
-            typename map_type::mapped_type::value_t ns = i->second.get();
+        if (!i->second.is_deleted() && !i->second.get_ref().blueprint.in_conflict()) {
+            typename map_type::mapped_type::value_t ns = i->second.get_ref();
             std::string uuid = uuid_to_str(i->first);
             std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get().str();
             matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);
@@ -3551,8 +3551,8 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted() &&
-            !i->second.get().datacenter.in_conflict() &&
-            i->second.get().datacenter.get() == datacenter) {
+            !i->second.get_ref().datacenter.in_conflict() &&
+            i->second.get_ref().datacenter.get() == datacenter) {
             ++count;
         }
     }
