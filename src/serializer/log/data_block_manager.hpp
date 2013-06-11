@@ -54,8 +54,8 @@ public:
 
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
-    void update_g_array(unsigned int block_id) {
-        g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
+    void update_g_array(unsigned int block_index) {
+        g_array.set(block_id, !(t_array[block_index] || i_array[block_index]));
     }
 
     microtime_t timestamp; /* !< when we started writing to the extent */
