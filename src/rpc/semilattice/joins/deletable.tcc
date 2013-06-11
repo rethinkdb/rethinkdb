@@ -9,7 +9,7 @@ template <class T>
 bool operator==(const deletable_t<T> &a, const deletable_t<T> &b) {
     return (a.is_deleted() && b.is_deleted())
         || ((!a.is_deleted() && !b.is_deleted())
-            && (a.get_ref() == b.get_ref()));
+            && (a.get() == b.get()));
 }
 
 template <class T>
@@ -19,14 +19,14 @@ void semilattice_join(deletable_t<T> *a, const deletable_t<T> &b) {
     } else if (a->is_deleted()) {
         return;
     } else {
-        semilattice_join(a->get_mutable(), b.get_ref());
+        semilattice_join(a->get_mutable(), b.get());
     }
 }
 
 template <class T>
 void debug_print(printf_buffer_t *buf, const deletable_t<T> &x) {
     buf->appendf("deletable{deleted=%s, t=", x.is_deleted() ? "true" : "false");
-    debug_print(buf, x.get_ref());
+    debug_print(buf, x.get());
     buf->appendf("}");
 }
 

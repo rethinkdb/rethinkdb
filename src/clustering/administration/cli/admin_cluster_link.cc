@@ -570,7 +570,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
         // If no primaries or secondaries are given, we list the current machine assignments
         if (primary.empty() && secondaries.empty()) {
-            list_pinnings(i->second.get_ref(), shard_in, cluster_metadata);
+            list_pinnings(i->second.get(), shard_in, cluster_metadata);
         } else {
             do_admin_pin_shard_internal(shard_in, primary, secondaries, cluster_metadata, i->second.get_mutable());
         }
@@ -583,7 +583,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
         // If no primaries or secondaries are given, we list the current machine assignments
         if (primary.empty() && secondaries.empty()) {
-            list_pinnings(i->second.get_ref(), shard_in, cluster_metadata);
+            list_pinnings(i->second.get(), shard_in, cluster_metadata);
         } else {
             do_admin_pin_shard_internal(shard_in, primary, secondaries, cluster_metadata, i->second.get_mutable());
         }
@@ -1049,40 +1049,40 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
             if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_datacenter(obj_id, i->second.get_ref(), cluster_metadata);
+            list_single_datacenter(obj_id, i->second.get(), cluster_metadata);
         } else if (info->path[0] == "databases") {
             databases_semilattice_metadata_t::database_map_t::iterator i = cluster_metadata.databases.databases.find(obj_id);
             if (i == cluster_metadata.databases.databases.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_database(obj_id, i->second.get_ref(), cluster_metadata);
+            list_single_database(obj_id, i->second.get(), cluster_metadata);
         } else if (info->path[0] == "rdb_namespaces") {
             cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
             namespaces_semilattice_metadata_t<rdb_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_id);
             if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "rdb");
+            list_single_namespace(obj_id, i->second.get(), cluster_metadata, "rdb");
         } else if (info->path[0] == "dummy_namespaces") {
             cow_ptr_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::change_t change(&cluster_metadata.dummy_namespaces);
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_id);
             if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "dummy");
+            list_single_namespace(obj_id, i->second.get(), cluster_metadata, "dummy");
         } else if (info->path[0] == "memcached_namespaces") {
             cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
             namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = change.get()->namespaces.find(obj_id);
             if (i == change.get()->namespaces.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_namespace(obj_id, i->second.get_ref(), cluster_metadata, "memcached");
+            list_single_namespace(obj_id, i->second.get(), cluster_metadata, "memcached");
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted()) {
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             }
-            list_single_machine(obj_id, i->second.get_ref(), cluster_metadata);
+            list_single_machine(obj_id, i->second.get(), cluster_metadata);
         } else {
             throw admin_cluster_exc_t("unexpected error, object found, but type not recognized: " + info->path[0]);
         }
@@ -1775,8 +1775,8 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
 template <class map_type>
 void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
-        if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
-            add_machine_info_from_blueprint(i->second.get().blueprint.get_mutable(), results);
+        if (!i->second.is_deleted() && !i->second.get_copy().blueprint.in_conflict()) {
+            add_machine_info_from_blueprint(i->second.get_copy().blueprint.get_mutable(), results);
         }
     }
 }
@@ -2196,7 +2196,7 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_u &obj_u
     typename obj_map::iterator i = metadata->find(obj_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
-    } else if (i->second.get_ref().primary_datacenter.in_conflict()) {
+    } else if (i->second.get().primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("table's primary datacenter is in conflict, run 'help resolve' for more information");
     }
 
@@ -2213,13 +2213,13 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_u obj_uuid
     machines_semilattice_metadata_t::machine_map_t::iterator i = metadata->find(obj_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
-    } else if (i->second.get_ref().datacenter.in_conflict()) {
+    } else if (i->second.get().datacenter.in_conflict()) {
         throw admin_cluster_exc_t("machine's datacenter is in conflict, run 'help resolve' for more information");
     }
 
     // TODO: check that changing the datacenter won't violate goals (not enough machines to host n replicas)
 
-    datacenter_id_t old_datacenter(i->second.get_ref().datacenter.get());
+    datacenter_id_t old_datacenter(i->second.get().datacenter.get());
     i->second.get_mutable()->datacenter.get_mutable() = dc;
     i->second.get_mutable()->datacenter.upgrade_version(change_request_id);
 
@@ -2241,7 +2241,7 @@ void admin_cluster_link_t::do_admin_set_database_table(const namespace_id_t &tab
     typename obj_map::iterator i = metadata->find(table_uuid);
     if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(table_uuid));
-    } else if (i->second.get_ref().database.in_conflict()) {
+    } else if (i->second.get().database.in_conflict()) {
         throw admin_cluster_exc_t("table's database is in conflict, run 'help resolve' for more information");
     }
 
