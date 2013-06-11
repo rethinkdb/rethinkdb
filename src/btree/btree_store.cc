@@ -108,7 +108,7 @@ void btree_store_t<protocol_t>::read(
     acquire_superblock_for_read(rwi_read, &token_pair->main_read_token, &txn, &superblock, interruptor,
                                 read.use_snapshot());
 
-    check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
+    DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());)
 
     // Ugly hack
     scoped_ptr_t<superblock_t> superblock2;
