@@ -44,10 +44,13 @@ public:
     void print();
 #endif
 
+    unsigned int num_blocks() const { return g_array.size(); }
+    unsigned int num_garbage_blocks() const { return g_array.count(); }
+    unsigned int num_live_blocks() const { return g_array.size() - g_array.count(); }
+
     bool all_garbage() const { return g_array.size() == g_array.count(); }
     uint64_t garbage_bytes() const;
     bool block_is_garbage(unsigned int block_index) const { return g_array[block_index]; }
-    uint64_t num_garbage_blocks() const { return g_array.count(); }
 
     // RSI: Rename to mark_live_tokenwise...
     void mark_token_live(unsigned int block_index) {

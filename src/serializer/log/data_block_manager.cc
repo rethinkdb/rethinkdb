@@ -541,7 +541,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.gc_blocks = static_cast<char *>(malloc_aligned(extent_manager->extent_size,
                         DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
-                for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
+                for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks(); i < bpe; i++) {
                     if (!gc_state.current_entry->block_is_garbage(i)) {
                         // Increment the refcount before read_async, because read_async can call
                         // its callback immediately, causing the decrement of the refcount.
@@ -577,16 +577,18 @@ void data_block_manager_t::run_gc() {
 
                 /* an array to put our writes in */
 #ifndef NDEBUG
-                int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->num_garbage_blocks();
+                int num_writes = gc_state.current_entry->num_live_blocks();
 #endif
 
                 gc_writes.clear();
-                for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
+                for (unsigned int i = 0, iend = gc_state.current_entry->num_blocks(); i < iend; ++i) {
 
                     /* We re-check the bit array here in case a write came in for one of the
                     blocks we are GCing. We wouldn't want to overwrite the new valid data with
                     out-of-date data. */
-                    if (gc_state.current_entry->block_is_garbage(i)) continue;
+                    if (gc_state.current_entry->block_is_garbage(i)) {
+                        continue;
+                    }
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
