@@ -119,7 +119,7 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
         entry->our_pq_entry = gc_pq.push(entry);
 
         gc_stats.old_total_block_bytes += static_config->extent_size();
-        gc_stats.old_garbage_block_bytes += entry->g_array.count() * static_config->block_size().ser_value();
+        gc_stats.old_garbage_block_bytes += entry->garbage_bytes();
     }
 
     state = state_ready;
@@ -337,8 +337,6 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
     entry->update_g_array(block_index);
 
-    rassert(entry->g_array.size() == static_config->blocks_per_extent());
-
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
@@ -369,8 +367,6 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
     rassert(entry->g_array[block_index] == 0);
     entry->t_array.set(block_index, 0);
     entry->update_g_array(block_index);
-
-    rassert(entry->g_array.size() == static_config->blocks_per_extent());
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)

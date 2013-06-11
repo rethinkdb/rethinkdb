@@ -56,6 +56,10 @@ public:
         return g_array.size() == g_array.count();
     }
 
+    int64_t garbage_bytes() const {
+        return g_array.count() * parent->serializer->get_block_size().ser_value();
+    }
+
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
     void update_g_array(unsigned int block_index) {
