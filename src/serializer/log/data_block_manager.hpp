@@ -48,7 +48,9 @@ public:
     data_block_manager_t *parent;
 
     extent_reference_t extent_ref;
+private:
     bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+public:
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
 
@@ -56,8 +58,14 @@ public:
         return g_array.size() == g_array.count();
     }
 
-    int64_t garbage_bytes() const {
-        return g_array.count() * parent->serializer->get_block_size().ser_value();
+    uint64_t garbage_bytes() const;
+
+    bool block_is_garbage(unsigned int block_index) {
+        return g_array[block_index];
+    }
+
+    uint64_t num_garbage_blocks() const {
+        return g_array.count();
     }
 
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use

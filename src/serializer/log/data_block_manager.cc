@@ -327,7 +327,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry->i_array[block_index] == 1, "with block_index = %u", block_index);
-    rassert(entry->g_array[block_index] == 0, "with block_index = %u", block_index);
+    rassert(!entry->block_is_garbage(block_index), "with block_index = %u", block_index);
 
     // Now we set the i_array entry to zero.  We make an extra reference to the extent which gets
     // held until we commit the transaction.
@@ -339,7 +339,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
-    if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
+    if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         // RSI: Update this value with the actual block's size.
         gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
@@ -364,13 +364,13 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
     rassert(entry->t_array[block_index] == 1);
-    rassert(entry->g_array[block_index] == 0);
+    rassert(!entry->block_is_garbage(block_index));
     entry->t_array.set(block_index, 0);
     entry->update_g_array(block_index);
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
-    if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
+    if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         // RSI: Update this value with the actual block's size.
         gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
@@ -530,7 +530,7 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_state.current_entry->state == gc_entry_t::state_old);
                 gc_state.current_entry->state = gc_entry_t::state_in_gc;
-                gc_stats.old_garbage_block_bytes -= gc_state.current_entry->g_array.count() * static_config->block_size().ser_value();
+                gc_stats.old_garbage_block_bytes -= gc_state.current_entry->garbage_bytes();
                 gc_stats.old_total_block_bytes -= static_config->extent_size();
 
                 /* read all the live data into buffers */
@@ -552,7 +552,7 @@ void data_block_manager_t::run_gc() {
                         DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
-                    if (!gc_state.current_entry->g_array[i]) {
+                    if (!gc_state.current_entry->block_is_garbage(i)) {
                         // Increment the refcount before read_async, because read_async can call
                         // its callback immediately, causing the decrement of the refcount.
                         gc_state.refcount++;
@@ -587,7 +587,7 @@ void data_block_manager_t::run_gc() {
 
                 /* an array to put our writes in */
 #ifndef NDEBUG
-                int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
+                int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->num_garbage_blocks();
 #endif
 
                 gc_writes.clear();
@@ -596,7 +596,7 @@ void data_block_manager_t::run_gc() {
                     /* We re-check the bit array here in case a write came in for one of the
                     blocks we are GCing. We wouldn't want to overwrite the new valid data with
                     out-of-date data. */
-                    if (gc_state.current_entry->g_array[i]) continue;
+                    if (gc_state.current_entry->block_is_garbage(i)) continue;
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
@@ -632,7 +632,12 @@ void data_block_manager_t::run_gc() {
                 which should have caused the extent to be released and gc_state.current_entry to
                 become NULL. */
 
-                rassert(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
+                rassert(gc_state.current_entry == NULL,
+                        "%zd garbage bytes left on the extent, %zd i_array blocks, "
+                        "%zd t_array blocks.\n",
+                        gc_state.current_entry->garbage_bytes(),
+                        gc_state.current_entry->i_array.count(),
+                        gc_state.current_entry->t_array.count());
 
                 rassert(gc_state.refcount == 0);
 
@@ -731,13 +736,13 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     /* Put the block into the chosen extent */
 
     rassert(active_extents[next_active_extent]->state == gc_entry_t::state_active);
-    rassert(active_extents[next_active_extent]->g_array.count() > 0);
+    rassert(active_extents[next_active_extent]->garbage_bytes() > 0);
     rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
 
     int64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
     active_extents[next_active_extent]->was_written = true;
 
-    rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
+    rassert(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
     active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], token_referenced);
     rassert(!active_extents[next_active_extent]->i_array[blocks_in_active_extent[next_active_extent]]);
     active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
@@ -747,7 +752,9 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     /* Deactivate the extent if necessary */
 
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent(), "g_array.count() == %zu, blocks_per_extent=%" PRIu64, active_extents[next_active_extent]->g_array.count(), static_config->blocks_per_extent());
+        rassert(active_extents[next_active_extent]->garbage_bytes() < static_config->extent_size(),
+                "garbage_bytes() == %zu, extent_size=%" PRIu64,
+                active_extents[next_active_extent]->garbage_bytes(), static_config->extent_size());
         active_extents[next_active_extent]->state = gc_entry_t::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
         mark_unyoung_entries();
@@ -796,7 +803,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     entry->our_pq_entry = gc_pq.push(entry);
 
     gc_stats.old_total_block_bytes += static_config->extent_size();
-    gc_stats.old_garbage_block_bytes += entry->g_array.count() * static_config->block_size().ser_value();
+    gc_stats.old_garbage_block_bytes += entry->garbage_bytes();
 }
 
 
@@ -846,6 +853,11 @@ void gc_entry_t::destroy() {
     delete this;
 }
 
+uint64_t gc_entry_t::garbage_bytes() const {
+    uint64_t x = g_array.count();
+    return x * parent->serializer->get_block_size().ser_value();
+}
+
 /* functions for gc structures */
 
 // Answers the following question: We're in the middle of gc'ing, and
@@ -865,7 +877,7 @@ bool data_block_manager_t::do_we_want_to_start_gcing() const {
 
 /* !< is x less than y */
 bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {
-    return x->g_array.count() < y->g_array.count();
+    return x->garbage_bytes() < y->garbage_bytes();
 }
 
 /****************
