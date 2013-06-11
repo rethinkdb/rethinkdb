@@ -14,6 +14,7 @@ goog.require("goog.proto2.WireFormatSerializer")
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
+    DEFAULT_AUTH_KEY: ''
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -24,6 +25,7 @@ class Connection
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
+        @auth_key = host.auth_key || @DEFAULT_AUTH_KEY
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -251,9 +253,12 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 4
-            (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
+            buf = new ArrayBuffer 8
+            buf_view = new DataView buf
+            buf_view.setUint32 0, VersionDummy.Version.V0_2, true
+            buf_view.setUint32 4, @auth_key.length, true
             @write buf
+            @rawSocket.write @auth_key 'ascii'
             @emit 'connect'
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
