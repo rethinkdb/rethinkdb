@@ -54,19 +54,12 @@ public:
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
 
-    bool all_garbage() const {
-        return g_array.size() == g_array.count();
-    }
-
+    bool all_garbage() const { return g_array.size() == g_array.count(); }
     uint64_t garbage_bytes() const;
+    bool block_is_garbage(unsigned int block_index) const { return g_array[block_index]; }
+    uint64_t num_garbage_blocks() const { return g_array.count(); }
 
-    bool block_is_garbage(unsigned int block_index) {
-        return g_array[block_index];
-    }
 
-    uint64_t num_garbage_blocks() const {
-        return g_array.count();
-    }
 
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
