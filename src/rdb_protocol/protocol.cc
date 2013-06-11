@@ -558,7 +558,9 @@ public:
                     const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(rr != NULL);
 
-                    if (rg_response->last_considered_key > rr->last_considered_key && rr->truncated) {
+                    if (rr->truncated &&
+                            ((rg_response->last_considered_key > rr->last_considered_key && rg.direction == FORWARD) ||
+                             (rg_response->last_considered_key < rr->last_considered_key && rg.direction == BACKWARD))) {
                         rg_response->last_considered_key = rr->last_considered_key;
                     }
                 }
@@ -575,7 +577,8 @@ public:
                         const stream_t *stream = boost::get<stream_t>(&(rr->result));
 
                         for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                            if (it->first <= rg_response->last_considered_key) {
+                            if ((it->first <= rg_response->last_considered_key && rg.direction == FORWARD) ||
+                                (it->first >= rg_response->last_considered_key && rg.direction == BACKWARD)) {
                                 res_stream->push_back(*it);
                             }
                         }
@@ -595,14 +598,21 @@ public:
                     }
 
                     while (true) {
-                        store_key_t key_to_beat = store_key_t::max();
+                        store_key_t key_to_beat = (rg.direction == FORWARD ? store_key_t::max() : store_key_t::min());
                         bool found_value = false;
                         stream_t::const_iterator *value = NULL;
 
                         for (auto it = iterators.begin(); it != iterators.end(); ++it) {
-                            if (it->first != it->second &&
+                            if (it->first == it->second) {
+                                continue;
+                            }
+
+                            if ((rg.direction == FORWARD &&
                                 it->first->first <= key_to_beat &&
-                                it->first->first < rg_response->last_considered_key) {
+                                it->first->first < rg_response->last_considered_key) ||
+                                (rg.direction == BACKWARD &&
+                                it->first->first >= key_to_beat &&
+                                it->first->first > rg_response->last_considered_key)) {
                                 key_to_beat = it->first->first;
                                 found_value = true;
                                 value = &it->first;
