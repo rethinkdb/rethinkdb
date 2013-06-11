@@ -453,11 +453,7 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
 
     rassert(state == state_ready);
 
-    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator token_offsets_it = token_offsets.find(ls_token);
-    rassert(token_offsets_it != token_offsets.end());
-
-    const int64_t offset = token_offsets_it->second;
-    data_block_manager->read(offset, buf, io_account, readcb);
+    data_block_manager->read(ls_token->offset_, buf, io_account, readcb);
 }
 
 // God this is such a hack.
@@ -513,9 +509,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 if (token.has()) {
                     ls_block_token_pointee_t *ls_token = token.get();
                     rassert(ls_token);
-                    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator to_it = token_offsets.find(ls_token);
-                    rassert(to_it != token_offsets.end());
-                    offset = flagged_off64_t::make(to_it->second);
+                    offset = flagged_off64_t::make(ls_token->offset_);
 
                     /* mark the life */
                     data_block_manager->mark_live(offset.get_value());
@@ -647,10 +641,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int64_t offset) {
     assert_thread();
-    DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, int64_t>::iterator, bool> insert_res
-        = token_offsets.insert(std::make_pair(token, offset));
     rassert(token->offset_ == offset);  // Assert *token was constructed properly.
-    rassert(insert_res.second);
 
     const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
     if (first_token_for_offset) {
@@ -672,14 +663,11 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     ASSERT_NO_CORO_WAITING;
 
     rassert(!expecting_no_more_tokens);
-    std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offset_it = token_offsets.find(token);
-    rassert(token_offset_it != token_offsets.end());
-    rassert(token_offset_it->second == token->offset_);
 
     {
         typedef std::multimap<int64_t, ls_block_token_pointee_t *>::iterator ot_iter;
         ot_iter erase_it = offset_tokens.end();
-        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token->offset_);
              range.first != range.second;
              ++range.first) {
             if (range.first->second == token) {
@@ -692,16 +680,13 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
         offset_tokens.erase(erase_it);
     }
 
-    const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
+    const bool last_token_for_offset = offset_tokens.find(token->offset_) == offset_tokens.end();
     if (last_token_for_offset) {
         // Mark offset garbage in GC
-        data_block_manager->mark_token_garbage(token_offset_it->second);
+        data_block_manager->mark_token_garbage(token->offset_);
     }
 
-    token_offsets.erase(token_offset_it);
-
-    rassert(token_offsets.empty() == offset_tokens.empty());
-    if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
 #endif
@@ -727,12 +712,8 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
         while (!last_time) {
             last_time = (range.first == range.second);
             ls_block_token_pointee_t *const token = range.first->second;
-            std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offsets_iter
-                = token_offsets.find(token);
-            guarantee(token_offsets_iter != token_offsets.end());
-            guarantee(token_offsets_iter->second == current_offset);
+            guarantee(token->offset_ == current_offset);
 
-            token_offsets_iter->second = new_offset;
             token->offset_ = new_offset;
             offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, token));
 
@@ -839,8 +820,7 @@ bool log_serializer_t::next_shutdown_step() {
     // The datablock manager uses block tokens, so it goes before.
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
-        rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-        if (!(token_offsets.empty() && offset_tokens.empty())) {
+        if (!offset_tokens.empty()) {
             shutdown_in_one_shot = false;
             return false;
         } else {

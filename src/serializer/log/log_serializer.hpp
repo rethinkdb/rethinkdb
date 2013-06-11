@@ -201,8 +201,6 @@ private:
 
     void consider_start_gc();
 
-    // RSI: Remove token_offsets, it's redundant.
-    std::map<ls_block_token_pointee_t *, int64_t> token_offsets;
     std::multimap<int64_t, ls_block_token_pointee_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
