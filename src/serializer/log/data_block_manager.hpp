@@ -245,7 +245,7 @@ private:
     two_level_array_t<gc_entry_t *, MAX_DATA_EXTENTS, (1 << 12)> entries;
 
     /* Contains every extent in the gc_entry_t::state_reconstructing state */
-    intrusive_list_t< gc_entry_t > reconstructed_extents;
+    intrusive_list_t<gc_entry_t> reconstructed_extents;
 
     /* Contains the extents in the gc_entry_t::state_active state. The number of active extents
     is determined by dynamic_config->num_active_data_extents. */
