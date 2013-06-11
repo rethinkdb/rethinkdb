@@ -118,8 +118,8 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
 
         entry->our_pq_entry = gc_pq.push(entry);
 
-        gc_stats.old_total_blocks += static_config->blocks_per_extent();
-        gc_stats.old_garbage_blocks += entry->g_array.count();
+        gc_stats.old_total_block_bytes += static_config->extent_size();
+        gc_stats.old_garbage_block_bytes += entry->g_array.count() * static_config->block_size().ser_value();
     }
 
     state = state_ready;
@@ -282,8 +282,8 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
             /* Remove from the priority queue */
             case gc_entry_t::state_old:
                 gc_pq.remove(entry->our_pq_entry);
-                gc_stats.old_total_blocks -= static_config->blocks_per_extent();
-                gc_stats.old_garbage_blocks -= static_config->blocks_per_extent();
+                gc_stats.old_total_block_bytes -= static_config->extent_size();
+                gc_stats.old_garbage_block_bytes -= static_config->extent_size();
                 break;
 
             /* Notify the GC that the extent got released during GC */
@@ -342,7 +342,8 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
-        ++gc_stats.old_garbage_blocks;
+        // RSI: Update this value with the actual block's size.
+        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -374,7 +375,8 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
-        ++gc_stats.old_garbage_blocks;
+        // RSI: Update this value with the actual block's size.
+        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -532,8 +534,8 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_state.current_entry->state == gc_entry_t::state_old);
                 gc_state.current_entry->state = gc_entry_t::state_in_gc;
-                gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
-                gc_stats.old_total_blocks -= static_config->blocks_per_extent();
+                gc_stats.old_garbage_block_bytes -= gc_state.current_entry->g_array.count() * static_config->block_size().ser_value();
+                gc_stats.old_total_block_bytes -= static_config->extent_size();
 
                 /* read all the live data into buffers */
 
@@ -797,8 +799,8 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
     entry->our_pq_entry = gc_pq.push(entry);
 
-    gc_stats.old_total_blocks += static_config->blocks_per_extent();
-    gc_stats.old_garbage_blocks += entry->g_array.count();
+    gc_stats.old_total_block_bytes += static_config->extent_size();
+    gc_stats.old_garbage_block_bytes += entry->g_array.count() * static_config->block_size().ser_value();
 }
 
 
@@ -875,12 +877,12 @@ bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {
  ****************/
 
 double data_block_manager_t::garbage_ratio() const {
-    if (gc_stats.old_total_blocks.get() == 0) {
+    if (gc_stats.old_total_block_bytes.get() == 0) {
         return 0.0;
     } else {
-        double old_garbage = gc_stats.old_garbage_blocks.get();
-        double old_total = gc_stats.old_total_blocks.get();
-        return old_garbage / (old_total + extent_manager->held_extents() * static_config->blocks_per_extent());
+        double old_garbage = gc_stats.old_garbage_block_bytes.get();
+        double old_total = gc_stats.old_total_block_bytes.get();
+        return old_garbage / (old_total + extent_manager->held_extents() * static_config->extent_size());
     }
 }
 
@@ -903,20 +905,9 @@ void data_block_manager_t::enable_gc() {
     gc_state.should_be_stopped = false;
 }
 
-
-void data_block_manager_t::gc_stat_t::operator++() {
-    val++;
-    ++*perfmon;
-}
-
 void data_block_manager_t::gc_stat_t::operator+=(int64_t num) {
     val += num;
     *perfmon += num;
-}
-
-void data_block_manager_t::gc_stat_t::operator--() {
-    val--;
-    perfmon--;
 }
 
 void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
@@ -925,4 +916,5 @@ void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
 }
 
 data_block_manager_t::gc_stats_t::gc_stats_t(log_serializer_stats_t *_stats)
-    : old_total_blocks(&_stats->pm_serializer_old_total_blocks), old_garbage_blocks(&_stats->pm_serializer_old_garbage_blocks) { }
+    : old_total_block_bytes(&_stats->pm_serializer_old_total_block_bytes),
+      old_garbage_block_bytes(&_stats->pm_serializer_old_garbage_block_bytes) { }

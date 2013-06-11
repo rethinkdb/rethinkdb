@@ -118,8 +118,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_data_extents_reclaimed(),
       pm_serializer_data_extents_gced(),
       pm_serializer_data_blocks_written(),
-      pm_serializer_old_garbage_blocks(),
-      pm_serializer_old_total_blocks(),
+      pm_serializer_old_garbage_block_bytes(),
+      pm_serializer_old_total_block_bytes(),
       pm_serializer_lba_gcs(),
       parent_collection_membership(parent, &serializer_collection, "serializer"),
       stats_membership(&serializer_collection,
@@ -136,8 +136,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_data_extents_reclaimed, "serializer_data_extents_reclaimed",
           &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
           &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
-          &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
-          &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
+          &pm_serializer_old_garbage_block_bytes, "serializer_old_garbage_block_bytes",
+          &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
           &pm_serializer_lba_gcs, "serializer_lba_gcs",
           NULLPTR)
 { }

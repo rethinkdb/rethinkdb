@@ -27,8 +27,8 @@ struct log_serializer_stats_t {
     perfmon_counter_t pm_serializer_data_extents_reclaimed;
     perfmon_counter_t pm_serializer_data_extents_gced;
     perfmon_counter_t pm_serializer_data_blocks_written;
-    perfmon_counter_t pm_serializer_old_garbage_blocks;
-    perfmon_counter_t pm_serializer_old_total_blocks;
+    perfmon_counter_t pm_serializer_old_garbage_block_bytes;
+    perfmon_counter_t pm_serializer_old_total_block_bytes;
 
     /* used in serializer/log/lba/lba_list.cc */
     perfmon_counter_t pm_serializer_lba_gcs;

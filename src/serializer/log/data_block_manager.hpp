@@ -185,9 +185,6 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
-    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
-
 private:
     void actually_shutdown();
 
@@ -280,14 +277,12 @@ private:
      */
     class gc_stat_t {
     private:
-        int val;
+        int64_t val;
         perfmon_counter_t *perfmon;
     public:
         explicit gc_stat_t(perfmon_counter_t *_perfmon)
             : val(0), perfmon(_perfmon) { }
-        void operator++();
         void operator+=(int64_t num);
-        void operator--();
         void operator-=(int64_t num);
         int get() const { return val; }
     };
@@ -323,7 +318,7 @@ private:
             gc_blocks = NULL;  // An extra bit of paranoia in this async area.
         }
 
-        inline gc_step step() const { return step_; }
+        gc_step step() const { return step_; }
 
         // Sets step_, and calls gc_disable_callback if relevant.
         void set_step(gc_step next_step) {
@@ -342,8 +337,8 @@ private:
 
 
     struct gc_stats_t {
-        gc_stat_t old_total_blocks;
-        gc_stat_t old_garbage_blocks;
+        gc_stat_t old_total_block_bytes;
+        gc_stat_t old_garbage_block_bytes;
         explicit gc_stats_t(log_serializer_stats_t *);
     };
 
