@@ -53,7 +53,7 @@ void data_block_manager_t::start_reconstruct() {
 // non-garbage.)
 void data_block_manager_t::mark_live(int64_t offset) {
     int extent_id = static_config->extent_index(offset);
-    int block_id = static_config->block_index(offset);
+    int block_index = static_config->block_index(offset);
 
     if (entries.get(extent_id) == NULL) {
         rassert(gc_state.step() == gc_reconstruct);  // This is called at startup.
@@ -64,8 +64,8 @@ void data_block_manager_t::mark_live(int64_t offset) {
     }
 
     /* mark the block as alive */
-    entries.get(extent_id)->i_array.set(block_id, 1);
-    entries.get(extent_id)->update_g_array(block_id);
+    entries.get(extent_id)->i_array.set(block_index, 1);
+    entries.get(extent_id)->update_g_array(block_index);
 }
 
 void data_block_manager_t::end_reconstruct() {
@@ -265,8 +265,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
         return; // The extent has already been deleted
     }
 
-    rassert(entry->g_array.size() == static_config->blocks_per_extent());
-    if (entry->g_array.count() == static_config->blocks_per_extent() && entry->state != gc_entry_t::state_active) {
+    if (entry->all_garbage() && entry->state != gc_entry_t::state_active) {
         /* Every block in the extent is now garbage. */
         switch (entry->state) {
             case gc_entry_t::state_reconstructing:
@@ -324,24 +323,25 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 
 void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_id = static_config->block_index(offset);
+    unsigned int block_index = static_config->block_index(offset);
 
     gc_entry_t *entry = entries.get(extent_id);
-    rassert(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
-    rassert(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
+    rassert(entry->i_array[block_index] == 1, "with block_index = %u", block_index);
+    rassert(entry->g_array[block_index] == 0, "with block_index = %u", block_index);
 
     // Now we set the i_array entry to zero.  We make an extra reference to the extent which gets
     // held until we commit the transaction.
-    entry->i_array.set(block_id, 0);
+    entry->i_array.set(block_index, 0);
 
     txn->push_extent(extent_manager->copy_extent_reference(entry->extent_ref));
 
-    entry->update_g_array(block_id);
+    entry->update_g_array(block_index);
 
     rassert(entry->g_array.size() == static_config->blocks_per_extent());
 
-    // Add to old garbage count if we have toggled the g_array bit (works because of the g_array[block_id] == 0 assertion above)
-    if (entry->state == gc_entry_t::state_old && entry->g_array[block_id]) {
+    // Add to old garbage count if we have toggled the g_array bit (works because of
+    // the g_array[block_index] == 0 assertion above)
+    if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
         ++gc_stats.old_garbage_blocks;
     }
 
@@ -350,29 +350,30 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
 void data_block_manager_t::mark_token_live(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_id = static_config->block_index(offset);
+    unsigned int block_index = static_config->block_index(offset);
 
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
-    entry->t_array.set(block_id, 1);
-    entry->update_g_array(block_id);
+    entry->t_array.set(block_index, 1);
+    entry->update_g_array(block_index);
 }
 
 void data_block_manager_t::mark_token_garbage(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_id = static_config->block_index(offset);
+    unsigned int block_index = static_config->block_index(offset);
 
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
-    rassert(entry->t_array[block_id] == 1);
-    rassert(entry->g_array[block_id] == 0);
-    entry->t_array.set(block_id, 0);
-    entry->update_g_array(block_id);
+    rassert(entry->t_array[block_index] == 1);
+    rassert(entry->g_array[block_index] == 0);
+    entry->t_array.set(block_index, 0);
+    entry->update_g_array(block_index);
 
     rassert(entry->g_array.size() == static_config->blocks_per_extent());
 
-    // Add to old garbage count if we have toggled the g_array bit (works because of the g_array[block_id] == 0 assertion above)
-    if (entry->state == gc_entry_t::state_old && entry->g_array[block_id]) {
+    // Add to old garbage count if we have toggled the g_array bit (works because of
+    // the g_array[block_index] == 0 assertion above)
+    if (entry->state == gc_entry_t::state_old && entry->g_array[block_index]) {
         ++gc_stats.old_garbage_blocks;
     }
 
@@ -423,7 +424,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
                 // the first "false" argument indicates that we do not with to assign a new block sequence id
                 // We pass true because we know there is a token for this block: we just constructed one!
-                writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back(), true);
+                writes[i].new_offset = parent->write(writes[i].buf, data->block_id,
+                                                     false,
+                                                     parent->choose_gc_io_account(),
+                                                     block_write_conds.back(), true);
             }
         }
 
@@ -446,9 +450,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             ASSERT_NO_CORO_WAITING;
 
             for (int i = 0; i < num_writes; ++i) {
-                unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+                unsigned int block_index = parent->static_config->block_index(writes[i].old_offset);
 
-                if (parent->gc_state.current_entry->i_array[block_id]) {
+                if (parent->gc_state.current_entry->i_array[block_index]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
                     // RSI: Use the real block size to generate the block token.
                     counted_t<ls_block_token_pointee_t> token
