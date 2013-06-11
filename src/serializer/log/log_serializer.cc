@@ -450,7 +450,6 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     rassert(ls_token);
     assert_thread();
     rassert(state == state_ready);
-    rassert(token_offsets.find(ls_token) != token_offsets.end());
 
     rassert(state == state_ready);
 
@@ -650,6 +649,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int
     assert_thread();
     DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, int64_t>::iterator, bool> insert_res
         = token_offsets.insert(std::make_pair(token, offset));
+    rassert(token->offset_ == offset);  // Assert *token was constructed properly.
     rassert(insert_res.second);
 
     const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
@@ -674,6 +674,7 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     rassert(!expecting_no_more_tokens);
     std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
+    rassert(token_offset_it->second == token->offset_);
 
     {
         typedef std::multimap<int64_t, ls_block_token_pointee_t *>::iterator ot_iter;
@@ -718,17 +719,22 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
     if (range.first != range.second) {
+        // We need this weird inclusive-range logic because we modify offset_tokens
+        // while we iterate over the range.
         --range.second;
 
         bool last_time = false;
         while (!last_time) {
             last_time = (range.first == range.second);
-            std::map<ls_block_token_pointee_t*, int64_t>::iterator token_offsets_iter = token_offsets.find(range.first->second);
+            ls_block_token_pointee_t *const token = range.first->second;
+            std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offsets_iter
+                = token_offsets.find(token);
             guarantee(token_offsets_iter != token_offsets.end());
             guarantee(token_offsets_iter->second == current_offset);
 
             token_offsets_iter->second = new_offset;
-            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
+            token->offset_ = new_offset;
+            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, token));
 
             ot_iter prev = range.first;
             ++range.first;
@@ -961,7 +967,7 @@ bool log_serializer_t::should_perform_read_ahead() {
 }
 
 ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset)
-    : serializer_(serializer), ref_count_(0) {
+    : serializer_(serializer), ref_count_(0), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }

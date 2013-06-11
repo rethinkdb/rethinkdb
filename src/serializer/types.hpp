@@ -68,6 +68,9 @@ class ls_block_token_pointee_t {
     log_serializer_t *serializer_;
     intptr_t ref_count_;
 
+    // The block's offset on disk.
+    int64_t offset_;
+
     void do_destroy();
 
     DISABLE_COPYING(ls_block_token_pointee_t);
