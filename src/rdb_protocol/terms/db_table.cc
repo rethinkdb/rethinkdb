@@ -361,8 +361,8 @@ private:
                  it != meta.db_searcher.end();
                  it = meta.db_searcher.find_next(++it)) {
                 guarantee(!it->second.is_deleted());
-                if (it->second.get().name.in_conflict()) continue;
-                dbs.push_back(it->second.get().name.get().c_str());
+                if (it->second.get_ref().name.in_conflict()) continue;
+                dbs.push_back(it->second.get_ref().name.get().c_str());
             }
         }
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
@@ -396,8 +396,8 @@ private:
                  it != meta.ns_searcher.end();
                  it = meta.ns_searcher.find_next(++it, pred)) {
                 guarantee(!it->second.is_deleted());
-                if (it->second.get().name.in_conflict()) continue;
-                tables.push_back(it->second.get().name.get().c_str());
+                if (it->second.get_ref().name.in_conflict()) continue;
+                tables.push_back(it->second.get_ref().name.get().c_str());
             }
         }
         for (auto it = tables.begin(); it != tables.end(); ++it) {

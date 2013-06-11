@@ -233,7 +233,7 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(search_predicate, &error);
 
     if (error == METADATA_SUCCESS) {
-        std::string existing_pk = it->second.get().primary_key.get();
+        std::string existing_pk = it->second.get_ref().primary_key.get();
         if (existing_pk != primary_key_in) {
             printf("Successfully found namespace %s, with wrong primary key '%s'\n",
                    uuid_to_str(it->first).c_str(), existing_pk.c_str());
