@@ -26,7 +26,7 @@ void mock_file_t::set_size_at_least(size_t size) {
 void mock_file_t::read_async(size_t offset, size_t length, void *buf,
                              UNUSED file_account_t *account, linux_iocallback_t *cb) {
     read_blocking(offset, length, buf);
-    // RSI: This is to silence the serializer disk_structure.cc reader_t
+    // TODO: This is to silence the serializer disk_structure.cc reader_t
     // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
@@ -34,7 +34,7 @@ void mock_file_t::read_async(size_t offset, size_t length, void *buf,
 void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
                               UNUSED file_account_t *account, linux_iocallback_t *cb) {
     write_blocking(offset, length, buf);
-    // RSI: This is to silence the serializer disk_structure.cc reader_t
+    // TODO: This is to silence the serializer disk_structure.cc reader_t
     // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }

@@ -103,6 +103,7 @@ void post_construct_and_drain_queue(
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING;
+
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
