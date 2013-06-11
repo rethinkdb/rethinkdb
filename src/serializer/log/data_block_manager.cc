@@ -64,8 +64,7 @@ void data_block_manager_t::mark_live(int64_t offset) {
     }
 
     /* mark the block as alive */
-    entries.get(extent_id)->i_array.set(block_index, 1);
-    entries.get(extent_id)->update_g_array(block_index);
+    entries.get(extent_id)->mark_live_indexwise(block_index);
 }
 
 void data_block_manager_t::end_reconstruct() {
@@ -326,16 +325,11 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     unsigned int block_index = static_config->block_index(offset);
 
     gc_entry_t *entry = entries.get(extent_id);
-    rassert(entry->i_array[block_index] == 1, "with block_index = %u", block_index);
-    rassert(!entry->block_is_garbage(block_index), "with block_index = %u", block_index);
 
     // Now we set the i_array entry to zero.  We make an extra reference to the extent which gets
     // held until we commit the transaction.
-    entry->i_array.set(block_index, 0);
-
     txn->push_extent(extent_manager->copy_extent_reference(entry->extent_ref));
-
-    entry->update_g_array(block_index);
+    entry->mark_garbage_indexwise(block_index);
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
@@ -446,7 +440,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             for (int i = 0; i < num_writes; ++i) {
                 unsigned int block_index = parent->static_config->block_index(writes[i].old_offset);
 
-                if (parent->gc_state.current_entry->i_array[block_index]) {
+                if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
                     // RSI: Use the real block size to generate the block token.
                     counted_t<ls_block_token_pointee_t> token
@@ -598,7 +592,7 @@ void data_block_manager_t::run_gc() {
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
-                    if (gc_state.current_entry->i_array[i]) {
+                    if (gc_state.current_entry->block_referenced_by_index(i)) {
                         id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                         rassert(id != NULL_BLOCK_ID);
                     } else {
@@ -629,10 +623,10 @@ void data_block_manager_t::run_gc() {
                 become NULL. */
 
                 rassert(gc_state.current_entry == NULL,
-                        "%zd garbage bytes left on the extent, %zd i_array blocks, "
+                        "%zd garbage bytes left on the extent, %zd index-referenced bytes, "
                         "%zd token-referenced bytes.\n",
                         gc_state.current_entry->garbage_bytes(),
-                        gc_state.current_entry->i_array.count(),
+                        gc_state.current_entry->index_bytes(),
                         gc_state.current_entry->token_bytes());
 
                 rassert(gc_state.refcount == 0);
@@ -740,7 +734,7 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
 
     rassert(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
     active_extents[next_active_extent]->mark_token_live(blocks_in_active_extent[next_active_extent]);
-    rassert(!active_extents[next_active_extent]->i_array[blocks_in_active_extent[next_active_extent]]);
+    rassert(!active_extents[next_active_extent]->block_referenced_by_index(blocks_in_active_extent[next_active_extent]));
 
     blocks_in_active_extent[next_active_extent]++;
 
@@ -857,6 +851,12 @@ uint64_t gc_entry_t::token_bytes() const {
     uint64_t x = t_array.count();
     return x * parent->serializer->get_block_size().ser_value();
 }
+
+uint64_t gc_entry_t::index_bytes() const {
+    uint64_t x = i_array.count();
+    return x * parent->serializer->get_block_size().ser_value();
+}
+
 
 /* functions for gc structures */
 

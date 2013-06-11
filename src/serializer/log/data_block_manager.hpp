@@ -44,26 +44,18 @@ public:
     void print();
 #endif
 
-public:
-    data_block_manager_t *parent;
-
-    extent_reference_t extent_ref;
-private:
-    bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-    bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
-public:
-    bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
-
     bool all_garbage() const { return g_array.size() == g_array.count(); }
     uint64_t garbage_bytes() const;
     bool block_is_garbage(unsigned int block_index) const { return g_array[block_index]; }
     uint64_t num_garbage_blocks() const { return g_array.count(); }
 
+    // RSI: Rename to mark_live_tokenwise...
     void mark_token_live(unsigned int block_index) {
         t_array.set(block_index, 1);
         update_g_array(block_index);
     }
 
+    // RSI: Rename to mark_garbage_tokenwise...
     void mark_token_garbage(unsigned int block_index) {
         rassert(t_array[block_index] == 1);
         t_array.set(block_index, 0);
@@ -72,12 +64,39 @@ public:
 
     uint64_t token_bytes() const;
 
+    void mark_live_indexwise(unsigned int block_index) {
+        i_array.set(block_index, 1);
+        update_g_array(block_index);
+    }
+
+    void mark_garbage_indexwise(unsigned int block_index) {
+        rassert(i_array[block_index] == 1);
+        i_array.set(block_index, 0);
+        update_g_array(block_index);
+    }
+
+    bool block_referenced_by_index(unsigned int block_index) const {
+        return i_array[block_index];
+    }
+
+    uint64_t index_bytes() const;
+
+public:
+    data_block_manager_t *parent;
+
+    extent_reference_t extent_ref;
+private:
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
     void update_g_array(unsigned int block_index) {
         g_array.set(block_index, !(t_array[block_index] || i_array[block_index]));
     }
 
+    bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+    bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
+    bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
+
+public:
     microtime_t timestamp; /* !< when we started writing to the extent */
     priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
     bool was_written; /* true iff the extent has been written to after starting up the serializer */
@@ -97,6 +116,7 @@ public:
 
 
 private:
+
     // Only to be used by the destructor, used to look up the gc entry in the parent's entries
     // array.
     int64_t offset;
