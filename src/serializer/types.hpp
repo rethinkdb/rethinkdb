@@ -63,10 +63,15 @@ class ls_block_token_pointee_t {
 
     friend void adjust_ref(ls_block_token_pointee_t *p, int adjustment);
 
-    ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset);
+    ls_block_token_pointee_t(log_serializer_t *serializer,
+                             int64_t initial_offset,
+                             uint32_t initial_ser_block_size);
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
+
+    // The block's size on disk.
+    uint32_t ser_block_size_;
 
     // The block's offset on disk.
     int64_t offset_;

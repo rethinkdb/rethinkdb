@@ -614,9 +614,9 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 }
 
 counted_t<ls_block_token_pointee_t>
-log_serializer_t::generate_block_token(int64_t offset) {
+log_serializer_t::generate_block_token(int64_t offset, uint32_t ser_block_size) {
     assert_thread();
-    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset));
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset, ser_block_size));
     return ret;
 }
 
@@ -628,7 +628,8 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
     const int64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
 
-    return generate_block_token(offset);
+    // RSI: We need the real block size of this block.
+    return generate_block_token(offset, get_block_size().ser_value());
 }
 
 counted_t<ls_block_token_pointee_t>
@@ -760,9 +761,8 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
     // the token also have block size information?
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        counted_t<ls_block_token_pointee_t> ret(
-            new ls_block_token_pointee_t(this, offset.get_value()));
-        return ret;
+        // RSI: Don't use get_block_size() for the block size.
+        return generate_block_token(offset.get_value(), get_block_size().ser_value());
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }
@@ -946,9 +946,13 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
-ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset)
-    : serializer_(serializer), ref_count_(0), offset_(initial_offset) {
+ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
+                                                   int64_t initial_offset,
+                                                   uint32_t initial_ser_block_size)
+    : serializer_(serializer), ref_count_(0),
+      ser_block_size_(initial_ser_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
+    // RSI: Should we pass block size to register_block_token?
     serializer_->register_block_token(this, initial_offset);
 }
 

@@ -154,7 +154,8 @@ private:
     bool tokens_exist_for_offset(int64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
-    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset);
+    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset,
+                                                             uint32_t ser_block_size);
 
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();

@@ -186,8 +186,7 @@ public:
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                counted_t<ls_block_token_pointee_t> ls_token(
-                    new ls_block_token_pointee_t(parent->serializer, current_offset));
+                counted_t<ls_block_token_pointee_t> ls_token = parent->serializer->generate_block_token(current_offset, parent->serializer->get_block_size().ser_value());
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
                 // RSI: Presumably we also need to offer up the block size.
@@ -396,9 +395,9 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
         pulse();
     }
 };
-void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_writes) {
+void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_writes) {
     if (parent->gc_state.current_entry != NULL) {
-        std::vector<block_write_cond_t*> block_write_conds;
+        std::vector<block_write_cond_t *> block_write_conds;
         block_write_conds.reserve(num_writes);
 
         // We acquire block tokens for all the blocks before writing new
@@ -416,7 +415,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 block_write_conds.push_back(new block_write_cond_t());
                 // ... and save block tokens for the old offset.
                 rassert(parent->gc_state.current_entry != NULL, "i = %d", i);
-                block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset));
+                // RSI: Pass the real block size to generate the block token.
+                block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
+                                                                                parent->serializer->get_block_size().ser_value()));
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
@@ -449,7 +450,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 if (parent->gc_state.current_entry->i_array[block_id]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    counted_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    // RSI: Use the real block size to generate the block token.
+                    counted_t<ls_block_token_pointee_t> token
+                        = parent->serializer->generate_block_token(writes[i].new_offset,
+                                                                   parent->serializer->get_block_size().ser_value());
                     index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
                 }
 
