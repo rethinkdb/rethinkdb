@@ -19,6 +19,8 @@ init () {
     invalid_coffee_versions="1.5.0 1.6 1.6.1"
     max_lessc_version="1.3.3"
 
+    please_fetch_list=handlebars
+
     required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
@@ -180,7 +182,6 @@ read_args () {
     failed=false
 
     allow_fetch=false
-    please_fetch_list=
     force_paths='= '
     can_show=false
     required=false
@@ -628,19 +629,19 @@ lookup () {
 # check_bin <name>
 # Check for a binary
 check_bin () {
-    if contains "$please_fetch_list" $1; then
+    local force_bin
+    lookup "$force_paths" $1 force_bin || force_bin=
+    if test -z "$force_bin" && contains "$please_fetch_list" $1; then
         fetch_bin $1
         return
     fi
-    local force_bin
-    lookup "$force_paths" $1 force_bin || :
     local ucbin=$(uc $1)
     local bin=${force_bin:-${!ucbin:-$1}}
     bin=$(which "$bin" 2>/dev/null)
     if [[ ! -x "$bin" ]]; then
         if [[ -n "${force_bin:-}" ]]; then
             bin=$force_bin
-        elif $allow_fetch && contains "$support_bin_deps" $1; then
+        elif fetch_allowed $1; then
             fetch_bin $1
             return
         else
@@ -742,7 +743,7 @@ check_lib () {
 	$check $lib $1
 	$can_show || return
     done
-    if contains "$support_deps" $1 && $allow_fetch; then
+    if fetch_allowed $1; then
         fetch_lib $1
     else
         show_no "lib$1$static_info"
@@ -838,6 +839,11 @@ test_protobuf () {
         return
     fi
     show ok
+}
+
+fetch_allowed () {
+     (contains "$npm_deps" $1 ||
+         (contains "$support_deps" $1 && $allow_fetch)) || return 1
 }
 
 # Call the main command with the command line arguments
