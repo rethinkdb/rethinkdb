@@ -66,8 +66,19 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
-        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
-        self.socket.sendall(self.auth_key + "\0")
+        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
+        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
+
+        # Read out the response from the server, which will be a null-terminated string
+        response = ""
+        while True:
+            char = self.socket.recv(1)
+            if char == "\0":
+                break
+            response += char
+
+        if response != "SUCCESS":
+            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response)
 
     def close(self):
         if self.socket:

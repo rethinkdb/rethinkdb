@@ -56,7 +56,7 @@ class auth_semilattice_metadata_t {
 public:
     auth_semilattice_metadata_t() { }
 
-    static const size_t max_auth_length = 2048;
+    static const int32_t max_auth_length = 2048;
     vclock_t<std::string> auth_key;
 
     RDB_MAKE_ME_SERIALIZABLE_1(auth_key);
