@@ -97,7 +97,7 @@ private:
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
 
 public:
-    microtime_t timestamp; /* !< when we started writing to the extent */
+    const microtime_t timestamp; /* !< when we started writing to the extent */
     priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
     bool was_written; /* true iff the extent has been written to after starting up the serializer */
 
