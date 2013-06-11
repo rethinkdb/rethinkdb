@@ -18,18 +18,18 @@ class log_serializer_t;
 
 class data_block_manager_t;
 
-class gc_entry;
+class gc_entry_t;
 
-struct gc_entry_less {
-    bool operator() (const gc_entry *x, const gc_entry *y);
+struct gc_entry_less_t {
+    bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
 
 // Identifies an extent, the time we started writing to the
 // extent, whether it's the extent we're currently writing to, and
 // describes blocks are garbage.
-class gc_entry :
-    public intrusive_list_node_t<gc_entry>
+class gc_entry_t :
+    public intrusive_list_node_t<gc_entry_t>
 {
 public:
     data_block_manager_t *parent;
@@ -43,7 +43,7 @@ public:
         g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
     }
     microtime_t timestamp; /* !< when we started writing to the extent */
-    priority_queue_t<gc_entry*, gc_entry_less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+    priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
     bool was_written; /* true iff the extent has been written to after starting up the serializer */
 
     enum state_t {
@@ -61,14 +61,14 @@ public:
 
 public:
     /* This constructor is for starting a new extent. */
-    explicit gc_entry(data_block_manager_t *parent);
+    explicit gc_entry_t(data_block_manager_t *parent);
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
-    gc_entry(data_block_manager_t *parent, int64_t offset);
+    gc_entry_t(data_block_manager_t *parent, int64_t offset);
 
     void destroy();
-    ~gc_entry();
+    ~gc_entry_t();
 
 #ifndef NDEBUG
     void print();
@@ -79,11 +79,11 @@ private:
     // array.
     int64_t offset;
 
-    DISABLE_COPYING(gc_entry);
+    DISABLE_COPYING(gc_entry_t);
 };
 
 class data_block_manager_t {
-    friend class gc_entry;
+    friend class gc_entry_t;
     friend class dbm_read_ahead_fsm_t;
 
 private:
@@ -194,12 +194,12 @@ private:
 
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
-    bool should_we_keep_gcing(const gc_entry&) const;
+    bool should_we_keep_gcing(const gc_entry_t&) const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
 
-    // Pops the last gc_entry off young_extent_queue and declares it
+    // Pops the last gc_entry_t off young_extent_queue and declares it
     // to be not young.
     void remove_last_unyoung_entry();
 
@@ -241,23 +241,23 @@ private:
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
 
-    /* Contains a pointer to every gc_entry, regardless of what its current state is */
-    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;
+    /* Contains a pointer to every gc_entry_t, regardless of what its current state is */
+    two_level_array_t<gc_entry_t *, MAX_DATA_EXTENTS, (1 << 12)> entries;
 
-    /* Contains every extent in the gc_entry::state_reconstructing state */
-    intrusive_list_t< gc_entry > reconstructed_extents;
+    /* Contains every extent in the gc_entry_t::state_reconstructing state */
+    intrusive_list_t< gc_entry_t > reconstructed_extents;
 
-    /* Contains the extents in the gc_entry::state_active state. The number of active extents
+    /* Contains the extents in the gc_entry_t::state_active state. The number of active extents
     is determined by dynamic_config->num_active_data_extents. */
     unsigned int next_active_extent;   // Cycles through the active extents
-    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
+    gc_entry_t *active_extents[MAX_ACTIVE_DATA_EXTENTS];
     unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
 
-    /* Contains every extent in the gc_entry::state_young state */
-    intrusive_list_t< gc_entry > young_extent_queue;
+    /* Contains every extent in the gc_entry_t::state_young state */
+    intrusive_list_t< gc_entry_t > young_extent_queue;
 
-    /* Contains every extent in the gc_entry::state_old state */
-    priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
+    /* Contains every extent in the gc_entry_t::state_old state */
+    priority_queue_t<gc_entry_t *, gc_entry_less_t> gc_pq;
 
 
     /* Buffer used during GC. */
@@ -302,7 +302,7 @@ private:
         char *gc_blocks;
 
         // The entry we're currently GCing.
-        gc_entry *current_entry;
+        gc_entry_t *current_entry;
 
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
