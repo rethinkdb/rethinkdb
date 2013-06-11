@@ -353,8 +353,7 @@ void data_block_manager_t::mark_token_live(int64_t offset) {
 
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
-    entry->t_array.set(block_index, 1);
-    entry->update_g_array(block_index);
+    entry->mark_token_live(block_index);
 }
 
 void data_block_manager_t::mark_token_garbage(int64_t offset) {
@@ -363,10 +362,8 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
 
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
-    rassert(entry->t_array[block_index] == 1);
     rassert(!entry->block_is_garbage(block_index));
-    entry->t_array.set(block_index, 0);
-    entry->update_g_array(block_index);
+    entry->mark_token_garbage(block_index);
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
@@ -401,8 +398,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
         // We acquire block tokens for all the blocks before writing new
         // version.  The point of this is to make sure the _new_ block is
-        // correctly "alive" when we write it.  (We can just say "hey,
-        // initialize the t_array bit to be set.")
+        // correctly "alive" when we write it.
 
         std::vector<counted_t<ls_block_token_pointee_t> > block_tokens;
         block_tokens.reserve(num_writes);
@@ -634,10 +630,10 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_state.current_entry == NULL,
                         "%zd garbage bytes left on the extent, %zd i_array blocks, "
-                        "%zd t_array blocks.\n",
+                        "%zd token-referenced bytes.\n",
                         gc_state.current_entry->garbage_bytes(),
                         gc_state.current_entry->i_array.count(),
-                        gc_state.current_entry->t_array.count());
+                        gc_state.current_entry->token_bytes());
 
                 rassert(gc_state.refcount == 0);
 
@@ -722,7 +718,7 @@ void data_block_manager_t::actually_shutdown() {
 }
 
 int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
-    rassert(token_referenced);
+    guarantee(token_referenced);
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
@@ -743,9 +739,8 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
-    active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], token_referenced);
+    active_extents[next_active_extent]->mark_token_live(blocks_in_active_extent[next_active_extent]);
     rassert(!active_extents[next_active_extent]->i_array[blocks_in_active_extent[next_active_extent]]);
-    active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
 
     blocks_in_active_extent[next_active_extent]++;
 
@@ -855,6 +850,11 @@ void gc_entry_t::destroy() {
 
 uint64_t gc_entry_t::garbage_bytes() const {
     uint64_t x = g_array.count();
+    return x * parent->serializer->get_block_size().ser_value();
+}
+
+uint64_t gc_entry_t::token_bytes() const {
+    uint64_t x = t_array.count();
     return x * parent->serializer->get_block_size().ser_value();
 }
 

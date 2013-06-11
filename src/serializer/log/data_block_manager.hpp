@@ -50,8 +50,8 @@ public:
     extent_reference_t extent_ref;
 private:
     bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-public:
     bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
+public:
     bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
 
     bool all_garbage() const { return g_array.size() == g_array.count(); }
@@ -59,7 +59,18 @@ public:
     bool block_is_garbage(unsigned int block_index) const { return g_array[block_index]; }
     uint64_t num_garbage_blocks() const { return g_array.count(); }
 
+    void mark_token_live(unsigned int block_index) {
+        t_array.set(block_index, 1);
+        update_g_array(block_index);
+    }
 
+    void mark_token_garbage(unsigned int block_index) {
+        rassert(t_array[block_index] == 1);
+        t_array.set(block_index, 0);
+        update_g_array(block_index);
+    }
+
+    uint64_t token_bytes() const;
 
     // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
     // it for its .count().
