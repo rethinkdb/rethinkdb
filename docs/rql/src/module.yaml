@@ -33,7 +33,7 @@ commands:
     body:
       js: opts, callback
       py: host='localhost', port=28015, db='test'
-      rb: host='localhost', port=28015, default_db='test'
+      rb: opts
     parent: r
     returns: connection
 
@@ -45,7 +45,7 @@ commands:
             r.connect({host:'localhost', port:28015, db:'marvel'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
-          rb: conn = r.connect('localhost', 28015, 'heroes')
+          rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes')
 
     py:
       examples:
