@@ -187,9 +187,9 @@ public:
     void read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
-    int64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                  file_account_t *io_account, iocallback_t *cb,
-                  bool token_referenced);
+    int64_t write(const void *buf_in, block_id_t block_id,
+                  bool assign_new_block_sequence_id,
+                  file_account_t *io_account, iocallback_t *cb);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
@@ -246,7 +246,9 @@ private:
 
     file_account_t *choose_gc_io_account();
 
-    int64_t gimme_a_new_offset(bool token_referenced);
+    // Creates a new offset, marked as being referenced by a token.  So you had
+    // better refer to it with some kind of token!
+    int64_t gimme_a_new_offset();
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager
        and cleans up */

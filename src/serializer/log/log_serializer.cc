@@ -626,7 +626,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
-    const int64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
+    const int64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
 
     // RSI: We need the real block size of this block.
     return generate_block_token(offset, get_block_size().ser_value());

@@ -241,14 +241,13 @@ void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *i
  block_sequence_id immediately.
  */
 int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                                    file_account_t *io_account, iocallback_t *cb,
-                                    bool token_referenced) {
+                                    file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    int64_t offset = gimme_a_new_offset(token_referenced);
+    int64_t offset = gimme_a_new_offset();
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -421,7 +420,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 writes[i].new_offset = parent->write(writes[i].buf, data->block_id,
                                                      false,
                                                      parent->choose_gc_io_account(),
-                                                     block_write_conds.back(), true);
+                                                     block_write_conds.back());
             }
         }
 
@@ -723,8 +722,7 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
-    guarantee(token_referenced);
+int64_t data_block_manager_t::gimme_a_new_offset() {
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
