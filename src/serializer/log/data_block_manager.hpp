@@ -50,7 +50,9 @@ public:
 
     bool all_garbage() const { return g_array.size() == g_array.count(); }
     uint64_t garbage_bytes() const;
-    bool block_is_garbage(unsigned int block_index) const { return g_array[block_index]; }
+    bool block_is_garbage(unsigned int block_index) const {
+        return g_array[block_index];
+    }
 
     // RSI: Rename to mark_live_tokenwise...
     void mark_token_live(unsigned int block_index) {
@@ -97,19 +99,31 @@ private:
         g_array.set(block_index, !(t_array[block_index] || i_array[block_index]));
     }
 
-    bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-    bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
-    bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
+    // bit array for whether or not each block is garbage
+    bitset_t g_array;
+
+    // bit array for whether or not each block is referenced by some token
+    bitset_t t_array;
+
+    // bit array for whether or not each block is referenced by the current lba
+    // ("i"ndex)
+    bitset_t i_array;
 
 public:
-    const microtime_t timestamp; /* !< when we started writing to the extent */
-    priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
-    bool was_written; /* true iff the extent has been written to after starting up the serializer */
+    // When we started writing to the extent (this time).
+    const microtime_t timestamp;
+
+    // The PQ entry pointing to us.
+    priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry;
+
+    // True iff the extent has been written to after starting up the serializer.
+    bool was_written;
 
     enum state_t {
         // It has been, or is being, reconstructed from data on disk.
         state_reconstructing,
-        // We are currently putting things on this extent. It is equal to last_data_extent.
+        // We are currently putting things on this extent. It is equal to
+        // last_data_extent.
         state_active,
         // Not active, but not a GC candidate yet. It is in young_extent_queue.
         state_young,
@@ -122,8 +136,8 @@ public:
 
 private:
 
-    // Only to be used by the destructor, used to look up the gc entry in the parent's entries
-    // array.
+    // Only to be used by the destructor, used to look up the gc entry in the
+    // parent's entries array.
     int64_t offset;
 
     DISABLE_COPYING(gc_entry_t);
@@ -163,8 +177,9 @@ public:
         uint64_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
     };
 
-    /* When initializing the database from scratch, call start() with just the database FD. When
-    restarting an existing database, call start() with the last metablock. */
+    /* When initializing the database from scratch, call start() with just the
+    database FD. When restarting an existing database, call start() with the last
+    metablock. */
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
@@ -233,7 +248,8 @@ private:
 
     int64_t gimme_a_new_offset(bool token_referenced);
 
-    /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
+    /* Checks whether the extent is empty and if it is, notifies the extent manager
+       and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id);
 
     // Tells if we should keep gc'ing, being told the next extent that
@@ -285,14 +301,15 @@ private:
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
 
-    /* Contains a pointer to every gc_entry_t, regardless of what its current state is */
+    /* Contains a pointer to every gc_entry_t, regardless of what its current state
+       is */
     two_level_array_t<gc_entry_t *, MAX_DATA_EXTENTS, (1 << 12)> entries;
 
     /* Contains every extent in the gc_entry_t::state_reconstructing state */
     intrusive_list_t<gc_entry_t> reconstructed_extents;
 
-    /* Contains the extents in the gc_entry_t::state_active state. The number of active extents
-    is determined by dynamic_config->num_active_data_extents. */
+    /* Contains the extents in the gc_entry_t::state_active state. The number of
+    active extents is determined by dynamic_config->num_active_data_extents. */
     unsigned int next_active_extent;   // Cycles through the active extents
     gc_entry_t *active_extents[MAX_ACTIVE_DATA_EXTENTS];
     unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
@@ -343,6 +360,7 @@ private:
         // A buffer for blocks we're transferring.
         char *gc_blocks;
 
+
         // The entry we're currently GCing.
         gc_entry_t *current_entry;
 
@@ -363,7 +381,8 @@ private:
 
         // Sets step_, and calls gc_disable_callback if relevant.
         void set_step(gc_step next_step) {
-            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
+            if (should_be_stopped && next_step == gc_ready
+                && (step_ == gc_read || step_ == gc_write)) {
                 rassert(gc_disable_callback);
                 gc_disable_callback->on_gc_disabled();
                 gc_disable_callback = NULL;

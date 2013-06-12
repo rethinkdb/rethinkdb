@@ -10,15 +10,18 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-/* TODO: Right now we perform garbage collection via the do_write() interface on the
-log_serializer_t. This leads to bugs in a couple of ways:
-1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The data block
-   manager shouldn't have to know about that stuff.
-2. We have to special-case the serializer so that it allows us to submit do_write()s during
-   shutdown. If there were an alternative interface, it could ignore or refuse our GC requests
-   when it is shutting down.
-Later, rewrite this so that we have a special interface through which to order
-garbage collection. */
+// TODO: Right now we perform garbage collection via the do_write() interface on the
+// log_serializer_t. This leads to bugs in a couple of ways:
+//
+// 1. We have to be sure to get the metadata (repli timestamp, delete bit) right. The
+//    data block manager shouldn't have to know about that stuff.
+//
+// 2. We have to special-case the serializer so that it allows us to submit
+//    do_write()s during shutdown. If there were an alternative interface, it could
+//    ignore or refuse our GC requests when it is shutting down.
+
+// Later, rewrite this so that we have a special interface through which to order
+// garbage collection.
 
 data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
     : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config),
@@ -85,8 +88,8 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
 
         if (offset != NULL_OFFSET) {
             /* It is possible to have an active data block extent with no actual data
-            blocks in it. In this case we would not have created a gc_entry_t for the extent
-            yet. */
+            blocks in it. In this case we would not have created a gc_entry_t for the
+            extent yet. */
             if (entries.get(offset / extent_manager->extent_size) == NULL) {
                 gc_entry_t *e = new gc_entry_t(this, offset);
                 e->state = gc_entry_t::state_reconstructing;
@@ -107,8 +110,8 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
         }
     }
 
-    /* Convert any extents that we found live blocks in, but that are not active extents,
-    into old extents */
+    /* Convert any extents that we found live blocks in, but that are not active
+    extents, into old extents */
     while (gc_entry_t *entry = reconstructed_extents.head()) {
         reconstructed_extents.remove(entry);
 
@@ -142,7 +145,8 @@ public:
 
         // Read up to MAX_READ_AHEAD_BLOCKS blocks
         read_ahead_size = std::min<int64_t>(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * int64_t(parent->static_config->block_size().ser_value()));
-        // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
+        // We divide the extent into chunks of size read_ahead_size, then select the
+        // one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
         parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
@@ -219,7 +223,8 @@ void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *i
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
-        // We still need an fsm for read ahead as additional work has to be done on io complete...
+        // We still need an fsm for read ahead as additional work has to be done on
+        // io complete...
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
@@ -229,11 +234,11 @@ void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *i
 }
 
 /*
- Instead of wrapping this into a coroutine, we are still using a callback as we
- want to be able to spawn a lot of writes in parallel. Having to spawn a coroutine
- for each of them would involve a major memory overhead for all the stacks.
- Also this makes stuff easier in other places, as we get the offset as well as a freshly
- set block_sequence_id immediately.
+ Instead of wrapping this into a coroutine, we are still using a callback as we want
+ to be able to spawn a lot of writes in parallel. Having to spawn a coroutine for
+ each of them would involve a major memory overhead for all the stacks.  Also this
+ makes stuff easier in other places, as we get the offset as well as a freshly set
+ block_sequence_id immediately.
  */
 int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                                     file_account_t *io_account, iocallback_t *cb,
@@ -326,8 +331,8 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
     gc_entry_t *entry = entries.get(extent_id);
 
-    // Now we set the i_array entry to zero.  We make an extra reference to the extent which gets
-    // held until we commit the transaction.
+    // Now we set the i_array entry to zero.  We make an extra reference to the
+    // extent which gets held until we commit the transaction.
     txn->push_extent(extent_manager->copy_extent_reference(entry->extent_ref));
     entry->mark_garbage_indexwise(block_index);
 
@@ -363,7 +368,8 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         // RSI: Update this value with the actual block's size.
-        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
+        gc_stat
+s.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -410,8 +416,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
-                // the first "false" argument indicates that we do not with to assign a new block sequence id
-                // We pass true because we know there is a token for this block: we just constructed one!
+                // The first "false" argument indicates that we do not with to assign
+                // a new block sequence id.  We pass true because we know there is a
+                // token for this block: we just constructed one!
                 writes[i].new_offset = parent->write(writes[i].buf, data->block_id,
                                                      false,
                                                      parent->choose_gc_io_account(),
@@ -479,7 +486,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
         ASSERT_NO_CORO_WAITING;
 
-        index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
+        index_write_ops.clear();
     }
 
     {
@@ -543,8 +550,9 @@ void data_block_manager_t::run_gc() {
                 gc_state.set_step(gc_read);
                 for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks(); i < bpe; i++) {
                     if (!gc_state.current_entry->block_is_garbage(i)) {
-                        // Increment the refcount before read_async, because read_async can call
-                        // its callback immediately, causing the decrement of the refcount.
+                        // Increment the refcount before read_async, because
+                        // read_async can call its callback immediately, causing the
+                        // decrement of the refcount.
                         gc_state.refcount++;
                         dbfile->read_async(gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
@@ -565,8 +573,9 @@ void data_block_manager_t::run_gc() {
                     break;
                 }
 
-                /* If other forces cause all of the blocks in the extent to become garbage
-                before we even finish GCing it, they will set current_entry to NULL. */
+                /* If other forces cause all of the blocks in the extent to become
+                garbage before we even finish GCing it, they will set current_entry
+                to NULL. */
                 if (gc_state.current_entry == NULL) {
                     rassert(gc_state.gc_blocks != NULL);
                     free(gc_state.gc_blocks);
@@ -583,9 +592,9 @@ void data_block_manager_t::run_gc() {
                 gc_writes.clear();
                 for (unsigned int i = 0, iend = gc_state.current_entry->num_blocks(); i < iend; ++i) {
 
-                    /* We re-check the bit array here in case a write came in for one of the
-                    blocks we are GCing. We wouldn't want to overwrite the new valid data with
-                    out-of-date data. */
+                    /* We re-check the bit array here in case a write came in for one
+                    of the blocks we are GCing. We wouldn't want to overwrite the new
+                    valid data with out-of-date data. */
                     if (gc_state.current_entry->block_is_garbage(i)) {
                         continue;
                     }
@@ -619,10 +628,12 @@ void data_block_manager_t::run_gc() {
             }
 
             case gc_write:
-                mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
-                /* Our write should have forced all of the blocks in the extent to become garbage,
-                which should have caused the extent to be released and gc_state.current_entry to
-                become NULL. */
+                //We need to do this here so that we don't
+                //get stuck on the GC treadmill
+                mark_unyoung_entries();
+                /* Our write should have forced all of the blocks in the extent to
+                become garbage, which should have caused the extent to be released
+                and gc_state.current_entry to become NULL. */
 
                 rassert(gc_state.current_entry == NULL,
                         "%zd garbage bytes left on the extent, %zd index-referenced bytes, "
@@ -752,12 +763,14 @@ int64_t data_block_manager_t::gimme_a_new_offset(bool token_referenced) {
         active_extents[next_active_extent] = NULL;
     }
 
-    /* Move along to the next extent. This logic is kind of weird because it needs to handle the
-    case where we have just started up and we still have active extents open from a previous run,
-    but the value of num_active_data_extents was higher on that previous run and so there are active
-    data extents that occupy slots in active_extents that are higher than our current value of
-    num_active_data_extents. The way we handle this case is by continuing to visit those slots until
-    the data extents fill up and are deactivated, but then not visiting those slots any more. */
+    /* Move along to the next extent. This logic is kind of weird because it needs to
+    handle the case where we have just started up and we still have active extents
+    open from a previous run, but the value of num_active_data_extents was higher on
+    that previous run and so there are active data extents that occupy slots in
+    active_extents that are higher than our current value of
+    num_active_data_extents. The way we handle this case is by continuing to visit
+    those slots until the data extents fill up and are deactivated, but then not
+    visiting those slots any more. */
 
     do {
         next_active_extent = (next_active_extent + 1) % MAX_ACTIVE_DATA_EXTENTS;
