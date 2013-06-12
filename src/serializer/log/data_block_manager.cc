@@ -368,8 +368,7 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         // RSI: Update this value with the actual block's size.
-        gc_stat
-s.old_garbage_block_bytes += serializer->get_block_size().ser_value();
+        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
