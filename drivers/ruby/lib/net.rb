@@ -81,15 +81,20 @@ module RethinkDB
     end
     def repl; RQL.set_default_conn self; end
 
-    def initialize(host='localhost', port=28015, default_db=nil)
+    def initialize(opts={})
       begin
         @abort_module = ::IRB
       rescue NameError => e
         @abort_module = Faux_Abort
       end
+
+      opts = {:host => opts} if opts.class == String
+      @host = opts[:host] || "localhost"
+      @port = opts[:port] || 28015
+      default_db = opts[:db]
+      @auth_key = opts[:auth_key] || ""
+
       @@last = self
-      @host = host
-      @port = port
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
       reconnect
@@ -177,7 +182,7 @@ module RethinkDB
     end
 
     @@last = nil
-    @@magic_number = 0x3f61ba36
+    @@magic_number = VersionDummy::Version::V0_2
 
     def debug_socket; @socket; end
 
@@ -217,6 +222,17 @@ module RethinkDB
         end
       end
       @socket.write([@@magic_number].pack('L<'))
+
+      @socket.write([@auth_key.size].pack('L<') + @auth_key)
+      response = ""
+      while response[-1..-1] != "\0"
+        response += @socket.read_exn(1)
+      end
+      response = response[0...-1]
+      if response != "SUCCESS"
+        raise RqlRuntimeError,"Server dropped connection with message: \"#{response}\""
+      end
+
       @listener.terminate if @listener
       @listener = Thread.new do
         loop do
