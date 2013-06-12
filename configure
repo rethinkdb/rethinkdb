@@ -819,6 +819,11 @@ test_protobuf () {
         show fetch
         return
     fi
+    if ! test -e "$PROTOC"; then
+        required=false
+        error "$PROTOC does not exist"
+        return
+    fi
     local pbdir=`dirname $0`/mk/gen/protoc/
     mkdir -p "$pbdir"
     echo 'message Foo { enum Bar { Baz = 1; } }' > "$pbdir/test.proto"
