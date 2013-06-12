@@ -41,7 +41,8 @@ commands:
       - description: Opens a new connection to the database.
         validate: false
         code:
-          js: | r.connect({host:'localhost', port:28015, db:'marvel'},
+          js: |
+              r.connect({host:'localhost', port:28015, db:'marvel'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
           rb: conn = r.connect('localhost', 28015, 'heroes')
