@@ -21,7 +21,7 @@ public:
     void get_root(scoped_cJSON_t *json_out);
 
 protected:
-    virtual void metadata_change_callback(metadata_t *new_metadata, bool worst_variable_ever) = 0;
+    virtual void metadata_change_callback(metadata_t *new_metadata, bool change_context) = 0;
 
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     uuid_u us;
@@ -44,7 +44,7 @@ public:
     ~cluster_semilattice_http_app_t();
 
 private:
-    void metadata_change_callback(cluster_semilattice_metadata_t *new_metadata, bool worst_variable_ever);
+    void metadata_change_callback(cluster_semilattice_metadata_t *new_metadata, bool prefer_distribution);
 };
 
 class auth_semilattice_http_app_t : public semilattice_http_app_t<auth_semilattice_metadata_t> {
@@ -56,7 +56,7 @@ public:
     ~auth_semilattice_http_app_t();
 
 private:
-    void metadata_change_callback(auth_semilattice_metadata_t *new_metadata, bool worst_variable_ever);
+    void metadata_change_callback(auth_semilattice_metadata_t *new_metadata, bool unused_context);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_ */

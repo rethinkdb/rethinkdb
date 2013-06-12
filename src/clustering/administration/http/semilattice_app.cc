@@ -201,9 +201,9 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 }
 
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-                                                              bool worst_variable_ever) {
+                                                              bool prefer_distribution) {
     try {
-        fill_in_blueprints(new_metadata, directory_metadata->get(), us, worst_variable_ever);
+        fill_in_blueprints(new_metadata, directory_metadata->get(), us, prefer_distribution);
     } catch (const missing_machine_exc_t &e) { }
 }
 
