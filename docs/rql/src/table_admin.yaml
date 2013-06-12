@@ -48,11 +48,13 @@ commands:
         code:
           py: r.db('test').table_create('dc_universe', primary_key='name').run(conn)
           rb: r.db('test').table_create('dc_universe', :primary_key => 'name').run(conn)
+          js: r.db('test').tableCreate('dc_universe', {primaryKey: 'name'}).run(conn, callback)
       - description: |
           Create a table to log the very fast actions of the heroes.
         code:
           py: r.db('test').table_create('hero_actions', durability='soft').run(conn)
           rb: r.db('test').table_create('dc_universe', :durability => 'soft').run(conn)
+          js: r.db('test').tableCreate('dc_universe', {hardDurability: false}).run(conn, callback)
 
   - tag: table_drop
     section: table_admin

@@ -18,9 +18,9 @@ commands:
       rb: db_create
       js: dbCreate
     body:
+      js: dbName
       py: db_name
       rb: db_name
-      rb: dbName
     parent: r
     returns: json
 

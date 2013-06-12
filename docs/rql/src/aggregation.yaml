@@ -73,8 +73,7 @@ commands:
     examples:
       - description: Which unique villains have been vanquished by marvel heroes?
         code:
-          js: |-
-            r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()
+          js: |- r.table('marvel').concatMap(function(hero) {return hero('villainList')}).distinct()
              .run(conn, callback)
           py: 'r.table(''marvel'').concat_map(lambda hero: hero[''villainList'']).distinct().run(conn)'
           rb: r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.run(conn)
