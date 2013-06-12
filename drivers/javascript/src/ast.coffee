@@ -7,7 +7,7 @@ goog.require("Datum")
 
 class TermBase
     constructor: ->
-        self = ((field) -> self.getAttr(field))
+        self = (ar (field) -> self.getAttr(field))
         self.__proto__ = @.__proto__
         return self
 
