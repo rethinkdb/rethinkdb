@@ -58,6 +58,10 @@ template <class serializer_type> struct serializer_traits_t;
 class log_serializer_t;
 
 class ls_block_token_pointee_t {
+public:
+    int64_t offset() const { return offset_; }
+
+private:
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 

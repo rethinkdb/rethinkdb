@@ -240,14 +240,16 @@ void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *i
  makes stuff easier in other places, as we get the offset as well as a freshly set
  block_sequence_id immediately.
  */
-int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                                    file_account_t *io_account, iocallback_t *cb) {
+counted_t<ls_block_token_pointee_t>
+data_block_manager_t::write(const void *buf_in, block_id_t block_id,
+                            bool assign_new_block_sequence_id,
+                            file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    int64_t offset = gimme_a_new_offset();
+    counted_t<ls_block_token_pointee_t> token = gimme_a_new_offset();
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -257,9 +259,9 @@ int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb);
+    dbfile->write_async(token->offset(), static_config->block_size().ser_value(), data, io_account, cb);
 
-    return offset;
+    return token;
 }
 
 void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
@@ -398,8 +400,14 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
         // version.  The point of this is to make sure the _new_ block is
         // correctly "alive" when we write it.
 
-        std::vector<counted_t<ls_block_token_pointee_t> > block_tokens;
-        block_tokens.reserve(num_writes);
+        std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
+        old_block_tokens.reserve(num_writes);
+
+        // New block tokens, to hold the return value of
+        // data_block_manager_t::write() instead of immediately discarding the
+        // created token and causing the extent or block to be collected.
+        std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+        new_block_tokens.reserve(num_writes);
 
         {
             ASSERT_NO_CORO_WAITING;
@@ -409,18 +417,22 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 // ... and save block tokens for the old offset.
                 rassert(parent->gc_state.current_entry != NULL, "i = %d", i);
                 // RSI: Pass the real block size to generate the block token.
-                block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
-                                                                                parent->serializer->get_block_size().ser_value()));
+                old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
+                                                                                    parent->serializer->get_block_size().ser_value()));
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
                 // The first "false" argument indicates that we do not with to assign
-                // a new block sequence id.  We pass true because we know there is a
-                // token for this block: we just constructed one!
-                writes[i].new_offset = parent->write(writes[i].buf, data->block_id,
-                                                     false,
-                                                     parent->choose_gc_io_account(),
-                                                     block_write_conds.back());
+                // a new block sequence id.
+                counted_t<ls_block_token_pointee_t> token
+                    = parent->write(writes[i].buf, data->block_id,
+                                    false,
+                                    parent->choose_gc_io_account(),
+                                    block_write_conds.back());
+
+                new_block_tokens.push_back(token);
+
+                writes[i].new_offset = token->offset();
             }
         }
 
@@ -447,11 +459,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    // RSI: Use the real block size to generate the block token.
-                    counted_t<ls_block_token_pointee_t> token
-                        = parent->serializer->generate_block_token(writes[i].new_offset,
-                                                                   parent->serializer->get_block_size().ser_value());
-                    index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
+                    index_write_ops.push_back(index_write_op_t(data->block_id,
+                                                               to_standard_block_token(data->block_id,
+                                                                                       new_block_tokens[i])));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -475,7 +485,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             // to a new offset, destroying these tokens will update
             // the bits in the t_array of the new offset (if they're
             // the last token).
-            block_tokens.clear();
+            old_block_tokens.clear();
+            new_block_tokens.clear();
         }
 
         // Step 4B: Commit the transaction to the serializer, emptying
@@ -722,7 +733,7 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-int64_t data_block_manager_t::gimme_a_new_offset() {
+counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
     /* Start a new extent if necessary */
 
     if (!active_extents[next_active_extent]) {
@@ -774,7 +785,9 @@ int64_t data_block_manager_t::gimme_a_new_offset() {
     } while (next_active_extent >= dynamic_config->num_active_data_extents &&
              !active_extents[next_active_extent]);
 
-    return offset;
+    // RSI: don't pass fake block size.
+    return serializer->generate_block_token(offset,
+                                            serializer->get_block_size().ser_value());
 }
 
 // Looks at young_extent_queue and pops things off the queue that are
