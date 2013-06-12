@@ -9,7 +9,10 @@ commands:
     section: select
     description: Reference a database.
 
-    body: db_name
+    body:
+      js: dbName
+      py: db_name
+      rb: db_name
     parent: r
     returns: db
 
@@ -72,6 +75,11 @@ commands:
     section: select
     description: Get all documents where the given value matches the value of the requested index.
 
+    name:
+      js: getAll
+      py: get_all
+      rb: get_all
+
     body:
       py: key[, index='id']
       rb: key[, :index => 'id']
@@ -96,9 +104,6 @@ commands:
             py: r.table('dc').get_all('superman').run(conn)
             js: r.table('dc').getAll('superman').run(conn, callback)
             rb: r.table('dc').get_all('superman').run(conn)
-
-    js:
-      name: getAll
 
   - tag: between
     section: select

@@ -119,6 +119,9 @@ commands:
           py: conn.reconnect()
           rb: conn.reconnect
 
+    rb:
+      dont_need_parenthesis: false
+
   - tag: use
     section: module
     description: Change the default database on this connection.
