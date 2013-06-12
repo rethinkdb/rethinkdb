@@ -43,8 +43,9 @@ using std::make_pair;
 
 #if defined(__GNUC__) && !defined(USE_CXX0X)
 
-#include <tr1/unordered_set>
-using std::tr1::unordered_set;
+// t1 stuff doesn't work with libc++ on os x, so changing to boost
+#include <boost/unordered_set.hpp>
+using boost::unordered_set;
 
 #else
 
