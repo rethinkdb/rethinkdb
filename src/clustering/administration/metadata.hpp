@@ -19,6 +19,7 @@
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/cow_ptr.hpp"
+#include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -56,8 +57,7 @@ class auth_semilattice_metadata_t {
 public:
     auth_semilattice_metadata_t() { }
 
-    static const int32_t max_auth_length = 2048;
-    vclock_t<std::string> auth_key;
+    vclock_t<auth_key_t> auth_key;
 
     RDB_MAKE_ME_SERIALIZABLE_1(auth_key);
 };

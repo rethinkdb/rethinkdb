@@ -78,7 +78,7 @@ class Connection(object):
             response += char
 
         if response != "SUCCESS":
-            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response)
+            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
     def close(self):
         if self.socket:

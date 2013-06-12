@@ -8,6 +8,13 @@
 // little-endian 32-bit integer over the wire raw.  This number should
 // only be sent once per connection.
 
+// The magic number should be followed by an authorization key.  The
+// first 4 bytes are the length of the key to be sent, followed by the key
+// string.  The server will then respond with a NULL-terminated string
+// response.  "SUCCESS" indicates that the connection has been accepted.
+// Any other response indicates an error, and the response string should
+// describe the error.
+
 // Next, for each query you want to send, construct a [Query] protobuf
 // and serialize it to a binary blob.  Send the blob's size to the
 // server encoded as a little-endian 32-bit integer, followed by the

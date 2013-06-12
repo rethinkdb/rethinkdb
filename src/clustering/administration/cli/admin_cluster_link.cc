@@ -124,6 +124,10 @@ std::string admin_value_to_string(const name_string_t& name) {
     return admin_value_to_string(name.str());
 }
 
+std::string admin_value_to_string(const auth_key_t& key) {
+    return admin_value_to_string(key.str());
+}
+
 std::string admin_value_to_string(const std::map<uuid_u, int32_t>& value) {
     std::string result;
     for (auto it = value.begin(); it != value.end(); ++it) {
@@ -2319,7 +2323,7 @@ void admin_cluster_link_t::do_admin_list_auth(const admin_command_parser_t::comm
     if (auth_metadata.auth_key.in_conflict()) {
         throw admin_cluster_exc_t("the authorization key is in conflict, run 'help resolve' for more information");
     }
-    printf("%s\n", auth_metadata.auth_key.get().c_str());
+    printf("%s\n", auth_metadata.auth_key.get().str().c_str());
 }
 
 void admin_cluster_link_t::do_admin_set_auth(const admin_command_parser_t::command_data_t& data) {
@@ -2328,11 +2332,10 @@ void admin_cluster_link_t::do_admin_set_auth(const admin_command_parser_t::comma
     auth_semilattice_metadata_t auth_metadata = change_request.get();
 
     std::string key = guarantee_param_0(data.params, "key");
-    if (key.length() > static_cast<size_t>(auth_semilattice_metadata_t::max_auth_length)) {
+    if (!auth_metadata.auth_key.get_mutable().assign_value(key)) {
         throw admin_cluster_exc_t(strprintf("the provided authorization key is too long, max length: %i",
-                                            auth_semilattice_metadata_t::max_auth_length));
+                                            auth_key_t::max_length));
     }
-    auth_metadata.auth_key.get_mutable() = key;
     auth_metadata.auth_key.upgrade_version(change_request_id);
 
     if (!change_request.update(auth_metadata)) {
@@ -2345,7 +2348,7 @@ void admin_cluster_link_t::do_admin_unset_auth(const admin_command_parser_t::com
         change_request(&mailbox_manager, choose_auth_sync_peer());
     auth_semilattice_metadata_t auth_metadata = change_request.get();
 
-    auth_metadata.auth_key.get_mutable().clear();
+    auth_metadata.auth_key.get_mutable() = auth_key_t();
     auth_metadata.auth_key.upgrade_version(change_request_id);
 
     if (!change_request.update(auth_metadata)) {

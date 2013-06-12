@@ -67,7 +67,7 @@ private:
 
 template <class request_t, class response_t, class context_t>
 std::string protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
-    const int32_t buffer_size = auth_semilattice_metadata_t::max_auth_length;
+    const int32_t buffer_size = auth_key_t::max_length;
     char buffer[buffer_size];
     int32_t auth_key_length;
     conn->read(&auth_key_length, sizeof(int32_t), interruptor);
@@ -86,7 +86,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     auto_drainer_t::lock_t keepalive) {
 
     // This must be read here because of home threads and stuff
-    const vclock_t<std::string> auth_vclock = auth_metadata->get().auth_key;
+    const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
 
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
@@ -106,12 +106,12 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
         conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
 
         if (client_magic_number == context_t::no_auth_magic_number) {
-            if (!auth_vclock.get().empty()) {
+            if (!auth_vclock.get().str().empty()) {
                 throw protob_server_exc_t("authorization required, client does not support it");
             }
         } else if (client_magic_number == context_t::auth_magic_number) {
             std::string provided_auth = read_auth_key(conn.get(), &ct_keepalive);
-            if (provided_auth != auth_vclock.get()) {
+            if (provided_auth != auth_vclock.get().str()) {
                 throw protob_server_exc_t("incorrect authorization key");
             }
             const char *success_msg = "SUCCESS";

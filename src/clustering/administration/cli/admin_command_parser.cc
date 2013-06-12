@@ -176,7 +176,7 @@ const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *unset_datacenter_machine_option_desc = "the machine to move out of any datacenter";
 const char *set_database_table_option_desc = "the table to move to the specified database";
 const char *set_database_database_option_desc = "the database to move to";
-const char *set_auth_key_option_desc = "the key that clients must provide when connecting";
+const char *set_auth_key_option_desc = "the key that clients must provide when connecting, maximum length is 2048 characters";
 const char *create_table_name_option_desc = "the name of the new table";
 // TODO: fix this once multiple protocols are supported again
 // const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";

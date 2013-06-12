@@ -181,7 +181,7 @@ void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_
 // json adapter concept for auth_semilattice_metadata_t
 json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
     json_adapter_if_t::json_adapter_map_t res;
-    res["auth_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->auth_key, ctx));
+    res["auth_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<auth_key_t>(&target->auth_key, ctx));
     return res;
 }
 
