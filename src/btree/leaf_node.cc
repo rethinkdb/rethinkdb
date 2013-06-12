@@ -1597,4 +1597,64 @@ live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node) {
     return res;
 }
 
+iterator::iterator(const leaf_node_t *node, int index) 
+    : node_(node), index_(index) { }
+
+std::pair<const btree_key_t *, const void *> iterator::operator*() const {
+    guarantee(index_ < node_->num_pairs);
+    guarantee(index_ >= 0);
+    const entry_t *entree = get_entry(node_, node_->pair_offsets[index_]);
+    return std::make_pair(entry_key(entree), entry_value(entree));
+}
+
+iterator &iterator::operator++() {
+    do {
+        ++index_;
+    } while (index_ < node_->num_pairs && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
+    return *this;
+}
+
+iterator &iterator::operator--() {
+    do {
+        --index_;
+    } while (index_ >= 0 && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
+    return *this;
+}
+
+inline bool iterator::operator==(const iterator &other) const { return cmp(other) == 0; }
+inline bool iterator::operator!=(const iterator &other) const { return cmp(other) != 0; }
+inline bool iterator::operator<(const iterator &other) const { return cmp(other) < 0; }
+inline bool iterator::operator>(const iterator &other) const { return cmp(other) > 0; }
+inline bool iterator::operator<=(const iterator &other) const { return cmp(other) <= 0; }
+inline bool iterator::operator>=(const iterator &other) const { return cmp(other) >= 0; }
+
+int iterator::cmp(const iterator &other) const {
+    guarantee(node_ == other.node_);
+    return index_ - other.index_;
+}
+
+reverse_iterator::reverse_iterator(const leaf_node_t *node, int index) 
+    : inner_(node, index) { }
+
+std::pair<const btree_key_t *, const void *> reverse_iterator::operator*() const {
+    return *inner_;
+}
+
+reverse_iterator &reverse_iterator::operator++() {
+    --inner_;
+    return *this;
+}
+
+reverse_iterator &reverse_iterator::operator--() {
+    ++inner_;
+    return *this;
+}
+
+bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
+bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
+bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
+bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
+bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
+bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
+
 }  // namespace leaf

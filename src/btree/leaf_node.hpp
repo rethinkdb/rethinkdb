@@ -171,6 +171,41 @@ live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_
 live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
 live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node);
 
+class iterator {
+public:
+    iterator(const leaf_node_t *node, int index);
+    std::pair<const btree_key_t *, const void *> operator*() const;
+    iterator &operator++();
+    iterator &operator--();
+    bool operator==(const iterator &other) const;
+    bool operator!=(const iterator &other) const;
+    bool operator<(const iterator &other) const;
+    bool operator>(const iterator &other) const;
+    bool operator<=(const iterator &other) const;
+    bool operator>=(const iterator &other) const;
+private:
+    /* negative return => this < other */
+    int cmp(const iterator &other) const;
+    const leaf_node_t *node_;
+    int index_;
+};
+
+class reverse_iterator {
+public:
+    reverse_iterator(const leaf_node_t *node, int index);
+    std::pair<const btree_key_t *, const void *> operator*() const;
+    reverse_iterator &operator++();
+    reverse_iterator &operator--();
+    bool operator==(const reverse_iterator &other) const;
+    bool operator!=(const reverse_iterator &other) const;
+    bool operator<(const reverse_iterator &other) const;
+    bool operator>(const reverse_iterator &other) const;
+    bool operator<=(const reverse_iterator &other) const;
+    bool operator>=(const reverse_iterator &other) const;
+private:
+    iterator inner_;
+};
+
 }  // namespace leaf
 
 
