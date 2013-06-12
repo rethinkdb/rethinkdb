@@ -94,12 +94,10 @@ commands:
     examples:
       - description: Close an open connection.
         validate: false
-        code: conn.close()
-
-    rb:
-      examples:
-        0:
-          code: conn.close
+        code:
+          js: conn.close()
+          py: conn.close()
+          rb: conn.close
 
   - tag: reconnect
     section: module
@@ -303,7 +301,6 @@ commands:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.
         validate: false
         code: |
-
           r.connect({}, function(err, conn) {
               if (err) throw err;
 
