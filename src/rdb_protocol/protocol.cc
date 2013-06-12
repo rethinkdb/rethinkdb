@@ -553,7 +553,7 @@ public:
             if (!rg.terminal) {
                 //A vanilla range get
                 //First we need to determine the cutoff key:
-                rg_response->last_considered_key = store_key_t::max();
+                rg_response->last_considered_key = (rg.direction == FORWARD ? store_key_t::max() : store_key_t::min());
                 for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(rr != NULL);

@@ -154,12 +154,14 @@ public:
     const btree_key_t *get_key(const leaf_node_t *node) const;
     const void *get_value(const leaf_node_t *node) const;
 
+    live_iter_t() : index_(-1) { }
 private:
     explicit live_iter_t(int index) : index_(index) { }
 
     friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
+    friend live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node);
 
     int index_;
 };
@@ -167,6 +169,7 @@ private:
 live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
 live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
 live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
+live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node);
 
 }  // namespace leaf
 

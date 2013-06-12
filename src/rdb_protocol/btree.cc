@@ -655,7 +655,8 @@ public:
         }
         try {
             store_key_t store_key(key);
-            if (response->last_considered_key < store_key) {
+            if ((response->last_considered_key < store_key && direction == FORWARD) ||
+                (response->last_considered_key > store_key && direction == BACKWARD)) {
                 response->last_considered_key = store_key;
             }
 

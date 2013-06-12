@@ -29,7 +29,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
             end_index = internal_node::get_offset_index(inode, r.btree_key()) + 1;
         }
         for (int i = 0; i < end_index - start_index; ++i) {
-            int true_index = (direction == FORWARD ? start_index + i : end_index - i);
+            int true_index = (direction == FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
             buf_lock_t lock(transaction, pair->lnode, rwi_read);
             if (!btree_depth_first_traversal(slice, transaction, &lock, range, cb, direction)) {
@@ -50,7 +50,13 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
                 }
             }
         } else {
-            for (leaf::live_iter_t it = leaf::iter_for_inclusive_upper_bound(lnode, range.left.btree_key());
+            leaf::live_iter_t it;
+            if (range.right.unbounded) {
+                it = leaf::end_iter_for_whole_leaf(lnode);
+            } else {
+                it = leaf::iter_for_inclusive_upper_bound(lnode, range.right.key.btree_key());
+            }
+            for (/* assignment above */;
                     (key = it.get_key(lnode)) && sized_strcmp(key->contents, key->size, range.left.contents(), range.left.size()) > 0;
                     it.step_back(lnode)) {
                 if (!cb->handle_pair(key, it.get_value(lnode))) {
