@@ -53,7 +53,6 @@ class Connection
 
         while @buffer.byteLength >= 4
             responseLength = (new DataView @buffer).getUint32 0, true
-            responseLength2= (new DataView @buffer).getUint32 0, true
             unless @buffer.byteLength >= (4 + responseLength)
                 break
 
@@ -258,17 +257,36 @@ class TcpConnection extends Connection
             buf_view.setUint32 0, VersionDummy.Version.V0_2, true
             buf_view.setUint32 4, @auth_key.length, true
             @write buf
-            @rawSocket.write @auth_key 'ascii'
-            @emit 'connect'
+            @rawSocket.write @auth_key, 'ascii'
+
+            # Now we have to wait for a response from the server
+            # acknowledging the new connection
+            handshake_callback = (buf) =>
+                arr = toArrayBuffer(buf)
+
+                @buffer = bufferConcat @buffer, arr
+                for b,i in new Uint8Array @buffer
+                    if b is 0
+                        @rawSocket.removeListener('data', handshake_callback)
+
+                        status_buf = bufferSlice(@buffer, 0, i)
+                        @buffer = bufferSlice(@buffer, i)
+                        status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
+
+                        if status_str == "SUCCESS"
+                            # We're good, finish setting up the connection
+                            @rawSocket.on 'data', (buf) =>
+                                @_data(toArrayBuffer(buf))
+
+                            @emit 'connect'
+                            return
+                        else
+                            @emit 'error', new RqlDriverError status_str
+                            return
+
+            @rawSocket.on 'data', handshake_callback
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
-
-        @rawSocket.on 'data', (buf) =>
-            # Convert from node buffer to array buffer
-            arr = new Uint8Array new ArrayBuffer buf.length
-            for byte,i in buf
-                arr[i] = byte
-            @_data(arr.buffer)
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
 
@@ -372,9 +390,12 @@ bufferConcat = (buf1, buf2) ->
     view.set new Uint8Array(buf2), buf1.byteLength
     view.buffer
 
-bufferSlice = (buffer, offset) ->
-    if offset > buffer.byteLength then offset = buffer.byteLength
-    residual = buffer.byteLength - offset
-    res = new Uint8Array residual
-    res.set (new Uint8Array buffer, offset)
-    res.buffer
+bufferSlice = (buffer, offset, end) ->
+    return buffer.slice(offset, end)
+
+toArrayBuffer = (node_buffer) ->
+    # Convert from node buffer to array buffer
+    arr = new Uint8Array new ArrayBuffer node_buffer.length
+    for byte,i in node_buffer
+        arr[i] = byte
+    return arr.buffer
