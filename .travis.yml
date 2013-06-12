@@ -6,15 +6,12 @@ env:
 
 # Install build dependencies
 before_script:
-  - brew install npm
+  - brew install boost libyaml python node protobuf v8
   - sudo npm install -g less@1.3.0
   - sudo npm install -g coffee-script@1.4.0
   - sudo npm install -g handlebars@1.0.10
   - sudo npm install -g mocha
   - gem install ruby_protobuf
-  - yes | sudo apt-add-repository ppa:jkeiren/ppa
-  - sudo apt-get update
-  - sudo apt-get install libboost1.48-all-dev
 
 # Build script
 script:
