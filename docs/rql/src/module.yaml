@@ -80,6 +80,8 @@ commands:
           rb: |
             r.connect().repl
             r.table('users').run
+    rb:
+      dont_need_parenthesis: false
 
     js: false
 
