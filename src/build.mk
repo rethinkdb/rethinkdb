@@ -7,9 +7,9 @@ LDPATHDS ?=
 CXXPATHDS ?=
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS := $(LDFLAGS)
+RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -156,6 +156,10 @@ ifeq ($(RT_COPY_NATIVE),1)
 endif
 ifeq ($(RT_REDUCE_NATIVE),1)
   RT_CXXFLAGS+=-march="$(GCC_ARCH_REDUCED)"
+endif
+
+ifeq ($(RQL_ERROR_BT),1)
+  RT_CXXFLAGS+=-DRQL_ERROR_BT
 endif
 
 # Configure debug vs. release
@@ -350,7 +354,7 @@ $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADE
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) | $(QL2_PROTO_OBJS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(V8_DEP) $(RE2_DEP) | $(QL2_PROTO_OBJS)
 	mkdir -p $(dir $@) $(dir $(DEP_DIR)/$*)
 	$P CC $< -o $@
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $< \

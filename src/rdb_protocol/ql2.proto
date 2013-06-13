@@ -469,6 +469,10 @@ message Term {
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
 
+        // `a.match(b)` returns a match object if the string `a`
+        // matches the regular expression `b`.
+        MATCH = 97; // STRING, STRING -> DATUM
+
         // Select a number of elements from sequence with uniform distribution.
         SAMPLE = 81; // Sequence, NUMBER -> Sequence
 

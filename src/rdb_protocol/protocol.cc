@@ -1214,7 +1214,14 @@ void store_t::protocol_read(const read_t &read,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
-        ql_env.init_optargs(r.optargs);
+        try {
+            ql_env.init_optargs(r.optargs);
+        } catch (const interrupted_exc_t &) {
+            // Clear the sindex_write_token because we didn't have a chance to use it
+            token_pair->sindex_write_token.reset();
+            throw;
+        }
+
         response->response = point_replace_response_t();
         point_replace_response_t *res = boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
@@ -1339,8 +1346,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
-                                              sindex_block_id, &interruptor);
+                                              sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
@@ -1535,9 +1544,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(rdb_modification_report_t *mod_report) const {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(
             token_pair, txn, &sindex_block,
-            sindex_block_id, interruptor);
+            sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);

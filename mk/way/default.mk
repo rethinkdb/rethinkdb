@@ -96,6 +96,9 @@ RUN_TEST_ARGS ?=
 # For each triggered rule, show one of the dependencies that caused it to be run
 SHOW_BUILD_REASON ?= 0
 
+# Enable backtraces for RQL errors
+RQL_ERROR_BT ?= 0
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
@@ -117,7 +120,6 @@ MEMCACHED_STRICT ?= 0
 NO_EVENTFD ?= 0
 NO_EPOLL ?= 0
 LEGACY_PROC_STAT ?= 0
-TC_PROTOC_CFLAGS ?=
 UNIT_TEST_FILTER ?= *
 PACKAGE_FOR_SUSE_10 ?= 0
 NO_COMPILE_JS ?= 0
