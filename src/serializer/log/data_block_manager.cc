@@ -54,7 +54,10 @@ void data_block_manager_t::start_reconstruct() {
 // gc_entry_t in the entries table.  (This is used when we start up, when
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
-void data_block_manager_t::mark_live(int64_t offset) {
+void data_block_manager_t::mark_live(int64_t offset, uint32_t block_size) {
+    // RSI: Do something real with block size.
+    guarantee(block_size == static_config->block_size().ser_value());
+
     int extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {

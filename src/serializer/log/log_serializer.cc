@@ -268,11 +268,9 @@ struct ls_start_existing_fsm_t :
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
-                // RSI: We're not going to want to or be able to mark blocks live via
-                // offset.  We'll need offset and block size, for starters...
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value());
+                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_ser_block_size(id));
                 }
             }
             ser->data_block_manager->end_reconstruct();
@@ -507,12 +505,12 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
-                    ls_block_token_pointee_t *ls_token = token.get();
-                    rassert(ls_token);
-                    offset = flagged_off64_t::make(ls_token->offset_);
+                    offset = flagged_off64_t::make(token->offset_);
 
                     /* mark the life */
-                    data_block_manager->mark_live(offset.get_value());
+                    // RSI: We probably want to mark the token live here by way of
+                    // block index.
+                    data_block_manager->mark_live(offset.get_value(), token->ser_block_size_);
                 } else {
                     offset = flagged_off64_t::unused();
                 }

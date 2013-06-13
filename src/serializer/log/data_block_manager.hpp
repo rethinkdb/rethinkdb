@@ -202,9 +202,9 @@ public:
         return entries.get(extent_id) != NULL;
     }
 
-    /* r{start,stop}_reconstruct functions for safety */
+    /* r{start,end}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(int64_t);  // Takes a real int64_t.
+    void mark_live(int64_t offset, uint32_t ser_block_size);
     void end_reconstruct();
 
     /* We must make sure that blocks which have tokens pointing to them don't
