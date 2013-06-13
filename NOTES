@@ -30,7 +30,7 @@ This release introduces basic access control, regular expression matching, new a
       * `*` operator: repeats an array `n` times
       * `difference`: removes all instances of specified elements from an array
       * `count`: returns the number of elements in an array
-      * `indexes_of`: returns indexes of elements that match the specified value in an array
+      * `indexes_of`: returns positions of elements that match the specified value in an array
       * `set_insert`: adds an element to a set    
       * `set_intersection`: finds the intersection of two sets
       * `set_union`: returns the union of two sets
