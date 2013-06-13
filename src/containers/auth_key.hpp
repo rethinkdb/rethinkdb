@@ -17,7 +17,6 @@ public:
     // Returns true if the new key is of a valid length
     MUST_USE bool assign_value(const std::string& new_key);
 
-    // RSI: Remove this function.
     const std::string& str() const { return key; }
 
     static const int32_t max_length = 2048;
@@ -30,7 +29,6 @@ private:
 
 bool timing_sensitive_equals(const auth_key_t& x, const auth_key_t& y);
 
-// RSI: Do we even need these functions?
 inline bool operator==(const auth_key_t& x, const auth_key_t& y) {
     // Might as well use timing_sensitive_equals this in case of accidental misuse.
     return timing_sensitive_equals(x, y);
