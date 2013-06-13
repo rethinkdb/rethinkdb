@@ -67,14 +67,13 @@ private:
 
 template <class request_t, class response_t, class context_t>
 auth_key_t protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
-    static const int32_t buffer_size = auth_key_t::max_length;
-    char buffer[buffer_size];
-    int32_t auth_key_length;
-    conn->read(&auth_key_length, sizeof(int32_t), interruptor);
+    char buffer[auth_key_t::max_length];
+    uint32_t auth_key_length;
+    conn->read(&auth_key_length, sizeof(uint32_t), interruptor);
 
     const char *const too_long_error_message = "client provided an authorization key that is too long";
 
-    if (auth_key_length > buffer_size) {
+    if (auth_key_length > sizeof(buffer)) {
         throw protob_server_exc_t(too_long_error_message);
     }
 
