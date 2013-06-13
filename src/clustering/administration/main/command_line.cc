@@ -527,6 +527,9 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
+    perfmon_collection_t auth_perfmon_collection;
+    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
+
     try {
         metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&io_backender,
                                                                               get_cluster_metadata_filename(base_path),
@@ -535,7 +538,7 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
                                                                               cluster_metadata);
         metadata_persistence::auth_persistent_file_t auth_metadata_file(&io_backender,
                                                                         get_auth_metadata_filename(base_path),
-                                                                        &metadata_perfmon_collection,
+                                                                        &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
         logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
@@ -651,6 +654,9 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
+    perfmon_collection_t auth_perfmon_collection;
+    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
+
     try {
         scoped_ptr_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
         scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
@@ -664,7 +670,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             auth_metadata_file.init(
                 new metadata_persistence::auth_persistent_file_t(&io_backender,
                                                                  get_auth_metadata_filename(base_path),
-                                                                 &metadata_perfmon_collection,
+                                                                 &auth_perfmon_collection,
                                                                  auth_semilattice_metadata_t()));
         } else {
             cluster_metadata_file.init(
@@ -674,7 +680,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
             auth_metadata_file.init(
                 new metadata_persistence::auth_persistent_file_t(&io_backender,
                                                                  get_auth_metadata_filename(base_path),
-                                                                 &metadata_perfmon_collection));
+                                                                 &auth_perfmon_collection));
         }
 
         *result_out = serve(serve_info.spawner_info,
