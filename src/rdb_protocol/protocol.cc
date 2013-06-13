@@ -321,14 +321,17 @@ rdb_protocol_t::context_t::context_t(
     extproc::pool_group_t *_pool_group,
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        _semilattice_metadata,
+        _cluster_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        _auth_metadata,
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
     machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
-      semilattice_metadata(_semilattice_metadata),
+      cluster_metadata(_cluster_metadata),
+      auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id)
@@ -337,12 +340,12 @@ rdb_protocol_t::context_t::context_t(
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                     clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
                                                         (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), thread));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                                                     clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _semilattice_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), thread));
 
         signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
@@ -514,7 +517,7 @@ public:
                      ->get_watchable(),
                  ctx->cross_thread_database_watchables[get_thread_id()].get()
                      ->get_watchable(),
-                 ctx->semilattice_metadata,
+                 ctx->cluster_metadata,
                  NULL,
                  boost::make_shared<js::runner_t>(),
                  interruptor,
@@ -1182,7 +1185,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                    ->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id()].get()
                    ->get_watchable(),
-               ctx->semilattice_metadata,
+               ctx->cluster_metadata,
                NULL,
                boost::make_shared<js::runner_t>(),
                &interruptor,
@@ -1215,7 +1218,14 @@ void store_t::protocol_read(const read_t &read,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
-        ql_env.init_optargs(r.optargs);
+        try {
+            ql_env.init_optargs(r.optargs);
+        } catch (const interrupted_exc_t &) {
+            // Clear the sindex_write_token because we didn't have a chance to use it
+            token_pair->sindex_write_token.reset();
+            throw;
+        }
+
         response->response = point_replace_response_t();
         point_replace_response_t *res = boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
@@ -1328,7 +1338,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                    get_thread_id()].get()->get_watchable(),
                ctx->cross_thread_database_watchables[
                    get_thread_id()].get()->get_watchable(),
-               ctx->semilattice_metadata,
+               ctx->cluster_metadata,
                0,
                boost::make_shared<js::runner_t>(),
                &interruptor,
@@ -1340,8 +1350,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
-                                              sindex_block_id, &interruptor);
+                                              sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
@@ -1536,9 +1548,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(rdb_modification_report_t *mod_report) const {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(
             token_pair, txn, &sindex_block,
-            sindex_block_id, interruptor);
+            sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);

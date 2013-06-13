@@ -65,6 +65,7 @@ public:
     void do_admin_list_tables(const admin_command_parser_t::command_data_t& data);
     void do_admin_list_datacenters(const admin_command_parser_t::command_data_t& data);
     void do_admin_list_databases(const admin_command_parser_t::command_data_t& data);
+    void do_admin_list_auth(const admin_command_parser_t::command_data_t& data);
     void do_admin_resolve(const admin_command_parser_t::command_data_t& data);
     void do_admin_pin_shard(const admin_command_parser_t::command_data_t& data);
     void do_admin_split_shard(const admin_command_parser_t::command_data_t& data);
@@ -78,6 +79,8 @@ public:
     void do_admin_set_datacenter(const admin_command_parser_t::command_data_t& data);
     void do_admin_unset_datacenter(const admin_command_parser_t::command_data_t& data);
     void do_admin_set_database(const admin_command_parser_t::command_data_t& data);
+    void do_admin_set_auth(const admin_command_parser_t::command_data_t& data);
+    void do_admin_unset_auth(const admin_command_parser_t::command_data_t& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data_t& data);
     void do_admin_create_database(const admin_command_parser_t::command_data_t& data);
     void do_admin_create_table(const admin_command_parser_t::command_data_t& data);
@@ -358,6 +361,7 @@ private:
     std::string path_to_str(const std::vector<std::string>& path);
 
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_sync_peer();
+    metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t choose_auth_sync_peer();
 
     struct metadata_info_t;
 
@@ -382,11 +386,19 @@ private:
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     stat_manager_t stat_manager;
     log_server_t log_server;
+
     message_multiplexer_t::client_t semilattice_manager_client;
     const scoped_ptr_t<semilattice_manager_t<cluster_semilattice_metadata_t> > semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata_view;
     metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler;
+
+    message_multiplexer_t::client_t auth_manager_client;
+    const scoped_ptr_t<semilattice_manager_t<auth_semilattice_metadata_t> > auth_manager_cluster;
+    message_multiplexer_t::client_t::run_t auth_manager_client_run;
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata_view;
+    metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler;
+
     message_multiplexer_t::client_t directory_manager_client;
     watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;
     const scoped_ptr_t<directory_read_manager_t<cluster_directory_metadata_t> > directory_read_manager;

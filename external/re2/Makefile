@@ -38,7 +38,8 @@ SONAME=0
 # REBUILD_TABLES=1
 
 ifeq ($(shell uname),Darwin)
-MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) -exported_symbols_list libre2.symbols.darwin
+# Commenting out exported_symbols_list -- it doesn't work with libc++ on OS X, and we don't need the shared lib
+MAKE_SHARED_LIBRARY=$(CXX) -dynamiclib $(LDFLAGS) #-exported_symbols_list libre2.symbols.darwin
 else
 MAKE_SHARED_LIBRARY=$(CXX) -shared -Wl,-soname,libre2.so.$(SONAME),--version-script=libre2.symbols $(LDFLAGS)
 endif

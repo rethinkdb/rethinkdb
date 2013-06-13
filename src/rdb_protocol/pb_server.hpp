@@ -31,7 +31,8 @@ public:
 
     struct context_t {
         context_t() : interruptor(0) { }
-        static const int32_t magic_number = VersionDummy::V0_1;
+        static const int32_t no_auth_magic_number = VersionDummy::V0_1;
+        static const int32_t auth_magic_number = VersionDummy::V0_2;
         ql::stream_cache2_t stream_cache2;
         signal_t *interruptor;
     };

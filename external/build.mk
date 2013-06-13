@@ -20,5 +20,7 @@ $(RE2_LIBS) $(RE2_INCLUDE_DIR): $(BUILD_DIR)/re2/.build
 $(BUILD_DIR)/re2/.build: | $(BUILD_DIR)/re2/.
 	$P MAKE -C $(EXTERNAL_DIR)/re2
 	$(EXTERN_MAKE) -C $(TOP)/external/re2 install --silent \
-	  prefix=$(abspath $(BUILD_DIR)/re2) CXX=$(CXX) $(RE2_LOG_REDIRECT)
+	  prefix=$(abspath $(BUILD_DIR)/re2) CXX=$(CXX) \
+	  CXXFLAGS="-O3 $(CXXFLAGS)" LDFLAGS="$(LDFLAGS) $(PTHREAD_LIBS)" \
+	  $(RE2_LOG_REDIRECT)
 	touch $@

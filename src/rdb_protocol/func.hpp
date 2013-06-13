@@ -8,8 +8,10 @@
 
 #include "utils.hpp"
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "containers/counted.hpp"
-#include "protob/protob.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/js.hpp"
 #include "rdb_protocol/term.hpp"

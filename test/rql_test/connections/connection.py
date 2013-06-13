@@ -8,7 +8,7 @@ from time import sleep
 from sys import path, exit
 import unittest
 path.insert(0, '.')
-from test_util import RethinkDBTestServers
+import test_util
 path.insert(0, "../../drivers/python")
 
 # We import the module both ways because this used to crash and we
@@ -53,12 +53,18 @@ class TestNoConnection(unittest.TestCase):
             r.RqlDriverError, "RqlQuery.run must be given a connection to run on.",
             r.expr(1).run)
 
+    def test_auth_key(self):
+        # Test that everything still doesn't work even with an auth key
+        self.assertRaisesRegexp(
+            RqlDriverError, "Could not connect to 0.0.0.0:28015.",
+            r.connect, host="0.0.0.0", port=28015, auth_key="hunter2")
+
 class TestConnectionDefaultPort(unittest.TestCase):
 
     def setUp(self):
         if not use_default_port:
             self.skipTest("Not testing default port")
-        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
+        self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir, use_default_port=use_default_port)
         self.servers.__enter__()
 
     def tearDown(self):
@@ -80,10 +86,62 @@ class TestConnectionDefaultPort(unittest.TestCase):
         conn = r.connect(port=28015)
         conn.reconnect()
 
+    def test_connect_wrong_auth(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, auth_key="hunter2")
+
+class TestAuthConnection(unittest.TestCase):
+
+    def setUp(self):
+        self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir)
+        self.servers.__enter__()
+        self.port=self.servers.driver_port()
+
+        cluster_port = self.servers.cluster_port()
+        exe = self.servers.executable()
+
+        if test_util.set_auth(cluster_port, exe, "hunter2") != 0:
+            raise RuntimeError("Could not set up authorization key")
+
+    def test_connect_no_auth(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, port=self.port)
+
+    def test_connect_wrong_auth(self):
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, port=self.port, auth_key="")
+
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, port=self.port, auth_key="hunter3")
+
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, port=self.port, auth_key="hunter22")
+
+    def test_connect_long_auth(self):
+        long_key = str("k") * 2049
+        not_long_key = str("k") * 2048
+
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: client provided an authorization key that is too long\"",
+            r.connect, port=self.port, auth_key=long_key)
+
+        self.assertRaisesRegexp(
+            RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
+            r.connect, port=self.port, auth_key=not_long_key)
+
+    def test_connect_correct_auth(self):
+        conn = r.connect(port=self.port, auth_key="hunter2")
+        conn.reconnect()
+
 class TestWithConnection(unittest.TestCase):
 
     def setUp(self):
-        self.servers = RethinkDBTestServers(4, server_build_dir=server_build_dir)
+        self.servers = test_util.RethinkDBTestServers(4, server_build_dir=server_build_dir)
         self.servers.__enter__()
         self.port = self.servers.driver_port()
         conn = r.connect(port=self.port)
@@ -242,6 +300,9 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
+    suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
     suite.addTest(TestPrinting())

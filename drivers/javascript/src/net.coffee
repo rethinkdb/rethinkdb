@@ -14,6 +14,7 @@ goog.require("goog.proto2.WireFormatSerializer")
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
+    DEFAULT_AUTH_KEY: ''
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -24,6 +25,7 @@ class Connection
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
+        @authKey = host.authKey || @DEFAULT_AUTH_KEY
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -35,7 +37,10 @@ class Connection
 
         errCallback = (e) =>
             @removeListener 'connect', conCallback
-            callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+            if e instanceof RqlDriverError
+                callback e
+            else
+                callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
         @once 'error', errCallback
 
         conCallback = =>
@@ -51,7 +56,6 @@ class Connection
 
         while @buffer.byteLength >= 4
             responseLength = (new DataView @buffer).getUint32 0, true
-            responseLength2= (new DataView @buffer).getUint32 0, true
             unless @buffer.byteLength >= (4 + responseLength)
                 break
 
@@ -251,19 +255,41 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 4
-            (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
+            buf = new ArrayBuffer 8
+            buf_view = new DataView buf
+            buf_view.setUint32 0, VersionDummy.Version.V0_2, true
+            buf_view.setUint32 4, @authKey.length, true
             @write buf
-            @emit 'connect'
+            @rawSocket.write @authKey, 'ascii'
+
+            # Now we have to wait for a response from the server
+            # acknowledging the new connection
+            handshake_callback = (buf) =>
+                arr = toArrayBuffer(buf)
+
+                @buffer = bufferConcat @buffer, arr
+                for b,i in new Uint8Array @buffer
+                    if b is 0
+                        @rawSocket.removeListener('data', handshake_callback)
+
+                        status_buf = bufferSlice(@buffer, 0, i)
+                        @buffer = bufferSlice(@buffer, i)
+                        status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
+
+                        if status_str == "SUCCESS"
+                            # We're good, finish setting up the connection
+                            @rawSocket.on 'data', (buf) =>
+                                @_data(toArrayBuffer(buf))
+
+                            @emit 'connect'
+                            return
+                        else
+                            @emit 'error', new RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
+                            return
+
+            @rawSocket.on 'data', handshake_callback
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
-
-        @rawSocket.on 'data', (buf) =>
-            # Convert from node buffer to array buffer
-            arr = new Uint8Array new ArrayBuffer buf.length
-            for byte,i in buf
-                arr[i] = byte
-            @_data(arr.buffer)
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
 
@@ -367,9 +393,12 @@ bufferConcat = (buf1, buf2) ->
     view.set new Uint8Array(buf2), buf1.byteLength
     view.buffer
 
-bufferSlice = (buffer, offset) ->
-    if offset > buffer.byteLength then offset = buffer.byteLength
-    residual = buffer.byteLength - offset
-    res = new Uint8Array residual
-    res.set (new Uint8Array buffer, offset)
-    res.buffer
+bufferSlice = (buffer, offset, end) ->
+    return buffer.slice(offset, end)
+
+toArrayBuffer = (node_buffer) ->
+    # Convert from node buffer to array buffer
+    arr = new Uint8Array new ArrayBuffer node_buffer.length
+    for byte,i in node_buffer
+        arr[i] = byte
+    return arr.buffer

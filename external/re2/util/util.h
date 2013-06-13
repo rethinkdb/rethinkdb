@@ -41,9 +41,17 @@ using std::sort;
 using std::swap;
 using std::make_pair;
 
-#if defined(__GNUC__) && !defined(USE_CXX0X)
+#if 1
 
-#include <tr1/unordered_set>
+// libc++ does not include tr1, and we aren't building with -std=c++0x
+// so use boost's unordered_set
+
+#include <boost/unordered_set.hpp>
+using boost::unordered_set;
+
+#elif defined(__GNUC__) && !defined(USE_CXX0X)
+
+#include <tr1/unordered_set.hpp>
 using std::tr1::unordered_set;
 
 #else

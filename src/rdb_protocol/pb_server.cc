@@ -24,6 +24,7 @@ query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
            port,
            boost::bind(&query2_server_t::handle, this, _1, _2, _3),
            &on_unparsable_query2,
+           _ctx->auth_metadata,
            INLINE),
     ctx(_ctx), parser_id(generate_uuid()), thread_counters(0)
 { }
@@ -54,7 +55,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->pool_group, ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread]->get_watchable(),
-                ctx->semilattice_metadata, ctx->directory_read_manager,
+                ctx->cluster_metadata, ctx->directory_read_manager,
                 js_runner, interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code

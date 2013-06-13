@@ -7,7 +7,10 @@ commands:
       You can convert: a selection, sequence, or object into an ARRAY, 
       an array of pairs into an OBJECT, and any DATUM into a STRING.
 
-    body: typename
+    body:
+      js: typeName
+      py: type_name
+      rb: type_name
     parent: json
     returns: json
 

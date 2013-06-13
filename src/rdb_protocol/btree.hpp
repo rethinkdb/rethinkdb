@@ -208,17 +208,13 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added,
-            signal_t *interruptor);
-    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted,
-            signal_t *interruptor);
+    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
+    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
     void replace_row(const store_key_t &primary_key,
             boost::shared_ptr<scoped_cJSON_t> added,
-            boost::shared_ptr<scoped_cJSON_t> removed,
-            signal_t *interruptor);
+            boost::shared_ptr<scoped_cJSON_t> removed);
 
-    void on_mod_report(const rdb_modification_report_t &mod_report,
-            signal_t *interruptor);
+    void on_mod_report(const rdb_modification_report_t &mod_report);
 
     ~rdb_modification_report_cb_t();
 private:

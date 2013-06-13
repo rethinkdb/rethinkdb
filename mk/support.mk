@@ -113,9 +113,9 @@ $(TC_LESSC_INT_EXE): $(NODE_MODULES_DIR)/less | $(dir $(TC_LESSC_INT_EXE)).
 	ln -s $(abspath $</bin/lessc) $@
 	touch $@
 
-$(NODE_MODULES_DIR)/less: $(NPM_DEP)
+$(NODE_MODULES_DIR)/less: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I less
-	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install https://github.com/cloudhead/less.js/archive/v1.3.3.tar.gz $(SUPPORT_LOG_REDIRECT)
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.3.3 $(SUPPORT_LOG_REDIRECT)
 
 $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_EXE)).
 	$P LN
@@ -123,10 +123,10 @@ $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_
 	ln -s $(abspath $</bin/coffee) $@
 	touch $@
 
-$(NODE_MODULES_DIR)/coffee-script: $(NPM_DEP)
+$(NODE_MODULES_DIR)/coffee-script: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I coffee-script
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install https://github.com/jashkenas/coffee-script/archive/1.4.0.tar.gz $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install coffee-script@1.4.0 $(SUPPORT_LOG_REDIRECT)
 
 $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS_INT_EXE)).
 	$P LN
@@ -134,10 +134,10 @@ $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS
 	ln -s $(abspath $</bin/handlebars) $@
 	touch $@
 
-$(NODE_MODULES_DIR)/handlebars: $(NPM_DEP)
+$(NODE_MODULES_DIR)/handlebars: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I handlebars
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install https://github.com/wycats/handlebars.js/archive/v1.0.12.tar.gz $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install handlebars@1.0.7 $(SUPPORT_LOG_REDIRECT)
 
 $(V8_SRC_DIR):
 	$P SVN-CO v8
