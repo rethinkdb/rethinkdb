@@ -32,7 +32,7 @@ commands:
 
     body:
       js: opts, callback
-      py: host='localhost', port=28015, db='test'
+      py: host='localhost', port=28015, db='test', auth_key=''
       rb: opts
     parent: r
     returns: connection
