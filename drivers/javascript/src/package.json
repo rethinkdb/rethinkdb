@@ -1,5 +1,5 @@
 { "name" : "rethinkdb"
-, "version" : "1.5.0-0"
+, "version" : "1.6.0-0"
 , "main" : "rethinkdb"
 , "description" : "This package provides the JavaScript driver library for the RethinkDB database server for use either from node or your web-browser."
 , "keywords" : ["database", "NoSQL", "reql", "query language"]
@@ -13,5 +13,5 @@
     { "type" : "git"
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"
     }
-, "engine" : "node >= 0.6.19"
+, "engine" : "node >= 0.10.0"
 }

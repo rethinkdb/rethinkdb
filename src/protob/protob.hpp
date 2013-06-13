@@ -119,7 +119,7 @@ private:
 
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t);
     void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
-    static std::string read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
+    static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
     http_res_t handle(const http_req_t &);

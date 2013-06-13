@@ -66,18 +66,25 @@ private:
 };
 
 template <class request_t, class response_t, class context_t>
-std::string protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
-    const int32_t buffer_size = auth_key_t::max_length;
-    char buffer[buffer_size];
-    int32_t auth_key_length;
-    conn->read(&auth_key_length, sizeof(int32_t), interruptor);
+auth_key_t protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
+    char buffer[auth_key_t::max_length];
+    uint32_t auth_key_length;
+    conn->read(&auth_key_length, sizeof(uint32_t), interruptor);
 
-    if (auth_key_length > buffer_size) {
-        throw protob_server_exc_t("client provided an authorization key that is too long");
+    const char *const too_long_error_message = "client provided an authorization key that is too long";
+
+    if (auth_key_length > sizeof(buffer)) {
+        throw protob_server_exc_t(too_long_error_message);
     }
 
     conn->read(buffer, auth_key_length, interruptor);
-    return std::string(buffer, auth_key_length);
+    auth_key_t ret;
+    if (!ret.assign_value(std::string(buffer, auth_key_length))) {
+        // This should never happen, since we already checked above.
+        rassert(false);
+        throw protob_server_exc_t(too_long_error_message);
+    }
+    return ret;
 }
 
 template <class request_t, class response_t, class context_t>
@@ -110,8 +117,8 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                 throw protob_server_exc_t("authorization required, client does not support it");
             }
         } else if (client_magic_number == context_t::auth_magic_number) {
-            std::string provided_auth = read_auth_key(conn.get(), &ct_keepalive);
-            if (provided_auth != auth_vclock.get().str()) {
+            auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
+            if (!timing_sensitive_equals(provided_auth, auth_vclock.get())) {
                 throw protob_server_exc_t("incorrect authorization key");
             }
             const char *success_msg = "SUCCESS";

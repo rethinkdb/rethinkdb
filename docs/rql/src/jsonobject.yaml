@@ -304,9 +304,9 @@ commands:
     description: Insert several values in to an array at a given index. Returns the modified array.
 
     name:
-      js: sliceAt
-      py: slice_at
-      rb: slice_at
+      js: spliceAt
+      py: splice_at
+      rb: splice_at
 
     body: index, json
     parent: json

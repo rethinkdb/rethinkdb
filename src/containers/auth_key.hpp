@@ -19,7 +19,7 @@ public:
 
     const std::string& str() const { return key; }
 
-    static const int32_t max_length;
+    static const int32_t max_length = 2048;
 
 private:
     std::string key;
@@ -27,8 +27,11 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(key);
 };
 
+bool timing_sensitive_equals(const auth_key_t& x, const auth_key_t& y);
+
 inline bool operator==(const auth_key_t& x, const auth_key_t& y) {
-    return x.str() == y.str();
+    // Might as well use timing_sensitive_equals this in case of accidental misuse.
+    return timing_sensitive_equals(x, y);
 }
 
 inline bool operator!=(const auth_key_t& x, const auth_key_t& y) {
