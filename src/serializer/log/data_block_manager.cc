@@ -54,10 +54,7 @@ void data_block_manager_t::start_reconstruct() {
 // gc_entry_t in the entries table.  (This is used when we start up, when
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
-void data_block_manager_t::mark_live(int64_t offset, uint32_t block_size) {
-    // RSI: Do something real with block size.
-    guarantee(block_size == static_config->block_size().ser_value());
-
+void data_block_manager_t::mark_live(int64_t offset, uint32_t ser_block_size) {
     int extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
@@ -68,13 +65,8 @@ void data_block_manager_t::mark_live(int64_t offset, uint32_t block_size) {
         reconstructed_extents.push_back(entry);
     }
 
-    // RSI: I'm not sure block_index will be computable while we're still in the
-    // midst of reconstructing the entry.
     gc_entry_t *entry = entries.get(extent_id);
-    unsigned int block_index = entry->block_index(offset);
-
-    /* Mark the block as alive. */
-    entry->mark_live_indexwise(block_index);
+    entry->mark_live_indexwise_with_offset(offset, ser_block_size);
 }
 
 void data_block_manager_t::end_reconstruct() {
@@ -830,52 +822,51 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     gc_stats.old_garbage_block_bytes += entry->garbage_bytes();
 }
 
+void gc_entry_t::add_self_to_parent_entries() {
+    unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+    rassert(parent->entries.get(extent_id) == NULL);
+    parent->entries.set(extent_id, this);
+    g_array.set();
+
+    ++parent->stats->pm_serializer_data_extents;
+}
 
 gc_entry_t::gc_entry_t(data_block_manager_t *_parent)
     : parent(_parent),
+      extent_ref(parent->extent_manager->gen_extent()),
       g_array(parent->static_config->blocks_per_extent()),
       t_array(parent->static_config->blocks_per_extent()),
       i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
-      was_written(false)
-{
-    extent_ref = parent->extent_manager->gen_extent();
-    offset = extent_ref.offset();
-    rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
-    parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
-    g_array.set();
-
-    ++parent->stats->pm_serializer_data_extents;
+      was_written(false),
+      extent_offset(extent_ref.offset()) {
+    add_self_to_parent_entries();
 }
 
 gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
     : parent(_parent),
+      extent_ref(parent->extent_manager->reserve_extent(_offset)),
       g_array(parent->static_config->blocks_per_extent()),
       t_array(parent->static_config->blocks_per_extent()),
       i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
-      was_written(false)
-{
-    extent_ref = parent->extent_manager->reserve_extent(_offset);
-    offset = extent_ref.offset();
-    rassert(parent->entries.get(extent_ref.offset() / parent->extent_manager->extent_size) == NULL);
-    parent->entries.set(extent_ref.offset() / parent->extent_manager->extent_size, this);
-    g_array.set();
-
-    ++parent->stats->pm_serializer_data_extents;
+      was_written(false),
+      extent_offset(extent_ref.offset()) {
+    add_self_to_parent_entries();
 }
 
 gc_entry_t::~gc_entry_t() {
-    rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
-    parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
+    unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+    rassert(parent->entries.get(extent_id) == this);
+    parent->entries.set(extent_id, NULL);
 
     --parent->stats->pm_serializer_data_extents;
 }
 
-unsigned int gc_entry_t::block_index(const int64_t block_offset) const {
+unsigned int gc_entry_t::block_index(const int64_t offset) const {
     // RSI: When we have variable sized blocks, we'll need to change this
     // implementation.
-    const int64_t relative_offset = block_offset % parent->static_config->extent_size();
+    const int64_t relative_offset = offset % parent->static_config->extent_size();
     return relative_offset / parent->static_config->block_size().ser_value();
 }
 
@@ -886,18 +877,27 @@ void gc_entry_t::destroy() {
 
 uint64_t gc_entry_t::garbage_bytes() const {
     uint64_t x = g_array.count();
-    return x * parent->serializer->get_block_size().ser_value();
+    return x * parent->static_config->block_size().ser_value();
 }
 
 uint64_t gc_entry_t::token_bytes() const {
     uint64_t x = t_array.count();
-    return x * parent->serializer->get_block_size().ser_value();
+    return x * parent->static_config->block_size().ser_value();
 }
 
 uint64_t gc_entry_t::index_bytes() const {
     uint64_t x = i_array.count();
-    return x * parent->serializer->get_block_size().ser_value();
+    return x * parent->static_config->block_size().ser_value();
 }
+
+void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
+                                                 uint32_t ser_block_size) {
+    // RSI: actually use ser_block_size, remove this assertion.
+    guarantee(ser_block_size == parent->static_config->block_size().ser_value());
+
+    mark_live_indexwise(block_index(offset));
+}
+
 
 
 /* functions for gc structures */
@@ -917,7 +917,6 @@ bool data_block_manager_t::do_we_want_to_start_gcing() const {
     return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_high_ratio;
 }
 
-/* !< is x less than y */
 bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {
     return x->garbage_bytes() < y->garbage_bytes();
 }

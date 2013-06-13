@@ -71,10 +71,13 @@ public:
 
     uint64_t token_bytes() const;
 
+    // The "indexwise" here refers to the LBA index, not the block_index parameter.
     void mark_live_indexwise(unsigned int block_index) {
         i_array.set(block_index, 1);
         update_g_array(block_index);
     }
+
+    void mark_live_indexwise_with_offset(int64_t block_offset, uint32_t ser_block_size);
 
     void mark_garbage_indexwise(unsigned int block_index) {
         rassert(i_array[block_index] == 1);
@@ -137,10 +140,12 @@ public:
 
 
 private:
+    // Used by constructors.
+    void add_self_to_parent_entries();
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.
-    int64_t offset;
+    const int64_t extent_offset;
 
     DISABLE_COPYING(gc_entry_t);
 };
