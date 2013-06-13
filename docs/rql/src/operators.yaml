@@ -35,7 +35,7 @@ commands:
           rb: (r("foo") + "bar").run(conn)
       - description: Arrays can be concatenated too.
         code:
-          js: r.expr(["foo", "bar"]).add("buzz").run(conn, callback)
+          js: r.expr(["foo", "bar"]).add(["buzz"]).run(conn, callback)
           py: (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
           rb: (r(["foo", "bar"]) + ["buzz"]).run(conn)
 
