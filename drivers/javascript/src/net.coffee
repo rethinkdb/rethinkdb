@@ -25,7 +25,7 @@ class Connection
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
-        @auth_key = host.auth_key || @DEFAULT_AUTH_KEY
+        @authKey = host.authKey || @DEFAULT_AUTH_KEY
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -37,7 +37,10 @@ class Connection
 
         errCallback = (e) =>
             @removeListener 'connect', conCallback
-            callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+            if e instanceof RqlDriverError
+                callback e
+            else
+                callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
         @once 'error', errCallback
 
         conCallback = =>
@@ -255,9 +258,9 @@ class TcpConnection extends Connection
             buf = new ArrayBuffer 8
             buf_view = new DataView buf
             buf_view.setUint32 0, VersionDummy.Version.V0_2, true
-            buf_view.setUint32 4, @auth_key.length, true
+            buf_view.setUint32 4, @authKey.length, true
             @write buf
-            @rawSocket.write @auth_key, 'ascii'
+            @rawSocket.write @authKey, 'ascii'
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
@@ -281,7 +284,7 @@ class TcpConnection extends Connection
                             @emit 'connect'
                             return
                         else
-                            @emit 'error', new RqlDriverError status_str
+                            @emit 'error', new RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
                             return
 
             @rawSocket.on 'data', handshake_callback

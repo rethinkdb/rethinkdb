@@ -42,10 +42,10 @@ commands:
         validate: false
         code:
           js: |
-            r.connect({host:'localhost', port:28015, db:'marvel'},
+            r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
-          rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes')
+          rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes', :auth_key => 'hunter2')
 
     py:
       examples:
@@ -55,7 +55,9 @@ commands:
     rb:
       examples:
         0:
-          description: Opens a connection to localhost:28015 with 'heroes' as the default database.
+          description: |
+            Opens a connection to localhost:28015 with 'heroes' as the default database,
+            and provides an authorization key to log on to the server.
 
   - tag: repl
     section: module

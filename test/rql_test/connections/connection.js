@@ -102,15 +102,17 @@ describe('Javascript connection API', function(){
 
         var cpp_server;
         var server_out_log;
-        var server_err_log
+        var server_err_log;
+        var cluster_port;
 
         beforeEach(function(done){
-            port = Math.floor(Math.random()*(65535 - 1025)+1025)
+            port = Math.floor(Math.random()*(65535 - 1025)+1025);
+            cluster_port = port + 1;
             server_out_log = fs.openSync('run/server-log.txt', 'a');
             server_err_log = fs.openSync('run/server-error-log.txt', 'a');
             cpp_server = spawn(
                 build_dir + '/rethinkdb',
-                ['--driver-port', port, '--http-port', '0', '--cluster-port', '0'],
+                ['--driver-port', port, '--http-port', '0', '--cluster-port', cluster_port],
                 {stdio: ['ignore', server_out_log, server_err_log]});
             setTimeout(done, 1000);
         });
@@ -121,6 +123,33 @@ describe('Javascript connection API', function(){
             setTimeout(done, 10);
             fs.close(server_out_log);
             fs.close(server_err_log);
+        });
+
+        it("authorization key when none needed", function(done){
+            r.connect({port: port, authKey: "hunter2"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: incorrect authorization key\"", done));
+        });
+
+        it("correct authorization key", function(done){
+            spawn(build_dir + '/rethinkdb',
+                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter2'],
+                  {stdio: ['ignore', server_out_log, server_err_log]});
+
+            setTimeout(function(){
+                r.connect({port: port, authKey: "hunter2"}, function(e, c){
+                    assertNull(e);
+                    r.expr(1).run(c, noError(done));
+                });
+            }, 500);
+        });
+
+        it("wrong authorization key", function(done){
+            spawn(build_dir + '/rethinkdb',
+                  ['admin', '--join', 'localhost:' + cluster_port, 'set', 'auth', 'hunter2'],
+                  {stdio: ['ignore', server_out_log, server_err_log]});
+
+            setTimeout(function(){
+                r.connect({port: port, authKey: "hunter23"}, givesError("RqlDriverError", "Server dropped connection with message: \"ERROR: incorrect authorization key\"", done));
+            }, 500);
         });
 
         // TODO: test default port
