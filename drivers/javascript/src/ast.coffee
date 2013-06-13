@@ -397,19 +397,19 @@ class Difference extends RDBOp
 
 class SetInsert extends RDBOp
     tt: Term.TermType.SET_INSERT
-    mt: 'set_insert'
+    mt: 'setInsert'
 
 class SetUnion extends RDBOp
     tt: Term.TermType.SET_UNION
-    mt: 'set_union'
+    mt: 'setUnion'
 
 class SetIntersection extends RDBOp
     tt: Term.TermType.SET_INTERSECTION
-    mt: 'set_intersection'
+    mt: 'setIntersection'
 
 class SetDifference extends RDBOp
     tt: Term.TermType.SET_DIFFERENCE
-    mt: 'set_difference'
+    mt: 'setDifference'
 
 class Slice extends RDBOp
     tt: Term.TermType.SLICE
@@ -435,19 +435,19 @@ class Contains extends RDBOp
 
 class InsertAt extends RDBOp
     tt: Term.TermType.INSERT_AT
-    mt: 'insert_at'
+    mt: 'insertAt'
 
 class SpliceAt extends RDBOp
     tt: Term.TermType.SPLICE_AT
-    mt: 'splice_at'
+    mt: 'spliceAt'
 
 class DeleteAt extends RDBOp
     tt: Term.TermType.DELETE_AT
-    mt: 'delete_at'
+    mt: 'deleteAt'
 
 class ChangeAt extends RDBOp
     tt: Term.TermType.CHANGE_AT
-    mt: 'change_at'
+    mt: 'changeAt'
 
 class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
@@ -455,15 +455,15 @@ class Contains extends RDBOp
 
 class HasFields extends RDBOp
     tt: Term.TermType.HAS_FIELDS
-    mt: 'contains'
+    mt: 'hasFields'
 
 class WithFields extends RDBOp
     tt: Term.TermType.WITH_FIELDS
-    mt: 'contains'
+    mt: 'withFields'
 
 class Keys extends RDBOp
     tt: Term.TermType.KEYS
-    mt: 'contains'
+    mt: 'keys'
 
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
@@ -527,7 +527,7 @@ class Match extends RDBOp
 
 class IsEmpty extends RDBOp
     tt: Term.TermType.IS_EMPTY
-    mt: 'is_empty'
+    mt: 'isEmpty'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE
