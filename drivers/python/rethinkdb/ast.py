@@ -797,11 +797,23 @@ class TableCreate(RqlMethodQuery):
     tt = p.Term.TABLE_CREATE
     st = "table_create"
 
+class TableCreateTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_CREATE
+    st = "table_create"
+
 class TableDrop(RqlMethodQuery):
     tt = p.Term.TABLE_DROP
     st = "table_drop"
 
+class TableDropTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_DROP
+    st = "table_drop"
+
 class TableList(RqlMethodQuery):
+    tt = p.Term.TABLE_LIST
+    st = "table_list"
+
+class TableListTL(RqlTopLevelQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
