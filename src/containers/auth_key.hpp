@@ -19,7 +19,7 @@ public:
 
     const std::string& str() const { return key; }
 
-    static const int32_t max_length;
+    static const int32_t max_length = 2048;
 
 private:
     std::string key;

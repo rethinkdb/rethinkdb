@@ -67,7 +67,7 @@ private:
 
 template <class request_t, class response_t, class context_t>
 std::string protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
-    const int32_t buffer_size = auth_key_t::max_length;
+    static const int32_t buffer_size = auth_key_t::max_length;
     char buffer[buffer_size];
     int32_t auth_key_length;
     conn->read(&auth_key_length, sizeof(int32_t), interruptor);

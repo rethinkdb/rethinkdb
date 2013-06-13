@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/auth_key.hpp"
 
-const int32_t auth_key_t::max_length = 2048;
-
 auth_key_t::auth_key_t() { }
 
 bool auth_key_t::assign_value(const std::string& new_key) {
