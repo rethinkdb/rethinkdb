@@ -14,10 +14,9 @@ commands:
       py: +
       rb: +
 
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
 
     body: number | string | array
     parent: number | string | array
@@ -48,10 +47,9 @@ commands:
       js: sub
       py: '-'
       rb: '-'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
 
     body: number
     parent: number
@@ -72,10 +70,10 @@ commands:
       js: mul
       py: '*'
       rb: '*'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
 
     body: number | array
@@ -102,10 +100,11 @@ commands:
       js: div
       py: '/'
       rb: '/'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
+
 
     body: number
     parent: number
@@ -126,10 +125,9 @@ commands:
       js: mod
       py: '%'
       rb: '%'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
 
     body: number
     parent: number
@@ -150,10 +148,10 @@ commands:
       js: and
       py: '&'
       rb: '&'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
     body: bool
     parent: bool
@@ -174,10 +172,10 @@ commands:
       js: or
       py: '|'
       rb: '|'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
     body: bool
     parent: bool
@@ -198,10 +196,9 @@ commands:
       js: eq
       py: '=='
       rb: eq
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
 
     body: other
     parent: json
@@ -222,10 +219,11 @@ commands:
       js: ne
       py: '!='
       rb: ne
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
+
 
     body: other
     parent: json
@@ -246,10 +244,10 @@ commands:
       js: gt
       py: '>'
       rb: '>'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
     body: other
     parent: json
@@ -270,10 +268,10 @@ commands:
       js: ge
       py: '>='
       rb: '>='
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
     body: other
     parent: json
@@ -294,10 +292,11 @@ commands:
       js: lt
       py: '<'
       rb: '<'
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
+
 
     body: other
     parent: json
@@ -318,10 +317,10 @@ commands:
       js: le
       py: '<='
       rb: '<='
-    is_operator:
-      js: false
-      py: true
-      rb: true
+    is_operator:  true
+    js:
+      is_operator: false
+
 
     body: other
     parent: json
@@ -342,12 +341,11 @@ commands:
       js: not
       py: '~'
       rb: not
-    is_operator:
-      js: false
-      py: true
-      rb: false
+    is_operator:  true
+    js:
+      is_operator: false
 
-    is_operator: true
+
     parent: bool
     returns: bool
 

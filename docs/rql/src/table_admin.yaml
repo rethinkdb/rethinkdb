@@ -127,21 +127,21 @@ commands:
           code names we'll have to create a secondary index based on that
           attribute.
         code:
-          py: "r.table('dc').index_create('code_name').run(conn)"
           js: r.table('dc').indexCreate('code_name').run(conn, callback)
+          py: "r.table('dc').index_create('code_name').run(conn)"
           rb: r.table('dc').index_create('code_name').run(conn)
       - description: |
           You can also create a secondary index based on an arbitrary function
           on the document.
         code:
-          py: |
-            r.table('dc').index_create('power_rating',
-              lambda hero: hero['combat_power'] + (2 * hero['compassion_power'])
-            ).run(conn)
           js: |
             r.table('dc').indexCreate('power_rating', function(hero) {
               return hero('combat_power').add(hero('compassion_power').mul(2));
             }).run(conn, callback)
+          py: |
+            r.table('dc').index_create('power_rating',
+              lambda hero: hero['combat_power'] + (2 * hero['compassion_power'])
+            ).run(conn)
           rb: |
             r.table('dc').index_create('power_rating') {|hero|
               hero['combat_power'] + (2 * hero['compassion_power'])
@@ -150,14 +150,14 @@ commands:
           A compound index can be created by returning an array of values to
           use as the secondary index key.
         code:
-          py: |
-            r.table('dc').index_create('parental_planets',
-              lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
-            ).run(conn)
           js: |
             r.table('dc').indexCreate('parental_planets', function(hero) {
               return [hero('mothers_home_planet'), hero('fathers_home_planet')];
             }).run(conn, callback)
+          py: |
+            r.table('dc').index_create('parental_planets',
+              lambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]
+            ).run(conn)
           rb: |
             r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
@@ -180,7 +180,10 @@ commands:
 
     examples:
       - description: Drop a secondary index named 'code_name'.
-        code: r.table('dc').index_drop('code_name').run(conn)
+        code:
+          js: r.table('dc').indexDrop('code_name').run(conn, callback)
+          py: r.table('dc').index_drop('code_name').run(conn)
+          rb: r.table('dc').index_drop('code_name').run(conn)
 
   - tag: index_list
     section: table_admin
@@ -196,7 +199,10 @@ commands:
 
     examples:
       - description: List the available secondary indexes for this table.
-        code: r.table('marvel').index_list()
+        code:
+          js: r.table('marvel').indexList().run(conn, callback)
+          py: r.table('marvel').index_list().run(conn)
+          rb: r.table('marvel').index_list().run(conn)
 
     rb:
       dont_need_parenthesis: true
