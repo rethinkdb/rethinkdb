@@ -42,7 +42,7 @@ commands:
         validate: false
         code:
           js: |
-            r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},
+              r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
           rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes', :auth_key => 'hunter2')
@@ -82,6 +82,8 @@ commands:
           rb: |
             r.connect().repl
             r.table('users').run
+    rb:
+      dont_need_parenthesis: false
 
     js: false
 
@@ -97,12 +99,10 @@ commands:
     examples:
       - description: Close an open connection.
         validate: false
-        code: conn.close()
-
-    rb:
-      examples:
-        0:
-          code: conn.close
+        code:
+          js: conn.close()
+          py: conn.close()
+          rb: conn.close
 
   - tag: reconnect
     section: module
@@ -120,6 +120,9 @@ commands:
           js: conn.reconnect(function(err, conn) { ... })
           py: conn.reconnect()
           rb: conn.reconnect
+
+    rb:
+      dont_need_parenthesis: false
 
   - tag: use
     section: module
@@ -303,7 +306,6 @@ commands:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.
         validate: false
         code: |
-
           r.connect({}, function(err, conn) {
               if (err) throw err;
 
