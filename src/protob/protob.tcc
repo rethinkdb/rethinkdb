@@ -72,14 +72,18 @@ auth_key_t protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_
     int32_t auth_key_length;
     conn->read(&auth_key_length, sizeof(int32_t), interruptor);
 
+    const char *const too_long_error_message = "client provided an authorization key that is too long";
+
     if (auth_key_length > buffer_size) {
-        throw protob_server_exc_t("incorrect authorization key");
+        throw protob_server_exc_t(too_long_error_message);
     }
 
     conn->read(buffer, auth_key_length, interruptor);
     auth_key_t ret;
     if (!ret.assign_value(std::string(buffer, auth_key_length))) {
-        throw protob_server_exc_t("incorrect authorization key");
+        // This should never happen, since we already checked above.
+        rassert(false);
+        throw protob_server_exc_t(too_long_error_message);
     }
     return ret;
 }
