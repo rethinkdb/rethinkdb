@@ -1,3 +1,66 @@
+# Release 1.6.0 (Fargo)
+
+Released on 2013-06-13
+
+## New Features ##
+
+#181
+
+* ReQL
+  * Access control with a single, common API key (#266)
+  * Add a better handshake to the client driver protocol (#978)
+  * Random sampling (#861, #182)
+  * Boolean secondary indexes (#854)
+  * Add `onFinished` callback to `each` in Javascript (#443)
+  * Add per-command durability settings (#890)
+    * Change `hard_durability=True` to `durability = 'soft' | 'hard'`
+    * Add a `durability` option to `run`
+  * Add `with_fields` and improve `pluck` (#886)
+  * Add `has_fields` (#885)
+  * Add `default` (#884)
+  * Add many array operations such as `append`, `set_intersection` and `indexes_of` (#868, #198, #341)
+  * Add `match` for regular expression matching (#867)
+  * Add `typeOf` and `keys` (#181)
+* Web UI
+  * Sort documents in alphabetical order (#832)
+* CLI
+  * Add `-v` as an alias for `--version` (#839)
+  * Add `--io-threads` to limit the amount of concurrent I/O operations (#928)
+* Build
+  * Allow building the documentation with Python 3 (#826, #815)
+  * Have `make` build the ruby and python drivers (#923)
+
+## Fixed Bugs ##
+
+* Server
+  * Fixed a crash caused by resharding during secondary idnex creation (#852)
+  * Fixed style problems (#805)
+  * Code cleanup (#920, #924)
+  * Properly check permissions for writing the pid file (#916)
+* ReQL
+  * Use the correct function name in backtraces (#995)
+  * Fix callback issues in the Javascript driver (#846)
+  * In Javascript, call the callback when the connection is closed (#758)
+  * In Javascript, GETATTR now checks the argument count (#992)
+  * Tweak the CoffeeScript source to work with older versions of coffee and node (#963)
+  * Fix a typo in the error handling of the Javascript driver (#961)
+  * Fix performance regression for `pluck` and `without` (#947)
+  * Make sure callbacks get cleared in the Javascript driver (#942)
+  * Improve errors when `return` is omitted in Javascript (#914)
+* Web UI
+  * Correctly distinguish case sensitive table names (#822)
+  * No longer display some results as `{ ... }` in the table view (#937)
+  * Make sure a table is available before listing its indexes (#926)
+  * Fix the autocompletion for opening square brackets (#917)
+* Tests
+  * Catch more possible errors with the polyglot tests (#724)
+  * The polyglot tests can now run in debug mode (#614)
+* Build
+  * Look for libprotobuf in the correct path (#860, #853)
+  * Always fetch and use the same version of handlebars (#821, #819, #958)
+  * Check for versions of less that are known to work (#956)
+  * Removed bitrotted MOCK_CACHE_CHECK option (#804)
+
 # Release 1.5.2 (Le Gras de Ouate)
 
 Released on 2013-05-24
