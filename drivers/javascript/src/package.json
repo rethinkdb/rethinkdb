@@ -13,5 +13,5 @@
     { "type" : "git"
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"
     }
-, "engine" : "node >= 0.6.19"
+, "engine" : "node >= 0.10.0"
 }
