@@ -301,6 +301,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
 
         ++stats->pm_serializer_data_extents_reclaimed;
         entry->destroy();
+        rassert(entries.get(extent_id) == NULL);
         entries.set(extent_id, NULL);
 
     } else if (entry->state == gc_entry_t::state_old) {
