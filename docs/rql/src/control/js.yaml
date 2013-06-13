@@ -4,7 +4,10 @@ commands:
     order: 5
     description: Create a javascript expression.
 
-    body: jsstring
+    body:
+      js: jsString
+      py: js_string
+      rb: js_string
     parent: r
     returns: json
 
