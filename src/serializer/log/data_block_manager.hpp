@@ -44,6 +44,8 @@ public:
     void print();
 #endif
 
+    unsigned int block_index(int64_t offset) const;
+
     unsigned int num_blocks() const { return g_array.size(); }
     unsigned int num_garbage_blocks() const { return g_array.count(); }
     unsigned int num_live_blocks() const { return g_array.size() - g_array.count(); }

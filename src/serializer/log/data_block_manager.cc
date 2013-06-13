@@ -56,7 +56,6 @@ void data_block_manager_t::start_reconstruct() {
 // non-garbage.)
 void data_block_manager_t::mark_live(int64_t offset) {
     int extent_id = static_config->extent_index(offset);
-    int block_index = static_config->block_index(offset);
 
     if (entries.get(extent_id) == NULL) {
         rassert(gc_state.step() == gc_reconstruct);  // This is called at startup.
@@ -66,8 +65,13 @@ void data_block_manager_t::mark_live(int64_t offset) {
         reconstructed_extents.push_back(entry);
     }
 
-    /* mark the block as alive */
-    entries.get(extent_id)->mark_live_indexwise(block_index);
+    // RSI: I'm not sure block_index will be computable while we're still in the
+    // midst of reconstructing the entry.
+    gc_entry_t *entry = entries.get(extent_id);
+    unsigned int block_index = entry->block_index(offset);
+
+    /* Mark the block as alive. */
+    entry->mark_live_indexwise(block_index);
 }
 
 void data_block_manager_t::end_reconstruct() {
@@ -328,9 +332,8 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 
 void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_index = static_config->block_index(offset);
-
     gc_entry_t *entry = entries.get(extent_id);
+    unsigned int block_index = entry->block_index(offset);
 
     // Now we set the i_array entry to zero.  We make an extra reference to the
     // extent which gets held until we commit the transaction.
@@ -349,20 +352,23 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 
 void data_block_manager_t::mark_token_live(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_index = static_config->block_index(offset);
-
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
+    unsigned int block_index = entry->block_index(offset);
+
     entry->mark_token_live(block_index);
 }
 
 void data_block_manager_t::mark_token_garbage(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_index = static_config->block_index(offset);
-
     gc_entry_t *entry = entries.get(extent_id);
+
     rassert(entry != NULL);
+
+    unsigned int block_index = entry->block_index(offset);
+
     rassert(!entry->block_is_garbage(block_index));
+
     entry->mark_token_garbage(block_index);
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
@@ -455,7 +461,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             ASSERT_NO_CORO_WAITING;
 
             for (int i = 0; i < num_writes; ++i) {
-                unsigned int block_index = parent->static_config->block_index(writes[i].old_offset);
+                unsigned int block_index
+                    = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
@@ -860,6 +867,13 @@ gc_entry_t::~gc_entry_t() {
     parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
 
     --parent->stats->pm_serializer_data_extents;
+}
+
+unsigned int gc_entry_t::block_index(const int64_t block_offset) const {
+    // RSI: When we have variable sized blocks, we'll need to change this
+    // implementation.
+    const int64_t relative_offset = block_offset % parent->static_config->extent_size();
+    return relative_offset / parent->static_config->block_size().ser_value();
 }
 
 void gc_entry_t::destroy() {
