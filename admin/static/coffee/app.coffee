@@ -135,7 +135,7 @@ set_stats = (stat_data) ->
 
 
 set_reql_docs = (data) ->
-    DataExplorerView.Container.prototype.set_docs data
+    DataExplorerView.ContainerDataexplorer.prototype.set_docs data
 
 error_load_reql_docs = ->
     #TODO Do we need to display a nice message?

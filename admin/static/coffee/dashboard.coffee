@@ -3,7 +3,7 @@
 # Dashboard View
 module 'DashboardView', ->
     # Cluster.Container
-    class @Container extends Backbone.View
+    class @ContainerDashboard extends Backbone.View
         template: Handlebars.templates['dashboard_view-template']
         id: 'dashboard_container'
 

@@ -14,7 +14,7 @@ module 'NamespaceView', ->
             return @
 
     # Container for the entire namespace view
-    class @Container extends Backbone.View
+    class @ContainerNamespace extends Backbone.View
         className: 'namespace-view'
         template: Handlebars.templates['namespace_view-container-template']
         alert_tmpl: Handlebars.templates['modify_shards-alert-template']

@@ -1,6 +1,6 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
-    class @Container extends Backbone.View
+    class @ContainerDataexplorer extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
         input_query_template: Handlebars.templates['dataexplorer_input_query-template']
@@ -349,7 +349,7 @@ module 'DataExplorerView', ->
             for state of @suggestions
                 @suggestions[state].sort()
 
-            if DataExplorerView.Container.prototype.focus_on_codemirror is true
+            if DataExplorerView.ContainerDataexplorer.prototype.focus_on_codemirror is true
                 # "@" refers to prototype -_-
                 # In case we give focus to codemirror then load the docs, we show the suggestion
                 window.router.current_view.handle_keypress()
@@ -389,8 +389,8 @@ module 'DataExplorerView', ->
                     electric_punctuation: false # False by default
 
             # We do not load the rest of data from localStorage.
-            if not DataExplorerView.Container.prototype.saved_data?
-                DataExplorerView.Container.prototype.saved_data =
+            if not DataExplorerView.ContainerDataexplorer.prototype.saved_data?
+                DataExplorerView.ContainerDataexplorer.prototype.saved_data =
                     current_query: null
                     query: null
                     results: null
@@ -404,19 +404,19 @@ module 'DataExplorerView', ->
                     options: @options
 
             # Load history, keep it in memory for the session
-            if not DataExplorerView.Container.prototype.history?
+            if not DataExplorerView.ContainerDataexplorer.prototype.history?
                 if window.localStorage?.rethinkdb_history?
                     try
-                        DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
+                        DataExplorerView.ContainerDataexplorer.prototype.history = JSON.parse window.localStorage.rethinkdb_history
                     catch err
-                        DataExplorerView.Container.prototype.history = []
+                        DataExplorerView.ContainerDataexplorer.prototype.history = []
                 else
-                    DataExplorerView.Container.prototype.history = []
-            @history = DataExplorerView.Container.prototype.history
+                    DataExplorerView.ContainerDataexplorer.prototype.history = []
+            @history = DataExplorerView.ContainerDataexplorer.prototype.history
 
             # Let's have a shortcut
-            @prototype = DataExplorerView.Container.prototype
-            @saved_data = DataExplorerView.Container.prototype.saved_data
+            @prototype = DataExplorerView.ContainerDataexplorer.prototype
+            @saved_data = DataExplorerView.ContainerDataexplorer.prototype.saved_data
             @show_query_warning = @saved_data.query isnt @saved_data.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
             @current_results = @saved_data.results
 

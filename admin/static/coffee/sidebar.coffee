@@ -2,7 +2,7 @@
 # Sidebar view
 module 'Sidebar', ->
     # Sidebar.Container
-    class @Container extends Backbone.View
+    class @ContainerSidebar extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.templates['sidebar-container-template']
         template_dataexplorer: Handlebars.templates['sidebar-dataexplorer_container-template']
@@ -19,7 +19,7 @@ module 'Sidebar', ->
             @datacenters_connected = new Sidebar.DatacentersConnected()
             @issues = new Sidebar.Issues()
             @issues_banner = new Sidebar.IssuesBanner()
-            @all_issues = new ResolveIssuesView.Container
+            @all_issues = new ResolveIssuesView.ContainerResolveIssues
 
             # whether we're currently showing the issue list expanded (@all_issues)
             @showing_all_issues = false

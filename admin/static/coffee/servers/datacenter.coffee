@@ -14,7 +14,7 @@ module 'DatacenterView', ->
             return @
 
     # Container
-    class @Container extends Backbone.View
+    class @ContainerDatacenter extends Backbone.View
         className: 'datacenter-view'
         template: Handlebars.templates['datacenter_view-container-template']
         events: ->

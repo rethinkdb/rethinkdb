@@ -2,7 +2,7 @@
 # Log view
 module 'LogView', ->
     # LogView.Container
-    class @Container extends Backbone.View
+    class @ContainerLog extends Backbone.View
         className: 'log-view'
         template: Handlebars.templates['log-container-template']
         header_template: Handlebars.templates['log-header-template']

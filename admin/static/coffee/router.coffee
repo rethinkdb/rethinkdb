@@ -33,7 +33,7 @@ class BackboneCluster extends Backbone.Router
 
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
-        @sidebar = new Sidebar.Container
+        @sidebar = new Sidebar.ContainerSidebar
         @render_sidebar()
 
         # Render navbar for the first time
@@ -76,7 +76,7 @@ class BackboneCluster extends Backbone.Router
         @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
         clear_modals()
         @current_view.destroy()
-        @current_view = new DashboardView.Container
+        @current_view = new DashboardView.ContainerDashboard
         @$container.html @current_view.render().el
 
     resolve_issues: ->
@@ -84,7 +84,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/resolve_issues'
         clear_modals()
         @current_view.destroy()
-        @current_view = new ResolveIssuesView.Container
+        @current_view = new ResolveIssuesView.ContainerResolveIssues
         @$container.html @current_view.render().el
 
     logs: ->
@@ -92,7 +92,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/logs'
         clear_modals()
         @current_view.destroy()
-        @current_view = new LogView.Container
+        @current_view = new LogView.ContainerLog
         @$container.html @current_view.render().el
 
     dataexplorer: ->
@@ -100,7 +100,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/dataexplorer'
         clear_modals()
         @current_view.destroy()
-        @current_view = new DataExplorerView.Container
+        @current_view = new DataExplorerView.ContainerDataexplorer
         @$container.html @current_view.render().el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
@@ -114,7 +114,7 @@ class BackboneCluster extends Backbone.Router
         database = databases.get(id)
 
         @current_view.destroy()
-        if database? then @current_view = new DatabaseView.Container model: database
+        if database? then @current_view = new DatabaseView.ContainerDatabase model: database
         else @current_view = new DatabaseView.NotFound id
 
         @$container.html @current_view.render().el
@@ -127,7 +127,7 @@ class BackboneCluster extends Backbone.Router
 
         @current_view.destroy()
         if namespace?
-            @current_view = new NamespaceView.Container model:namespace
+            @current_view = new NamespaceView.ContainerNamespace model:namespace
         else
             @current_view = new NamespaceView.NotFound id
 
@@ -144,7 +144,7 @@ class BackboneCluster extends Backbone.Router
 
         @current_view.destroy()
         if datacenter?
-            @current_view = new DatacenterView.Container model: datacenter
+            @current_view = new DatacenterView.ContainerDatacenter model: datacenter
         else
             @current_view = new DatacenterView.NotFound id
 
@@ -158,7 +158,7 @@ class BackboneCluster extends Backbone.Router
 
         @current_view.destroy()
         if machine?
-            @current_view = new MachineView.Container model: machine
+            @current_view = new MachineView.ContainerServer model: machine
         else
             @current_view = new MachineView.NotFound id
 

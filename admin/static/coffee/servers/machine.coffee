@@ -28,7 +28,7 @@ module 'MachineView', ->
             return @
 
     # Container
-    class @Container extends Backbone.View
+    class @ContainerServer extends Backbone.View
         className: 'machine-view'
         template: Handlebars.templates['machine_view-container-template']
 

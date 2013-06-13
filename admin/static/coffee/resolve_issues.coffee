@@ -2,7 +2,7 @@
 # Resolve issues view
 module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
-    class @Container extends UIComponents.AbstractList
+    class @ContainerResolveIssues extends UIComponents.AbstractList
         id: 'resolve-issues'
         className: 'section'
 

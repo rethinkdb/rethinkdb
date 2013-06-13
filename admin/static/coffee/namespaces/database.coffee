@@ -16,7 +16,7 @@ module 'DatabaseView', ->
             return @
 
     # Container for the entire database view
-    class @Container extends Backbone.View
+    class @ContainerDatabase extends Backbone.View
         className: 'database-view'
         template: Handlebars.templates['database_view-container-template']
         alert_tmpl: Handlebars.templates['modify_shards-alert-template']
