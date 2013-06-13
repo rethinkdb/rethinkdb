@@ -21,7 +21,8 @@ This release introduces basic access control, regular expression matching, new a
     * `contains` now checks if an element is in an array
   * Added `default` command: replaces missing fields with a default value (#884)
   * Added new array operations (#868, #198, #341)
-      * `prepend` and `append`: prepend and appends an element to an array
+      * `prepend`: prepends an element to an array
+      * `append`: appends an element to an array
       * `insert_at`: inserts an element at the specified index
       * `splice_at`: splices a list into another list at the specified index
       * `delete_at`: deletes the element at the specified index
@@ -31,6 +32,7 @@ This release introduces basic access control, regular expression matching, new a
       * `difference`: removes all instances of specified elements from an array
       * `count`: returns the number of elements in an array
       * `indexes_of`: returns positions of elements that match the specified value in an array
+      * `is_empty`: check if an array or table is empty
       * `set_insert`: adds an element to a set    
       * `set_intersection`: finds the intersection of two sets
       * `set_union`: returns the union of two sets
