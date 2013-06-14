@@ -10,7 +10,7 @@ module 'DashboardView', ->
         events:
             'click .view-logs': 'show_all_logs'
 
-        initialize: =>
+        initialize: ->
             log_initial '(initializing) dashboard container view'
 
             @cluster_status_availability = new DashboardView.ClusterStatusAvailability()
@@ -31,7 +31,7 @@ module 'DashboardView', ->
             window.router.navigate '#logs',
                 trigger: true
 
-        render: =>
+        render: ->
             @.$el.html @template({})
             @.$('.availability').html @cluster_status_availability.render().$el
             @.$('.redundancy').html @cluster_status_redundancy.render().$el
@@ -43,7 +43,7 @@ module 'DashboardView', ->
 
             return @
 
-        destroy: =>
+        destroy: ->
             @cluster_status_availability.destroy()
             @cluster_status_redundancy.destroy()
             @cluster_status_reachability.destroy()

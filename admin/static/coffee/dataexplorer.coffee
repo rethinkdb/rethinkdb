@@ -2643,6 +2643,10 @@ module 'DataExplorerView', ->
             @results_view.destroy()
             @history_view.destroy()
             @driver_handler.destroy()
+            @options_view.destroy()
+            delete @options
+            delete @history_view
+            delete @results_view
 
             @display_normal()
             $(window).off 'resize', @display_full
@@ -3265,6 +3269,12 @@ module 'DataExplorerView', ->
         destroy: =>
             $(window).unbind 'scroll'
             $(window).unbind 'resize'
+            delete @container
+            delete @last_keys
+            delete @last_columns_size
+            delete @view
+            delete @metadata
+            delete @codemirror
 
     class @OptionsView extends Backbone.View
         dataexplorer_options_template: Handlebars.templates['dataexplorer-options-template']
@@ -3314,6 +3324,10 @@ module 'DataExplorerView', ->
             @delegateEvents()
             return @
 
+        destroy: =>
+            delete @container
+            delete @options
+
     class @HistoryView extends Backbone.View
         dataexplorer_history_template: Handlebars.templates['dataexplorer-history-template']
         dataexplorer_query_li_template: Handlebars.templates['dataexplorer-query_li-template']
@@ -3323,8 +3337,10 @@ module 'DataExplorerView', ->
         state: 'hidden' # hidden, visible
         index_displayed: 0
 
+        ###
         events:
             'click .load_query': 'load_query'
+        ###
 
         start_resize: (event) =>
             @start_y = event.pageY
@@ -3413,6 +3429,10 @@ module 'DataExplorerView', ->
                 move_arrow: 'show'
                 is_at_bottom: 'true'
 
+        destroy: =>
+            delete @container
+            delete @history
+
     class @DriverHandler
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
@@ -3485,3 +3505,4 @@ module 'DataExplorerView', ->
             catch err
                 # Nothing bad here, let's just not pollute the console
             clearTimeout @timeout
+            delete @container
