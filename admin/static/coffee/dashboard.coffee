@@ -609,8 +609,7 @@ module 'DashboardView', ->
             @clean_dom_listeners()
 
         destroy: =>
-            directory.off 'all', @render_status
-            machines.off 'all', @render_status
+            issues.off 'all', @render_status
             @clean_dom_listeners()
 
 
@@ -624,7 +623,7 @@ module 'DashboardView', ->
 
         initialize: ->
             @fetch_log()
-            @set_interval = setInterval @fetch_log, @interval_update_log
+            @interval = setInterval @fetch_log, @interval_update_log
             @log_entries = []
 
         fetch_log: =>
@@ -667,3 +666,6 @@ module 'DashboardView', ->
                 view = new LogView.LogEntry model: log
                 @.$el.append view.render(@compact_entries).$el
             return @
+
+        destroy: =>
+            clearInterval @interval
