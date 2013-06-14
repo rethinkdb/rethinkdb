@@ -256,7 +256,10 @@ class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
     /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf,
+                                      block_size_t block_size,
+                                      const counted_t<standard_block_token_t>& token,
+                                      repli_timestamp_t recency_timestamp) = 0;
 };
 
 #endif  // SERIALIZER_TYPES_HPP_

@@ -1307,7 +1307,13 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf,
+                                      block_size_t block_size,
+                                      const counted_t<standard_block_token_t>& token,
+                                      repli_timestamp_t recency_timestamp) {
+    // RSI: We should actually use different block sizes at some point.
+    guarantee(block_size.value() == get_block_size().value());
+
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;

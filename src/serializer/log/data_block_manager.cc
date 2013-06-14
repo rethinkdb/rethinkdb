@@ -159,14 +159,17 @@ public:
         // Walk over the read ahead buffer and copy stuff...
         for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
+            // RSI: Probably should not use block_size() here...
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
 
+            // RSI: Probably should not use block_size() here...
             const int64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if (current_offset == off_in) {
                 ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
                 --data;
+                // RSI: Probably should not use block_size() here...
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
                 const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
@@ -186,13 +189,19 @@ public:
 
                 ls_buf_data_t *data = static_cast<ls_buf_data_t *>(parent->serializer->malloc());
                 --data;
+                // RSI: Probably should not use block_size() here...
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
+                // RSI: Wrong block size.
                 counted_t<ls_block_token_pointee_t> ls_token = parent->serializer->generate_block_token(current_offset, parent->serializer->get_block_size().ser_value());
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
-                // RSI: Presumably we also need to offer up the block size.
-                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
+                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(
+                        block_id,
+                        data,
+                        parent->static_config->block_size(),  // RSI: Wrong block size.
+                        token,
+                        recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
                     continue;

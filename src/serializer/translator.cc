@@ -278,7 +278,12 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(
+        block_id_t block_id,
+        void *buf,
+        block_size_t block_size,
+        const counted_t<standard_block_token_t> &token,
+        repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard
@@ -290,7 +295,8 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, token, recency_timestamp)) {
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, block_size,
+                                                       token, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
             inner->free(buf);
         }
