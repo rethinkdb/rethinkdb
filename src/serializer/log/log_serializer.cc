@@ -492,6 +492,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
              ++write_op_it) {
             const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+            uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
@@ -506,6 +507,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
                     offset = flagged_off64_t::make(token->offset_);
+                    ser_block_size = token->ser_block_size_;
 
                     /* mark the life */
                     // RSI: We probably want to mark the token live here by way of
@@ -513,16 +515,16 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                     data_block_manager->mark_live(offset.get_value(), token->ser_block_size_);
                 } else {
                     offset = flagged_off64_t::unused();
+                    ser_block_size = 0;  // RSI: Make a name for unused ser block
+                                         // size (instead of 0)?
                 }
             }
 
             repli_timestamp_t recency = op.recency ? op.recency.get()
                 : lba_index->get_block_recency(op.block_id);
 
-            // RSI: Pass a block-specific block size, not
-            // get_block_size().ser_value().
             lba_index->set_block_info(op.block_id, recency,
-                                      offset, get_block_size().ser_value(),
+                                      offset, ser_block_size,
                                       io_account, &context.extent_txn);
         }
     }
