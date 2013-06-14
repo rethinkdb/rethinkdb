@@ -128,26 +128,30 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
 
 class dbm_read_ahead_fsm_t : public iocallback_t {
 public:
-    data_block_manager_t *parent;
-    iocallback_t *callback;
-    int64_t extent;
-    void *read_ahead_buf;
-    int64_t read_ahead_size;
-    int64_t read_ahead_offset;
-    int64_t off_in;
-    void *buf_out;
+    data_block_manager_t *const parent;
+    iocallback_t *const callback;
+    void *const buf_out;
+    const int64_t off_in;
+    const int64_t extent;
+    const int64_t read_ahead_size;
+    const int64_t read_ahead_offset;
+    void *const read_ahead_buf;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in, void *_buf_out, file_account_t *io_account, iocallback_t *cb)
-        : parent(p), callback(cb), read_ahead_buf(NULL), off_in(_off_in), buf_out(_buf_out)
-    {
-        extent = floor_aligned(off_in, parent->static_config->extent_size());
+    // RSI: Basically all block_size() calls here.
+    // RSI: MAX_READ_AHEAD_BLOCKS is an obsoletely named constant.
 
-        // Read up to MAX_READ_AHEAD_BLOCKS blocks
-        read_ahead_size = std::min<int64_t>(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * int64_t(parent->static_config->block_size().ser_value()));
-        // We divide the extent into chunks of size read_ahead_size, then select the
-        // one which contains off_in
-        read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
-        read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in, void *_buf_out,
+                         file_account_t *io_account, iocallback_t *cb)
+        : parent(p),
+          callback(cb),
+          buf_out(_buf_out),
+          off_in(_off_in),
+          extent(floor_aligned(off_in, parent->static_config->extent_size())),
+          read_ahead_size(std::min<int64_t>(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * static_cast<int64_t>(parent->static_config->block_size().ser_value()))),
+          // We divide the extent into chunks of size read_ahead_size, then select the
+          // one which contains off_in
+          read_ahead_offset(extent + (off_in - extent) / read_ahead_size * read_ahead_size),
+          read_ahead_buf(malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE)) {
         parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
