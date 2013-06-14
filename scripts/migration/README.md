@@ -76,7 +76,7 @@ Usage: import_export.rb [options]
 2013-03-14T20:49:59-07:00 Exporting table test2.abc...
 2013-03-14T20:49:59-07:00 Done!
 ~/rethinkdb_migration $ <SHUT DOWN RETHINKDB>
-~/rethinkdb_migration $ <MOVE/DELETE RETHINKDB_DATA DIRECTORY>
+~/rethinkdb_migration $ <MOVE/DELETE RETHINKDB_DATA AND DATA DIRECTORY IN INSTANCE DIRECTORY>
 ~/rethinkdb_migration $ <UPGRADE RETHINKDB>
 ~/rethinkdb_migration $ <RESTART RETHINKDB>
 ~/rethinkdb_migration $ ruby import_export.rb --import
@@ -148,7 +148,7 @@ import_export.rb
 rethinkdb_export_2013-03-14T21:22:01-07:00_5048
 rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 ~/rethinkdb_migration $ <SHUTDOWN BOTH CLUSTERS>
-~/rethinkdb_migration $ <REMOVE ALL RETHINKDB_DATA DIRECTORIES>
+~/rethinkdb_migration $ <MOVE/DELETE ALL RETHINKDB_DATA AND DATA DIRECTORY IN INSTANCE DIRECTORIES>
 ~/rethinkdb_migration $ <UPGRADE BOTH CLUSTERS>
 ~/rethinkdb_migration $ <RESTART BOTH CLUSTERS>
 ~/rethinkdb_migration $ ruby import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 \
