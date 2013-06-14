@@ -13,7 +13,8 @@ connects to a machine in your cluster.  This will write everything in your
 cluster to disk, so make sure you have enough space.
 
 2. Upgrade RethinkDB on all your servers, then move or delete all your
-`rethinkdb_data` directories (they are incompatible with the new version).
+`rethinkdb_data` and `data` directories (they are incompatible with the new 
+version).
 
 3. Run `import_export.rb --import --host HOST --port PORT`.  This will re-import
 all the data on disk into your cluster.  You must run this in the same directory
