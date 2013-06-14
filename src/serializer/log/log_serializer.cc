@@ -515,8 +515,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                     data_block_manager->mark_live(offset.get_value(), token->ser_block_size_);
                 } else {
                     offset = flagged_off64_t::unused();
-                    ser_block_size = 0;  // RSI: Make a name for unused ser block
-                                         // size (instead of 0)?
+                    ser_block_size = 0;
                 }
             }
 
