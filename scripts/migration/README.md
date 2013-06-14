@@ -11,6 +11,7 @@ to a new version.
 1. Run `import_export.rb --export --host HOST --port PORT`, where HOST:PORT
 connects to a machine in your cluster.  This will write everything in your
 cluster to disk, so make sure you have enough space.
+_Note_: The port is the port for clients (by default 28015).
 
 2. Upgrade RethinkDB on all your servers, then move or delete all your
 `rethinkdb_data` and `data` directories (they are incompatible with the new 
