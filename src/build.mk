@@ -9,7 +9,7 @@ LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS)
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS) -std=c++0x
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -57,6 +57,10 @@ else ifeq ($(COMPILER),GCC)
     RT_LDFLAGS += -Wl,--no-as-needed
   endif
 
+  ifeq ($(OS),FreeBSD)
+    RT_LDFLAGS += -lstdc++
+  endif
+
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
@@ -71,10 +75,11 @@ endif
 ifeq ($(OS),Linux)
   RT_LDFLAGS += -lrt
 endif
+
 ifeq ($(OS),FreeBSD)
   RT_CXXFLAGS += -I/usr/local/include
   RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
-  LIBRARY_PATHS += -lrt
+  RT_LDFLAGS += -lrt
 endif
 
 ifeq ($(STATICFORCE),1)
@@ -113,7 +118,7 @@ ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
 
-RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
+RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic

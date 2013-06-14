@@ -56,7 +56,6 @@ configure () {
             var $var "$val"
         fi
     done
-    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Operating System"
     var OS $(uname)
     require "OS Version"
@@ -66,11 +65,13 @@ configure () {
             with_tcmalloc=false ;
             var PTHREAD_LIBS "" ;;
         FreeBSD)
-            var PTHREAD_LIBS "" ;;
+            [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
+            var PTHREAD_LIBS -pthread ;;
         Linux)
             var PTHREAD_LIBS -pthread ;;
         *) error "unsupported operating system: $OS" ;;
     esac
+    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
@@ -85,9 +86,10 @@ configure () {
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
-            Darwin) var_append LDFLAGS -lc++
-                    var_append CXXFLAGS -stdlib=libc++ ;;
-            *) var_append LDFLAGS -lstdc++ ;;
+            Darwin|FreeBSD)
+                var_append LDFLAGS -lc++
+                var_append CXXFLAGS -stdlib=libc++ ;;
+            *)  var_append LDFLAGS -lstdc++
         esac
     fi
     require "Precompiled web assets"
@@ -701,11 +703,13 @@ lib_alias=':~'
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
     cc_paths=$($CXX -print-search-dirs 2>/dev/null | grep ^libraries | sed -e 's/^libraries[: =]*//; s/:/ /g')
+    ld_paths="/usr/lib /usr/local/lib"  # Default ld search paths.
     LDCONFIG=$(PATH="$PATH:/sbin:/usr/sbin" which ldconfig 2>/dev/null)
     if [[ -n "$LDCONFIG" ]]; then
-        ld_paths=$($LDCONFIG -v -N -X 2>/dev/null | grep -v '^	' | sed -e 's/:$//' )
-    else
-        ld_paths="/usr/lib /usr/local/lib" # Default ld search paths on OSX
+        local ld_output="$($LDCONFIG -v -N -X 2>/dev/null)"
+        if [[ -n "$ld_output" ]]; then
+          ld_paths=$(echo "$ld_output" | grep -v '^	' | sed -e 's/:$//' )
+        fi
     fi
     try_lib_paths="$lib_paths $cc_paths $ld_paths"
     try_lib_paths=$(for path in $try_lib_paths; do

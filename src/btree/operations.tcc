@@ -44,7 +44,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf.get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
+        check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, nullptr, root_eviction_priority);
 
         // Check if the node is underfull, and merge/level if it is.
         check_and_handle_underfull(&sizer, txn, &buf, &last_buf, superblock, key);
