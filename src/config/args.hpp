@@ -80,7 +80,6 @@
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 
 // Max number of blocks which can be read ahead in one i/o transaction (if enabled)
-#define MAX_READ_AHEAD_BLOCKS 32
 
 // Ratio of free ram to use for the cache by default
 // TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
@@ -103,9 +102,8 @@
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
-// transactions will be throttled.
-// A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
-// times the max cache size
+// transactions will be throttled.  A value of 0 means that it will automatically be
+// set to MAX_UNSAVED_DATA_LIMIT_FRACTION times the max cache size
 #define DEFAULT_UNSAVED_DATA_LIMIT                (4096 * MEGABYTE)
 
 // The unsaved data limit cannot exceed this fraction of the max cache size

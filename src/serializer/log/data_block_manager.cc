@@ -10,6 +10,9 @@
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
+// Max amount of bytes which can be read ahead in one i/o transaction (if enabled)
+const int64_t MAX_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
+
 // TODO: Right now we perform garbage collection via the do_write() interface on the
 // log_serializer_t. This leads to bugs in a couple of ways:
 //
@@ -138,7 +141,6 @@ public:
     void *const read_ahead_buf;
 
     // RSI: Basically all block_size() calls here.
-    // RSI: MAX_READ_AHEAD_BLOCKS is an obsoletely named constant.
 
     dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in, void *_buf_out,
                          file_account_t *io_account, iocallback_t *cb)
@@ -147,7 +149,8 @@ public:
           buf_out(_buf_out),
           off_in(_off_in),
           extent(floor_aligned(off_in, parent->static_config->extent_size())),
-          read_ahead_size(std::min<int64_t>(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * static_cast<int64_t>(parent->static_config->block_size().ser_value()))),
+          read_ahead_size(std::min<int64_t>(parent->static_config->extent_size(),
+                                            MAX_READ_AHEAD_SIZE)),
           // We divide the extent into chunks of size read_ahead_size, then select the
           // one which contains off_in
           read_ahead_offset(extent + (off_in - extent) / read_ahead_size * read_ahead_size),
