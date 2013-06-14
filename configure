@@ -65,6 +65,8 @@ configure () {
         Darwin)
             with_tcmalloc=false ;
             var PTHREAD_LIBS "" ;;
+        FreeBSD)
+            var PTHREAD_LIBS "" ;;
         Linux)
             var PTHREAD_LIBS -pthread ;;
         *) error "unsupported operating system: $OS" ;;

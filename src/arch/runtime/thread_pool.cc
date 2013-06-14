@@ -14,6 +14,12 @@
 #include "errors.hpp"
 #include "logger.hpp"
 
+#ifdef __FreeBSD__
+typedef char *STACK_POINTER_TYPE;
+#else
+typedef void *STACK_POINTER_TYPE;
+#endif
+
 const int SEGV_STACK_SIZE = SIGSTKSZ;
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
@@ -94,7 +100,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         backtrace for us. */
 #ifndef VALGRIND
         stack_t segv_stack;
-        segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
+        segv_stack.ss_sp = (STACK_POINTER_TYPE)malloc_aligned(SEGV_STACK_SIZE, getpagesize());
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
         segv_stack.ss_flags = 0;
         segv_stack.ss_size = SEGV_STACK_SIZE;
