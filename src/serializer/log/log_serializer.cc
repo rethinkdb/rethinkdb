@@ -643,7 +643,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int
     const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
     if (first_token_for_offset) {
         // Mark offset live in GC
-        data_block_manager->mark_token_live(offset);
+        data_block_manager->mark_live_tokenwise(offset);
     }
 
     offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
@@ -680,7 +680,7 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     const bool last_token_for_offset = offset_tokens.find(token->offset_) == offset_tokens.end();
     if (last_token_for_offset) {
         // Mark offset garbage in GC
-        data_block_manager->mark_token_garbage(token->offset_);
+        data_block_manager->mark_garbage_tokenwise(token->offset_);
     }
 
     if (offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
@@ -719,8 +719,8 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
             offset_tokens.erase(prev);
         }
 
-        data_block_manager->mark_token_garbage(current_offset);
-        data_block_manager->mark_token_live(new_offset);
+        data_block_manager->mark_garbage_tokenwise(current_offset);
+        data_block_manager->mark_live_tokenwise(new_offset);
     }
 }
 

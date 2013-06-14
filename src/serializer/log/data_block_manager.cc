@@ -345,16 +345,16 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     check_and_handle_empty_extent(extent_id);
 }
 
-void data_block_manager_t::mark_token_live(int64_t offset) {
+void data_block_manager_t::mark_live_tokenwise(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
     unsigned int block_index = entry->block_index(offset);
 
-    entry->mark_token_live(block_index);
+    entry->mark_live_tokenwise(block_index);
 }
 
-void data_block_manager_t::mark_token_garbage(int64_t offset) {
+void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
 
@@ -364,7 +364,7 @@ void data_block_manager_t::mark_token_garbage(int64_t offset) {
 
     rassert(!entry->block_is_garbage(block_index));
 
-    entry->mark_token_garbage(block_index);
+    entry->mark_garbage_tokenwise(block_index);
 
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
@@ -756,7 +756,7 @@ counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
-    active_extents[next_active_extent]->mark_token_live(blocks_in_active_extent[next_active_extent]);
+    active_extents[next_active_extent]->mark_live_tokenwise(blocks_in_active_extent[next_active_extent]);
     rassert(!active_extents[next_active_extent]->block_referenced_by_index(blocks_in_active_extent[next_active_extent]));
 
     blocks_in_active_extent[next_active_extent]++;

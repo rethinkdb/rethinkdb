@@ -56,14 +56,12 @@ public:
         return g_array[block_index];
     }
 
-    // RSI: Rename to mark_live_tokenwise...
-    void mark_token_live(unsigned int block_index) {
+    void mark_live_tokenwise(unsigned int block_index) {
         t_array.set(block_index, 1);
         update_g_array(block_index);
     }
 
-    // RSI: Rename to mark_garbage_tokenwise...
-    void mark_token_garbage(unsigned int block_index) {
+    void mark_garbage_tokenwise(unsigned int block_index) {
         rassert(t_array[block_index] == 1);
         t_array.set(block_index, 0);
         update_g_array(block_index);
@@ -215,8 +213,10 @@ public:
     /* We must make sure that blocks which have tokens pointing to them don't
     get garbage collected. This interface allows log_serializer to tell us about
     tokens */
-    void mark_token_live(int64_t);
-    void mark_token_garbage(int64_t);
+    // RSI: Probably these should also take ser_block_size (or merely take block
+    // index).
+    void mark_live_tokenwise(int64_t offset);
+    void mark_garbage_tokenwise(int64_t offset);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
