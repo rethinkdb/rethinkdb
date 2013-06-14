@@ -44,6 +44,12 @@ public:
     void print();
 #endif
 
+    // Lists the "ends" of blocks.  For example, an extent with three blocks might
+    // return { 4096, 8192, 12288 }.  The blocks are actually [0, 4096), [4096,
+    // 8192), [8129, 12288).  The block_index refers to the block's index within this
+    // list.
+    std::vector<uint32_t> ends_of_blocks() const;
+
     unsigned int block_index(int64_t offset) const;
 
     unsigned int num_blocks() const { return g_array.size(); }
@@ -189,7 +195,8 @@ public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
 
-    void read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
+    void read(int64_t off_in, uint32_t ser_block_size_in,
+              void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     counted_t<ls_block_token_pointee_t>

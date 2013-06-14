@@ -135,6 +135,7 @@ public:
     iocallback_t *const callback;
     void *const buf_out;
     const int64_t off_in;
+    const int64_t ser_block_size_in;
     const int64_t extent;
     const int64_t read_ahead_size;
     const int64_t read_ahead_offset;
@@ -142,12 +143,14 @@ public:
 
     // RSI: Basically all block_size() calls here.
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in, void *_buf_out,
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in,
+                         uint32_t _ser_block_size_in, void *_buf_out,
                          file_account_t *io_account, iocallback_t *cb)
         : parent(p),
           callback(cb),
           buf_out(_buf_out),
           off_in(_off_in),
+          ser_block_size_in(_ser_block_size_in),
           extent(floor_aligned(off_in, parent->static_config->extent_size())),
           read_ahead_size(std::min<int64_t>(parent->static_config->extent_size(),
                                             MAX_READ_AHEAD_SIZE)),
@@ -155,13 +158,14 @@ public:
           // one which contains off_in
           read_ahead_offset(extent + (off_in - extent) / read_ahead_size * read_ahead_size),
           read_ahead_buf(malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE)) {
+        rassert(off_in >= read_ahead_offset);
+        rassert(off_in < read_ahead_offset + read_ahead_size);
+        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
+
         parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
-        rassert(off_in >= read_ahead_offset);
-        rassert(off_in < read_ahead_offset + read_ahead_size);
-        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
 
         // Walk over the read ahead buffer and copy stuff...
         for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
@@ -234,17 +238,23 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-void data_block_manager_t::read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
+void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
+                                void *buf_out, file_account_t *io_account,
+                                iocallback_t *cb) {
+    rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
+    rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on
         // io complete...
-        new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
+        new dbm_read_ahead_fsm_t(this, off_in, ser_block_size_in,
+                                 buf_out, io_account, cb);
     } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
-        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
+        // RSI: This read could end up being unaligned.  It needs to be aligned.
+        dbfile->read_async(off_in, ser_block_size_in, data, io_account, cb);
     }
 }
 
@@ -877,6 +887,15 @@ gc_entry_t::~gc_entry_t() {
     parent->entries.set(extent_id, NULL);
 
     --parent->stats->pm_serializer_data_extents;
+}
+
+
+std::vector<uint32_t> gc_entry_t::ends_of_blocks() const {
+    std::vector<uint32_t> ret;
+    for (unsigned int i = 0; i < g_array.size(); ++i) {
+        ret.push_back((i + 1) * parent->static_config->block_size().ser_value());
+    }
+    return ret;
 }
 
 unsigned int gc_entry_t::block_index(const int64_t offset) const {
