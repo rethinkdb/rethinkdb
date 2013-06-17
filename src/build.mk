@@ -9,7 +9,7 @@ LDFLAGS ?=
 CXXFLAGS ?=
 RT_LDFLAGS := $(LDFLAGS) $(RE2_LIBS)
 RT_LDFLAGS += $(V8_LIBS) $(PROTOBUF_LIBS) $(TCMALLOC_MINIMAL_LIBS) $(PTHREAD_LIBS)
-RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS) -std=c++0x
+RT_CXXFLAGS := $(CXXFLAGS) $(RE2_CXXFLAGS)
 
 ifeq ($(USE_CCACHE),1)
   RT_CXX := ccache $(CXX)
@@ -55,10 +55,6 @@ else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
     RT_LDFLAGS += -Wl,--no-as-needed
-  endif
-
-  ifeq ($(OS),FreeBSD)
-    RT_LDFLAGS += -lstdc++
   endif
 
   ifeq ($(STATICFORCE),1)

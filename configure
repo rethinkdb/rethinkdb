@@ -66,6 +66,7 @@ configure () {
             var PTHREAD_LIBS "" ;;
         FreeBSD)
             [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
+            var_append CXXFLAGS -I/usr/local/include
             var PTHREAD_LIBS -pthread ;;
         Linux)
             var PTHREAD_LIBS -pthread ;;
@@ -86,7 +87,7 @@ configure () {
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
-            Darwin|FreeBSD)
+            Darwin)
                 var_append LDFLAGS -lc++
                 var_append CXXFLAGS -stdlib=libc++ ;;
             *)  var_append LDFLAGS -lstdc++
