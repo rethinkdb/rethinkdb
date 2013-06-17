@@ -53,15 +53,15 @@ mock_namespace_interface_t::~mock_namespace_interface_t() {
     }
 }
 
-void mock_namespace_interface_t::read(const typename rdb_protocol_t::read_t &query,
-                                      typename rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read(const rdb_protocol_t::read_t &query,
+                                      rdb_protocol_t::read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     read_outdated(query, response, interruptor);
 }
 
-void mock_namespace_interface_t::read_outdated(const typename rdb_protocol_t::read_t &query,
-                                               typename rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &query,
+                                               rdb_protocol_t::read_response_t *response,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) { 
         throw interrupted_exc_t();
@@ -70,8 +70,8 @@ void mock_namespace_interface_t::read_outdated(const typename rdb_protocol_t::re
     boost::apply_visitor(v, query.read);
 }
 
-void mock_namespace_interface_t::write(const typename rdb_protocol_t::write_t &query,
-                                       typename rdb_protocol_t::write_response_t *response,
+void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
+                                       rdb_protocol_t::write_response_t *response,
                                        UNUSED order_token_t tok,
                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     if (interruptor->is_pulsed()) { 
