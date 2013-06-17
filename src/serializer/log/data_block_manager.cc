@@ -197,7 +197,6 @@ void unaligned_read_ahead_interval(const int64_t block_offset,
     printf_buffer_t boundaries_buf;
     debug_print(&boundaries_buf, boundaries);
 
-    // RSI: Include boundaries values (use a debugf_print-alike in release mode).
     logWRN("unaligned_read_ahead_offset_and_size logic failed (in check %s).  "
            "Don't panic!  "
            "Falling back to safe behavior.  (block_offset = %" PRIi64
@@ -251,8 +250,6 @@ public:
     void read_ahead_offset_and_size(int64_t *offset_out, int64_t *size_out) const {
         const gc_entry_t *entry
             = parent->entries.get(off_in / parent->static_config->extent_size());
-        // RSI: Ensure at compile-time that entry is non-null.  (Pass it in to this
-        // function?)
         guarantee(entry != NULL);
 
         int64_t offset;
