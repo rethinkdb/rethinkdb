@@ -9,9 +9,10 @@
 #include "concurrency/mutex.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "stl_utils.hpp"
 
 // Max amount of bytes which can be read ahead in one i/o transaction (if enabled)
-const int64_t MAX_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
+const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
 
 // TODO: Right now we perform garbage collection via the do_write() interface on the
 // log_serializer_t. This leads to bugs in a couple of ways:
@@ -129,6 +130,115 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
     state = state_ready;
 }
 
+// Computes an offset and end offset for the purposes of readahead.  Returns an interval
+// that contains the [block_offset, block_offset + ser_block_size_in) interval that
+// is also contained within a single extent.  boundaries is the extent's gc_entry_t's
+// block_boundaries() value.  Outputs an interval that is _NOT_ fit to device block
+// size boundaries.  This is used by read_ahead_offset_and_size.
+void unaligned_read_ahead_interval(const int64_t block_offset,
+                                   const uint32_t ser_block_size,
+                                   const int64_t extent_size,
+                                   const int64_t read_ahead_size,
+                                   const std::vector<uint32_t> &boundaries,
+                                   int64_t *const offset_out,
+                                   int64_t *const end_offset_out) {
+    const char *failure_expr;
+
+    // We're slightly paranoid about logic mistakes in this function.  Instead of
+    // assertions or crashing guarantees, we just bail out, returning the perfectly
+    // safe values block_offset and ser_block_size and logging a warning.
+#define CHECK_AND_BAILOUT(cond) do { \
+        if (!(cond)) { \
+            failure_expr = #cond; goto bailout; \
+        } \
+    } while (false)
+
+    CHECK_AND_BAILOUT(!boundaries.empty());
+    CHECK_AND_BAILOUT(ser_block_size > 0);
+    CHECK_AND_BAILOUT(boundaries.back() <= extent_size);
+
+    {
+        const int64_t extent = floor_aligned(block_offset, extent_size);
+
+        const int64_t raw_readahead_floor = floor_aligned(block_offset, read_ahead_size);
+        const int64_t raw_readahead_ceil = raw_readahead_floor + read_ahead_size;
+
+        // In case the extent size is configured to something weird, we cannot assume
+        // that the readahead values are contained within the extent.
+        const int64_t readahead_floor = std::max(raw_readahead_floor, extent);
+        const int64_t readahead_ceil = std::min(raw_readahead_ceil, extent + extent_size);
+
+        auto beg_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
+                                       readahead_floor - extent);
+        auto end_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
+                                       readahead_ceil - extent);
+
+        CHECK_AND_BAILOUT(beg_it < end_it);
+
+        int64_t beg_ret = *beg_it + extent;
+        int64_t end_ret = *end_it + extent;
+
+        CHECK_AND_BAILOUT(beg_ret <= block_offset);
+
+        // Since readahead_ceil > block_offset, and since the next block boundary is >=
+        // block_offset + ser_block_size, we know end_ret >= block_offset +
+        // ser_block_size.
+        CHECK_AND_BAILOUT(end_ret >= block_offset + ser_block_size);
+        CHECK_AND_BAILOUT(end_ret <= extent + extent_size);
+
+        *offset_out = beg_ret;
+        *end_offset_out = end_ret;
+        return;
+    }
+
+#undef CHECK_AND_BAILOUT
+
+ bailout:
+    printf_buffer_t boundaries_buf;
+    debug_print(&boundaries_buf, boundaries);
+
+    // RSI: Include boundaries values (use a debugf_print-alike in release mode).
+    logWRN("unaligned_read_ahead_offset_and_size logic failed (in check %s).  "
+           "Don't panic!  "
+           "Falling back to safe behavior.  (block_offset = %" PRIi64
+           ", ser_block_size = %" PRIu32
+           ", extent_size = %" PRIi64 ", read_ahead_size = %" PRIi64
+           "boundaries = %s)",
+           failure_expr,
+           block_offset, ser_block_size, extent_size, read_ahead_size,
+           boundaries_buf.c_str());
+
+    // Crash now in debug mode.
+    rassert(false);
+
+    *offset_out = block_offset;
+    *end_offset_out = block_offset + ser_block_size;
+}
+
+// Computes a device block size aligned interval to be read for the purposes of
+// readahead.  Returns an interval that contains the [block_offset, block_offset +
+// ser_block_size_in) interval.  boundaries is the extent's gc_entry_t's
+// block_boundaries() value.
+void read_ahead_interval(const int64_t block_offset,
+                         const uint32_t ser_block_size,
+                         const int64_t extent_size,
+                         const int64_t read_ahead_size,
+                         const int64_t device_block_size,
+                         const std::vector<uint32_t> &boundaries,
+                         int64_t *const offset_out,
+                         int64_t *const end_offset_out) {
+    int64_t unaligned_offset;
+    int64_t unaligned_end_offset;
+    unaligned_read_ahead_interval(block_offset, ser_block_size, extent_size,
+                                  read_ahead_size, boundaries,
+                                  &unaligned_offset, &unaligned_end_offset);
+
+    *offset_out = floor_aligned(unaligned_offset, device_block_size);
+    *end_offset_out = ceil_aligned(unaligned_end_offset, device_block_size);
+}
+
+
+
 class dbm_read_ahead_fsm_t : public iocallback_t {
 public:
     data_block_manager_t *const parent;
@@ -136,17 +246,26 @@ public:
     void *const buf_out;
     const int64_t off_in;
     const int64_t ser_block_size_in;
-    void *const read_ahead_buf;
+    void *read_ahead_buf;  // Initialized in the constructor.
 
-    int64_t read_ahead_size() const {
-        return std::min<int64_t>(parent->static_config->extent_size(),
-                                 MAX_READ_AHEAD_SIZE);
-    }
+    void read_ahead_offset_and_size(int64_t *offset_out, int64_t *size_out) const {
+        const gc_entry_t *entry
+            = parent->entries.get(off_in / parent->static_config->extent_size());
+        // RSI: Ensure at compile-time that entry is non-null.  (Pass it in to this
+        // function?)
+        guarantee(entry != NULL);
 
-    int64_t read_ahead_offset() const {
-        int64_t size = read_ahead_size();
-        int64_t extent = floor_aligned(off_in, parent->static_config->extent_size());
-        return extent + (off_in - extent) / size * size;
+        int64_t offset;
+        int64_t end_offset;
+        read_ahead_interval(off_in, ser_block_size_in, parent->static_config->extent_size(),
+                            APPROXIMATE_READ_AHEAD_SIZE,
+                            DEVICE_BLOCK_SIZE,
+                            entry->block_boundaries(),
+                            &offset,
+                            &end_offset);
+
+        *offset_out = offset;
+        *size_out = end_offset - offset;
     }
 
     // RSI: Basically all block_size() calls here.
@@ -158,27 +277,28 @@ public:
           callback(cb),
           buf_out(_buf_out),
           off_in(_off_in),
-          ser_block_size_in(_ser_block_size_in),
-          // We divide the extent into chunks of size read_ahead_size, then select the
-          // one which contains off_in
-          read_ahead_buf(malloc_aligned(read_ahead_size(), DEVICE_BLOCK_SIZE)) {
-        rassert(off_in >= read_ahead_offset());
-        rassert(off_in < read_ahead_offset() + read_ahead_size());
-        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset()));
+          ser_block_size_in(_ser_block_size_in) {
 
-        parent->dbfile->read_async(read_ahead_offset(), read_ahead_size(), read_ahead_buf, io_account, this);
+        int64_t read_ahead_offset;
+        int64_t read_ahead_size;
+        read_ahead_offset_and_size(&read_ahead_offset, &read_ahead_size);
+        read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
+        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
+        int64_t read_ahead_offset;
+        int64_t read_ahead_size;
+        read_ahead_offset_and_size(&read_ahead_offset, &read_ahead_size);
 
         // Walk over the read ahead buffer and copy stuff...
-        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size(); ++current_block) {
+        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
             // RSI: Probably should not use block_size() here...
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
 
             // RSI: Probably should not use block_size() here...
-            const int64_t current_offset = read_ahead_offset() + (current_block * parent->static_config->block_size().ser_value());
+            const int64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if (current_offset == off_in) {
@@ -893,11 +1013,11 @@ gc_entry_t::~gc_entry_t() {
     --parent->stats->pm_serializer_data_extents;
 }
 
-
-std::vector<uint32_t> gc_entry_t::ends_of_blocks() const {
+std::vector<uint32_t> gc_entry_t::block_boundaries() const {
     std::vector<uint32_t> ret;
-    for (unsigned int i = 0; i < g_array.size(); ++i) {
-        ret.push_back((i + 1) * parent->static_config->block_size().ser_value());
+    uint32_t block_size = parent->static_config->block_size().ser_value();
+    for (unsigned int i = 0, e = g_array.size(); i <= e; ++i) {
+        ret.push_back(i * block_size);
     }
     return ret;
 }

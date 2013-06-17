@@ -44,11 +44,13 @@ public:
     void print();
 #endif
 
-    // Lists the "ends" of blocks.  For example, an extent with three blocks might
-    // return { 4096, 8192, 12288 }.  The blocks are actually [0, 4096), [4096,
-    // 8192), [8129, 12288).  The block_index refers to the block's index within this
-    // list.
-    std::vector<uint32_t> ends_of_blocks() const;
+    // Lists the num_blocks() offsets of the blocks, followed by some upper bound for
+    // the last block that is no greater than the extent size.  For example, an
+    // extent with three blocks, each of size 4093, might return { 0, 4093, 8192,
+    // 12288 }.  The blocks are actually [0, 4093), [4093, 8186), [8192, 12285).
+    // Blocks are noncontiguous because each chunk of block writes must start at a
+    // discrete device block boundary.
+    std::vector<uint32_t> block_boundaries() const;
 
     unsigned int block_index(int64_t offset) const;
 
@@ -423,5 +425,16 @@ private:
 
     DISABLE_COPYING(data_block_manager_t);
 };
+
+// Exposed for unit tests.  Returns a super-interval of [block_offset,
+// ser_block_size) that is almost appropriate for a read-ahead disk read -- it still
+// needs to be stretched to be aligned with disk block boundaries.
+void unaligned_read_ahead_interval(const int64_t block_offset,
+                                   const uint32_t ser_block_size,
+                                   const int64_t extent_size,
+                                   const int64_t read_ahead_size,
+                                   const std::vector<uint32_t> &boundaries,
+                                   int64_t *const offset_out,
+                                   int64_t *const end_offset_out);
 
 #endif /* SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_ */
