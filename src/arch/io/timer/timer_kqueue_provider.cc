@@ -14,7 +14,7 @@
 
 #ifdef HAVE_KEVENT64
 
-static int _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
+static void _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
                         int flags, int64_t nano_seconds) {
     EV_SET64(kev, ident, filter, flags, NOTE_NSECONDS, nano_seconds, 0, 0, 0);
 }
@@ -23,14 +23,14 @@ static int _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
 
 # define kevent64_s kevent
 
-static int _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
+static void _EV_SET_NANO(struct kevent64_s *kev, int ident, int filter,
                         int flags, int64_t nano_seconds) {
     EV_SET(kev, ident, filter, flags, 0, (nano_seconds / 1000000.0), NULL);
 }
 
 static inline int kevent64(int kq, const struct kevent64_s *changelist,
                            int nchanges, struct kevent64_s *eventlist,
-                           int nevents, unsigned int flags,
+                           int nevents, UNUSED unsigned int flags,
                            const struct timespec *timeout) {
     return kevent(kq, changelist, nchanges, eventlist, nevents, timeout);
 }

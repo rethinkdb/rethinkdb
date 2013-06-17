@@ -1,5 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
+#if !defined(__STDC_LIMIT_MACROS)
 #define __STDC_LIMIT_MACROS
+#endif
+
 #define __STDC_FORMAT_MACROS
 #include "rpc/mailbox/mailbox.hpp"
 

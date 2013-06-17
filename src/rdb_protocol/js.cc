@@ -1,5 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#if !defined(__STDC_LIMIT_MACROS)
 #define __STDC_LIMIT_MACROS
+#endif
+
 #include <stdint.h>
 
 #include "errors.hpp"
