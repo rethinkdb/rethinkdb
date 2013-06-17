@@ -245,24 +245,37 @@ public:
     void *const buf_out;
     const int64_t off_in;
     const int64_t ser_block_size_in;
-    void *read_ahead_buf;  // Initialized in the constructor.
+
+    // The following fields might be recomputable but it's way more robust to compute
+    // them exactly once in the constructor, in case it's possible to do a readahead
+    // in a currently written-to extent.
+    const std::vector<uint32_t> boundaries;
+
+    // Initialized in the constructor.
+    int64_t read_ahead_offset;
+    int64_t read_ahead_size;
+    void *read_ahead_buf;
 
     void read_ahead_offset_and_size(int64_t *offset_out, int64_t *size_out) const {
-        const gc_entry_t *entry
-            = parent->entries.get(off_in / parent->static_config->extent_size());
-        guarantee(entry != NULL);
-
         int64_t offset;
         int64_t end_offset;
         read_ahead_interval(off_in, ser_block_size_in, parent->static_config->extent_size(),
                             APPROXIMATE_READ_AHEAD_SIZE,
                             DEVICE_BLOCK_SIZE,
-                            entry->block_boundaries(),
+                            boundaries,
                             &offset,
                             &end_offset);
 
         *offset_out = offset;
         *size_out = end_offset - offset;
+    }
+
+    std::vector<uint32_t> get_boundaries() {
+        const gc_entry_t *entry
+            = parent->entries.get(off_in / parent->static_config->extent_size());
+        guarantee(entry != NULL);
+
+        return entry->block_boundaries();
     }
 
     // RSI: Basically all block_size() calls here.
@@ -274,20 +287,17 @@ public:
           callback(cb),
           buf_out(_buf_out),
           off_in(_off_in),
-          ser_block_size_in(_ser_block_size_in) {
+          ser_block_size_in(_ser_block_size_in),
+          boundaries(get_boundaries()) {
 
-        int64_t read_ahead_offset;
-        int64_t read_ahead_size;
+        // Finish initialization.
         read_ahead_offset_and_size(&read_ahead_offset, &read_ahead_size);
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
+
         parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
-        int64_t read_ahead_offset;
-        int64_t read_ahead_size;
-        read_ahead_offset_and_size(&read_ahead_offset, &read_ahead_size);
-
         // Walk over the read ahead buffer and copy stuff...
         for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
