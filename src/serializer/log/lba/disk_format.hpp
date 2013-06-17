@@ -95,7 +95,7 @@ struct lba_entry_t {
 
     static lba_entry_t make(block_id_t block_id, repli_timestamp_t recency,
                             flagged_off64_t offset, uint32_t ser_block_size) {
-        guarantee(block_id == PADDING_BLOCK_ID || ser_block_size != 0);
+        guarantee(ser_block_size != 0 || !offset.has_value());
         lba_entry_t entry;
         entry.block_id = block_id;
         entry.ser_block_size = ser_block_size;
