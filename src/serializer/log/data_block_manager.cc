@@ -136,10 +136,18 @@ public:
     void *const buf_out;
     const int64_t off_in;
     const int64_t ser_block_size_in;
-    const int64_t extent;
-    const int64_t read_ahead_size;
-    const int64_t read_ahead_offset;
     void *const read_ahead_buf;
+
+    int64_t read_ahead_size() const {
+        return std::min<int64_t>(parent->static_config->extent_size(),
+                                 MAX_READ_AHEAD_SIZE);
+    }
+
+    int64_t read_ahead_offset() const {
+        int64_t size = read_ahead_size();
+        int64_t extent = floor_aligned(off_in, parent->static_config->extent_size());
+        return extent + (off_in - extent) / size * size;
+    }
 
     // RSI: Basically all block_size() calls here.
 
@@ -151,30 +159,26 @@ public:
           buf_out(_buf_out),
           off_in(_off_in),
           ser_block_size_in(_ser_block_size_in),
-          extent(floor_aligned(off_in, parent->static_config->extent_size())),
-          read_ahead_size(std::min<int64_t>(parent->static_config->extent_size(),
-                                            MAX_READ_AHEAD_SIZE)),
           // We divide the extent into chunks of size read_ahead_size, then select the
           // one which contains off_in
-          read_ahead_offset(extent + (off_in - extent) / read_ahead_size * read_ahead_size),
-          read_ahead_buf(malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE)) {
-        rassert(off_in >= read_ahead_offset);
-        rassert(off_in < read_ahead_offset + read_ahead_size);
-        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
+          read_ahead_buf(malloc_aligned(read_ahead_size(), DEVICE_BLOCK_SIZE)) {
+        rassert(off_in >= read_ahead_offset());
+        rassert(off_in < read_ahead_offset() + read_ahead_size());
+        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset()));
 
-        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
+        parent->dbfile->read_async(read_ahead_offset(), read_ahead_size(), read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
 
         // Walk over the read ahead buffer and copy stuff...
-        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
+        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size(); ++current_block) {
 
             // RSI: Probably should not use block_size() here...
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
 
             // RSI: Probably should not use block_size() here...
-            const int64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
+            const int64_t current_offset = read_ahead_offset() + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if (current_offset == off_in) {
