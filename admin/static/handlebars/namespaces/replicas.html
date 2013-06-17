@@ -25,7 +25,7 @@
     <div class="datacenter_list_container">
         {{#each datacenters}}
         <div class="datacenter_tab {{#if active}} active {{/if}}{{#if is_universe}} universe{{/if}}">
-            <a href="#tables/{{../id}}/{{id}}" data-datacenter_id="{{id}}" class="nav_datacenter">{{name}}</a>
+            <a href="#tables/{{namespace_id}}/{{id}}" data-datacenter_id="{{id}}" class="nav_datacenter">{{name}}</a>
         </div>
         {{/each}}
     </div>
