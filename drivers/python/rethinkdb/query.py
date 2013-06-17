@@ -33,13 +33,13 @@ def db_list():
     return DbList()
 
 def table_create(table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
-    return TableCreate(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
+    return TableCreateTL(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
 
 def table_drop(table_name):
-    return TableDrop(table_name)
+    return TableDropTL(table_name)
 
 def table_list():
-    return TableList()
+    return TableListTL()
 
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)

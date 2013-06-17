@@ -1,0 +1,19 @@
+desc: Regression test for issue #1005.
+tests:
+    - py: r.expr(str(r.table_list()))
+      ot: "r.table_list()"
+
+    - py: r.expr(str(r.table_create('a')))
+      ot: "r.table_create('a')"
+
+    - py: r.expr(str(r.table_drop('a')))
+      ot: "r.table_drop('a')"
+
+    - py: r.expr(str(r.db('a').table_list()))
+      ot: "r.db('a').table_list()"
+
+    - py: r.expr(str(r.db('a').table_create('a')))
+      ot: "r.db('a').table_create('a')"
+
+    - py: r.expr(str(r.db('a').table_drop('a')))
+      ot: "r.db('a').table_drop('a')"
