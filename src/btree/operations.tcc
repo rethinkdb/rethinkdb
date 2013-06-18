@@ -84,7 +84,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 
         if (key_found) {
             keyvalue_location_out->there_originally_was_value = true;
-            keyvalue_location_out->value.swap(tmp);
+            keyvalue_location_out->value = std::move(tmp);
         }
     }
 
@@ -136,7 +136,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superbloc
     if (leaf::lookup(&sizer, leaf, key, value.get())) {
         keyvalue_location_out->buf.swap(buf);
         keyvalue_location_out->there_originally_was_value = true;
-        keyvalue_location_out->value.swap(value);
+        keyvalue_location_out->value = std::move(value);
     }
 }
 

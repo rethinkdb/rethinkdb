@@ -237,18 +237,17 @@ public:
         swap(tmp);
     }
 
-    // RSI: Make this be private.
+    bool has() const {
+        return ptr_ != NULL;
+    }
+
+private:
     void swap(scoped_malloc_t &other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
     }
 
-    bool has() const {
-        return ptr_ != NULL;
-    }
-
-private:
     T *ptr_;
 
     DISABLE_COPYING(scoped_malloc_t);
