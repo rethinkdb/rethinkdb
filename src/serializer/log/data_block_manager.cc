@@ -299,27 +299,44 @@ public:
 
     void on_io_complete() {
         // Walk over the read ahead buffer and copy stuff...
-        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
+        int64_t extent_offset = floor_aligned(read_ahead_offset, parent->static_config->extent_size());
+        uint32_t relative_offset = read_ahead_offset - extent_offset;
+        uint32_t relative_end_offset = (read_ahead_offset + read_ahead_size) - extent_offset;
 
-            // RSI: Probably should not use block_size() here...
-            const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
+        auto lower_it = std::lower_bound(boundaries.begin(), boundaries.end(),
+                                         relative_offset);
+        auto const upper_it = std::upper_bound(boundaries.begin(), boundaries.end(),
+                                               relative_end_offset) - 1;
 
-            // RSI: Probably should not use block_size() here...
-            const int64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
+        bool handled_required_block = false;
 
-            // Copy either into buf_out or create a new buffer for read ahead
+        for (; lower_it < upper_it; ++lower_it) {
+            const char *current_buf
+                = static_cast<char *>(read_ahead_buf) + (*lower_it - relative_offset);
+
+            int64_t current_offset = *lower_it + extent_offset;
+
             if (current_offset == off_in) {
-                ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
-                --data;
-                // RSI: Probably should not use block_size() here...
-                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+                rassert(!handled_required_block);
+
+                ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
+                --data;  // RSI: This is f'd up.  Fix the interface.  (Especially with ser_block_size_in.)
+                memcpy(data, current_buf, ser_block_size_in);
+                handled_required_block = true;
             } else {
+                // RSI: Remove block id from block metadata, just put a
+                // reverse-lookup table in the gc entries, initialized from the LBA.
                 const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
-                // RSI: Why do we care if the block_id is 0?
-                // Determine whether the block is live.
+                // RSI: Why do we care if the block id is 0?  Daniel gave an answer
+                // about the extent being initialized to 0.  Is that _actually_ true?
+                // Sounds like B.S. to me.  Just check the gc_entry_t to see whether
+                // it's garbage, then we know whether the block is initialized.
+
+                // Determine whether the block is live.  (RSI: Maybe you can't look
+                // up the 0 block in the LBA.  That would be super F'd up, though.)
                 bool block_is_live = block_id != 0;
-                // Do this by checking the LBA
+                // Do this by checking the LBA.
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
                 block_is_live = block_is_live && flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
 
@@ -328,23 +345,32 @@ public:
                 }
 
                 const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
-
+                // malloc increments the buf pointer already.  RSI: Fix this
+                // interface.  Also we shouldn't have serializer->malloc anymore.
                 ls_buf_data_t *data = static_cast<ls_buf_data_t *>(parent->serializer->malloc());
                 --data;
-                // RSI: Probably should not use block_size() here...
-                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+                // RSI: Could probably just use a single lba_index get_block_info call.
+                const uint32_t ser_block_size
+                    = parent->serializer->lba_index->get_ser_block_size(block_id);
+                memcpy(data, current_buf, ser_block_size);
+                rassert(ser_block_size <= *(lower_it + 1) - *lower_it);
                 ++data;
-                // RSI: Wrong block size.
-                counted_t<ls_block_token_pointee_t> ls_token = parent->serializer->generate_block_token(current_offset, parent->serializer->get_block_size().ser_value());
+
+                counted_t<ls_block_token_pointee_t> ls_token
+                    = parent->serializer->generate_block_token(current_offset, ser_block_size);
+
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
+
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(
-                        block_id,
-                        data,
-                        parent->static_config->block_size(),  // RSI: Wrong block size.
-                        token,
-                        recency_timestamp)) {
-                    // If there is no interest anymore, delete the buffer again
+                            block_id,
+                            data,
+                            block_size_t::unsafe_make(ser_block_size),
+                            token,
+                            recency_timestamp)) {
+                    // If there is no interest anymore, delete the buffer again.
+                    // RSI: This whole serializer-owned buffer thing and lifetime
+                    // management is crap.
                     parent->serializer->free(data);
                     continue;
                 }
@@ -352,6 +378,8 @@ public:
         }
 
         free(read_ahead_buf);
+
+        guarantee(handled_required_block);
 
         callback->on_io_complete();
         delete this;
