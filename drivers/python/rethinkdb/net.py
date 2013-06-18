@@ -73,7 +73,7 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to {0}:{1:d}.".format(self.host, self.port))
 
-        self.socket.settimeout(timeout) # timeout after 20 seconds
+        self.socket.settimeout(self.timeout) # timeout after 20 seconds
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
