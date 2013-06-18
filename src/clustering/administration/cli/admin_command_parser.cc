@@ -557,8 +557,8 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("split-points", -1, true); // TODO: list possible shards
 
     info = add_command(resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve, &commands);
-    info->add_positional("id", 1, false)->add_option("!conflict");
-    info->add_positional("field", 1, true); // TODO: list the conflicted fields in the previous id
+    info->add_positional("field", 1, true);
+    info->add_positional("id", 1, false)->add_option("!conflict"); // TODO: list the conflicted fields in the previous id
 
     info = add_command(set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name, &commands);
     info->add_positional("id", 1, true)->add_option("!id");

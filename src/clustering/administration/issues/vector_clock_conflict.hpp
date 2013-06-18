@@ -55,14 +55,16 @@ private:
 
 class vector_clock_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view);
+    explicit vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _cluster_view,
+                                                   boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > _auth_view);
     ~vector_clock_conflict_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > get_vector_clock_issues();
 
 private:
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > cluster_view;
+    boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > auth_view;
 
     DISABLE_COPYING(vector_clock_conflict_issue_tracker_t);
 };
