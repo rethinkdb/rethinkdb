@@ -41,13 +41,14 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None, auth_key=""):
+    def __init__(self, host, port, db=None, auth_key="", timeout=20):
         self.socket = None
         self.host = host
         self.port = port
         self.next_token = 1
         self.db = db
         self.auth_key = auth_key
+        self.timeout = timeout
         self.reconnect()
 
     def __enter__(self):
@@ -65,6 +66,8 @@ class Connection(object):
             self.socket = socket.create_connection((self.host, self.port))
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+
+        self.socket.settimeout(self.timeout)
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
