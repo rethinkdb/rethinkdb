@@ -52,7 +52,7 @@ class Connection(object):
         try:
           self.port = int(port)
         except ValueError as err:
-          raise RqlDriverError("Could not convert port %s to an integer." % port)
+          raise RqlDriverError("Could not convert port {0} to an integer.".format(port))
 
         self.reconnect()
 
@@ -70,7 +70,7 @@ class Connection(object):
         try:
             self.socket = socket.create_connection((self.host, self.port))
         except Exception as err:
-            raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+            raise RqlDriverError("Could not connect to {0}:{1:d}.".format(self.host, self.port))
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
@@ -84,7 +84,7 @@ class Connection(object):
             response += char
 
         if response != "SUCCESS":
-            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+            raise RqlDriverError("Server dropped connection with message: \"{0}\"".format(response.strip()))
 
     def close(self):
         if self.socket:
@@ -220,7 +220,7 @@ class Connection(object):
 
         # Default for unknown response types
         else:
-            raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
+            raise RqlDriverError("Unknown Response type {0:d} encountered in response.".format(response.type))
 
 def connect(host='localhost', port=28015, db=None, auth_key=""):
     return Connection(host, port, db, auth_key)
