@@ -98,8 +98,9 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
-    crc_metablock_t *buffer = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
-    bzero(buffer, DEVICE_BLOCK_SIZE);
+    scoped_malloc_t<crc_metablock_t> buffer(malloc_aligned(DEVICE_BLOCK_SIZE,
+                                                           DEVICE_BLOCK_SIZE));
+    bzero(buffer.get(), DEVICE_BLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */
@@ -114,17 +115,15 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         // We don't datasync here -- we can datasync when we write the first real
         // metablock.
-        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer,
+        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer.get(),
                             DEFAULT_DISK_ACCOUNT, &callback, file_t::NO_DATASYNCS);
     }
     callback.wait();
 
     /* Write the first metablock */
     buffer->prepare(initial, MB_START_VERSION);
-    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer,
+    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
-
-    free(buffer);
 }
 
 template<class metablock_t>

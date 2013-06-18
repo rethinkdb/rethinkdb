@@ -205,6 +205,7 @@ template <class T>
 class scoped_malloc_t {
 public:
     scoped_malloc_t() : ptr_(NULL) { }
+    explicit scoped_malloc_t(void *ptr) : ptr_(static_cast<T *>(ptr)) { }
     explicit scoped_malloc_t(size_t n) : ptr_(reinterpret_cast<T *>(malloc(n))) { }
     scoped_malloc_t(const char *beg, const char *end) {
         rassert(beg <= end);
@@ -220,14 +221,14 @@ public:
     const T *get() const { return ptr_; }
     T *operator->() { return ptr_; }
     const T *operator->() const { return ptr_; }
-    T& operator*() { return *ptr_; }
+    T &operator*() { return *ptr_; }
 
     void reset() {
         scoped_malloc_t tmp;
         swap(tmp);
     }
 
-    void swap(scoped_malloc_t& other) {  // NOLINT
+    void swap(scoped_malloc_t &other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
@@ -237,7 +238,7 @@ public:
     friend class scoped_malloc_t;
 
     template <class U>
-    void reinterpret_swap(scoped_malloc_t<U>& other) {
+    void reinterpret_swap(scoped_malloc_t<U> &other) {
         T *tmp = ptr_;
         ptr_ = reinterpret_cast<T *>(other.ptr_);
         other.ptr_ = reinterpret_cast<U *>(tmp);
@@ -250,9 +251,7 @@ public:
 private:
     T *ptr_;
 
-    // DISABLE_COPYING
-    scoped_malloc_t(const scoped_malloc_t&);
-    void operator=(const scoped_malloc_t&);
+    DISABLE_COPYING(scoped_malloc_t);
 };
 
 #endif  // CONTAINERS_SCOPED_HPP_
