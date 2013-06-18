@@ -287,7 +287,7 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int 
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster, ip_address_t::get_local_addresses(std::set<ip_address_t>(), false), 0, &message_multiplexer_run, client_port, &heartbeat_manager),
-    admin_tracker(cluster_metadata_view, directory_read_manager->get_root_view()),
+    admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
@@ -2332,11 +2332,12 @@ void admin_cluster_link_t::do_admin_set_auth(const admin_command_parser_t::comma
     auth_semilattice_metadata_t auth_metadata = change_request.get();
 
     std::string key = guarantee_param_0(data.params, "key");
-    if (!auth_metadata.auth_key.get_mutable().assign_value(key)) {
+    auth_key_t new_auth_key;
+    if (!new_auth_key.assign_value(key)) {
         throw admin_cluster_exc_t(strprintf("the provided authorization key is too long, max length: %i",
                                             auth_key_t::max_length));
     }
-    auth_metadata.auth_key.upgrade_version(change_request_id);
+    auth_metadata.auth_key = auth_metadata.auth_key.make_resolving_version(new_auth_key, change_request_id);
 
     if (!change_request.update(auth_metadata)) {
         throw admin_retry_exc_t();
@@ -2348,8 +2349,7 @@ void admin_cluster_link_t::do_admin_unset_auth(const admin_command_parser_t::com
         change_request(&mailbox_manager, choose_auth_sync_peer());
     auth_semilattice_metadata_t auth_metadata = change_request.get();
 
-    auth_metadata.auth_key.get_mutable() = auth_key_t();
-    auth_metadata.auth_key.upgrade_version(change_request_id);
+    auth_metadata.auth_key = auth_metadata.auth_key.make_resolving_version(auth_key_t(), change_request_id);
 
     if (!change_request.update(auth_metadata)) {
         throw admin_retry_exc_t();
