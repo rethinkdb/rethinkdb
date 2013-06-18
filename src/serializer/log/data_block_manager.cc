@@ -317,9 +317,7 @@ public:
             if (current_offset == off_in) {
                 guarantee(!handled_required_block);
 
-                ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
-                --data;  // RSI: This is f'd up.  Fix the interface.  (Especially with ser_block_size_in.)
-                memcpy(data, current_buf, ser_block_size_in);
+                memcpy(buf_out, current_buf, ser_block_size_in);
                 handled_required_block = true;
             } else {
                 // RSI: Remove block id from block metadata, just put a
@@ -397,10 +395,12 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
     if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on
         // io complete...
+        ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
+        --data;
         new dbm_read_ahead_fsm_t(this, off_in, ser_block_size_in,
-                                 buf_out, io_account, cb);
+                                 data, io_account, cb);
     } else {
-        ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
+        ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
         data--;
         // RSI: This read could end up being unaligned.  It needs to be aligned.
         dbfile->read_async(off_in, ser_block_size_in, data, io_account, cb);
