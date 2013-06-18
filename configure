@@ -17,7 +17,7 @@ init () {
     min_clang_version=0
     min_icc_version=0
     invalid_coffee_versions="1.5.0 1.6 1.6.1"
-    max_lessc_version="1.3.3"
+    max_lessc_version="1.4"
 
     please_fetch_list=handlebars
 
