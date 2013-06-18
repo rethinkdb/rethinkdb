@@ -452,7 +452,7 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     rassert(state == state_ready);
 
     data_block_manager->read(ls_token->offset_, ls_token->ser_block_size_,
-                             buf, io_account, readcb);
+                             static_cast<ls_buf_data_t *>(buf) - 1, io_account, readcb);
 }
 
 // God this is such a hack.

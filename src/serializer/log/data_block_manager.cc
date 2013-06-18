@@ -391,20 +391,14 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
     guarantee(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
-        // We still need an fsm for read ahead as additional work has to be done on
-        // io complete...
-        ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
-        --data;
         new dbm_read_ahead_fsm_t(this, off_in, ser_block_size_in,
-                                 data, io_account, cb);
+                                 buf_out, io_account, cb);
     } else {
         rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
         rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
 
-        ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
-        data--;
         // RSI: This read could end up being unaligned.  It needs to be aligned.
-        dbfile->read_async(off_in, ser_block_size_in, data, io_account, cb);
+        dbfile->read_async(off_in, ser_block_size_in, buf_out, io_account, cb);
     }
 }
 
