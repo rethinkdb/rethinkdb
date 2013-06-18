@@ -328,17 +328,9 @@ public:
                 // reverse-lookup table in the gc entries, initialized from the LBA.
                 const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
-                // RSI: Why do we care if the block id is 0?  Daniel gave an answer
-                // about the extent being initialized to 0.  Is that _actually_ true?
-                // Sounds like B.S. to me.  Just check the gc_entry_t to see whether
-                // it's garbage, then we know whether the block is initialized.
-
-                // Determine whether the block is live.  (RSI: Maybe you can't look
-                // up the 0 block in the LBA.  That would be super F'd up, though.)
-                bool block_is_live = block_id != 0;
-                // Do this by checking the LBA.
+                // Determine whether the block is live.  Do this by checking the LBA.
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
+                const bool block_is_live = flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
 
                 if (!block_is_live) {
                     continue;
