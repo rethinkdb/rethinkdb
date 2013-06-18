@@ -244,17 +244,6 @@ public:
         other.ptr_ = tmp;
     }
 
-    template <class U>
-    friend class scoped_malloc_t;
-
-    // RSI: Get rid of this.
-    template <class U>
-    void reinterpret_swap(scoped_malloc_t<U>& other) {
-        T *tmp = ptr_;
-        ptr_ = reinterpret_cast<T *>(other.ptr_);
-        other.ptr_ = reinterpret_cast<U *>(tmp);
-    }
-
     bool has() const {
         return ptr_ != NULL;
     }

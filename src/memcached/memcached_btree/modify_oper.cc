@@ -38,7 +38,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
 
     // Actually update the leaf, if needed.
     if (update_needed) {
-        kv_location.value.reinterpret_swap(the_value);
+        kv_location.value.swap(the_value);
         null_key_modification_callback_t<memcached_value_t> null_cb;
         apply_keyvalue_change(txn, &kv_location, store_key.btree_key(), timestamp, expired, &null_cb, &slice->root_eviction_priority);
     }
