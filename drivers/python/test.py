@@ -115,6 +115,8 @@ class except_printer:
 
 def go():
     with except_printer():
+        r.connect(host="localhost", port="123abc")
+    with except_printer():
         r.expr({'err': r.error('bob')}).run(c)
     with except_printer():
         r.expr([1,2,3, r.error('bob')]).run(c)
