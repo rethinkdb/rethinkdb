@@ -14,7 +14,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     keyvalue_location_t<memcached_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, store_key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     scoped_malloc_t<memcached_value_t> the_value;
-    the_value.reinterpret_swap(kv_location.value);
+    the_value.swap(kv_location.value);
 
     bool expired = the_value.has() && the_value->expired(effective_time);
 
