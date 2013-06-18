@@ -212,8 +212,18 @@ public:
         ptr_ = reinterpret_cast<T *>(malloc(n));
         memcpy(ptr_, beg, n);
     }
+    scoped_malloc_t(scoped_malloc_t &&movee)
+        : ptr_(movee.ptr_) {
+        movee.ptr_ = NULL;
+    }
+
     ~scoped_malloc_t() {
         free(ptr_);
+    }
+
+    void operator=(scoped_malloc_t &&movee) {
+        scoped_malloc_t tmp(std::move(movee));
+        swap(tmp);
     }
 
     T *get() { return ptr_; }
@@ -227,7 +237,8 @@ public:
         swap(tmp);
     }
 
-    void swap(scoped_malloc_t& other) {  // NOLINT
+    // RSI: Make this be private.
+    void swap(scoped_malloc_t &other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
@@ -236,6 +247,7 @@ public:
     template <class U>
     friend class scoped_malloc_t;
 
+    // RSI: Get rid of this.
     template <class U>
     void reinterpret_swap(scoped_malloc_t<U>& other) {
         T *tmp = ptr_;
@@ -250,9 +262,7 @@ public:
 private:
     T *ptr_;
 
-    // DISABLE_COPYING
-    scoped_malloc_t(const scoped_malloc_t&);
-    void operator=(const scoped_malloc_t&);
+    DISABLE_COPYING(scoped_malloc_t);
 };
 
 #endif  // CONTAINERS_SCOPED_HPP_
