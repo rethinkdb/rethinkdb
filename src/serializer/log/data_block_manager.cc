@@ -278,8 +278,6 @@ public:
         return entry->block_boundaries();
     }
 
-    // RSI: Basically all block_size() calls here.
-
     dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in,
                          uint32_t _ser_block_size_in, void *_buf_out,
                          file_account_t *io_account, iocallback_t *cb)
