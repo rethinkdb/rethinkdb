@@ -112,13 +112,17 @@ void metablock_manager_t<metablock_t>::create(file_t *dbfile, int64_t extent_siz
     } callback;
     callback.refcount = metablock_offsets.size();
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, &callback);
+        // We don't datasync here -- we can datasync when we write the first real
+        // metablock.
+        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer,
+                            DEFAULT_DISK_ACCOUNT, &callback, file_t::NO_DATASYNCS);
     }
     callback.wait();
 
     /* Write the first metablock */
     buffer->prepare(initial, MB_START_VERSION);
-    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
+    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer,
+             DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 
     free(buffer);
 }
@@ -243,7 +247,8 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     mb_buffer_in_use = true;
 
     state = state_writing;
-    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account);
+    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account,
+             file_t::WRAP_IN_DATASYNCS);
 
     ++head;
 

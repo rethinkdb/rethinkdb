@@ -21,8 +21,10 @@ struct pool_diskmgr_action_t
     : private blocker_pool_t::job_t, public home_thread_mixin_debug_only_t {
     pool_diskmgr_action_t() { }
 
-    void make_write(fd_t f, const void *b, size_t c, int64_t o) {
+    void make_write(fd_t f, const void *b, size_t c, int64_t o,
+                    bool _wrap_in_datasyncs) {
         is_read = false;
+        wrap_in_datasyncs = _wrap_in_datasyncs;
         fd = f;
         buf = const_cast<void *>(b);
         count = c;
@@ -30,6 +32,7 @@ struct pool_diskmgr_action_t
     }
     void make_read(fd_t f, void *b, size_t c, int64_t o) {
         is_read = true;
+        wrap_in_datasyncs = false;
         fd = f;
         buf = b;
         count = c;
@@ -57,6 +60,7 @@ private:
     pool_diskmgr_t *parent;
 
     bool is_read;
+    bool wrap_in_datasyncs;
     fd_t fd;
     void *buf;
     size_t count;

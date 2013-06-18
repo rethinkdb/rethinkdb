@@ -253,7 +253,8 @@ int64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb);
+    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account,
+                        cb, file_t::NO_DATASYNCS);
 
     return offset;
 }

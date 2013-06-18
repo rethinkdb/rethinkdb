@@ -37,7 +37,9 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
 
     memcpy(buffer->data, data, data_size);
 
-    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
+    // We want to follow up the static header write with a datasync, because... it's the
+    // most important block in the file!
+    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 
     free(buffer);
 }

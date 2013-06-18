@@ -12,13 +12,13 @@
 
 #include "perfmon/core.hpp"
 
-#define FILE_SYNC_TECHNIQUE_DSYNC 1
+#define FILE_SYNC_TECHNIQUE_DATASYNC 1
 #define FILE_SYNC_TECHNIQUE_FULLFSYNC 2
 
 #ifdef __MACH__
 #define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_FULLFSYNC
 #else
-#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DSYNC
+#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DATASYNC
 #endif
 
 // The maximum concurrent IO requests per event queue.. the default value.
@@ -73,7 +73,8 @@ public:
     void set_size_at_least(size_t size);
 
     void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb);
+    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
+                     wrap_in_datasyncs_t wrap_in_datasyncs);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
@@ -106,6 +107,9 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
 void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
+
+// Makes blocking syscalls.  Upon error, returns the errno value.
+int perform_datasync(fd_t fd);
 
 #endif // ARCH_IO_DISK_HPP_
 

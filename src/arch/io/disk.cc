@@ -89,11 +89,12 @@ public:
         stack_stats.submit(a);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb,
+                      bool wrap_in_datasyncs) {
         int calling_thread = get_thread_id();
 
         action_t *a = new action_t;
-        a->make_write(fd, buf, count, offset);
+        a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
@@ -185,27 +186,8 @@ void linux_file_t::set_size(size_t size) {
     } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
-#if FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
-
-    int fcntl_res;
-    do {
-        fcntl_res = fcntl(fd.get(), F_FULLFSYNC);
-    } while (fcntl_res == -1 && errno == EINTR);
-    guarantee_err(fcntl_res == 0, "Could not fsync with fcntl(..., F_FULLFSYNC).");
-
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
-
-    // Make sure that the metadata change gets persisted before we start writing to the resized
-    // file (to be safe in case of system crashes, etc).
-    int fsync_res;
-    do {
-        fsync_res = fsync(fd.get());
-    } while (fsync_res == -1 && errno == EINTR);
-    guarantee_err(fsync_res == 0, "Could not fsync.");
-
-#else
-#error "Unrecognized FILE_SYNC_TECHNIQUE value.  Did you include the header file?"
-#endif  // FILE_SYNC_TECHNIQUE
+    int errcode = perform_datasync(fd.get());
+    guarantee_xerr(errcode == 0, errcode, "Could not sync after ftruncate");
 
     file_size = size;
 }
@@ -225,13 +207,16 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_acco
         callback);
 }
 
-void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
+                               file_account_t *account, linux_iocallback_t *callback,
+                               wrap_in_datasyncs_t wrap_in_datasyncs) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
-        account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
-        callback);
+                          account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
+                          callback,
+                          wrap_in_datasyncs == WRAP_IN_DATASYNCS);
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
@@ -305,17 +290,11 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
         flags |= O_TRUNC;
     }
 
-    // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
-    // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.  Linux is
+    // the only known kernel that has (or may need) the O_LARGEFILE flag.
 #ifndef __MACH__
     flags |= O_LARGEFILE;
 #endif
-
-#ifndef FILE_SYNC_TECHNIQUE
-#error "FILE_SYNC_TECHNIQUE is not defined"
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
-    flags |= O_DSYNC;
-#endif  // FILE_SYNC_TECHNIQUE
 
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
         flags |= O_RDWR;
@@ -391,3 +370,29 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
 #endif
         , path, errno_string(open_res.errsv).c_str());
 }
+
+
+// Upon error, returns the errno value.
+int perform_datasync(fd_t fd) {
+    // On OS X, we use F_FULLFSYNC because fsync lies.  fdatasync is not available.  On
+    // Linux we just use fdatasync.
+
+#ifndef FILE_SYNC_TECHNIQUE
+#error "FILE_SYNC_TECHNIQUE is not defined"
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+
+    int fcntl_res;
+    do {
+        fcntl_res = fcntl(fd, F_FULLFSYNC);
+    } while (fcntl_res == -1 && errno == EINTR);
+
+    return fcntl_res == -1 ? errno : 0;
+
+#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DATASYNC
+
+    int res = fdatasync(fd);
+    return res == -1 ? errno : 0;
+
+#endif  // FILE_SYNC_TECHNIQUE
+}
+
