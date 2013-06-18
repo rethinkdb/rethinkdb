@@ -9,9 +9,7 @@
 #include <unistd.h>
 
 #include <algorithm>
-
-#include "utils.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/types.hpp"
 #include "arch/runtime/system_event/eventfd.hpp"
@@ -25,6 +23,8 @@
 #include "arch/io/disk/accounting.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
+
+using namespace std::placeholders;  // for _1, _2, ...
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
@@ -55,15 +55,18 @@ public:
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
-        stack_stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
-        conflict_resolver.submit_fun = boost::bind(&accounting_diskmgr_t::submit, &accounter, _1);
+        stack_stats.submit_fun = std::bind(&conflict_resolver_t::submit,
+                                           &conflict_resolver, _1);
+        conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
+                                                 &accounter, _1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = boost::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
-        backend_stats.done_fun = boost::bind(&accounting_diskmgr_t::done, &accounter, _1);
-        accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
-        conflict_resolver.done_fun = boost::bind(&stack_stats_t::done, &stack_stats, _1);
-        stack_stats.done_fun = boost::bind(&linux_disk_manager_t::done, this, _1);
+        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
+        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
+        accounter.done_fun = std::bind(&conflict_resolver_t::done,
+                                       &conflict_resolver, _1);
+        conflict_resolver.done_fun = std::bind(&stack_stats_t::done, &stack_stats, _1);
+        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
     }
 
     ~linux_disk_manager_t() {
@@ -80,7 +83,8 @@ public:
     }
 
     void destroy_account(void *account) {
-        coro_t::spawn_sometime(boost::bind(&linux_disk_manager_t::delayed_destroy, this, account));
+        coro_t::spawn_sometime(std::bind(&linux_disk_manager_t::delayed_destroy, this,
+                                         account));
     }
 
     void submit_action_to_stack_stats(action_t *a) {
@@ -99,7 +103,9 @@ public:
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
@@ -111,7 +117,9 @@ public:
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
     };
 
     void done(stack_stats_t::action_t *a) {
@@ -120,9 +128,14 @@ public:
         action_t *a2 = static_cast<action_t *>(a);
         bool succeeded = a2->get_succeeded();
         if (succeeded) {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
+            do_on_thread(a2->cb_thread,
+                         std::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         } else {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb, a2->get_errno(), static_cast<int64_t>(a2->get_offset()), static_cast<int64_t>(a2->get_count())));
+            do_on_thread(a2->cb_thread,
+                         std::bind(&linux_iocallback_t::on_io_failure,
+                                   a2->cb, a2->get_errno(),
+                                   static_cast<int64_t>(a2->get_offset()),
+                                   static_cast<int64_t>(a2->get_count())));
         }
         delete a2;
     }
