@@ -32,14 +32,14 @@ data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t
       static_config(_static_config), extent_manager(em), serializer(_serializer),
       next_active_extent(0), gc_state(), gc_stats(stats)
 {
-    rassert(dynamic_config);
-    rassert(static_config);
-    rassert(extent_manager);
-    rassert(serializer);
+    rassert(dynamic_config != NULL);
+    rassert(static_config != NULL);
+    rassert(extent_manager != NULL);
+    rassert(serializer != NULL);
 }
 
 data_block_manager_t::~data_block_manager_t() {
-    rassert(state == state_unstarted || state == state_shut_down);
+    guarantee(state == state_unstarted || state == state_shut_down);
 }
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
@@ -50,7 +50,7 @@ void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 }
 
 void data_block_manager_t::start_reconstruct() {
-    rassert(state == state_unstarted);
+    guarantee(state == state_unstarted);
     gc_state.set_step(gc_reconstruct);
 }
 
@@ -62,7 +62,7 @@ void data_block_manager_t::mark_live(int64_t offset, uint32_t ser_block_size) {
     int extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
-        rassert(gc_state.step() == gc_reconstruct);  // This is called at startup.
+        guarantee(gc_state.step() == gc_reconstruct);  // This is called at startup.
 
         gc_entry_t *entry = new gc_entry_t(this, extent_id * extent_manager->extent_size);
         entry->state = gc_entry_t::state_reconstructing;
@@ -74,13 +74,13 @@ void data_block_manager_t::mark_live(int64_t offset, uint32_t ser_block_size) {
 }
 
 void data_block_manager_t::end_reconstruct() {
-    rassert(state == state_unstarted);
-    rassert(gc_state.step() == gc_reconstruct);
+    guarantee(state == state_unstarted);
+    guarantee(gc_state.step() == gc_reconstruct);
     gc_state.set_step(gc_ready);
 }
 
 void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_metablock) {
-    rassert(state == state_unstarted);
+    guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
     gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
@@ -103,7 +103,7 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
             rassert(active_extents[i]);
 
             /* Turn the extent from a reconstructing extent into an active extent */
-            rassert(active_extents[i]->state == gc_entry_t::state_reconstructing);
+            guarantee(active_extents[i]->state == gc_entry_t::state_reconstructing);
             active_extents[i]->state = gc_entry_t::state_active;
             reconstructed_extents.remove(active_extents[i]);
 
@@ -118,7 +118,7 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
     while (gc_entry_t *entry = reconstructed_extents.head()) {
         reconstructed_extents.remove(entry);
 
-        rassert(entry->state == gc_entry_t::state_reconstructing);
+        guarantee(entry->state == gc_entry_t::state_reconstructing);
         entry->state = gc_entry_t::state_old;
 
         entry->our_pq_entry = gc_pq.push(entry);
@@ -315,7 +315,7 @@ public:
             int64_t current_offset = *lower_it + extent_offset;
 
             if (current_offset == off_in) {
-                rassert(!handled_required_block);
+                guarantee(!handled_required_block);
 
                 ls_buf_data_t *data = static_cast<ls_buf_data_t *>(buf_out);
                 --data;  // RSI: This is f'd up.  Fix the interface.  (Especially with ser_block_size_in.)
@@ -343,7 +343,7 @@ public:
                 const uint32_t ser_block_size
                     = parent->serializer->lba_index->get_ser_block_size(block_id);
                 memcpy(data, current_buf, ser_block_size);
-                rassert(ser_block_size <= *(lower_it + 1) - *lower_it);
+                guarantee(ser_block_size <= *(lower_it + 1) - *lower_it);
                 ++data;
 
                 counted_t<ls_block_token_pointee_t> ls_token
@@ -392,7 +392,7 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
                                 iocallback_t *cb) {
     rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
     rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
-    rassert(state == state_ready);
+    guarantee(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on
@@ -420,7 +420,7 @@ data_block_manager_t::write(const void *buf_in, block_id_t block_id,
                             file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
-    rassert(state == state_ready
+    guarantee(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
     counted_t<ls_block_token_pointee_t> token = gimme_a_new_offset();
@@ -467,7 +467,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
 
             /* Notify the GC that the extent got released during GC */
             case gc_entry_t::state_in_gc:
-                rassert(gc_state.current_entry == entry);
+                guarantee(gc_state.current_entry == entry);
                 gc_state.current_entry = NULL;
                 break;
             default:
@@ -537,7 +537,7 @@ void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
 
     unsigned int block_index = entry->block_index(offset);
 
-    rassert(!entry->block_is_garbage(block_index));
+    guarantee(!entry->block_is_garbage(block_index));
 
     entry->mark_garbage_tokenwise(block_index);
 
@@ -591,7 +591,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             for (int i = 0; i < num_writes; ++i) {
                 block_write_conds.push_back(new block_write_cond_t());
                 // ... and save block tokens for the old offset.
-                rassert(parent->gc_state.current_entry != NULL, "i = %d", i);
+                guarantee(parent->gc_state.current_entry != NULL, "i = %d", i);
                 // RSI: Pass the real block size to generate the block token.
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     parent->serializer->get_block_size().ser_value()));
@@ -711,7 +711,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.current_entry = gc_pq.pop();
                 gc_state.current_entry->our_pq_entry = NULL;
 
-                rassert(gc_state.current_entry->state == gc_entry_t::state_old);
+                guarantee(gc_state.current_entry->state == gc_entry_t::state_old);
                 gc_state.current_entry->state = gc_entry_t::state_in_gc;
                 gc_stats.old_garbage_block_bytes -= gc_state.current_entry->garbage_bytes();
                 gc_stats.old_total_block_bytes -= static_config->extent_size();
@@ -721,7 +721,7 @@ void data_block_manager_t::run_gc() {
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
 
-                rassert(gc_state.refcount == 0);
+                guarantee(gc_state.refcount == 0);
 
                 // read_async can call the callback immediately, which
                 // will then decrement the refcount (and that's all it
@@ -763,7 +763,7 @@ void data_block_manager_t::run_gc() {
                 garbage before we even finish GCing it, they will set current_entry
                 to NULL. */
                 if (gc_state.current_entry == NULL) {
-                    rassert(gc_state.gc_blocks != NULL);
+                    guarantee(gc_state.gc_blocks != NULL);
                     free(gc_state.gc_blocks);
                     gc_state.gc_blocks = NULL;
                     gc_state.set_step(gc_ready);
@@ -771,9 +771,7 @@ void data_block_manager_t::run_gc() {
                 }
 
                 /* an array to put our writes in */
-#ifndef NDEBUG
                 int num_writes = gc_state.current_entry->num_live_blocks();
-#endif
 
                 gc_writes.clear();
                 for (unsigned int i = 0, iend = gc_state.current_entry->num_blocks(); i < iend; ++i) {
@@ -791,7 +789,7 @@ void data_block_manager_t::run_gc() {
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->block_referenced_by_index(i)) {
                         id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
-                        rassert(id != NULL_BLOCK_ID);
+                        guarantee(id != NULL_BLOCK_ID);
                     } else {
                         id = NULL_BLOCK_ID;
                     }
@@ -800,7 +798,7 @@ void data_block_manager_t::run_gc() {
                     gc_writes.push_back(gc_write_t(id, data, block_offset));
                 }
 
-                rassert(gc_writes.size() == (size_t)num_writes);
+                guarantee(gc_writes.size() == static_cast<size_t>(num_writes));
 
                 gc_state.set_step(gc_write);
 
@@ -821,16 +819,16 @@ void data_block_manager_t::run_gc() {
                 become garbage, which should have caused the extent to be released
                 and gc_state.current_entry to become NULL. */
 
-                rassert(gc_state.current_entry == NULL,
-                        "%zd garbage bytes left on the extent, %zd index-referenced bytes, "
-                        "%zd token-referenced bytes.\n",
-                        gc_state.current_entry->garbage_bytes(),
-                        gc_state.current_entry->index_bytes(),
-                        gc_state.current_entry->token_bytes());
+                guarantee(gc_state.current_entry == NULL,
+                          "%zd garbage bytes left on the extent, %zd index-referenced "
+                          "bytes, %zd token-referenced bytes.\n",
+                          gc_state.current_entry->garbage_bytes(),
+                          gc_state.current_entry->index_bytes(),
+                          gc_state.current_entry->token_bytes());
 
-                rassert(gc_state.refcount == 0);
+                guarantee(gc_state.refcount == 0);
 
-                rassert(gc_state.gc_blocks != NULL);
+                guarantee(gc_state.gc_blocks != NULL);
                 free(gc_state.gc_blocks);
                 gc_state.gc_blocks = NULL;
                 gc_state.set_step(gc_ready);
@@ -851,7 +849,7 @@ void data_block_manager_t::run_gc() {
 }
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
-    rassert(state == state_ready || state == state_shutting_down);
+    guarantee(state == state_ready || state == state_shutting_down);
 
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         if (active_extents[i]) {
@@ -865,8 +863,8 @@ void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 }
 
 bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
-    rassert(cb);
-    rassert(state == state_ready);
+    rassert(cb != NULL);
+    guarantee(state == state_ready);
     state = state_shutting_down;
 
     if (gc_state.step() != gc_ready) {
@@ -880,10 +878,10 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
 }
 
 void data_block_manager_t::actually_shutdown() {
-    rassert(state == state_shutting_down);
+    guarantee(state == state_shutting_down);
     state = state_shut_down;
 
-    rassert(!reconstructed_extents.head());
+    guarantee(reconstructed_extents.head() == NULL);
 
     for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
         if (active_extents[i]) {
@@ -923,25 +921,25 @@ counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
 
     /* Put the block into the chosen extent */
 
-    rassert(active_extents[next_active_extent]->state == gc_entry_t::state_active);
-    rassert(active_extents[next_active_extent]->garbage_bytes() > 0);
-    rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
+    guarantee(active_extents[next_active_extent]->state == gc_entry_t::state_active);
+    guarantee(active_extents[next_active_extent]->garbage_bytes() > 0);
+    guarantee(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
 
     int64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
     active_extents[next_active_extent]->was_written = true;
 
-    rassert(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
+    guarantee(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
     active_extents[next_active_extent]->mark_live_tokenwise(blocks_in_active_extent[next_active_extent]);
-    rassert(!active_extents[next_active_extent]->block_referenced_by_index(blocks_in_active_extent[next_active_extent]));
+    guarantee(!active_extents[next_active_extent]->block_referenced_by_index(blocks_in_active_extent[next_active_extent]));
 
     blocks_in_active_extent[next_active_extent]++;
 
     /* Deactivate the extent if necessary */
 
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        rassert(active_extents[next_active_extent]->garbage_bytes() < static_config->extent_size(),
-                "garbage_bytes() == %zu, extent_size=%" PRIu64,
-                active_extents[next_active_extent]->garbage_bytes(), static_config->extent_size());
+        guarantee(active_extents[next_active_extent]->garbage_bytes() < static_config->extent_size(),
+                  "garbage_bytes() == %zu, extent_size=%" PRIu64,
+                  active_extents[next_active_extent]->garbage_bytes(), static_config->extent_size());
         active_extents[next_active_extent]->state = gc_entry_t::state_young;
         young_extent_queue.push_back(active_extents[next_active_extent]);
         mark_unyoung_entries();
@@ -988,7 +986,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     gc_entry_t *entry = young_extent_queue.head();
     young_extent_queue.remove(entry);
 
-    rassert(entry->state == gc_entry_t::state_young);
+    guarantee(entry->state == gc_entry_t::state_young);
     entry->state = gc_entry_t::state_old;
 
     entry->our_pq_entry = gc_pq.push(entry);
@@ -999,7 +997,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
 void gc_entry_t::add_self_to_parent_entries() {
     unsigned int extent_id = parent->static_config->extent_index(extent_offset);
-    rassert(parent->entries.get(extent_id) == NULL);
+    guarantee(parent->entries.get(extent_id) == NULL);
     parent->entries.set(extent_id, this);
     g_array.set();
 
@@ -1032,7 +1030,7 @@ gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
 
 gc_entry_t::~gc_entry_t() {
     unsigned int extent_id = parent->static_config->extent_index(extent_offset);
-    rassert(parent->entries.get(extent_id) == this);
+    guarantee(parent->entries.get(extent_id) == this);
     parent->entries.set(extent_id, NULL);
 
     --parent->stats->pm_serializer_data_extents;
@@ -1122,7 +1120,7 @@ double data_block_manager_t::garbage_ratio() const {
 bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
     // We _always_ call the callback!
 
-    rassert(gc_state.gc_disable_callback == NULL);
+    guarantee(gc_state.gc_disable_callback == NULL);
     gc_state.should_be_stopped = true;
 
     if (gc_state.step() != gc_ready && gc_state.step() != gc_reconstruct) {
