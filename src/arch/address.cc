@@ -33,7 +33,7 @@ void do_getaddrinfo(const char *node,
                     int *errno_res) {
     *errno_res = 0;
     *retval = getaddrinfo(node, service, hints, res);
-    if (*retval < 0) {
+    if (*retval == EAI_SYSTEM) {
         *errno_res = errno;
     }
 }
@@ -63,7 +63,7 @@ std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {
-        throw host_lookup_exc_t(host, errno_res);
+	throw host_lookup_exc_t(host, res, errno_res);
     }
 
     guarantee(addrs);
