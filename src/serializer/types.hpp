@@ -34,8 +34,8 @@ struct ls_buf_data_t {
 // between the cache and serializer.  When used in memory, this structure _might_ be
 // aligned to a device block size boundary, to save copying when reading from disk.
 // Since block sizes can vary, don't generally assume this to be the case.
-struct serializer_buffer_t {
-    ls_buf_data_t serializer_header;
+struct ser_buffer_t {
+    ls_buf_data_t ser_header;
     char cache_data[];
 } __attribute__((__packed__));
 

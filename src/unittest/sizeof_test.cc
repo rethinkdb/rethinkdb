@@ -14,10 +14,10 @@ TEST(SizeofTest, Sizes) {
     EXPECT_GT(1000u, sizeof(transaction_t));
 }
 
-TEST(SizeofTest, SerializerBuffer) {
+TEST(SizeofTest, SerBuffer) {
     EXPECT_EQ(12u, sizeof(ls_buf_data_t));
-    EXPECT_EQ(12u, sizeof(serializer_buffer_t));
-    EXPECT_EQ(12u, offsetof(serializer_buffer_t, cache_data));
+    EXPECT_EQ(12u, sizeof(ser_buffer_t));
+    EXPECT_EQ(12u, offsetof(ser_buffer_t, cache_data));
 }
 
 
