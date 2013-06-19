@@ -249,7 +249,7 @@ module RethinkDB
           end
           #TODO: Recovery
           begin
-            protob = Response.new.parse_from_string(response)
+            protob = Response.parse(response)
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
