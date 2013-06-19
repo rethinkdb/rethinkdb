@@ -33,6 +33,11 @@
 #include "utils.hpp"
 #include "help.hpp"
 
+#define RETHINKDB_EXPORT_SCRIPT "../scripts/backup/rethinkdb_export.py"
+#define RETHINKDB_IMPORT_SCRIPT "../scripts/backup/rethinkdb_import.py"
+#define RETHINKDB_DUMP_SCRIPT "../scripts/backup/rethinkdb_dump.py"
+#define RETHINKDB_RESTORE_SCRIPT "../scripts/backup/rethinkdb_restore.py"
+
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
     FILE *fp1 = fopen(path, "w");
@@ -1412,115 +1417,37 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-int main_rethinkdb_import(int argc, char *argv[]) {
-    std::vector<options::option_t> options;
-    std::vector<options::help_section_t> help;
-    get_rethinkdb_import_options(&help, &options);
-
-    try {
-        std::map<std::string, options::values_t> opts = parse_commands_deep(argc - 2, argv + 2, options);
-
-        if (handle_help_or_version_option(opts, &help_rethinkdb_import)) {
-            return EXIT_SUCCESS;
-        }
-
-        options::verify_option_counts(options, opts);
-
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
-
-        if (joins.empty()) {
-            fprintf(stderr, "No --join option(s) given. An import process needs to connect to something!\n"
-                    "Run 'rethinkdb help import' for more information.\n");
-            return EXIT_FAILURE;
-        }
-
-
-#ifndef NDEBUG
-        int client_port = get_single_int(opts, "--client-port");
-#else
-        int client_port = port_defaults::client_port;
-#endif
-        std::string db_table = get_single_option(opts, "--table");
-        std::string db_name_str;
-        std::string table_name_str;
-        if (!split_db_table(db_table, &db_name_str, &table_name_str)) {
-            fprintf(stderr, "--table option should have format database_name.table_name\n");
-            return EXIT_FAILURE;
-        }
-
-        name_string_t db_name;
-        if (!db_name.assign_value(db_name_str)) {
-            fprintf(stderr, "ERROR: database name invalid. (%s)  e.g. --table database_name.table_name\n", name_string_t::valid_char_msg);
-        }
-
-        name_string_t table_name;
-        if (!table_name.assign_value(table_name_str)) {
-            fprintf(stderr, "ERROR: table name invalid.  (%s)  e.g. database_name.table_name\n", name_string_t::valid_char_msg);
-            return EXIT_FAILURE;
-        }
-
-        boost::optional<std::string> datacenter_name_arg = get_optional_option(opts, "--datacenter");
-        boost::optional<name_string_t> datacenter_name;
-        if (datacenter_name_arg) {
-            name_string_t tmp;
-            if (!tmp.assign_value(*datacenter_name_arg)) {
-                fprintf(stderr, "ERROR: datacenter name invalid.  (%s)\n", name_string_t::valid_char_msg);
-                return EXIT_FAILURE;
-            }
-            *datacenter_name = tmp;
-        }
-
-        std::string primary_key = get_single_option(opts, "--primary-key");
-
-        std::string separators = get_single_option(opts, "--separators");
-        if (separators.empty()) {
-            return EXIT_FAILURE;
-        }
-        std::string input_filepath = get_single_option(opts, "--input-file");
-        // TODO: Is there really any point to specially handling an empty string path?
-        if (input_filepath.empty()) {
-            fprintf(stderr, "Please supply a non-empty --input-file option.\n");
-            return EXIT_FAILURE;
-        }
-
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
-
-        json_import_target_t target;
-        target.db_name = db_name;
-        target.datacenter_name = datacenter_name;
-        target.table_name = table_name;
-        target.primary_key = primary_key;
-
-        // Don't bind to any local addresses -- don't listen for any incoming connections.
-        const std::set<ip_address_t> local_addresses;
-
-        const int num_workers = get_cpu_count();
-        bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_import,
-                                       &spawner_info,
-                                       joins,
-                                       local_addresses,
-                                       client_port,
-                                       target,
-                                       separators,
-                                       input_filepath,
-                                       &result),
-                           num_workers);
-
-        return result ? EXIT_SUCCESS : EXIT_FAILURE;
-    } catch (const options::named_error_t &ex) {
-        output_named_error(ex, help);
-        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
-    } catch (const options::option_error_t &ex) {
-        output_sourced_error(ex);
-        fprintf(stderr, "Run 'rethinkdb help import' for help on the command\n");
-    } catch (const std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+int main_rethinkdb_export(int, char *argv[]) {
+    int res = execvp(RETHINKDB_EXPORT_SCRIPT, argv + 2);
+    if (res == -1) {
+        fprintf(stderr, "Error when launching export script: %s\n", errno_string(errno).c_str());
     }
     return EXIT_FAILURE;
 }
 
+int main_rethinkdb_import(int, char *argv[]) {
+    int res = execvp(RETHINKDB_IMPORT_SCRIPT, argv + 2);
+    if (res == -1) {
+        fprintf(stderr, "Error when launching import script: %s\n", errno_string(errno).c_str());
+    }
+    return EXIT_FAILURE;
+}
+
+int main_rethinkdb_dump(int, char *argv[]) {
+    int res = execvp(RETHINKDB_DUMP_SCRIPT, argv + 2);
+    if (res == -1) {
+        fprintf(stderr, "Error when launching dump script: %s\n", errno_string(errno).c_str());
+    }
+    return EXIT_FAILURE;
+}
+
+int main_rethinkdb_restore(int, char *argv[]) {
+    int res = execvp(RETHINKDB_RESTORE_SCRIPT, argv + 2);
+    if (res == -1) {
+        fprintf(stderr, "Error when launching restore script: %s\n", errno_string(errno).c_str());
+    }
+    return EXIT_FAILURE;
+}
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     std::vector<options::option_t> options;
@@ -1681,14 +1608,30 @@ void help_rethinkdb_proxy() {
     help.pagef("%s", format_help(help_sections).c_str());
 }
 
-void help_rethinkdb_import() {
-    std::vector<options::help_section_t> help_sections;
-    {
-        std::vector<options::option_t> options;
-        get_rethinkdb_import_options(&help_sections, &options);
+void help_rethinkdb_export() {
+    int res = execlp(RETHINKDB_EXPORT_SCRIPT, "--help", static_cast<char*>(NULL));
+    if (res == -1) {
+        fprintf(stderr, "Error when launching export script: %s\n", errno_string(errno).c_str());
     }
+}
 
-    help_pager_t help;
-    help.pagef("'rethinkdb import' imports content from a CSV file.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+void help_rethinkdb_import() {
+    int res = execlp(RETHINKDB_IMPORT_SCRIPT, "--help", static_cast<char*>(NULL));
+    if (res == -1) {
+        fprintf(stderr, "Error when launching import script: %s\n", errno_string(errno).c_str());
+    }
+}
+
+void help_rethinkdb_dump() {
+    int res = execlp(RETHINKDB_DUMP_SCRIPT, "--help", static_cast<char*>(NULL));
+    if (res == -1) {
+        fprintf(stderr, "Error when launching dump script: %s\n", errno_string(errno).c_str());
+    }
+}
+
+void help_rethinkdb_restore() {
+    int res = execlp(RETHINKDB_RESTORE_SCRIPT, "--help", static_cast<char*>(NULL));
+    if (res == -1) {
+        fprintf(stderr, "Error when launching restore script: %s\n", errno_string(errno).c_str());
+    }
 }

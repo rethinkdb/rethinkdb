@@ -2,13 +2,13 @@
 import sys, os, datetime, time, threading, copy, json, traceback, csv
 from optparse import OptionParser
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'drivers', 'python')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
 
 def parse_options():
     parser = OptionParser()
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth_key", dest="auth_key", metavar="AUTHKEY", default="", type="string")
+    parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
     parser.add_option("--force", dest="force", action="store_true", default=False)
 
