@@ -22,10 +22,21 @@ typedef uint64_t block_sequence_id_t;
 #define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
 #define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
 
-// A struct that
+// The first bytes of any block stored on disk or (as it happens) cached in memory.
 struct ls_buf_data_t {
     block_id_t block_id;
     block_sequence_id_t block_sequence_id;
+} __attribute__((__packed__));
+
+// For use via scoped_malloc_t, a buffer that represents a block on disk.  Contains
+// convenient access to the serializer header and cache portion of the block.  This
+// is better than (e.g.) performing arithmetic on void pointers when passing bufs
+// between the cache and serializer.  When used in memory, this structure _might_ be
+// aligned to a device block size boundary, to save copying when reading from disk.
+// Since block sizes can vary, don't generally assume this to be the case.
+struct serializer_buffer_t {
+    ls_buf_data_t serializer_header;
+    char cache_data[];
 } __attribute__((__packed__));
 
 
