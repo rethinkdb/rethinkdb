@@ -374,38 +374,23 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void *log_serializer_t::malloc() {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
+scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
+    scoped_malloc_t<ser_buffer_t> buf(
+        malloc_aligned(static_config.block_size().ser_value(),
+                       DEVICE_BLOCK_SIZE));
 
     // Initialize the block sequence id...
-    reinterpret_cast<ls_buf_data_t *>(data)->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
+    buf->ser_header.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
+    return buf;
 }
 
-// TODO: Make this parameter const void.
-void *log_serializer_t::clone(void *_data) {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char*>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
-    memcpy(data, reinterpret_cast<char*>(_data) - sizeof(ls_buf_data_t), static_config.block_size().ser_value());
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
-}
-
-void log_serializer_t::free(void *ptr) {
-    char *data = reinterpret_cast<char *>(ptr);
-    data -= sizeof(ls_buf_data_t);
-    ::free(reinterpret_cast<void *>(data));
+scoped_malloc_t<ser_buffer_t> log_serializer_t::clone(const ser_buffer_t *_data) {
+    // RSI: We should presumably pass in a ser_block_size to this function.
+    scoped_malloc_t<ser_buffer_t> buf(
+        malloc_aligned(static_config.block_size().ser_value(),
+                       DEVICE_BLOCK_SIZE));
+    memcpy(buf.get(), _data, static_config.block_size().ser_value());
+    return buf;
 }
 
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
@@ -931,13 +916,14 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 
 bool log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
-        void *buf,
+        ser_buffer_t *buf,
         block_size_t block_size,
         const counted_t<standard_block_token_t>& token,
         repli_timestamp_t recency_timestamp) {
     assert_thread();
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, block_size,
+        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
+                                                          buf, block_size,
                                                           token, recency_timestamp)) {
             return true;
         }

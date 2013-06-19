@@ -50,15 +50,13 @@ private:
         buf1_A.release();
 
         // create a fake buffer (be careful with populating it with data
-        void *fake_buf = serializer->malloc();
-        ls_buf_data_t *ser_data = reinterpret_cast<ls_buf_data_t *>(fake_buf);
-        ser_data--;
-        ser_data->block_id = serializer->translate_block_id(block_A);
-        ser_data->block_sequence_id = 1;
+        ser_buffer_t *fake_buf = serializer->malloc().release();
+        fake_buf->ser_header.block_id = serializer->translate_block_id(block_A);
+        fake_buf->ser_header.block_sequence_id = 1;
 
         EXPECT_FALSE(cache->contains_block(block_A));
         cache->offer_read_ahead_buf(block_A,
-                                    ser_data + 1,
+                                    fake_buf,
                                     serializer->get_block_size(),
                                     counted_t<standard_block_token_t>(),
                                     repli_timestamp_t::distant_past);

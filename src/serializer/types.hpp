@@ -223,42 +223,44 @@ struct serializer_traits_t<serializer_t> {
 // TODO: time_t's size is system-dependent.
 typedef time_t creation_timestamp_t;
 
-
+// RSI: Get rid of this datatype.
 class serializer_data_ptr_t {
 public:
-    serializer_data_ptr_t() : ptr_(0) { }
-    // TODO: Get rid of this constructor.
+    serializer_data_ptr_t() { }
+    // RSI: Get rid of this constructor.
     explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
+    explicit serializer_data_ptr_t(scoped_malloc_t<ser_buffer_t> &&ptr)
+        : ptr_(std::move(ptr)) { }
     ~serializer_data_ptr_t() {
-        rassert(!ptr_);
+        // RSI: This assertion is antiquated.
+        rassert(!ptr_.has());
     }
 
-    void free(serializer_t *ser);
+    void free();
     void init_malloc(serializer_t *ser);
-    void init_clone(serializer_t *ser, const serializer_data_ptr_t& other);
-
-    void swap(serializer_data_ptr_t& other) {
-        void *tmp = ptr_;
-        ptr_ = other.ptr_;
-        other.ptr_ = tmp;
+    void init_clone(serializer_t *ser, const serializer_data_ptr_t &other)
+;
+    void swap(serializer_data_ptr_t &other) {
+        std::swap(ptr_, other.ptr_);
     }
 
     bool has() const {
-        return ptr_;
+        return ptr_.has();
     }
 
     void *get() const {
-        rassert(ptr_);
-        return ptr_;
+        rassert(ptr_.has());
+        char *ret = ptr_->cache_data;
+        return ret;
     }
 
     // TODO: All uses of this function are disgusting.
     bool equals(const void *buf) const {
-        return ptr_ == buf;
+        return (ptr_.has() ? ptr_->cache_data : NULL) == buf;
     }
 
 private:
-    void *ptr_;
+    scoped_malloc_t<ser_buffer_t> ptr_;
     DISABLE_COPYING(serializer_data_ptr_t);
 };
 
@@ -266,8 +268,11 @@ private:
 class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
-    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf,
+    // RSI: This requirement (and passing a raw pointer) is stupid.
+    /* If the callee returns true, it is responsible to free buf by calling free(buf)
+       in the corresponding serializer. */
+    virtual bool offer_read_ahead_buf(block_id_t block_id,
+                                      ser_buffer_t *buf,
                                       block_size_t block_size,
                                       const counted_t<standard_block_token_t>& token,
                                       repli_timestamp_t recency_timestamp) = 0;

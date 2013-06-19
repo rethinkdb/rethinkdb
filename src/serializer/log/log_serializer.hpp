@@ -122,9 +122,8 @@ public:
 
 public:
     /* Implementation of the serializer_t API */
-    void *malloc();
-    void *clone(void*); // clones a buf
-    void free(void*);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
@@ -159,7 +158,7 @@ private:
 
     bool offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
-            void *buf,
+            ser_buffer_t *buf,
             block_size_t block_size,
             const counted_t<standard_block_token_t>& token,
             repli_timestamp_t recency_timestamp);

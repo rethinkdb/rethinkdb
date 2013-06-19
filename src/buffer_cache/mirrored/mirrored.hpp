@@ -65,7 +65,10 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id,
+                   scoped_malloc_t<ser_buffer_t> &&buf,
+                   const counted_t<standard_block_token_t>& token,
+                   repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -349,12 +352,18 @@ private:
     void on_transaction_commit(mc_transaction_t *txn);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, block_size_t block_size,
+    bool offer_read_ahead_buf(block_id_t block_id,
+                              ser_buffer_t *buf,
+                              block_size_t block_size,
                               const counted_t<standard_block_token_t>& token,
                               repli_timestamp_t recency_timestamp);
 
 private:
-    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf_home_thread(
+            block_id_t block_id,
+            ser_buffer_t *buf,
+            const counted_t<standard_block_token_t>& token,
+            repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 

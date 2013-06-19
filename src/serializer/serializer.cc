@@ -110,19 +110,18 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
     ser->index_write(index_write_ops, io_account);
 }
 
-void serializer_data_ptr_t::free(serializer_t *ser) {
-    rassert(ptr_);
-    ser->free(ptr_);
-    ptr_ = NULL;
+void serializer_data_ptr_t::free() {
+    rassert(ptr_.has());
+    ptr_.reset();
 }
 
 void serializer_data_ptr_t::init_malloc(serializer_t *ser) {
-    rassert(!ptr_);
+    rassert(!ptr_.has());
     ptr_ = ser->malloc();
 }
 
 void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_ptr_t& other) {
-    rassert(other.ptr_);
-    rassert(!ptr_);
-    ptr_ = ser->clone(other.ptr_);
+    rassert(other.ptr_.has());
+    rassert(!ptr_.has());
+    ptr_ = ser->clone(other.ptr_.get());
 }

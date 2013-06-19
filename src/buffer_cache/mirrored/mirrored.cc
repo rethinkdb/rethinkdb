@@ -54,7 +54,7 @@ private:
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
         if (data.has()) {
-            data.free(cache->serializer);
+            data.free();
         }
 
         if (in_page_repl()) {
@@ -117,7 +117,7 @@ public:
         // Acquiring the mutex isn't necessary here because active_refcount == 0.
         rassert(safe_to_unload());
         rassert(data.has());
-        data.free(cache->serializer);
+        data.free();
     }
 
 private:
@@ -209,12 +209,15 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id,
+                               scoped_malloc_t<ser_buffer_t> &&_buf,
+                               const counted_t<standard_block_token_t>& token,
+                               repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
-      data(_buf),
+      data(std::move(_buf)),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       data_token(token),
       lock(),
@@ -332,7 +335,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 
     rassert(safe_to_unload());
     if (data.has()) {
-        data.free(cache->serializer);
+        data.free();
     }
 
     if (in_page_repl()) {
@@ -785,7 +788,7 @@ void mc_buf_lock_t::mark_deleted() {
         // We already asserted above that data ==
         // inner_buf->data.get(), and snapshot_if_needed would not
         // change that if it returned false.
-        inner_buf->data.free(inner_buf->cache->serializer);
+        inner_buf->data.free();
     } else {
         rassert(!inner_buf->data.has(), "We snapshotted with deletion in mind but inner_buf still has a live data.");
     }
@@ -1103,15 +1106,13 @@ void mc_cache_t::create(serializer_t *serializer) {
 
     on_thread_t switcher(serializer->home_thread());
 
-    void *superblock = serializer->malloc();
-    bzero(superblock, serializer->get_block_size().value());
+    scoped_malloc_t<ser_buffer_t> superblock = serializer->malloc();
+    bzero(superblock->cache_data, serializer->get_block_size().value());
 
     index_write_op_t op(SUPERBLOCK_ID);
-    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.token = serializer->block_write(superblock->cache_data, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
-
-    serializer->free(superblock);
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
@@ -1307,27 +1308,35 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf,
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id,
+                                      ser_buffer_t *buf,
                                       block_size_t block_size,
                                       const counted_t<standard_block_token_t>& token,
                                       repli_timestamp_t recency_timestamp) {
     // RSI: We should actually use different block sizes at some point.
     guarantee(block_size.value() == get_block_size().value());
 
-    // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
+    // Note that the offered block might get deleted between the point where the
+    // serializer offers it and the message gets delivered!
+    do_on_thread(home_thread(),
+                 std::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this,
+                           block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(
+        block_id_t block_id,
+        ser_buffer_t *buf,
+        const counted_t<standard_block_token_t> &token,
+        repli_timestamp_t recency_timestamp) {
     assert_thread();
 
+    scoped_malloc_t<ser_buffer_t> local_buf(buf);
     // Check that the offered block is allowed to be accepted at the current time
     // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
     if (can_read_ahead_block_be_accepted(block_id)) {
-        new mc_inner_buf_t(this, block_id, buf, token, recency_timestamp);
-    } else {
-        serializer->free(buf);
+        new mc_inner_buf_t(this, block_id, std::move(local_buf),
+                           token, recency_timestamp);
     }
 }
 

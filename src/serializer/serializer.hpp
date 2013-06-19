@@ -42,9 +42,8 @@ public:
     /* The buffers that are used with do_read() and do_write() must be allocated using
     these functions. They can be safely called from any thread. */
 
-    virtual void *malloc() = 0;
-    virtual void *clone(void*) = 0; // clones a buf
-    virtual void free(void*) = 0;
+    virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
+    virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */

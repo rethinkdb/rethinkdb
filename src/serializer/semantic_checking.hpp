@@ -34,7 +34,6 @@ private:
     two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
     int last_index_write_started, last_index_write_finished;
     scoped_ptr_t<semantic_checking_file_t> semantic_file;
-    std::set<const void *> malloced_bufs;
 
     // Helper functions
     uint32_t compute_crc(const void *buf);
@@ -53,9 +52,8 @@ public:
     semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
-    void *malloc();
-    void *clone(void *data);
-    void free(void *ptr);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *data);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);

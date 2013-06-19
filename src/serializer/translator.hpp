@@ -113,9 +113,8 @@ public:
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
     translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
 
-    void *malloc();
-    void *clone(void*);
-    void free(void *ptr);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
     /* Allocates a new io account for the underlying file */
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
@@ -145,7 +144,9 @@ public:
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, block_size_t block_size,
+    bool offer_read_ahead_buf(block_id_t block_id,
+                              ser_buffer_t *buf,
+                              block_size_t block_size,
                               const counted_t<standard_block_token_t>& token,
                               repli_timestamp_t recency_timestamp);
 };

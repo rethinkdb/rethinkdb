@@ -227,11 +227,15 @@ public:
         swap(tmp);
     }
 
-    T *get() { return ptr_; }
-    const T *get() const { return ptr_; }
-    T *operator->() { return ptr_; }
-    const T *operator->() const { return ptr_; }
-    T& operator*() { return *ptr_; }
+    T *get() const { return ptr_; }
+    T *operator->() const { return ptr_; }
+    T &operator*() const { return *ptr_; }
+
+    T *release() {
+        T *tmp = ptr_;
+        ptr_ = NULL;
+        return tmp;
+    }
 
     void reset() {
         scoped_malloc_t tmp;

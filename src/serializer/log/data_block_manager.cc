@@ -297,16 +297,12 @@ public:
                 }
 
                 const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
-                // malloc increments the buf pointer already.  RSI: Fix this
-                // interface.  Also we shouldn't have serializer->malloc anymore.
-                ls_buf_data_t *data = static_cast<ls_buf_data_t *>(parent->serializer->malloc());
-                --data;
+                scoped_malloc_t<ser_buffer_t> data = parent->serializer->malloc();
                 // RSI: Could probably just use a single lba_index get_block_info call.
                 const uint32_t ser_block_size
                     = parent->serializer->lba_index->get_ser_block_size(block_id);
-                memcpy(data, current_buf, ser_block_size);
+                memcpy(data.get(), current_buf, ser_block_size);
                 guarantee(ser_block_size <= *(lower_it + 1) - *lower_it);
-                ++data;
 
                 counted_t<ls_block_token_pointee_t> ls_token
                     = parent->serializer->generate_block_token(current_offset, ser_block_size);
@@ -314,16 +310,18 @@ public:
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
 
+                ser_buffer_t *released_data = data.release();
+
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(
                             block_id,
-                            data,
+                            released_data,
                             block_size_t::unsafe_make(ser_block_size),
                             token,
                             recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again.
                     // RSI: This whole serializer-owned buffer thing and lifetime
                     // management is crap.
-                    parent->serializer->free(data);
+                    free(released_data);
                     continue;
                 }
             }

@@ -61,39 +61,15 @@ template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::~semantic_checking_serializer_t() { }
 
 template<class inner_serializer_t>
-void *semantic_checking_serializer_t<inner_serializer_t>::malloc() {
-    void *p = inner_serializer.malloc();
-
-    // This can be called from any thread, so we can't do these checks.
-    // TODO: Enable these checks.
-
-    // rassert(malloced_bufs.find(p) == malloced_bufs.end());
-    // malloced_bufs.insert(p);
-    return p;
+scoped_malloc_t<ser_buffer_t>
+semantic_checking_serializer_t<inner_serializer_t>::malloc() {
+    return inner_serializer.malloc();
 }
 
 template<class inner_serializer_t>
-void *semantic_checking_serializer_t<inner_serializer_t>::clone(void *data) {
-    void *p = inner_serializer.clone(data);
-
-    // This can be called from any thread, so we can't do these checks.
-
-    // rassert(malloced_bufs.find(p) == malloced_bufs.end());
-    // malloced_bufs.insert(p);
-    return p;
-}
-
-template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::free(void *ptr) {
-    inner_serializer.free(ptr);
-
-    // This can be called from any thread, so we can't do these checks.
-
-    // std::set<const void *>::iterator it = malloced_bufs.find(ptr);
-    // rassert(it != malloced_bufs.end());
-    // malloced_bufs.erase(it);
-    // inner_serializer.free(ptr);
-
+scoped_malloc_t<ser_buffer_t>
+semantic_checking_serializer_t<inner_serializer_t>::clone(const ser_buffer_t *data) {
+    return inner_serializer.clone(data);
 }
 
 template<class inner_serializer_t>

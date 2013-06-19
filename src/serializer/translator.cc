@@ -33,8 +33,9 @@ void prep_serializer(
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
-    multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
-        ser->malloc());
+    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    multiplexer_config_block_t *c
+        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
     bzero(c, ser->get_block_size().value());
     c->magic = multiplexer_config_block_t::expected_magic;
@@ -47,8 +48,6 @@ void prep_serializer(
     op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
-
-    ser->free(c);
 }
 
 /* static */
@@ -72,7 +71,9 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
-    multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
+    scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    multiplexer_config_block_t *c
+        = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
     ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
     /* Verify that stuff is sane */
@@ -115,8 +116,6 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
             k / underlying.size(),
             CONFIG_BLOCK_ID   /* Reserve block ID 0 */);
     }
-
-    ser->free(c);
 }
 
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
@@ -130,15 +129,15 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
-        multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
-            underlying[0]->malloc());
+        scoped_malloc_t<ser_buffer_t> buf = underlying[0]->malloc();
+
+        multiplexer_config_block_t *c
+            = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
         underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
         rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
-
-        underlying[0]->free(c);
     }
 
     /* Now go to each serializer and verify it individually. We visit the first serializer twice
@@ -197,16 +196,12 @@ translator_serializer_t::translator_serializer_t(standard_serializer_t *_inner, 
     rassert(mod_id < mod_count);
 }
 
-void *translator_serializer_t::malloc() {
+scoped_malloc_t<ser_buffer_t> translator_serializer_t::malloc() {
     return inner->malloc();
 }
 
-void *translator_serializer_t::clone(void *data) {
+scoped_malloc_t<ser_buffer_t> translator_serializer_t::clone(const ser_buffer_t *data) {
     return inner->clone(data);
-}
-
-void translator_serializer_t::free(void *ptr) {
-    inner->free(ptr);
 }
 
 file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
@@ -280,7 +275,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
 
 bool translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
-        void *buf,
+        ser_buffer_t *buf,
         block_size_t block_size,
         const counted_t<standard_block_token_t> &token,
         repli_timestamp_t recency_timestamp) {
@@ -298,11 +293,11 @@ bool translator_serializer_t::offer_read_ahead_buf(
         if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, block_size,
                                                        token, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
-            inner->free(buf);
+            free(buf);
         }
     } else {
         // Discard the buffer
-        inner->free(buf);
+        free(buf);
     }
     return true;
 }
