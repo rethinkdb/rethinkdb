@@ -2983,7 +2983,7 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and value.constructor is ArrayResult
+            else if value.constructor? and (value.constructor is ArrayResult or value.constructor is Array)
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
