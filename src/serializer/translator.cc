@@ -281,6 +281,11 @@ bool translator_serializer_t::offer_read_ahead_buf(
         repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
+    if (block_id == 0) {
+        // Serializer multiplexer config block is not of interest.
+        return false;
+    }
+
     // Offer the buffer if we are the correct shard
     const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count, cfgid);
     if (buf_mod_id != this->mod_id) {
