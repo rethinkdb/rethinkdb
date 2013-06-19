@@ -142,76 +142,40 @@ void unaligned_read_ahead_interval(const int64_t block_offset,
                                    const std::vector<uint32_t> &boundaries,
                                    int64_t *const offset_out,
                                    int64_t *const end_offset_out) {
-    const char *failure_expr;
+    guarantee(!boundaries.empty());
+    guarantee(ser_block_size > 0);
+    guarantee(boundaries.back() <= extent_size);
 
-    // We're slightly paranoid about logic mistakes in this function.  Instead of
-    // assertions or crashing guarantees, we just bail out, returning the perfectly
-    // safe values block_offset and ser_block_size and logging a warning.
-#define CHECK_AND_BAILOUT(cond) do { \
-        if (!(cond)) { \
-            failure_expr = #cond; goto bailout; \
-        } \
-    } while (false)
+    const int64_t extent = floor_aligned(block_offset, extent_size);
 
-    CHECK_AND_BAILOUT(!boundaries.empty());
-    CHECK_AND_BAILOUT(ser_block_size > 0);
-    CHECK_AND_BAILOUT(boundaries.back() <= extent_size);
+    const int64_t raw_readahead_floor = floor_aligned(block_offset, read_ahead_size);
+    const int64_t raw_readahead_ceil = raw_readahead_floor + read_ahead_size;
 
-    {
-        const int64_t extent = floor_aligned(block_offset, extent_size);
+    // In case the extent size is configured to something weird, we cannot assume
+    // that the readahead values are contained within the extent.
+    const int64_t readahead_floor = std::max(raw_readahead_floor, extent);
+    const int64_t readahead_ceil = std::min(raw_readahead_ceil, extent + extent_size);
 
-        const int64_t raw_readahead_floor = floor_aligned(block_offset, read_ahead_size);
-        const int64_t raw_readahead_ceil = raw_readahead_floor + read_ahead_size;
+    auto beg_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
+                                   readahead_floor - extent);
+    auto end_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
+                                   readahead_ceil - extent);
 
-        // In case the extent size is configured to something weird, we cannot assume
-        // that the readahead values are contained within the extent.
-        const int64_t readahead_floor = std::max(raw_readahead_floor, extent);
-        const int64_t readahead_ceil = std::min(raw_readahead_ceil, extent + extent_size);
+    guarantee(beg_it < end_it);
 
-        auto beg_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
-                                       readahead_floor - extent);
-        auto end_it = std::lower_bound(boundaries.begin(), boundaries.end() - 1,
-                                       readahead_ceil - extent);
+    int64_t beg_ret = *beg_it + extent;
+    int64_t end_ret = *end_it + extent;
 
-        CHECK_AND_BAILOUT(beg_it < end_it);
+    guarantee(beg_ret <= block_offset);
 
-        int64_t beg_ret = *beg_it + extent;
-        int64_t end_ret = *end_it + extent;
+    // Since readahead_ceil > block_offset, and since the next block boundary is >=
+    // block_offset + ser_block_size, we know end_ret >= block_offset +
+    // ser_block_size.
+    guarantee(end_ret >= block_offset + ser_block_size);
+    guarantee(end_ret <= extent + extent_size);
 
-        CHECK_AND_BAILOUT(beg_ret <= block_offset);
-
-        // Since readahead_ceil > block_offset, and since the next block boundary is >=
-        // block_offset + ser_block_size, we know end_ret >= block_offset +
-        // ser_block_size.
-        CHECK_AND_BAILOUT(end_ret >= block_offset + ser_block_size);
-        CHECK_AND_BAILOUT(end_ret <= extent + extent_size);
-
-        *offset_out = beg_ret;
-        *end_offset_out = end_ret;
-        return;
-    }
-
-#undef CHECK_AND_BAILOUT
-
- bailout:
-    printf_buffer_t boundaries_buf;
-    debug_print(&boundaries_buf, boundaries);
-
-    logWRN("unaligned_read_ahead_offset_and_size logic failed (in check %s).  "
-           "Don't panic!  "
-           "Falling back to safe behavior.  (block_offset = %" PRIi64
-           ", ser_block_size = %" PRIu32
-           ", extent_size = %" PRIi64 ", read_ahead_size = %" PRIi64
-           "boundaries = %s)",
-           failure_expr,
-           block_offset, ser_block_size, extent_size, read_ahead_size,
-           boundaries_buf.c_str());
-
-    // Crash now in debug mode.
-    rassert(false);
-
-    *offset_out = block_offset;
-    *end_offset_out = block_offset + ser_block_size;
+    *offset_out = beg_ret;
+    *end_offset_out = end_ret;
 }
 
 // Computes a device block size aligned interval to be read for the purposes of
