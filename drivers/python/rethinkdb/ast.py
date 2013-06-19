@@ -647,8 +647,8 @@ class Table(RqlQuery):
     def get(self, key):
         return Get(self, key)
 
-    def get_all(self, key, index=()):
-        return GetAll(self, key, index=index)
+    def get_all(self, *keys, **kwargs):
+        return GetAll(self, *keys, **kwargs)
 
     def index_create(self, name, fundef=None):
         if fundef:
