@@ -10,7 +10,8 @@ commands:
     description: |
       Create a table. A RethinkDB table is a collection of JSON documents.
       <br /><br />If successful, the operation returns an object: <code>{created: 1}</code>.  If
-      a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.
+      a table with the same name already exists, the operation throws <code>RqlRuntimeError</code>.<br />
+      Note that you can only use alphanumeric characters and underscores for the database name.<br/>
       <br /><br />When creating a table you can specify the following options:
       <ul>
       <li><code>primary_key</code>(string): the name of the primary key. The default primary key is <code>id</code>;</li>
