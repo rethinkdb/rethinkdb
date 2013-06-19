@@ -139,7 +139,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/semilattice/" + @resolution_url
+                url: @resolution_url
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(@final_value)
@@ -320,10 +320,12 @@ module 'ResolveIssuesView', ->
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
-                if @model.get('object_type') is 'namespace'
-                    return 'rdb_'+@model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+                if @model.get('field') is 'auth_key'
+                    return '/ajax/auth/auth_key/resolve'
+                else if @model.get('object_type') is 'namespace'
+                    return '/ajax/semilattice/rdb_'+@model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
                 else
-                    return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+                    return '/ajax/semilattice/'+@model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
 
             # Remove the old handler before we rerender
             if @contestants?
@@ -335,7 +337,7 @@ module 'ResolveIssuesView', ->
             else
                 # grab possible conflicting values
                 $.ajax
-                    url: '/ajax/semilattice/' + get_resolution_url()
+                    url: get_resolution_url()
                     type: 'GET'
                     contentType: 'application/json'
                     async: false
