@@ -7,6 +7,7 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-o", dest="out_file", metavar="FILE", default=None, type="string")
+    parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
@@ -31,6 +32,7 @@ def parse_options():
     if os.path.exists(res["out_file"]):
         raise RuntimeError("Output file already exists")
 
+    res["tables"] = options.tables
     res["auth_key"] = options.auth_key
     return res
 
@@ -48,13 +50,22 @@ def run_rethinkdb_export(options):
     try:
         # TODO: filter stdout/stderr
         out_dir = os.path.join(temp_dir, options["temp_filename"])
-        res = subprocess.call([export_script, "--connect", "%s:%s" % (options["host"], options["port"]), "--directory", out_dir, "--auth", options["auth_key"]]) 
 
+        export_args = [export_script]
+        export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
+        export_args.extend(["--directory", out_dir])
+        export_args.extend(["--auth", options["auth_key"]])
+        for table in options["tables"]:
+            export_args.extend(["--export", table])
+
+        res = subprocess.call(export_args)
         if res != 0:
             raise RuntimeError("rethinkdb export failed")
 
-        res = subprocess.call(["tar", "czf", options["out_file"], "--remove-files", "-C", temp_dir, options["temp_filename"]])
-
+        tar_args = ["tar", "czf", options["out_file"], "--remove-files"]
+        tar_args.extend(["-C", temp_dir])
+        tar_args.append(options["temp_filename"])
+        res = subprocess.call(tar_args)
         if res != 0:
             raise RuntimeError("tar of export directory failed")
     finally:

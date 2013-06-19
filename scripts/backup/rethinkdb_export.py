@@ -55,6 +55,8 @@ def parse_options():
         if options.format == "csv":
             raise RuntimeError("Cannot write a csv with no fields selected")
         res["fields"] = None
+    elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
+        raise RuntimeError("Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
 

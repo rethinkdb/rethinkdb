@@ -36,12 +36,6 @@ def parse_options():
         raise RuntimeError("Invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
-    # Parse fields
-    if options.fields is None:
-        res["fields"] = None
-    else:
-        res["fields"] = options.fields.split(",")
-
     res["auth_key"] = options.auth_key
     res["force"] = options.force
 
@@ -63,7 +57,7 @@ def parse_options():
         if not os.path.exists(res["directory"]):
             raise RuntimeError("directory to import does not exist")
 
-        # Verify valid --export options
+        # Verify valid --import options
         res["dbs"] = []
         res["tables"] = []
         for item in options.tables:
@@ -74,6 +68,14 @@ def parse_options():
                 res["tables"].append(tuple(db_table))
             else:
                 raise RuntimeError("Invalid 'db' or 'db.table' format: %s" % item)
+
+        # Parse fields
+        if options.fields is None:
+            res["fields"] = None
+        elif len(res["dbs"]) != 0 or len(res["tables"] != 1):
+            raise RuntimeError("Can only use the --fields option when importing a single table")
+        else:
+            res["fields"] = options.fields.split(",")
         
     elif options.import_file is not None:
         # Single file mode, verify file import options
@@ -103,6 +105,12 @@ def parse_options():
         if len(db_table) != 2:
             raise RuntimeError("Invalid 'db.table' format: %s" % db_table)
         res["import_db_table"] = db_table
+
+        # Parse fields
+        if options.fields is None:
+            res["fields"] = None
+        else:
+            res["fields"] = options.fields.split(",")
 
         res["primary_key"] = options.primary_key
     else:
@@ -252,16 +260,24 @@ def import_directory(options):
             r.db_create(db).run(conn)
 
     # Ensure that all tables do not exist (unless --forced)
+    already_exist = []
     for file_info in files_info:
         table = file_info["table"]
         db = file_info["db"]
         if table in r.db(db).table_list().run(conn):
             if not options["force"]:
-                raise RuntimeError("table '%s.%s' already exists, run with --force if you want to import into the existing table" % (db, table))
+                already_exist.append("%s.%s" % (db, table))
 
             extant_primary_key = r.db(db).table(table).info().run(conn)["primary_key"]
             if file_info["info"]["primary_key"] != extant_primary_key:
                 raise RuntimeError("table '%s.%s' already exists with a different primary key" % (db, table))
+
+    if len(already_exist) == 1:
+        raise RuntimeError("table '%s.%s' already exists, run with --force to import into the existing table" % (db, table))
+    elif len(already_exist) > 1:
+        already_exist.sort()
+        extant_tables = "\n  ".join(already_exist)
+        raise RuntimeError("the following tables already exist, run with --force to import into the existing tables:\n  %s" % extant_tables)
 
     spawn_import_clients(options, files_info)
 
