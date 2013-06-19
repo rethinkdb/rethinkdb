@@ -11,8 +11,8 @@ commands:
       Create a database. A RethinkDB database is a collection of tables,
       similar to relational databases.<br /><br />If successful, the operation returns
       an object: <code>{created: 1}</code>. If a database with the same name already
-      exists the operation throws <code>RqlRuntimeError</code>.<br/>
-      Note that you can only use alphanumeric characters and underscores for the database name.
+      exists the operation throws <code>RqlRuntimeError</code>.<br/> Note:
+      that you can only use alphanumeric characters and underscores for the database name.
 
     name:
       py: db_create
