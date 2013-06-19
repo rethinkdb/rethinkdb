@@ -450,28 +450,36 @@ private:
 class get_all_term_t : public op_term_t {
 public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
+        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
-        counted_t<const datum_t> pkey = arg(1)->as_datum();
-        if (counted_t<val_t> v = optarg("index")) {
-            if (v->as_str() != table->get_pkey()) {
+        counted_t<val_t> index = optarg("index");
+        if (index && index->as_str() != table->get_pkey()) {
+            std::vector<counted_t<datum_stream_t> > streams;
+            for (size_t i = 1; i < num_args(); ++i) {
+                counted_t<const datum_t> key = arg(i)->as_datum();
                 counted_t<datum_stream_t> seq =
-                    table->get_sindex_rows(pkey, pkey, v->as_str(), backtrace());
-                return new_val(seq, table);
+                    table->get_sindex_rows(key, key, index->as_str(), backtrace());
+                streams.push_back(seq);
             }
+            counted_t<datum_stream_t> stream
+                = make_counted<union_datum_stream_t>(env, streams, backtrace());
+            return new_val(stream, table);
+        } else {
+            scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+            for (size_t i = 1; i < num_args(); ++i) {
+                counted_t<const datum_t> key = arg(i)->as_datum();
+                counted_t<const datum_t> row = table->get_row(key);
+                if (row->get_type() != datum_t::R_NULL) {
+                    arr->add(row);
+                }
+            }
+            counted_t<datum_stream_t> stream
+                = make_counted<array_datum_stream_t>(env,
+                    counted_t<datum_t>(arr.release()), backtrace());
+            return new_val(stream, table);
         }
-        counted_t<const datum_t> row = table->get_row(pkey);
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
-        if (row->get_type() != datum_t::R_NULL) {
-            arr->add(row);
-        }
-
-        counted_t<datum_stream_t> stream
-            = make_counted<array_datum_stream_t>(env, counted_t<datum_t>(arr.release()),
-                                                 backtrace());
-        return new_val(stream, table);
     }
     virtual const char *name() const { return "get_all"; }
 };
