@@ -281,7 +281,7 @@ bool translator_serializer_t::offer_read_ahead_buf(
         repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
-    if (block_id == 0) {
+    if (block_id <= CONFIG_BLOCK_ID.ser_id) {
         // Serializer multiplexer config block is not of interest.
         return false;
     }
