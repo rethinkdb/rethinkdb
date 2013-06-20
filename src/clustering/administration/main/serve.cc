@@ -173,8 +173,9 @@ bool do_serve(
             local_issue_tracker.get_issues_watchable(),
             &our_root_directory_variable);
 
-        admin_tracker_t admin_tracker(
-            semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
+        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
+                                      auth_manager_cluster.get_root_view(),
+                                      directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
         perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");

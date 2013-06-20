@@ -144,8 +144,9 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
 
     // Skipped field_copier_t, for fun.
 
-    admin_tracker_t admin_tracker(
-        semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
+    admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
+                                  auth_manager_cluster.get_root_view(),
+                                  directory_read_manager.get_root_view());
 
     perfmon_collection_t proc_stats_collection;
     perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
