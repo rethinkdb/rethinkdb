@@ -339,6 +339,16 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
+void data_block_manager_t::co_read(int64_t off_in, uint32_t ser_block_size_in,
+                                   void *buf_out, file_account_t *io_account) {
+    guarantee(state == state_ready);
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    read(off_in, ser_block_size_in, buf_out, io_account, &cb);
+    cb.wait();
+}
+
 void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
                                 void *buf_out, file_account_t *io_account,
                                 iocallback_t *cb) {
