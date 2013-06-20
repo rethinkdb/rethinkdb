@@ -7,15 +7,6 @@ file_account_t *serializer_t::make_io_account(int priority) {
     return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
 }
 
-// Blocking block_read implementation
-void serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    block_read(token, buf, io_account, &cb);
-    cb.wait();
-}
-
 counted_t<standard_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
