@@ -402,43 +402,16 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
 void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
                                   void *buf, file_account_t *io_account) {
     assert_thread();
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    block_read_(token, buf, io_account, &cb);
-    cb.wait();
-}
+    guarantee(token.has());
+    guarantee(state == state_ready);
 
-// TODO(sam): block_read can call the callback before it returns. Is this acceptable?
-void log_serializer_t::block_read_(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
-    assert_thread();
-    struct my_cb_t : public iocallback_t {
-        void on_io_complete() {
-            stats->pm_serializer_block_reads.end(&pm_time);
-            if (cb) cb->on_io_complete();
-            delete this;
-        }
-        my_cb_t(iocallback_t *_cb, const counted_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
-        iocallback_t *cb;
-        // tok is needed to ensure the block remains alive for appropriate period of time.
-        counted_t<ls_block_token_pointee_t> tok;
-        ticks_t pm_time;
-        log_serializer_stats_t *stats;
-    };
+    ticks_t pm_time;
+    stats->pm_serializer_block_reads.begin(&pm_time);
 
-    my_cb_t *readcb = new my_cb_t(cb, token, stats.get());
+    data_block_manager->co_read(token->offset_, token->ser_block_size_,
+                                static_cast<ls_buf_data_t *>(buf) - 1, io_account);
 
-    stats->pm_serializer_block_reads.begin(&readcb->pm_time);
-
-    ls_block_token_pointee_t *ls_token = token.get();
-    rassert(ls_token);
-    assert_thread();
-    rassert(state == state_ready);
-
-    rassert(state == state_ready);
-
-    data_block_manager->read(ls_token->offset_, ls_token->ser_block_size_,
-                             static_cast<ls_buf_data_t *>(buf) - 1, io_account, readcb);
+    stats->pm_serializer_block_reads.end(&pm_time);
 }
 
 // God this is such a hack.
