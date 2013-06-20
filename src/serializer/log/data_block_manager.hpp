@@ -197,8 +197,8 @@ public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
 
-    void co_read(int64_t off_in, uint32_t ser_block_size_n,
-                 void *buf_out, file_account_t *io_account);
+    void read(int64_t off_in, uint32_t ser_block_size,
+              void *buf_out, file_account_t *io_account);
 
     /* Returns the offset to which the block will be written */
     counted_t<ls_block_token_pointee_t>

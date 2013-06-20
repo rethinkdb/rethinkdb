@@ -408,8 +408,8 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    data_block_manager->co_read(token->offset_, token->ser_block_size_,
-                                static_cast<ls_buf_data_t *>(buf) - 1, io_account);
+    data_block_manager->read(token->offset_, token->ser_block_size_,
+                             static_cast<ls_buf_data_t *>(buf) - 1, io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
 }

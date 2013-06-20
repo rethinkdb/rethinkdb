@@ -340,8 +340,8 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-void data_block_manager_t::co_read(int64_t off_in, uint32_t ser_block_size_in,
-                                   void *buf_out, file_account_t *io_account) {
+void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
+                                void *buf_out, file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
         struct : public cond_t, public iocallback_t {
@@ -355,7 +355,7 @@ void data_block_manager_t::co_read(int64_t off_in, uint32_t ser_block_size_in,
         rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
 
         // RSI: This read could end up being unaligned.  It needs to be aligned.
-        ::co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
+        co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
     }
 }
 
