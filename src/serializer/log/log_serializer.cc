@@ -399,7 +399,8 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
+                                  void *buf, file_account_t *io_account) {
     assert_thread();
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
