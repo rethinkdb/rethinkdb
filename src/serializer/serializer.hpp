@@ -57,13 +57,9 @@ public:
     virtual void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
 
-    /* Reading a block from the serializer */
-    // Non-blocking variant
-    // RSI: Get rid of this.
-    virtual void block_read_(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
-
-    // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
+    // Reading a block from the serializer.  Reads a block, blocks the coroutine.
+    virtual void block_read(const counted_t<standard_block_token_t> &token,
+                            void *buf, file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)

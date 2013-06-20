@@ -28,8 +28,6 @@ class semantic_checking_serializer_t :
     public serializer_t
 {
 private:
-    struct reader_t;
-
     inner_serializer_t inner_serializer;
     two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
     int last_index_write_started, last_index_write_finished;
@@ -58,7 +56,6 @@ public:
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    void block_read_(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
     void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);

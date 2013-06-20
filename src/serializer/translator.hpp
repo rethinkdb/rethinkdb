@@ -139,7 +139,6 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
 
-    void block_read_(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
     void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 

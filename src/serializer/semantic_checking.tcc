@@ -122,34 +122,6 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 }
 
 template<class inner_serializer_t>
-struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public iocallback_t {
-    semantic_checking_serializer_t<inner_serializer_t> *serializer;
-    scs_block_token_t<inner_serializer_t> *token;
-    void *buf;
-    iocallback_t *callback;
-
-    reader_t(semantic_checking_serializer_t<inner_serializer_t> *_serializer, scs_block_token_t<inner_serializer_t> *_token, void *_buf, iocallback_t *cb) : serializer(_serializer), token(_token), buf(_buf), callback(cb) {}
-
-    void on_io_complete() {
-        serializer->read_check_state(token, buf);
-        if (callback) callback->on_io_complete();
-        delete this;
-    }
-};
-
-template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::
-block_read_(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback) {
-    scs_block_token_t<inner_serializer_t> *token = _token.get();
-    guarantee(token, "bad token");
-#ifdef SERIALIZER_DEBUG_PRINT
-    printf("Reading %u\n", token->block_id);
-#endif
-    reader_t *reader = new reader_t(this, token, buf, callback);
-    inner_serializer.block_read_(token->inner_token, buf, io_account, reader);
-}
-
-template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
