@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/mutex.hpp"
 #include "perfmon/perfmon.hpp"
@@ -342,27 +343,19 @@ bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
 void data_block_manager_t::co_read(int64_t off_in, uint32_t ser_block_size_in,
                                    void *buf_out, file_account_t *io_account) {
     guarantee(state == state_ready);
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    read(off_in, ser_block_size_in, buf_out, io_account, &cb);
-    cb.wait();
-}
-
-void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
-                                void *buf_out, file_account_t *io_account,
-                                iocallback_t *cb) {
-    guarantee(state == state_ready);
-
     if (should_perform_read_ahead(off_in)) {
+        struct : public cond_t, public iocallback_t {
+            void on_io_complete() { pulse(); }
+        } cb;
         new dbm_read_ahead_fsm_t(this, off_in, ser_block_size_in,
-                                 buf_out, io_account, cb);
+                                 buf_out, io_account, &cb);
+        cb.wait();
     } else {
         rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
         rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
 
         // RSI: This read could end up being unaligned.  It needs to be aligned.
-        dbfile->read_async(off_in, ser_block_size_in, buf_out, io_account, cb);
+        ::co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
     }
 }
 

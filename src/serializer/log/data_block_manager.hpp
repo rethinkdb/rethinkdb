@@ -200,9 +200,6 @@ public:
     void co_read(int64_t off_in, uint32_t ser_block_size_n,
                  void *buf_out, file_account_t *io_account);
 
-    void read(int64_t off_in, uint32_t ser_block_size_in,
-              void *buf_out, file_account_t *io_account, iocallback_t *cb);
-
     /* Returns the offset to which the block will be written */
     counted_t<ls_block_token_pointee_t>
     write(const void *buf_in, block_id_t block_id,
