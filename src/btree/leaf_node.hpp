@@ -28,8 +28,14 @@ public:
     static key_modification_proof_t real_proof() { return key_modification_proof_t(); }
 };
 
+namespace leaf {
+class iterator;
+class reverse_iterator;
+} //namespace leaf
+
 // The leaf node begins with the following struct layout.
-struct leaf_node_t {
+class leaf_node_t {
+public:
     // The value-type-specific magic value.  It's a bit of a hack, but
     // it's possible to construct a value_sizer_t based on this value.
     block_magic_t magic;
@@ -50,6 +56,19 @@ struct leaf_node_t {
 
     // The pair offsets.
     uint16_t pair_offsets[];
+
+    //Iteration
+    typedef leaf::iterator iterator;
+    typedef leaf::reverse_iterator reverse_iterator;
+
+    leaf::iterator begin() const;
+    leaf::iterator end() const;
+
+    leaf::reverse_iterator rbegin() const;
+    leaf::reverse_iterator rend() const;
+
+    leaf::iterator inclusive_lower_bound(const btree_key_t *key) const;
+    leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key) const;
 };
 
 
@@ -145,34 +164,9 @@ protected:
 
 void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
 
-// We have to have an iterator and avoid exposing pair offset indexes
-// because people would use raw indexes incorrectly.
-class live_iter_t {
-public:
-    bool step(const leaf_node_t *node);
-    bool step_back(const leaf_node_t *node);
-    const btree_key_t *get_key(const leaf_node_t *node) const;
-    const void *get_value(const leaf_node_t *node) const;
-
-    live_iter_t() : index_(-1) { }
-private:
-    explicit live_iter_t(int index) : index_(index) { }
-
-    friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
-    friend live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
-    friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
-    friend live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node);
-
-    int index_;
-};
-
-live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
-live_iter_t iter_for_inclusive_upper_bound(const leaf_node_t *node, const btree_key_t *key);
-live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
-live_iter_t end_iter_for_whole_leaf(const leaf_node_t *node);
-
 class iterator {
 public:
+    iterator();
     iterator(const leaf_node_t *node, int index);
     std::pair<const btree_key_t *, const void *> operator*() const;
     iterator &operator++();
@@ -192,6 +186,7 @@ private:
 
 class reverse_iterator {
 public:
+    reverse_iterator();
     reverse_iterator(const leaf_node_t *node, int index);
     std::pair<const btree_key_t *, const void *> operator*() const;
     reverse_iterator &operator++();

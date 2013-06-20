@@ -29,12 +29,9 @@ public:
                         int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
         const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
-        leaf::live_iter_t it = leaf::iter_for_whole_leaf(node);
-
-        const btree_key_t *key;
-        while ((key = it.get_key(node))) {
+        for (auto it = node->begin(); it != node->end(); ++it) {
+            const btree_key_t *key = (*it).first;
             keys->push_back(store_key_t(key->size, key->contents));
-            it.step(node);
         }
     }
 

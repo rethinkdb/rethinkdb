@@ -620,7 +620,16 @@ public:
     }
     void init(const key_range_t &range) {
         try {
-            response->last_considered_key = range.left;
+            if (direction == FORWARD) {
+                response->last_considered_key = range.left;
+            } else {
+                guarantee(direction == BACKWARD);
+                if (!range.right.unbounded) {
+                    response->last_considered_key = range.right.key;
+                } else {
+                    response->last_considered_key = store_key_t::max();
+                }
+            }
 
             if (terminal) {
                 terminal_initialize(ql_env, terminal->backtrace,
@@ -1108,14 +1117,12 @@ public:
         }
 
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-        leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
-        const btree_key_t *key;
-        while ((key = node_iter.get_key(leaf_node))) {
+        for (auto it = leaf_node->begin(); it != leaf_node->end(); ++it) {
             /* Grab relevant values from the leaf node. */
-            const void *value = node_iter.get_value(leaf_node);
+            const btree_key_t *key = (*it).first;
+            const void *value = (*it).second;
             guarantee(key);
-            node_iter.step(leaf_node);
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);

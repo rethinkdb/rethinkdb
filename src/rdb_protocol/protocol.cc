@@ -609,10 +609,10 @@ public:
 
                             if ((rg.direction == FORWARD &&
                                 it->first->first <= key_to_beat &&
-                                it->first->first < rg_response->last_considered_key) ||
+                                it->first->first <= rg_response->last_considered_key) ||
                                 (rg.direction == BACKWARD &&
                                 it->first->first >= key_to_beat &&
-                                it->first->first > rg_response->last_considered_key)) {
+                                it->first->first >= rg_response->last_considered_key)) {
                                 key_to_beat = it->first->first;
                                 found_value = true;
                                 value = &it->first;

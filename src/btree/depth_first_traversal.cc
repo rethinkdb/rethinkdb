@@ -42,24 +42,32 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         const btree_key_t *key;
 
         if (direction == FORWARD) {
-            for (leaf::live_iter_t it = leaf::iter_for_inclusive_lower_bound(lnode, range.left.btree_key());
-                    (key = it.get_key(lnode)) && (range.right.unbounded || sized_strcmp(key->contents, key->size, range.right.key.contents(), range.right.key.size()) < 0);
-                    it.step(lnode)) {
-                if (!cb->handle_pair(key, it.get_value(lnode))) {
+            for (auto it = lnode->inclusive_lower_bound(range.left.btree_key());
+                 it != lnode->end(); ++it) {
+                key = (*it).first;
+                if (!range.right.unbounded &&
+                    btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
+                    break;
+                }
+                if (!cb->handle_pair(key, (*it).second)) {
                     return false;
                 }
             }
         } else {
-            leaf::live_iter_t it;
+            leaf_node_t::reverse_iterator it;
             if (range.right.unbounded) {
-                it = leaf::end_iter_for_whole_leaf(lnode);
+                it = lnode->rbegin();
             } else {
-                it = leaf::iter_for_inclusive_upper_bound(lnode, range.right.key.btree_key());
+                it = lnode->inclusive_upper_bound(range.right.key.btree_key());
             }
-            for (/* assignment above */;
-                    (key = it.get_key(lnode)) && sized_strcmp(key->contents, key->size, range.left.contents(), range.left.size()) > 0;
-                    it.step_back(lnode)) {
-                if (!cb->handle_pair(key, it.get_value(lnode))) {
+            for (/* assignment above */; it != lnode->rend(); ++it) {
+                key = (*it).first;
+
+                if (btree_key_cmp(key, range.left.btree_key()) <= 0) {
+                    break;
+                }
+
+                if (!cb->handle_pair(key, (*it).second)) {
                     return false;
                 }
             }

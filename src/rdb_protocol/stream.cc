@@ -266,9 +266,16 @@ void batched_rget_stream_t::read_more() {
             range.right = key_range_t::right_bound_t(p_res->last_considered_key);
         }
 
-        if (!range.left.increment() ||
-            (!range.right.unbounded && (range.right.key < range.left))) {
+        if (direction == FORWARD &&
+            (!range.left.increment() ||
+            (!range.right.unbounded && (range.right.key < range.left)))) {
             finished = true;
+        } else if (direction == BACKWARD) {
+            guarantee(!range.right.unbounded);
+            if (!range.right.key.decrement() ||
+                range.right.key < range.left) {
+                finished = true;
+            }
         }
     } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
