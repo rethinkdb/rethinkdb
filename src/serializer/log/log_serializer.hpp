@@ -99,7 +99,7 @@ class log_serializer_t :
 {
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
-    friend class dbm_read_ahead_fsm_t;
+    friend class dbm_read_ahead_t;
     friend class ls_block_token_pointee_t;
 
 public:

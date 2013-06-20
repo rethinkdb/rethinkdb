@@ -158,8 +158,7 @@ private:
 
 class data_block_manager_t {
     friend class gc_entry_t;
-    friend class dbm_read_ahead_fsm_t;
-
+    friend class dbm_read_ahead_t;
 private:
     struct gc_write_t {
         block_id_t block_id;

@@ -202,40 +202,28 @@ void read_ahead_interval(const int64_t block_offset,
 }
 
 
+void read_ahead_offset_and_size(int64_t off_in,
+                                int64_t ser_block_size_in,
+                                int64_t extent_size,
+                                const std::vector<uint32_t> &boundaries,
+                                int64_t *offset_out, int64_t *size_out) {
+    int64_t offset;
+    int64_t end_offset;
+    read_ahead_interval(off_in, ser_block_size_in, extent_size,
+                        APPROXIMATE_READ_AHEAD_SIZE,
+                        DEVICE_BLOCK_SIZE,
+                        boundaries,
+                        &offset,
+                        &end_offset);
 
-class dbm_read_ahead_fsm_t : public iocallback_t {
+    *offset_out = offset;
+    *size_out = end_offset - offset;
+}
+
+class dbm_read_ahead_t {
 public:
-    data_block_manager_t *const parent;
-    iocallback_t *const callback;
-    void *const buf_out;
-    const int64_t off_in;
-    const int64_t ser_block_size_in;
-
-    // The following fields might be recomputable but it's way more robust to compute
-    // them exactly once in the constructor, in case it's possible to do a readahead
-    // in a currently written-to extent.
-    const std::vector<uint32_t> boundaries;
-
-    // Initialized in the constructor.
-    int64_t read_ahead_offset;
-    int64_t read_ahead_size;
-    void *read_ahead_buf;
-
-    void read_ahead_offset_and_size(int64_t *offset_out, int64_t *size_out) const {
-        int64_t offset;
-        int64_t end_offset;
-        read_ahead_interval(off_in, ser_block_size_in, parent->static_config->extent_size(),
-                            APPROXIMATE_READ_AHEAD_SIZE,
-                            DEVICE_BLOCK_SIZE,
-                            boundaries,
-                            &offset,
-                            &end_offset);
-
-        *offset_out = offset;
-        *size_out = end_offset - offset;
-    }
-
-    std::vector<uint32_t> get_boundaries() {
+    static std::vector<uint32_t> get_boundaries(data_block_manager_t *parent,
+                                                int64_t off_in) {
         const gc_entry_t *entry
             = parent->entries.get(off_in / parent->static_config->extent_size());
         guarantee(entry != NULL);
@@ -243,28 +231,37 @@ public:
         return entry->block_boundaries();
     }
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, int64_t _off_in,
-                         uint32_t _ser_block_size_in, void *_buf_out,
-                         file_account_t *io_account, iocallback_t *cb)
-        : parent(p),
-          callback(cb),
-          buf_out(_buf_out),
-          off_in(_off_in),
-          ser_block_size_in(_ser_block_size_in),
-          boundaries(get_boundaries()) {
+    static void perform_read_ahead(data_block_manager_t *const parent,
+                                   const int64_t off_in,
+                                   const uint32_t ser_block_size_in,
+                                   void *const buf_out,
+                                   file_account_t *const io_account) {
+        const std::vector<uint32_t> boundaries = get_boundaries(parent, off_in);
+
+        int64_t read_ahead_offset;
+        int64_t read_ahead_size;
 
         // Finish initialization.
-        read_ahead_offset_and_size(&read_ahead_offset, &read_ahead_size);
-        read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
+        read_ahead_offset_and_size(off_in,
+                                   ser_block_size_in,
+                                   parent->static_config->extent_size(),
+                                   boundaries,
+                                   &read_ahead_offset,
+                                   &read_ahead_size);
 
-        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
-    }
+        scoped_malloc_t<char> read_ahead_buf(
+                malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE));
 
-    void on_io_complete() {
+        // Do the disk read!
+        co_read(parent->dbfile, read_ahead_offset, read_ahead_size,
+                read_ahead_buf.get(), io_account);
+
         // Walk over the read ahead buffer and copy stuff...
-        int64_t extent_offset = floor_aligned(read_ahead_offset, parent->static_config->extent_size());
+        int64_t extent_offset = floor_aligned(read_ahead_offset,
+                                              parent->static_config->extent_size());
         uint32_t relative_offset = read_ahead_offset - extent_offset;
-        uint32_t relative_end_offset = (read_ahead_offset + read_ahead_size) - extent_offset;
+        uint32_t relative_end_offset
+            = (read_ahead_offset + read_ahead_size) - extent_offset;
 
         auto lower_it = std::lower_bound(boundaries.begin(), boundaries.end(),
                                          relative_offset);
@@ -275,7 +272,7 @@ public:
 
         for (; lower_it < upper_it; ++lower_it) {
             const char *current_buf
-                = static_cast<char *>(read_ahead_buf) + (*lower_it - relative_offset);
+                = read_ahead_buf.get() + (*lower_it - relative_offset);
 
             int64_t current_offset = *lower_it + extent_offset;
 
@@ -287,17 +284,21 @@ public:
             } else {
                 // RSI: Remove block id from block metadata, just put a
                 // reverse-lookup table in the gc entries, initialized from the LBA.
-                const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
+                const block_id_t block_id
+                    = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
                 // Determine whether the block is live.  Do this by checking the LBA.
-                const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                const bool block_is_live = flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
+                const flagged_off64_t flagged_lba_offset
+                    = parent->serializer->lba_index->get_block_offset(block_id);
+                const bool block_is_live = flagged_lba_offset.has_value() &&
+                    current_offset == flagged_lba_offset.get_value();
 
                 if (!block_is_live) {
                     continue;
                 }
 
-                const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+                const repli_timestamp_t recency_timestamp
+                    = parent->serializer->lba_index->get_block_recency(block_id);
                 scoped_malloc_t<ser_buffer_t> data = parent->serializer->malloc();
                 // RSI: Could probably just use a single lba_index get_block_info call.
                 const uint32_t ser_block_size
@@ -306,7 +307,8 @@ public:
                 guarantee(ser_block_size <= *(lower_it + 1) - *lower_it);
 
                 counted_t<ls_block_token_pointee_t> ls_token
-                    = parent->serializer->generate_block_token(current_offset, ser_block_size);
+                    = parent->serializer->generate_block_token(current_offset,
+                                                               ser_block_size);
 
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
@@ -320,14 +322,10 @@ public:
             }
         }
 
-        free(read_ahead_buf);
-
         guarantee(handled_required_block);
-
-        callback->on_io_complete();
-        delete this;
     }
 };
+
 
 bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
@@ -344,12 +342,8 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
                                 void *buf_out, file_account_t *io_account) {
     guarantee(state == state_ready);
     if (should_perform_read_ahead(off_in)) {
-        struct : public cond_t, public iocallback_t {
-            void on_io_complete() { pulse(); }
-        } cb;
-        new dbm_read_ahead_fsm_t(this, off_in, ser_block_size_in,
-                                 buf_out, io_account, &cb);
-        cb.wait();
+        dbm_read_ahead_t::perform_read_ahead(this, off_in, ser_block_size_in,
+                                             buf_out, io_account);
     } else {
         rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
         rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
