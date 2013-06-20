@@ -83,6 +83,11 @@ class Connection(object):
         if response != "SUCCESS":
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
+        # Connection is now initialized
+
+        # Clear timeout so we don't timeout on long running queries
+        self.socket.settimeout(None)
+
     def close(self):
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
