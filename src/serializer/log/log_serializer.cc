@@ -914,21 +914,20 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(
+void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
-        ser_buffer_t *buf,
+        scoped_malloc_t<ser_buffer_t> &&buf,
         block_size_t block_size,
         const counted_t<standard_block_token_t>& token,
         repli_timestamp_t recency_timestamp) {
     assert_thread();
-    for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
-                                                          buf, block_size,
-                                                          token, recency_timestamp)) {
-            return true;
-        }
+
+    scoped_malloc_t<ser_buffer_t> local_buf = std::move(buf);
+    for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
+        read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
+                                                      &local_buf, block_size,
+                                                      token, recency_timestamp);
     }
-    return false;
 }
 
 bool log_serializer_t::should_perform_read_ahead() {

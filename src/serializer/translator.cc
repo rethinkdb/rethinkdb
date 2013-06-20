@@ -273,38 +273,36 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(
+void translator_serializer_t::offer_read_ahead_buf(
         block_id_t block_id,
-        ser_buffer_t *buf,
+        scoped_malloc_t<ser_buffer_t> *buf,
         block_size_t block_size,
         const counted_t<standard_block_token_t> &token,
         repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     if (block_id <= CONFIG_BLOCK_ID.ser_id) {
-        // Serializer multiplexer config block is not of interest.
-        return false;
+        // Serializer multiplexer config block (or other blocks not untranslateable
+        // to cache blocks) is not of interest.
+        return;
     }
 
-    // Offer the buffer if we are the correct shard
+    // We only want the buffer if we are the correct shard.
     const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count, cfgid);
     if (buf_mod_id != this->mod_id) {
-        // We are not responsible...
-        return false;
+        // We are not the correct shard.
+        return;
     }
 
-    if (read_ahead_callback) {
+    // Okay, we take ownership of the buf, it's ours (even if read_ahead_callback is
+    // NULL).
+    scoped_malloc_t<ser_buffer_t> local_buf = std::move(*buf);
+
+    if (read_ahead_callback != NULL) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, block_size,
-                                                       token, recency_timestamp)) {
-            // They aren't going to free the buffer, so we do.
-            free(buf);
-        }
-    } else {
-        // Discard the buffer
-        free(buf);
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, block_size,
+                                                  token, recency_timestamp);
     }
-    return true;
 }
 
 void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {

@@ -156,9 +156,9 @@ private:
     counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset,
                                                              uint32_t ser_block_size);
 
-    bool offer_buf_to_read_ahead_callbacks(
+    void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
-            ser_buffer_t *buf,
+            scoped_malloc_t<ser_buffer_t> &&buf,
             block_size_t block_size,
             const counted_t<standard_block_token_t>& token,
             repli_timestamp_t recency_timestamp);

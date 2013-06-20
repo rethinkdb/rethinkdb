@@ -268,13 +268,14 @@ private:
 class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
-    // RSI: This requirement (and passing a raw pointer) is stupid.
-    /* If the callee returns true, it is responsible to free buf by calling free(buf)
-       in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id,
-                                      ser_buffer_t *buf,
+
+    // Offers a ser_buffer_t pointer to the callback.  The callee is free to take
+    // ownership of the `ser_buffer_t *` from `*buf`.  It's also free to decline
+    // ownership, by leaving the pointer owned by `*buf`.
+    virtual void offer_read_ahead_buf(block_id_t block_id,
+                                      scoped_malloc_t<ser_buffer_t> *buf,
                                       block_size_t block_size,
-                                      const counted_t<standard_block_token_t>& token,
+                                      const counted_t<standard_block_token_t> &token,
                                       repli_timestamp_t recency_timestamp) = 0;
 };
 

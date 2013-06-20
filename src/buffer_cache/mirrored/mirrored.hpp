@@ -352,13 +352,14 @@ private:
     void on_transaction_commit(mc_transaction_t *txn);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id,
-                              ser_buffer_t *buf,
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
                               block_size_t block_size,
                               const counted_t<standard_block_token_t>& token,
                               repli_timestamp_t recency_timestamp);
 
 private:
+    // Takes ownership of buf.
     void offer_read_ahead_buf_home_thread(
             block_id_t block_id,
             ser_buffer_t *buf,

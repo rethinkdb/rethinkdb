@@ -310,20 +310,12 @@ public:
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
 
-                ser_buffer_t *released_data = data.release();
-
-                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(
-                            block_id,
-                            released_data,
-                            block_size_t::unsafe_make(ser_block_size),
-                            token,
-                            recency_timestamp)) {
-                    // If there is no interest anymore, delete the buffer again.
-                    // RSI: This whole serializer-owned buffer thing and lifetime
-                    // management is crap.
-                    free(released_data);
-                    continue;
-                }
+                parent->serializer->offer_buf_to_read_ahead_callbacks(
+                        block_id,
+                        std::move(data),
+                        block_size_t::unsafe_make(ser_block_size),
+                        token,
+                        recency_timestamp);
             }
         }
 

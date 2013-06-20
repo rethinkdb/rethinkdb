@@ -1308,8 +1308,8 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id,
-                                      ser_buffer_t *buf,
+void mc_cache_t::offer_read_ahead_buf(block_id_t block_id,
+                                      scoped_malloc_t<ser_buffer_t> *buf,
                                       block_size_t block_size,
                                       const counted_t<standard_block_token_t>& token,
                                       repli_timestamp_t recency_timestamp) {
@@ -1320,8 +1320,7 @@ bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id,
     // serializer offers it and the message gets delivered!
     do_on_thread(home_thread(),
                  std::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this,
-                           block_id, buf, token, recency_timestamp));
-    return true;
+                           block_id, buf->release(), token, recency_timestamp));
 }
 
 void mc_cache_t::offer_read_ahead_buf_home_thread(
@@ -1331,7 +1330,9 @@ void mc_cache_t::offer_read_ahead_buf_home_thread(
         repli_timestamp_t recency_timestamp) {
     assert_thread();
 
+    // Formally take ownership of buf.
     scoped_malloc_t<ser_buffer_t> local_buf(buf);
+
     // Check that the offered block is allowed to be accepted at the current time
     // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
     if (can_read_ahead_block_be_accepted(block_id)) {
