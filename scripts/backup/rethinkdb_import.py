@@ -78,7 +78,7 @@ def parse_options():
             raise RuntimeError("--table option is not valid when importing a directory")
         if options.primary_key is not None:
             raise RuntimeError("--pkey option is not valid when importing a directory")
-            
+
         # Verify valid directory option
         dirname = options.directory
         res["directory"] = os.path.abspath(dirname)
@@ -105,7 +105,7 @@ def parse_options():
             raise RuntimeError("can only use the --fields option when importing a single table")
         else:
             res["fields"] = options.fields.split(",")
-        
+
     elif options.import_file is not None:
         # Single file mode, verify file import options
         if len(options.tables) != 0:
@@ -126,7 +126,7 @@ def parse_options():
             raise RuntimeError("unknown format specified, valid options are 'csv' and 'json'")
         else:
             res["import_format"] = options.import_format
-        
+
         # Verify valid --table option
         if options.import_table is None:
             raise RuntimeError("must specify a destination table to import into using --table")
@@ -188,10 +188,9 @@ def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
 
         row_count = 1
         for row in reader:
-            # TODO: probably shouldn't assume that each item in the csv is in json
             if len(fields_in) != len(row):
                 raise RuntimeError("file '%s' line %d has an inconsistent number of columns" % (filename, row_count))
-            row = [json.loads(item) for item in row]
+            # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
             object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields)
             row_count += 1
@@ -225,7 +224,7 @@ def import_table_client(options, file_info):
 
         if table not in r.db(db).table_list().run(conn):
             r.db(db).table_create(table, primary_key=primary_key).run(conn)
-        
+
         if file_info["format"] == "json":
             restore_table_from_json(conn, file_info["file"], db, table, primary_key, options["fields"])
         elif file_info["format"] == "csv":
@@ -252,7 +251,7 @@ def spawn_import_clients(options, files_info):
     # Wait for all tables to finish
     for thread in threads:
         thread.join()
-    
+
     if len(errors) != 0:
         print "%d errors occurred:" % len(errors)
         for error in errors:
@@ -346,7 +345,7 @@ def import_file(options):
             r.db(db).table_create(table).run(conn)
         else:
             r.db(db).table_create(table, primary_key=primary_key).run(conn)
-    
+
     if options["import_format"] == "json":
         restore_table_from_json(conn, options["import_file"], db, table, primary_key, options["fields"])
     elif options["import_format"] == "csv":

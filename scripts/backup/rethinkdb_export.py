@@ -96,7 +96,7 @@ def get_tables(host, port, auth_key, tables):
 
     if len(tables) == 0:
         tables = [[db] for db in dbs]
-    
+
     for db_table in tables:
         if db_table[0] not in dbs:
             raise RuntimeError("database '%s' not found" % db_table[0])
@@ -107,7 +107,7 @@ def get_tables(host, port, auth_key, tables):
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
                 raise RuntimeError("table not found: '%s.%s'" % tuple(db_table))
             res.append(tuple(db_table))
-            
+
     # Remove duplicates by making results a set
     return set(res)
 
@@ -140,11 +140,17 @@ def write_table_data_json(conn, db, table, base_path, fields):
 
 def write_table_data_csv(conn, db, table, base_path, fields):
     with open(base_path + "/%s/%s.csv" % (db, table), "w") as out:
-        out_writer = csv.writer(out) 
+        out_writer = csv.writer(out)
         out_writer.writerow(fields)
 
         for row in r.db(db).table(table).run(conn):
-            info = [json.dumps(row[field]) for field in fields]
+            info = []
+            # If the data is a simple type, just write it directly, otherwise, write it as json
+            for field in fields:
+                if isinstance(row[field], (int, long, float, complex, str, unicode)):
+                    info.append(str(row[field]))
+                else:
+                    info.append(json.dumps(row[field]))
             out_writer.writerow(info)
 
 def export_table(host, port, auth_key, db, table, directory, fields, errors, format):
@@ -178,7 +184,7 @@ def run_clients(options, db_table_set):
     # Wait for all tables to finish
     for thread in threads:
         thread.join()
-    
+
     if len(errors) != 0:
         print "%d errors occurred:" % len(errors)
         for error in errors:
