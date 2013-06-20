@@ -59,7 +59,8 @@ public:
 
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
+    // RSI: Get rid of this.
+    virtual void block_read_(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
     virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;

@@ -225,8 +225,8 @@ translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_
     return inner->block_write(buf, block_id, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return inner->block_read(token, buf, io_account, cb);
+void translator_serializer_t::block_read_(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+    return inner->block_read_(token, buf, io_account, cb);
 }
 
 void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {

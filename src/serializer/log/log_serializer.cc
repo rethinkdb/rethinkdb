@@ -404,12 +404,12 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    block_read(token, buf, io_account, &cb);
+    block_read_(token, buf, io_account, &cb);
     cb.wait();
 }
 
 // TODO(sam): block_read can call the callback before it returns. Is this acceptable?
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read_(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
