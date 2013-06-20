@@ -22,17 +22,17 @@ void check_namespaces_for_protocol(
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
             namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("namespace", it->first, "blueprint", it->second.get().blueprint, out);
-            check("namespace", it->first, "primary_uuid", it->second.get().primary_datacenter, out);
-            check("namespace", it->first, "replica_affinities", it->second.get().replica_affinities, out);
-            check("namespace", it->first, "ack_expectations", it->second.get().ack_expectations, out);
-            check("namespace", it->first, "shards", it->second.get().shards, out);
-            check("namespace", it->first, "name", it->second.get().name, out);
-            check("namespace", it->first, "port", it->second.get().port, out);
-            check("namespace", it->first, "primary_pinnings", it->second.get().primary_pinnings, out);
-            check("namespace", it->first, "secondary_pinnings", it->second.get().secondary_pinnings, out);
-            check("namespace", it->first, "database", it->second.get().database, out);
-            check("namespace", it->first, "cache_size", it->second.get().cache_size, out);
+            check("namespace", it->first, "blueprint", it->second.get_ref().blueprint, out);
+            check("namespace", it->first, "primary_uuid", it->second.get_ref().primary_datacenter, out);
+            check("namespace", it->first, "replica_affinities", it->second.get_ref().replica_affinities, out);
+            check("namespace", it->first, "ack_expectations", it->second.get_ref().ack_expectations, out);
+            check("namespace", it->first, "shards", it->second.get_ref().shards, out);
+            check("namespace", it->first, "name", it->second.get_ref().name, out);
+            check("namespace", it->first, "port", it->second.get_ref().port, out);
+            check("namespace", it->first, "primary_pinnings", it->second.get_ref().primary_pinnings, out);
+            check("namespace", it->first, "secondary_pinnings", it->second.get_ref().secondary_pinnings, out);
+            check("namespace", it->first, "database", it->second.get_ref().database, out);
+            check("namespace", it->first, "cache_size", it->second.get_ref().cache_size, out);
         }
     }
 }
@@ -62,7 +62,7 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
             cluster_metadata.datacenters.datacenters.begin();
             it != cluster_metadata.datacenters.datacenters.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("datacenter", it->first, "name", it->second.get().name, &issues);
+            check("datacenter", it->first, "name", it->second.get_ref().name, &issues);
         }
     }
 
@@ -70,7 +70,7 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
             cluster_metadata.databases.databases.begin();
             it != cluster_metadata.databases.databases.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("database", it->first, "name", it->second.get().name, &issues);
+            check("database", it->first, "name", it->second.get_ref().name, &issues);
         }
     }
 
@@ -78,8 +78,8 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
             cluster_metadata.machines.machines.begin();
             it != cluster_metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted()) {
-            check("machine", it->first, "datacenter_uuid", it->second.get().datacenter, &issues);
-            check("machine", it->first, "name", it->second.get().name, &issues);
+            check("machine", it->first, "datacenter_uuid", it->second.get_ref().datacenter, &issues);
+            check("machine", it->first, "name", it->second.get_ref().name, &issues);
         }
     }
 

@@ -55,7 +55,7 @@ private:
 
     void on_reclaim_tickets(int count);
 
-    void relinquish_tickets_blocking(int count, UNUSED auto_drainer_t::lock_t keepalive);
+    void relinquish_tickets_blocking(int count, auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *const mailbox_manager;
 
