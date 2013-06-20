@@ -2,33 +2,52 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
+usage = "'rethinkdb restore` loads data into a rethinkdb cluster from an archive\n\
+  rethinkdb restore FILE -c HOST:PORT [-a KEY] [--force] [-i (DB | DB.TABLE)]..."
+
+def print_restore_help():
+    print usage
+    print ""
+    print "  -h [ --help ]                    print this help"
+    print "  FILE                             the archive file to restore data from"
+    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
+    print "  --force                          import data even if a table already exists"
+    print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
+    print "                                   be specified multiple times)"
+
 def parse_options():
-    parser = OptionParser()
+    parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--force", dest="force", action="store_true", default=False)
+    parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
+
+    if options.help:
+        print_restore_help()
+        exit(0)
 
     # Check validity of arguments
     if len(args) == 0:
-        raise RuntimeError("Archive to import not specified")
+        raise RuntimeError("archive to import not specified")
     elif len(args) != 1:
-        raise RuntimeError("Only one positional argument supported")
+        raise RuntimeError("only one positional argument supported")
 
     res = { }
 
     # Verify valid host:port --connect option
     host_port = options.host.split(":")
     if len(host_port) != 2:
-        raise RuntimeError("Invalid 'host:port' format")
+        raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     # Verify valid input file
     res["in_file"] = os.path.abspath(args[0])
 
     if not os.path.exists(res["in_file"]):
-        raise RuntimeError("Input file does not exist")
+        raise RuntimeError("input file does not exist")
 
     # Verify valid --import options
     res["dbs"] = []
@@ -40,7 +59,7 @@ def parse_options():
         elif len(db_table) == 2:
             res["tables"].append(tuple(db_table))
         else:
-            raise RuntimeError("Invalid 'db' or 'db.table' format: %s" % item)
+            raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
 
     res["auth_key"] = options.auth_key
     res["force"] = options.force
@@ -51,7 +70,7 @@ def run_rethinkdb_import(options):
     import_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_import.py"))
 
     if not os.path.exists(import_script):
-        raise RuntimeError("Could not find import script")
+        raise RuntimeError("could not find import script")
 
     # Create a temporary directory to store the extracted data
     temp_dir = tempfile.mkdtemp()

@@ -5,8 +5,33 @@ from optparse import OptionParser
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
 
+usage = "'rethinkdb import` creates an archive of data from a rethinkdb cluster\n\
+  rethinkdb import -c HOST:PORT -d DIR [-a AUTH_KEY] [--force]\n\
+      [-i (DB | DB.TABLE)]\n\
+  rethinkdb import -c HOST:PORT -f FILE [-a AUTH_KEY] [--force]\n\
+      [--format (csv | json)] [--table DB.TABLE] [--pkey PRIMARY_KEY]"
+
+def print_import_help():
+    print usage
+    print ""
+    print "  -h [ --help ]                    print this help"
+    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
+    print "  --force                          import data even if a table already exists"
+    print ""
+    print "Import directory:"
+    print "  -d [ --directory ] DIR           the directory to import data from"
+    print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
+    print "                                   be specified multiple times)"
+    print ""
+    print "Import file:"
+    print "  -f [ --file ] FILE               the file to import data from"
+    print "  --format (csv | json)            the format of the file (defaults to json)"
+    print "  --table DB.TABLE                 the table to import the data into"
+    print "  --pkey PRIMARY_KEY               the field to use as the primary key in the table"
+
 def parse_options():
-    parser = OptionParser()
+    parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
@@ -21,19 +46,23 @@ def parse_options():
     parser.add_option("--format", dest="import_format", metavar="json | csv", default=None, type="string")
     parser.add_option("--table", dest="import_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--pkey", dest="primary_key", metavar="KEY", default = None, type="string")
-
+    parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("No positional arguments supported")
+        raise RuntimeError("no positional arguments supported")
+
+    if options.help:
+        print_import_help()
+        exit(0)
 
     res = { }
 
     # Verify valid host:port --connect option
     host_port = options.host.split(":")
     if len(host_port) != 2:
-        raise RuntimeError("Invalid 'host:port' format")
+        raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     res["auth_key"] = options.auth_key
@@ -67,13 +96,13 @@ def parse_options():
             elif len(db_table) == 2:
                 res["tables"].append(tuple(db_table))
             else:
-                raise RuntimeError("Invalid 'db' or 'db.table' format: %s" % item)
+                raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
 
         # Parse fields
         if options.fields is None:
             res["fields"] = None
         elif len(res["dbs"]) != 0 or len(res["tables"] != 1):
-            raise RuntimeError("Can only use the --fields option when importing a single table")
+            raise RuntimeError("can only use the --fields option when importing a single table")
         else:
             res["fields"] = options.fields.split(",")
         
@@ -94,16 +123,16 @@ def parse_options():
         if options.import_format is None:
             res["import_format"] = "json"
         elif options.import_format not in ["csv", "json"]:
-            raise RuntimeError("Unknown format specified, valid options are 'csv' and 'json'")
+            raise RuntimeError("unknown format specified, valid options are 'csv' and 'json'")
         else:
             res["import_format"] = options.import_format
         
         # Verify valid --table option
         if options.import_table is None:
-            raise RuntimeError("Must specify a destination table to import into using --table")
+            raise RuntimeError("must specify a destination table to import into using --table")
         db_table = options.import_table.split(".")
         if len(db_table) != 2:
-            raise RuntimeError("Invalid 'db.table' format: %s" % db_table)
+            raise RuntimeError("invalid 'db.table' format: %s" % db_table)
         res["import_db_table"] = db_table
 
         # Parse fields
@@ -114,7 +143,7 @@ def parse_options():
 
         res["primary_key"] = options.primary_key
     else:
-        raise RuntimeError("Must specify one of --directory or --file to import")
+        raise RuntimeError("must specify one of --directory or --file to import")
 
     return res
 
@@ -246,9 +275,9 @@ def import_directory(options):
     db_tables = set()
     for file_info in files_info:
         if (file_info["db"], file_info["table"]) in db_tables:
-            raise RuntimeError("Duplicate db.table found in directory tree: %s.%s" % (file_info["db"], file_info["table"]))
+            raise RuntimeError("duplicate db.table found in directory tree: %s.%s" % (file_info["db"], file_info["table"]))
         if file_info["format"] not in ["csv", "json"]:
-            raise RuntimeError("Unrecognized format for file %s" % file_info["file"])
+            raise RuntimeError("unrecognized format for file %s" % file_info["file"])
 
         db_tables.add((file_info["db"], file_info["table"]))
 
@@ -322,7 +351,7 @@ def main():
         elif "import_file" in options:
             import_file(options)
         else:
-            raise RuntimeError("Neither --directory or --file specified")
+            raise RuntimeError("neither --directory or --file specified")
     except RuntimeError as ex:
         print ex
         return 1

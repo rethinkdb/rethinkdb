@@ -5,31 +5,54 @@ from optparse import OptionParser
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
 
+usage = "'rethinkdb export` exports data from a rethinkdb cluster into a directory\n\
+  rethinkdb export -c HOST:PORT [-a KEY] [-f (csv | json)] [-d DIR]\n\
+      [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
+
+def print_export_help():
+    print usage
+    print ""
+    print "  -h [ --help ]                    print this help"
+    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
+    print "  -f [ --format ] (csv | json)     format to write (defaults to json)"
+    print "  -d [ --directory ] DIR           directory to output to (defaults to"
+    print "                                   rethinkdb_export_DATE_TIME)"
+    print "  --fields FIELD,FIELD...          limit the exported fields to those specified"
+    print "                                   (required for csv format)"
+    print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
+    print "                                   be specified multiple times)"
+
 def parse_options():
-    parser = OptionParser()
+    parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("-f", "--format", dest="format", metavar="json | csv", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("No positional arguments supported")
+        raise RuntimeError("no positional arguments supported")
+
+    if options.help:
+        print_export_help()
+        exit(0)
 
     res = { }
 
     # Verify valid host:port --connect option
     host_port = options.host.split(":")
     if len(host_port) != 2:
-        raise RuntimeError("Invalid 'host:port' format")
+        raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     # Verify valid --format option
     if options.format not in ["csv", "json"]:
-        raise RuntimeError("Unknown format specified, valid options are 'csv' and 'json'")
+        raise RuntimeError("unknown format specified, valid options are 'csv' and 'json'")
     res["format"] = options.format
 
     # Verify valid directory option
@@ -40,23 +63,23 @@ def parse_options():
     res["directory"] = os.path.abspath(dirname)
 
     if os.path.exists(res["directory"]):
-        raise RuntimeError("Output directory already exists")
+        raise RuntimeError("output directory already exists")
 
     # Verify valid --export options
     res["tables"] = []
     for item in options.tables:
         db_table = item.split(".")
         if len(db_table) != 1 and len(db_table) != 2:
-            raise RuntimeError("Invalid 'db' or 'db.table' format: %s" % item)
+            raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
         res["tables"].append(db_table)
 
     # Parse fields
     if options.fields is None:
         if options.format == "csv":
-            raise RuntimeError("Cannot write a csv with no fields selected")
+            raise RuntimeError("cannot write a csv with no fields selected")
         res["fields"] = None
     elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
-        raise RuntimeError("Can only use the --fields option when exporting a single table")
+        raise RuntimeError("can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
 
@@ -73,13 +96,13 @@ def get_tables(host, port, auth_key, tables):
     
     for db_table in tables:
         if db_table[0] not in dbs:
-            raise RuntimeError("Database '%s' not found" % db_table[0])
+            raise RuntimeError("database '%s' not found" % db_table[0])
 
         if len(db_table) == 1: # This is just a db name
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
         else: # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
-                raise RuntimeError("Table not found: '%s.%s'" % db_table)
+                raise RuntimeError("table not found: '%s.%s'" % db_table)
             res.append(tuple(db_table))
             
     # Remove duplicates by making results a set
@@ -130,7 +153,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, errors, for
         elif format == "csv":
             write_table_data_csv(conn, db, table, directory, fields)
         else:
-            raise RuntimeError("Unknown format type: %s" % format)
+            raise RuntimeError("unknown format type: %s" % format)
     except:
         errors.append(sys.exc_info())
 

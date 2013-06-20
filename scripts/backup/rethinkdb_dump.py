@@ -2,24 +2,42 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
+usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
+  rethinkdb dump -c HOST:PORT [-a KEY] [-o FILE] [-e (DB | DB.TABLE)]..."
+
+def print_dump_help():
+    print usage
+    print ""
+    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
+    print "  -o file                          file to write archive to"
+    print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
+    print "                                   be specified multiple times)"
+    print "  -h [ --help ]                    print this help"
+
 def parse_options():
-    parser = OptionParser()
-    parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
-    parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
-    parser.add_option("-o", dest="out_file", metavar="FILE", default=None, type="string")
-    parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser = OptionParser(add_help_option=False, usage=usage)
+    parser.add_option("-c", "--connect", dest="host", metavar="host:port", default="localhost:28015", type="string")
+    parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
+    parser.add_option("-o", dest="out_file", metavar="file", default=None, type="string")
+    parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
+    parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("No positional arguments supported")
+        raise RuntimeError("no positional arguments supported")
+
+    if options.help:
+        print_dump_help()
+        exit(0)
 
     res = { }
 
     # Verify valid host:port --connect option
     host_port = options.host.split(":")
     if len(host_port) != 2:
-        raise RuntimeError("Invalid 'host:port' format")
+        raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     # Verify valid output file
@@ -30,7 +48,7 @@ def parse_options():
         res["out_file"] = os.path.abspath(options.out_file)
 
     if os.path.exists(res["out_file"]):
-        raise RuntimeError("Output file already exists")
+        raise RuntimeError("output file already exists")
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
@@ -41,7 +59,7 @@ def run_rethinkdb_export(options):
     export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_export.py"))
 
     if not os.path.exists(export_script):
-        raise RuntimeError("Could not find export script")
+        raise RuntimeError("could not find export script")
 
     # Create a temporary directory to store the intermediary results
     temp_dir = tempfile.mkdtemp()
