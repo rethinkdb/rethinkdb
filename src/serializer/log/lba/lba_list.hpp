@@ -35,7 +35,9 @@ public:
     bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
 public:
-    // RSI: Just combine these into one function?
+    index_block_info_t get_block_info(block_id_t block);
+
+    // These return individual fields of get_block_info.
     flagged_off64_t get_block_offset(block_id_t block);
     uint32_t get_ser_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);

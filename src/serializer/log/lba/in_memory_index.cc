@@ -15,12 +15,14 @@ block_id_t in_memory_index_t::end_block_id() {
     return blocks.get_size();
 }
 
-in_memory_index_t::info_t in_memory_index_t::get_block_info(block_id_t id) {
+index_block_info_t in_memory_index_t::get_block_info(block_id_t id) {
     if (id >= blocks.get_size()) {
-        info_t ret = { flagged_off64_t::unused(), repli_timestamp_t::invalid, 0 };
+        index_block_info_t ret = { flagged_off64_t::unused(),
+                                   repli_timestamp_t::invalid,
+                                   0 };
         return ret;
     } else {
-        info_t ret = { blocks[id], timestamps[id], ser_block_sizes[id] };
+        index_block_info_t ret = { blocks[id], timestamps[id], ser_block_sizes[id] };
         return ret;
     }
 }

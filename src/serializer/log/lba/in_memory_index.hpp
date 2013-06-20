@@ -8,6 +8,11 @@
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 
+struct index_block_info_t {
+    flagged_off64_t offset;
+    repli_timestamp_t recency;
+    uint32_t ser_block_size;
+};
 
 class in_memory_index_t
 {
@@ -23,13 +28,7 @@ public:
     // end_block_id is one greater than the max block id.
     block_id_t end_block_id();
 
-    struct info_t {
-        flagged_off64_t offset;
-        repli_timestamp_t recency;
-        uint32_t ser_block_size;
-    };
-
-    info_t get_block_info(block_id_t id);
+    index_block_info_t get_block_info(block_id_t id);
     void set_block_info(block_id_t id, repli_timestamp_t recency,
                         flagged_off64_t offset, uint32_t ser_block_size);
 

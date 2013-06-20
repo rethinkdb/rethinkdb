@@ -287,28 +287,23 @@ public:
                 const block_id_t block_id
                     = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
-                // Determine whether the block is live.  Do this by checking the LBA.
-                const flagged_off64_t flagged_lba_offset
-                    = parent->serializer->lba_index->get_block_offset(block_id);
-                const bool block_is_live = flagged_lba_offset.has_value() &&
-                    current_offset == flagged_lba_offset.get_value();
+                const index_block_info_t info
+                    = parent->serializer->lba_index->get_block_info(block_id);
+
+                const bool block_is_live = info.offset.has_value() &&
+                    current_offset == info.offset.get_value();
 
                 if (!block_is_live) {
                     continue;
                 }
 
-                const repli_timestamp_t recency_timestamp
-                    = parent->serializer->lba_index->get_block_recency(block_id);
                 scoped_malloc_t<ser_buffer_t> data = parent->serializer->malloc();
-                // RSI: Could probably just use a single lba_index get_block_info call.
-                const uint32_t ser_block_size
-                    = parent->serializer->lba_index->get_ser_block_size(block_id);
-                memcpy(data.get(), current_buf, ser_block_size);
-                guarantee(ser_block_size <= *(lower_it + 1) - *lower_it);
+                memcpy(data.get(), current_buf, info.ser_block_size);
+                guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 
                 counted_t<ls_block_token_pointee_t> ls_token
                     = parent->serializer->generate_block_token(current_offset,
-                                                               ser_block_size);
+                                                               info.ser_block_size);
 
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
@@ -316,9 +311,9 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        block_size_t::unsafe_make(ser_block_size),
+                        block_size_t::unsafe_make(info.ser_block_size),
                         token,
-                        recency_timestamp);
+                        info.recency);
             }
         }
 

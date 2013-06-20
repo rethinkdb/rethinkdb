@@ -92,22 +92,21 @@ block_id_t lba_list_t::end_block_id() {
     return in_memory_index.end_block_id();
 }
 
-flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
+index_block_info_t lba_list_t::get_block_info(block_id_t block) {
     rassert(state == state_ready);
+    return in_memory_index.get_block_info(block);
+}
 
-    return in_memory_index.get_block_info(block).offset;
+flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
+    return get_block_info(block).offset;
 }
 
 uint32_t lba_list_t::get_ser_block_size(block_id_t block) {
-    rassert(state == state_ready);
-
-    return in_memory_index.get_block_info(block).ser_block_size;
+    return get_block_info(block).ser_block_size;
 }
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
-    rassert(state == state_ready);
-
-    return in_memory_index.get_block_info(block).recency;
+    return get_block_info(block).recency;
 }
 
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
