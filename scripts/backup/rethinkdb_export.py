@@ -13,7 +13,7 @@ def print_export_help():
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  -f [ --format ] (csv | json)     format to write (defaults to json)"
     print "  -d [ --directory ] DIR           directory to output to (defaults to"
@@ -69,9 +69,12 @@ def parse_options():
     res["tables"] = []
     for item in options.tables:
         db_table = item.split(".")
-        if len(db_table) != 1 and len(db_table) != 2:
+        if len(db_table) == 1:
+            res["tables"].append(db_table)
+        elif len(db_table) == 2:
+            res["tables"].append(tuple(db_table))
+        else:
             raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
-        res["tables"].append(db_table)
 
     # Parse fields
     if options.fields is None:
@@ -102,7 +105,7 @@ def get_tables(host, port, auth_key, tables):
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
         else: # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
-                raise RuntimeError("table not found: '%s.%s'" % db_table)
+                raise RuntimeError("table not found: '%s.%s'" % tuple(db_table))
             res.append(tuple(db_table))
             
     # Remove duplicates by making results a set
@@ -154,12 +157,13 @@ def export_table(host, port, auth_key, db, table, directory, fields, errors, for
             write_table_data_csv(conn, db, table, directory, fields)
         else:
             raise RuntimeError("unknown format type: %s" % format)
+    except (r.RqlClientError, r.RqlDriverError) as ex:
+        errors.append((RuntimeError, RuntimeError(ex.message), sys.exc_info()[2]))
     except:
         errors.append(sys.exc_info())
 
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
-    # TODO: do this in a more efficient manner
     threads = []
     errors = []
 
@@ -191,8 +195,8 @@ def main():
     except RuntimeError as ex:
         print ex
         return 1
-    print "Done (%d seconds)" % (time.time() - start_time)
+    print "  Done (%d seconds)" % (time.time() - start_time)
     return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())

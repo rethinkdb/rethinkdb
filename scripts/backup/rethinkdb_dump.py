@@ -8,7 +8,7 @@ usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
 def print_dump_help():
     print usage
     print ""
-    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  -o file                          file to write archive to"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
@@ -54,6 +54,32 @@ def parse_options():
     res["auth_key"] = options.auth_key
     return res
 
+def do_export(export_script, temp_dir, options):
+    print "Exporting to directory..."
+    export_args = [export_script]
+    export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
+    export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
+    export_args.extend(["--auth", options["auth_key"]])
+    for table in options["tables"]:
+        export_args.extend(["--export", table])
+
+    res = subprocess.call(export_args)
+    if res != 0:
+        raise RuntimeError("rethinkdb export failed")
+
+    # 'Done' message will be printed by the export script
+
+def do_zip(temp_dir, options):
+    print "Zipping export directory..."
+    start_time = time.time()
+    tar_args = ["tar", "czf", options["out_file"], "--remove-files"]
+    tar_args.extend(["-C", temp_dir])
+    tar_args.append(options["temp_filename"])
+    res = subprocess.call(tar_args)
+    if res != 0:
+        raise RuntimeError("tar of export directory failed")
+    print "  Done (%d seconds)" % (time.time() - start_time)
+
 def run_rethinkdb_export(options):
     # Find the export script
     export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_export.py"))
@@ -66,26 +92,8 @@ def run_rethinkdb_export(options):
     res = -1
 
     try:
-        # TODO: filter stdout/stderr
-        out_dir = os.path.join(temp_dir, options["temp_filename"])
-
-        export_args = [export_script]
-        export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
-        export_args.extend(["--directory", out_dir])
-        export_args.extend(["--auth", options["auth_key"]])
-        for table in options["tables"]:
-            export_args.extend(["--export", table])
-
-        res = subprocess.call(export_args)
-        if res != 0:
-            raise RuntimeError("rethinkdb export failed")
-
-        tar_args = ["tar", "czf", options["out_file"], "--remove-files"]
-        tar_args.extend(["-C", temp_dir])
-        tar_args.append(options["temp_filename"])
-        res = subprocess.call(tar_args)
-        if res != 0:
-            raise RuntimeError("tar of export directory failed")
+        do_export(export_script, temp_dir, options)
+        do_zip(temp_dir, options)
     finally:
         shutil.rmtree(temp_dir)
 
@@ -97,8 +105,7 @@ def main():
     except RuntimeError as ex:
         print ex
         return 1
-    print "Done (%d seconds)" % (time.time() - start_time)
     return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())

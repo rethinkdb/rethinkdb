@@ -15,7 +15,7 @@ def print_import_help():
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --force                          import data even if a table already exists"
     print ""
@@ -153,7 +153,13 @@ batch_size_limit = 500000
 def object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields):
     global batch_size_limit
     global batch_length_limit
-    #TODO: filter out fields
+
+    # filter out fields
+    if fields is not None:
+        for key in list(obj.iterkeys()):
+            if key not in fields:
+                del obj[key]
+
     object_buffers.append(obj)
     buffer_sizes.append(sys.getsizeof(obj))
     if len(object_buffers) > batch_length_limit or sum(buffer_sizes) > batch_size_limit:
@@ -178,14 +184,17 @@ def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
 
     with open(filename, "r") as file_in:
         reader = csv.reader(file_in)
-        # TODO: would be more efficient to skip fields that are filtered out here
         fields_in = reader.next()
 
+        row_count = 1
         for row in reader:
             # TODO: probably shouldn't assume that each item in the csv is in json
+            if len(fields_in) != len(row):
+                raise RuntimeError("file '%s' line %d has an inconsistent number of columns" % (filename, row_count))
             row = [json.loads(item) for item in row]
             obj = dict(zip(fields_in, row))
             object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields)
+            row_count += 1
 
     if len(object_buffers) > 0:
         r.db(db).table(table).insert(object_buffers).run(conn)
@@ -207,26 +216,29 @@ def get_import_info_for_file(filename, db_filter, table_filter):
 
     return file_info
 
-# TODO: handle already-existing table case better - import into a different table name?
 def import_table_client(options, file_info):
-    db = file_info["db"]
-    table = file_info["table"]
-    primary_key = file_info["info"]["primary_key"]
-    conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"]);
+    try:
+        db = file_info["db"]
+        table = file_info["table"]
+        primary_key = file_info["info"]["primary_key"]
+        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"]);
 
-    if table not in r.db(db).table_list().run(conn):
-        r.db(db).table_create(table, primary_key=primary_key).run(conn)
-    
-    if file_info["format"] == "json":
-        restore_table_from_json(conn, file_info["file"], db, table, primary_key, options["fields"])
-    elif file_info["format"] == "csv":
-        restore_table_from_csv(conn, file_info["file"], db, table, primary_key, options["fields"])
-    else:
-        raise RuntimeError("unknown file format specified")
-    
+        if table not in r.db(db).table_list().run(conn):
+            r.db(db).table_create(table, primary_key=primary_key).run(conn)
+        
+        if file_info["format"] == "json":
+            restore_table_from_json(conn, file_info["file"], db, table, primary_key, options["fields"])
+        elif file_info["format"] == "csv":
+            restore_table_from_csv(conn, file_info["file"], db, table, primary_key, options["fields"])
+        else:
+            raise RuntimeError("unknown file format specified")
+    except (r.RqlClientError, r.RqlDriverError) as ex:
+        errors.append((RuntimeError, RuntimeError(ex.message), sys.exc_info()[2]))
+    except:
+        errors.append(sys.exc_info())
+
 def spawn_import_clients(options, files_info):
     # Spawn one client for each db.table
-    # TODO: do this in a more efficient manner
     threads = []
     errors = []
 
@@ -355,8 +367,8 @@ def main():
     except RuntimeError as ex:
         print ex
         return 1
-    print "Done (%d seconds)" % (time.time() - start_time)
+    print "  Done (%d seconds)" % (time.time() - start_time)
     return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())

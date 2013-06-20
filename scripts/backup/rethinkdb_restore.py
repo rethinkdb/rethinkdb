@@ -10,7 +10,7 @@ def print_restore_help():
     print ""
     print "  -h [ --help ]                    print this help"
     print "  FILE                             the archive file to restore data from"
-    print "  -c [ --connect ] HOST:PORT       host and port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --force                          import data even if a table already exists"
     print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
@@ -65,6 +65,48 @@ def parse_options():
     res["force"] = options.force
     return res
 
+def do_unzip(temp_dir, options):
+    print "Unzipping archive file..."
+    start_time = time.time()
+    tar_args = ["tar", "xzf", options["in_file"], "--force-local", "--strip-components=1", "--wildcards"]
+    tar_args.extend(["-C", temp_dir])
+
+    # Only untar the selected tables
+    # Apparently tar has problems if the same file is specified by two filters, so remove dupes
+    for db in set(options["dbs"]):
+        tar_args.append(os.path.join("*", db))
+    for db, table in set(options["tables"]):
+        if db not in options["dbs"]:
+            tar_args.append(os.path.join("*", db, table + ".*"))
+
+    res = subprocess.call(tar_args)
+    if res != 0:
+        raise RuntimeError("untar of archive failed")
+
+    print "  Done (%d seconds)" % (time.time() - start_time)
+
+def do_import(import_script, temp_dir, options):
+    print "Importing from directory..."
+
+    import_args = [import_script]
+    import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
+    import_args.extend(["--directory", temp_dir])
+    import_args.extend(["--auth", options["auth_key"]])
+
+    for db in options["dbs"]:
+        import_args.extend(["--import", db])
+    for db, table in options["tables"]:
+        import_args.extend(["--import", "%s.%s" % (db, table)])
+
+    if options["force"]:
+        import_args.append("--force")
+
+    res = subprocess.call(import_args)
+    if res != 0:
+        raise RuntimeError("rethinkdb import failed")
+
+    # 'Done' message will be printed by the import script
+
 def run_rethinkdb_import(options):
     # Find the import script
     import_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_import.py"))
@@ -77,38 +119,8 @@ def run_rethinkdb_import(options):
     res = -1
 
     try:
-        # TODO: filter stdout/stderr
-
-        tar_args = ["tar", "xzf", options["in_file"], "--force-local", "--strip-components=1", "--wildcards"]
-        tar_args.extend(["-C", temp_dir])
-
-        # Only untar the selected tables
-        for db in options["dbs"]:
-            tar_args.append(os.path.join("*", db))
-        for db, table in options["tables"]:
-            tar_args.append(os.path.join("*", db, table + ".*"))
-
-        res = subprocess.call(tar_args)
-        if res != 0:
-            raise RuntimeError("untar of archive failed")
-
-        import_args = [import_script]
-        import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
-        import_args.extend(["--directory", temp_dir])
-        import_args.extend(["--auth", options["auth_key"]])
-
-        for db in options["dbs"]:
-            import_args.extend(["--import", db])
-        for db, table in options["tables"]:
-            import_args.extend(["--import", "%s.%s" % (db, table)])
-
-        if options["force"]:
-            import_args.append("--force")
-
-        res = subprocess.call(import_args)
-        if res != 0:
-            raise RuntimeError("rethinkdb export failed")
-
+        do_unzip(temp_dir, options)
+        do_import(import_script, temp_dir, options)
     finally:
         shutil.rmtree(temp_dir)
 
@@ -120,8 +132,7 @@ def main():
     except RuntimeError as ex:
         print ex
         return 1
-    print "Done (%d seconds)" % (time.time() - start_time)
     return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())
