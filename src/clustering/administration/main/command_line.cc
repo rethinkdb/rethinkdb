@@ -19,8 +19,6 @@
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
-#include "clustering/administration/main/import.hpp"
-#include "clustering/administration/main/json_import.hpp"
 #include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
@@ -587,42 +585,6 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
-    }
-}
-
-void run_rethinkdb_import(extproc::spawner_info_t *spawner_info,
-                          std::vector<host_and_port_t> joins,
-                          const std::set<ip_address_t> &local_addresses,
-                          int client_port,
-                          json_import_target_t target,
-                          std::string separators,
-                          std::string input_filepath,
-                          bool *result_out) {
-    os_signal_cond_t sigint_cond;
-    guarantee(!joins.empty());
-
-    csv_to_json_importer_t importer(separators, input_filepath);
-
-    // TODO: Make the peer port be configurable?
-    try {
-        *result_out = run_json_import(spawner_info,
-                                      look_up_peers_addresses(joins),
-                                      local_addresses,
-                                      0,
-                                      client_port,
-                                      target,
-                                      &importer,
-                                      &sigint_cond);
-    } catch (const host_lookup_exc_t &ex) {
-        logERR("%s\n", ex.what());
-        *result_out = false;
-    } catch (const interrupted_exc_t &ex) {
-        // This is only ok if we were interrupted by SIGINT, anything else should have been caught elsewhere
-        if (sigint_cond.is_pulsed()) {
-            logERR("Interrupted\n");
-        } else {
-            throw;
-        }
     }
 }
 
