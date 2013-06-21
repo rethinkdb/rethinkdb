@@ -1,0 +1,18 @@
+commands:
+  - tag: json
+    section: control
+    description: Parse a JSON string on the server.
+
+    body:
+      js: json
+      py: json
+      rb: json
+    parent: r
+    returns: json
+
+    examples:
+      - description: Send an array to the server'
+        code:
+          py: r.json("[1,2,3]").run(conn)
+          rb: r.json("[1,2,3]").run(conn)
+          js: r.json("[1,2,3]").run(conn, callback)
