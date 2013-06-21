@@ -220,7 +220,7 @@ def import_table_client(options, file_info):
         db = file_info["db"]
         table = file_info["table"]
         primary_key = file_info["info"]["primary_key"]
-        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"]);
+        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
 
         if table not in r.db(db).table_list().run(conn):
             r.db(db).table_create(table, primary_key=primary_key).run(conn)
@@ -293,7 +293,11 @@ def import_directory(options):
         db_tables.add((file_info["db"], file_info["table"]))
 
     # Ensure that all needed databases exist and tables don't
-    conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    try:
+        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    except r.RqlDriverError as ex:
+        raise RuntimeError(ex.message)
+
     db_list = r.db_list().run(conn)
     for db in set([file_info["db"] for file_info in files_info]):
         if db not in db_list:
@@ -325,7 +329,11 @@ def import_file(options):
     db = options["import_db_table"][0]
     table = options["import_db_table"][1]
     primary_key = options["primary_key"]
-    conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"]);
+
+    try:
+        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+    except r.RqlDriverError as ex:
+        raise RuntimeError(ex.message)
 
     # Ensure that the database and table exist
     if db not in r.db_list().run(conn):

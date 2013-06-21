@@ -15,9 +15,9 @@ def print_export_help():
     print "  -h [ --help ]                    print this help"
     print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  -f [ --format ] (csv | json)     format to write (defaults to json)"
     print "  -d [ --directory ] DIR           directory to output to (defaults to"
     print "                                   rethinkdb_export_DATE_TIME)"
+    print "  --format (csv | json)            format to write (defaults to json)"
     print "  --fields FIELD,FIELD...          limit the exported fields to those specified"
     print "                                   (required for csv format)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
@@ -27,7 +27,7 @@ def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
-    parser.add_option("-f", "--format", dest="format", metavar="json | csv", default="json", type="string")
+    parser.add_option("--format", dest="format", metavar="json | csv", default="json", type="string")
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
@@ -90,7 +90,11 @@ def parse_options():
     return res
 
 def get_tables(host, port, auth_key, tables):
-    conn = r.connect(host, port, auth_key=auth_key)
+    try:
+        conn = r.connect(host, port, auth_key=auth_key)
+    except r.RqlDriverError as ex:
+        raise RuntimeError(ex.message)
+
     dbs = r.db_list().run(conn)
     res = []
 
@@ -147,7 +151,9 @@ def write_table_data_csv(conn, db, table, base_path, fields):
             info = []
             # If the data is a simple type, just write it directly, otherwise, write it as json
             for field in fields:
-                if isinstance(row[field], (int, long, float, complex, str, unicode)):
+                if field not in row:
+                    info.append(None)
+                elif isinstance(row[field], (int, long, float, complex, str, unicode)):
                     info.append(str(row[field]))
                 else:
                     info.append(json.dumps(row[field]))
