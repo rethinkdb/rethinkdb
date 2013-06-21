@@ -109,7 +109,7 @@ def do_import(import_script, temp_dir, options):
 
 def run_rethinkdb_import(options):
     # Find the import script
-    import_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_import.py"))
+    import_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb-import"))
 
     if not os.path.exists(import_script):
         raise RuntimeError("could not find import script")

@@ -82,7 +82,7 @@ def do_zip(temp_dir, options):
 
 def run_rethinkdb_export(options):
     # Find the export script
-    export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb_export.py"))
+    export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb-export"))
 
     if not os.path.exists(export_script):
         raise RuntimeError("could not find export script")
