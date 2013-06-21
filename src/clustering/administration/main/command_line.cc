@@ -1475,9 +1475,12 @@ void run_backup_script(const std::string& script_name, char * const arguments[])
     }
 
     // First attempt to launch the script from the same directory as us
-    int res = execvp((exe_dir + "/" + script_name).c_str(), arguments);
+    std::string local_script = exe_dir + "/" + script_name;
+    int res = execvp(local_script.c_str(), arguments);
 
-    // TODO: anything we can do with/want to do with res?  maybe a warning?
+    fprintf(stderr, "Warning: error when running %s: %s\n",
+            local_script.c_str(), errno_string(errno).c_str());
+    fprintf(stderr, "  attempting to run using PATH\n");
 
     // If that fails, try to run it from the system path
     res = execvp(script_name.c_str(), arguments);
