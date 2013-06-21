@@ -3,10 +3,7 @@
 #define ARCH_IO_DISK_HPP_
 
 #include "arch/io/io_utils.hpp"
-#include "arch/runtime/event_queue.hpp"
-#include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
-#include "config/args.hpp"
 #include "containers/scoped.hpp"
 #include "utils.hpp"
 
