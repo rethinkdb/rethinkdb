@@ -1,0 +1,18 @@
+desc: Tests RQL json parsing
+tests:
+
+    - cd: r.json("[1,2,3]")
+      ot: [1,2,3]
+
+    - cd: r.json("1")
+      ot: 1
+
+    - cd: r.json("{}")
+      ot: "{}"
+
+    - cd: r.json("\"foo\"")
+      ot: "foo"
+
+    - cd: r.json("[1,2")
+      ot: err("RqlRuntimeError", 'Failed to parse JSON.', [0])
+
