@@ -31,7 +31,7 @@
 #include "utils.hpp"
 #include "help.hpp"
 
-// Needed for determining rehtinkdb binary path below
+// Needed for determining rethinkdb binary path below
 #if defined(__MACH__)
 #include <mach-o/dyld.h>
 #elif defined(__FreeBSD_version)
