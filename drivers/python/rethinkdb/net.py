@@ -3,7 +3,6 @@
 __all__ = ['connect', 'Connection', 'Cursor']
 
 import socket
-import select
 import struct
 
 import ql2_pb2 as p

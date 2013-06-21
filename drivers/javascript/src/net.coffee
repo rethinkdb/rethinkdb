@@ -15,6 +15,7 @@ class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
     DEFAULT_AUTH_KEY: ''
+    DEFAULT_TIMEOUT: 20
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -26,6 +27,7 @@ class Connection
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
         @authKey = host.authKey || @DEFAULT_AUTH_KEY
+        @timeout = host.timeout || @DEFAULT_TIMEOUT
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -264,6 +266,7 @@ class TcpConnection extends Connection
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
+            handshake_complete = false
             handshake_callback = (buf) =>
                 arr = toArrayBuffer(buf)
 
@@ -281,6 +284,7 @@ class TcpConnection extends Connection
                             @rawSocket.on 'data', (buf) =>
                                 @_data(toArrayBuffer(buf))
 
+                            handshake_complete = true
                             @emit 'connect'
                             return
                         else
@@ -288,6 +292,11 @@ class TcpConnection extends Connection
                             return
 
             @rawSocket.on 'data', handshake_callback
+            setTimeout( (()->
+                if not handshake_complete
+                    @rawSocket.destroy()
+                    @emit 'error', new RqlDriverError "Handshake timedout"
+            ), @timeout)
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 

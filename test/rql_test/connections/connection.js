@@ -78,6 +78,17 @@ var ifTestDefault = function(f, c){
 }
 
 describe('Javascript connection API', function(){
+    it("times out with a server that doesn't do the handshake correctly", function(){
+        var port = 8990;
+
+        // Setup dummy sever
+        require('net').createServer(function(c) {
+            // Do nothing
+        }).listen(port);
+
+        r.connect({timeout:1}, function(){});
+    });
+
     describe('With no server', function(){
         it("fails when trying to connect", function(done){
             ifTestDefault(
