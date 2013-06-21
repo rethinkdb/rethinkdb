@@ -4,12 +4,14 @@
 
 namespace ql {
 class json_term_t : public op_term_t {
+public:
     json_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     counted_t<val_t> eval_impl() {
         std::string json_string = arg(0)->as_str();
         scoped_cJSON_t cjson(cJSON_Parse(json_string.c_str()));
+        rcheck(cjson.get() != NULL, base_exc_t::GENERIC, "Failed to parse JSON.");
         return new_val(make_counted<const datum_t>(cjson.get(), env));
     }
 
@@ -18,5 +20,9 @@ class json_term_t : public op_term_t {
     }
     virtual const char *name() const { return "json"; }
 };
+
+counted_t<term_t> make_json_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<json_term_t>(env, term);
+}
 } //namespace ql
 
