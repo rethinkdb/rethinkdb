@@ -12,15 +12,6 @@
 
 #include "perfmon/core.hpp"
 
-#define FILE_SYNC_TECHNIQUE_DATASYNC 1
-#define FILE_SYNC_TECHNIQUE_FULLFSYNC 2
-
-#ifdef __MACH__
-#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_FULLFSYNC
-#else
-#define FILE_SYNC_TECHNIQUE FILE_SYNC_TECHNIQUE_DATASYNC
-#endif
-
 // The maximum concurrent IO requests per event queue.. the default value.
 #define DEFAULT_MAX_CONCURRENT_IO_REQUESTS 64
 

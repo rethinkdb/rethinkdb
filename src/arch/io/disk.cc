@@ -390,9 +390,7 @@ int perform_datasync(fd_t fd) {
     // On OS X, we use F_FULLFSYNC because fsync lies.  fdatasync is not available.  On
     // Linux we just use fdatasync.
 
-#ifndef FILE_SYNC_TECHNIQUE
-#error "FILE_SYNC_TECHNIQUE is not defined"
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
+#ifdef __MACH__
 
     int fcntl_res;
     do {
@@ -401,11 +399,11 @@ int perform_datasync(fd_t fd) {
 
     return fcntl_res == -1 ? errno : 0;
 
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DATASYNC
+#else  // __MACH__
 
     int res = fdatasync(fd);
     return res == -1 ? errno : 0;
 
-#endif  // FILE_SYNC_TECHNIQUE
+#endif  // __MACH__
 }
 
