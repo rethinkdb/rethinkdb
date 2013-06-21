@@ -52,8 +52,8 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
         `ns_record_t` so that the `serve_queries()` coroutine will stop */
         if (handled_ns != namespaces_being_handled.end() && (
                           it->second.is_deleted() ||
-                          it->second.get().port.in_conflict() ||
-                          handled_ns->second->port != get_port(it->second.get(), port_offset)
+                          it->second.get_ref().port.in_conflict() ||
+                          handled_ns->second->port != get_port(it->second.get_ref(), port_offset)
                           )) {
 
             if (!handled_ns->second->stopper.is_pulsed()) {
@@ -63,12 +63,12 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
 
         /* Create parsers as necessary by spawning instances of
         `serve_queries()` */
-        if (handled_ns == namespaces_being_handled.end() && !it->second.is_deleted() && !it->second.get().port.in_conflict()) {
-            vclock_t<name_string_t> v_ns_name = it->second.get().name;
+        if (handled_ns == namespaces_being_handled.end() && !it->second.is_deleted() && !it->second.get_ref().port.in_conflict()) {
+            vclock_t<name_string_t> v_ns_name = it->second.get_ref().name;
             // TODO: Why not resort to uuid when the name is in conflict, if it's for user output?
             std::string ns_name = v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get().str();
 
-            int port = get_port(it->second.get(), port_offset);
+            int port = get_port(it->second.get_ref(), port_offset);
             namespace_id_t tmp = it->first;
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
             coro_t::spawn_sometime(boost::bind(
