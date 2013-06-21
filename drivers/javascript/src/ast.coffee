@@ -287,6 +287,10 @@ class JavaScript extends RDBOp
     tt: Term.TermType.JAVASCRIPT
     st: 'js'
 
+class Json extends RDBOp
+    tt: Term.TermType.JSON
+    st: 'json'
+
 class UserError extends RDBOp
     tt: Term.TermType.ERROR
     st: 'error'
