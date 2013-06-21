@@ -31,10 +31,17 @@
 #include "utils.hpp"
 #include "help.hpp"
 
-#define RETHINKDB_EXPORT_SCRIPT "../scripts/backup/rethinkdb_export.py"
-#define RETHINKDB_IMPORT_SCRIPT "../scripts/backup/rethinkdb_import.py"
-#define RETHINKDB_DUMP_SCRIPT "../scripts/backup/rethinkdb_dump.py"
-#define RETHINKDB_RESTORE_SCRIPT "../scripts/backup/rethinkdb_restore.py"
+// Needed for determining rehtinkdb binary path below
+#if defined(__MACH__)
+#include <mach-o/dyld.h>
+#elif defined(__FreeBSD_version)
+#include <sys/sysctl.h>
+#endif
+
+#define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
+#define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
+#define RETHINKDB_DUMP_SCRIPT "rethinkdb-dump"
+#define RETHINKDB_RESTORE_SCRIPT "rethinkdb-restore"
 
 MUST_USE bool numwrite(const char *path, int number) {
     // Try to figure out what this function does.
@@ -1379,35 +1386,125 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-int main_rethinkdb_export(int, char *argv[]) {
-    int res = execvp(RETHINKDB_EXPORT_SCRIPT, argv + 2);
-    if (res == -1) {
-        fprintf(stderr, "Error when launching export script: %s\n", errno_string(errno).c_str());
+#if defined(__linux__)
+bool get_rethinkdb_exe_directory(std::string *result) {
+    char buffer[PATH_MAX + 1];
+    ssize_t len = readlink("/proc/self/exe", buffer, PATH_MAX);
+
+    if (len == -1) {
+        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
+                errno_string(errno).c_str());
+        return false;
     }
+
+    buffer[len] = '\0';
+
+    char *dir = dirname(buffer);
+    if (dir == NULL) {
+        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
+                errno_string(errno).c_str());
+        return false;
+    }
+
+    result->assign(dir);
+    return true;
+}
+#elif defined(__MACH__)
+bool get_rethinkdb_exe_directory(std::string *result) {
+    uint32_t buffer_size = PATH_MAX;
+    scoped_array_t<char> buffer;
+    buffer.init(buffer_size);
+
+    if (_NSGetExecutablePath(buffer.data(), &buffer_size) == -1) {
+        buffer.reset();
+        buffer.init(buffer_size);
+
+        if (_NSGetExecutablePath(buffer.data(), &buffer_size) == -1) {
+            fprintf(stderr, "Error when determining rethinkdb directory\n");
+            return false;
+        }
+    }
+
+    char *dir = dirname(buffer);
+    if (dir == NULL) {
+        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
+                errno_string(errno).c_str());
+        return false;
+    }
+
+    result->assign(dir);
+    return true;
+}
+#elif defined(__FreeBSD_version)
+bool get_rethinkdb_exe_directory(std::string *result) {
+    // Taken from http://stackoverflow.com/questions/799679, completely untested
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+    char buf[2048];
+    size_t cb = sizeof(buf);
+    int res = sysctl(mib, 4, buf, &cb, NULL, 0);
+
+    if (res != 0) {
+        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
+                errno_string(res).c_str());
+        return false;
+    }
+
+    char *dir = dirname(buffer);
+    if (dir == NULL) {
+        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
+                errno_string(errno).c_str());
+        return false;
+    }
+
+    result->assign(dir);
+    return true;
+}
+#else
+#error "no implementation for 'get_rethinkdb_exe_directory()' available for this operating system"
+#endif
+
+void run_backup_script(const std::string& script_name, char * const arguments[]) {
+    std::string exe_dir;
+
+    if (!get_rethinkdb_exe_directory(&exe_dir)) {
+        return;
+    }
+
+    // First attempt to launch the script from the same directory as us
+    int res = execvp((exe_dir + "/" + script_name).c_str(), arguments);
+
+    // TODO: anything we can do with/want to do with res?  maybe a warning?
+
+    // If that fails, try to run it from the system path
+    res = execvp(script_name.c_str(), arguments);
+    if (res == -1) {
+        fprintf(stderr, "Error when launching %s: %s\n",
+                script_name.c_str(),
+                errno_string(errno).c_str());
+    }
+}
+
+int main_rethinkdb_export(int, char *argv[]) {
+    run_backup_script(RETHINKDB_EXPORT_SCRIPT, argv + 1);
     return EXIT_FAILURE;
 }
 
 int main_rethinkdb_import(int, char *argv[]) {
-    int res = execvp(RETHINKDB_IMPORT_SCRIPT, argv + 2);
-    if (res == -1) {
-        fprintf(stderr, "Error when launching import script: %s\n", errno_string(errno).c_str());
-    }
+    run_backup_script(RETHINKDB_IMPORT_SCRIPT, argv + 1);
     return EXIT_FAILURE;
 }
 
 int main_rethinkdb_dump(int, char *argv[]) {
-    int res = execvp(RETHINKDB_DUMP_SCRIPT, argv + 2);
-    if (res == -1) {
-        fprintf(stderr, "Error when launching dump script: %s\n", errno_string(errno).c_str());
-    }
+    run_backup_script(RETHINKDB_DUMP_SCRIPT, argv + 1);
     return EXIT_FAILURE;
 }
 
 int main_rethinkdb_restore(int, char *argv[]) {
-    int res = execvp(RETHINKDB_RESTORE_SCRIPT, argv + 2);
-    if (res == -1) {
-        fprintf(stderr, "Error when launching restore script: %s\n", errno_string(errno).c_str());
-    }
+    run_backup_script(RETHINKDB_RESTORE_SCRIPT, argv + 1);
     return EXIT_FAILURE;
 }
 
@@ -1571,29 +1668,29 @@ void help_rethinkdb_proxy() {
 }
 
 void help_rethinkdb_export() {
-    int res = execlp(RETHINKDB_EXPORT_SCRIPT, "--help", static_cast<char*>(NULL));
-    if (res == -1) {
-        fprintf(stderr, "Error when launching export script: %s\n", errno_string(errno).c_str());
-    }
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_EXPORT_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, NULL };
+    run_backup_script(RETHINKDB_EXPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_import() {
-    int res = execlp(RETHINKDB_IMPORT_SCRIPT, "--help", static_cast<char*>(NULL));
-    if (res == -1) {
-        fprintf(stderr, "Error when launching import script: %s\n", errno_string(errno).c_str());
-    }
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_IMPORT_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, NULL };
+    run_backup_script(RETHINKDB_IMPORT_SCRIPT, args);
 }
 
 void help_rethinkdb_dump() {
-    int res = execlp(RETHINKDB_DUMP_SCRIPT, "--help", static_cast<char*>(NULL));
-    if (res == -1) {
-        fprintf(stderr, "Error when launching dump script: %s\n", errno_string(errno).c_str());
-    }
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_DUMP_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, NULL };
+    run_backup_script(RETHINKDB_DUMP_SCRIPT, args);
 }
 
 void help_rethinkdb_restore() {
-    int res = execlp(RETHINKDB_RESTORE_SCRIPT, "--help", static_cast<char*>(NULL));
-    if (res == -1) {
-        fprintf(stderr, "Error when launching restore script: %s\n", errno_string(errno).c_str());
-    }
+    char help_arg[] = "--help";
+    char dummy_arg[] = RETHINKDB_RESTORE_SCRIPT;
+    char* args[3] = { dummy_arg, help_arg, NULL };
+    run_backup_script(RETHINKDB_RESTORE_SCRIPT, args);
 }

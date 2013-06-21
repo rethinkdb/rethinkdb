@@ -3,6 +3,7 @@
 # This makefile defines paths that are needed by the other Makefiles
 
 SCRIPTS_DIR := $(TOP)/scripts
+BACKUP_SCRIPTS_DIR := $(SCRIPTS_DIR)/backup
 SOURCE_DIR := $(TOP)/src
 BUILD_ROOT_DIR := $(TOP)/build
 PACKAGING_DIR := $(TOP)/packaging
@@ -58,6 +59,16 @@ GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 
 PACKAGE_NAME := $(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME := $(SERVER_EXEC_NAME)-unittest
+
+EXPORT_SCRIPT_NAME := rethinkdb-export
+IMPORT_SCRIPT_NAME := rethinkdb-import
+DUMP_SCRIPT_NAME := rethinkdb-dump
+RESTORE_SCRIPT_NAME := rethinkdb-restore
+
+EXPORT_SCRIPT_SRC := $(BACKUP_SCRIPTS_DIR)/$(EXPORT_SCRIPT_NAME)
+IMPORT_SCRIPT_SRC := $(BACKUP_SCRIPTS_DIR)/$(IMPORT_SCRIPT_NAME)
+DUMP_SCRIPT_SRC := $(BACKUP_SCRIPTS_DIR)/$(DUMP_SCRIPT_NAME)
+RESTORE_SCRIPT_SRC := $(BACKUP_SCRIPTS_DIR)/$(RESTORE_SCRIPT_NAME)
 
 EXTERNAL_DIR := $(TOP)/external
 EXTERNAL_DIR_ABS := $(abspath $(EXTERNAL_DIR))
