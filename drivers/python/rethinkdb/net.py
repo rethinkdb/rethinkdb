@@ -3,6 +3,7 @@
 __all__ = ['connect', 'Connection', 'Cursor']
 
 import socket
+import select
 import struct
 
 import ql2_pb2 as p
@@ -41,7 +42,7 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None, auth_key="", timeout=20):
+    def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.host = host
         self.port = port
@@ -62,12 +63,11 @@ class Connection(object):
 
     def reconnect(self):
         self.close()
+
         try:
-            self.socket = socket.create_connection((self.host, self.port))
+            self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
-
-        self.socket.settimeout(self.timeout)
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
@@ -224,5 +224,5 @@ class Connection(object):
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-def connect(host='localhost', port=28015, db=None, auth_key=""):
-    return Connection(host, port, db, auth_key)
+def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
+    return Connection(host, port, db, auth_key, timeout)
