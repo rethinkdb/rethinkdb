@@ -2257,6 +2257,11 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
+
+            # Remove comments from the query
+            @raw_query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
+            @raw_query = @raw_query.replace(/(\s)*\/\*[^]*\*\//g, '')
+
             @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
@@ -2512,6 +2517,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             stack = []
             start = 0
+            to_skip = 0
             
             position =
                 char: 0
@@ -2537,16 +2543,6 @@ module 'DataExplorerView', ->
                         is_parsing_string = true
                         string_delimiter = char
                         continue
-
-                    result_inline_comment = @regex.inline_comment.exec query.slice i
-                    if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
-                        continue
-                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
-                    if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
-                        continue
-                    
 
                     if char of @stop_char.opening
                         stack.push char
