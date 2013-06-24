@@ -1,0 +1,18 @@
+<html><head><title>RethinkDB AMI Setup</title><script>
+function validate(){
+  var f = document.forms["form"];
+  if(f["password"].value != f["password2"].value){
+    alert("The passwords don't match");
+    return false;
+  }
+}
+</script></head><body style="font-size:3em">
+<br/><br/><center>
+RethinkDB AMI Setup<br/>
+<form name="form" method="POST" action="/set_password" onsubmit="return validate()">
+Chose a password: <input type="password" name="password" id="password"/><br/>
+Repeat password: <input type="password" name="password2" id="password2"/><br/>
+<input type="submit"/>
+</form>
+</center></body></html>
+
