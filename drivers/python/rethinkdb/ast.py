@@ -51,7 +51,7 @@ class RqlQuery(object):
         return qp.print_query()
 
     def __repr__(self):
-        return "<RqlQuery instance: %s >" % str(self)
+        return "<RqlQuery instance: {0} >".format(str(self))
 
     # Compile this query to a binary protobuf buffer
     def build(self, term):
@@ -396,7 +396,7 @@ class Datum(RqlQuery):
             term.datum.type = p.Datum.R_STR
             term.datum.r_str = self.data
         else:
-            raise RuntimeError("Cannot build a query from a %s" % type(term).__name__, term)
+            raise RuntimeError("Cannot build a query from a {0}".format(type(term).__name__, term))
 
     def compose(self, args, optargs):
         return repr(self.data)
@@ -427,7 +427,7 @@ class Datum(RqlQuery):
                 obj[pair.key] = Datum.deconstruct(pair.val)
             return obj
         else:
-            raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
+            raise RuntimeError("Unknown Datum type {0:d} encountered in response.".format(datum.type))
 
 class MakeArray(RqlQuery):
     tt = p.Term.MAKE_ARRAY

@@ -41,13 +41,20 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None, auth_key=""):
+    def __init__(self, host, port, db=None, auth_key="", timeout=20):
         self.socket = None
         self.host = host
-        self.port = port
         self.next_token = 1
         self.db = db
         self.auth_key = auth_key
+        self.timeout = timeout
+
+        # Try to convert the port to an integer
+        try:
+          self.port = int(port)
+        except ValueError as err:
+          raise RqlDriverError("Could not convert port {0} to an integer.".format(port))
+
         self.reconnect()
 
     def __enter__(self):
@@ -64,7 +71,9 @@ class Connection(object):
         try:
             self.socket = socket.create_connection((self.host, self.port))
         except Exception as err:
-            raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+            raise RqlDriverError("Could not connect to {0}:{1:d}.".format(self.host, self.port))
+
+        self.socket.settimeout(self.timeout) # timeout after 20 seconds
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
@@ -78,7 +87,7 @@ class Connection(object):
             response += char
 
         if response != "SUCCESS":
-            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+            raise RqlDriverError("Server dropped connection with message: \"{0}\"".format(response.strip()))
 
     def close(self):
         if self.socket:
@@ -214,7 +223,7 @@ class Connection(object):
 
         # Default for unknown response types
         else:
-            raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
+            raise RqlDriverError("Unknown Response type {0:d} encountered in response.".format(response.type))
 
 def connect(host='localhost', port=28015, db=None, auth_key=""):
     return Connection(host, port, db, auth_key)
