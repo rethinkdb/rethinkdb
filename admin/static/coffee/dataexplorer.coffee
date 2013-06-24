@@ -713,6 +713,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
+            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -765,6 +766,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
+            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -1193,10 +1195,10 @@ module 'DataExplorerView', ->
                 #to_complete: undefined
                 #to_describe: undefined
                 
-            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
+            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers or a comment), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
 
-            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers or result_non_white_char_after_cursor[1]?.match(/^((\/\/)|(\/\*))/) isnt null)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
@@ -2257,7 +2259,10 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
-            @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
+
+            @query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
+            @query = @query.replace(/(\s)*\/\*[^]*\*\//g, '')
+            @query = @replace_new_lines_in_query @query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
