@@ -73,7 +73,7 @@ class BackboneCluster extends Backbone.Router
             @$container.html @current_view.render().el
 
     dashboard: ->
-        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
+        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
         clear_modals()
         @current_view.destroy()
         @current_view = new DashboardView.Container
@@ -108,7 +108,7 @@ class BackboneCluster extends Backbone.Router
     #TODO Clean the next 3 methods. We don't need tab anymore
     database: (id, tab) ->
         #TODO We can make it better
-        @set_stats_call '/ajax/stat?filter=.*/serializers'
+        @set_stats_call 'ajax/stat?filter=.*/serializers'
         log_router '/databases/' + id
         clear_modals()
         database = databases.get(id)
@@ -120,7 +120,7 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
 
     namespace: (id, tab) ->
-        @set_stats_call '/ajax/stat?filter='+id+'/serializers'
+        @set_stats_call 'ajax/stat?filter='+id+'/serializers'
         log_router '/namespaces/' + id
         clear_modals()
         namespace = namespaces.get(id)
@@ -137,7 +137,7 @@ class BackboneCluster extends Backbone.Router
             @current_view.shards.render_data_repartition()
 
     datacenter: (id, tab) ->
-        @set_stats_call '/ajax/stat?filter=.*/serializers,proc,sys'
+        @set_stats_call 'ajax/stat?filter=.*/serializers,proc,sys'
         log_router '/datacenters/' + id
         clear_modals()
         datacenter = datacenters.get(id)
@@ -151,7 +151,7 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
 
     server: (id, tab) ->
-        @set_stats_call '/ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
+        @set_stats_call 'ajax/stat?machine_whitelist='+id+'&filter=.*/serializers,proc,sys'
         log_router '/servers/' + id
         clear_modals()
         machine = machines.get(id)

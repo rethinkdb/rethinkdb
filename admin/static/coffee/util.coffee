@@ -310,7 +310,7 @@ form_data_as_object = (form) ->
     return formdata
 
 
-# Awful things because /ajax/distribution is bad. We should feel bad too.
+# Awful things because ajax/distribution is bad. We should feel bad too.
 pretty_key = (s) ->
     if s is null
         return "+∞"
@@ -410,7 +410,7 @@ bind_dev_tools = ->
     $('#reset-simulation-data').click (e) ->
         $.ajax
             contentType: 'application/json'
-            url: '/ajax/reset_data',
+            url: 'ajax/reset_data',
             success: ->
                 console.log 'Reset simulation data.'
         return false
@@ -418,7 +418,7 @@ bind_dev_tools = ->
     $('#reset-session').click (e) ->
         $.ajax
             contentType: 'application/json'
-            url: '/ajax/reset_session',
+            url: 'ajax/reset_session',
             success: ->
                 console.log 'Reset session.'
         return false
@@ -429,7 +429,7 @@ bind_dev_tools = ->
     $('#make-diff').click (e) ->
         $.ajax
             contentType: 'application/json'
-            url: '/ajax/make_diff',
+            url: 'ajax/make_diff',
             success: ->
                 console.log 'Made diff to simulation data.'
         return false

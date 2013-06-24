@@ -45,7 +45,7 @@ module 'ResolveIssuesView', ->
             super
 
             $.ajax
-                url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
+                url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
@@ -75,7 +75,7 @@ module 'ResolveIssuesView', ->
             #TODO Remove this synchronous request and use proper callbacks.
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
-                url: '/ajax/issues'
+                url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
@@ -110,7 +110,7 @@ module 'ResolveIssuesView', ->
 
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
-                url: '/ajax/issues'
+                url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
@@ -139,7 +139,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/semilattice/" + @resolution_url
+                url: "ajax/semilattice/" + @resolution_url
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(@final_value)
@@ -153,7 +153,7 @@ module 'ResolveIssuesView', ->
                     final_value: @final_value
 
             $.ajax
-                url: '/ajax/issues'
+                url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
@@ -198,7 +198,7 @@ module 'ResolveIssuesView', ->
 
             $.ajax
                 processData: false
-                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                url: "ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 contentType: 'application/json'
                 type: 'POST'
                 data: JSON.stringify
@@ -216,7 +216,7 @@ module 'ResolveIssuesView', ->
 
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
-                url: '/ajax/issues'
+                url: 'ajax/issues'
                 contentType: 'application/json'
                 success: set_issues
                 async: false
@@ -335,7 +335,7 @@ module 'ResolveIssuesView', ->
             else
                 # grab possible conflicting values
                 $.ajax
-                    url: '/ajax/semilattice/' + get_resolution_url()
+                    url: 'ajax/semilattice/' + get_resolution_url()
                     type: 'GET'
                     contentType: 'application/json'
                     async: false

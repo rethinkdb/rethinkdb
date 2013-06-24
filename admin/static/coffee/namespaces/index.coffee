@@ -277,7 +277,7 @@ module 'NamespaceView', ->
             if no_error is true
                 $.ajax
                     processData: false
-                    url: '/ajax/semilattice/databases/new'
+                    url: 'ajax/semilattice/databases/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify({"name" : @formdata.name})
@@ -433,7 +433,7 @@ module 'NamespaceView', ->
 
                 $.ajax
                     processData: false
-                    url: '/ajax/semilattice/rdb_namespaces/new'
+                    url: 'ajax/semilattice/rdb_namespaces/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify(
@@ -482,7 +482,7 @@ module 'NamespaceView', ->
         on_submit: ->
             super
 
-            # For when /ajax will handle post request
+            # For when ajax will handle post request
             data = {}
             for namespace in @namespaces_to_delete
                 if not data[namespace.get('protocol')+'_namespaces']?
@@ -490,7 +490,7 @@ module 'NamespaceView', ->
                 data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
 
             $.ajax
-                url: "/ajax/semilattice"
+                url: "ajax/semilattice"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify data

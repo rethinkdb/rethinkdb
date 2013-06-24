@@ -74,7 +74,7 @@ class Namespace extends Backbone.Model
     load_key_distr: =>
         $.ajax
             processData: false
-            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            url: "ajax/distribution?namespace=#{@get('id')}&depth=2"
             type: 'GET'
             contentType: 'application/json'
             success: (distr_data) =>
@@ -410,7 +410,7 @@ class Machines extends Backbone.Collection
 
 class Issues extends Backbone.Collection
     model: Issue
-    url: '/ajax/issues'
+    url: 'ajax/issues'
 
 # We compare the directory and the blueprints to detect redundancy problems
 class IssuesRedundancy extends Backbone.Collection
@@ -481,12 +481,12 @@ class IssuesRedundancy extends Backbone.Collection
 
 class ProgressList extends Backbone.Collection
     model: Progress
-    url: '/ajax/progress'
+    url: 'ajax/progress'
 
 # hook into directory
 class Directory extends Backbone.Collection
     model: MachineAttributes
-    url: '/ajax/directory'
+    url: 'ajax/directory'
 
 # This module contains utility functions that compute and massage
 # commonly used data.
