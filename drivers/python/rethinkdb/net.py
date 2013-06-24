@@ -80,6 +80,7 @@ class Connection(object):
             response += char
 
         if response != "SUCCESS":
+            self.socket.close()
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
         # Connection is now initialized
