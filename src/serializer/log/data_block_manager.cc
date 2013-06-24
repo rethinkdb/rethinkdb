@@ -340,11 +340,21 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
         dbm_read_ahead_t::perform_read_ahead(this, off_in, ser_block_size_in,
                                              buf_out, io_account);
     } else {
-        rassert(ser_block_size_in == static_config->block_size().ser_value());  // RSI
-        rassert(divides(static_config->block_size().ser_value(), off_in));  // RSI
+        if (divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf_out)) &&
+            divides(DEVICE_BLOCK_SIZE, off_in) &&
+            divides(DEVICE_BLOCK_SIZE, ser_block_size_in)) {
+            co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
+        } else {
+            int64_t floor_off_in = floor_aligned(off_in, DEVICE_BLOCK_SIZE);
+            int64_t ceil_off_end = ceil_aligned(off_in + ser_block_size_in,
+                                                DEVICE_BLOCK_SIZE);
+            scoped_malloc_t<char> buf(malloc_aligned(ceil_off_end - floor_off_in,
+                                                     DEVICE_BLOCK_SIZE));
+            co_read(dbfile, floor_off_in, ceil_off_end - floor_off_in,
+                    buf.get(), io_account);
 
-        // RSI: This read could end up being unaligned.  It needs to be aligned.
-        co_read(dbfile, off_in, ser_block_size_in, buf_out, io_account);
+            memcpy(buf_out, buf.get() + (off_in - floor_off_in), ser_block_size_in);
+        }
     }
 }
 
