@@ -9,12 +9,10 @@
 #include <unistd.h>
 
 #include <algorithm>
-
-#include "utils.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/types.hpp"
-#include "arch/runtime/system_event/eventfd.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
 #include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -25,6 +23,8 @@
 #include "arch/io/disk/accounting.hpp"
 #include "do_on_thread.hpp"
 #include "logger.hpp"
+
+using namespace std::placeholders;  // for _1, _2, ...
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
@@ -55,15 +55,18 @@ public:
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
-        stack_stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
-        conflict_resolver.submit_fun = boost::bind(&accounting_diskmgr_t::submit, &accounter, _1);
+        stack_stats.submit_fun = std::bind(&conflict_resolver_t::submit,
+                                           &conflict_resolver, _1);
+        conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
+                                                 &accounter, _1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = boost::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
-        backend_stats.done_fun = boost::bind(&accounting_diskmgr_t::done, &accounter, _1);
-        accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
-        conflict_resolver.done_fun = boost::bind(&stack_stats_t::done, &stack_stats, _1);
-        stack_stats.done_fun = boost::bind(&linux_disk_manager_t::done, this, _1);
+        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
+        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
+        accounter.done_fun = std::bind(&conflict_resolver_t::done,
+                                       &conflict_resolver, _1);
+        conflict_resolver.done_fun = std::bind(&stack_stats_t::done, &stack_stats, _1);
+        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
     }
 
     ~linux_disk_manager_t() {
@@ -80,7 +83,8 @@ public:
     }
 
     void destroy_account(void *account) {
-        coro_t::spawn_sometime(boost::bind(&linux_disk_manager_t::delayed_destroy, this, account));
+        coro_t::spawn_sometime(std::bind(&linux_disk_manager_t::delayed_destroy, this,
+                                         account));
     }
 
     void submit_action_to_stack_stats(action_t *a) {
@@ -89,16 +93,19 @@ public:
         stack_stats.submit(a);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb,
+                      bool wrap_in_datasyncs) {
         int calling_thread = get_thread_id();
 
         action_t *a = new action_t;
-        a->make_write(fd, buf, count, offset);
+        a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
@@ -110,7 +117,9 @@ public:
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        do_on_thread(home_thread(), boost::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
     };
 
     void done(stack_stats_t::action_t *a) {
@@ -119,9 +128,14 @@ public:
         action_t *a2 = static_cast<action_t *>(a);
         bool succeeded = a2->get_succeeded();
         if (succeeded) {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_complete, a2->cb));
+            do_on_thread(a2->cb_thread,
+                         std::bind(&linux_iocallback_t::on_io_complete, a2->cb));
         } else {
-            do_on_thread(a2->cb_thread, boost::bind(&linux_iocallback_t::on_io_failure, a2->cb, a2->get_errno(), static_cast<int64_t>(a2->get_offset()), static_cast<int64_t>(a2->get_count())));
+            do_on_thread(a2->cb_thread,
+                         std::bind(&linux_iocallback_t::on_io_failure,
+                                   a2->cb, a2->get_errno(),
+                                   static_cast<int64_t>(a2->get_offset()),
+                                   static_cast<int64_t>(a2->get_count())));
         }
         delete a2;
     }
@@ -185,27 +199,8 @@ void linux_file_t::set_size(size_t size) {
     } while (res == -1 && errno == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
-#if FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
-
-    int fcntl_res;
-    do {
-        fcntl_res = fcntl(fd.get(), F_FULLFSYNC);
-    } while (fcntl_res == -1 && errno == EINTR);
-    guarantee_err(fcntl_res == 0, "Could not fsync with fcntl(..., F_FULLFSYNC).");
-
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
-
-    // Make sure that the metadata change gets persisted before we start writing to the resized
-    // file (to be safe in case of system crashes, etc).
-    int fsync_res;
-    do {
-        fsync_res = fsync(fd.get());
-    } while (fsync_res == -1 && errno == EINTR);
-    guarantee_err(fsync_res == 0, "Could not fsync.");
-
-#else
-#error "Unrecognized FILE_SYNC_TECHNIQUE value.  Did you include the header file?"
-#endif  // FILE_SYNC_TECHNIQUE
+    int errcode = perform_datasync(fd.get());
+    guarantee_xerr(errcode == 0, errcode, "Could not sync after ftruncate");
 
     file_size = size;
 }
@@ -225,13 +220,16 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_acco
         callback);
 }
 
-void linux_file_t::write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
+                               file_account_t *account, linux_iocallback_t *callback,
+                               wrap_in_datasyncs_t wrap_in_datasyncs) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
-        account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
-        callback);
+                          account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
+                          callback,
+                          wrap_in_datasyncs == WRAP_IN_DATASYNCS);
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
@@ -305,17 +303,11 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
         flags |= O_TRUNC;
     }
 
-    // For now, we have a whitelist of kernels that don't support O_LARGEFILE (or O_DSYNC, for that
-    // matter).  Linux is the only known kernel that has (or may need) the O_LARGEFILE flag.
+    // For now, we have a whitelist of kernels that don't support O_LARGEFILE.  Linux is
+    // the only known kernel that has (or may need) the O_LARGEFILE flag.
 #ifndef __MACH__
     flags |= O_LARGEFILE;
 #endif
-
-#ifndef FILE_SYNC_TECHNIQUE
-#error "FILE_SYNC_TECHNIQUE is not defined"
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_DSYNC
-    flags |= O_DSYNC;
-#endif  // FILE_SYNC_TECHNIQUE
 
     if ((mode & linux_file_t::mode_write) && (mode & linux_file_t::mode_read)) {
         flags |= O_RDWR;
@@ -413,3 +405,27 @@ size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
     guarantee_err(res != -1, "Could not write to the semantic checker file");
     return res;
 }
+
+
+// Upon error, returns the errno value.
+int perform_datasync(fd_t fd) {
+    // On OS X, we use F_FULLFSYNC because fsync lies.  fdatasync is not available.  On
+    // Linux we just use fdatasync.
+
+#ifdef __MACH__
+
+    int fcntl_res;
+    do {
+        fcntl_res = fcntl(fd, F_FULLFSYNC);
+    } while (fcntl_res == -1 && errno == EINTR);
+
+    return fcntl_res == -1 ? errno : 0;
+
+#else  // __MACH__
+
+    int res = fdatasync(fd);
+    return res == -1 ? errno : 0;
+
+#endif  // __MACH__
+}
+

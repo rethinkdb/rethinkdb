@@ -99,14 +99,19 @@ private:
 // alignment of DEVICE_BLOCK_SIZE.
 class file_t {
 public:
+    enum wrap_in_datasyncs_t { NO_DATASYNCS, WRAP_IN_DATASYNCS };
+
     file_t() { }
+
     virtual ~file_t() { }
     virtual uint64_t get_size() = 0;
     virtual void set_size(size_t size) = 0;
     virtual void set_size_at_least(size_t size) = 0;
 
     virtual void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
-    virtual void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void write_async(size_t offset, size_t length, const void *buf,
+                             file_account_t *account, linux_iocallback_t *cb,
+                             wrap_in_datasyncs_t wrap_in_datasyncs) = 0;
 
     virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
     virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;

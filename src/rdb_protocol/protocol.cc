@@ -194,6 +194,11 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
+            // If we get interrupted, post-construction will happen later, no need to
+            //  guarantee that we touch the sindex tree now
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+                destroyer(&token_pair.sindex_write_token);
+
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
@@ -271,6 +276,11 @@ void post_construct_and_drain_queue(
 
         scoped_ptr_t<transaction_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
+
+        // If we get interrupted, post-construction will happen later, no need to
+        //  guarantee that we touch the sindex tree now
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+            destroyer(&token_pair.sindex_write_token);
 
         store->acquire_superblock_for_write(
             rwi_write,

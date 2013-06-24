@@ -1060,6 +1060,12 @@ public:
 
         scoped_ptr_t<transaction_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+
+        // If we get interrupted, post-construction will happen later, no need to
+        //  guarantee that we touch the sindex tree now
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+            destroyer(&token_pair.sindex_write_token);
+
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
