@@ -255,6 +255,7 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
+        handshake_complete = false
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
             buf = new ArrayBuffer 8
@@ -266,7 +267,6 @@ class TcpConnection extends Connection
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
-            handshake_complete = false
             handshake_callback = (buf) =>
                 arr = toArrayBuffer(buf)
 
@@ -292,15 +292,17 @@ class TcpConnection extends Connection
                             return
 
             @rawSocket.on 'data', handshake_callback
-            setTimeout( (()->
-                if not handshake_complete
-                    @rawSocket.destroy()
-                    @emit 'error', new RqlDriverError "Handshake timedout"
-            ), @timeout)
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
+
+        setTimeout( (()=>
+            if not handshake_complete
+                @rawSocket.destroy()
+                @emit 'error', new RqlDriverError "Handshake timedout"
+        ), @timeout)
+
 
     close: () ->
         super()

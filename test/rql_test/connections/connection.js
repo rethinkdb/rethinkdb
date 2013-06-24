@@ -78,7 +78,7 @@ var ifTestDefault = function(f, c){
 }
 
 describe('Javascript connection API', function(){
-    it("times out with a server that doesn't do the handshake correctly", function(){
+    it("times out with a server that doesn't do the handshake correctly", function(done){
         var port = 8990;
 
         // Setup dummy sever
@@ -86,7 +86,7 @@ describe('Javascript connection API', function(){
             // Do nothing
         }).listen(port);
 
-        r.connect({timeout:1}, function(){});
+        r.connect({port:port, timeout:1}, givesError("RqlDriverError", "Handshake timedout", done));
     });
 
     describe('With no server', function(){
