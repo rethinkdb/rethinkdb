@@ -57,9 +57,6 @@ commands:
     is_operator:  true
     js:
       is_operator: false
-    io:
-      - - number
-        - number
 
     body: number
     parent: number

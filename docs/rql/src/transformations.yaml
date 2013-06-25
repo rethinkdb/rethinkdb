@@ -17,12 +17,8 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
-        - stream 
+      - - sequence
+        - stream
       - - array
         - array
 
@@ -54,12 +50,8 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
-        - stream 
+      - - sequence
+        - stream
       - - array
         - array
 
@@ -86,11 +78,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
+      - - sequence
         - stream 
       - - array
         - array
@@ -125,11 +113,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
+      - - sequence
         - stream 
       - - array
         - array
@@ -160,11 +144,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
+      - - sequence
         - stream 
       - - array
         - array
@@ -185,11 +165,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
+      - - sequence
         - stream 
       - - array
         - array
@@ -209,11 +185,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream 
-      - - selection
-        - stream 
-      - - stream
+      - - sequence
         - stream 
       - - array
         - array
@@ -245,8 +217,6 @@ commands:
     parent: sequence
     returns: json
     io:
-      - - table
-        - stream 
       - - sequence
         - object
 
@@ -282,8 +252,6 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - array
       - - sequence
         - array
 
@@ -319,8 +287,6 @@ commands:
     parent: sequence
     returns: json
     io:
-      - - table
-        - bool
       - - sequence
         - bool
 
@@ -339,8 +305,6 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - array
       - - sequence
         - array
 
@@ -361,9 +325,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - selection
-      - - selection
+      - - sequence
         - selection
       - - stream
         - array 
