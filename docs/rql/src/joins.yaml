@@ -24,6 +24,15 @@ commands:
       rb: other_sequence, predicate
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream
+      - - selection
+        - stream
+      - - stream
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of documents containing all cross-universe
@@ -55,6 +64,15 @@ commands:
       rb: other_sequence, predicate
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream
+      - - selection
+        - stream
+      - - stream
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of documents containing all cross-universe
@@ -88,6 +106,15 @@ commands:
       js: leftAttr, other[, {index:'id'}]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream
+      - - selection
+        - stream
+      - - stream
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Let our heroes join forces to battle evil!
@@ -129,6 +156,11 @@ commands:
 
     parent: sequence
     returns: sequence
+    io:
+      - - stream 
+        - stream
+      - - array
+        - array
 
     examples:
       - description: "'zips up' the sequence by merging the left and right fields

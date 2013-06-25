@@ -33,6 +33,9 @@ commands:
       rb: table_name[, options]
     parent: db
     returns: json
+    io:
+      - - db
+        - object 
 
     examples:
       - description: |
@@ -74,6 +77,9 @@ commands:
       rb: table_name
     parent: db
     returns: json
+    io:
+      - - db
+        - object 
 
     examples:
       - description: Drop a table named 'dc_universe'.
@@ -94,6 +100,9 @@ commands:
       rb: table_list
     parent: db
     returns: sequence
+    io:
+      - - db
+        - array 
 
     examples:
       - description: List all tables of the 'test' database.
@@ -119,6 +128,9 @@ commands:
       rb: index_name[, index_function]
     parent: table
     returns: json
+    io:
+      - - table
+        - object 
 
     examples:
       - description: |
@@ -178,6 +190,9 @@ commands:
       rb: index_name
     parent: table
     returns: json
+    io:
+      - - table
+        - object 
 
     examples:
       - description: Drop a secondary index named 'code_name'.
@@ -197,6 +212,9 @@ commands:
 
     parent: table
     returns: json
+    io:
+      - - table
+        - array
 
     examples:
       - description: List the available secondary indexes for this table.

@@ -12,6 +12,9 @@ commands:
     dont_need_parenthesis: true
     parent: r
     returns: json
+    io:
+      - - r
+        - value 
 
     examples:
       - description: Get all users whose age is greater than 5.
@@ -46,6 +49,20 @@ commands:
     body: attr1[, attr2...]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream
+      - - selection
+        - stream
+      - - stream
+        - stream
+      - - array
+        - array
+      - - object
+        - object
+      - - singleSelection
+        - object
+
 
     examples:
       - description: We just need information about IronMan's reactor and not the rest of the document.
@@ -67,6 +84,20 @@ commands:
     body: attr1[, attr2...]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream
+      - - selection
+        - stream
+      - - stream
+        - stream
+      - - array
+        - array
+      - - singleSelection
+        - object
+      - - object
+        - object
+
 
     examples:
       - description: Since we don't need it for this computation we'll save bandwidth
@@ -89,6 +120,11 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - singleSelection
+        - object
+      - - object
+        - object
 
     examples:
       - description: Equip IronMan for battle.
@@ -110,6 +146,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -125,6 +164,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -140,6 +182,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list without boots.
@@ -161,6 +206,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -182,6 +230,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: |
@@ -206,6 +257,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Check which pieces of equipment Iron Man has from a fixed list.
@@ -227,6 +281,9 @@ commands:
     body: json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Check which pieces of equipment Iron Man has, excluding a fixed list.
@@ -246,6 +303,11 @@ commands:
     body: attr
     parent: json
     returns: json
+    io:
+      - - singleSelection 
+        - value
+      - - object
+        - value
 
     examples:
       - description: What was Iron Man's first appearance in a comic?
@@ -269,6 +331,11 @@ commands:
     body: field1[, field2...]
     parent: json
     returns: bool
+    io:
+      - - singleSelection
+        - boolean
+      - - object
+        - boolean
 
     examples:
       - description: Which heroes are married?
@@ -291,6 +358,9 @@ commands:
     body: index, json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk decides to join the avengers.
@@ -311,6 +381,9 @@ commands:
     body: index, json
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk and Thor decide to join the avengers.
@@ -331,6 +404,9 @@ commands:
     body: index [,endIndex]
     parent: json
     returns: json
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk decides to leave the avengers.
@@ -347,6 +423,9 @@ commands:
   - tag: change_at
     section: jsonobject
     description: Change a value in an array at a given index. Returns the modified array.
+    io:
+      - - array
+        - array
 
     name:
       js: changeAt
@@ -370,6 +449,11 @@ commands:
 
     parent: json
     returns: json
+    io:
+      - - singleSelection
+        - array
+      - - object
+        - array
 
     examples:
       - description: Get all the keys of a row.

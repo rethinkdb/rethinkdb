@@ -21,6 +21,13 @@ commands:
     body: number | string | array
     parent: number | string | array
     returns: number | string | array
+    io:
+      - - number
+        - number
+      - - string
+        - string
+      - - array
+        - array
 
     examples:
       - description: It's as easy as 2 + 2 = 4.
@@ -50,10 +57,16 @@ commands:
     is_operator:  true
     js:
       is_operator: false
+    io:
+      - - number
+        - number
 
     body: number
     parent: number
     returns: number
+    io:
+      - - number
+        - number
 
     examples:
       - description: It's as easy as 2 - 2 = 0.
@@ -74,11 +87,14 @@ commands:
     js:
       is_operator: false
 
-
-
     body: number | array
     parent: number | array
     returns: number | array
+    io:
+      - - number
+        - number
+      - - array
+        - array
 
     examples:
       - description: It's as easy as 2 * 2 = 4.
@@ -104,11 +120,12 @@ commands:
     js:
       is_operator: false
 
-
-
     body: number
     parent: number
     returns: number
+    io:
+      - - number
+        - number
 
     examples:
       - description: It's as easy as 2 / 2 = 1.
@@ -132,6 +149,9 @@ commands:
     body: number
     parent: number
     returns: number
+    io:
+      - - number
+        - number
 
     examples:
       - description: It's as easy as 2 % 2 = 0.
@@ -156,6 +176,9 @@ commands:
     body: bool
     parent: bool
     returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: True and false anded is false?
@@ -176,10 +199,12 @@ commands:
     js:
       is_operator: false
 
-
     body: bool
     parent: bool
     returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: True or false ored is true?
@@ -203,6 +228,9 @@ commands:
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Does 2 equal 2?
@@ -223,11 +251,12 @@ commands:
     js:
       is_operator: false
 
-
-
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Does 2 not equal 2?
@@ -252,6 +281,9 @@ commands:
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 greater than 2?
@@ -276,6 +308,9 @@ commands:
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 greater than or equal to 2?
@@ -296,11 +331,12 @@ commands:
     js:
       is_operator: false
 
-
-
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 less than 2?
@@ -321,10 +357,12 @@ commands:
     js:
       is_operator: false
 
-
     body: other
     parent: json
     returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 less than or equal to 2?
@@ -348,6 +386,9 @@ commands:
 
     parent: bool
     returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: Not true is false.
@@ -361,4 +402,3 @@ commands:
 
     py:
       operator_first: true
-

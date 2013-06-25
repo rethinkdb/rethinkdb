@@ -12,6 +12,11 @@ commands:
     body: regexp
     parent: string
     returns: json
+    io:
+      - - stream
+        - array
+      - - stream
+        - 'null'
 
     examples:
       - description: Get all users whose name starts with A.

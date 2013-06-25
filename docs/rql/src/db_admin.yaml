@@ -24,6 +24,9 @@ commands:
       rb: db_name
     parent: r
     returns: json
+    io:
+      - - r 
+        - object 
 
     examples:
       - description: Create a database named 'superheroes'.
@@ -50,6 +53,9 @@ commands:
       js: dbName
     parent: r
     returns: json
+    io:
+      - - r 
+        - object 
 
     examples:
       - description: Drop a database named 'superheroes'.
@@ -70,6 +76,9 @@ commands:
       js: dbList
     parent: r
     returns: sequence
+    io:
+      - - r 
+        - array
 
     examples:
       - description: List all databases.

@@ -15,6 +15,9 @@ commands:
       rb: db_name
     parent: r
     returns: db
+    io:
+      - - r
+        - db 
 
     examples:
       - description: Before we can query a table we have to select the correct database.
@@ -35,6 +38,9 @@ commands:
       rb: name[, opts]
     parent: db
     returns: table
+    io:
+      - - db
+        - table 
 
     examples:
       - description: Return all documents in the table 'marvel' of the default database.
@@ -63,6 +69,9 @@ commands:
     body: key
     parent: table
     returns: json
+    io:
+      - - table
+        - singleRowSelection
 
     examples:
       - description: Find a document with the primary key 'superman'.
@@ -86,6 +95,9 @@ commands:
       js: key[, {index:'id'}]
     parent: table
     returns: selection
+    io:
+      - - table
+        - selection
 
     examples:
         - description: |
@@ -115,6 +127,9 @@ commands:
       js: lowerKey, upperKey[, {index:'id'}]
     parent: selection
     returns: selection
+    io:
+      - - selection
+        - selection
 
     examples:
         - description: Find all users with primary keys between 10 and 20, inclusive.
@@ -146,6 +161,11 @@ commands:
     body: predicate
     parent: selection
     returns: selection
+    io:
+      - - table
+        - selection
+      - - sequence
+        - sequence
 
     examples:
       - description: Get all active users aged 30.

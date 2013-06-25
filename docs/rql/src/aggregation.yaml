@@ -21,6 +21,11 @@ commands:
       rb: "[base,] reduction_function"
     parent: sequence
     returns: json
+    io: 
+      - - table
+        - value
+      - - sequence
+        - value
 
     examples:
       - description: How many enemies have our heroes defeated?
@@ -45,6 +50,11 @@ commands:
     parent: sequence
     body: [filter]
     returns: number
+    io:
+      - - table
+        - number
+      - - sequence
+        - number
 
     examples:
       - description: Just how many super heroes are there?
@@ -69,6 +79,11 @@ commands:
 
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - array
+      - - sequence
+        - array
 
     examples:
       - description: Which unique villains have been vanquished by marvel heroes?
@@ -97,6 +112,11 @@ commands:
     body: grouping, mapping, reduction[, base]
     parent: sequence
     returns: json
+    io:
+      - - table
+        - value
+      - - sequence
+        - value
 
     examples:
       - description: It's only fair that heroes be compared against their weight class.
@@ -145,6 +165,11 @@ commands:
 
     parent: sequence
     returns: json
+    io:
+      - - table
+        - value
+      - - sequence
+        - value
 
     examples:
       - description: Using a predefined reduction we can easily find the average
@@ -161,6 +186,11 @@ commands:
     body: value1[, value2...]
     parent: sequence
     returns: bool
+    io:
+      - - table
+        - bool
+      - - sequence
+        - bool
 
     examples:
       - description: Iron Man ever fought Superman?

@@ -12,6 +12,9 @@ commands:
     dont_need_parenthesis: true
     parent: null
     returns: r
+    io:
+      - - null
+        - r
 
     examples:
       - description: Setup your top level namespace.

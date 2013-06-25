@@ -16,6 +16,15 @@ commands:
       rb: mapping_function
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of hero power ratings.
@@ -44,6 +53,15 @@ commands:
     body: field1[, field2...]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Get a list of heroes and their arch-nemeses, excluding any heroes that lack one.
@@ -67,6 +85,15 @@ commands:
       rb: mapping_function
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of all monsters defeated by Marvel heroes.
@@ -97,6 +124,15 @@ commands:
     body: key1, [key2...]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Order our heroes by a series of performance metrics.
@@ -123,6 +159,15 @@ commands:
     body: n
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Here in conjunction with `order_by` we choose to ignore the most
@@ -139,6 +184,15 @@ commands:
     body: n
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Only so many can fit in our Pantheon of heroes.
@@ -154,6 +208,15 @@ commands:
     body: startIndex[, endIndex]
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - stream 
+      - - selection
+        - stream 
+      - - stream
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: For this fight, we need heroes with a good mix of strength and agility.
@@ -181,6 +244,11 @@ commands:
     body: index
     parent: sequence
     returns: json
+    io:
+      - - table
+        - stream 
+      - - sequence
+        - object
 
     examples:
       - description: Select the second element in the array.
@@ -213,6 +281,11 @@ commands:
     body: datum | predicate
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - array
+      - - sequence
+        - array
 
     examples:
       - description: Find the position of the letter 'c'.
@@ -245,6 +318,11 @@ commands:
       rb: is_empty
     parent: sequence
     returns: json
+    io:
+      - - table
+        - bool
+      - - sequence
+        - bool
 
     examples:
       - description: Are there any documents in the marvel table?
@@ -260,6 +338,11 @@ commands:
     body: sequence
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - array
+      - - sequence
+        - array
 
     examples:
       - description: Construct a stream of all heroes.
@@ -277,6 +360,15 @@ commands:
     body: number
     parent: sequence
     returns: sequence
+    io:
+      - - table
+        - selection
+      - - selection
+        - selection
+      - - stream
+        - array 
+      - - array
+        - array
 
     examples:
       - description: Select 3 random heroes.
