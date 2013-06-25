@@ -19,5 +19,3 @@ Get Help
 
 Checkout www.rethinkdb.com/community
 
-
-

@@ -3,6 +3,10 @@ require 'prettyprint'
 
 module RethinkDB
   module RPP
+    @@termtype_to_str = Hash[
+      Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x]}
+    ]
+
     def self.sanitize_context context
       if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
         prefix = $1;
@@ -103,7 +107,7 @@ module RethinkDB
         return res
       end
 
-      name = term.type.to_s.downcase
+      name = @@termtype_to_str[term.type].downcase
       args = term.args.dup
       optargs = term.optargs.dup
 
