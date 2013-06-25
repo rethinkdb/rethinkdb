@@ -46,8 +46,8 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
            base_exc_t::GENERIC,
            strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
-    r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
-    pkey =  ns_metadata_it->second.get().primary_key.get();
+    r_sanity_check(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
+    pkey =  ns_metadata_it->second.get_ref().primary_key.get();
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {

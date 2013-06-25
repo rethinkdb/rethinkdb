@@ -69,40 +69,44 @@ module RethinkDB
   class RQL
     def to_pb; @body; end
 
-    def expr(x)
-      unbound_if @body
-      return x if x.class == RQL
-      datum_types = [Fixnum, Float, Bignum, String, Symbol,
+    @@datum_types = [Fixnum, Float, Bignum, String, Symbol,
                      TrueClass, FalseClass, NilClass]
 
-      if datum_types.include? x.class
-        return RQL.new(Shim.native_to_datum_term(x))
+    def fast_expr(x, context)
+      return x if x.class == RQL
+      if @@datum_types.include? x.class
+        return RQL.new(Shim.native_to_datum_term(x), nil, context)
       end
 
       t = Term.new
       case x
       when Array
         t.type = Term::TermType::MAKE_ARRAY
-        t.args = x.map{|y| expr(y).to_pb}
+        t.args = x.map{|y| fast_expr(y, context).to_pb}
       when Hash
         t.type = Term::TermType::MAKE_OBJ
         t.optargs = x.map{|k,v|
           ap = Term::AssocPair.new;
-          if [Symbol, String].include? k.class
+          if k.class == Symbol || k.class == String
             ap.key = k.to_s
           else
             raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
-          ap.val = expr(v).to_pb
+          ap.val = fast_expr(v, context).to_pb
           ap
         }
       when Proc
-        t = RQL.new.new_func(&x).to_pb
+        t = RQL.new(nil, nil, context).new_func(&x).to_pb
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
 
-      return RQL.new(t)
+      return RQL.new(t, nil, context)
+    end
+
+    def expr(x)
+      unbound_if @body
+      fast_expr(x, RPP.sanitize_context(caller))
     end
 
     def coerce(other)

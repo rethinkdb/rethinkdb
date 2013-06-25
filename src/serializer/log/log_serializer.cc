@@ -8,6 +8,7 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
 

@@ -807,6 +807,8 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
+// Note that this defaults to the peer port if no port is specified
+//  (at the moment, this is only used for parsing --join directives)
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value) {
     size_t colon_loc = value.find_first_of(':');
@@ -816,6 +818,8 @@ host_and_port_t parse_host_and_port(const std::string &source, const std::string
         if (host.size() != 0 && port != 0) {
             return host_and_port_t(host, port);
         }
+    } else if (value.size() != 0) {
+        return host_and_port_t(value, port_defaults::peer_port);
     }
 
     throw options::value_error_t(source, option_name,
@@ -983,8 +987,9 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
 #endif  // NDEBUG
 
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
-    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+                                             options::OPTIONAL_REPEAT,
+                                             "localhost"));
+    help.add("-j [ --join ] host:port", "host and cluster port of a rethinkdb node to connect to");
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));

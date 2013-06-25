@@ -2,6 +2,9 @@
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
+import socket
+import threading
+import SocketServer
 from sys import argv
 from subprocess import Popen
 from time import sleep
@@ -90,6 +93,28 @@ class TestConnectionDefaultPort(unittest.TestCase):
         self.assertRaisesRegexp(
             RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
             r.connect, auth_key="hunter2")
+
+class BlackHoleRequestHandler(SocketServer.BaseRequestHandler):
+    def handle(self):
+        sleep(1)
+
+class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    pass
+
+class TestTimeout(unittest.TestCase):
+    def setUp(self):
+        self.timeout = 0.5
+        self.port = 8987
+
+        self.server = ThreadedBlackHoleServer(('localhost', self.port), BlackHoleRequestHandler)
+        self.server_thread = threading.Thread(target=self.server.serve_forever)
+        self.server_thread.start()
+
+    def tearDown(self):
+        self.server.shutdown()
+
+    def test_timeout(self):
+        self.assertRaises(socket.timeout, r.connect, port=self.port, timeout=self.timeout)
 
 class TestAuthConnection(unittest.TestCase):
 
@@ -302,6 +327,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
     suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestTimeout))
     suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))

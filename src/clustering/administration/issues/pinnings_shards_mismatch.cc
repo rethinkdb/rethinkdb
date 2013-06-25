@@ -73,9 +73,9 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
         if (it->second.is_deleted()) {
             continue;
         }
-        nonoverlapping_regions_t<protocol_t> shards = it->second.get().shards.get();
-        region_map_t<protocol_t, machine_id_t> primary_pinnings = it->second.get().primary_pinnings.get();
-        region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings = it->second.get().secondary_pinnings.get();
+        nonoverlapping_regions_t<protocol_t> shards = it->second.get_ref().shards.get();
+        region_map_t<protocol_t, machine_id_t> primary_pinnings = it->second.get_ref().primary_pinnings.get();
+        region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings = it->second.get_ref().secondary_pinnings.get();
         for (typename std::set<typename protocol_t::region_t>::iterator shit = shards.begin();
              shit != shards.end(); ++shit) {
             /* Check primary pinnings for problem. */
