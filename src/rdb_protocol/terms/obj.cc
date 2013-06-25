@@ -5,15 +5,15 @@
 
 namespace ql {
 
-class getattr_term_t : public op_term_t {
+class get_field_term_t : public op_term_t {
 public:
-    getattr_term_t(env_t *env, protob_t<const Term> term)
+    get_field_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         return new_val(arg(0)->as_datum()->get(arg(1)->as_str()));
     }
-    virtual const char *name() const { return "getattr"; }
+    virtual const char *name() const { return "get_field"; }
 };
 
 class keys_term_t : public op_term_t {
@@ -37,8 +37,8 @@ counted_t<term_t> make_keys_term(env_t *env, protob_t<const Term> term) {
     return make_counted<keys_term_t>(env, term);
 }
 
-counted_t<term_t> make_getattr_term(env_t *env, protob_t<const Term> term) {
-    return make_counted<getattr_term_t>(env, term);
+counted_t<term_t> make_get_field_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<get_field_term_t>(env, term);
 }
 
 } // namespace ql

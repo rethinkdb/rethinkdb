@@ -135,7 +135,7 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
@@ -249,7 +249,7 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
