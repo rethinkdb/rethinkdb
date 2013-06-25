@@ -36,8 +36,7 @@ $(RUBY_PBDIR)/$(RUBY_PBFILE2): $(RUBY_PBDIR) $(PROTOFILE2) $(TC_RPROTOC_EXE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[RB] $(PROTOFILE2)"
 endif
-	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) -o $(RUBY_PBDIR) $(PROTOFILE2) | \
-		(grep -v 'writing...' || true)
+	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) -o $(RUBY_PBDIR) $(PROTOFILE2)
 
 publish: $(GEMSPEC) driver-ruby
 	gem build $(GEMSPEC)
