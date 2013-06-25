@@ -19,6 +19,3 @@ Get Help
 
 Checkout www.rethinkdb.com/community
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/rethinkdb/rethinkdb/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
-
