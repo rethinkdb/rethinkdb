@@ -1416,13 +1416,10 @@ bool get_rethinkdb_exe_directory(std::string *result) {
 }
 #elif defined(__MACH__)
 bool get_rethinkdb_exe_directory(std::string *result) {
-    uint32_t buffer_size = PATH_MAX;
-    scoped_array_t<char> buffer;
-    buffer.init(buffer_size);
+    char buffer[PATH_MAX + 1];
 
     if (_NSGetExecutablePath(buffer.data(), &buffer_size) == -1) {
-        buffer.reset();
-        buffer.init(buffer_size);
+        buffer[0] = 0;
 
         if (_NSGetExecutablePath(buffer.data(), &buffer_size) == -1) {
             fprintf(stderr, "Error when determining rethinkdb directory\n");
