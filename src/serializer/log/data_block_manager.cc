@@ -541,9 +541,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 block_write_conds.push_back(new block_write_cond_t());
                 // ... and save block tokens for the old offset.
                 guarantee(parent->gc_state.current_entry != NULL, "i = %d", i);
-                // RSI: Pass the real block size to generate the block token.
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
-                                                                                    parent->serializer->get_block_size().ser_value()));
+                                                                                    writes[i].ser_block_size));
 
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
 
@@ -732,8 +731,10 @@ void data_block_manager_t::run_gc() {
                         continue;
                     }
 
-                    char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    const int64_t block_offset = gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value());
+                    char *block = gc_state.gc_blocks + gc_state.current_entry->relative_offset(i);
+                    const int64_t block_offset = gc_state.current_entry->extent_ref.offset()
+                        + gc_state.current_entry->relative_offset(i);
+
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->block_referenced_by_index(i)) {
@@ -744,7 +745,7 @@ void data_block_manager_t::run_gc() {
                     }
                     void *data = block + sizeof(ls_buf_data_t);
 
-                    gc_writes.push_back(gc_write_t(id, data, block_offset));
+                    gc_writes.push_back(gc_write_t(id, data, block_offset, gc_state.current_entry->block_size(i)));
                 }
 
                 guarantee(gc_writes.size() == static_cast<size_t>(num_writes));
@@ -996,6 +997,10 @@ std::vector<uint32_t> gc_entry_t::block_boundaries() const {
 
 uint32_t gc_entry_t::block_size(UNUSED unsigned int block_index) const {
     return parent->static_config->block_size().ser_value();
+}
+
+uint32_t gc_entry_t::relative_offset(unsigned int block_index) const {
+    return block_index * parent->static_config->block_size().ser_value();
 }
 
 unsigned int gc_entry_t::block_index(const int64_t offset) const {

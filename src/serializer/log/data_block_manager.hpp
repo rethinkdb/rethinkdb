@@ -30,6 +30,8 @@ struct gc_entry_less_t {
 // describes blocks are garbage.
 class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
 public:
+    // RSI: Implement the modern behavior of this class.
+
     /* This constructor is for starting a new extent. */
     explicit gc_entry_t(data_block_manager_t *parent);
 
@@ -52,9 +54,12 @@ public:
     // discrete device block boundary.
     std::vector<uint32_t> block_boundaries() const;
 
-    // Lists the ostensible size of the block_index'th block.  Note that
+    // Returns the ostensible size of the block_index'th block.  Note that
     // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
     uint32_t block_size(unsigned int block_index) const;
+
+    // Returns block_boundaries()[block_index].
+    uint32_t relative_offset(unsigned int block_index) const;
 
     unsigned int block_index(int64_t offset) const;
 
@@ -169,8 +174,11 @@ private:
         const void *buf;
         int64_t old_offset;
         int64_t new_offset;
-        gc_write_t(block_id_t i, const void *b, int64_t _old_offset)
-            : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
+        uint32_t ser_block_size;
+        gc_write_t(block_id_t i, const void *b, int64_t _old_offset,
+                   uint32_t _ser_block_size)
+            : block_id(i), buf(b), old_offset(_old_offset), new_offset(0),
+              ser_block_size(_ser_block_size) { }
     };
 
     struct gc_writer_t {
