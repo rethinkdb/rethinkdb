@@ -6,6 +6,9 @@ commands:
 
     parent: value
     returns: string
+    io:
+      - - any
+        - string
 
     examples:
       - description: Get the type of a string.

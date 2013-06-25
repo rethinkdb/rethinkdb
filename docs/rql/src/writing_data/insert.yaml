@@ -27,6 +27,9 @@ commands:
       rb: json | [json][, { :upsert => false }]
     parent: table
     returns: object
+    io:
+      - - table
+        - object
 
     examples:
       - description: Insert a row into a table named 'marvel'.

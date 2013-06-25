@@ -13,6 +13,13 @@ commands:
       rb: type_name
     parent: json
     returns: json
+    io:
+      - - sequence
+        - array
+      - - value
+        - string
+      - - array
+        - object
 
     examples:
       - description: Convert a table to an array.

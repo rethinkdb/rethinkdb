@@ -332,6 +332,10 @@ commands:
     parent: json
     returns: bool
     io:
+      - - sequence
+        - stream
+      - - array
+        - array
       - - singleSelection
         - boolean
       - - object

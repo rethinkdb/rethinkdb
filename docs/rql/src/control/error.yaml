@@ -7,6 +7,9 @@ commands:
     body: message
     parent: r
     returns: error
+    io:
+      - - r
+        - error
 
     examples:
       - description: 'Iron Man can''t possibly have lost a battle:'
@@ -38,6 +41,9 @@ commands:
     body: query, default_case
     parent: r
     returns: query
+    io:
+      - - value
+        - value
 
     examples:
       - description: 'Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.'

@@ -25,6 +25,13 @@ commands:
     body: json | expr
     parent: selection
     returns: object
+    io:
+      - - table
+        - object
+      - - selection
+        - object
+      - - singleSelection
+        - object
 
     examples:
       - description: |

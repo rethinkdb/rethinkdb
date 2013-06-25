@@ -10,6 +10,9 @@ commands:
       rb: query_function
     parent: r
     returns: query
+    io:
+      - - sequence
+        - object
 
     examples:
       - description: Now that our heroes have defeated their villains, we can safely

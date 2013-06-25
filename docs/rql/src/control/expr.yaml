@@ -7,6 +7,9 @@ commands:
     body: obj
     parent: r
     returns: json
+    io:
+      - - r
+        - value
 
     examples:
       - description: Objects wrapped with expr can then be manipulated by RQL API functions.

@@ -6,6 +6,9 @@ commands:
 
     parent: value
     returns: object
+    io:
+      - - any
+        - object
 
     examples:
       - description: |

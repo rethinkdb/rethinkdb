@@ -15,6 +15,9 @@ commands:
       rb: test, true_branch, false_branch
     parent: r
     returns: query
+    io:
+      - - r
+        - any
 
     examples:
       - description: 'Return the manlier of two heroes:'

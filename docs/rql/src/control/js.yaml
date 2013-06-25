@@ -10,6 +10,9 @@ commands:
       rb: js_string
     parent: r
     returns: json
+    io:
+      - - r
+        - value
 
     examples:
       - description: Concatenate two strings using Javascript'

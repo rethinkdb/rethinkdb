@@ -28,6 +28,15 @@ commands:
     body: json | expr
     parent: selection
     returns: object
+    io:
+      - - table
+        - object
+      - - selection
+        - object
+      - - singleSelection
+        - object
+
+
 
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.

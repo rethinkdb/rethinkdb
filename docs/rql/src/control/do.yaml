@@ -10,6 +10,9 @@ commands:
     body: arg, [args*, ]inExpr
     parent: r
     returns: query
+    io:
+      - - any
+        - any
 
     examples:
       - description: The object(s) passed to do() can be bound to name(s). The
