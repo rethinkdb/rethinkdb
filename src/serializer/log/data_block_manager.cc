@@ -996,6 +996,10 @@ std::vector<uint32_t> gc_entry_t::block_boundaries() const {
     return ret;
 }
 
+uint32_t gc_entry_t::block_size(UNUSED unsigned int block_index) const {
+    return parent->static_config->block_size().ser_value();
+}
+
 unsigned int gc_entry_t::block_index(const int64_t offset) const {
     // RSI: When we have variable sized blocks, we'll need to change this
     // implementation.

@@ -52,6 +52,10 @@ public:
     // discrete device block boundary.
     std::vector<uint32_t> block_boundaries() const;
 
+    // Lists the ostensible size of the block_index'th block.  Note that
+    // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
+    uint32_t block_size(unsigned int block_index) const;
+
     unsigned int block_index(int64_t offset) const;
 
     unsigned int num_blocks() const { return g_array.size(); }
