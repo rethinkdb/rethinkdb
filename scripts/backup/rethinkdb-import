@@ -163,7 +163,7 @@ def object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields):
     object_buffers.append(obj)
     buffer_sizes.append(sys.getsizeof(obj))
     if len(object_buffers) > batch_length_limit or sum(buffer_sizes) > batch_size_limit:
-        r.db(db).table(table).insert(object_buffers).run(conn)
+        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
         del object_buffers[0:len(object_buffers)]
         del buffer_sizes[0:len(buffer_sizes)]
     return None
@@ -176,7 +176,7 @@ def restore_table_from_json(conn, filename, db, table, primary_key, fields):
         json.load(file_in, object_hook=lambda x: object_callback(x, conn, db, table, object_buffers, buffer_sizes, fields))
 
     if len(object_buffers) > 0:
-        r.db(db).table(table).insert(object_buffers).run(conn)
+        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
 
 def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
     object_buffers = []
@@ -196,7 +196,7 @@ def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
             row_count += 1
 
     if len(object_buffers) > 0:
-        r.db(db).table(table).insert(object_buffers).run(conn)
+        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
 
 def get_import_info_for_file(filename, db_filter, table_filter):
     file_info = { }
