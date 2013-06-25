@@ -464,8 +464,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        // RSI: Update this value with the actual block's size.
-        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
+        gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -495,8 +494,7 @@ void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
     // Add to old garbage count if we have toggled the g_array bit (works because of
     // the g_array[block_index] == 0 assertion above)
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        // RSI: Update this value with the actual block's size.
-        gc_stats.old_garbage_block_bytes += serializer->get_block_size().ser_value();
+        gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
     }
 
     check_and_handle_empty_extent(extent_id);
