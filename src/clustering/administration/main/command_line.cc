@@ -1425,7 +1425,7 @@ bool get_rethinkdb_exe_directory(std::string *result) {
         }
     }
 
-    char *dir = dirname(buffer);
+    char *dir = dirname(buffer.data());
     if (dir == NULL) {
         fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
                 errno_string(errno).c_str());
