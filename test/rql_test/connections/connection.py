@@ -129,6 +129,9 @@ class TestAuthConnection(unittest.TestCase):
         if test_util.set_auth(cluster_port, exe, "hunter2") != 0:
             raise RuntimeError("Could not set up authorization key")
 
+    def tearDown(self):
+        self.servers.__exit__()
+
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(
             RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
