@@ -162,10 +162,13 @@ commands:
     parent: selection
     returns: selection
     io:
-      - - table
-        - selection
       - - sequence
-        - sequence
+        - selection 
+      - - stream
+        - stream
+      - - array
+        - array 
+  
 
     examples:
       - description: Get all active users aged 30.

@@ -22,8 +22,6 @@ commands:
     parent: sequence
     returns: json
     io: 
-      - - table
-        - value
       - - sequence
         - value
 
@@ -51,8 +49,6 @@ commands:
     body: [filter]
     returns: number
     io:
-      - - table
-        - number
       - - sequence
         - number
 
@@ -80,8 +76,6 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - array
       - - sequence
         - array
 
@@ -113,8 +107,6 @@ commands:
     parent: sequence
     returns: json
     io:
-      - - table
-        - value
       - - sequence
         - value
 
@@ -166,8 +158,6 @@ commands:
     parent: sequence
     returns: json
     io:
-      - - table
-        - value
       - - sequence
         - value
 
@@ -187,8 +177,6 @@ commands:
     parent: sequence
     returns: bool
     io:
-      - - table
-        - bool
       - - sequence
         - bool
 

@@ -50,11 +50,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream
-      - - selection
-        - stream
-      - - stream
+      - - sequence
         - stream
       - - array
         - array
@@ -85,11 +81,7 @@ commands:
     parent: sequence
     returns: sequence
     io:
-      - - table
-        - stream
-      - - selection
-        - stream
-      - - stream
+      - - sequence
         - stream
       - - array
         - array
