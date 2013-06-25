@@ -20,6 +20,8 @@ commands:
         - string
       - - array
         - object
+      - - object
+        - array
 
     examples:
       - description: Convert a table to an array.

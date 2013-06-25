@@ -43,7 +43,9 @@ commands:
     returns: query
     io:
       - - value
-        - value
+        - any
+      - - sequence
+        - any
 
     examples:
       - description: 'Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.'

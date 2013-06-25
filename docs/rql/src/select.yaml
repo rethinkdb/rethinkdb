@@ -128,7 +128,7 @@ commands:
     parent: selection
     returns: selection
     io:
-      - - selection
+      - - table
         - selection
 
     examples:

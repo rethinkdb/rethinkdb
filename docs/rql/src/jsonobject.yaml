@@ -117,6 +117,10 @@ commands:
         - object
       - - object
         - object
+      - - sequence
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Equip IronMan for battle.
