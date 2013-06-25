@@ -159,7 +159,7 @@ commands:
     returns: json
     io:
       - - sequence
-        - value
+        - array 
 
     examples:
       - description: Using a predefined reduction we can easily find the average
