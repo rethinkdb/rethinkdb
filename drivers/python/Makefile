@@ -28,12 +28,6 @@ $(PBCPP): $(PBCPP_BUILT)
 $(PBCPP_BUILT): $(CPP_PB_FILE)
 	python setup.py build
 
-$(PROTOBUF_SRC):
-	svn checkout http://protobuf.googlecode.com/svn/tags/2.5.0/ $(PROTOBUF_SRC)
-
-$(PROTOBUF_DIST): $(PROTOBUF_SRC)
-	cd $(PROTOBUF_SRC)/python; python setup.py build; python setup.py sdist
-
 clean:
 	rm -f $(PYTHON_PB_FILE)
 	rm -f $(CPP_PB_FILE)
@@ -45,8 +39,8 @@ clean:
 
 PY_PKG_DIR=$(RETHINKDB_HOME)/build/packages/python
 
-sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE) $(PROTOBUF_SRC)
-	python setup.py sdist
+sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
+	/usr/bin/python setup.py sdist
 
 publish: $(PYTHON_PB_FILE)
 	mkdir -p $(PY_PKG_DIR)

@@ -1,13 +1,31 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor']
+__all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
 
 import socket
 import struct
+from os import environ
+
+try:
+  print 'trying cpp'
+  # The pbcpp module is installed when passing the --with-native-protobuf
+  # flag to pip
+  import pbcpp
+
+  # Set an environment variable telling the protobuf library
+  # to use the fast C++ based serializer implementation
+  # over the pure python one if it is available.
+  environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+  protobuf_implementation = 'cpp'
+except ImportError, e:
+  print 'cpp failed'
+  # If it doesn't work, use the python implementation of protobuf
+  environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+  protobuf_implementation = 'python'
 
 import ql2_pb2 as p
 
-import repl # For the repl connection
+import repl # For thsete repl connection
 from errors import *
 from ast import Datum, DB, expr
 

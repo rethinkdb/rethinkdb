@@ -1,8 +1,12 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 from setuptools import setup, Extension
+import sys
 
-from os import environ
-environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+ext_modules = []
+
+if '--with-native-protobuf' in sys.argv:
+    ext_modules=[Extension('pbcpp', sources=['./rethinkdb/pbcpp.cpp', './rethinkdb/ql2.pb.cc'],
+                          include_dirs=['./rethinkdb'], libraries=['protobuf'])]
 
 setup(name="rethinkdb"
      ,version="1.6.0-0"
@@ -11,5 +15,6 @@ setup(name="rethinkdb"
      ,maintainer="RethinkDB Inc."
      ,maintainer_email="bugs@rethinkdb.com"
      ,packages=['rethinkdb']
-     ,ext_modules=[Extension('pbcpp', sources=['./rethinkdb/pbcpp.cpp', './rethinkdb/ql2.pb.cc'], include_dirs=['./rethinkdb'], libraries=['protobuf'])]
+     ,install_requires=['protobuf']
+     ,ext_modules=ext_modules
 )
