@@ -64,7 +64,6 @@ void data_block_manager_t::mark_live(int64_t offset, uint32_t ser_block_size) {
         guarantee(gc_state.step() == gc_reconstruct);  // This is called at startup.
 
         gc_entry_t *entry = new gc_entry_t(this, extent_id * extent_manager->extent_size);
-        entry->state = gc_entry_t::state_reconstructing;
         reconstructed_extents.push_back(entry);
     }
 
@@ -93,7 +92,6 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
            extent yet. */
         if (entries.get(offset / extent_manager->extent_size) == NULL) {
             gc_entry_t *e = new gc_entry_t(this, offset);
-            e->state = gc_entry_t::state_reconstructing;
             reconstructed_extents.push_back(e);
         }
 
@@ -858,7 +856,6 @@ data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
 
     if (active_extent == NULL) {
         active_extent = new gc_entry_t(this);
-        active_extent->state = gc_entry_t::state_active;
         blocks_in_active_extent = 0;
 
         ++stats->pm_serializer_data_extents_allocated;
@@ -943,6 +940,7 @@ gc_entry_t::gc_entry_t(data_block_manager_t *_parent)
       i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
       was_written(false),
+      state(state_active),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
@@ -955,6 +953,7 @@ gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
       i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
       was_written(false),
+      state(state_reconstructing),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
