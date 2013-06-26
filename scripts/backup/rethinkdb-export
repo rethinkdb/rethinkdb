@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-import sys, os, datetime, time, threading, copy, json, traceback, csv
+import signal
+
+# When running a subprocess, we may inherit the signal handler - remove it
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+import sys, os, datetime, time, copy, json, traceback, csv
+import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
@@ -126,75 +132,137 @@ def write_table_metadata(conn, db, table, base_path):
     out.write(json.dumps(table_info) + "\n")
     out.close()
 
-def write_table_data_json(conn, db, table, base_path, fields):
-    with open(base_path + "/%s/%s.json" % (db, table), "w") as out:
-        first = True
-        out.write("[")
-        for row in r.db(db).table(table).run(conn):
-            if fields is not None:
-                for item in list(row.iterkeys()):
-                    if item not in fields:
-                        del row[item]
-            if first:
-                first = False
-                out.write("\n" + json.dumps(row))
-            else:
-                out.write(",\n" + json.dumps(row))
-        out.write("\n]\n")
+def read_table_into_queue(conn, db, table, task_queue, exit_event):
+    for row in r.db(db).table(table).run(conn):
+        if exit_event.is_set():
+            break
+        task_queue.put([row])
 
-def write_table_data_csv(conn, db, table, base_path, fields):
-    with open(base_path + "/%s/%s.csv" % (db, table), "w") as out:
-        out_writer = csv.writer(out)
-        out_writer.writerow(fields)
+def json_writer(filename, fields, task_queue, error_queue):
+    try:
+        with open(filename, "w") as out:
+            first = True
+            out.write("[")
+            while True:
+                item = task_queue.get()
+                if len(item) != 1:
+                    break
+                row = item[0]
 
-        for row in r.db(db).table(table).run(conn):
-            info = []
-            # If the data is a simple type, just write it directly, otherwise, write it as json
-            for field in fields:
-                if field not in row:
-                    info.append(None)
-                elif isinstance(row[field], (int, long, float, complex, str, unicode)):
-                    info.append(str(row[field]))
+                if fields is not None:
+                    for item in list(row.iterkeys()):
+                        if item not in fields:
+                            del row[item]
+                if first:
+                    first = False
+                    out.write("\n" + json.dumps(row))
                 else:
-                    info.append(json.dumps(row[field]))
-            out_writer.writerow(info)
+                    out.write(",\n" + json.dumps(row))
+            out.write("\n]\n")
+    except:
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def export_table(host, port, auth_key, db, table, directory, fields, errors, format):
+def csv_writer(filename, fields, task_queue, error_queue):
+    try:
+        with open(filename, "w") as out:
+            out_writer = csv.writer(out)
+            out_writer.writerow(fields)
+
+            while True:
+                item = task_queue.get()
+                if len(item) != 1:
+                    break
+                row = item[0]
+                info = []
+                # If the data is a simple type, just write it directly, otherwise, write it as json
+                for field in fields:
+                    if field not in row:
+                        info.append(None)
+                    elif isinstance(row[field], (int, long, float, complex, str, unicode)):
+                        info.append(str(row[field]))
+                    else:
+                        info.append(json.dumps(row[field]))
+                out_writer.writerow(info)
+    except:
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, exit_event):
+    task_queue = multiprocessing.queues.SimpleQueue()
+
+    if format == "json":
+        filename = directory + "/%s/%s.json" % (db, table)
+        writer = multiprocessing.Process(target=json_writer,
+                                         args=(filename, fields, task_queue, error_queue))
+    elif format == "csv":
+        filename = directory + "/%s/%s.csv" % (db, table)
+        writer = multiprocessing.Process(target=csv_writer,
+                                         args=(filename, fields, task_queue, error_queue))
+    else:
+        error_queue.put((RuntimeError, RuntimeError("unknown format type: %s" % format),
+                         traceback.extract_tb(sys.exc_info()[2])))
+        return
+
     try:
         conn = r.connect(host, port, auth_key=auth_key)
         write_table_metadata(conn, db, table, directory)
-        if format == "json":
-            write_table_data_json(conn, db, table, directory, fields)
-        elif format == "csv":
-            write_table_data_csv(conn, db, table, directory, fields)
-        else:
-            raise RuntimeError("unknown format type: %s" % format)
+        writer.start()
+        read_table_into_queue(conn, db, table, task_queue, exit_event)
     except (r.RqlClientError, r.RqlDriverError) as ex:
-        errors.append((RuntimeError, RuntimeError(ex.message), sys.exc_info()[2]))
+        error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
-        errors.append(sys.exc_info())
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+    finally:
+        if writer.is_alive():
+            task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
+            writer.join()
+        else:
+            error_queue.put((RuntimeError, RuntimeError("writer unexpectedly stopped"),
+                             traceback.extract_tb(sys.exc_info()[2])))
+
+def abort_export(signum, frame, exit_event):
+    exit_event.set()
 
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
-    threads = []
-    errors = []
+    exit_event = multiprocessing.Event()
+    processes = []
+    error_queue = multiprocessing.queues.SimpleQueue()
 
-    for (db, table) in db_table_set:
-        args = copy.deepcopy(options)
-        args["db"] = db
-        args["table"] = table
-        args["errors"] = errors
-        threads.append(threading.Thread(target=export_table, kwargs=args))
-        threads[-1].start()
+    signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event))
 
-    # Wait for all tables to finish
-    for thread in threads:
-        thread.join()
+    try:
+        for (db, table) in db_table_set:
+            processes.append(multiprocessing.Process(target=export_table,
+                                                     args=(options["host"],
+                                                           options["port"],
+                                                           options["auth_key"],
+                                                           db, table,
+                                                           options["directory"],
+                                                           options["fields"],
+                                                           options["format"],
+                                                           error_queue,
+                                                           exit_event)))
+            processes[-1].start()
 
-    if len(errors) != 0:
-        print "%d errors occurred:" % len(errors)
-        for error in errors:
-            traceback.print_exception(error[0], error[1], error[2])
+        # Wait for all tables to finish
+        while len(processes) > 0:
+            time.sleep(0.1)
+            processes = [process for process in processes if process.is_alive()]
+    finally:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    if exit_event.is_set():
+        raise RuntimeError("Interrupted")
+
+    if not error_queue.empty():
+        # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
+        while not error_queue.empty():
+            error = error_queue.get()
+            print >> sys.stderr, "Traceback: %s, %s: %s" % (error[2], error[0].__name__, error[1])
+            raise RuntimeError("errors occurred during import")
 
 def main():
     try:

@@ -1,5 +1,11 @@
 #!/usr/bin/env python
+import signal
+
+# When running a subprocess, we may inherit the signal handler - remove it
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 import sys, os, datetime, time, threading, copy, json, traceback, csv
+import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
@@ -17,6 +23,7 @@ def print_import_help():
     print "  -h [ --help ]                    print this help"
     print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
+    print "  --clients NUM_CLIENTS            number of clients to run to the server"
     print "  --force                          import data even if a table already exists"
     print ""
     print "Import directory:"
@@ -35,6 +42,7 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
 
     # Directory import options
@@ -65,7 +73,11 @@ def parse_options():
         raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
+    if options.clients < 1:
+        raise RuntimeError("--client option too low, must have at least one client connection")
+
     res["auth_key"] = options.auth_key
+    res["clients"] = options.clients
     res["force"] = options.force
 
     if options.directory is not None:
@@ -147,12 +159,33 @@ def parse_options():
 
     return res
 
+# This is run for each client requested, and accepts tasks from the reader threads
+def client_process(host, port, auth_key, task_queue, error_queue):
+    try:
+        conn = r.connect(host, port, auth_key=auth_key)
+        while True:
+            task = task_queue.get()
+            if len(task) == 3:
+                r.db(task[0]).table(task[1]).insert(task[2], durability="soft").run(conn)
+            else:
+                break
+    except (r.RqlClientError, r.RqlDriverError) as ex:
+        error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
+    except:
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
 batch_length_limit = 200
 batch_size_limit = 500000
 
-def object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields):
+# This function is called for each object read from a file by the reader threads
+#  and will push tasks to the client processes on the task queue
+def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event):
     global batch_size_limit
     global batch_length_limit
+
+    if exit_event.is_set():
+        raise RuntimeError("reader interrupted by import process")
 
     # filter out fields
     if fields is not None:
@@ -162,23 +195,23 @@ def object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields):
 
     object_buffers.append(obj)
     buffer_sizes.append(sys.getsizeof(obj))
-    if len(object_buffers) > batch_length_limit or sum(buffer_sizes) > batch_size_limit:
-        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
+    if len(object_buffers) >= batch_length_limit or sum(buffer_sizes) > batch_size_limit:
+        task_queue.put((db, table, object_buffers))
         del object_buffers[0:len(object_buffers)]
         del buffer_sizes[0:len(buffer_sizes)]
     return None
 
-def restore_table_from_json(conn, filename, db, table, primary_key, fields):
+def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
     object_buffers = []
     buffer_sizes = []
 
     with open(filename, "r") as file_in:
-        json.load(file_in, object_hook=lambda x: object_callback(x, conn, db, table, object_buffers, buffer_sizes, fields))
+        json.load(file_in, object_hook=lambda x: object_callback(x, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event))
 
     if len(object_buffers) > 0:
-        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
+        task_queue.put((db, table, object_buffers))
 
-def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
+def csv_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
     object_buffers = []
     buffer_sizes = []
 
@@ -192,11 +225,113 @@ def restore_table_from_csv(conn, filename, db, table, primary_key, fields):
                 raise RuntimeError("file '%s' line %d has an inconsistent number of columns" % (filename, row_count))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
-            object_callback(obj, conn, db, table, object_buffers, buffer_sizes, fields)
+            object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event)
             row_count += 1
 
     if len(object_buffers) > 0:
-        r.db(db).table(table).insert(object_buffers, durability="soft").run(conn)
+        task_queue.put((db, table, object_buffers))
+
+def table_reader(options, file_info, task_queue, error_queue, exit_event):
+    try:
+        db = file_info["db"]
+        table = file_info["table"]
+        primary_key = file_info["info"]["primary_key"]
+        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
+
+        if table not in r.db(db).table_list().run(conn):
+            r.db(db).table_create(table, primary_key=primary_key).run(conn)
+
+        if file_info["format"] == "json":
+            json_reader(task_queue,
+                        file_info["file"],
+                        db, table,
+                        primary_key,
+                        options["fields"],
+                        exit_event)
+        elif file_info["format"] == "csv":
+            csv_reader(task_queue,
+                       file_info["file"],
+                       db, table,
+                       primary_key,
+                       options["fields"],
+                       exit_event)
+        else:
+            raise RuntimeError("unknown file format specified")
+    except:
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+def abort_import(signum, frame, exit_event, task_queue, clients):
+    exit_event.set()
+
+    for client in clients:
+        if client.is_alive():
+            # TODO: this could theoretically block indefinitely if
+            #   the queue is full and clients aren't reading
+            task_queue.put("exit")
+
+def spawn_import_clients(options, files_info):
+    # Spawn one reader thread for each db.table, as well as many client processes
+    threads = []
+    errors = []
+    task_queue = multiprocessing.queues.SimpleQueue()
+    error_queue = multiprocessing.queues.SimpleQueue()
+    exit_event = threading.Event()
+    client_procs = []
+
+    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs))
+
+    try:
+        for i in range(options["clients"]):
+            client_procs.append(multiprocessing.Process(target=client_process,
+                                                        args=(options["host"],
+                                                              options["port"],
+                                                              options["auth_key"],
+                                                              task_queue,
+                                                              error_queue)))
+            client_procs[-1].start()
+
+        for file_info in files_info:
+            args = {}
+            args["options"] = options
+            args["file_info"] = file_info
+            args["task_queue"] = task_queue
+            args["error_queue"] = error_queue
+            args["exit_event"] = exit_event
+            threads.append(threading.Thread(target=table_reader, kwargs=args))
+            threads[-1].start()
+
+        # Wait for all reader threads to finish - hooray, polling
+        while len(threads) > 0:
+            time.sleep(0.1)
+            # If an error has occurred, exit out early
+            if not error_queue.empty():
+                exit_event.set()
+            threads = [thread for thread in threads if thread.isAlive()]
+
+        # Wait for all clients to finish
+        for client in client_procs:
+            if client.is_alive():
+                task_queue.put("exit")
+
+        while len(client_procs) > 0:
+            time.sleep(0.1)
+            client_procs = [client for client in client_procs if client.is_alive()]
+    finally:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    if exit_event.is_set():
+        raise RuntimeError("Interrupted")
+
+    if not task_queue.empty():
+        error_queue.put((RuntimeError, RuntimeError("items remaining in the task queue"), None))
+
+    if not error_queue.empty():
+        # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
+        while not error_queue.empty():
+            error = error_queue.get()
+            print >> sys.stderr, "Traceback: %s, %s: %s" % (error[2], error[0].__name__, error[1])
+        raise RuntimeError("errors occurred during import")
 
 def get_import_info_for_file(filename, db_filter, table_filter):
     file_info = { }
@@ -214,48 +349,6 @@ def get_import_info_for_file(filename, db_filter, table_filter):
         file_info["info"] = json.load(info_file)
 
     return file_info
-
-def import_table_client(options, file_info):
-    try:
-        db = file_info["db"]
-        table = file_info["table"]
-        primary_key = file_info["info"]["primary_key"]
-        conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-
-        if table not in r.db(db).table_list().run(conn):
-            r.db(db).table_create(table, primary_key=primary_key).run(conn)
-
-        if file_info["format"] == "json":
-            restore_table_from_json(conn, file_info["file"], db, table, primary_key, options["fields"])
-        elif file_info["format"] == "csv":
-            restore_table_from_csv(conn, file_info["file"], db, table, primary_key, options["fields"])
-        else:
-            raise RuntimeError("unknown file format specified")
-    except (r.RqlClientError, r.RqlDriverError) as ex:
-        errors.append((RuntimeError, RuntimeError(ex.message), sys.exc_info()[2]))
-    except:
-        errors.append(sys.exc_info())
-
-def spawn_import_clients(options, files_info):
-    # Spawn one client for each db.table
-    threads = []
-    errors = []
-
-    for file_info in files_info:
-        args = {}
-        args["options"] = options
-        args["file_info"] = file_info
-        threads.append(threading.Thread(target=import_table_client, kwargs=args))
-        threads[-1].start()
-
-    # Wait for all tables to finish
-    for thread in threads:
-        thread.join()
-
-    if len(errors) != 0:
-        print "%d errors occurred:" % len(errors)
-        for error in errors:
-            traceback.print_exception(error[0], error[1], error[2])
 
 def import_directory(options):
     # Scan for all files, make sure no duplicated tables with different formats

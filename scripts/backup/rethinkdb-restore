@@ -8,19 +8,21 @@ usage = "'rethinkdb restore` loads data into a rethinkdb cluster from an archive
 def print_restore_help():
     print usage
     print ""
-    print "  -h [ --help ]                    print this help"
     print "  FILE                             the archive file to restore data from"
+    print "  -h [ --help ]                    print this help"
     print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  --force                          import data even if a table already exists"
     print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
     print "                                   be specified multiple times)"
+    print "  --clients NUM_CLIENTS            the number of client connections to use"
+    print "  --force                          import data even if a table already exists"
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
+    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
@@ -63,6 +65,7 @@ def parse_options():
 
     res["auth_key"] = options.auth_key
     res["force"] = options.force
+    res["clients"] = options.clients
     return res
 
 def do_unzip(temp_dir, options):
@@ -92,6 +95,7 @@ def do_import(import_script, temp_dir, options):
     import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     import_args.extend(["--directory", temp_dir])
     import_args.extend(["--auth", options["auth_key"]])
+    import_args.extend(["--clients", str(options["clients"])])
 
     for db in options["dbs"]:
         import_args.extend(["--import", db])
@@ -121,6 +125,9 @@ def run_rethinkdb_import(options):
     try:
         do_unzip(temp_dir, options)
         do_import(import_script, temp_dir, options)
+    except KeyboardInterrupt:
+        time.sleep(0.2)
+        raise RuntimeError("Interrupted")
     finally:
         shutil.rmtree(temp_dir)
 

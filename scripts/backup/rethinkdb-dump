@@ -94,6 +94,9 @@ def run_rethinkdb_export(options):
     try:
         do_export(export_script, temp_dir, options)
         do_zip(temp_dir, options)
+    except KeyboardInterrupt:
+        time.sleep(0.2)
+        raise RuntimeError("Interrupted")
     finally:
         shutil.rmtree(temp_dir)
 
