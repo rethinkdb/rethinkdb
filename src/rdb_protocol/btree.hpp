@@ -92,6 +92,7 @@ void rdb_replace(btree_slice_t *slice,
                  const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
+                 bool return_vals,
                  ql::env_t *ql_env,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info);
