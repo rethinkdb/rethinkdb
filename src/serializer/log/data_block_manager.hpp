@@ -63,7 +63,11 @@ public:
 
     unsigned int block_index(int64_t offset) const;
 
-    unsigned int num_blocks() const { return g_array.size(); }
+    bool new_offset(uint32_t ser_block_size,
+                    uint32_t *relative_offset_out,
+                    unsigned int *block_index_out);
+
+    unsigned int num_blocks() const { return num_allocated_blocks; }
     unsigned int num_garbage_blocks() const { return g_array.count(); }
     unsigned int num_live_blocks() const { return g_array.size() - g_array.count(); }
 
@@ -105,6 +109,8 @@ public:
     }
 
     uint64_t index_bytes() const;
+
+    void make_active(unsigned int blocks_in_active_extent);
 
 private:
     data_block_manager_t *const parent;
@@ -157,6 +163,8 @@ public:
 private:
     // Used by constructors.
     void add_self_to_parent_entries();
+
+    unsigned int num_allocated_blocks;
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.

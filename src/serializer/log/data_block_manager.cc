@@ -90,19 +90,22 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
         /* It is possible to have an active data block extent with no actual data
            blocks in it. In this case we would not have created a gc_entry_t for the
            extent yet. */
+        // RSI: Is that really true anymore? ^
         if (entries.get(offset / extent_manager->extent_size) == NULL) {
             gc_entry_t *e = new gc_entry_t(this, offset);
             reconstructed_extents.push_back(e);
         }
 
         active_extent = entries.get(offset / extent_manager->extent_size);
-        rassert(active_extent);
+        guarantee(active_extent != NULL);
 
         /* Turn the extent from a reconstructing extent into an active extent */
         guarantee(active_extent->state == gc_entry_t::state_reconstructing);
-        active_extent->state = gc_entry_t::state_active;
         reconstructed_extents.remove(active_extent);
 
+        active_extent->make_active(last_metablock->blocks_in_active_extent);
+
+        // RSI: Is blocks_in_active_extent useful anymore?
         blocks_in_active_extent = last_metablock->blocks_in_active_extent;
     } else {
         active_extent = NULL;
@@ -852,45 +855,45 @@ void data_block_manager_t::actually_shutdown() {
 counted_t<ls_block_token_pointee_t>
 data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
     guarantee(ser_block_size == static_config->block_size().ser_value());
-    /* Start a new extent if necessary */
 
-    if (active_extent == NULL) {
-        active_extent = new gc_entry_t(this);
-        blocks_in_active_extent = 0;
+    // Get an offset and index into the active_extent (and create if necessary).
+    bool got_offset_and_index = false;
+    uint32_t relative_offset = valgrind_undefined<uint32_t>(0);
+    unsigned int block_index = valgrind_undefined<unsigned int>(0);
+    while (!got_offset_and_index) {
+        // Start a new extent if necessary.
+        if (active_extent == NULL) {
+            active_extent = new gc_entry_t(this);
+            // RSI: Variable blocks_in_active_extent will eventually need to be removed.
+            blocks_in_active_extent = 0;
 
-        ++stats->pm_serializer_data_extents_allocated;
+            ++stats->pm_serializer_data_extents_allocated;
+        }
+
+        // Try to get a block offset from the active extent.
+        guarantee(active_extent->state == gc_entry_t::state_active);
+        got_offset_and_index = active_extent->new_offset(ser_block_size, &relative_offset, &block_index);
+        if (!got_offset_and_index) {
+            // RSI: Can we put this operation in a ASSERT_NO_CORO_WAITING?
+            // We couldn't get a block offset.  Start yet another new extent.
+            active_extent->state = gc_entry_t::state_young;
+            young_extent_queue.push_back(active_extent);
+            mark_unyoung_entries();
+            active_extent = NULL;
+        }
     }
 
-    /* Put the block into the chosen extent */
-
-    guarantee(active_extent->state == gc_entry_t::state_active);
-    guarantee(active_extent->garbage_bytes() > 0);
-    guarantee(blocks_in_active_extent < static_config->blocks_per_extent());
-
-    int64_t offset = active_extent->extent_ref.offset() + blocks_in_active_extent * static_config->block_size().ser_value();
+    int64_t offset = active_extent->extent_ref.offset() + relative_offset;
     active_extent->was_written = true;
 
-    guarantee(active_extent->block_is_garbage(blocks_in_active_extent));
-    active_extent->mark_live_tokenwise(blocks_in_active_extent);
-    guarantee(!active_extent->block_referenced_by_index(blocks_in_active_extent));
+    guarantee(active_extent->block_is_garbage(block_index));
+    active_extent->mark_live_tokenwise(block_index);
+    guarantee(!active_extent->block_referenced_by_index(block_index));
 
+    // RSI: Is this variable useful at all?  When reconstructing, I guess.
     ++blocks_in_active_extent;
 
-    /* Deactivate the extent if necessary */
-
-    if (blocks_in_active_extent == static_config->blocks_per_extent()) {
-        guarantee(active_extent->garbage_bytes() < static_config->extent_size(),
-                  "garbage_bytes() == %zu, extent_size=%" PRIu64,
-                  active_extent->garbage_bytes(), static_config->extent_size());
-        active_extent->state = gc_entry_t::state_young;
-        young_extent_queue.push_back(active_extent);
-        mark_unyoung_entries();
-        active_extent = NULL;
-    }
-
-    // RSI: don't pass fake block size.
-    return serializer->generate_block_token(offset,
-                                            serializer->get_block_size().ser_value());
+    return serializer->generate_block_token(offset, ser_block_size);
 }
 
 // Looks at young_extent_queue and pops things off the queue that are
@@ -941,6 +944,7 @@ gc_entry_t::gc_entry_t(data_block_manager_t *_parent)
       timestamp(current_microtime()),
       was_written(false),
       state(state_active),
+      num_allocated_blocks(0),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
@@ -954,6 +958,8 @@ gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
       timestamp(current_microtime()),
       was_written(false),
       state(state_reconstructing),
+      // RSI: We'll have to figure out a way to do this.
+      num_allocated_blocks(parent->static_config->blocks_per_extent()),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
@@ -988,6 +994,27 @@ unsigned int gc_entry_t::block_index(const int64_t offset) const {
     // implementation.
     const int64_t relative_offset = offset % parent->static_config->extent_size();
     return relative_offset / parent->static_config->block_size().ser_value();
+}
+
+bool gc_entry_t::new_offset(uint32_t ser_block_size,
+                            uint32_t *relative_offset_out,
+                            unsigned int *block_index_out) {
+    guarantee(state == state_active);
+    guarantee(ser_block_size == parent->static_config->block_size().ser_value());
+    if (num_allocated_blocks < g_array.size()) {
+        *relative_offset_out = num_allocated_blocks * parent->static_config->block_size().ser_value();
+        *block_index_out = num_allocated_blocks;
+        ++num_allocated_blocks;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void gc_entry_t::make_active(unsigned int blocks_in_active_extent) {
+    guarantee(state == state_reconstructing);
+    state = state_active;
+    num_allocated_blocks = blocks_in_active_extent;
 }
 
 void gc_entry_t::destroy() {
