@@ -322,7 +322,6 @@ class Table extends RDBOp
             opts = perhapsOptDict
             keys = keysAndOpts[0...(keysAndOpts.length - 1)]
 
-        console.log(opts)
         new GetAll opts, @, keys...
 
     insert: aropt (doc, opts) -> new Insert opts, @, doc
