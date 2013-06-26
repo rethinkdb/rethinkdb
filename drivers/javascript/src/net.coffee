@@ -15,6 +15,7 @@ class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
     DEFAULT_AUTH_KEY: ''
+    DEFAULT_TIMEOUT: 20
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -26,6 +27,7 @@ class Connection
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
         @authKey = host.authKey || @DEFAULT_AUTH_KEY
+        @timeout = host.timeout || @DEFAULT_TIMEOUT
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -253,6 +255,7 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
+        handshake_complete = false
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
             buf = new ArrayBuffer 8
@@ -281,6 +284,7 @@ class TcpConnection extends Connection
                             @rawSocket.on 'data', (buf) =>
                                 @_data(toArrayBuffer(buf))
 
+                            handshake_complete = true
                             @emit 'connect'
                             return
                         else
@@ -292,6 +296,13 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
+
+        setTimeout( (()=>
+            if not handshake_complete
+                @rawSocket.destroy()
+                @emit 'error', new RqlDriverError "Handshake timedout"
+        ), @timeout)
+
 
     close: () ->
         super()
