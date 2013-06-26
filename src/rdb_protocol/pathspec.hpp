@@ -33,6 +33,17 @@ public:
         }
     };
 
+    void print() {
+        switch (type) {
+        case STR:
+            break;
+        case VEC:
+            break;
+        case MAP:
+            break;
+        }
+    }
+
 private:
     enum type_t {
         STR,
