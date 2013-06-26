@@ -148,7 +148,7 @@ commands:
     body:
       py: "$PARENT.use(db_name)"
       rb: "$PARENT.use(db_name)"
-      js: dbName
+      js: "$PARENT.use(dbName)"
 
     io:
       - - connection

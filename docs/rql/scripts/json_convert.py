@@ -113,10 +113,6 @@ for section in sections:
                                 else:
                                     if 'code' in example_override:
                                         out_examples[int(example_num)]['code'] = example_override['code']
-                                    if 'can_try' in example_override:
-                                        out_examples[int(example_num)]['can_try'] = example_override['can_try']
-                                    if 'dataset' in example_override:
-                                        out_examples[int(example_num)]['dataset'] = example_override['dataset']
                                     if 'description' in example_override:
                                         out_examples[int(example_num)]['description'] = example_override['description']
 
