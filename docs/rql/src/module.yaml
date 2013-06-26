@@ -78,7 +78,6 @@ commands:
     body:
       py: "$PARENT.repl()"
       rb: "$PARENT.repl"
-      js: "$PARENT.repl()"
 
     examples:
       - description: |
