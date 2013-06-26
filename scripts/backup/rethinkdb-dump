@@ -36,6 +36,8 @@ def parse_options():
 
     # Verify valid host:port --connect option
     host_port = options.host.split(":")
+    if len(host_port) == 1:
+        host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
         raise RuntimeError("invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
