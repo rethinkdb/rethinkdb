@@ -450,7 +450,7 @@ private:
 class get_all_term_t : public op_term_t {
 public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({ "index" })) { }
+        : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> table = arg(0)->as_table();
