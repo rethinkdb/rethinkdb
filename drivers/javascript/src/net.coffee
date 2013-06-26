@@ -71,7 +71,7 @@ class Connection
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
-        bt = for frame in response.getBacktrace().framesArray()
+        bt = for frame in response.getBacktraceArray()
                 if frame.getType() is Frame.FrameType.POS
                     parseInt frame.getPos()
                 else
@@ -200,7 +200,7 @@ class Connection
         length = data.byteLength
         finalArray = new Uint8Array length + 4
         (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set data, 4
+        finalArray.set((new Uint8Array(data)), 4)
 
         @write finalArray.buffer
 
