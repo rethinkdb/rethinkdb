@@ -309,7 +309,22 @@ class Table extends RDBOp
     st: 'table'
 
     get: ar (key) -> new Get {}, @, key
-    getAll: aropt (key, opts) -> new GetAll opts, @, key
+
+    getAll: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
+        if perhapsOptDict and
+                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+            opts = perhapsOptDict
+            keys = keysAndOpts[0...(keysAndOpts.length - 1)]
+
+        console.log(opts)
+        new GetAll opts, @, keys...
+
     insert: aropt (doc, opts) -> new Insert opts, @, doc
     indexCreate: varar(1, 2, (name, defun) ->
         if defun?
