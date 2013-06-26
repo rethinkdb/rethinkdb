@@ -68,6 +68,7 @@ private:
             paths.push_back(arg(i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(paths));
+        pathspec.print();
         return new_val(project(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "pluck"; }

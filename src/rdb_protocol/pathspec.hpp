@@ -33,13 +33,29 @@ public:
         }
     };
 
-    void print() {
+    void print_tabs(int tabs) {
+        while (tabs --> 0) { fprintf(stderr, "\t"); }
+    }
+    void print(int tabs = 0) {
         switch (type) {
         case STR:
+            print_tabs(tabs); fprintf(stderr, "STR: %s\n", str.c_str());
             break;
         case VEC:
+            print_tabs(tabs); fprintf(stderr, "VEC:\n");
+            for (auto it = vec.begin(); it != vec.end(); ++it) {
+                it->print(tabs + 1);
+            }
             break;
         case MAP:
+            print_tabs(tabs); fprintf(stderr, "MAP:\n");
+            for (auto it = map.begin(); it != map.end(); ++it) {
+                print_tabs(tabs + 1); fprintf(stderr, "%s:\n", it->first.c_str());
+                it->second.print(tabs + 2);
+            }
+            break;
+        default:
+            unreachable();
             break;
         }
     }

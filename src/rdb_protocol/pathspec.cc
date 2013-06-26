@@ -14,7 +14,6 @@ pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map)
     : type(MAP), map(_map) { }
 
 pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
-    BREAKPOINT;
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
         str = datum->as_str();
@@ -38,11 +37,17 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
             type = MAP;
         } else {
             type = VEC;
-            vec.push_back(pathspec_t(map));
-            map.clear();
+            if (!map.empty()) {
+                vec.push_back(pathspec_t(map));
+                map.clear();
+            }
         }
     } else {
         throw malformed_pathspec_exc_t();
+    }
+
+    if (type == VEC && vec.size() == 1) {
+        *this = vec[0];
     }
 }
 
