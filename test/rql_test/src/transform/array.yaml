@@ -117,7 +117,7 @@ tests:
     - cd: wftst.with_fields(1)
       ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
     - cd: r.expr(1).with_fields()
-      ot: err("RqlRuntimeError", "Cannot convert NUMBER to SEQUENCE", [])
+      ot: err("RqlRuntimeError", "Cannot perform has_fields on a non-object non-sequence `1`.", [])
 
     ## Without
 

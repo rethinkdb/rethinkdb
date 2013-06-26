@@ -242,7 +242,7 @@ class RqlQuery(object):
         elif isinstance(index, int):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
-            return GetAttr(self, index)
+            return GetField(self, index)
 
     def nth(self, index):
         return Nth(self, index)
@@ -574,8 +574,8 @@ class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetAttr(RqlQuery):
-    tt = p.Term.GETATTR
+class GetField(RqlQuery):
+    tt = p.Term.GET_FIELD
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
