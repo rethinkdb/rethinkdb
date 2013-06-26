@@ -195,11 +195,21 @@ void rdb_replace_and_return_superblock(
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
+            counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
-                new_val->get(primary_key, ql::NOTHROW).has(),
+                pk.has(),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
+            rcheck_target(
+                new_val, ql::base_exc_t::GENERIC,
+                key.compare(store_key_t(pk->print_primary())) == 0,
+                (started_empty
+                 ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
+                             primary_key.c_str(), new_val->print().c_str())
+                 : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
+                             primary_key.c_str(),
+                             old_val->print().c_str(), new_val->print().c_str())));
         } else {
             rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
                                new_val->get_type_name(), new_val->print().c_str());
@@ -228,27 +238,19 @@ void rdb_replace_and_return_superblock(
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
-                if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
-                    if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged",
-                                             make_counted<ql::datum_t>(1.0));
-                    } else {
-                        conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
-                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                        boost::shared_ptr<scoped_cJSON_t> new_val_as_json
-                            = new_val->as_json();
-                        kv_location_set(&kv_location, key, new_val_as_json,
-                                        slice, timestamp, txn);
-                        mod_info->added = new_val_as_json;
-                        mod_info->deleted = old_val->as_json();
-                    }
+                r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
+                if (*old_val == *new_val) {
+                    conflict = resp->add("unchanged",
+                                         make_counted<ql::datum_t>(1.0));
                 } else {
-                    rfail_target(
-                        new_val,
-                        ql::base_exc_t::GENERIC,
-                        "Primary key `%s` cannot be changed (%s -> %s)",
-                        primary_key.c_str(),
-                        old_val->print().c_str(), new_val->print().c_str());
+                    conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
+                    r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
+                    boost::shared_ptr<scoped_cJSON_t> new_val_as_json
+                        = new_val->as_json();
+                    kv_location_set(&kv_location, key, new_val_as_json,
+                                    slice, timestamp, txn);
+                    mod_info->added = new_val_as_json;
+                    mod_info->deleted = old_val->as_json();
                 }
             }
         }

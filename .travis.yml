@@ -15,7 +15,7 @@ before_script:
   - sudo npm install -g coffee-script@1.4.0
   - sudo npm install -g handlebars@1.0.10
   - sudo npm install -g mocha
-  - gem install ruby_protobuf
+  - gem install ruby-protocol-buffers
 
   # we need a custom ppa for latest boost libs (1.46, which is on
   # Travis, doesn't work with Clang and C++ 11)
