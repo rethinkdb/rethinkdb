@@ -190,15 +190,16 @@ void rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("old_val", old_val);
+            bool conflict = resp->add("old_val", old_val)
+                         || resp->add("new_val", old_val); // changed below
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("new_val", new_val);
-            guarantee(!conflict);
+            bool conflict = resp->add("new_val", new_val, ql::CLOBBER);
+            guarantee(conflict); // We set it to `old_val` previously.
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
