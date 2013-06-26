@@ -197,14 +197,8 @@ public:
     ~data_block_manager_t();
 
     struct metablock_mixin_t {
-        // RSI: We need to update the serializer version number.
-
-        // RSI: Maybe this is a good opportunity to adjust the metablock to have
-        // individual metablock version info.
-
-        // RSI: Dumb.
-        int64_t active_extents[1];
-        uint64_t blocks_in_active_extent[1];
+        int64_t active_extent;
+        uint64_t blocks_in_active_extent;
     } __attribute__((__packed__));
 
     /* When initializing the database from scratch, call start() with just the
@@ -344,13 +338,9 @@ private:
     /* Contains every extent in the gc_entry_t::state_reconstructing state */
     intrusive_list_t<gc_entry_t> reconstructed_extents;
 
-    /* Contains the extents in the gc_entry_t::state_active state. The number of active
-    extents is 1. */
-    unsigned int next_active_extent;   // Cycles through the active extents.  Always 0,
-                                       // actually.
-    // RSI: Dumb.
-    gc_entry_t *active_extents[1];
-    unsigned blocks_in_active_extent[1];
+    /* Contains the extent in the gc_entry_t::state_active state. */
+    gc_entry_t *active_extent;
+    unsigned int blocks_in_active_extent;
 
     /* Contains every extent in the gc_entry_t::state_young state */
     intrusive_list_t< gc_entry_t > young_extent_queue;

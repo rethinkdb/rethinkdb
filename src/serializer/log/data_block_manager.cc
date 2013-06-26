@@ -31,7 +31,7 @@ const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
 data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
     : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config),
       static_config(_static_config), extent_manager(em), serializer(_serializer),
-      next_active_extent(0), gc_state(), gc_stats(stats)
+      gc_state(), gc_stats(stats)
 {
     rassert(dynamic_config != NULL);
     rassert(static_config != NULL);
@@ -44,11 +44,8 @@ data_block_manager_t::~data_block_manager_t() {
 }
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
-    // RSI: Dumb.
-    for (int i = 0; i < 1; i++) {
-        mb->active_extents[i] = NULL_OFFSET;
-        mb->blocks_in_active_extent[i] = 0;
-    }
+    mb->active_extent = NULL_OFFSET;
+    mb->blocks_in_active_extent = 0;
 }
 
 void data_block_manager_t::start_reconstruct() {
@@ -88,32 +85,29 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
     gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
-    // RSI: Dumb.
-    for (unsigned int i = 0; i < 1; i++) {
-        int64_t offset = last_metablock->active_extents[i];
+    const int64_t offset = last_metablock->active_extent;
 
-        if (offset != NULL_OFFSET) {
-            /* It is possible to have an active data block extent with no actual data
-            blocks in it. In this case we would not have created a gc_entry_t for the
-            extent yet. */
-            if (entries.get(offset / extent_manager->extent_size) == NULL) {
-                gc_entry_t *e = new gc_entry_t(this, offset);
-                e->state = gc_entry_t::state_reconstructing;
-                reconstructed_extents.push_back(e);
-            }
-
-            active_extents[i] = entries.get(offset / extent_manager->extent_size);
-            rassert(active_extents[i]);
-
-            /* Turn the extent from a reconstructing extent into an active extent */
-            guarantee(active_extents[i]->state == gc_entry_t::state_reconstructing);
-            active_extents[i]->state = gc_entry_t::state_active;
-            reconstructed_extents.remove(active_extents[i]);
-
-            blocks_in_active_extent[i] = last_metablock->blocks_in_active_extent[i];
-        } else {
-            active_extents[i] = NULL;
+    if (offset != NULL_OFFSET) {
+        /* It is possible to have an active data block extent with no actual data
+           blocks in it. In this case we would not have created a gc_entry_t for the
+           extent yet. */
+        if (entries.get(offset / extent_manager->extent_size) == NULL) {
+            gc_entry_t *e = new gc_entry_t(this, offset);
+            e->state = gc_entry_t::state_reconstructing;
+            reconstructed_extents.push_back(e);
         }
+
+        active_extent = entries.get(offset / extent_manager->extent_size);
+        rassert(active_extent);
+
+        /* Turn the extent from a reconstructing extent into an active extent */
+        guarantee(active_extent->state == gc_entry_t::state_reconstructing);
+        active_extent->state = gc_entry_t::state_active;
+        reconstructed_extents.remove(active_extent);
+
+        blocks_in_active_extent = last_metablock->blocks_in_active_extent;
+    } else {
+        active_extent = NULL;
     }
 
     /* Convert any extents that we found live blocks in, but that are not active
@@ -803,15 +797,12 @@ void data_block_manager_t::run_gc() {
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
-    // RSI: Dumb.
-    for (int i = 0; i < 1; i++) {
-        if (active_extents[i]) {
-            metablock->active_extents[i] = active_extents[i]->extent_ref.offset();
-            metablock->blocks_in_active_extent[i] = blocks_in_active_extent[i];
-        } else {
-            metablock->active_extents[i] = NULL_OFFSET;
-            metablock->blocks_in_active_extent[i] = 0;
-        }
+    if (active_extent != NULL) {
+        metablock->active_extent = active_extent->extent_ref.offset();
+        metablock->blocks_in_active_extent = blocks_in_active_extent;
+    } else {
+        metablock->active_extent = NULL_OFFSET;
+        metablock->blocks_in_active_extent = 0;
     }
 }
 
@@ -836,13 +827,11 @@ void data_block_manager_t::actually_shutdown() {
 
     guarantee(reconstructed_extents.head() == NULL);
 
-    // RSI: Dumb.
-    for (unsigned int i = 0; i < 1; i++) {
-        if (active_extents[i]) {
-            UNUSED int64_t extent = active_extents[i]->extent_ref.release();
-            delete active_extents[i];
-            active_extents[i] = NULL;
-        }
+    // RSI: Wait, what?  Are the active extents not stored in entries?
+    if (active_extent != NULL) {
+        UNUSED int64_t extent = active_extent->extent_ref.release();
+        delete active_extent;
+        active_extent = NULL;
     }
 
     while (gc_entry_t *entry = young_extent_queue.head()) {
@@ -865,42 +854,40 @@ void data_block_manager_t::actually_shutdown() {
 counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
     /* Start a new extent if necessary */
 
-    if (!active_extents[next_active_extent]) {
-        active_extents[next_active_extent] = new gc_entry_t(this);
-        active_extents[next_active_extent]->state = gc_entry_t::state_active;
-        blocks_in_active_extent[next_active_extent] = 0;
+    if (active_extent == NULL) {
+        active_extent = new gc_entry_t(this);
+        active_extent->state = gc_entry_t::state_active;
+        blocks_in_active_extent = 0;
 
         ++stats->pm_serializer_data_extents_allocated;
     }
 
     /* Put the block into the chosen extent */
 
-    guarantee(active_extents[next_active_extent]->state == gc_entry_t::state_active);
-    guarantee(active_extents[next_active_extent]->garbage_bytes() > 0);
-    guarantee(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
+    guarantee(active_extent->state == gc_entry_t::state_active);
+    guarantee(active_extent->garbage_bytes() > 0);
+    guarantee(blocks_in_active_extent < static_config->blocks_per_extent());
 
-    int64_t offset = active_extents[next_active_extent]->extent_ref.offset() + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
-    active_extents[next_active_extent]->was_written = true;
+    int64_t offset = active_extent->extent_ref.offset() + blocks_in_active_extent * static_config->block_size().ser_value();
+    active_extent->was_written = true;
 
-    guarantee(active_extents[next_active_extent]->block_is_garbage(blocks_in_active_extent[next_active_extent]));
-    active_extents[next_active_extent]->mark_live_tokenwise(blocks_in_active_extent[next_active_extent]);
-    guarantee(!active_extents[next_active_extent]->block_referenced_by_index(blocks_in_active_extent[next_active_extent]));
+    guarantee(active_extent->block_is_garbage(blocks_in_active_extent));
+    active_extent->mark_live_tokenwise(blocks_in_active_extent);
+    guarantee(!active_extent->block_referenced_by_index(blocks_in_active_extent));
 
-    blocks_in_active_extent[next_active_extent]++;
+    ++blocks_in_active_extent;
 
     /* Deactivate the extent if necessary */
 
-    if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
-        guarantee(active_extents[next_active_extent]->garbage_bytes() < static_config->extent_size(),
+    if (blocks_in_active_extent == static_config->blocks_per_extent()) {
+        guarantee(active_extent->garbage_bytes() < static_config->extent_size(),
                   "garbage_bytes() == %zu, extent_size=%" PRIu64,
-                  active_extents[next_active_extent]->garbage_bytes(), static_config->extent_size());
-        active_extents[next_active_extent]->state = gc_entry_t::state_young;
-        young_extent_queue.push_back(active_extents[next_active_extent]);
+                  active_extent->garbage_bytes(), static_config->extent_size());
+        active_extent->state = gc_entry_t::state_young;
+        young_extent_queue.push_back(active_extent);
         mark_unyoung_entries();
-        active_extents[next_active_extent] = NULL;
+        active_extent = NULL;
     }
-
-    rassert(next_active_extent == 0);
 
     // RSI: don't pass fake block size.
     return serializer->generate_block_token(offset,
