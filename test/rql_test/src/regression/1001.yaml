@@ -1,0 +1,17 @@
+desc: 1001 (null + between + sindexes)
+tests:
+  - rb: r.table_create('1001')
+    def: tbl = r.table('1001')
+
+  - rb: tbl.insert({:a => nil})
+  - rb: tbl.index_create('a')
+  - rb: tbl.index_create('b')
+
+  - rb: tbl.between(nil, nil).count
+    ot: 1
+  - rb: tbl.between(nil, nil, :index => :a).count
+    ot: 0
+  - rb: tbl.between(nil, nil, :index => :b).count
+    ot: 0
+
+  - rb: r.table_drop('1001')

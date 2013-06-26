@@ -158,3 +158,11 @@ def shard_table(port, build, table_name):
 					'Nc04f000000000000\2362'], stdout=PIPE, stderr=PIPE)
     sleep(3.0)
     return rtn_sum
+
+def set_auth(port, build, auth_key):
+    if len(auth_key) != 0:
+        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'set', 'auth', str(auth_key)], stdout=PIPE, stderr=PIPE)
+    else:
+        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'unset', 'auth'], stdout=PIPE, stderr=PIPE)
+    sleep(1.0)
+    return rtn_value

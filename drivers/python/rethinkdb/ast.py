@@ -247,6 +247,9 @@ class RqlQuery(object):
     def nth(self, index):
         return Nth(self, index)
 
+    def match(self, pattern):
+        return Match(self, pattern)
+
     def is_empty(self):
         return IsEmpty(self)
 
@@ -714,6 +717,10 @@ class Nth(RqlQuery):
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
+class Match(RqlQuery):
+    tt = p.Term.MATCH
+    st = 'match'
+
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF
     st = 'indexes_of'
@@ -790,11 +797,23 @@ class TableCreate(RqlMethodQuery):
     tt = p.Term.TABLE_CREATE
     st = "table_create"
 
+class TableCreateTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_CREATE
+    st = "table_create"
+
 class TableDrop(RqlMethodQuery):
     tt = p.Term.TABLE_DROP
     st = "table_drop"
 
+class TableDropTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_DROP
+    st = "table_drop"
+
 class TableList(RqlMethodQuery):
+    tt = p.Term.TABLE_LIST
+    st = "table_list"
+
+class TableListTL(RqlTopLevelQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
@@ -849,6 +868,10 @@ class ChangeAt(RqlMethodQuery):
 class Sample(RqlMethodQuery):
     tt = p.Term.SAMPLE
     st = 'sample'
+
+class Json(RqlTopLevelQuery):
+    tt = p.Term.JSON
+    st = 'json'
 
 # Called on arguments that should be functions
 def func_wrap(val):

@@ -30,7 +30,7 @@ public:
 private:
     friend class backfiller_send_backfill_callback_t<protocol_t>;
 
-    bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
+    bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, region_map_t<protocol_t, version_range_t> start_point,
                                    mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont);
 
     void on_backfill(

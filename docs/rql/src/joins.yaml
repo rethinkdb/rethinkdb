@@ -18,7 +18,10 @@ commands:
       js: innerJoin
       py: inner_join
       rb: inner_join
-    body: othersequence, predicate
+    body:
+      js: otherSequence, predicate
+      py: other_sequence, predicate
+      rb: other_sequence, predicate
     parent: sequence
     returns: sequence
 
@@ -46,7 +49,10 @@ commands:
       js: outerJoin
       py: outer_join
       rb: outer_join
-    body: othersequence, predicate
+    body:
+      js: otherSequence, predicate
+      py: other_sequence, predicate
+      rb: other_sequence, predicate
     parent: sequence
     returns: sequence
 
@@ -72,7 +78,10 @@ commands:
     description: An efficient join that looks up elements in the right table by primary
       key.
 
-    name: eq_join
+    name:
+      py: eq_join
+      rb: eq_join
+      js: eqJoin
     body:
       py: left_attr, other[, index='id']
       rb: left_attr, other[, :index => 'id']

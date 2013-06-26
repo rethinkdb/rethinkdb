@@ -283,6 +283,12 @@ tests:
         py: err_regex('TypeError', ".*takes at least 4 arguments \(3 given\)", [])
       cd: tbl.grouped_map_reduce(1,2)
 
+    - ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+      js: r.expr({})(1,2)
+      py: []
+      rb: []
+
+
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments
     # TODO: between, merge, slice

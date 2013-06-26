@@ -8,6 +8,14 @@
 // little-endian 32-bit integer over the wire raw.  This number should
 // only be sent once per connection.
 
+// The magic number shall be followed by an authorization key.  The
+// first 4 bytes are the length of the key to be sent as a little-endian
+// 32-bit integer, followed by the key string.  Even if there is no key,
+// an empty string should be sent (length 0 and no data).  The server will
+// then respond with a NULL-terminated string response.  "SUCCESS" indicates
+// that the connection has been accepted. Any other response indicates an
+// error, and the response string should describe the error.
+
 // Next, for each query you want to send, construct a [Query] protobuf
 // and serialize it to a binary blob.  Send the blob's size to the
 // server encoded as a little-endian 32-bit integer, followed by the
@@ -31,6 +39,7 @@ message VersionDummy { // We need to wrap it like this for some
                        // non-conforming protobuf libraries
     enum Version {
         V0_1 = 0x3f61ba36;
+        V0_2 = 0x723081e1;
     }
 }
 
@@ -358,19 +367,19 @@ message Term {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
+        DELETE   = 54; // StreamSelection, {durability:STRING} -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL} -> OBJECT
+        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
@@ -382,8 +391,8 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
+                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -469,6 +478,10 @@ message Term {
         // Gets info about anything.  INFO is most commonly called on tables.
         INFO = 79; // Top -> OBJECT
 
+        // `a.match(b)` returns a match object if the string `a`
+        // matches the regular expression `b`.
+        MATCH = 97; // STRING, STRING -> DATUM
+
         // Select a number of elements from sequence with uniform distribution.
         SAMPLE = 81; // Sequence, NUMBER -> Sequence
 
@@ -481,6 +494,10 @@ message Term {
         // passed either the text of the error or NULL as its
         // argument.
         DEFAULT = 92; // Top, Top -> Top
+
+        // Parses its first argument as a json string and returns it as a
+        // datum.
+        JSON = 98; // STRING -> DATUM
     }
     optional TermType type = 1;
 

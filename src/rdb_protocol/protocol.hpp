@@ -124,6 +124,7 @@ void bring_sindexes_up_to_date(
 
 
 class cluster_semilattice_metadata_t;
+class auth_semilattice_metadata_t;
 
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
@@ -143,7 +144,8 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
                   uuid_u _machine_id);
         ~context_t();
@@ -155,7 +157,8 @@ struct rdb_protocol_t {
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;

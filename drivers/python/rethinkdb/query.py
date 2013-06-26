@@ -4,6 +4,8 @@ import ql2_pb2 as p
 """
 All top level functions defined here are the starting points for RQL queries
 """
+def json(json_str):
+    return Json(json_str)
 
 def js(js_str, timeout=()):
     return JavaScript(js_str, timeout=timeout)
@@ -33,13 +35,13 @@ def db_list():
     return DbList()
 
 def table_create(table_name, primary_key=(), datacenter=(), cache_size=(), durability=()):
-    return TableCreate(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
+    return TableCreateTL(table_name, primary_key=primary_key, datacenter=datacenter, cache_size=cache_size, durability=durability)
 
 def table_drop(table_name):
-    return TableDrop(table_name)
+    return TableDropTL(table_name)
 
 def table_list():
-    return TableList()
+    return TableListTL()
 
 def branch(predicate, true_branch, false_branch):
     return Branch(predicate, true_branch, false_branch)

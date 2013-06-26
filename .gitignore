@@ -22,12 +22,6 @@ bench/stress-client/*.o
 bench/stress-client/protocols/*.o
 bench/stress-client/protocols/query_language.pb.h
 bench/stress-client/protocols/query_language.pb.cc
-external/protobuf-plugin-closure/js/int64_encoding.pb.cc
-external/protobuf-plugin-closure/js/int64_encoding.pb.h
-external/protobuf-plugin-closure/js/javascript_package.pb.cc
-external/protobuf-plugin-closure/js/javascript_package.pb.h
-external/protobuf-plugin-closure/protoc-gen-ccjs
-external/protobuf-plugin-closure/protoc-gen-js
 external/gtest/make/gtest-all.o
 external/gtest/make/gtest.a
 last_tested_versions
@@ -43,3 +37,4 @@ config.mk
 mk/gen/*
 test/rql_test/run/
 drivers/python/rethinkdb/ql2_pb2.py
+external/re2/obj/

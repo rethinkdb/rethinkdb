@@ -9,5 +9,8 @@ commands:
 
     examples:
       - description: Get the type of a string.
-        code: r.expr("foo").type_of().run(conn)
+        code:
+          py: r.expr("foo").type_of().run(conn)
+          rb: r.expr("foo").type_of().run(conn)
+          js: r.expr("foo").typeOf().run(conn, callback)
 

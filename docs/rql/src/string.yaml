@@ -1,0 +1,33 @@
+sections:
+  - tag: string
+    name: String manipulation
+    description: These commands provide string operators.
+    order: 10
+
+commands:
+  - tag: match
+    section: string
+    description: Match against a regular expression.  Returns a match object containing the matched string, that string's start/end position, and the capture groups.  Accepts RE2 syntax (https://code.google.com/p/re2/wiki/Syntax).  You can enable case-insensitive matching by prefixing the regular expression with `(?i)`.  (See linked RE2 documentation for more flags.)
+    name: match
+    body: regexp
+    parent: string
+    returns: json
+
+    examples:
+      - description: Get all users whose name starts with A.
+        code:
+          rb: r.table('users').filter{|row| row[:name].match("^A")}.run(conn)
+          py: r.table('users').filter(lambda row:row['name'].match("^A")).run(conn)
+          js: r.table('users').filter(function(row){return row('name').match("^A")}).run(conn, callback)
+      - description: Parse out a name (returns "mlucy").
+        code:
+          rb: r('id:0,name:mlucy,foo:bar').match('name:(\w+)')[:groups][0][:str].run(conn)
+          py: r.expr('id:0,name:mlucy,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+          js: r.expr('id:0,name:mlucy,foo:bar').match('name:(\w+)')('groups').nth(0)('str').run(conn, callback)
+      - description: Fail to parse out a name (returns null).
+        code:
+          rb: r('id:0,foo:bar').match('name:(\w+)')[:groups][0][:str].run(conn)
+          py: r.expr('id:0,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+          js: r.expr('id:0,foo:bar').match('name:(\w+)')('groups').nth(0)('str').run(conn, callback)
+
+

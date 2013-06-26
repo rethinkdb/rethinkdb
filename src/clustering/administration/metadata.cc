@@ -178,6 +178,23 @@ void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *targe
 void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &) { }
 
 
+// json adapter concept for auth_semilattice_metadata_t
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    json_adapter_if_t::json_adapter_map_t res;
+    res["auth_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<auth_key_t>(&target->auth_key, ctx));
+    return res;
+}
+
+cJSON *with_ctx_render_as_json(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+void with_ctx_apply_json_to(cJSON *change, auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+void with_ctx_on_subfield_change(auth_semilattice_metadata_t *, const vclock_ctx_t &) { }
+
 
 // ctx-less json adapter concept for cluster_directory_metadata_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target) {

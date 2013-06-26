@@ -45,8 +45,8 @@ public:
         for (typename std::map<uuid_u, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
-                if (!it->second.get().name.in_conflict()) {
-                    by_name[it->second.get().name.get()].insert(it->first);
+                if (!it->second.get_ref().name.in_conflict()) {
+                    by_name[it->second.get_ref().name.get()].insert(it->first);
                 }
             }
         }
@@ -75,12 +75,12 @@ public:
         for (typename std::map<uuid_u, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
-                if (!it->second.get().name.in_conflict() &&
-                    !it->second.get().database.in_conflict()) {
-                    if (std_contains(databases, it->second.get().database.get())) {
-                        deletable_t<database_semilattice_metadata_t> db = databases[it->second.get().database.get()];
-                        if (!db.is_deleted() && !db.get().name.in_conflict()) {
-                            by_name[db_table_name_t(db.get().name.get(), it->second.get().name.get())].insert(it->first);
+                if (!it->second.get_ref().name.in_conflict() &&
+                    !it->second.get_ref().database.in_conflict()) {
+                    if (std_contains(databases, it->second.get_ref().database.get())) {
+                        deletable_t<database_semilattice_metadata_t> db = databases[it->second.get_ref().database.get()];
+                        if (!db.is_deleted() && !db.get_ref().name.in_conflict()) {
+                            by_name[db_table_name_t(db.get_ref().name.get(), it->second.get_ref().name.get())].insert(it->first);
                         }
                     }
                 }

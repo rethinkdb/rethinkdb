@@ -10,7 +10,10 @@ commands:
     description: Transform each element of the sequence by applying the given mapping
       function.
 
-    body: mapping_function
+    body:
+      js: mappingFunction
+      py: mapping_function
+      rb: mapping_function
     parent: sequence
     returns: sequence
 
@@ -29,16 +32,14 @@ commands:
              hero[:combat_power] + hero[:compassion_power] * 2
             }.run(conn)
 
-    js:
-      body: mappingFunction
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
   - tag: with_fields
     section: transformations
     description: Takes a sequence of objects and a list of fields.  If any objects in the sequence don't have all of the specified fields, they're dropped from the sequence.  The remaining objects have the specified fields plucked out.  (This is identical to `has_fields` followed by `pluck` on a sequence.)
+
+    name:
+      js: withFields
+      py: with_fields
+      rb: with_fields
 
     body: field1[, field2...]
     parent: sequence
@@ -51,21 +52,19 @@ commands:
           py: r.table('marvel').with_fields('id', 'nemesis')
           js: r.table('marvel').withFields('id', 'nemesis')
 
-
-    js:
-      body: mappingFunction
-      examples:
-        0:
-          can_try: true
-          dataset: marvel
-
-
   - tag: concat_map
     section: transformations
     description: Flattens a sequence of arrays returned by the <code>mappingFunction</code>
       into a single sequence.
 
-    body: mapping_function
+    name:
+      js: concatMap
+      py: concat_map
+      rb: concat_map
+    body:
+      js: mappingFunction
+      py: mapping_function
+      rb: mapping_function
     parent: sequence
     returns: sequence
 
@@ -90,6 +89,11 @@ commands:
       <code>order by</code> defaults to ascending ordering. To explicitly specify
       the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.
 
+    name:
+      js: orderBy
+      py: order_by
+      rb: order_by
+    
     body: key1, [key2...]
     parent: sequence
     returns: sequence
@@ -202,6 +206,10 @@ commands:
     description: Get the indexes of an element in a sequence. If the argument is a predicate,
       get the indexes of all elements matching it.
 
+    name:
+      js: indexesOf
+      py: indexes_of
+      rb: indexes_of
     body: datum | predicate
     parent: sequence
     returns: sequence
@@ -231,7 +239,10 @@ commands:
     section: transformations
     description: Test if a sequence is empty.
 
-    body: index
+    name:
+      js: isEmpty
+      py: is_empty
+      rb: is_empty
     parent: sequence
     returns: json
 
@@ -246,13 +257,16 @@ commands:
     section: transformations
     description: Concatenate two sequences.
 
-    body: other
+    body: sequence
     parent: sequence
     returns: sequence
 
     examples:
       - description: Construct a stream of all heroes.
-        code: r.table('marvel').union(r.table('dc')).run(conn)
+        code:
+          py: r.table('marvel').union(r.table('dc')).run(conn)
+          rb: r.table('marvel').union(r.table('dc')).run(conn)
+          js: r.table('marvel').union(r.table('dc')).run(conn, callback)
 
   - tag: sample
     section: transformations

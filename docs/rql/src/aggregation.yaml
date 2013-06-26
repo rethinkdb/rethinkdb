@@ -90,7 +90,10 @@ commands:
       is a generalized form of <code>group by</code>.
 
 
-    name: grouped_map_reduce
+    name:
+      py: grouped_map_reduce
+      rb: grouped_map_reduce
+      js: groupedMapReduce
     body: grouping, mapping, reduction[, base]
     parent: sequence
     returns: json
@@ -123,6 +126,7 @@ commands:
             ).run(conn)
 
 
+
   - tag: group_by
     section: aggregation
     description: Groups elements by the values of the given attributes and then applies
@@ -130,7 +134,15 @@ commands:
       groupby takes a standardized object for specifying the reduction.
       Can be used with a number of predefined common reductions.
 
-    body: attr1[, attr2...], reduction_object
+    name:
+      py: group_by
+      rb: group_by
+      js: groupBy
+    body:
+      py: attr1[, attr2...], reduction_object
+      rb: attr1[, attr2...], reduction_object
+      js: attr1[, attr2...], reductionObject
+
     parent: sequence
     returns: json
 
@@ -153,6 +165,6 @@ commands:
     examples:
       - description: Iron Man ever fought Superman?
         code:
-          rb: r.table('marvel').get('ironman')[:opponents].contains('superman')
-          py: r.table('marvel').get('ironman')['opponents'].contains('superman')
-          py: r.table('marvel').get('ironman')('opponents').contains('superman')
+          rb: r.table('marvel').get('ironman')[:opponents].contains('superman').run(conn)
+          py: r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
+          js: r.table('marvel').get('ironman')('opponents').contains('superman').run(conn, callback)

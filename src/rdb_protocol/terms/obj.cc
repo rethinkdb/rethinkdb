@@ -22,8 +22,8 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        const std::map<std::string, counted_t<const datum_t> > &obj
-            = arg(0)->as_datum()->as_object();
+        counted_t<const datum_t> d = arg(0)->as_datum();
+        const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (auto it = obj.begin(); it != obj.end(); ++it) {
             arr->add(make_counted<const datum_t>(it->first));

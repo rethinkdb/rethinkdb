@@ -11,15 +11,26 @@ commands:
       Create a database. A RethinkDB database is a collection of tables,
       similar to relational databases.<br /><br />If successful, the operation returns
       an object: <code>{created: 1}</code>. If a database with the same name already
-      exists the operation throws <code>RqlRuntimeError</code>.
+      exists the operation throws <code>RqlRuntimeError</code>.<br/> Note:
+      that you can only use alphanumeric characters and underscores for the database name.
 
-    body: db_name
+    name:
+      py: db_create
+      rb: db_create
+      js: dbCreate
+    body:
+      js: dbName
+      py: db_name
+      rb: db_name
     parent: r
     returns: json
 
     examples:
       - description: Create a database named 'superheroes'.
-        code: r.db_create('superheroes').run(conn)
+        code:
+          py: r.db_create('superheroes').run(conn)
+          rb: r.db_create('superheroes').run(conn)
+          js: r.dbCreate('superheroes').run(conn, callback)
 
   - tag: db_drop
     section: db_admin
@@ -29,13 +40,23 @@ commands:
       <code>{dropped: 1}</code>. If the specified database doesn't exist a <code>RqlRuntimeError</code>
       is thrown.
 
-    body: db_name
+    name:
+      py: db_drop
+      rb: db_drop
+      js: dbDrop
+    body:
+      py: db_name
+      rb: db_name
+      js: dbName
     parent: r
     returns: json
 
     examples:
       - description: Drop a database named 'superheroes'.
-        code: r.db_drop('superheroes').run(conn)
+        code:
+          rb: r.db_drop('superheroes').run(conn)
+          py: r.db_drop('superheroes').run(conn)
+          js: r.dbDrop('superheroes').run(conn, callback)
 
   - tag: db_list
     section: db_admin
@@ -43,6 +64,10 @@ commands:
       List all database names in the system.<br /><br />
       The result is a list of strings.
 
+    name:
+      py: db_list
+      rb: db_list
+      js: dbList
     parent: r
     returns: sequence
 

@@ -345,8 +345,12 @@ bool handle_help_or_version_option(const std::map<std::string, options::values_t
     return false;
 }
 
-serializer_filepath_t metadata_file(const base_path_t& dirpath) {
+serializer_filepath_t get_cluster_metadata_filename(const base_path_t& dirpath) {
     return serializer_filepath_t(dirpath, "metadata");
+}
+
+serializer_filepath_t get_auth_metadata_filename(const base_path_t& dirpath) {
+    return serializer_filepath_t(dirpath, "auth_metadata");
 }
 
 void initialize_logfile(const std::map<std::string, options::values_t> &opts,
@@ -509,22 +513,34 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name,
                           bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
-    logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
-    cluster_semilattice_metadata_t metadata;
+    cluster_semilattice_metadata_t cluster_metadata;
+    auth_semilattice_metadata_t auth_metadata;
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-    metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
+    cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
     io_backender_t io_backender;
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
+    perfmon_collection_t auth_perfmon_collection;
+    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
+
     try {
-        metadata_persistence::persistent_file_t store(&io_backender, metadata_file(base_path), &metadata_perfmon_collection, our_machine_id, metadata);
+        metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&io_backender,
+                                                                              get_cluster_metadata_filename(base_path),
+                                                                              &metadata_perfmon_collection,
+                                                                              our_machine_id,
+                                                                              cluster_metadata);
+        metadata_persistence::auth_persistent_file_t auth_metadata_file(&io_backender,
+                                                                        get_auth_metadata_filename(base_path),
+                                                                        &auth_perfmon_collection,
+                                                                        auth_semilattice_metadata_t());
+        logINF("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
         logINF("Created directory '%s' and a metadata file inside it.\n", base_path.path().c_str());
         *result_out = true;
     } catch (const metadata_persistence::file_in_use_exc_t &ex) {
@@ -619,7 +635,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const serve_info_t& serve_info,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
-                         const cluster_semilattice_metadata_t *semilattice_metadata,
+                         const cluster_semilattice_metadata_t *cluster_metadata,
                          bool *const result_out) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     logINF("Running on %s", uname_msr().c_str());
@@ -638,27 +654,42 @@ void run_rethinkdb_serve(const base_path_t &base_path,
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
 
+    perfmon_collection_t auth_perfmon_collection;
+    perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
+
     try {
-        scoped_ptr_t<metadata_persistence::persistent_file_t> store;
-        if (our_machine_id && semilattice_metadata) {
-            store.init(new metadata_persistence::persistent_file_t(&io_backender,
-                                                                   metadata_file(base_path),
-                                                                   &metadata_perfmon_collection,
-                                                                   *our_machine_id,
-                                                                   *semilattice_metadata));
+        scoped_ptr_t<metadata_persistence::cluster_persistent_file_t> cluster_metadata_file;
+        scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
+        if (our_machine_id && cluster_metadata) {
+            cluster_metadata_file.init(
+                new metadata_persistence::cluster_persistent_file_t(&io_backender,
+                                                                    get_cluster_metadata_filename(base_path),
+                                                                    &metadata_perfmon_collection,
+                                                                    *our_machine_id,
+                                                                    *cluster_metadata));
+            auth_metadata_file.init(
+                new metadata_persistence::auth_persistent_file_t(&io_backender,
+                                                                 get_auth_metadata_filename(base_path),
+                                                                 &auth_perfmon_collection,
+                                                                 auth_semilattice_metadata_t()));
         } else {
-            store.init(new metadata_persistence::persistent_file_t(&io_backender,
-                                                                   metadata_file(base_path),
-                                                                   &metadata_perfmon_collection));
+            cluster_metadata_file.init(
+                new metadata_persistence::cluster_persistent_file_t(&io_backender,
+                                                                    get_cluster_metadata_filename(base_path),
+                                                                    &metadata_perfmon_collection));
+            auth_metadata_file.init(
+                new metadata_persistence::auth_persistent_file_t(&io_backender,
+                                                                 get_auth_metadata_filename(base_path),
+                                                                 &auth_perfmon_collection));
         }
 
         *result_out = serve(serve_info.spawner_info,
                             &io_backender,
-                            base_path, store.get(),
+                            base_path,
+                            cluster_metadata_file.get(),
+                            auth_metadata_file.get(),
                             look_up_peers_addresses(*serve_info.joins),
                             serve_info.ports,
-                            store->read_machine_id(),
-                            store->read_metadata(),
                             serve_info.web_assets,
                             &sigint_cond,
                             serve_info.config_file);
@@ -687,12 +718,13 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         machine_id_t our_machine_id = generate_uuid();
 
-        cluster_semilattice_metadata_t semilattice_metadata;
+        cluster_semilattice_metadata_t cluster_metadata;
 
         machine_semilattice_metadata_t our_machine_metadata;
         our_machine_metadata.name = vclock_t<name_string_t>(machine_name, our_machine_id);
         our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
-        semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
+        cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(our_machine_metadata)));
+
         if (serve_info.joins->empty()) {
             logINF("Creating a default database for your convenience. (This is because you ran 'rethinkdb' "
                    "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
@@ -705,14 +737,14 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
             bool db_name_success = db_name.assign_value("test");
             guarantee(db_name_success);
             database_metadata.name = vclock_t<name_string_t>(db_name, our_machine_id);
-            semilattice_metadata.databases.databases.insert(std::make_pair(
+            cluster_metadata.databases.databases.insert(std::make_pair(
                 database_id,
                 deletable_t<database_semilattice_metadata_t>(database_metadata)));
         }
 
         run_rethinkdb_serve(base_path, serve_info,
                             max_concurrent_io_requests,
-                            &our_machine_id, &semilattice_metadata, result_out);
+                            &our_machine_id, &cluster_metadata, result_out);
     }
 }
 
@@ -724,7 +756,6 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
         *result_out = serve_proxy(serve_info.spawner_info,
                                   look_up_peers_addresses(*serve_info.joins),
                                   serve_info.ports,
-                                  generate_uuid(), cluster_semilattice_metadata_t(),
                                   serve_info.web_assets,
                                   &sigint_cond,
                                   serve_info.config_file);
@@ -776,6 +807,8 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
+// Note that this defaults to the peer port if no port is specified
+//  (at the moment, this is only used for parsing --join directives)
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value) {
     size_t colon_loc = value.find_first_of(':');
@@ -785,6 +818,8 @@ host_and_port_t parse_host_and_port(const std::string &source, const std::string
         if (host.size() != 0 && port != 0) {
             return host_and_port_t(host, port);
         }
+    } else if (value.size() != 0) {
+        return host_and_port_t(value, port_defaults::peer_port);
     }
 
     throw options::value_error_t(source, option_name,
@@ -952,8 +987,9 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
 #endif  // NDEBUG
 
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
-    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+                                             options::OPTIONAL_REPEAT,
+                                             "localhost"));
+    help.add("-j [ --join ] host:port", "host and cluster port of a rethinkdb node to connect to");
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));

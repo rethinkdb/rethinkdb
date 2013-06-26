@@ -87,11 +87,16 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
     semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t());
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
+    message_multiplexer_t::client_t auth_manager_client(&message_multiplexer, 'A');
+    semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&auth_manager_client, auth_semilattice_metadata_t());
+    message_multiplexer_t::client_t::run_t auth_manager_client_run(&auth_manager_client, &auth_manager_cluster);
+
     log_server_t log_server(&mailbox_manager, &log_writer);
 
     stat_manager_t stat_manager(&mailbox_manager);
 
     metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
+    metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
 
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
@@ -100,6 +105,7 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
             get_ips(),
             stat_manager.get_address(),
             metadata_change_handler.get_request_mailbox_address(),
+            auth_change_handler.get_request_mailbox_address(),
             log_server.get_business_card(),
             PROXY_PEER));
 
@@ -138,8 +144,9 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
 
     // Skipped field_copier_t, for fun.
 
-    admin_tracker_t admin_tracker(
-        semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
+    admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
+                                  auth_manager_cluster.get_root_view(),
+                                  directory_read_manager.get_root_view());
 
     perfmon_collection_t proc_stats_collection;
     perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
@@ -194,6 +201,7 @@ bool run_json_import(extproc::spawner_info_t *spawner_info,
     rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
                                       NULL,
                                       semilattice_manager_cluster.get_root_view(),
+                                      auth_manager_cluster.get_root_view(),
                                       &directory_read_manager,
                                       machine_id);
 
@@ -233,7 +241,7 @@ namespace_id_t get_or_create_namespace(cluster_semilattice_metadata_t *metadata,
     std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator it = searcher.find_uniq(search_predicate, &error);
 
     if (error == METADATA_SUCCESS) {
-        std::string existing_pk = it->second.get().primary_key.get();
+        std::string existing_pk = it->second.get_ref().primary_key.get();
         if (existing_pk != primary_key_in) {
             printf("Successfully found namespace %s, with wrong primary key '%s'\n",
                    uuid_to_str(it->first).c_str(), existing_pk.c_str());

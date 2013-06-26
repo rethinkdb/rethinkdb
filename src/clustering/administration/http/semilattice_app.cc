@@ -10,27 +10,39 @@
 #include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"
 
-semilattice_http_app_t::semilattice_http_app_t(
-        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
+template <class metadata_t>
+semilattice_http_app_t<metadata_t>::semilattice_http_app_t(
+        metadata_change_handler_t<metadata_t> *_metadata_change_handler,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
-        uuid_u _us)
-    : metadata_change_handler(_metadata_change_handler), directory_metadata(_directory_metadata), us(_us) { }
+        uuid_u _us) :
+    directory_metadata(_directory_metadata),
+    us(_us),
+    metadata_change_handler(_metadata_change_handler) {
+    // Do nothing
+}
 
-void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {
+template <class metadata_t>
+semilattice_http_app_t<metadata_t>::~semilattice_http_app_t() {
+    // Do nothing
+}
+
+template <class metadata_t>
+void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
     // keep this in sync with handle's behavior for getting the root
-    cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
+    metadata_t metadata = metadata_change_handler->get();
     vclock_ctx_t json_ctx(us);
-    json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t> json_adapter(&cluster_metadata, json_ctx);
+    json_ctx_adapter_t<metadata_t, vclock_ctx_t> json_adapter(&metadata, json_ctx);
     json_out->reset(json_adapter.render());
 }
 
-http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
+template <class metadata_t>
+http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
     try {
-        cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
+        metadata_t metadata = metadata_change_handler->get();
 
         //as we traverse the json sub directories this will keep track of where we are
         vclock_ctx_t json_ctx(us);
-        boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_ctx_adapter_t<cluster_semilattice_metadata_t, vclock_ctx_t>(&cluster_metadata, json_ctx));
+        boost::shared_ptr<json_adapter_if_t> json_adapter_head(new json_ctx_adapter_t<metadata_t, vclock_ctx_t>(&metadata, json_ctx));
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
@@ -80,12 +92,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                /* Fill in the blueprints */
-                try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, (req.find_query_param("prefer_distribution") ? true : false));
-                } catch (const missing_machine_exc_t &e) { }
-
-                metadata_change_handler->update(cluster_metadata);
+                metadata_change_callback(&metadata, !!req.find_query_param("prefer_distribution"));
+                metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
@@ -97,11 +105,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
-                try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, false);
-                } catch (const missing_machine_exc_t &e) { }
-
-                metadata_change_handler->update(cluster_metadata);
+                metadata_change_callback(&metadata, false);
+                metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
@@ -136,12 +141,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 json_adapter_head->reset();
                 json_adapter_head->apply(change.get());
 
-                /* Fill in the blueprints */
-                try {
-                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us, false);
-                } catch (const missing_machine_exc_t &e) { }
-
-                metadata_change_handler->update(cluster_metadata);
+                metadata_change_callback(&metadata, false);
+                metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
                 return http_json_res(json_repr.get());
@@ -172,7 +173,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     unreachable();
 }
 
-bool semilattice_http_app_t::verify_content_type(const http_req_t &req, const std::string &expected_content_type) const {
+template <class metadata_t>
+bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &req,
+                                                             const std::string &expected_content_type) const {
     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
     // Only compare the beginning of the content-type. Some browsers may add additional
     // information, and e.g. send "application/json; charset=UTF-8" instead of "application/json"
@@ -185,3 +188,41 @@ bool semilattice_http_app_t::verify_content_type(const http_req_t &req, const st
     return true;
 }
 
+cluster_semilattice_http_app_t::cluster_semilattice_http_app_t(
+        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
+        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        uuid_u _us) :
+    semilattice_http_app_t<cluster_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
+    // Do nothing
+}
+
+cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
+    // Do nothing
+}
+
+void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
+                                                              bool prefer_distribution) {
+    try {
+        fill_in_blueprints(new_metadata, directory_metadata->get(), us, prefer_distribution);
+    } catch (const missing_machine_exc_t &e) { }
+}
+
+auth_semilattice_http_app_t::auth_semilattice_http_app_t(
+        metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
+        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        uuid_u _us) :
+    semilattice_http_app_t<auth_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
+    // Do nothing
+}
+
+auth_semilattice_http_app_t::~auth_semilattice_http_app_t() {
+    // Do nothing
+}
+
+void auth_semilattice_http_app_t::metadata_change_callback(auth_semilattice_metadata_t *,
+                                                           bool) {
+    // Do nothing
+}
+
+template class semilattice_http_app_t<cluster_semilattice_metadata_t>;
+template class semilattice_http_app_t<auth_semilattice_metadata_t>;

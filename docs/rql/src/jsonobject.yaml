@@ -49,9 +49,15 @@ commands:
 
     examples:
       - description: We just need information about IronMan's reactor and not the rest of the document.
-        code: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+        code:
+          py: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+          rb: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+          js: r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn, callback)
       - description: For the hero beauty contest we only care about certain qualities.
-        code: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+        code:
+          py: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+          rb: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+          js: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn, callback)
 
   - tag: without
     section: jsonobject
@@ -65,9 +71,15 @@ commands:
     examples:
       - description: Since we don't need it for this computation we'll save bandwidth
           and leave out the list of IronMan's romantic conquests.
-        code: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+        code:
+          py: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+          rb: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+          js: r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn, callback)
       - description: Without their prized weapons, our enemies will quickly be vanquished.
-        code: r.table('enemies').without('weapons').run(conn)
+        code:
+          py: r.table('enemies').without('weapons').run(conn)
+          rb: r.table('enemies').without('weapons').run(conn)
+          js: r.table('enemies').without('weapons').run(conn, callback)
 
   - tag: merge
     section: jsonobject
@@ -80,9 +92,16 @@ commands:
 
     examples:
       - description: Equip IronMan for battle.
-        code: |-
-          r.table('marvel').get('IronMan').merge(
-            r.table('loadouts').get('alienInvasionKit')).run(conn)
+        code:
+          py: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn)
+          rb: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn)
+          js: |-
+            r.table('marvel').get('IronMan').merge(
+              r.table('loadouts').get('alienInvasionKit')).run(conn, callback)
 
   - tag: append
     section: jsonobject
@@ -123,7 +142,7 @@ commands:
     returns: json
 
     examples:
-      - description: Retrieve Iron Man's equipment list with the addition of some new boots, removing a few items.
+      - description: Retrieve Iron Man's equipment list without boots.
         code:
           js: r.table('marvel').get('IronMan')('equipment').difference(['Boots']).run(conn, callback)
           py: r.table('marvel').get('IronMan')['equipment'].difference(['Boots']).run(conn)
@@ -135,6 +154,10 @@ commands:
       Add a value to an <code>array</code> and return it as a <code>set</code>
       (an <code>array</code> with distinct values).
 
+    name:
+      js: setInsert
+      py: set_insert
+      rb: set_insert
     body: json
     parent: json
     returns: json
@@ -152,6 +175,10 @@ commands:
       Add a several values to an <code>array</code> and return it as a
       <code>set</code> (an <code>array</code> with distinct values).
 
+    name:
+      js: setUnion
+      rb: set_union
+      py: set_union
     body: json
     parent: json
     returns: json
@@ -171,6 +198,11 @@ commands:
       Intersect two <code>arrays</code> returning values that occur in both of
       them as a <code>set</code> (an <code>array</code> with distinct values).
 
+    name:
+      js: setIntersection
+      py: set_intersection
+      rb: set_intersection
+
     body: json
     parent: json
     returns: json
@@ -178,9 +210,9 @@ commands:
     examples:
       - description: Check which pieces of equipment Iron Man has from a fixed list.
         code:
-          js: r.table('marvel').get('IronMan')('equipment').setIntersect(['newBoots', 'arc_reactor']).run(conn, callback)
-          py: r.table('marvel').get('IronMan')['equipment'].set_intersect(['newBoots', 'arc_reactor']).run(conn)
-          rb: r.table('marvel').get('IronMan')[:equipment].set_intersect(['newBoots', 'arc_reactor']).run(conn)
+          js: r.table('marvel').get('IronMan')('equipment').setIntersection(['newBoots', 'arc_reactor']).run(conn, callback)
+          py: r.table('marvel').get('IronMan')['equipment'].set_intersection(['newBoots', 'arc_reactor']).run(conn)
+          rb: r.table('marvel').get('IronMan')[:equipment].set_intersection(['newBoots', 'arc_reactor']).run(conn)
 
   - tag: set_difference
     section: jsonobject
@@ -188,6 +220,10 @@ commands:
       Remove the elements of one array from another and return them as a
       <code>set</code> (an <code>array</code> with distinct values).
 
+    name:
+      js: setDifference
+      py: set_difference
+      rb: set_difference
     body: json
     parent: json
     returns: json
@@ -217,11 +253,19 @@ commands:
           py: r.table('marvel').get('IronMan')['firstAppearance'].run(conn)
           js: r.table('marvel').get('IronMan')('firstAppearance').run(conn, callback)
           rb: r.table('marvel').get('IronMan')[:first_appearance].run(conn)
+    js:
+      name: ()
+      name1: (
+      name2: )
 
   - tag: has_fields
     section: jsonobject
     description: Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
 
+    name:
+      js: hasFields
+      py: has_fields
+      rb: has_fields
     body: field1[, field2...]
     parent: json
     returns: bool
@@ -230,7 +274,7 @@ commands:
       - description: Which heroes are married?
         code:
           js: |
-            r.table('marvel').filter(function(hero) {return hero.has_fields('spouse')})
+            r.table('marvel').filter(function(hero) {return hero.hasFields('spouse')})
              .run(conn, callback)
           py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
           rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
@@ -239,6 +283,11 @@ commands:
     section: jsonobject
     description: Insert a value in to an array at a given index. Returns the modified array.
 
+    name:
+      js: insertAt
+      py: insert_at
+      rb: insert_at
+
     body: index, json
     parent: json
     returns: json
@@ -246,13 +295,18 @@ commands:
     examples:
       - description: Hulk decides to join the avengers.
         code:
-          js: r(["Iron Man", "Spider-Man"]).insertAt(1, "Hulk").run(conn, callback)
+          js: r.expr(["Iron Man", "Spider-Man"]).insertAt(1, "Hulk").run(conn, callback)
           py: r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
-          rb: r(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+          rb: r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
 
   - tag: splice_at
     section: jsonobject
     description: Insert several values in to an array at a given index. Returns the modified array.
+
+    name:
+      js: spliceAt
+      py: splice_at
+      rb: splice_at
 
     body: index, json
     parent: json
@@ -261,13 +315,18 @@ commands:
     examples:
       - description: Hulk and Thor decide to join the avengers.
         code:
-          js: r(["Iron Man", "Spider-Man"]).spliceAt(1, ["Hulk", "Thor"]).run(conn, callback)
+          js: r.expr(["Iron Man", "Spider-Man"]).spliceAt(1, ["Hulk", "Thor"]).run(conn, callback)
           py: r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
-          rb: r(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+          rb: r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
 
   - tag: delete_at
     section: jsonobject
     description: Remove an element from an array at a given index. Returns the modified array.
+
+    name:
+      js: deleteAt
+      py: delete_at
+      rb: delete_at
 
     body: index [,endIndex]
     parent: json
@@ -276,18 +335,23 @@ commands:
     examples:
       - description: Hulk decides to leave the avengers.
         code:
-          js: r(["Iron Man", "Hulk", "Spider-Man"]).deleteAt(1).run(conn, callback)
+          js: r.expr(["Iron Man", "Hulk", "Spider-Man"]).deleteAt(1).run(conn, callback)
           py: r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
-          rb: r(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+          rb: r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
       - description: Hulk and Thor decide to leave the avengers.
         code:
-          js: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).deleteAt(1,2).run(conn, callback)
+          js: r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).deleteAt(1,2).run(conn, callback)
           py: r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
-          rb: r(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
+          rb: r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,2).run(conn)
 
   - tag: change_at
     section: jsonobject
     description: Change a value in an array at a given index. Returns the modified array.
+
+    name:
+      js: changeAt
+      py: change_at
+      rb: change_at
 
     body: index, json
     parent: json
@@ -296,10 +360,10 @@ commands:
     examples:
       - description: Bruce Banner hulks out.
         code:
-          js: r(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
+          js: r.expr(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
           py: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
-          rb: r(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
-
+          rb: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+    
   - tag: keys
     section: jsonobject
     description: Return an array containing all of the object's keys.
@@ -310,7 +374,11 @@ commands:
     examples:
       - description: Get all the keys of a row.
         code:
-          rb: r.table('marvel').get('ironman').keys
-          py: r.table('marvel').get('ironman').keys()
-          js: r.table('marvel').get('ironman').keys()
+          rb: r.table('marvel').get('ironman').keys.run(conn)
+          py: r.table('marvel').get('ironman').keys().run(conn)
+          js: r.table('marvel').get('ironman').keys().run(conn, callback)
+
+    rb:
+      dont_need_parenthesis: true
+
 

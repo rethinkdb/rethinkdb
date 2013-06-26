@@ -32,8 +32,8 @@ commands:
 
     body:
       js: opts, callback
-      py: host='localhost', port=28015, db='test'
-      rb: host='localhost', port=28015, default_db='test'
+      py: host='localhost', port=28015, db='test', auth_key=''
+      rb: opts
     parent: r
     returns: connection
 
@@ -42,10 +42,10 @@ commands:
         validate: false
         code:
           js: |
-            r.connect({host:'localhost', port:28015, db:'marvel'},
+              r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
-          rb: conn = r.connect('localhost', 28015, 'heroes')
+          rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes', :auth_key => 'hunter2')
 
     py:
       examples:
@@ -55,7 +55,9 @@ commands:
     rb:
       examples:
         0:
-          description: Opens a connection to localhost:28015 with 'heroes' as the default database.
+          description: |
+            Opens a connection to localhost:28015 with 'heroes' as the default database,
+            and provides an authorization key to log on to the server.
 
   - tag: repl
     section: module
@@ -80,6 +82,8 @@ commands:
           rb: |
             r.connect().repl
             r.table('users').run
+    rb:
+      dont_need_parenthesis: false
 
     js: false
 
@@ -95,12 +99,10 @@ commands:
     examples:
       - description: Close an open connection.
         validate: false
-        code: conn.close()
-
-    rb:
-      examples:
-        0:
-          code: conn.close
+        code:
+          js: conn.close()
+          py: conn.close()
+          rb: conn.close
 
   - tag: reconnect
     section: module
@@ -118,6 +120,9 @@ commands:
           js: conn.reconnect(function(err, conn) { ... })
           py: conn.reconnect()
           rb: conn.reconnect
+
+    rb:
+      dont_need_parenthesis: false
 
   - tag: use
     section: module
@@ -299,8 +304,8 @@ commands:
 
     examples:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.
+        validate: false
         code: |
-
           r.connect({}, function(err, conn) {
               if (err) throw err;
 
@@ -316,6 +321,7 @@ commands:
           });
 
       - description: As in Node, 'on' is a synonym for 'addListener'.
+        validate: false
         code: |
             conn.on('close', function() {
                 cleanup();

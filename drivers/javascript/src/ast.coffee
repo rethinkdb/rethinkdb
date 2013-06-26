@@ -7,7 +7,7 @@ goog.require("Datum")
 
 class TermBase
     constructor: ->
-        self = ((field) -> self.getAttr(field))
+        self = (ar (field) -> self.getAttr(field))
         self.__proto__ = @.__proto__
         return self
 
@@ -103,6 +103,7 @@ class RDBVal extends TermBase
     count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
+    match: ar (pattern) -> new Match {}, @, pattern
     isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: aropt (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce)
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
@@ -286,6 +287,10 @@ class JavaScript extends RDBOp
     tt: Term.TermType.JAVASCRIPT
     st: 'js'
 
+class Json extends RDBOp
+    tt: Term.TermType.JSON
+    st: 'json'
+
 class UserError extends RDBOp
     tt: Term.TermType.ERROR
     st: 'error'
@@ -410,19 +415,19 @@ class Difference extends RDBOp
 
 class SetInsert extends RDBOp
     tt: Term.TermType.SET_INSERT
-    mt: 'set_insert'
+    mt: 'setInsert'
 
 class SetUnion extends RDBOp
     tt: Term.TermType.SET_UNION
-    mt: 'set_union'
+    mt: 'setUnion'
 
 class SetIntersection extends RDBOp
     tt: Term.TermType.SET_INTERSECTION
-    mt: 'set_intersection'
+    mt: 'setIntersection'
 
 class SetDifference extends RDBOp
     tt: Term.TermType.SET_DIFFERENCE
-    mt: 'set_difference'
+    mt: 'setDifference'
 
 class Slice extends RDBOp
     tt: Term.TermType.SLICE
@@ -448,19 +453,19 @@ class Contains extends RDBOp
 
 class InsertAt extends RDBOp
     tt: Term.TermType.INSERT_AT
-    mt: 'insert_at'
+    mt: 'insertAt'
 
 class SpliceAt extends RDBOp
     tt: Term.TermType.SPLICE_AT
-    mt: 'splice_at'
+    mt: 'spliceAt'
 
 class DeleteAt extends RDBOp
     tt: Term.TermType.DELETE_AT
-    mt: 'delete_at'
+    mt: 'deleteAt'
 
 class ChangeAt extends RDBOp
     tt: Term.TermType.CHANGE_AT
-    mt: 'change_at'
+    mt: 'changeAt'
 
 class Contains extends RDBOp
     tt: Term.TermType.CONTAINS
@@ -468,15 +473,15 @@ class Contains extends RDBOp
 
 class HasFields extends RDBOp
     tt: Term.TermType.HAS_FIELDS
-    mt: 'contains'
+    mt: 'hasFields'
 
 class WithFields extends RDBOp
     tt: Term.TermType.WITH_FIELDS
-    mt: 'contains'
+    mt: 'withFields'
 
 class Keys extends RDBOp
     tt: Term.TermType.KEYS
-    mt: 'contains'
+    mt: 'keys'
 
 class Pluck extends RDBOp
     tt: Term.TermType.PLUCK
@@ -534,9 +539,13 @@ class Nth extends RDBOp
     tt: Term.TermType.NTH
     mt: 'nth'
 
+class Match extends RDBOp
+    tt: Term.TermType.MATCH
+    mt: 'match'
+
 class IsEmpty extends RDBOp
     tt: Term.TermType.IS_EMPTY
-    mt: 'is_empty'
+    mt: 'isEmpty'
 
 class GroupedMapReduce extends RDBOp
     tt: Term.TermType.GROUPED_MAP_REDUCE

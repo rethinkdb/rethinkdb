@@ -173,12 +173,14 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }
@@ -285,12 +287,14 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }

@@ -58,7 +58,9 @@ void run_with_broadcaster(
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
 
-    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
+    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
+                                  dummy_auth, &read_manager, generate_uuid());
 
     /* Set up a broadcaster and initial listener */
     test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
