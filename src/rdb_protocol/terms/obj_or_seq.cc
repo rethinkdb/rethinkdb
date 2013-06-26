@@ -74,7 +74,7 @@ private:
 
         rfail_typed_target(
             v0, "Cannot perform %s on a non-object non-sequence `%s`.",
-            name(), v0->print().c_str());
+            name(), v0->trunc_print().c_str());
         unreachable();
     }
 
