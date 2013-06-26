@@ -1241,8 +1241,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_modification_report_t mod_report(r.key);
         rdb_replace(btree, timestamp, txn, superblock->get(),
-                    r.primary_key, r.key, f, r.return_vals, &ql_env, res,
-                    &mod_report.info);
+                    r.primary_key, r.key, f,
+                    r.return_vals ? RETURN_VALS : NO_RETURN_VALS,
+                    &ql_env, res, &mod_report.info);
 
         update_sindexes(&mod_report);
     }

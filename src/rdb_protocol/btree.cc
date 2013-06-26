@@ -162,7 +162,7 @@ void rdb_replace_and_return_superblock(
     const std::string &primary_key,
     const store_key_t &key,
     ql::map_wire_func_t *f,
-    bool return_vals,
+    return_vals_t return_vals,
     ql::env_t *ql_env,
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
@@ -189,14 +189,14 @@ void rdb_replace_and_return_superblock(
             old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
         }
         guarantee(old_val.has());
-        if (return_vals) {
+        if (return_vals == RETURN_VALS) {
             bool conflict = resp->add("old_val", old_val);
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
-        if (return_vals) {
+        if (return_vals == RETURN_VALS) {
             bool conflict = resp->add("new_val", new_val);
             guarantee(!conflict);
         }
@@ -290,7 +290,7 @@ void rdb_replace(btree_slice_t *slice,
                  const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
-                 bool return_vals,
+                 return_vals_t return_vals,
                  ql::env_t *ql_env,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info) {
@@ -324,8 +324,9 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
-                                      sttr.replace->primary_key, sttr.replace->key, &f, false, ql_env,
-                                      superblock_promise_or_null, response_out, &mod_report.info);
+                                      sttr.replace->primary_key, sttr.replace->key, &f,
+                                      NO_RETURN_VALS, ql_env, superblock_promise_or_null,
+                                      response_out, &mod_report.info);
 
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
