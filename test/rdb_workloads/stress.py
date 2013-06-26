@@ -13,6 +13,7 @@ parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default="", ty
 parser.add_option("--timeout", dest="timeout", metavar="SECONDS", default=60, type="int")
 parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
 parser.add_option("--batch-size", dest="batch_size", metavar="BATCH_SIZE", default=100, type="int")
+parser.add_option("--value-size", dest="value_size", metavar="VALUE_SIZE", default=4, type="int")
 parser.add_option("--workload", dest="workload", metavar="WRITES/DELETES/READS/SINDEX_READS/UPDATES/NON_ATOMIC_UPDATES", default="3/2/5/0/1/1", type="string")
 parser.add_option("--host", dest="hosts", metavar="HOST:PORT", action="append", default=[], type="string")
 parser.add_option("--add-sindex", dest="sindexes", metavar="constant | simple | complex | long", action="append", default=[], type="string")
@@ -46,13 +47,14 @@ workload_defaults = [("--writes", 3),
                      ("--non-atomic-updates", 1)]
 workload_types = [item[0] for item in workload_defaults]
 workload_values = options.workload.split("/")
-if len(workload_values) < len(workload_types):
+if len(workload_values) > len(workload_types):
     raise RuntimeError("Too many workload values specified")
+workload_values.extend([0 for i in range(len(workload_types) - len(workload_values))])
 for op, value in zip(workload_types, workload_values):
-    workload[op] = value
+    workload[op] = str(value)
 for op, value in workload_defaults:
     if op not in workload.keys():
-        workload[op] = value
+        workload[op] = str(value)
 
 clients = [ ]
 output_files = [ ]
@@ -242,6 +244,7 @@ for (op, value) in workload.items():
     client_args.extend([op, value])
 for sindex in sindexes:
     client_args.extend(["--sindex", sindex])
+client_args.extend(["--value-size", str(options.value_size)])
 client_args.extend(["--batch-size", str(options.batch_size)])
 client_args.extend(["--table", db + "." + table])
 
