@@ -8,8 +8,12 @@ import sys, os, datetime, time, copy, json, traceback, csv, cPickle
 import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
-import rethinkdb as r
+try:
+    import rethinkdb as r
+except ImportError:
+    print "The RethinkDB python driver is required to use this command."
+    print "Please install the driver via `pip install rethinkdb`."
+    exit(1)
 
 usage = "'rethinkdb import` creates an archive of data from a rethinkdb cluster\n\
   rethinkdb import -c HOST:PORT -d DIR [-a AUTH_KEY] [--force]\n\
