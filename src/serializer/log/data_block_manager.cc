@@ -44,7 +44,8 @@ data_block_manager_t::~data_block_manager_t() {
 }
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
-    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    // RSI: Dumb.
+    for (int i = 0; i < 1; i++) {
         mb->active_extents[i] = NULL_OFFSET;
         mb->blocks_in_active_extent[i] = 0;
     }
@@ -87,7 +88,8 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
     gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
-    for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    // RSI: Dumb.
+    for (unsigned int i = 0; i < 1; i++) {
         int64_t offset = last_metablock->active_extents[i];
 
         if (offset != NULL_OFFSET) {
@@ -801,7 +803,8 @@ void data_block_manager_t::run_gc() {
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
-    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+    // RSI: Dumb.
+    for (int i = 0; i < 1; i++) {
         if (active_extents[i]) {
             metablock->active_extents[i] = active_extents[i]->extent_ref.offset();
             metablock->blocks_in_active_extent[i] = blocks_in_active_extent[i];
@@ -833,7 +836,8 @@ void data_block_manager_t::actually_shutdown() {
 
     guarantee(reconstructed_extents.head() == NULL);
 
-    for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
+    // RSI: Dumb.
+    for (unsigned int i = 0; i < 1; i++) {
         if (active_extents[i]) {
             UNUSED int64_t extent = active_extents[i]->extent_ref.release();
             delete active_extents[i];
@@ -896,19 +900,7 @@ counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
         active_extents[next_active_extent] = NULL;
     }
 
-    /* Move along to the next extent. This logic is kind of weird because it needs to
-    handle the case where we have just started up and we still have active extents
-    open from a previous run, but the value of num_active_data_extents was higher on
-    that previous run and so there are active data extents that occupy slots in
-    active_extents that are higher than our current value of
-    num_active_data_extents. The way we handle this case is by continuing to visit
-    those slots until the data extents fill up and are deactivated, but then not
-    visiting those slots any more. */
-
-    do {
-        next_active_extent = (next_active_extent + 1) % MAX_ACTIVE_DATA_EXTENTS;
-    } while (next_active_extent >= dynamic_config->num_active_data_extents &&
-             !active_extents[next_active_extent]);
+    rassert(next_active_extent == 0);
 
     // RSI: don't pass fake block size.
     return serializer->generate_block_token(offset,

@@ -199,11 +199,6 @@
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      GIGABYTE
 
-// How many different places in each file we should be writing to at once, not counting the
-// metablock or LBA
-#define MAX_ACTIVE_DATA_EXTENTS                   64
-#define DEFAULT_ACTIVE_DATA_EXTENTS               1
-
 #define COROUTINE_STACK_SIZE                      131072
 
 #define MAX_COROS_PER_THREAD                      10000
