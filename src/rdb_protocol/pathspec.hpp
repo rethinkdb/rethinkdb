@@ -33,31 +33,35 @@ public:
         }
     };
 
-    void print_tabs(int tabs) {
-        while (tabs --> 0) { fprintf(stderr, "\t"); }
+    std::string print_tabs(int tabs) const {
+        std::string res;
+        while (tabs --> 0) { res += "\t"; }
+        return res;
     }
-    void print(int tabs = 0) {
+    std::string print(int tabs = 0) const {
+        std::string res;
         switch (type) {
         case STR:
-            print_tabs(tabs); fprintf(stderr, "STR: %s\n", str.c_str());
+            res += print_tabs(tabs) + strprintf("STR: %s\n", str.c_str());
             break;
         case VEC:
-            print_tabs(tabs); fprintf(stderr, "VEC:\n");
+            res += print_tabs(tabs) + strprintf("VEC:\n");
             for (auto it = vec.begin(); it != vec.end(); ++it) {
-                it->print(tabs + 1);
+                res += it->print(tabs + 1);
             }
             break;
         case MAP:
-            print_tabs(tabs); fprintf(stderr, "MAP:\n");
+            res += print_tabs(tabs) + strprintf("MAP:\n");
             for (auto it = map.begin(); it != map.end(); ++it) {
-                print_tabs(tabs + 1); fprintf(stderr, "%s:\n", it->first.c_str());
-                it->second.print(tabs + 2);
+                res += print_tabs(tabs + 1) + strprintf("%s:\n", it->first.c_str());
+                res += it->second.print(tabs + 2);
             }
             break;
         default:
             unreachable();
             break;
         }
+        return res;
     }
 
 private:
