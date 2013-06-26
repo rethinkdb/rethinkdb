@@ -280,6 +280,7 @@ message Term {
         // Get a particular field from an object, or map that over a
         // sequence.
         GET_FIELD  = 31; // OBJECT, STRING -> DATUM
+                         // | Sequence, STRING -> Sequence
         // Return an array containing the keys of the object.
         KEYS = 94; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,
