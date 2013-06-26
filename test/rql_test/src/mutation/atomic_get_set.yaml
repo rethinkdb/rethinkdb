@@ -8,10 +8,31 @@ tests:
     - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
       ot: ({'old_val':null,'new_val':{'id':0}})
     - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
-      # We return as much as we can if there's an error
+      # We still return the old value if there's an error.
       ot: ({'first_error':'Duplicate primary key.','old_val':{'id':0}})
-    - cd: r.table('asg').insert([{'id':0}], :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+    - cd: r.table('asg').insert([{'id':0}], :return_vals => true)
       ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row inserts.", [])
+
+    - cd: r.table('asg').get(0).update({'x':1}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0},'new_val':{'id':0,'x':1}})
+      # We still return the old value if there's an error.
+    - cd: r.table('asg').get(0).update({'x':r.error("a")}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'first_error':'a','old_val':{'id':0,'x':1}})
+    - cd: r.table('asg').update({'x':1}, :return_vals => true)
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
+
+    - cd: r.table('asg').get(0).replace({'id':0,'x':2}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0,'x':1},'new_val':{'id':0,'x':2}})
+      # We still return the old value if there's an error.
+    - cd: r.table('asg').get(0).replace(:return_vals => true){{'x':r.error('a')}}.pluck('old_val', 'new_val', 'first_error')
+      ot: ({'first_error':'a','old_val':{'id':0,'x':2}})
+    - cd: r.table('asg').replace({'x':1}, :return_vals => true)
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
+
+    - cd: r.table('asg').get(0).delete(:return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0,'x':2},'new_val':null})
+    - cd: r.table('asg').delete(:return_vals => true)
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
 
     - cd: r.table_drop('asg')
       ot: ({'dropped':1})
