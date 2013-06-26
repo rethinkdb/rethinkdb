@@ -54,7 +54,7 @@ module RethinkDB
       end
 
       m = @@rewrites[m] || m
-      termtype = Term::TermType.values[m.to_s.upcase.to_sym]
+      termtype = Term::TermType.const_get(m.to_s.upcase)
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])

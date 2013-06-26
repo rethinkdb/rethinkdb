@@ -10,6 +10,6 @@ Gem::Specification.new do |s|
   s.files     = Dir['lib/*.rb']
 
   s.add_runtime_dependency "json"
-  s.add_runtime_dependency "ruby_protobuf"
+  s.add_runtime_dependency "ruby-protocol-buffers"
 end
 

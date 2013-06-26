@@ -1,6 +1,7 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 require 'socket'
 require 'thread'
+require 'timeout'
 
 # $f = File.open("fuzz_seed.rb", "w")
 
@@ -213,12 +214,17 @@ module RethinkDB
 
     def start_listener
       class << @socket
-        def read_exn(len)
-          buf = read len
-          if !buf or buf.length != len
-            raise RqlRuntimeError, "Connection closed by server."
-          end
-          return buf
+        def maybe_timeout(sec=nil, &b)
+          sec ? timeout(sec, &b) : b.call
+        end
+        def read_exn(len, timeout_sec=nil)
+          maybe_timeout(timeout_sec) {
+            buf = read len
+            if !buf or buf.length != len
+              raise RqlRuntimeError, "Connection closed by server."
+            end
+            return buf
+          }
         end
       end
       @socket.write([@@magic_number].pack('L<'))
@@ -226,7 +232,7 @@ module RethinkDB
       @socket.write([@auth_key.size].pack('L<') + @auth_key)
       response = ""
       while response[-1..-1] != "\0"
-        response += @socket.read_exn(1)
+        response += @socket.read_exn(1, 20)
       end
       response = response[0...-1]
       if response != "SUCCESS"
@@ -249,7 +255,7 @@ module RethinkDB
           end
           #TODO: Recovery
           begin
-            protob = Response.new.parse_from_string(response)
+            protob = Response.parse(response)
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end

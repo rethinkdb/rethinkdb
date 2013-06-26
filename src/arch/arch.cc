@@ -17,8 +17,9 @@ void co_read(file_t *file, size_t offset, size_t length, void *buf, file_account
     coro_t::wait();
 }
 
-void co_write(file_t *file, size_t offset, size_t length, void *buf, file_account_t *account) {
+void co_write(file_t *file, size_t offset, size_t length, void *buf,
+              file_account_t *account, file_t::wrap_in_datasyncs_t wrap_in_datasyncs) {
     io_coroutine_adapter_t adapter;
-    file->write_async(offset, length, buf, account, &adapter);
+    file->write_async(offset, length, buf, account, &adapter, wrap_in_datasyncs);
     coro_t::wait();
 }

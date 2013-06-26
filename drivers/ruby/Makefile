@@ -11,19 +11,19 @@ SOURCE_DIR?=../../src
 RUBY_PBDIR:=../../build/drivers/ruby
 RUBY_PBFILE2:=ql2.pb.rb
 BUILD_DRIVERS?=1
-PROTOCFLAGS:= --proto_path=$(SOURCE_DIR)
+PROTOCFLAGS:=
 GEMSPEC:=rethinkdb.gemspec
 
 ALLOW_INTERNAL_TOOLS?=1
 INSTALL_INTERNAL_TOOLS?=0
 ifeq ($(ALLOW_INTERNAL_TOOLS),1)
-ifeq ($(shell which rprotoc || true),)
-TC_RPROTOC_EXE:=$(RUBY_PBDIR)/toolchain/bin/rprotoc
+ifeq ($(shell which ruby-protoc || true),)
+TC_RPROTOC_EXE:=$(RUBY_PBDIR)/toolchain/bin/ruby-protoc
 else
-TC_RPROTOC_EXE:=$(shell which rprotoc || true)
+TC_RPROTOC_EXE:=$(shell which ruby-protoc || true)
 endif
 else
-TC_RPROTOC_EXE:=$(shell which rprotoc || true)
+TC_RPROTOC_EXE:=$(shell which ruby-protoc || true)
 endif
 
 all: driver-ruby
@@ -31,14 +31,12 @@ $(RUBY_PBDIR):
 	$(QUIET) mkdir -p $(RUBY_PBDIR)
 
 driver-ruby: $(RUBY_PBDIR)/$(RUBY_PBFILE2)
-PROTOFILE2:=$(SOURCE_DIR)/rdb_protocol/ql2.proto
-PROTOPATH:=$(SOURCE_DIR)/rdb_protocol
+PROTOFILE2:=ql2.proto
 $(RUBY_PBDIR)/$(RUBY_PBFILE2): $(RUBY_PBDIR) $(PROTOFILE2) $(TC_RPROTOC_EXE)
 ifeq ($(VERBOSE),0)
 	@echo "    PROTOC[RB] $(PROTOFILE2)"
 endif
-	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) --out $(RUBY_PBDIR) $(PROTOFILE2) | \
-		(grep -v 'writing...' || true)
+	$(QUIET) $(TC_RPROTOC_EXE) $(PROTOCFLAGS) -o $(RUBY_PBDIR) $(PROTOFILE2)
 
 publish: $(GEMSPEC) driver-ruby
 	gem build $(GEMSPEC)
