@@ -827,7 +827,6 @@ void data_block_manager_t::actually_shutdown() {
 
     guarantee(reconstructed_extents.head() == NULL);
 
-    // RSI: Wait, what?  Are the active extents not stored in entries?
     if (active_extent != NULL) {
         UNUSED int64_t extent = active_extent->extent_ref.release();
         delete active_extent;
