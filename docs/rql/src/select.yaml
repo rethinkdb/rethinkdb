@@ -10,11 +10,10 @@ commands:
     description: Reference a database.
 
     body:
-      js: dbName
-      py: db_name
-      rb: db_name
-    parent: r
-    returns: db
+      js: "$PARENT.db(dbName)"
+      py: "$PARENT.db(db_name)"
+      rb: "$PARENT.db(db_name)"
+
     io:
       - - r
         - db 
@@ -33,11 +32,10 @@ commands:
       other commands to do further processing on the data.
 
     body:
-      js: "name[, {useOutdated: false}]"
-      py: name[, use_outdated=False]
-      rb: name[, opts]
-    parent: db
-    returns: table
+      js: "$PARENT.table(name[, {useOutdated: false}])"
+      py: "$PARENT.table(name[, use_outdated=False])"
+      rb: "$PARENT.table(name[, opts])"
+
     io:
       - - db
         - table 
@@ -66,9 +64,8 @@ commands:
     section: select
     description: Get a document by primary key.
 
-    body: key
-    parent: table
-    returns: json
+    body: "$PARENT.get(key)"
+
     io:
       - - table
         - singleRowSelection
@@ -90,11 +87,10 @@ commands:
       rb: get_all
 
     body:
-      py: key[, index='id']
-      rb: key[, :index => 'id']
-      js: key[, {index:'id'}]
-    parent: table
-    returns: selection
+      py: "$PARENT.get_all(key[, index='id'])"
+      rb: "$PARENT.get_all(key[, :index => 'id'])"
+      js: "$PARENT.getAll(key[, {index:'id'}])"
+
     io:
       - - table
         - selection
@@ -122,11 +118,10 @@ commands:
     description: Get all documents between two primary keys (both keys are inclusive).
 
     body:
-      py: lower_key, upper_key[, index='id']
-      rb: lower_key, upper_key[, :index => 'id']
-      js: lowerKey, upperKey[, {index:'id'}]
-    parent: selection
-    returns: selection
+      py: "$PARENT.between(lower_key, upper_key[, index='id'])"
+      rb: "$PARENT.between(lower_key, upper_key[, :index => 'id'])"
+      js: "$PARENT.between(lowerKey, upperKey[, {index:'id'}])"
+
     io:
       - - table
         - selection
@@ -158,9 +153,8 @@ commands:
       argument to `r.error()` will cause any non-existence errors to
       abort the filter.
 
-    body: predicate
-    parent: selection
-    returns: selection
+    body: "$PARENT.filter(predicate)"
+
     io:
       - - sequence
         - selection 
@@ -168,7 +162,6 @@ commands:
         - stream
       - - array
         - array 
-  
 
     examples:
       - description: Get all active users aged 30.

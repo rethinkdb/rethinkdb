@@ -9,9 +9,8 @@ commands:
     section: module
     description: The toplevel RQL namespace.
 
-    dont_need_parenthesis: true
-    parent: null
-    returns: r
+    body: "r"
+
     io:
       - - null
         - r
@@ -34,11 +33,13 @@ commands:
       be thrown.
 
     body:
-      js: opts, callback
-      py: host='localhost', port=28015, db='test', auth_key=''
-      rb: opts
-    parent: r
-    returns: connection
+      js: "$PARENT.connect(opts, callback)"
+      py: "$PARENT.connect(host='localhost', port=28015, db='test', auth_key='')"
+      rb: "$PARENT.connect(opts)"
+
+    io:
+      - - r
+        - connection
 
     examples:
       - description: Opens a new connection to the database.
@@ -70,8 +71,14 @@ commands:
       Connection objects are not thread safe and <code>repl</code> connections
       should not be used in multi-threaded environments.
 
-    parent: connection
-    returns: null
+    io:
+      - - connection
+        - null
+
+    body:
+      py: "$PARENT.repl()"
+      rb: "$PARENT.repl"
+      js: "$PARENT.repl()"
 
     examples:
       - description: |
@@ -85,8 +92,6 @@ commands:
           rb: |
             r.connect().repl
             r.table('users').run
-    rb:
-      dont_need_parenthesis: false
 
     js: false
 
@@ -96,8 +101,14 @@ commands:
       Close an open connection. Closing a connection cancels all outstanding
       requests and frees the memory associated with the open requests.
 
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.close()"
+      rb: "$PARENT.close"
+      js: "$PARENT.close()"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Close an open connection.
@@ -113,8 +124,14 @@ commands:
       Close and attempt to reopen a connection. Has the effect of canceling
       any outstanding request while keeping the connection open.
 
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.reconnect()"
+      rb: "$PARENT.reconnect"
+      js: "$PARENT.reconnect()"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Cancel outstanding requests/queries that are no longer needed.
@@ -124,16 +141,18 @@ commands:
           py: conn.reconnect()
           rb: conn.reconnect
 
-    rb:
-      dont_need_parenthesis: false
-
   - tag: use
     section: module
     description: Change the default database on this connection.
 
-    body: dbName
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.use(db_name)"
+      rb: "$PARENT.use(db_name)"
+      js: dbName
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: |
@@ -146,12 +165,13 @@ commands:
     description: Run a query on a connection.
 
     body:
-      js: conn[, callback]
-      py: conn[, use_outdated=False]
-      rb: conn[, opts]
+      js: "$PARENT.run(conn[, callback])"
+      py: "$PARENT.run(conn[, use_outdated=False])"
+      rb: "$PARENT.run(conn[, opts])"
 
-    parent: query
-    returns: cursor
+    io:
+      - - query
+        - cursor
 
     examples:
       - description: |
@@ -214,9 +234,11 @@ commands:
     section: module
     description: Get the next element in the cursor.
 
-    body: callback
-    parent: cursor
-    returns: null
+    body: "$PARENT.next(callback)"
+
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: Let's grab the next element!
@@ -232,8 +254,11 @@ commands:
     section: module
     description: Check if there are more elements in the cursor.
 
-    parent: cursor
-    returns: bool
+    body: "$PARENT.hasNext()"
+
+    io:
+      - - cursor
+        - bool
 
     examples:
       - description: Are there more elements in the cursor?
@@ -246,10 +271,11 @@ commands:
     section: module
     description: Lazily iterate over the result set one element at a time.
 
-    body: callback[, onFinished]
+    body: "$PARENT.each(callback[, onFinished])"
 
-    parent: cursor
-    returns: null
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: Let's process all the elements!
@@ -280,9 +306,11 @@ commands:
     section: module
     description: Retrieve all results and pass them as an array to the given callback.
 
-    body: callback
-    parent: cursor
-    returns: null
+    body: "$PARENT.toArray(callback)"
+
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: For small result sets it may be more convenient to process them at once as an array.
@@ -302,8 +330,11 @@ commands:
         The connection object also supports the event emitter interface so you can listen for
         changes in connection state.
 
-    body: event, listener
-    parent: connection
+    body: "$PARENT.addListener(event, listener)"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.

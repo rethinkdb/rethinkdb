@@ -18,12 +18,12 @@ commands:
       js: innerJoin
       py: inner_join
       rb: inner_join
+
     body:
-      js: otherSequence, predicate
-      py: other_sequence, predicate
-      rb: other_sequence, predicate
-    parent: sequence
-    returns: sequence
+      js: "$PARENT.innerJoin(otherSequence, predicate)"
+      py: "$PARENT.inner_join(other_sequence, predicate)"
+      rb: "$PARENT.inner_join(other_sequence, predicate)"
+
     io:
       - - sequence
         - stream
@@ -54,12 +54,12 @@ commands:
       js: outerJoin
       py: outer_join
       rb: outer_join
+
     body:
-      js: otherSequence, predicate
-      py: other_sequence, predicate
-      rb: other_sequence, predicate
-    parent: sequence
-    returns: sequence
+      js: "$PARENT.outerJoin(otherSequence, predicate)"
+      py: "$PARENT.outer_join(other_sequence, predicate)"
+      rb: "$PARENT.outer_join(other_sequence, predicate)"
+
     io:
       - - sequence
         - stream
@@ -92,12 +92,12 @@ commands:
       py: eq_join
       rb: eq_join
       js: eqJoin
+
     body:
-      py: left_attr, other[, index='id']
-      rb: left_attr, other[, :index => 'id']
-      js: leftAttr, other[, {index:'id'}]
-    parent: sequence
-    returns: sequence
+      py: "$PARENT.eq_join(left_attr, other[, index='id'])"
+      rb: "$PARENT.eq_join(left_attr, other[, :index => 'id'])"
+      js: "$PARENT.eqJoin(leftAttr, other[, {index:'id'}])"
+
     io:
       - - sequence
         - stream
@@ -142,8 +142,11 @@ commands:
     description: Used to 'zip' up the result of a join by merging the 'right' fields into 
       'left' fields of each member of the sequence.
 
-    parent: sequence
-    returns: sequence
+    body:
+      py: "$PARENT.zip()"
+      rb: "$PARENT.zip"
+      js: "$PARENT.zip()"
+
     io:
       - - stream 
         - stream
@@ -159,7 +162,4 @@ commands:
              .zip().run(conn, callback)
           py: r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).zip().run(conn)
           rb: r.table('marvel').eq_join(:main_dc_collaborator, r.table('dc')).zip.run(conn)
-
-    rb:
-      dont_need_parenthesis: true
 

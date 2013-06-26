@@ -14,13 +14,11 @@ commands:
       py: +
       rb: +
 
-    is_operator:  true
-    js:
-      is_operator: false
+    body:
+      py: "$PARENT + $PARENT"
+      rb: "$PARENT + $PARENT"
+      js: "$PARENT.add($PARENT)"
 
-    body: number | string | array
-    parent: number | string | array
-    returns: number | string | array
     io:
       - - number
         - number
@@ -54,13 +52,12 @@ commands:
       js: sub
       py: '-'
       rb: '-'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number
-    parent: number
-    returns: number
+    body:
+      py: "$PARENT - $PARENT"
+      rb: "$PARENT - $PARENT"
+      js: "$PARENT.sub($PARENT)"
+
     io:
       - - number
         - number
@@ -80,13 +77,12 @@ commands:
       js: mul
       py: '*'
       rb: '*'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number | array
-    parent: number | array
-    returns: number | array
+    body:
+      py: "$PARENT * $PARENT"
+      rb: "$PARENT * $PARENT"
+      js: "$PARENT.mul($PARENT)"
+
     io:
       - - number
         - number
@@ -113,13 +109,12 @@ commands:
       js: div
       py: '/'
       rb: '/'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number
-    parent: number
-    returns: number
+    body:
+      py: "$PARENT / $PARENT"
+      rb: "$PARENT / $PARENT"
+      js: "$PARENT.div($PARENT)"
+
     io:
       - - number
         - number
@@ -139,13 +134,12 @@ commands:
       js: mod
       py: '%'
       rb: '%'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number
-    parent: number
-    returns: number
+    body:
+      py: "$PARENT % $PARENT"
+      rb: "$PARENT % $PARENT"
+      js: "$PARENT.mod($PARENT)"
+
     io:
       - - number
         - number
@@ -165,14 +159,12 @@ commands:
       js: and
       py: '&'
       rb: '&'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT & $PARENT"
+      rb: "$PARENT & $PARENT"
+      js: "$PARENT.and($PARENT)"
 
-    body: bool
-    parent: bool
-    returns: bool
     io:
       - - bool
         - bool
@@ -192,13 +184,12 @@ commands:
       js: or
       py: '|'
       rb: '|'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: bool
-    parent: bool
-    returns: bool
+    body:
+      py: "$PARENT | $PARENT"
+      rb: "$PARENT | $PARENT"
+      js: "$PARENT.or($PARENT)"
+
     io:
       - - bool
         - bool
@@ -218,13 +209,12 @@ commands:
       js: eq
       py: '=='
       rb: eq
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: other
-    parent: json
-    returns: bool
+    body:
+      py: "$PARENT == $PARENT"
+      rb: "$PARENT.eq($PARENT)"
+      js: "$PARENT.eq($PARENT)"
+
     io:
       - - value 
         - bool
@@ -244,13 +234,12 @@ commands:
       js: ne
       py: '!='
       rb: ne
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: other
-    parent: json
-    returns: bool
+    body:
+      py: "$PARENT != $PARENT"
+      rb: "$PARENT.ne($PARENT)"
+      js: "$PARENT.ne($PARENT)"
+
     io:
       - - value 
         - bool
@@ -270,14 +259,12 @@ commands:
       js: gt
       py: '>'
       rb: '>'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT > $PARENT"
+      rb: "$PARENT > $PARENT"
+      js: "$PARENT.gt($PARENT)"
 
-    body: other
-    parent: json
-    returns: bool
     io:
       - - value 
         - bool
@@ -297,14 +284,12 @@ commands:
       js: ge
       py: '>='
       rb: '>='
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT >= $PARENT"
+      rb: "$PARENT >= $PARENT"
+      js: "$PARENT.ge($PARENT)"
 
-    body: other
-    parent: json
-    returns: bool
     io:
       - - value 
         - bool
@@ -324,13 +309,12 @@ commands:
       js: lt
       py: '<'
       rb: '<'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: other
-    parent: json
-    returns: bool
+    body:
+      py: "$PARENT < $PARENT"
+      rb: "$PARENT < $PARENT"
+      js: "$PARENT.lt($PARENT)"
+
     io:
       - - value 
         - bool
@@ -350,13 +334,12 @@ commands:
       js: le
       py: '<='
       rb: '<='
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: other
-    parent: json
-    returns: bool
+    body:
+      py: "$PARENT <= $PARENT"
+      rb: "$PARENT <= $PARENT"
+      js: "$PARENT.le($PARENT)"
+
     io:
       - - value 
         - bool
@@ -376,13 +359,12 @@ commands:
       js: not
       py: '~'
       rb: not
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "~$PARENT"
+      rb: "$PARENT.not()"
+      js: "$PARENT.not()"
 
-    parent: bool
-    returns: bool
     io:
       - - bool
         - bool
@@ -394,8 +376,3 @@ commands:
           py: (~r.expr(True)).run(conn)
           rb: r(true).not.run(conn)
 
-    rb:
-      dont_need_parenthesis: true
-
-    py:
-      operator_first: true

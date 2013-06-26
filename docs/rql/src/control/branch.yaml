@@ -10,11 +10,10 @@ commands:
       gets executed.
 
     body:
-      js: test, trueBranch, falseBranch
-      py: test, true_branch, false_branch
-      rb: test, true_branch, false_branch
-    parent: r
-    returns: query
+      js: "$PARENT.branch(test, trueBranch, falseBranch)"
+      py: "$PARENT.branch(test, true_branch, false_branch)"
+      rb: "$PARENT.branch(test, true_branch, false_branch)"
+
     io:
       - - r
         - any

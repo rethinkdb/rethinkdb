@@ -27,12 +27,12 @@ commands:
       js: tableCreate
       py: table_create
       rb: table_create
+
     body:
-      js: tableName[, options]
-      py: table_name[, options]
-      rb: table_name[, options]
-    parent: db
-    returns: json
+      js: "$PARENT.tableCreate(tableName[, options])"
+      py: "$PARENT.table_create(table_name[, options])"
+      rb: "$PARENT.table_create(table_name[, options])"
+
     io:
       - - db
         - object 
@@ -71,12 +71,12 @@ commands:
       js: tableDrop
       py: table_drop
       rb: table_drop
+
     body:
-      js: tableName
-      py: table_name
-      rb: table_name
-    parent: db
-    returns: json
+      js: "$PARENT.tableDrop(tableName)"
+      py: "$PARENT.table_drop(table_name)"
+      rb: "$PARENT.table_drop(table_name)"
+
     io:
       - - db
         - object 
@@ -98,8 +98,12 @@ commands:
       js: tableList
       py: table_list
       rb: table_list
-    parent: db
-    returns: sequence
+
+    body:
+      js: "$PARENT.tableList()"
+      py: "$PARENT.table_list()"
+      rb: "$PARENT.table_list"
+
     io:
       - - db
         - array 
@@ -111,9 +115,6 @@ commands:
           rb: r.db('test').table_list().run(conn)
           js: r.db('test').tableList().run(conn, callback)
 
-    rb:
-      dont_need_parenthesis: true
-
   - tag: index_create
     section: table_admin
     description: Create a new secondary index on this table.
@@ -122,12 +123,12 @@ commands:
       js: indexCreate
       rb: index_create
       py: index_create
+
     body:
-      py: index_name[, index_function]
-      js: indexName[, indexFunction]
-      rb: index_name[, index_function]
-    parent: table
-    returns: json
+      py: "$PARENT.index_create(index_name[, index_function])"
+      js: "$PARENT.index_create(indexName[, indexFunction])"
+      rb: "$PARENT.index_create(index_name) [{index_function}]"
+
     io:
       - - table
         - object 
@@ -184,12 +185,12 @@ commands:
       js: indexDrop
       py: index_drop
       rb: index_drop
+
     body:
-      js: indexName
-      py: index_name
-      rb: index_name
-    parent: table
-    returns: json
+      js: "$PARENT.indexDrop(indexName)"
+      py: "$PARENT.index_drop(index_name)"
+      rb: "$PARENT.index_drop(index_name)"
+
     io:
       - - table
         - object 
@@ -210,8 +211,11 @@ commands:
       py: index_list
       rb: index_list
 
-    parent: table
-    returns: json
+    body:
+      js: "$PARENT.indexList()"
+      py: "$PARENT.index_list()"
+      rb: "$PARENT.index_list"
+
     io:
       - - table
         - array
@@ -222,7 +226,4 @@ commands:
           js: r.table('marvel').indexList().run(conn, callback)
           py: r.table('marvel').index_list().run(conn)
           rb: r.table('marvel').index_list().run(conn)
-
-    rb:
-      dont_need_parenthesis: true
 

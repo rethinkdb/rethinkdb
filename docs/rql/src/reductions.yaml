@@ -9,9 +9,11 @@ commands:
     section: aggregators
     description: Count the total size of the group.
 
-    dont_need_parenthesis: true
-    parent: r
-    returns: null
+    body:
+      py: "$PARENT.count()"
+      rb: "$PARENT.count"
+      js: "$PARENT.count()"
+
     io:
       - - r
         - null
@@ -27,9 +29,8 @@ commands:
     section: aggregators
     description: Compute the sum of the given field in the group.
 
-    body: attr
-    parent: r
-    returns: null
+    body: "$PARENT.sum(attr)"
+
     io:
       - - r
         - null
@@ -45,9 +46,8 @@ commands:
     section: aggregators
     description: Compute the average value of the given attribute for the group.
 
-    body: attr
-    parent: r
-    returns: null
+    body: "$PARENT.avg(attr)"
+
     io:
       - - r
         - null

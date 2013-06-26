@@ -8,11 +8,10 @@ commands:
       an array of pairs into an OBJECT, and any DATUM into a STRING.
 
     body:
-      js: typeName
-      py: type_name
-      rb: type_name
-    parent: json
-    returns: json
+      js: "$PARENT.coerceTo(typeName)"
+      py: "$PARENT.coerce_to(type_name)"
+      rb: "$PARENT.coerce_to(type_name)"
+
     io:
       - - sequence
         - array

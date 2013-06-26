@@ -4,9 +4,8 @@ commands:
     order: 4
     description: Construct a RQL JSON object from a native object.
 
-    body: obj
-    parent: r
-    returns: json
+    body: "$PARENT.expr(value)"
+
     io:
       - - r
         - value

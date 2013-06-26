@@ -7,9 +7,11 @@ commands:
       bindings.<br /><br />
       The type of the result is the type of the value returned from <code>inExpr</code>.
 
-    body: arg, [args*, ]inExpr
-    parent: r
-    returns: query
+    body:
+      py:  "$PARENT.do(arg [, args]*, inExpr)"
+      js:  "$PARENT.do(arg [, args]*, inExpr)"
+      rb:  "$PARENT.do(arg [, args]*) {inExpr}"
+
     io:
       - - any
         - any

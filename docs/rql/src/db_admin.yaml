@@ -18,12 +18,12 @@ commands:
       py: db_create
       rb: db_create
       js: dbCreate
+
     body:
-      js: dbName
-      py: db_name
-      rb: db_name
-    parent: r
-    returns: json
+      js: "$PARENT.dbCreate(dbName)"
+      py: "$PARENT.db_create(db_name)"
+      rb: "$PARENT.db_create(db_name)"
+
     io:
       - - r 
         - object 
@@ -47,12 +47,12 @@ commands:
       py: db_drop
       rb: db_drop
       js: dbDrop
+
     body:
-      py: db_name
-      rb: db_name
-      js: dbName
-    parent: r
-    returns: json
+      py: "$PARENT.db_drop(db_name)"
+      rb: "$PARENT.db_drop(db_name)"
+      js: "$PARENT.dbDrop(dbName)"
+
     io:
       - - r 
         - object 
@@ -74,8 +74,12 @@ commands:
       py: db_list
       rb: db_list
       js: dbList
-    parent: r
-    returns: sequence
+
+    body:
+      py: "$PARENT.db_list()"
+      rb: "$PARENT.db_list"
+      js: "$PARENT.dbList()"
+
     io:
       - - r 
         - array
@@ -87,5 +91,3 @@ commands:
           py: r.db_list().run(conn)
           rb: r.db_list.run(conn)
 
-    rb:
-      dont_need_parenthesis: true

@@ -16,11 +16,9 @@ commands:
       the same with the one returned from reduce.
 
     body:
-      js: "reductionFunction[, base]"
-      py: "reduction_function[, base]"
-      rb: "[base,] reduction_function"
-    parent: sequence
-    returns: json
+      js: "$PARENT.reduce(reductionFunction[, base])"
+      py: "$PARENT.reduce(reduction_function[, base])"
+      rb: "$PARENT.reduce [(base)] { reduction_function }"
     io: 
       - - sequence
         - value
@@ -45,9 +43,11 @@ commands:
       count the number of elements equal to it. If the argument is a function, it is
       equivalent to calling filter before count.
 
-    parent: sequence
-    body: [filter]
-    returns: number
+    body:
+      js: "$PARENT.count([filter])"
+      py: "$PARENT.count([filter])"
+      rb: "$PARENT.count {filter}"
+
     io:
       - - sequence
         - number
@@ -73,8 +73,11 @@ commands:
     section: aggregation
     description: Remove duplicate elements from the sequence.
 
-    parent: sequence
-    returns: sequence
+    body:
+      js: "$PARENT.distinct()"
+      py: "$PARENT.distinct()"
+      rb: "$PARENT.distinct"
+
     io:
       - - sequence
         - array
@@ -88,9 +91,6 @@ commands:
           py: 'r.table(''marvel'').concat_map(lambda hero: hero[''villainList'']).distinct().run(conn)'
           rb: r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.run(conn)
 
-    rb:
-      dont_need_parenthesis: true
-
   - tag: groupedmapreduce
     section: aggregation
     description: Partition the sequence into groups based on the <code>grouping</code>
@@ -103,9 +103,12 @@ commands:
       py: grouped_map_reduce
       rb: grouped_map_reduce
       js: groupedMapReduce
-    body: grouping, mapping, reduction[, base]
-    parent: sequence
-    returns: json
+
+    body:
+      js: "$PARENT.groupedMapReduce(grouping, mapping, reduction, base)"
+      py: "$PARENT.grouped_map_reduce(grouping, mapping, reduction, base)"
+      rb: "$PARENT.grouped_map_reduce(grouping, mapping, base, reduction)"
+
     io:
       - - sequence
         - value
@@ -150,13 +153,12 @@ commands:
       py: group_by
       rb: group_by
       js: groupBy
-    body:
-      py: attr1[, attr2...], reduction_object
-      rb: attr1[, attr2...], reduction_object
-      js: attr1[, attr2...], reductionObject
 
-    parent: sequence
-    returns: json
+    body:
+      py: "$PARENT.group_by(attr1[, attr2...], reduction_object)"
+      rb: "$PARENT.group_by(attr1[, attr2...], reduction_object)"
+      js: "$PARENT.groupBy(attr1[, attr2...], reductionObject)"
+
     io:
       - - sequence
         - array 
@@ -173,9 +175,8 @@ commands:
     section: aggregation
     description: Returns whether or not a sequence contains all the specified values.
 
-    body: value1[, value2...]
-    parent: sequence
-    returns: bool
+    body: "$PARENT.contains(value1[, value2...])"
+
     io:
       - - sequence
         - bool

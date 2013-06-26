@@ -4,9 +4,8 @@ commands:
     order: 3
     description: Throw a runtime error.  If called with no arguments inside the second argument to `default`, re-throw the current error.
 
-    body: message
-    parent: r
-    returns: error
+    body: "$PARENT.error(message)"
+
     io:
       - - r
         - error

@@ -19,8 +19,11 @@ commands:
       <code>0</code> for a <code>delete</code> operation.</li>
       </ul>
 
-    parent: selection
-    returns: object
+    body:
+      js: "$PARENT.delete()"
+      py: "$PARENT.delete()"
+      rb: "$PARENT.delete"
+
     io:
       - - table
         - object
@@ -41,7 +44,4 @@ commands:
             r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
           py: r.table('marvel').delete(durability='soft').run(conn)
           rb: r.table('marvel').delete(:durability => 'soft').run(conn)
-
-    rb:
-      dont_need_parenthesis: true
 

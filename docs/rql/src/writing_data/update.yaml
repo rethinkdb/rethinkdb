@@ -22,9 +22,8 @@ commands:
       - <code>0</code> for an <code>update</code> operation.</li>
       </ul>
 
-    body: json | expr
-    parent: selection
-    returns: object
+    body: "$PARENT.update(json | expr)"
+
     io:
       - - table
         - object

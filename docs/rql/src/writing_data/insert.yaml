@@ -22,11 +22,10 @@ commands:
       </ul>
 
     body:
-      js: json | [json][, {upsert:true}]
-      py: json | [json][, upsert=False]
-      rb: json | [json][, { :upsert => false }]
-    parent: table
-    returns: object
+      js: "$PARENT.insert(json | [json][, {upsert:true}])"
+      py: "$PARENT.insert(json | [json][, upsert=False])"
+      rb: "$PARENT.insert(json | [json][, { :upsert => false }])"
+
     io:
       - - table
         - object
