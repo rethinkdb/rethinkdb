@@ -370,7 +370,8 @@ data_block_manager_t::write(const void *buf_in, block_id_t block_id,
     guarantee(state == state_ready
            || (state == state_shutting_down && gc_state.step() == gc_write));
 
-    counted_t<ls_block_token_pointee_t> token = gimme_a_new_offset();
+    counted_t<ls_block_token_pointee_t> token
+        = gimme_a_new_offset(static_config->block_size().ser_value());
 
     ++stats->pm_serializer_data_blocks_written;
 
@@ -850,7 +851,9 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-counted_t<ls_block_token_pointee_t> data_block_manager_t::gimme_a_new_offset() {
+counted_t<ls_block_token_pointee_t>
+data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
+    guarantee(ser_block_size == static_config->block_size().ser_value());
     /* Start a new extent if necessary */
 
     if (active_extent == NULL) {

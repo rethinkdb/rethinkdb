@@ -276,7 +276,7 @@ private:
 
     // Creates a new offset, marked as being referenced by a token.  So you had
     // better refer to it with some kind of token!
-    counted_t<ls_block_token_pointee_t> gimme_a_new_offset();
+    counted_t<ls_block_token_pointee_t> gimme_a_new_offset(uint32_t ser_block_size);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager
        and cleans up */
