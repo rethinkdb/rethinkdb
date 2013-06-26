@@ -10,9 +10,9 @@ commands:
     description: Count the total size of the group.
 
     body:
-      py: "$PARENT.count()"
+      py: "$PARENT.count"
       rb: "$PARENT.count"
-      js: "$PARENT.count()"
+      js: "$PARENT.count"
 
     io:
       - - r

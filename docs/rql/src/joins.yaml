@@ -94,9 +94,9 @@ commands:
       js: eqJoin
 
     body:
-      py: "$PARENT.eq_join(left_attr, other[, index='id'])"
-      rb: "$PARENT.eq_join(left_attr, other[, :index => 'id'])"
-      js: "$PARENT.eqJoin(leftAttr, other[, {index:'id'}])"
+      py: "$PARENT.eq_join(left_attr, other_table[, index='id'])"
+      rb: "$PARENT.eq_join(left_attr, other_table[, :index => 'id'])"
+      js: "$PARENT.eqJoin(leftAttr, otherTable[, {index:'id'}])"
 
     io:
       - - sequence

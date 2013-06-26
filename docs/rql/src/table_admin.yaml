@@ -126,7 +126,7 @@ commands:
 
     body:
       py: "$PARENT.index_create(index_name[, index_function])"
-      js: "$PARENT.index_create(indexName[, indexFunction])"
+      js: "$PARENT.indexCreate(indexName[, indexFunction])"
       rb: "$PARENT.index_create(index_name) [{index_function}]"
 
     io:

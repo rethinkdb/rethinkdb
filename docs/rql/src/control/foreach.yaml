@@ -10,9 +10,9 @@ commands:
       rb: for_each
 
     body:
-      js: "$PARENT.forEach(queryFunction)"
-      py: "$PARENT.for_each(query_function)"
-      rb: "$PARENT.for_each(query_function)"
+      js: "$PARENT.forEach(writeQuery)"
+      py: "$PARENT.for_each(write_query)"
+      rb: "$PARENT.for_each(write_query)"
 
     io:
       - - sequence

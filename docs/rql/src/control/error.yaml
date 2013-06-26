@@ -37,9 +37,8 @@ commands:
     order: 4
     description: Handle non-existence errors.  Tries to evaluate and return its first argument.  If an error related to the absence of a value is thrown in the process, or if its first argument returns null, returns its second argument.  (Alternatively, the second argument may be a function which will be called with either the text of the non-existence error or null.)
 
-    body: query, default_case
-    parent: r
-    returns: query
+    body: "$PARENT.default(query, default_case)"
+
     io:
       - - value
         - any

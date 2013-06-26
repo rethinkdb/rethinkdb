@@ -106,7 +106,7 @@ commands:
     description: Merge two objects together to construct a new object with properties
       from both. Gives preference to attributes from other when there is a conflict.
 
-    body: "$PARENT.merge(json)"
+    body: "$PARENT.merge(object)"
 
     io:
       - - singleSelection
@@ -135,7 +135,7 @@ commands:
     section: jsonobject
     description: Append a value to an array.
 
-    body: "$PARENT.append(json)"
+    body: "$PARENT.append(value)"
 
     io:
       - - array
@@ -152,7 +152,7 @@ commands:
     section: jsonobject
     description: Prepend a value to an array.
 
-    body: "$PARENT.prepend(json)"
+    body: "$PARENT.prepend(value)"
 
     io:
       - - array
@@ -169,7 +169,7 @@ commands:
     section: jsonobject
     description: Remove the elements of one array from another array.
 
-    body: "$PARENT.difference(json)"
+    body: "$PARENT.difference(array)"
 
     io:
       - - array
@@ -194,9 +194,9 @@ commands:
       rb: set_insert
 
     body:
-      py: "$PARENT.set_insert(json)"
-      rb: "$PARENT.set_insert(json)"
-      js: "$PARENT.setInsert(json)"
+      py: "$PARENT.set_insert(value)"
+      rb: "$PARENT.set_insert(value)"
+      js: "$PARENT.setInsert(value)"
 
     io:
       - - array
@@ -221,9 +221,9 @@ commands:
       py: set_union
 
     body:
-      py: "$PARENT.set_union(json)"
-      rb: "$PARENT.set_union(json)"
-      js: "$PARENT.setUnion(json)"
+      py: "$PARENT.set_union(array)"
+      rb: "$PARENT.set_union(array)"
+      js: "$PARENT.setUnion(array)"
 
     io:
       - - array
@@ -250,9 +250,9 @@ commands:
       rb: set_intersection
 
     body:
-      py: "$PARENT.set_intersection(json)"
-      js: "$PARENT.set_intersection(json)"
-      rb: "$PARENT.setIntersection(json)"
+      py: "$PARENT.set_intersection(array)"
+      js: "$PARENT.set_intersection(array)"
+      rb: "$PARENT.setIntersection(array)"
 
     io:
       - - array
@@ -277,9 +277,9 @@ commands:
       rb: set_difference
 
     body:
-      js: "$PARENT.setDifference(json)"
-      py: "$PARENT.set_difference(json)"
-      rb: "$PARENT.set_difference(json)"
+      js: "$PARENT.setDifference(array)"
+      py: "$PARENT.set_difference(array)"
+      rb: "$PARENT.set_difference(array)"
 
     io:
       - - array
@@ -295,6 +295,11 @@ commands:
   - tag: getattr
     section: jsonobject
     description: Get a single attribute from an object.
+
+    name:
+      js: "()"
+      py: "[]"
+      rb: "[]"
 
     body:
       js: "$PARENT(attr)"
@@ -357,9 +362,9 @@ commands:
       rb: insert_at
 
     body:
-      py: "$PARENT.insert_at(index, json)"
-      rb: "$PARENT.insert_at(index, json)"
-      js: "$PARENT.insertAt(index, json)"
+      py: "$PARENT.insert_at(index, value)"
+      rb: "$PARENT.insert_at(index, value)"
+      js: "$PARENT.insertAt(index, value)"
 
     io:
       - - array
@@ -382,9 +387,9 @@ commands:
       rb: splice_at
 
     body:
-      js: "$PARENT.spliceAt(index, json)"
-      py: "$PARENT.splice_at(index, json)"
-      rb: "$PARENT.splice_at(index, json)"
+      js: "$PARENT.spliceAt(index, array)"
+      py: "$PARENT.splice_at(index, array)"
+      rb: "$PARENT.splice_at(index, array)"
 
     io:
       - - array
@@ -440,9 +445,9 @@ commands:
       rb: change_at
 
     body:
-      js: "$PARENT.changeAt(index, json)"
-      py: "$PARENT.change_at(index, json)"
-      rb: "$PARENT.change_at(index, json)"
+      js: "$PARENT.changeAt(index, value)"
+      py: "$PARENT.change_at(index, value)"
+      rb: "$PARENT.change_at(index, value)"
 
     examples:
       - description: Bruce Banner hulks out.

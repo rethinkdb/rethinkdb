@@ -79,9 +79,9 @@ commands:
       rb: '*'
 
     body:
-      py: "$PARENT * $PARENT"
-      rb: "$PARENT * $PARENT"
-      js: "$PARENT.mul($PARENT)"
+      py: "$PARENT * number"
+      rb: "$PARENT * number"
+      js: "$PARENT.mul(number)"
 
     io:
       - - number
