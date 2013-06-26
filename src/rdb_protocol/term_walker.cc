@@ -180,6 +180,7 @@ private:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }
@@ -293,6 +294,7 @@ private:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }

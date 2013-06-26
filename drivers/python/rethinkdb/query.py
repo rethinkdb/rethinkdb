@@ -4,6 +4,8 @@ import ql2_pb2 as p
 """
 All top level functions defined here are the starting points for RQL queries
 """
+def json(json_str):
+    return Json(json_str)
 
 def js(js_str, timeout=()):
     return JavaScript(js_str, timeout=timeout)

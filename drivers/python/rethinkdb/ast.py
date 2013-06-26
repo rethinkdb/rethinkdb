@@ -869,6 +869,10 @@ class Sample(RqlMethodQuery):
     tt = p.Term.SAMPLE
     st = 'sample'
 
+class Json(RqlTopLevelQuery):
+    tt = p.Term.JSON
+    st = 'json'
+
 # Called on arguments that should be functions
 def func_wrap(val):
     val = expr(val)

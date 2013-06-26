@@ -494,6 +494,10 @@ message Term {
         // passed either the text of the error or NULL as its
         // argument.
         DEFAULT = 92; // Top, Top -> Top
+
+        // Parses its first argument as a json string and returns it as a
+        // datum.
+        JSON = 98; // STRING -> DATUM
     }
     optional TermType type = 1;
 
