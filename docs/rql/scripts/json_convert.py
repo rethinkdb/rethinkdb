@@ -55,8 +55,7 @@ for section in sections:
             out_command = {
                 'tag':or_default('tag', ''),
                 'description':or_default('description', ''),
-                'parent':or_default('parent', ''),
-                'returns':or_default('returns', ''),
+                'io':or_default('io', ''),
                 'order':or_default('order', i),
                 'langs': {}
             }
@@ -80,18 +79,8 @@ for section in sections:
                 out_lang = {
                     'name':or_override(command, 'name', command['tag']),
                     'body':or_override(command, 'body', ''),
-                    'dont_need_parenthesis':or_override(command, 'dont_need_parenthesis', False),
                     'examples': []
                 }
-
-                if 'is_operator' in command:
-                    out_lang['is_operator'] = command['is_operator']
-                if 'is_selector' in command:
-                    out_lang['is_selector'] = command['is_selector']
-                if 'name1' in command:
-                    out_lang['name1'] = command['name1']
-                if 'name2' in command:
-                    out_lang['name2'] = command['name2']
 
                 out_examples = []
                 if 'examples' in command:
@@ -116,16 +105,6 @@ for section in sections:
                             out_lang['name'] = override['name']
                         if 'body' in override:
                             out_lang['body'] = override['body']
-                        if 'dont_need_parenthesis' in override:
-                            out_lang['dont_need_parenthesis'] = override['dont_need_parenthesis']
-                        if 'is_operator' in override:
-                            out_lang['is_operator'] = override['is_operator']
-                        if 'is_selector' in override:
-                            out_lang['is_selector'] = override['is_selector']
-                        if 'name1' in override:
-                            out_lang['name1'] = override['name1']
-                        if 'name2' in override:
-                            out_lang['name2'] = override['name2']
 
                         if 'examples' in override:
                             for example_num, example_override in override['examples'].items():
