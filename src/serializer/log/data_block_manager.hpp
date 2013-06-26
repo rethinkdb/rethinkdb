@@ -206,6 +206,7 @@ public:
 
     struct metablock_mixin_t {
         int64_t active_extent;
+        // RSI: Is this useful anymore?
         uint64_t blocks_in_active_extent;
     } __attribute__((__packed__));
 
@@ -348,7 +349,6 @@ private:
 
     /* Contains the extent in the gc_entry_t::state_active state. */
     gc_entry_t *active_extent;
-    unsigned int blocks_in_active_extent;
 
     /* Contains every extent in the gc_entry_t::state_young state */
     intrusive_list_t< gc_entry_t > young_extent_queue;

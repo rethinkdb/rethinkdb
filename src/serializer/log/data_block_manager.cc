@@ -104,9 +104,6 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
         reconstructed_extents.remove(active_extent);
 
         active_extent->make_active(last_metablock->blocks_in_active_extent);
-
-        // RSI: Is blocks_in_active_extent useful anymore?
-        blocks_in_active_extent = last_metablock->blocks_in_active_extent;
     } else {
         active_extent = NULL;
     }
@@ -801,7 +798,7 @@ void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
 
     if (active_extent != NULL) {
         metablock->active_extent = active_extent->extent_ref.offset();
-        metablock->blocks_in_active_extent = blocks_in_active_extent;
+        metablock->blocks_in_active_extent = active_extent->num_blocks();
     } else {
         metablock->active_extent = NULL_OFFSET;
         metablock->blocks_in_active_extent = 0;
@@ -854,6 +851,7 @@ void data_block_manager_t::actually_shutdown() {
 
 counted_t<ls_block_token_pointee_t>
 data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
+    ASSERT_NO_CORO_WAITING;
     guarantee(ser_block_size == static_config->block_size().ser_value());
 
     // Get an offset and index into the active_extent (and create if necessary).
@@ -864,8 +862,6 @@ data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
         // Start a new extent if necessary.
         if (active_extent == NULL) {
             active_extent = new gc_entry_t(this);
-            // RSI: Variable blocks_in_active_extent will eventually need to be removed.
-            blocks_in_active_extent = 0;
 
             ++stats->pm_serializer_data_extents_allocated;
         }
@@ -890,15 +886,13 @@ data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
     active_extent->mark_live_tokenwise(block_index);
     guarantee(!active_extent->block_referenced_by_index(block_index));
 
-    // RSI: Is this variable useful at all?  When reconstructing, I guess.
-    ++blocks_in_active_extent;
-
     return serializer->generate_block_token(offset, ser_block_size);
 }
 
 // Looks at young_extent_queue and pops things off the queue that are
 // no longer deemed young, putting them on the priority queue.
 void data_block_manager_t::mark_unyoung_entries() {
+    ASSERT_NO_CORO_WAITING;
     while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
         remove_last_unyoung_entry();
     }
@@ -914,6 +908,7 @@ void data_block_manager_t::mark_unyoung_entries() {
 // Pops young_extent_queue and puts it on the priority queue.
 // Assumes young_extent_queue is not empty.
 void data_block_manager_t::remove_last_unyoung_entry() {
+    ASSERT_NO_CORO_WAITING;
     gc_entry_t *entry = young_extent_queue.head();
     young_extent_queue.remove(entry);
 
