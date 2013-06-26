@@ -250,6 +250,8 @@ def run_clients(options, db_table_set):
         # Wait for all tables to finish
         while len(processes) > 0:
             time.sleep(0.1)
+            if not error_queue.empty():
+                exit_event.set() # Stop rather immediately if an error occurs
             processes = [process for process in processes if process.is_alive()]
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)

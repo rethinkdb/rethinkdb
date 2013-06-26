@@ -4,7 +4,7 @@ import signal
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import sys, os, datetime, time, threading, copy, json, traceback, csv
+import sys, os, datetime, time, copy, json, traceback, csv
 import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
@@ -159,7 +159,7 @@ def parse_options():
 
     return res
 
-# This is run for each client requested, and accepts tasks from the reader threads
+# This is run for each client requested, and accepts tasks from the reader processes
 def client_process(host, port, auth_key, task_queue, error_queue):
     try:
         conn = r.connect(host, port, auth_key=auth_key)
@@ -178,7 +178,7 @@ def client_process(host, port, auth_key, task_queue, error_queue):
 batch_length_limit = 200
 batch_size_limit = 500000
 
-# This function is called for each object read from a file by the reader threads
+# This function is called for each object read from a file by the reader processes
 #  and will push tasks to the client processes on the task queue
 def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event):
     global batch_size_limit
@@ -257,6 +257,8 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
                        exit_event)
         else:
             raise RuntimeError("unknown file format specified")
+    except (r.RqlClientError, r.RqlDriverError) as ex:
+        error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
@@ -271,12 +273,12 @@ def abort_import(signum, frame, exit_event, task_queue, clients):
             task_queue.put("exit")
 
 def spawn_import_clients(options, files_info):
-    # Spawn one reader thread for each db.table, as well as many client processes
-    threads = []
-    errors = []
+    # Spawn one reader process for each db.table, as well as many client processes
     task_queue = multiprocessing.queues.SimpleQueue()
     error_queue = multiprocessing.queues.SimpleQueue()
-    exit_event = threading.Event()
+    exit_event = multiprocessing.Event()
+    errors = []
+    reader_procs = []
     client_procs = []
 
     signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs))
@@ -292,22 +294,21 @@ def spawn_import_clients(options, files_info):
             client_procs[-1].start()
 
         for file_info in files_info:
-            args = {}
-            args["options"] = options
-            args["file_info"] = file_info
-            args["task_queue"] = task_queue
-            args["error_queue"] = error_queue
-            args["exit_event"] = exit_event
-            threads.append(threading.Thread(target=table_reader, kwargs=args))
-            threads[-1].start()
+            reader_procs.append(multiprocessing.Process(target=table_reader,
+                                                        args=(options,
+                                                              file_info,
+                                                              task_queue,
+                                                              error_queue,
+                                                              exit_event)))
+            reader_procs[-1].start()
 
-        # Wait for all reader threads to finish - hooray, polling
-        while len(threads) > 0:
+        # Wait for all reader processes to finish - hooray, polling
+        while len(reader_procs) > 0:
             time.sleep(0.1)
             # If an error has occurred, exit out early
             if not error_queue.empty():
                 exit_event.set()
-            threads = [thread for thread in threads if thread.isAlive()]
+            reader_procs = [proc for proc in reader_procs if proc.is_alive()]
 
         # Wait for all clients to finish
         for client in client_procs:
