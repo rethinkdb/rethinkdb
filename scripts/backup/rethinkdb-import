@@ -4,7 +4,7 @@ import signal
 # When running a subprocess, we may inherit the signal handler - remove it
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-import sys, os, datetime, time, copy, json, traceback, csv
+import sys, os, datetime, time, copy, json, traceback, csv, cPickle
 import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
@@ -166,7 +166,11 @@ def client_process(host, port, auth_key, task_queue, error_queue):
         while True:
             task = task_queue.get()
             if len(task) == 3:
-                r.db(task[0]).table(task[1]).insert(task[2], durability="soft").run(conn)
+                # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
+                objs = [cPickle.loads(obj) for obj in task[2]]
+                res = r.db(task[0]).table(task[1]).insert(objs, durability="soft", upsert=True).run(conn)
+                if res["errors"] > 0:
+                    raise RuntimeError(res["first_error"])
             else:
                 break
     except (r.RqlClientError, r.RqlDriverError) as ex:
@@ -193,8 +197,9 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
             if key not in fields:
                 del obj[key]
 
-    object_buffers.append(obj)
-    buffer_sizes.append(sys.getsizeof(obj))
+    # Pickle the object here because we want an accurate size, and it'll pickle anyway for IPC
+    object_buffers.append(cPickle.dumps(obj))
+    buffer_sizes.append(len(object_buffers[-1]))
     if len(object_buffers) >= batch_length_limit or sum(buffer_sizes) > batch_size_limit:
         task_queue.put((db, table, object_buffers))
         del object_buffers[0:len(object_buffers)]
@@ -263,7 +268,8 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def abort_import(signum, frame, exit_event, task_queue, clients):
+def abort_import(signum, frame, exit_event, task_queue, clients, interrupted):
+    interrupted = "yes"
     exit_event.set()
 
     for client in clients:
@@ -277,11 +283,12 @@ def spawn_import_clients(options, files_info):
     task_queue = multiprocessing.queues.SimpleQueue()
     error_queue = multiprocessing.queues.SimpleQueue()
     exit_event = multiprocessing.Event()
+    interrupted = ""
     errors = []
     reader_procs = []
     client_procs = []
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs))
+    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs, interrupted))
 
     try:
         for i in range(options["clients"]):
@@ -321,7 +328,7 @@ def spawn_import_clients(options, files_info):
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    if exit_event.is_set():
+    if len(interrupted) > 0:
         raise RuntimeError("Interrupted")
 
     if not task_queue.empty():

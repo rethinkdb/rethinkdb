@@ -222,7 +222,8 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
             error_queue.put((RuntimeError, RuntimeError("writer unexpectedly stopped"),
                              traceback.extract_tb(sys.exc_info()[2])))
 
-def abort_export(signum, frame, exit_event):
+def abort_export(signum, frame, exit_event, interrupted):
+    interrupted = "yes"
     exit_event.set()
 
 def run_clients(options, db_table_set):
@@ -230,8 +231,9 @@ def run_clients(options, db_table_set):
     exit_event = multiprocessing.Event()
     processes = []
     error_queue = multiprocessing.queues.SimpleQueue()
+    interrupted = ""
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event))
+    signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupted))
 
     try:
         for (db, table) in db_table_set:
@@ -256,7 +258,7 @@ def run_clients(options, db_table_set):
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    if exit_event.is_set():
+    if len(interrupted) > 0:
         raise RuntimeError("Interrupted")
 
     if not error_queue.empty():
