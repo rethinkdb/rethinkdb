@@ -1,0 +1,17 @@
+desc: Tests replacement of selections
+tests:
+
+    # Set up some data
+    - cd: r.table_create('asg')
+      ot: ({'created':1})
+
+    - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':null,'new_val':{'id':0}})
+    - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      # We return as much as we can if there's an error
+      ot: ({'first_error':'Duplicate primary key.','old_val':{'id':0}})
+    - cd: r.table('asg').insert([{'id':0}], :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row inserts.", [])
+
+    - cd: r.table_drop('asg')
+      ot: ({'dropped':1})
