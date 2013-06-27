@@ -869,8 +869,6 @@ data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
         guarantee(active_extent->state == gc_entry_t::state_active);
         got_offset_and_index = active_extent->new_offset(ser_block_size, &relative_offset, &block_index);
         if (!got_offset_and_index) {
-            // RSI: Can we put this operation in a ASSERT_NO_CORO_WAITING?
-            // We couldn't get a block offset.  Start yet another new extent.
             active_extent->state = gc_entry_t::state_young;
             young_extent_queue.push_back(active_extent);
             mark_unyoung_entries();
