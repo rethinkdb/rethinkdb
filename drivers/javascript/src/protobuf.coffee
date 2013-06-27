@@ -152,13 +152,15 @@ if require? and require('node-protobuf')
     protobuf = require('node-protobuf').Protobuf
     nodePB = new protobuf(desc)
 
+    QueryPB = NodeQuery
+    TermPB = NodeTerm
+    DatumPB = NodeDatum
+    ResponsePB = NodeResponse
+else
+    # Fallback on native JS backend
+    QueryPB = BrowserQuery
+    TermPB = BrowserTerm
+    DatumPB = BrowserDatum
+    ResponsePB = BrowserResponse
 
-#QueryPB = BrowserQuery
-#TermPB = BrowserTerm
-#DatumPB = BrowserDatum
-#ResponsePB = BrowserResponse
 
-QueryPB = NodeQuery
-TermPB = NodeTerm
-DatumPB = NodeDatum
-ResponsePB = NodeResponse
