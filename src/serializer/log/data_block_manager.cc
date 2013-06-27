@@ -87,10 +87,9 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
     const int64_t offset = last_metablock->active_extent;
 
     if (offset != NULL_OFFSET) {
-        /* It is possible to have an active data block extent with no actual data
-           blocks in it. In this case we would not have created a gc_entry_t for the
-           extent yet. */
-        // RSI: Is that really true anymore? ^
+        /* It is (perhaps) possible to have an active data block extent with no
+           actual data blocks in it. In this case we would not have created a
+           gc_entry_t for the extent yet. */
         if (entries.get(offset / extent_manager->extent_size) == NULL) {
             gc_entry_t *e = new gc_entry_t(this, offset);
             reconstructed_extents.push_back(e);
