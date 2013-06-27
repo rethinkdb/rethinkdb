@@ -236,6 +236,9 @@ def csv_reader(task_queue, filename, db, table, primary_key, fields, exit_event)
                 raise RuntimeError("file '%s' line %d has an inconsistent number of columns" % (filename, row_count))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
+            for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
+                if len(obj[key]) == 0:
+                    del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event)
             row_count += 1
 
@@ -274,8 +277,8 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def abort_import(signum, frame, exit_event, task_queue, clients, interrupted):
-    interrupted = "yes"
+def abort_import(signum, frame, exit_event, task_queue, clients, interrupt_event):
+    interrupt_event.set()
     exit_event.set()
 
     for client in clients:
@@ -289,12 +292,12 @@ def spawn_import_clients(options, files_info):
     task_queue = multiprocessing.queues.SimpleQueue()
     error_queue = multiprocessing.queues.SimpleQueue()
     exit_event = multiprocessing.Event()
-    interrupted = ""
+    interrupt_event = multiprocessing.Event()
     errors = []
     reader_procs = []
     client_procs = []
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs, interrupted))
+    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
         for i in range(options["clients"]):
@@ -334,7 +337,7 @@ def spawn_import_clients(options, files_info):
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    if len(interrupted) > 0:
+    if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
 
     if not task_queue.empty():
