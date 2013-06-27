@@ -4,7 +4,7 @@ require 'prettyprint'
 module RethinkDB
   module RPP
     @@termtype_to_str = Hash[
-      Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x]}
+      Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}
     ]
 
     def self.sanitize_context context

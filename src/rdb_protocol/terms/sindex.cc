@@ -35,7 +35,7 @@ public:
             int x = env->gensym();
             {
                 Term *arg = pb::set_func(func_term.get(), x);
-                N2(GETATTR, NVAR(x), NDATUM(name_datum));
+                N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
             }
 
             prop_bt(func_term.get());
