@@ -482,7 +482,7 @@ module 'NamespaceView', ->
         on_submit: ->
             super
 
-            # For when ajax will handle post request
+            # For when ajax/ will handle post request
             data = {}
             for namespace in @namespaces_to_delete
                 if not data[namespace.get('protocol')+'_namespaces']?

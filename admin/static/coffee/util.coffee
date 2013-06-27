@@ -310,7 +310,7 @@ form_data_as_object = (form) ->
     return formdata
 
 
-# Awful things because ajax/distribution is bad. We should feel bad too.
+# Awful things because ajax/distribution/ is bad. We should feel bad too.
 pretty_key = (s) ->
     if s is null
         return "+∞"

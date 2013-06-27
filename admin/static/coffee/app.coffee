@@ -15,7 +15,7 @@ progress_interval_default_value = 5000
 progress_interval_value = 5000
 progress_short_interval = 1000
 
-#TODO Duplicate this function, and remove element not found in case of a call to ajax
+#TODO Duplicate this function, and remove element not found in case of a call to ajax/
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
@@ -158,7 +158,7 @@ collect_reql_doc = ->
 # A helper function to collect data from all of our shitty
 # routes. TODO: somebody fix this in the server for heaven's
 # sakes!!!
-#   - an optional callback can be provided. Currently this callback will only be called after the ajax route (metadata) is collected
+#   - an optional callback can be provided. Currently this callback will only be called after the ajax/ route (metadata) is collected
 # To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
 # Using setInterval seems to be safe, TODO
 collect_server_data_once = (async, optional_callback) ->
