@@ -23,13 +23,20 @@ public:
     };
     obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
-        : op_term_t(env, term, argspec), poly_type(_poly_type),
-          func(make_counted_term()) {
+        : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+          poly_type(_poly_type), func(make_counted_term()) {
         int varnum = env->gensym();
         Term *arg = pb::set_func(func.get(), varnum);
         Term *body = NULL;
         switch (poly_type) {
-        case MAP: // fallthru
+        case MAP: {
+            body = arg;
+            *arg = *term;
+            Term_AssocPair *ap = arg->add_optargs();
+            ap->set_key("_NO_RECURSE_");
+            arg = ap->mutable_val();
+            NDATUM_BOOL(true);
+        } break;
         case FILTER: {
             body = arg;
             *arg = *term;
@@ -61,6 +68,10 @@ private:
                    (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
+            if (counted_t<val_t> no_recurse = optarg("_NO_RECURSE_")) { 
+                rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC, 
+                       strprintf("Cannot perform %s on a sequence of sequences.", name()));
+            }
             switch (poly_type) {
             case MAP:
                 return new_val(v0->as_seq()->map(make_counted<func_t>(env, func)));
