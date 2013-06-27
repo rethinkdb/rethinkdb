@@ -1,18 +1,148 @@
-<html><head><title>RethinkDB AMI Setup</title><script>
+<html>
+    <head>
+        <title>RethinkDB AMI Setup</title>
+        <script>
 function validate(){
-  var f = document.forms["form"];
-  if(f["password"].value != f["password2"].value){
-    alert("The passwords don't match");
-    return false;
-  }
+    var f = document.forms["form"];
+        if(f["password"].value != f["password2"].value){
+            alert("The passwords don't match");
+        return false;
+    }
 }
-</script></head><body style="font-size:3em">
-<br/><br/><center>
-RethinkDB AMI Setup<br/>
-<form name="form" method="POST" action="/set_password" onsubmit="return validate()">
-Chose a password: <input type="password" name="password" id="password"/><br/>
-Repeat password: <input type="password" name="password2" id="password2"/><br/>
-<input type="submit"/>
-</form>
-</center></body></html>
+        </script>
+        <style type="text/css">
+            html, body{
+                margin: 0px;
+                padding: 0px;
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 14px;
+            }
+            .container{
+                position: absolute;
+                width: 500px;
+                height: 260px;
+            }
+            @media all and (max-height: 260px) {
+                .container{
+                    left: 50%;
+                    margin-top: 0px;
+                }
+            }
+            @media all and (min-height: 261px) {
+                .container{
+                    top: 50%;
+                    margin-top: -130px;
+                }
+            }
+            @media all and (max-width: 500px) {
+                .container{
+                    left: 0%;
+                    margin-left: 0px;
+                }
+            }
+            @media all and (min-width: 501px) {
+                .container{
+                    left: 50%;
+                    margin-left: -250px;
+                }
+            }
+            label{
+                display: inline-block;
+                width: 150px;
+            }
+            form{
+                text-align: center;
+            }
+            h1{
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            input[type="password"]{
+                background-color: #fff;
+                border: 1px solid #ccc;
+                display: inline-block;
+                height: 26px;
+                width: 200px;
+                padding: 4px 6px;
+                font-size: 14px;
+                line-height: 20px;
+                color: #555;
+                -webkit-border-radius: 4px;
+                -moz-border-radius: 4px;
+                border-radius: 4px;
+                transition: border linear 0.2s, box-shadow linear 0.2s;
+            }
+            input[type="password"]:focus{
+                border-color: rgba(82, 168, 236, 0.8);
+                outline: 0;
+                -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+                -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+                box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
+            }
+            input[type="submit"]{
+                display: inline-block;
+                padding: 4px 12px;
+                margin: -5px 0px 0px 24px;
+                margin-bottom: 0;
+                font-size: 14px;
+                line-height: 20px;
+                color: #333333;
+                text-align: center;
+                text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+                vertical-align: middle;
+                cursor: pointer;
+                background-color: #f5f5f5;
+                background-image: -moz-linear-gradient(top, #ffffff, #e6e6e6);
+                background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), to(#e6e6e6));
+                background-image: -webkit-linear-gradient(top, #ffffff, #e6e6e6);
+                background-image: -o-linear-gradient(top, #ffffff, #e6e6e6);
+                background-image: linear-gradient(to bottom, #ffffff, #e6e6e6);
+                background-repeat: repeat-x;
+                border: 1px solid #cccccc;
+                border-color: #e6e6e6 #e6e6e6 #bfbfbf;
+                border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+                border-bottom-color: #b3b3b3;
+                -webkit-border-radius: 4px;
+                -moz-border-radius: 4px;
+                border-radius: 4px;
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffffff', endColorstr='#ffe6e6e6', GradientType=0);
+                filter: progid:DXImageTransform.Microsoft.gradient(enabled=false);
+                -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+                -moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            input[type="submit"]:active{
+                background-image: none;
+                outline: 0;
+                -webkit-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+                -moz-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            input[type="submit"]:hover{
+                color: #333333;
+                text-decoration: none;
+                background-position: 0 -15px;
+                -webkit-transition: background-position 0.1s linear;
+                -moz-transition: background-position 0.1s linear;
+                -o-transition: background-position 0.1s linear;
+                transition: background-position 0.1s linear;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Welcome to the RethinkDB 1.6.1 AMI</h1>
 
+
+            <p>To initialise the AMI, please chose a password. This password will be used to access the web UI and as an authentication key for client drivers.</p>
+            <form name="form" method="POST" action="/set_password" onsubmit="return validate()">
+                <p><label for="password1">Chose a password:</label> <input type="password" name="password" id="password" /></p>
+                <p><label for="password2">Repeat password:</label> <input type="password" name="password2" id="password2" /></p>
+                <input type="submit"/>
+            </form>
+
+            <p>Extra documentation about this AMI can be found here: <a href="http://rethinkdb.com/todo/doc/ami" target="_blank">http://rethinkdb.com/todo/doc/ami</a></p>
+        </div>
+    </body>
+</html>

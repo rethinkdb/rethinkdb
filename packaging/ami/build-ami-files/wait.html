@@ -1,12 +1,80 @@
-<html><head><title>RethinkDB AMI Setup</title>
-<script>
+<html>
+    <head>
+        <title>RethinkDB AMI Setup</title>
+        <script>
 setTimeout(function(){
-document.location.href = "/";
+    document.location.href = "/";
 }, 5000)
-</script>
-</head><body style="font-size:3em">
-<br/><br/><center>
-<a href="/" style="text-decoration:none">
-Initializing Instance...
-</a>
-</center></body></html>
+        </script>
+        <style type="text/css">
+            html, body{
+                margin: 0px;
+                padding: 0px;
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 14px;
+            }
+            .container{
+                position: absolute;
+                width: 500px;
+                height: 60px;
+                text-align: center;
+            }
+            @media all and (max-height: 60px) {
+                .container{
+                    left: 50%;
+                    margin-top: 0px;
+                }
+            }
+            @media all and (min-height: 61px) {
+                .container{
+                    top: 50%;
+                    margin-top: -30px;
+                }
+            }
+            @media all and (max-width: 500px) {
+                .container{
+                    left: 0%;
+                    margin-left: 0px;
+                }
+            }
+            @media all and (min-width: 501px) {
+                .container{
+                    left: 50%;
+                    margin-left: -250px;
+                }
+            }
+            label{
+                display: inline-block;
+                width: 150px;
+            }
+            form{
+                text-align: center;
+            }
+            h1{
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            input[type="password"]{
+                background-color: #fff;
+                border: 1px solid #ccc;
+                display: inline-block;
+                height: 26px;
+                width: 200px;
+                padding: 4px 6px;
+                font-size: 14px;
+                line-height: 20px;
+                color: #555;
+                -webkit-border-radius: 4px;
+                -moz-border-radius: 4px;
+                border-radius: 4px;
+                transition: border linear 0.2s, box-shadow linear 0.2s;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <p>Initializing Instance...</p>
+        </div>
+    </body>
+</html>
