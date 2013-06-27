@@ -194,6 +194,12 @@ tests:
       rb: tbl3.pluck({'id'=>true, 'missing'=>true}).order_by('id').nth(0)
       ot: ({'id':0})
 
+    - cd: tbl3.pluck('id', {'b':'c'}).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{'c':0}})
+
+    - cd: tbl3.pluck(['id', {'b':'c'}]).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{'c':0}})
+
     # without
     - cd: tbl.without().order_by('id').nth(0)
       ot: ({'id':0,'a':0})
