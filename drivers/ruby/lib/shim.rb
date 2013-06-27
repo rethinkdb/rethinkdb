@@ -1,3 +1,5 @@
+require 'json'
+
 module RethinkDB
   module Shim
     def self.datum_to_native d
@@ -72,18 +74,35 @@ module RethinkDB
     @@datum_types = [Fixnum, Float, Bignum, String, Symbol,
                      TrueClass, FalseClass, NilClass]
 
-    def fast_expr(x, context)
+    def any_to_pb(x, context)
+      return x.to_pb if x.class == RQL
+      t = Term.new
+      t.type = Term::TermType::JSON
+      t.args = [Shim.native_to_datum_term(x.to_json)]
+      return t
+    end
+
+    def fast_expr(x, context, allow_json)
       return x if x.class == RQL
-      if @@datum_types.include? x.class
+      if @@datum_types.include?(x.class)
+        return x if allow_json
         return RQL.new(Shim.native_to_datum_term(x), nil, context)
       end
 
-      t = Term.new
       case x
       when Array
+        args = x.map{|y| fast_expr(y, context, allow_json)}
+        return x if allow_json && args.all?{|y| y.class != RQL}
+        t = Term.new
         t.type = Term::TermType::MAKE_ARRAY
-        t.args = x.map{|y| fast_expr(y, context).to_pb}
+        t.args = args.map{|y| any_to_pb(y, context)}
+        return RQL.new(t, nil, context)
       when Hash
+        kvs = x.map{|k,v| [k, fast_expr(v, context, allow_json)]}
+        return x if allow_json && kvs.all? {|k,v|
+          (k.class == String || k.class == Symbol) && v.class != RQL
+        }
+        t = Term.new
         t.type = Term::TermType::MAKE_OBJ
         t.optargs = x.map{|k,v|
           ap = Term::AssocPair.new;
@@ -93,20 +112,24 @@ module RethinkDB
             raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
-          ap.val = fast_expr(v, context).to_pb
+          ap.val = fast_expr(v, context, allow_json).to_pb
           ap
         }
+        return RQL.new(t, nil, context)
       when Proc
         t = RQL.new(nil, nil, context).new_func(&x).to_pb
+        return RQL.new(t, nil, context)
       else raise RqlDriverError, "r.expr can't handle #{x.inspect} of type #{x.class}"
       end
-
-      return RQL.new(t, nil, context)
     end
 
-    def expr(x)
+    def expr(x, &b)
+      allow_json = b && b.call
       unbound_if @body
-      fast_expr(x, RPP.sanitize_context(caller))
+      context = RPP.sanitize_context(caller)
+      res = fast_expr(x, context, allow_json)
+      return res if res.class == RQL
+      return RQL.new(any_to_pb(res, context), nil, context)
     end
 
     def coerce(other)
