@@ -111,7 +111,7 @@ private:
         N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
            N3(BRANCH,
               N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-              N2(GETATTR, NVAR(obj), NVAR(attr)),
+              N2(GET_FIELD, NVAR(obj), NVAR(attr)),
               NDATUM(datum_t::R_NULL)));
     }
     static void map_fn(env_t *env, Term *arg,
@@ -124,14 +124,14 @@ private:
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(GETATTR, NVAR(obj), NVAR(attr)),
+                  N2(GET_FIELD, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
+                  N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
                   N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
@@ -160,12 +160,12 @@ private:
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
-                    "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
+                    "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
                     "reduction",
                     N2(FUNCALL, arg = pb::set_func(arg, val);
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
-                       N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
+                       N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
         }
         return argout;
     }
@@ -271,7 +271,7 @@ private:
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
            N2(MAP,
               optarg_inheritor = arg;
-              N2(GET_ALL, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr)),
+              N2(GET_ALL, *arg = *right, N2(GET_FIELD, NVAR(row), *arg = *left_attr)),
 
               arg = pb::set_func(arg, v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));

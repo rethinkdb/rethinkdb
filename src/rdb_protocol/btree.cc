@@ -162,6 +162,7 @@ void rdb_replace_and_return_superblock(
     const std::string &primary_key,
     const store_key_t &key,
     ql::map_wire_func_t *f,
+    return_vals_t return_vals,
     ql::env_t *ql_env,
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
@@ -188,18 +189,37 @@ void rdb_replace_and_return_superblock(
             old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
         }
         guarantee(old_val.has());
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp->add("old_val", old_val)
+                         || resp->add("new_val", old_val); // changed below
+            guarantee(!conflict);
+        }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp->add("new_val", new_val, ql::CLOBBER);
+            guarantee(conflict); // We set it to `old_val` previously.
+        }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
+            counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
-                new_val->get(primary_key, ql::NOTHROW).has(),
+                pk.has(),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
+            rcheck_target(
+                new_val, ql::base_exc_t::GENERIC,
+                key.compare(store_key_t(pk->print_primary())) == 0,
+                (started_empty
+                 ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
+                             primary_key.c_str(), new_val->print().c_str())
+                 : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
+                             primary_key.c_str(),
+                             old_val->print().c_str(), new_val->print().c_str())));
         } else {
             rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
                                new_val->get_type_name(), new_val->print().c_str());
@@ -209,6 +229,7 @@ void rdb_replace_and_return_superblock(
         // conflict when constructing the stats object.  It defaults to `true`
         // so that we fail an assertion if we never update the stats object.
         bool conflict = true;
+
         // Figure out what operation we're doing (based on started_empty,
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
@@ -228,27 +249,19 @@ void rdb_replace_and_return_superblock(
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
-                if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
-                    if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged",
-                                             make_counted<ql::datum_t>(1.0));
-                    } else {
-                        conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
-                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                        boost::shared_ptr<scoped_cJSON_t> new_val_as_json
-                            = new_val->as_json();
-                        kv_location_set(&kv_location, key, new_val_as_json,
-                                        slice, timestamp, txn);
-                        mod_info->added = new_val_as_json;
-                        mod_info->deleted = old_val->as_json();
-                    }
+                r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
+                if (*old_val == *new_val) {
+                    conflict = resp->add("unchanged",
+                                         make_counted<ql::datum_t>(1.0));
                 } else {
-                    rfail_target(
-                        new_val,
-                        ql::base_exc_t::GENERIC,
-                        "Primary key `%s` cannot be changed (%s -> %s)",
-                        primary_key.c_str(),
-                        old_val->print().c_str(), new_val->print().c_str());
+                    conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
+                    r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
+                    boost::shared_ptr<scoped_cJSON_t> new_val_as_json
+                        = new_val->as_json();
+                    kv_location_set(&kv_location, key, new_val_as_json,
+                                    slice, timestamp, txn);
+                    mod_info->added = new_val_as_json;
+                    mod_info->deleted = old_val->as_json();
                 }
             }
         }
@@ -278,11 +291,13 @@ void rdb_replace(btree_slice_t *slice,
                  const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
+                 return_vals_t return_vals,
                  ql::env_t *ql_env,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info) {
-    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, primary_key,
-                                      key, f, ql_env, NULL, response_out, mod_info);
+    rdb_replace_and_return_superblock(
+        slice, timestamp, txn, superblock, primary_key,
+        key, f, return_vals, ql_env, NULL, response_out, mod_info);
 }
 
 struct slice_timestamp_txn_replace_t {
@@ -310,8 +325,9 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
-                                      sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
-                                      superblock_promise_or_null, response_out, &mod_report.info);
+                                      sttr.replace->primary_key, sttr.replace->key, &f,
+                                      NO_RETURN_VALS, ql_env, superblock_promise_or_null,
+                                      response_out, &mod_report.info);
 
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
