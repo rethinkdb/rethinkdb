@@ -221,7 +221,7 @@ if len(options.db_table) == 0:
         r.db(db).table_create(table).run(connection)
         initialize_sindexes(sindexes, connection, db, table)
 else:
-    # Load an existing table
+    # User-specified table
     if "." not in options.db_table:
         raise RuntimeError("Incorrect db.table format in --table option")
 

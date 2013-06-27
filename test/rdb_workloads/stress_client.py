@@ -48,7 +48,7 @@ connection = r.connect(host, port, db)
 if db not in r.db_list().run(connection):
     raise RuntimeError("Database does not exist: " + db)
 
-if table not in r.db("test").table_list().run(connection):
+if table not in r.db(db).table_list().run(connection):
     raise RuntimeError("Table does not exist: " + table)
 
 extant_keys = set()
