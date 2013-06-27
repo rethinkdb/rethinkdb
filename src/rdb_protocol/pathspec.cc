@@ -2,52 +2,76 @@
 
 namespace ql {
 
-pathspec_t::pathspec_t(const pathspec_t &other) 
-    : type(other.type), str(other.str), 
-      vec(other.vec), map(other.map)
-{ }
+pathspec_t::pathspec_t(const pathspec_t &other) { 
+    init_from(other);
+}
+
+pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
+    init_from(other);
+    return *this;
+}
 
 pathspec_t::pathspec_t(const std::string &_str) 
-    : type(STR), str(_str) { }
+    : type(STR), str(new std::string(_str)) { }
 
 pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map)
-    : type(MAP), map(_map) { }
+    : type(MAP), map(new std::map<std::string, pathspec_t>(_map)) { }
 
 pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
-        str = datum->as_str();
+        str = new std::string(datum->as_str());
     } else if (datum->get_type() == datum_t::R_ARRAY) {
         type = VEC;
+        vec = new std::vector<pathspec_t>;
         for (size_t i = 0; i < datum->size(); ++i) {
-            vec.push_back(pathspec_t(datum->get(i)));
+            vec->push_back(pathspec_t(datum->get(i)));
         }
     } else if (datum->get_type() == datum_t::R_OBJECT) {
+        scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
+        scoped_ptr_t<std::map<std::string, pathspec_t> > local_map(new std::map<std::string, pathspec_t>);
         for (auto it = datum->as_object().begin();
              it != datum->as_object().end(); ++it) {
             if (it->second->get_type() == datum_t::R_BOOL &&
                 it->second->as_bool() == true) {
-                vec.push_back(pathspec_t(it->first));
+                local_vec->push_back(pathspec_t(it->first));
             } else {
-                map.insert(std::make_pair(it->first, pathspec_t(it->second)));
+                local_map->insert(std::make_pair(it->first, pathspec_t(it->second)));
             }
         }
 
-        if (vec.empty()) {
+        if (local_vec->empty()) {
             type = MAP;
+            map = local_map.release();
         } else {
             type = VEC;
-            if (!map.empty()) {
-                vec.push_back(pathspec_t(map));
-                map.clear();
+            vec = local_vec.release();
+            if (!local_map->empty()) {
+                vec->push_back(pathspec_t(*local_map));
             }
         }
     } else {
         throw malformed_pathspec_exc_t();
     }
 
-    if (type == VEC && vec.size() == 1) {
-        *this = vec[0];
+    if (type == VEC && vec->size() == 1) {
+        *this = (*vec)[0];
+    }
+}
+
+pathspec_t::~pathspec_t() {
+    switch (type) {
+    case STR:
+        delete str;
+        break;
+    case VEC:
+        delete vec;
+        break;
+    case MAP:
+        delete map;
+        break;
+    default:
+        unreachable();
     }
 }
 
@@ -88,6 +112,23 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
             unreachable();
         }
         return counted_t<const datum_t>(res.release());
+    }
+}
+
+void pathspec_t::init_from(const pathspec_t &other) {
+    type = other.type;
+    switch (type) {
+    case STR:
+        str = new std::string(*other.str);
+        break;
+    case VEC:
+        vec = new std::vector<pathspec_t>(*other.vec);
+        break;
+    case MAP:
+        map = new std::map<std::string, pathspec_t>(*other.map);
+        break;
+    default:
+        unreachable();
     }
 }
 
