@@ -492,13 +492,16 @@ struct rdb_protocol_t {
         point_replace_t() { }
         point_replace_t(const std::string &_primary_key, const store_key_t &_key,
                         const ql::map_wire_func_t &_f,
-                        const std::map<std::string, ql::wire_func_t> &_optargs)
-            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs) { }
+                        const std::map<std::string, ql::wire_func_t> &_optargs,
+                        bool _return_vals)
+            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs),
+              return_vals(_return_vals) { }
 
         std::string primary_key;
         store_key_t key;
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
+        bool return_vals;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

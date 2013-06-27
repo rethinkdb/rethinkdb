@@ -127,7 +127,7 @@ module RethinkDB
       if ind.class == Fixnum
         return nth(ind)
       elsif ind.class == Symbol || ind.class == String
-        return getattr(ind)
+        return get_field(ind)
       elsif ind.class == Range
         if ind.end == 0 && ind.exclude_end?
           raise ArgumentError, "Cannot slice to an excluded end of 0."

@@ -7,10 +7,10 @@ tests:
     ##  Get attr
 
     - cd: obj['a']
-      js: [obj('a'), obj.getAttr('a')]
+      js: [obj('a'), obj.getField('a')]
       ot: 1
     - cd: obj['c']
-      js: [obj('c'), obj.getAttr('c')]
+      js: [obj('c'), obj.getField('c')]
       ot: "'str'"
 
     ## Has_Fields

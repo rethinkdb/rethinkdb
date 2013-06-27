@@ -6,7 +6,7 @@ goog.require("rethinkdb.protobuf")
 
 class TermBase
     constructor: ->
-        self = (ar (field) -> self.getAttr(field))
+        self = (ar (field) -> self.getField(field))
         self.__proto__ = @.__proto__
         return self
 
@@ -76,7 +76,7 @@ class RDBVal extends TermBase
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
-    getAttr: ar (field) -> new GetAttr {}, @, field
+    getField: ar (field) -> new GetField {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
     insertAt: ar (index, value) -> new InsertAt {}, @, index, value
     spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
@@ -193,6 +193,7 @@ translateOptargs = (optargs) ->
         # We translate known two word opt-args to camel case for your convience
         key = switch key
             when 'primaryKey' then 'primary_key'
+            when 'returnVals' then 'return_vals'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
@@ -286,6 +287,10 @@ class JavaScript extends RDBOp
     tt: "JAVASCRIPT"
     st: 'js'
 
+class Json extends RDBOp
+    tt: "JSON"
+    st: 'json'
+
 class UserError extends RDBOp
     tt: "ERROR"
     st: 'error'
@@ -309,7 +314,21 @@ class Table extends RDBOp
     st: 'table'
 
     get: ar (key) -> new Get {}, @, key
-    getAll: aropt (key, opts) -> new GetAll opts, @, key
+
+    getAll: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
+        if perhapsOptDict and
+                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+            opts = perhapsOptDict
+            keys = keysAndOpts[0...(keysAndOpts.length - 1)]
+
+        new GetAll opts, @, keys...
+
     insert: aropt (doc, opts) -> new Insert opts, @, doc
     indexCreate: varar(1, 2, (name, defun) ->
         if defun?
@@ -422,8 +441,8 @@ class Limit extends RDBOp
     tt: "LIMIT"
     st: 'limit'
 
-class GetAttr extends RDBOp
-    tt: "GETATTR"
+class GetField extends RDBOp
+    tt: "GET_FIELD"
     st: '(...)' # This is only used by the `undefined` argument checker
 
     compose: (args) -> [args[0], '(', args[1], ')']
