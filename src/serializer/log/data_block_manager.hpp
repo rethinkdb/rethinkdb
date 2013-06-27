@@ -222,7 +222,8 @@ public:
 
     /* Returns the offset to which the block will be written */
     counted_t<ls_block_token_pointee_t>
-    write(ser_buffer_t *buf, block_id_t block_id,
+    write(ser_buffer_t *buf, uint32_t ser_block_size,
+          block_id_t block_id,
           bool assign_new_block_sequence_id,
           file_account_t *io_account, iocallback_t *cb);
 

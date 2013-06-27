@@ -359,7 +359,8 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
  block_sequence_id immediately.
  */
 counted_t<ls_block_token_pointee_t>
-data_block_manager_t::write(ser_buffer_t *buf, block_id_t block_id,
+data_block_manager_t::write(ser_buffer_t *buf, uint32_t ser_block_size,
+                            block_id_t block_id,
                             bool assign_new_block_sequence_id,
                             file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
@@ -378,8 +379,38 @@ data_block_manager_t::write(ser_buffer_t *buf, block_id_t block_id,
         buf->ser_header.block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    dbfile->write_async(token->offset(), static_config->block_size().ser_value(),
-                        buf, io_account, cb, file_t::NO_DATASYNCS);
+    if (divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf))
+        && divides(DEVICE_BLOCK_SIZE, ser_block_size)) {
+        dbfile->write_async(token->offset(), ser_block_size,
+                            buf, io_account, cb, file_t::NO_DATASYNCS);
+    } else {
+        size_t ceil_size = ceil_aligned(ser_block_size, DEVICE_BLOCK_SIZE);
+
+        scoped_malloc_t<char> copy(malloc_aligned(ceil_size, DEVICE_BLOCK_SIZE));
+        memcpy(copy.get(), buf, ser_block_size);
+        memset(copy.get() + ser_block_size, 0, ceil_size - ser_block_size);
+
+        struct intermediate_cb_t : public iocallback_t {
+            virtual void on_io_complete() {
+                iocallback_t *local_cb = cb;
+                delete this;
+                local_cb->on_io_complete();
+            }
+
+            iocallback_t *cb;
+            scoped_malloc_t<char> buf;
+        };
+
+        intermediate_cb_t *intermediate = new intermediate_cb_t;
+        intermediate->cb = cb;
+        intermediate->buf = std::move(copy);
+
+        dbfile->write_async(token->offset(), ceil_size,
+                            intermediate->buf.get(), io_account, intermediate,
+                            file_t::NO_DATASYNCS);
+    }
+
+
 
     return token;
 }
@@ -542,7 +573,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 // The first "false" argument indicates that we do not with to assign
                 // a new block sequence id.
                 counted_t<ls_block_token_pointee_t> token
-                    = parent->write(writes[i].buf, writes[i].buf->ser_header.block_id,
+                    = parent->write(writes[i].buf, writes[i].ser_block_size,
+                                    writes[i].buf->ser_header.block_id,
                                     false,
                                     parent->choose_gc_io_account(),
                                     block_write_conds.back());
