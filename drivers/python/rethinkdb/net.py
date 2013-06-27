@@ -6,26 +6,30 @@ import socket
 import struct
 from os import environ
 
-try:
-  print 'trying cpp'
-  # The pbcpp module is installed when passing the --with-native-protobuf
-  # flag to pip
-  import pbcpp
+if environ.has_key('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'):
+    protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
+    if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
+        import rethinkdb_pbcpp
+else:
+    try:
+        # Set an environment variable telling the protobuf library
+        # to use the fast C++ based serializer implementation
+        # over the pure python one if it is available.
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
 
-  # Set an environment variable telling the protobuf library
-  # to use the fast C++ based serializer implementation
-  # over the pure python one if it is available.
-  environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
-  protobuf_implementation = 'cpp'
-except ImportError, e:
-  print 'cpp failed'
-  # If it doesn't work, use the python implementation of protobuf
-  environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
-  protobuf_implementation = 'python'
+        # The cpp_message module could change between versions of the
+        # protobuf module
+        from google.protobuf.internal import cpp_message
+        import rethinkdb_pbcpp
+        protobuf_implementation = 'cpp'
+    except ImportError, e:
+        # Default to using the python implementation of protobuf
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+        protobuf_implementation = 'python'
 
 import ql2_pb2 as p
 
-import repl # For thsete repl connection
+import repl # For the repl connection
 from errors import *
 from ast import Datum, DB, expr
 

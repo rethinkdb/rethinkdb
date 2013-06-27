@@ -4,9 +4,9 @@ static PyMethodDef PbMethods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC initpbcpp() {
+PyMODINIT_FUNC initrethinkdb_pbcpp() {
     PyObject *m;
-    m = Py_InitModule("pbcpp", PbMethods);
+    m = Py_InitModule("rethinkdb_pbcpp", PbMethods);
     if (m == NULL)
         return;
 }
