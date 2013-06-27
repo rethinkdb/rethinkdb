@@ -277,9 +277,10 @@ message Term {
         CONTAINS = 93; // Sequence, DATUM -> BOOL
 
         // Stream/Object Ops
-        // Get a particular attribute out of an object, or map that over a
+        // Get a particular field from an object, or map that over a
         // sequence.
-        GETATTR  = 31; // OBJECT, STRING -> DATUM
+        GET_FIELD  = 31; // OBJECT, STRING -> DATUM
+                         // | Sequence, STRING -> Sequence
         // Return an array containing the keys of the object.
         KEYS = 94; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,

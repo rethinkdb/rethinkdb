@@ -238,7 +238,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
         /* Create a secondary index object. */
         Term mapping;
         Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GETATTR, NVAR(1), NDATUM("id"));
+        N2(GET_FIELD, NVAR(1), NDATUM("id"));
 
         ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 

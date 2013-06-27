@@ -7,7 +7,7 @@ goog.require("Datum")
 
 class TermBase
     constructor: ->
-        self = (ar (field) -> self.getAttr(field))
+        self = (ar (field) -> self.getField(field))
         self.__proto__ = @.__proto__
         return self
 
@@ -77,7 +77,7 @@ class RDBVal extends TermBase
     slice: ar (left, right) -> new Slice {}, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
-    getAttr: ar (field) -> new GetAttr {}, @, field
+    getField: ar (field) -> new GetField {}, @, field
     contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
     insertAt: ar (index, value) -> new InsertAt {}, @, index, value
     spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
@@ -427,8 +427,8 @@ class Limit extends RDBOp
     tt: Term.TermType.LIMIT
     st: 'limit'
 
-class GetAttr extends RDBOp
-    tt: Term.TermType.GETATTR
+class GetField extends RDBOp
+    tt: Term.TermType.GET_FIELD
     st: '(...)' # This is only used by the `undefined` argument checker
 
     compose: (args) -> [args[0], '(', args[1], ')']

@@ -192,6 +192,16 @@ public:
         }
     }
 
+    static const int trunc_len = 300;
+    std::string trunc_print() {
+        std::string s = print();
+        if (s.size() > trunc_len) {
+            s.erase(s.begin() + (trunc_len - 3), s.end());
+            s += "...";
+        }
+        return s;
+    }
+
 private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
 
