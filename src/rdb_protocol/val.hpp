@@ -197,7 +197,7 @@ public:
         }
     }
 
-    static const int trunc_len = 300;
+    static const size_t trunc_len = 300;
     std::string trunc_print() {
         std::string s = print();
         if (s.size() > trunc_len) {
