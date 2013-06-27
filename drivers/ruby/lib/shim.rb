@@ -104,7 +104,7 @@ module RethinkDB
         }
         t = Term.new
         t.type = Term::TermType::MAKE_OBJ
-        t.optargs = x.map{|k,v|
+        t.optargs = kvs.map{|k,v|
           ap = Term::AssocPair.new;
           if k.class == Symbol || k.class == String
             ap.key = k.to_s
@@ -112,7 +112,7 @@ module RethinkDB
             raise RqlDriverError, "Object keys must be strings or symbols." +
               "  (Got object `#{k.inspect}` of class `#{k.class}`.)"
           end
-          ap.val = fast_expr(v, context, allow_json).to_pb
+          ap.val = any_to_pb(v, context)
           ap
         }
         return RQL.new(t, nil, context)
