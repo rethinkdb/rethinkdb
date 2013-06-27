@@ -630,7 +630,7 @@ module 'DashboardView', ->
         fetch_log: =>
             $.ajax({
                 contentType: 'application/json'
-                url: '/ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
+                url: 'ajax/log/_?max_length='+@max_entry_logs+'&min_timestamp='+@min_timestamp
                 dataType: 'json'
                 success: @set_log_entries
             })

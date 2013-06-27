@@ -552,7 +552,7 @@ module 'NamespaceView', ->
 
             $.ajax
                 processData: false
-                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                url: "ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify
@@ -633,7 +633,7 @@ module 'NamespaceView', ->
             @data_cached = data
             $.ajax
                 processData: false
-                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                url: "ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify data
@@ -845,7 +845,7 @@ module 'NamespaceView', ->
 
             @data_cached = data
             $.ajax
-                url: "/ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
+                url: "ajax/semilattice/#{@model.get("protocol")}_namespaces/#{@model.get('id')}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify data
