@@ -588,8 +588,7 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
 
     // RSI: We need the real block size of this block to pass to dbm::write.
     ser_buffer_t *ser_buf
-        = reinterpret_cast<ser_buffer_t *>(
-                static_cast<ls_buf_data_t *>(const_cast<void *>(buf)) - 1);
+        = static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
     return data_block_manager->write(ser_buf, block_id, true, io_account, cb);
 }
 

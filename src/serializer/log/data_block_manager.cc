@@ -540,8 +540,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                                                                                     writes[i].ser_block_size));
 
                 ser_buffer_t *ser_buf
-                    = reinterpret_cast<ser_buffer_t *>(
-                            static_cast<ls_buf_data_t *>(const_cast<void *>(writes[i].buf)) - 1);
+                    = static_cast<ser_buffer_t *>(const_cast<void *>(writes[i].buf)) - 1;
 
                 // The first "false" argument indicates that we do not with to assign
                 // a new block sequence id.
