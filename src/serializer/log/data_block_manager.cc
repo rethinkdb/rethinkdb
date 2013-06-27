@@ -539,13 +539,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
-                ser_buffer_t *ser_buf
-                    = static_cast<ser_buffer_t *>(const_cast<void *>(writes[i].buf)) - 1;
-
                 // The first "false" argument indicates that we do not with to assign
                 // a new block sequence id.
                 counted_t<ls_block_token_pointee_t> token
-                    = parent->write(ser_buf, ser_buf->ser_header.block_id,
+                    = parent->write(writes[i].buf, writes[i].buf->ser_header.block_id,
                                     false,
                                     parent->choose_gc_io_account(),
                                     block_write_conds.back());
@@ -579,10 +576,13 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
-                    const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    index_write_ops.push_back(index_write_op_t(data->block_id,
-                                                               to_standard_block_token(data->block_id,
-                                                                                       new_block_tokens[i])));
+                    block_id_t block_id = writes[i].buf->ser_header.block_id;
+
+                    index_write_ops.push_back(
+                            index_write_op_t(block_id,
+                                             to_standard_block_token(
+                                                     block_id,
+                                                     new_block_tokens[i])));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -727,21 +727,21 @@ void data_block_manager_t::run_gc() {
                         continue;
                     }
 
-                    char *block = gc_state.gc_blocks + gc_state.current_entry->relative_offset(i);
+                    ser_buffer_t *block = reinterpret_cast<ser_buffer_t *>(gc_state.gc_blocks + gc_state.current_entry->relative_offset(i));
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset()
                         + gc_state.current_entry->relative_offset(i);
 
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->block_referenced_by_index(i)) {
-                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
+                        id = block->ser_header.block_id;
                         guarantee(id != NULL_BLOCK_ID);
                     } else {
                         id = NULL_BLOCK_ID;
                     }
-                    void *data = block + sizeof(ls_buf_data_t);
 
-                    gc_writes.push_back(gc_write_t(id, data, block_offset, gc_state.current_entry->block_size(i)));
+                    gc_writes.push_back(gc_write_t(id, block, block_offset,
+                                                   gc_state.current_entry->block_size(i)));
                 }
 
                 guarantee(gc_writes.size() == static_cast<size_t>(num_writes));
