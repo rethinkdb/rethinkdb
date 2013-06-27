@@ -97,7 +97,11 @@ private:
             for (size_t i = 1; i < num_args(); ++i) {
                 paths.push_back(arg(i)->as_datum());
             }
-            pathspec.init(new pathspec_t(make_counted<const datum_t>(paths)));
+            try {
+                pathspec.init(new pathspec_t(make_counted<const datum_t>(paths)));
+            } catch (const pathspec_t::malformed_pathspec_exc_t &) {
+                rfail(base_exc_t::GENERIC, "Invalid arguments to pluck.");
+            }
         }
         return new_val(project(obj, *pathspec, DONT_RECURSE));
     }
