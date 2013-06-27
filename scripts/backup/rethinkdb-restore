@@ -3,7 +3,7 @@ import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
 usage = "'rethinkdb restore` loads data into a rethinkdb cluster from an archive\n\
-  rethinkdb restore FILE -c HOST:PORT [-a KEY] [--force] [-i (DB | DB.TABLE)]..."
+  rethinkdb restore FILE -c HOST:PORT [-a AUTH_KEY] [--force] [-i (DB | DB.TABLE)]..."
 
 def print_restore_help():
     print usage

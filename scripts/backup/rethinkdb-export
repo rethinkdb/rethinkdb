@@ -16,7 +16,7 @@ except ImportError:
     exit(1)
 
 usage = "'rethinkdb export` exports data from a rethinkdb cluster into a directory\n\
-  rethinkdb export -c HOST:PORT [-a KEY] [-f (csv | json)] [-d DIR]\n\
+  rethinkdb export -c HOST:PORT [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
       [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
 
 def print_export_help():

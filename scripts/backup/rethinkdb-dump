@@ -3,23 +3,23 @@ import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
 usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
-  rethinkdb dump -c HOST:PORT [-a KEY] [-o FILE] [-e (DB | DB.TABLE)]..."
+  rethinkdb dump -c HOST:PORT [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
     print usage
     print ""
+    print "  -h [ --help ]                    print this help"
     print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  -o file                          file to write archive to"
+    print "  -f [ --file ] FILE               file to write archive to"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
-    print "  -h [ --help ]                    print this help"
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="host:port", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
-    parser.add_option("-o", dest="out_file", metavar="file", default=None, type="string")
+    parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()

@@ -29,6 +29,7 @@ def print_import_help():
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --clients NUM_CLIENTS            number of clients to run to the server"
     print "  --force                          import data even if a table already exists"
+    print "  --fields                         limit which fields to use when importing one table"
     print ""
     print "Import directory:"
     print "  -d [ --directory ] DIR           the directory to import data from"
