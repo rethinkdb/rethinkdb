@@ -1,3 +1,9 @@
+// NOTE: This is a fork of Bootsrap. The changes have been done so
+// we can compile our less files with LESS 1.4.
+// Quote from the changelog:
+// (~".myclass_@{index}") { ... selector interpolation is deprecated,
+// do this instead .myclass_@{index} { .... This works in 1.3.1 onwards.
+
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 // Mixins.less
 // Snippets of reusable CSS to develop faster and keep code readable
@@ -520,13 +526,13 @@
   .core (@gridColumnWidth, @gridGutterWidth) {
 
     .spanX (@index) when (@index > 0) {
-      (~".span@{index}") { .span(@index); }
+      .span@{index} { .span(@index); }
       .spanX(@index - 1);
     }
     .spanX (0) {}
 
     .offsetX (@index) when (@index > 0) {
-      (~".offset@{index}") { .offset(@index); }
+      .offset@{index} { .offset(@index); }
       .offsetX(@index - 1);
     }
     .offsetX (0) {}
@@ -563,7 +569,7 @@
   .fluid (@fluidGridColumnWidth, @fluidGridGutterWidth) {
 
     .spanX (@index) when (@index > 0) {
-      (~"> .span@{index}") { .span(@index); }
+      > .span@{index} { .span(@index); }
       .spanX(@index - 1);
     }
     .spanX (0) {}
@@ -592,7 +598,7 @@
   .input(@gridColumnWidth, @gridGutterWidth) {
 
     .spanX (@index) when (@index > 0) {
-      (~"input.span@{index}, textarea.span@{index}, .uneditable-input.span@{index}") { .span(@index); }
+      input.span@{index}, textarea.span@{index}, .uneditable-input.span@{index} { .span(@index); }
       .spanX(@index - 1);
     }
     .spanX (0) {}

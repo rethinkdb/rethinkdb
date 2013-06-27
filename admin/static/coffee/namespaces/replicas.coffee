@@ -154,9 +154,11 @@ module 'NamespaceView', ->
 
         # Render the list of datacenters for MDC
         render_list: =>
-            @ordered_datacenters = _.map(datacenters.models, (datacenter) =>
+            that = @
+            @ordered_datacenters = _.map(datacenters.models, (datacenter) ->
                 id: datacenter.get('id')
                 name: if datacenter.get('name').length>8 then datacenter.get('name').slice(0, 8)+'...' else datacenter.get('name')
+                namespace_id: that.model.get('id')
             )
             # Sort datacenters by name
             @ordered_datacenters = @ordered_datacenters.sort (a, b) ->
