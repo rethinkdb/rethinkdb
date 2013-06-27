@@ -194,6 +194,7 @@ translateOptargs = (optargs) ->
         # We translate known two word opt-args to camel case for your convience
         key = switch key
             when 'primaryKey' then 'primary_key'
+            when 'returnVals' then 'return_vals'
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'

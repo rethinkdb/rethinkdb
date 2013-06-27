@@ -46,11 +46,13 @@ public:
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
                                      bool nondet_ok,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
                                      bool upsert,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -92,15 +94,18 @@ private:
 
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         const map_wire_func_t &mwf,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
                                         bool nondet_ok,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
                                         bool upsert,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
 
     env_t *env;
     bool use_outdated;

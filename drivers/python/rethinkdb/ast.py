@@ -194,14 +194,16 @@ class RqlQuery(object):
     def default(self, handler):
         return Default(self, handler)
 
-    def update(self, func, non_atomic=(), durability=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def update(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic,
+                      durability=durability, return_vals=return_vals)
 
-    def replace(self, func, non_atomic=(), durability=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def replace(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic,
+                       durability=durability, return_vals=return_vals)
 
-    def delete(self, durability=()):
-        return Delete(self, durability=durability)
+    def delete(self, durability=(), return_vals=()):
+        return Delete(self, durability=durability, return_vals=return_vals)
 
     # Rql type inspection
     def coerce_to(self, other_type):
@@ -644,8 +646,9 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=(), durability=()):
-        return Insert(self, records, upsert=upsert, durability=durability)
+    def insert(self, records, upsert=(), durability=(), return_vals=()):
+        return Insert(self, records, upsert=upsert,
+                      durability=durability, return_vals=return_vals)
 
     def get(self, key):
         return Get(self, key)
