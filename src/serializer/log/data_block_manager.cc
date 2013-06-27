@@ -359,7 +359,7 @@ void data_block_manager_t::read(int64_t off_in, uint32_t ser_block_size_in,
  block_sequence_id immediately.
  */
 counted_t<ls_block_token_pointee_t>
-data_block_manager_t::write(const void *buf_in, block_id_t block_id,
+data_block_manager_t::write(ser_buffer_t *buf, block_id_t block_id,
                             bool assign_new_block_sequence_id,
                             file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
@@ -372,13 +372,14 @@ data_block_manager_t::write(const void *buf_in, block_id_t block_id,
 
     ++stats->pm_serializer_data_blocks_written;
 
-    ls_buf_data_t *data = const_cast<ls_buf_data_t *>(reinterpret_cast<const ls_buf_data_t *>(buf_in) - 1);
-    data->block_id = block_id;
+    buf->ser_header.block_id = block_id;
+
     if (assign_new_block_sequence_id) {
-        data->block_sequence_id = ++serializer->latest_block_sequence_id;
+        buf->ser_header.block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    dbfile->write_async(token->offset(), static_config->block_size().ser_value(), data, io_account, cb, file_t::NO_DATASYNCS);
+    dbfile->write_async(token->offset(), static_config->block_size().ser_value(),
+                        buf, io_account, cb, file_t::NO_DATASYNCS);
 
     return token;
 }
@@ -538,12 +539,14 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
-                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+                ser_buffer_t *ser_buf
+                    = reinterpret_cast<ser_buffer_t *>(
+                            static_cast<ls_buf_data_t *>(const_cast<void *>(writes[i].buf)) - 1);
 
                 // The first "false" argument indicates that we do not with to assign
                 // a new block sequence id.
                 counted_t<ls_block_token_pointee_t> token
-                    = parent->write(writes[i].buf, data->block_id,
+                    = parent->write(ser_buf, ser_buf->ser_header.block_id,
                                     false,
                                     parent->choose_gc_io_account(),
                                     block_write_conds.back());
