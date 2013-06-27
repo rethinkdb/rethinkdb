@@ -2,6 +2,7 @@ goog.provide("rethinkdb.net")
 
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.cursor")
+goog.require("rethinkdb.protobuf")
 
 # Eventually when we ditch Closure we can actually use the node
 # event emitter library. For now it's simple enough that we'll

@@ -144,10 +144,9 @@ class NodeResponse
     responseArray: -> (new NodeDatum(d) for d in @response)
     getBacktraceArray: -> (new NodeResponse::Frame(f) for f in @backtrace.frames)
 
-   
 # Test for avilablility of native backend and enable it if available
 if require? and require('node-protobuf')
-    # Initialize message serializer with 
+    # Initialize message serializer with
     desc = require('fs').readFileSync(__dirname + "/ql2.desc")
     protobuf = require('node-protobuf').Protobuf
     nodePB = new protobuf(desc)
@@ -162,5 +161,3 @@ else
     TermPB = BrowserTerm
     DatumPB = BrowserDatum
     ResponsePB = BrowserResponse
-
-

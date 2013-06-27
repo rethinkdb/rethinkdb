@@ -2,7 +2,6 @@ goog.provide("rethinkdb.ast")
 
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.errors")
-
 goog.require("rethinkdb.protobuf")
 
 class TermBase
