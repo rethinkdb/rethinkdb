@@ -15,7 +15,7 @@ except ImportError:
     print "Please install the driver via `pip install rethinkdb`."
     exit(1)
 
-usage = "'rethinkdb import` creates an archive of data from a rethinkdb cluster\n\
+usage = "'rethinkdb import` loads data into a rethinkdb cluster\n\
   rethinkdb import -c HOST:PORT -d DIR [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)]\n\
   rethinkdb import -c HOST:PORT -f FILE [-a AUTH_KEY] [--force]\n\
