@@ -69,3 +69,33 @@ rethinkdb.mod = ar (a, b) -> new Mod {}, a, b
 
 rethinkdb.typeOf = ar (val) -> new TypeOf {}, val
 rethinkdb.info = ar (val) -> new Info {}, val
+
+# Use r.json to serialize as much of the obect as JSON as is
+# feasible to avoid doing too much protobuf serialization.
+rethinkdb.exprJSON = ar (val) ->
+    if isJSON(val)
+        rethinkdb.json(JSON.stringify(val))
+    else if (val instanceof TermBase)
+        val
+    else
+        if goog.isArray(val)
+            wrapped = []
+        else
+            wrapped = {}
+
+        for k,v of val
+            wrapped[k] = rethinkdb.jsonWrap(v)
+        rethinkdb.expr(wrapped)
+
+# Is this JS value representable as JSON?
+isJSON = (val) ->
+    if (val instanceof TermBase)
+        false
+    else if (val instanceof Object)
+        # Covers array case as well
+        for k,v of val
+            if not isJSON(v) then return false
+        true
+    else
+        # Primitive types can always be represented as JSON
+        true

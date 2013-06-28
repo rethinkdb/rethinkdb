@@ -329,7 +329,11 @@ class Table extends RDBOp
 
         new GetAll opts, @, keys...
 
-    insert: aropt (doc, opts) -> new Insert opts, @, doc
+    # For this function only use `exprJSON` rather than letting it default to regular
+    # `expr`. This will attempt to serialize as much of the document as JSON as possible.
+    # This behavior can be manually overridden with either direct JSON serialization
+    # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
+    insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
     indexCreate: varar(1, 2, (name, defun) ->
         if defun?
             new IndexCreate {}, @, name, funcWrap(defun)
