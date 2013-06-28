@@ -124,7 +124,8 @@ class ArrayResult extends IterableResult
 
     makeIterable: (response) ->
         for name, method of ArrayResult.prototype
-            response.__proto__[name] = method
+            if name isnt 'constructor'
+                response.__proto__[name] = method
         response.__proto__.__index = 0
         response
 
