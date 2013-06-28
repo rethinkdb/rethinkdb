@@ -68,7 +68,7 @@
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 
 // Size of the device block size (in bytes)
-#define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
+#define DEVICE_BLOCK_SIZE                         512
 
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
