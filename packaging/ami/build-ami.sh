@@ -92,7 +92,7 @@ create_rethinkdb_ami () {
         case "$status" in
             failed) error "image creation failed" ;;
             pending) echo -n ' .'; sleep 5 ;;
-            available) echo ' done'; eval $2=$_ami_id; break ;;
+            available) echo ' done'; eval "$2=$(printf %q "$_ami_id")"; break ;;
             *) error "unknown AMI status $status" ;;
         esac
     done
@@ -236,15 +236,15 @@ launch_instance_ephemeral () {
         fi
     done
     start_ssh_master "$_instance_address"
-    eval ${5:-instance_id}=$(printf %q "$_instance_id")
-    eval ${6:-instance_address}=$(printf %q "$_instance_address")
+    eval "${5:-instance_id}=$(printf %q "$_instance_id")"
+    eval "${6:-instance_address}=$(printf %q "$_instance_address")"
 }
 
-# start_ssh_master <address> [<retries=10>] [<wait=5>]
+# start_ssh_master <address> [<retries=20>] [<wait=5>]
 start_ssh_master () {
     local address=$1
-    local retries=${2:-10}
-    local wait=${2:-5}
+    local retries=${2:-20}
+    local wait=${3:-5}
     while [[ $retries != 0 ]]; do
         echo "Attempting to connect to $address ($retries tries left)"
         if ssh -M -o StrictHostKeyChecking=no -o ControlPath="$ssh_control_path" -o ControlPersist=yes -o ConnectTimeout=5 "$ssh_user@$address" true; then
