@@ -84,7 +84,7 @@ rethinkdb.exprJSON = ar (val) ->
             wrapped = {}
 
         for k,v of val
-            wrapped[k] = rethinkdb.jsonWrap(v)
+            wrapped[k] = rethinkdb.exprJSON(v)
         rethinkdb.expr(wrapped)
 
 # Is this JS value representable as JSON?
