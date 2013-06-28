@@ -12,7 +12,7 @@ htpasswd -b -c /etc/nginx/htpasswd rethinkdb "$password"
 chmod a+r /etc/nginx/htpasswd
 chown ubuntu@ubuntu /etc/nginx/htpasswd
 cp nginx.conf /etc/nginx/sites-available/default
-openssl req -new -newkey rsa:4096 -days 1024 -nodes -x509 -subj "/" -keyout /etc/nginx/ssl.key  -out /etc/nginx/ssl.crt
+openssl req -new -newkey rsa:4096 -days 1024 -nodes -x509 -subj "/C=US/ST=California/L=MountainView/O=IT/CN=localhost" -keyout /etc/nginx/ssl.key  -out /etc/nginx/ssl.crt
 
 # rethinkdb config
 cp rethinkdb.conf /etc/rethinkdb/instances.d/default.conf

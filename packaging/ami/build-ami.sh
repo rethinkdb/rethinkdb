@@ -19,6 +19,17 @@ defaults () {
     ssh_key_name=
 }
 
+parseopts () {
+    while [[ $# -gt 0 ]]; do
+        local arg=$1
+        shift
+        case $arg in
+            --ami-name) ami_name=$1; shift ;;
+            *) die "Unknown argument $arg" ;;
+        esac
+    done
+}
+
 main () {
     defaults
     parseopts "$@"
@@ -83,16 +94,6 @@ create_rethinkdb_ami () {
             pending) echo -n ' .'; sleep 5 ;;
             available) echo ' done'; eval $2=$_ami_id; break ;;
             *) error "unknown AMI status $status" ;;
-        esac
-    done
-}
-
-parseopts () {
-    while [[ $# -gt 0 ]]; do
-        local arg=$1
-        shift
-        case arg in
-            *) die "Unknown argument $arg"
         esac
     done
 }
