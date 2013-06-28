@@ -95,7 +95,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/js/xdate.js");
-    white_list.insert("/js/handlebars.runtime-1.0.0.beta.6.js");
+    white_list.insert("/js/handlebars.runtime-1.0.0.js");
     white_list.insert("/js/template.js");
     white_list.insert("/js/rethinkdb.js");
     white_list.insert("/fonts/copse-regular-webfont.eot");

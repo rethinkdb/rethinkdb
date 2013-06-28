@@ -54,7 +54,7 @@ module 'MachineView', ->
             )
             @data = new MachineView.Data model: @model
             @logs = new LogView.Container
-                route: "/ajax/log/"+@model.get('id')+"?"
+                route: "ajax/log/"+@model.get('id')+"?"
                 type: 'machine'
 
             machines.on 'remove', @check_if_still_exists
@@ -226,7 +226,7 @@ module 'MachineView', ->
             super
 
             $.ajax
-                url: "/ajax/semilattice/machines/"+@model.get('id')+"/datacenter_uuid"
+                url: "ajax/semilattice/machines/"+@model.get('id')+"/datacenter_uuid"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify null
