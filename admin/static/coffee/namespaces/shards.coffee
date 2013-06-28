@@ -154,7 +154,7 @@ module 'NamespaceView', ->
 
                 $.ajax
                      processData: false
-                     url: "/ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}?prefer_distribution=1"
+                     url: "ajax/semilattice/#{@model.attributes.protocol}_namespaces/#{@model.get('id')}?prefer_distribution=1"
                      type: 'POST'
                      contentType: 'application/json'
                      data: JSON.stringify(data)

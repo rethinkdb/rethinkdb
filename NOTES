@@ -1,3 +1,21 @@
+# Release 1.6.1 (Fargo)
+
+Released on 2013-06-19
+
+## Critical Security Fixes ##
+
+* Fixed a buffer overflow in the networking code
+* Fixed a possible timing attack on the API key
+
+## Other Changes ##
+
+* In python, `r.table_list()` no longer throws an error (#1005)
+* Fixed compilation failures with clang 3.2 (#1006)
+* Fixed compilation failures with gcc 4.4 (#1011)
+* Fixed problems with resolving a conflicted auth_key (#1024)
+
+--
+
 # Release 1.6.0 (Fargo)
 
 Released on 2013-06-13
@@ -33,7 +51,7 @@ This release introduces basic access control, regular expression matching, new a
       * `count`: returns the number of elements in an array
       * `indexes_of`: returns positions of elements that match the specified value in an array
       * `is_empty`: check if an array or table is empty
-      * `set_insert`: adds an element to a set    
+      * `set_insert`: adds an element to a set
       * `set_intersection`: finds the intersection of two sets
       * `set_union`: returns the union of two sets
       * `set_difference`: returns the difference of two sets
@@ -78,6 +96,8 @@ This release introduces basic access control, regular expression matching, new a
   * Always fetch and use the same version of Handlebars.js (#821, #819, #958)
   * Check for versions of LESS that are known to work (#956)
   * Removed bitrotted MOCK_CACHE_CHECK option (#804)
+
+--
 
 # Release 1.5.2 (Le Gras de Ouate)
 
