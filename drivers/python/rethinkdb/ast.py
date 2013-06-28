@@ -1,6 +1,7 @@
 import ql2_pb2 as p
 import types
 import sys
+import json as py_json
 from threading import Lock
 from errors import *
 import repl # For the repl connection
@@ -23,6 +24,39 @@ def expr(val):
         return Func(val)
     else:
         return Datum(val)
+
+# Like expr but attempts to serialize as much of the value as JSON
+# as possible. 
+def exprJSON(val):
+    if isinstance(val, RqlQuery):
+        return val
+    elif isJSON(val):
+        return Json(py_json.dumps(val))
+    elif isinstance(val, dict):
+        copy = val.copy()
+        for k,v in copy.iteritems():
+            copy[k] = exprJSON(v)
+        return MakeObj(copy)
+    elif isinstance(val, list):
+        copy = []
+        for v in val:
+            copy.append(exprJSON(v))
+        return MakeArray(*copy)
+    else:
+        # Default to datum serialization
+        return expr(val)
+
+def isJSON(val):
+    if isinstance(val, RqlQuery):
+        return False
+    elif isinstance(val, dict):
+        return all([isJSON(v) for k,v in val.iteritems()])
+    elif isinstance(val, list):
+        return all([isJSON(v) for v in val])
+    elif isinstance(val, (int, float, str, unicode, bool)):
+        return True
+    else:
+        return False
 
 class RqlQuery(object):
 
@@ -647,7 +681,7 @@ class Table(RqlQuery):
     st = 'table'
 
     def insert(self, records, upsert=(), durability=(), return_vals=()):
-        return Insert(self, records, upsert=upsert,
+        return Insert(self, exprJSON(records), upsert=upsert,
                       durability=durability, return_vals=return_vals)
 
     def get(self, key):

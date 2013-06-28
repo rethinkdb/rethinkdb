@@ -11,10 +11,7 @@ CPP_PB_FILE=$(PBCPP_SRC)/$(PROTO_BASE).pb.cc
 PBCPP=pbcpp.so
 PBCPP_BUILT=./build/lib.linux-x86_64-2.7/pbcpp.so
 
-PROTOBUF_SRC=protobuf
-PROTOBUF_DIST=$(PROTOBUF_SRC)/python/dist/protobuf-2.5.0.tar.gz
-
-all: $(PYTHON_PB_FILE) $(PBCPP) $(PROTOBUF_DIST)
+all: $(PYTHON_PB_FILE) $(PBCPP)
 
 $(PYTHON_PB_FILE): $(PROTO_FILE)
 	$(PROTOC) --python_out=$(PYTHON_SRC) -I$(PROTO_FILE_DIR) $(PROTO_FILE)
@@ -26,7 +23,7 @@ $(PBCPP): $(PBCPP_BUILT)
 	cp $(PBCPP_BUILT) $(PBCPP)
 
 $(PBCPP_BUILT): $(CPP_PB_FILE)
-	python setup.py build
+	python setup.py build 
 
 clean:
 	rm -f $(PYTHON_PB_FILE)
