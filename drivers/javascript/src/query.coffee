@@ -20,6 +20,8 @@ rethinkdb.expr = ar (val) ->
 
 rethinkdb.js = aropt (jssrc, opts) -> new JavaScript opts, jssrc
 
+rethinkdb.json = ar (jsonsrc) -> new Json {}, jsonsrc
+
 rethinkdb.error = varar 0, 1, (args...) -> new UserError {}, args...
 
 rethinkdb.row = new ImplicitVar {}

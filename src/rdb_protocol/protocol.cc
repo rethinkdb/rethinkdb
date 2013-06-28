@@ -193,6 +193,11 @@ void post_construct_and_drain_queue(
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
+            // If we get interrupted, post-construction will happen later, no need to
+            //  guarantee that we touch the sindex tree now
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+                destroyer(&token_pair.sindex_write_token);
+
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
@@ -270,6 +275,11 @@ void post_construct_and_drain_queue(
 
         scoped_ptr_t<transaction_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
+
+        // If we get interrupted, post-construction will happen later, no need to
+        //  guarantee that we touch the sindex tree now
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+            destroyer(&token_pair.sindex_write_token);
 
         store->acquire_superblock_for_write(
             rwi_write,
@@ -1231,8 +1241,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_modification_report_t mod_report(r.key);
         rdb_replace(btree, timestamp, txn, superblock->get(),
-                    r.primary_key, r.key, f, &ql_env, res,
-                    &mod_report.info);
+                    r.primary_key, r.key, f,
+                    r.return_vals ? RETURN_VALS : NO_RETURN_VALS,
+                    &ql_env, res, &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -1640,7 +1651,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs);
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs, return_vals);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);

@@ -46,8 +46,8 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
            base_exc_t::GENERIC,
            strprintf("Table `%s` does not exist.", table_name.c_str()));
     guarantee(!ns_metadata_it->second.is_deleted());
-    r_sanity_check(!ns_metadata_it->second.get().primary_key.in_conflict());
-    pkey =  ns_metadata_it->second.get().primary_key.get();
+    r_sanity_check(!ns_metadata_it->second.get_ref().primary_key.in_conflict());
+    pkey =  ns_metadata_it->second.get_ref().primary_key.get();
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
@@ -73,9 +73,11 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
                                           counted_t<func_t> replacement_generator,
                                           bool nondet_ok,
-                                          durability_requirement_t durability_requirement) {
+                                          durability_requirement_t durability_requirement,
+                                          bool return_vals) {
     try {
-        return do_replace(original, replacement_generator, nondet_ok, durability_requirement);
+        return do_replace(original, replacement_generator, nondet_ok,
+                          durability_requirement, return_vals);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
@@ -84,9 +86,11 @@ counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
 counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
                                           counted_t<const datum_t> replacement,
                                           bool upsert,
-                                          durability_requirement_t durability_requirement) {
+                                          durability_requirement_t durability_requirement,
+                                          bool return_vals) {
     try {
-        return do_replace(original, replacement, upsert, durability_requirement);
+        return do_replace(original, replacement, upsert,
+                          durability_requirement, return_vals);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
@@ -225,7 +229,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                                    rdb_protocol_t::point_replace_t(
                                        pk, store_key,
                                        *replacements[i].replacer,
-                                       env->get_all_optargs())));
+                                       env->get_all_optargs(),
+                                       false)));
             }
         } catch (const base_exc_t& exc) {
             ret[i] = make_error_datum(exc);
@@ -312,7 +317,8 @@ counted_t<const datum_t> table_t::sindex_list() {
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              const map_wire_func_t &mwf,
-                                             durability_requirement_t durability_requirement) {
+                                             durability_requirement_t durability_requirement,
+                                             bool return_vals) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -325,10 +331,10 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
         }
     }
     store_key_t store_key(orig->get(pk)->print_primary());
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_replace_t(pk, store_key,
-                                                                  mwf,
-                                                                  env->get_all_optargs()),
-                                  durability_requirement);
+    rdb_protocol_t::write_t write(
+        rdb_protocol_t::point_replace_t(
+            pk, store_key, mwf, env->get_all_optargs(), return_vals),
+        durability_requirement);
 
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if()->write(
@@ -340,19 +346,23 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              counted_t<func_t> f,
                                              bool nondet_ok,
-                                             durability_requirement_t durability_requirement) {
+                                             durability_requirement_t durability_requirement,
+                                             bool return_vals) {
     if (f->is_deterministic()) {
-        return do_replace(orig, map_wire_func_t(env, f), durability_requirement);
+        return do_replace(orig, map_wire_func_t(env, f),
+                          durability_requirement, return_vals);
     } else {
         r_sanity_check(nondet_ok);
-        return do_replace(orig, f->call(orig)->as_datum(), true, durability_requirement);
+        return do_replace(orig, f->call(orig)->as_datum(), true,
+                          durability_requirement, return_vals);
     }
 }
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              counted_t<const datum_t> d,
                                              bool upsert,
-                                             durability_requirement_t durability_requirement) {
+                                             durability_requirement_t durability_requirement,
+                                             bool return_vals) {
     Term t;
     int x = env->gensym();
     Term *arg = pb::set_func(&t, x);
@@ -367,7 +377,7 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
 
     propagate(&t);
     return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()),
-                      durability_requirement);
+                      durability_requirement, return_vals);
 }
 
 const std::string &table_t::get_pkey() { return pkey; }

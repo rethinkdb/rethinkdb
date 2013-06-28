@@ -1,6 +1,7 @@
 import ql2_pb2 as p
 import types
 import sys
+import json as py_json
 from threading import Lock
 from errors import *
 import repl # For the repl connection
@@ -23,6 +24,39 @@ def expr(val):
         return Func(val)
     else:
         return Datum(val)
+
+# Like expr but attempts to serialize as much of the value as JSON
+# as possible. 
+def exprJSON(val):
+    if isinstance(val, RqlQuery):
+        return val
+    elif isJSON(val):
+        return Json(py_json.dumps(val))
+    elif isinstance(val, dict):
+        copy = val.copy()
+        for k,v in copy.iteritems():
+            copy[k] = exprJSON(v)
+        return MakeObj(copy)
+    elif isinstance(val, list):
+        copy = []
+        for v in val:
+            copy.append(exprJSON(v))
+        return MakeArray(*copy)
+    else:
+        # Default to datum serialization
+        return expr(val)
+
+def isJSON(val):
+    if isinstance(val, RqlQuery):
+        return False
+    elif isinstance(val, dict):
+        return all([isJSON(v) for k,v in val.iteritems()])
+    elif isinstance(val, list):
+        return all([isJSON(v) for v in val])
+    elif isinstance(val, (int, float, str, unicode, bool)):
+        return True
+    else:
+        return False
 
 class RqlQuery(object):
 
@@ -194,14 +228,16 @@ class RqlQuery(object):
     def default(self, handler):
         return Default(self, handler)
 
-    def update(self, func, non_atomic=(), durability=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def update(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic,
+                      durability=durability, return_vals=return_vals)
 
-    def replace(self, func, non_atomic=(), durability=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def replace(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic,
+                       durability=durability, return_vals=return_vals)
 
-    def delete(self, durability=()):
-        return Delete(self, durability=durability)
+    def delete(self, durability=(), return_vals=()):
+        return Delete(self, durability=durability, return_vals=return_vals)
 
     # Rql type inspection
     def coerce_to(self, other_type):
@@ -242,7 +278,7 @@ class RqlQuery(object):
         elif isinstance(index, int):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
-            return GetAttr(self, index)
+            return GetField(self, index)
 
     def nth(self, index):
         return Nth(self, index)
@@ -574,8 +610,8 @@ class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetAttr(RqlQuery):
-    tt = p.Term.GETATTR
+class GetField(RqlQuery):
+    tt = p.Term.GET_FIELD
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
@@ -644,14 +680,15 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=(), durability=()):
-        return Insert(self, records, upsert=upsert, durability=durability)
+    def insert(self, records, upsert=(), durability=(), return_vals=()):
+        return Insert(self, exprJSON(records), upsert=upsert,
+                      durability=durability, return_vals=return_vals)
 
     def get(self, key):
         return Get(self, key)
 
-    def get_all(self, key, index=()):
-        return GetAll(self, key, index=index)
+    def get_all(self, *keys, **kwargs):
+        return GetAll(self, *keys, **kwargs)
 
     def index_create(self, name, fundef=None):
         if fundef:
@@ -868,6 +905,10 @@ class ChangeAt(RqlMethodQuery):
 class Sample(RqlMethodQuery):
     tt = p.Term.SAMPLE
     st = 'sample'
+
+class Json(RqlTopLevelQuery):
+    tt = p.Term.JSON
+    st = 'json'
 
 # Called on arguments that should be functions
 def func_wrap(val):

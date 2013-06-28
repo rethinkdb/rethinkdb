@@ -235,7 +235,7 @@ message Term {
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
-        GET_ALL = 78; // Table, JSON {index:!STRING} => ARRAY
+        GET_ALL = 78; // Table, DATUM..., {index:!STRING} => ARRAY
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -277,9 +277,10 @@ message Term {
         CONTAINS = 93; // Sequence, DATUM -> BOOL
 
         // Stream/Object Ops
-        // Get a particular attribute out of an object, or map that over a
+        // Get a particular field from an object, or map that over a
         // sequence.
-        GETATTR  = 31; // OBJECT, STRING -> DATUM
+        GET_FIELD  = 31; // OBJECT, STRING -> DATUM
+                         // | Sequence, STRING -> Sequence
         // Return an array containing the keys of the object.
         KEYS = 94; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,
@@ -367,19 +368,19 @@ message Term {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
+        DELETE   = 54; // StreamSelection, {durability:STRING} -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL} -> OBJECT
+        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
@@ -391,8 +392,8 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
+                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -494,6 +495,10 @@ message Term {
         // passed either the text of the error or NULL as its
         // argument.
         DEFAULT = 92; // Top, Top -> Top
+
+        // Parses its first argument as a json string and returns it as a
+        // datum.
+        JSON = 98; // STRING -> DATUM
     }
     optional TermType type = 1;
 

@@ -173,7 +173,7 @@ public:
         iterator it;
         for (it = start; it != end(); ++it) {
             if (it->second.is_deleted()) continue;
-            if (predicate(it->second.get())) break;
+            if (predicate(it->second.get_ref())) break;
         }
         return it;
     }

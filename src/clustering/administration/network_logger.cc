@@ -79,10 +79,10 @@ std::string network_logger_t::pretty_print_machine(machine_id_t id) {
     std::string name;
     if (jt->second.is_deleted()) {
         name = "<ghost machine>";
-    } else if (jt->second.get().name.in_conflict()) {
+    } else if (jt->second.get_ref().name.in_conflict()) {
         name = "<name in conflict>";
     } else {
-        name = "\"" + jt->second.get().name.get().str() + "\"";
+        name = "\"" + jt->second.get_ref().name.get().str() + "\"";
     }
     return name + " " + uuid_to_str(id);
 }

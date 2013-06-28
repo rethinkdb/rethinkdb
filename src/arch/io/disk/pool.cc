@@ -43,33 +43,36 @@ pool_diskmgr_t::~pool_diskmgr_t() {
 }
 
 void pool_diskmgr_t::action_t::run() {
-    if (is_read) {
-        ssize_t res;
-        do {
-            res = pread(fd, buf, count, offset);
-        } while (res == -1 && errno == EINTR);
-        io_result = res >= 0 ? res : -errno;
-    } else {
-        ssize_t res;
-        do {
-            res = pwrite(fd, buf, count, offset);
-        } while (res == -1 && errno == EINTR);
-        io_result = res >= 0 ? res : -errno;
-
-        // On OS X, we have to manually fsync to complete the write.  (We use F_FULLFSYNC because
-        // fsync lies.)  On Linux we just open the descriptor with the O_DSYNC flag.
-#ifndef FILE_SYNC_TECHNIQUE
-#error "FILE_SYNC_TECHNIQUE is not defined"
-#elif FILE_SYNC_TECHNIQUE == FILE_SYNC_TECHNIQUE_FULLFSYNC
-        if (res >= 0) {
-            int fcntl_res;
-            do {
-                fcntl_res = fcntl(fd, F_FULLFSYNC);
-            } while (fcntl_res == -1 && errno == EINTR);
-
-            io_result = fcntl_res == -1 ? -errno : res;
+    if (wrap_in_datasyncs) {
+        int errcode = perform_datasync(fd);
+        if (errcode != 0) {
+            io_result = -errcode;
+            return;
         }
-#endif  // FILE_SYNC_TECHNIQUE
+    }
+
+    ssize_t res;
+    do {
+        if (is_read) {
+            res = pread(fd, buf, count, offset);
+        } else {
+            res = pwrite(fd, buf, count, offset);
+        }
+    } while (res == -1 && errno == EINTR);
+
+    if (res == -1) {
+        io_result = -errno;
+        return;
+    }
+
+    io_result = res;
+
+    if (wrap_in_datasyncs) {
+        int errcode = perform_datasync(fd);
+        if (errcode != 0) {
+            io_result = -errcode;
+            return;
+        }
     }
 }
 

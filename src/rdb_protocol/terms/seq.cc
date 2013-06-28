@@ -106,9 +106,8 @@ private:
         if (rb->get_type() == datum_t::R_NULL) {
             rb.reset();
         }
-        if (!lb.has() && !rb.has()) {
-            return new_val(tbl->as_datum_stream(), tbl);
-        } else if (lb.has() && rb.has() && *lb > *rb) {
+
+        if (lb.has() && rb.has() && *lb > *rb) {
             counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
             counted_t<datum_stream_t> ds(
                 new array_datum_stream_t(env, arr, backtrace()));

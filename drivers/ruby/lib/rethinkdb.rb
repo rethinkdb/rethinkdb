@@ -78,10 +78,10 @@ module RethinkDB
 
     attr_accessor :body, :bitop
 
-    def initialize(body = nil, bitop = nil)
+    def initialize(body = nil, bitop = nil, context = nil)
       @body = body
       @bitop = bitop
-      @body.context = RPP.sanitize_context caller if @body
+      @body.context = (context || RPP.sanitize_context(caller)) if @body
     end
 
     def pp

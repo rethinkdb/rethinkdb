@@ -46,11 +46,13 @@ public:
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
                                      bool nondet_ok,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
                                      bool upsert,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -92,15 +94,18 @@ private:
 
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         const map_wire_func_t &mwf,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
                                         bool nondet_ok,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
                                         bool upsert,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
 
     env_t *env;
     bool use_outdated;
@@ -190,6 +195,16 @@ public:
             // TODO: Do something smarter here?
             return strprintf("OPAQUE VALUE %s", get_type().name());
         }
+    }
+
+    static const size_t trunc_len = 300;
+    std::string trunc_print() {
+        std::string s = print();
+        if (s.size() > trunc_len) {
+            s.erase(s.begin() + (trunc_len - 3), s.end());
+            s += "...";
+        }
+        return s;
     }
 
 private:
