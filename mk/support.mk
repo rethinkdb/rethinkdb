@@ -203,7 +203,7 @@ $(GPERFTOOLS_SRC_DIR):
 
 $(LIBUNWIND_SRC_DIR):
 	$P DOWNLOAD libunwind
-	$(GETURL) http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz | ( \
+	$(GETURL) http://gnu.mirrors.pair.com/savannah/savannah//libunwind/libunwind-1.1.tar.gz | ( \
 	  cd $(TC_SRC_DIR) && \
 	  tar -xzf - && \
 	  rm -rf libunwind && \
