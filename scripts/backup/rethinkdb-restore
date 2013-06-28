@@ -75,8 +75,12 @@ def parse_options():
 def do_unzip(temp_dir, options):
     print "Unzipping archive file..."
     start_time = time.time()
-    tar_args = ["tar", "xzf", options["in_file"], "--force-local", "--strip-components=1", "--wildcards"]
+    tar_args = ["tar", "xzf", options["in_file"], "--strip-components=1"]
     tar_args.extend(["-C", temp_dir])
+
+    if sys.platform.startswith("linux"):
+        # These are not supported on OSX (and not needed, default behavior works)
+        tar_args.extend(["--force-local", "--wildcards"])
 
     # Only untar the selected tables
     # Apparently tar has problems if the same file is specified by two filters, so remove dupes
