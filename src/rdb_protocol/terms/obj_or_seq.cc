@@ -107,8 +107,13 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             paths.push_back(arg(i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(paths));
-        return new_val(project(obj, pathspec, DONT_RECURSE));
+        try {
+            pathspec_t pathspec(make_counted<const datum_t>(paths));
+            return new_val(project(obj, pathspec, DONT_RECURSE));
+        } catch (const pathspec_t::malformed_pathspec_exc_t &) {
+            rfail(base_exc_t::GENERIC, "Failed to pluck using %s.",
+                  datum_t(paths).print().c_str());
+        }
     }
     virtual const char *name() const { return "pluck"; }
 };
