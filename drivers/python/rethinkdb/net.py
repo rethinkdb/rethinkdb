@@ -7,7 +7,6 @@ import struct
 from os import environ
 
 try:
-  print 'trying cpp'
   # The pbcpp module is installed when passing the --with-native-protobuf
   # flag to pip
   import pbcpp
@@ -18,7 +17,6 @@ try:
   environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
   protobuf_implementation = 'cpp'
 except ImportError, e:
-  print 'cpp failed'
   # If it doesn't work, use the python implementation of protobuf
   environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
   protobuf_implementation = 'python'
