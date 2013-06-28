@@ -7,7 +7,7 @@ commands:
       expression, or a combination of the two.  The optional argument
       <code>durability</code> with value <code>'hard'</code> or
       <code>'soft'</code> will override the table or query's default
-      durability setting.  The optional argument
+      durability setting.  The optional argument <code>return_vals</code> will return the old and new values of the row you're modifying when set to true (only valid for single-row updates).  The optional argument
       <code>non_atomic</code> lets you permit non-atomic updates.<br/><br/>
       Update returns an object that contains the following attributes:
       <ul>

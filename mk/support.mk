@@ -115,7 +115,7 @@ $(TC_LESSC_INT_EXE): $(NODE_MODULES_DIR)/less | $(dir $(TC_LESSC_INT_EXE)).
 
 $(NODE_MODULES_DIR)/less: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I less
-	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.3.3 $(SUPPORT_LOG_REDIRECT)
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.4.0 $(SUPPORT_LOG_REDIRECT)
 
 $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_EXE)).
 	$P LN
@@ -137,7 +137,7 @@ $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS
 $(NODE_MODULES_DIR)/handlebars: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I handlebars
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install handlebars@1.0.7 $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install handlebars@1.0.12 $(SUPPORT_LOG_REDIRECT)
 
 $(V8_SRC_DIR):
 	$P SVN-CO v8

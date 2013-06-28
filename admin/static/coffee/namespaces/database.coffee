@@ -224,7 +224,7 @@ module 'DatabaseView', ->
 
             $.ajax
                 processData: false
-                url: '/ajax/semilattice'
+                url: 'ajax/semilattice'
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(post_data)

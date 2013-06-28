@@ -3,7 +3,7 @@ commands:
     section: writing_data
     order: 3
     description: |
-      Delete one or more documents from a table.  The optional argument
+      Delete one or more documents from a table.  The optional argument <code>return_vals</code> will return the old value of the row you're deleting when set to true (only valid for single-row deletes).  The optional argument
       <code>durability</code> with value <code>'hard'</code> or
       <code>'soft'</code> will override the table or query's default
       durability setting.<br/><br/>

@@ -162,6 +162,7 @@ void rdb_replace_and_return_superblock(
     const std::string &primary_key,
     const store_key_t &key,
     ql::map_wire_func_t *f,
+    return_vals_t return_vals,
     ql::env_t *ql_env,
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
@@ -188,9 +189,18 @@ void rdb_replace_and_return_superblock(
             old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
         }
         guarantee(old_val.has());
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp->add("old_val", old_val)
+                         || resp->add("new_val", old_val); // changed below
+            guarantee(!conflict);
+        }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp->add("new_val", new_val, ql::CLOBBER);
+            guarantee(conflict); // We set it to `old_val` previously.
+        }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
@@ -219,6 +229,7 @@ void rdb_replace_and_return_superblock(
         // conflict when constructing the stats object.  It defaults to `true`
         // so that we fail an assertion if we never update the stats object.
         bool conflict = true;
+
         // Figure out what operation we're doing (based on started_empty,
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
@@ -280,11 +291,13 @@ void rdb_replace(btree_slice_t *slice,
                  const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
+                 return_vals_t return_vals,
                  ql::env_t *ql_env,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info) {
-    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, primary_key,
-                                      key, f, ql_env, NULL, response_out, mod_info);
+    rdb_replace_and_return_superblock(
+        slice, timestamp, txn, superblock, primary_key,
+        key, f, return_vals, ql_env, NULL, response_out, mod_info);
 }
 
 struct slice_timestamp_txn_replace_t {
@@ -312,8 +325,9 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
-                                      sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
-                                      superblock_promise_or_null, response_out, &mod_report.info);
+                                      sttr.replace->primary_key, sttr.replace->key, &f,
+                                      NO_RETURN_VALS, ql_env, superblock_promise_or_null,
+                                      response_out, &mod_report.info);
 
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);

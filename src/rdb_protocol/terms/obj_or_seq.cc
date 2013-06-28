@@ -6,6 +6,8 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
+#pragma GCC diagnostic ignored "-Wshadow"
+
 namespace ql {
 
 // This term is used for functions that are polymorphic on objects and
@@ -15,15 +17,30 @@ class obj_or_seq_op_term_t : public op_term_t {
 public:
     enum poly_type_t {
         MAP = 0,
-        FILTER = 1
+        FILTER = 1,
+        SKIP_MAP = 2
     };
     obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
         : op_term_t(env, term, argspec), poly_type(_poly_type),
           func(make_counted_term()) {
         int varnum = env->gensym();
-        Term *body = pb::set_func(func.get(), varnum);
-        *body = *term;
+        Term *arg = pb::set_func(func.get(), varnum);
+        Term *body = NULL;
+        switch (poly_type) {
+        case MAP: // fallthru
+        case FILTER: {
+            body = arg;
+            *arg = *term;
+        } break;
+        case SKIP_MAP: {
+            N2(DEFAULT,
+               N1(MAKE_ARRAY, body = arg; *arg = *term),
+               N0(MAKE_ARRAY));
+        } break;
+        default: unreachable();
+        }
+        r_sanity_check(body != NULL);
         pb::set_var(pb::reset(body->mutable_args(0)), varnum);
         prop_bt(func.get());
     }
@@ -31,21 +48,33 @@ private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) = 0;
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v0 = arg(0);
+        counted_t<const datum_t> d;
+
         if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
-            if (v0->as_datum()->get_type() == datum_t::R_OBJECT) return obj_eval(v0);
+            d = v0->as_datum();
         }
-        if (v0->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+
+        if (d.has() && d->get_type() == datum_t::R_OBJECT) {
+            return obj_eval(v0);
+        } else if ((d.has() && d->get_type() == datum_t::R_ARRAY) ||
+                   (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
+            // The above if statement is complicated because it produces better
+            // error messages on e.g. strings.
             switch (poly_type) {
             case MAP:
                 return new_val(v0->as_seq()->map(make_counted<func_t>(env, func)));
             case FILTER:
                 return new_val(v0->as_seq()->filter(make_counted<func_t>(env, func)));
+            case SKIP_MAP:
+                return new_val(v0->as_seq()->concatmap(make_counted<func_t>(env, func)));
             default: unreachable();
             }
             unreachable();
         }
+
         rfail_typed_target(
-            v0, "Cannot perform %s on a non-object non-sequence.", name());
+            v0, "Cannot perform %s on a non-object non-sequence `%s`.",
+            name(), v0->trunc_print().c_str());
         unreachable();
     }
 
@@ -127,6 +156,21 @@ private:
     }
     virtual const char *name() const { return "has_fields"; }
 };
+
+class get_field_term_t : public obj_or_seq_op_term_t {
+public:
+    get_field_term_t(env_t *env, protob_t<const Term> term)
+        : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
+private:
+    virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
+        return new_val(v0->as_datum()->get(arg(1)->as_str()));
+    }
+    virtual const char *name() const { return "get_field"; }
+};
+
+counted_t<term_t> make_get_field_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<get_field_term_t>(env, term);
+}
 
 counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term) {
     return make_counted<has_fields_term_t>(env, term);

@@ -87,7 +87,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GETATTR, NVAR(1), NDATUM("sid"));
+    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
 
     ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 

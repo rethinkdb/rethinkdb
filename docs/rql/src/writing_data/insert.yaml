@@ -7,7 +7,7 @@ commands:
       document or an array of documents.  You may also pass the
       optional argument <code>durability</code> with value
       <code>'hard'</code> or <code>'soft'</code>, to override the
-      table or query's default durability setting.<br/><br/>
+      table or query's default durability setting, or the optional argument <code>return_vals>, which will return the value of the row you're inserting (and the old value if you use <code>upsert</code>) when set to true.<br/><br/>
       Insert returns an object that contains the following attributes:
       <ul>
       <li><code>inserted</code> - the number of documents that were succesfully inserted;</li>

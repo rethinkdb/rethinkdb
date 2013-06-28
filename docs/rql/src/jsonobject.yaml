@@ -292,9 +292,9 @@ commands:
           py: r.table('marvel').get('IronMan')['equipment'].set_difference(['newBoots', 'arc_reactor']).run(conn)
           rb: r.table('marvel').get('IronMan')[:equipment].set_difference(['newBoots', 'arc_reactor']).run(conn)
 
-  - tag: getattr
+  - tag: get_field
     section: jsonobject
-    description: Get a single attribute from an object.
+    description: Get a single field from an object.  If called on a sequence, gets that field from every object in the sequence, skipping objects that lack it.
 
     name:
       js: "()"
