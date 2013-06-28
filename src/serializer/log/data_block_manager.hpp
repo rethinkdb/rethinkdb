@@ -42,10 +42,6 @@ public:
     void destroy();
     ~gc_entry_t();
 
-#ifndef NDEBUG
-    void print();
-#endif
-
     // Lists the num_blocks() offsets of the blocks, followed by some upper bound for
     // the last block that is no greater than the extent size.  For example, an
     // extent with three blocks, each of size 4093, might return { 0, 4093, 8192,
@@ -53,6 +49,9 @@ public:
     // Blocks are noncontiguous because each chunk of block writes must start at a
     // discrete device block boundary.
     std::vector<uint32_t> block_boundaries() const;
+
+    // RSI: Document.
+    uint32_t back_relative_offset() const;
 
     // Returns the ostensible size of the block_index'th block.  Note that
     // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
@@ -67,50 +66,66 @@ public:
                     uint32_t *relative_offset_out,
                     unsigned int *block_index_out);
 
-    unsigned int num_blocks() const { return num_allocated_blocks; }
-    unsigned int num_garbage_blocks() const { return g_array.count(); }
-    unsigned int num_live_blocks() const { return g_array.size() - g_array.count(); }
+    unsigned int num_blocks() const {
+        guarantee(state != state_reconstructing);
+        return block_infos.size();
+    }
+    // RSI: Does anybody actually use num_garbage_blocks or num_live_blocks?
+    unsigned int num_garbage_blocks() const {
+        unsigned int count = 0;
+        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+            if (!it->token_referenced && !it->index_referenced) {
+                ++count;
+            }
+        }
+        return count;
+    }
+    unsigned int num_live_blocks() const { return num_blocks() - num_garbage_blocks(); }
 
-    bool all_garbage() const { return g_array.size() == g_array.count(); }
+    bool all_garbage() const { return num_live_blocks() == 0; }
     uint64_t garbage_bytes() const;
     bool block_is_garbage(unsigned int block_index) const {
-        return g_array[block_index];
+        guarantee(state != state_reconstructing);
+        guarantee(block_index < block_infos.size());
+        return !block_infos[block_index].token_referenced && !block_infos[block_index].index_referenced;
     }
 
     void mark_live_tokenwise(unsigned int block_index) {
-        t_array.set(block_index, 1);
-        update_g_array(block_index);
+        guarantee(state != state_reconstructing);
+        guarantee(block_index < block_infos.size());
+        block_infos[block_index].token_referenced = true;
     }
 
     void mark_garbage_tokenwise(unsigned int block_index) {
-        rassert(t_array[block_index] == 1);
-        t_array.set(block_index, 0);
-        update_g_array(block_index);
+        guarantee(state != state_reconstructing);
+        guarantee(block_index < block_infos.size());
+        block_infos[block_index].token_referenced = false;
     }
 
     uint64_t token_bytes() const;
 
     // The "indexwise" here refers to the LBA index, not the block_index parameter.
     void mark_live_indexwise(unsigned int block_index) {
-        i_array.set(block_index, 1);
-        update_g_array(block_index);
+        guarantee(state != state_reconstructing);
+        block_infos[block_index].index_referenced = true;
     }
 
     void mark_live_indexwise_with_offset(int64_t block_offset, uint32_t ser_block_size);
 
     void mark_garbage_indexwise(unsigned int block_index) {
-        rassert(i_array[block_index] == 1);
-        i_array.set(block_index, 0);
-        update_g_array(block_index);
+        guarantee(state != state_reconstructing);
+        guarantee(block_infos[block_index].index_referenced);
+        block_infos[block_index].index_referenced = false;
     }
 
     bool block_referenced_by_index(unsigned int block_index) const {
-        return i_array[block_index];
+        guarantee(block_index < block_infos.size());
+        return block_infos[block_index].index_referenced;
     }
 
     uint64_t index_bytes() const;
 
-    void make_active(unsigned int blocks_in_active_extent);
+    void make_active();
 
 private:
     data_block_manager_t *const parent;
@@ -118,24 +133,6 @@ private:
 public:
     extent_reference_t extent_ref;
 
-private:
-    // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i]).  We only use
-    // it for its .count().
-    void update_g_array(unsigned int block_index) {
-        g_array.set(block_index, !(t_array[block_index] || i_array[block_index]));
-    }
-
-    // bit array for whether or not each block is garbage
-    bitset_t g_array;
-
-    // bit array for whether or not each block is referenced by some token
-    bitset_t t_array;
-
-    // bit array for whether or not each block is referenced by the current lba
-    // ("i"ndex)
-    bitset_t i_array;
-
-public:
     // When we started writing to the extent (this time).
     const microtime_t timestamp;
 
@@ -159,12 +156,19 @@ public:
         state_in_gc
     } state;
 
-
 private:
+    struct block_info_t {
+        uint32_t relative_offset;
+        uint32_t ser_block_size;
+        bool token_referenced;
+        bool index_referenced;
+    };
+
+    // Block information, ordered by relative offset.
+    std::vector<block_info_t> block_infos;
+
     // Used by constructors.
     void add_self_to_parent_entries();
-
-    unsigned int num_allocated_blocks;
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.

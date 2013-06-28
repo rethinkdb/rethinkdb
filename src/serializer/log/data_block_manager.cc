@@ -102,7 +102,7 @@ void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_
         guarantee(active_extent->state == gc_entry_t::state_reconstructing);
         reconstructed_extents.remove(active_extent);
 
-        active_extent->make_active(last_metablock->blocks_in_active_extent);
+        active_extent->make_active();
     } else {
         active_extent = NULL;
     }
@@ -956,36 +956,28 @@ void gc_entry_t::add_self_to_parent_entries() {
     unsigned int extent_id = parent->static_config->extent_index(extent_offset);
     guarantee(parent->entries.get(extent_id) == NULL);
     parent->entries.set(extent_id, this);
-    g_array.set();
 
     ++parent->stats->pm_serializer_data_extents;
 }
 
+// Constructs a new active extent.
 gc_entry_t::gc_entry_t(data_block_manager_t *_parent)
     : parent(_parent),
       extent_ref(parent->extent_manager->gen_extent()),
-      g_array(parent->static_config->blocks_per_extent()),
-      t_array(parent->static_config->blocks_per_extent()),
-      i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
       was_written(false),
       state(state_active),
-      num_allocated_blocks(0),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
 
+// Constructor for a mid-reconstructing extent.
 gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
     : parent(_parent),
       extent_ref(parent->extent_manager->reserve_extent(_offset)),
-      g_array(parent->static_config->blocks_per_extent()),
-      t_array(parent->static_config->blocks_per_extent()),
-      i_array(parent->static_config->blocks_per_extent()),
       timestamp(current_microtime()),
       was_written(false),
       state(state_reconstructing),
-      // RSI: We'll have to figure out a way to do this.
-      num_allocated_blocks(parent->static_config->blocks_per_extent()),
       extent_offset(extent_ref.offset()) {
     add_self_to_parent_entries();
 }
@@ -998,49 +990,75 @@ gc_entry_t::~gc_entry_t() {
     --parent->stats->pm_serializer_data_extents;
 }
 
+uint32_t gc_entry_t::back_relative_offset() const {
+    return block_infos.empty()
+        ? 0
+        : block_infos.back().relative_offset + block_infos.back().ser_block_size;
+}
+
 std::vector<uint32_t> gc_entry_t::block_boundaries() const {
+    guarantee(state != state_reconstructing);
+
     std::vector<uint32_t> ret;
-    uint32_t block_size = parent->static_config->block_size().ser_value();
-    for (unsigned int i = 0, e = g_array.size(); i <= e; ++i) {
-        ret.push_back(i * block_size);
+    for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+        ret.push_back(it->relative_offset);
     }
+
+    ret.push_back(back_relative_offset());
     return ret;
 }
 
-uint32_t gc_entry_t::block_size(UNUSED unsigned int block_index) const {
-    return parent->static_config->block_size().ser_value();
+uint32_t gc_entry_t::block_size(unsigned int block_index) const {
+    guarantee(state != state_reconstructing);
+    guarantee(block_index < block_infos.size());
+    return block_infos[block_index].ser_block_size;
 }
 
 uint32_t gc_entry_t::relative_offset(unsigned int block_index) const {
-    return block_index * parent->static_config->block_size().ser_value();
+    guarantee(state != state_reconstructing);
+    guarantee(block_index < block_infos.size());
+    return block_infos[block_index].relative_offset;
 }
 
 unsigned int gc_entry_t::block_index(const int64_t offset) const {
-    // RSI: When we have variable sized blocks, we'll need to change this
-    // implementation.
-    const int64_t relative_offset = offset % parent->static_config->extent_size();
-    return relative_offset / parent->static_config->block_size().ser_value();
+    guarantee(state != state_reconstructing);
+    guarantee(offset >= extent_ref.offset());
+    guarantee(offset < extent_ref.offset() + UINT32_MAX);
+    const uint32_t relative_offset = offset - extent_ref.offset();
+
+    for (unsigned int i = 0; i < block_infos.size(); ++i) {
+        if (block_infos[i].relative_offset == relative_offset) {
+            return i;
+        }
+    }
+
+    crash("block_index requested for invalid offset (offset = %ld)", offset);
 }
 
 bool gc_entry_t::new_offset(uint32_t ser_block_size,
                             uint32_t *relative_offset_out,
                             unsigned int *block_index_out) {
+    // Returns true if there's enough room at the end of the extent for the new
+    // block.
     guarantee(state == state_active);
-    guarantee(ser_block_size == parent->static_config->block_size().ser_value());
-    if (num_allocated_blocks < g_array.size()) {
-        *relative_offset_out = num_allocated_blocks * parent->static_config->block_size().ser_value();
-        *block_index_out = num_allocated_blocks;
-        ++num_allocated_blocks;
-        return true;
-    } else {
+    guarantee(ser_block_size <= parent->static_config->extent_size());
+
+    uint32_t offset = ceil_aligned(back_relative_offset(), DEVICE_BLOCK_SIZE);
+    guarantee(offset <= parent->static_config->extent_size());
+
+    if (offset > parent->static_config->extent_size() - ser_block_size) {
         return false;
+    } else {
+        *relative_offset_out = offset;
+        *block_index_out = block_infos.size();
+        block_infos.push_back(block_info_t{offset, ser_block_size, false, false});
+        return true;
     }
 }
 
-void gc_entry_t::make_active(unsigned int blocks_in_active_extent) {
+void gc_entry_t::make_active() {
     guarantee(state == state_reconstructing);
     state = state_active;
-    num_allocated_blocks = blocks_in_active_extent;
 }
 
 void gc_entry_t::destroy() {
@@ -1049,26 +1067,65 @@ void gc_entry_t::destroy() {
 }
 
 uint64_t gc_entry_t::garbage_bytes() const {
-    uint64_t x = g_array.count();
-    return x * parent->static_config->block_size().ser_value();
+    uint64_t b = parent->static_config->extent_size();
+    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+        if (it->token_referenced || it->index_referenced) {
+            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
+            b -= ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+        }
+    }
+    return b;
 }
 
 uint64_t gc_entry_t::token_bytes() const {
-    uint64_t x = t_array.count();
-    return x * parent->static_config->block_size().ser_value();
+    uint64_t b = 0;
+    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+        if (it->token_referenced) {
+            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
+            b += ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+        }
+    }
+    return b;
 }
 
 uint64_t gc_entry_t::index_bytes() const {
-    uint64_t x = i_array.count();
-    return x * parent->static_config->block_size().ser_value();
+    uint64_t b = 0;
+    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+        if (it->index_referenced) {
+            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
+            b += ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+        }
+    }
+    return b;
 }
 
 void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
                                                  uint32_t ser_block_size) {
-    // RSI: actually use ser_block_size, remove this assertion.
-    guarantee(ser_block_size == parent->static_config->block_size().ser_value());
+    guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
-    mark_live_indexwise(block_index(offset));
+    uint32_t relative_offset = offset - extent_ref.offset();
+
+    uint32_t last_back_offset = 0;
+    auto it = block_infos.begin();
+    while (it != block_infos.end()) {
+        if (it->relative_offset > relative_offset) {
+            guarantee(it->relative_offset >= relative_offset + ser_block_size);
+            block_infos.insert(it, block_info_t{relative_offset, ser_block_size, false, true});
+            return;
+        } else if (it->relative_offset == relative_offset) {
+            guarantee(it->ser_block_size == ser_block_size);
+            it->index_referenced = true;
+            return;
+        } else {
+            last_back_offset = it->relative_offset + it->ser_block_size;
+            guarantee(last_back_offset <= relative_offset);
+            ++it;
+        }
+    }
+
+    // We reached block_infos.end(), still haven't inserted our block!
+    // We already asserted that last_back_offset <= relative_offset.
+    block_infos.insert(it, block_info_t{relative_offset, ser_block_size, false, true});
 }
 
 
