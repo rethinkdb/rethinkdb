@@ -6,6 +6,7 @@
 #include <boost/variant.hpp>
 
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 
@@ -13,9 +14,9 @@ class pathspec_t {
 public:
     pathspec_t(const pathspec_t &other);
     pathspec_t& operator=(const pathspec_t &other);
-    explicit pathspec_t(const std::string &str);
-    explicit pathspec_t(const std::map<std::string, pathspec_t> &map);
-    explicit pathspec_t(counted_t<const datum_t> datum);
+    pathspec_t(const std::string &str, term_t *creator);
+    pathspec_t(const std::map<std::string, pathspec_t> &map, term_t *creator);
+    pathspec_t(counted_t<const datum_t> datum, term_t *creator);
     ~pathspec_t();
     const std::string *as_str() const {
         return (type == STR ? str : NULL);
@@ -28,12 +29,6 @@ public:
     const std::map<std::string, pathspec_t> *as_map() const {
         return (type == MAP ? map : NULL);
     }
-
-    class malformed_pathspec_exc_t : public std::exception {
-        const char *what() const throw () {
-            return "Couldn't compile pathspec.";
-        }
-    };
 
     std::string print(int tabs = 0) const {
         std::string res;
@@ -62,6 +57,8 @@ public:
     }
 
 private:
+    void init_from(const pathspec_t &other);
+
     enum type_t {
         STR,
         VEC,
@@ -74,7 +71,7 @@ private:
         std::map<std::string, pathspec_t> *map;
     };
 
-    void init_from(const pathspec_t &other);
+    term_t *creator;
 };
 
 enum recurse_flag_t {

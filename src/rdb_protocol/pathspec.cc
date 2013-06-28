@@ -11,13 +11,15 @@ pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
     return *this;
 }
 
-pathspec_t::pathspec_t(const std::string &_str) 
-    : type(STR), str(new std::string(_str)) { }
+pathspec_t::pathspec_t(const std::string &_str, term_t *_creator) 
+    : type(STR), str(new std::string(_str)), creator(_creator) { }
 
-pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map)
-    : type(MAP), map(new std::map<std::string, pathspec_t>(_map)) { }
+pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map, term_t *_creator)
+    : type(MAP), map(new std::map<std::string, pathspec_t>(_map)), creator(_creator) { }
 
-pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
+pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator) 
+    : creator(_creator)
+{
     if (datum->get_type() == datum_t::R_STR) {
         type = STR;
         str = new std::string(datum->as_str());
@@ -25,7 +27,7 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
         type = VEC;
         vec = new std::vector<pathspec_t>;
         for (size_t i = 0; i < datum->size(); ++i) {
-            vec->push_back(pathspec_t(datum->get(i)));
+            vec->push_back(pathspec_t(datum->get(i), creator));
         }
     } else if (datum->get_type() == datum_t::R_OBJECT) {
         scoped_ptr_t<std::vector<pathspec_t> > local_vec(new std::vector<pathspec_t>);
@@ -34,9 +36,9 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
              it != datum->as_object().end(); ++it) {
             if (it->second->get_type() == datum_t::R_BOOL &&
                 it->second->as_bool() == true) {
-                local_vec->push_back(pathspec_t(it->first));
+                local_vec->push_back(pathspec_t(it->first, creator));
             } else {
-                local_map->insert(std::make_pair(it->first, pathspec_t(it->second)));
+                local_map->insert(std::make_pair(it->first, pathspec_t(it->second, creator)));
             }
         }
 
@@ -47,11 +49,12 @@ pathspec_t::pathspec_t(counted_t<const datum_t> datum) {
             type = VEC;
             vec = local_vec.release();
             if (!local_map->empty()) {
-                vec->push_back(pathspec_t(*local_map));
+                vec->push_back(pathspec_t(*local_map, creator));
             }
         }
     } else {
-        throw malformed_pathspec_exc_t();
+        rfail_target(creator, base_exc_t::GENERIC, "Invalid path argument of `%s` to %s.",
+                datum->print().c_str(), creator->name());
     }
 
     if (type == VEC && vec->size() == 1) {
@@ -130,6 +133,7 @@ void pathspec_t::init_from(const pathspec_t &other) {
     default:
         unreachable();
     }
+    creator = other.creator;
 }
 
 void unproject_helper(datum_t *datum,

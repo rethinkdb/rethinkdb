@@ -68,8 +68,8 @@ private:
                    (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
-            if (counted_t<val_t> no_recurse = optarg("_NO_RECURSE_")) { 
-                rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC, 
+            if (counted_t<val_t> no_recurse = optarg("_NO_RECURSE_")) {
+                rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
                        strprintf("Cannot perform %s on a sequence of sequences.", name()));
             }
             switch (poly_type) {
@@ -107,13 +107,8 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             paths.push_back(arg(i)->as_datum());
         }
-        try {
-            pathspec_t pathspec(make_counted<const datum_t>(paths));
-            return new_val(project(obj, pathspec, DONT_RECURSE));
-        } catch (const pathspec_t::malformed_pathspec_exc_t &) {
-            rfail(base_exc_t::GENERIC, "Failed to pluck using %s.",
-                  datum_t(paths).print().c_str());
-        }
+        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        return new_val(project(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "pluck"; }
 };
