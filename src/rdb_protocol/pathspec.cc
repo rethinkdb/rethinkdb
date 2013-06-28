@@ -177,17 +177,23 @@ bool contains(counted_t<const datum_t> datum,
         const pathspec_t &pathspec) {
     bool res = true;
     if (const std::string *str = pathspec.as_str()) {
-        res &= datum->get(*str, NOTHROW).has();
+        if (!(res &= datum->get(*str, NOTHROW).has())) {
+            return res;
+        }
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
-            res &= contains(datum, *it);
+            if (!(res &= contains(datum, *it))) {
+                return res;
+            }
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
-                res &= contains(val, it->second);
+                if (!(res &= contains(val, it->second))) {
+                    return res;
+                }
             } else {
-                res = false;
+                return false;
             }
         }
     } else {
