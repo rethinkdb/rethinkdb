@@ -71,7 +71,7 @@ else
 endif
 
 .PHONY: install-binaries
-install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME) install-backup-scripts
 	$P INSTALL $^ $(DESTDIR)$(bin_dir)
 	install -m755 -d $(DESTDIR)$(bin_dir)
 	install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
@@ -79,6 +79,13 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$P STRIP $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 	$(STRIP_UNNEEDED) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
+
+install-backup-scripts: $(BACKUP_SCRIPTS_REAL) $(BACKUP_SCRIPTS_PROXY)
+	$P INSTALL backup-scripts $(DESTDIR)$(bin_dir)
+	install -m755 -d $(DESTDIR)$(bin_dir)
+	for file in $^; do \
+	  install -m755 $$file $(DESTDIR)$(bin_dir) ; \
+	done
 
 .PHONY: install-manpages
 install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
