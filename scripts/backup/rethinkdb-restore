@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, datetime, time, shutil, tempfile, subprocess
+import sys, os, datetime, time, shutil, tempfile, subprocess, string
 from optparse import OptionParser
 
 usage = "'rethinkdb restore` loads data into a rethinkdb cluster from an archive\n\
@@ -57,6 +57,8 @@ def parse_options():
     res["dbs"] = []
     res["tables"] = []
     for item in options.tables:
+        if not all(c in string.ascii_letters + string.digits + "._" for c in item):
+            raise RuntimeError("invalid 'db' or 'db.table' name: %s" % item)
         db_table = item.split(".")
         if len(db_table) == 1:
             res["dbs"].append(db_table[0])
