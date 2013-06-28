@@ -35,27 +35,22 @@ public:
         }
     };
 
-    std::string print_tabs(int tabs) const {
-        std::string res;
-        while (tabs --> 0) { res += "\t"; }
-        return res;
-    }
     std::string print(int tabs = 0) const {
         std::string res;
         switch (type) {
         case STR:
-            res += print_tabs(tabs) + strprintf("STR: %s\n", str->c_str());
+            res += std::string(tabs * 2, ' ') + strprintf("STR: %s\n", str->c_str());
             break;
         case VEC:
-            res += print_tabs(tabs) + strprintf("VEC:\n");
+            res += std::string(tabs * 2, ' ') + strprintf("VEC:\n");
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 res += it->print(tabs + 1);
             }
             break;
         case MAP:
-            res += print_tabs(tabs) + strprintf("MAP:\n");
+            res += std::string(tabs * 2, ' ') + strprintf("MAP:\n");
             for (auto it = map->begin(); it != map->end(); ++it) {
-                res += print_tabs(tabs + 1) + strprintf("%s:\n", it->first.c_str());
+                res += std::string(tabs * 2, ' ') + strprintf("%s:\n", it->first.c_str());
                 res += it->second.print(tabs + 2);
             }
             break;
