@@ -103,22 +103,14 @@ private:
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        if (!pathspec.has()) {
-            std::vector<counted_t<const datum_t> > paths;
-            for (size_t i = 1; i < num_args(); ++i) {
-                paths.push_back(arg(i)->as_datum());
-            }
-            try {
-                pathspec.init(new pathspec_t(make_counted<const datum_t>(paths)));
-            } catch (const pathspec_t::malformed_pathspec_exc_t &) {
-                rfail(base_exc_t::GENERIC, "Invalid arguments to pluck.");
-            }
+        std::vector<counted_t<const datum_t> > paths;
+        for (size_t i = 1; i < num_args(); ++i) {
+            paths.push_back(arg(i)->as_datum());
         }
-        return new_val(project(obj, *pathspec, DONT_RECURSE));
+        pathspec_t pathspec(make_counted<const datum_t>(paths));
+        return new_val(project(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "pluck"; }
-
-    scoped_ptr_t<pathspec_t> pathspec;
 };
 
 class without_term_t : public obj_or_seq_op_term_t {
