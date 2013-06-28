@@ -74,11 +74,11 @@ module RethinkDB
 
       t = Term.new
       t.type = termtype
-      t.args = args.map{|x| RQL.new.expr(x){@@allow_json[m]}.to_pb}
+      t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[m]).to_pb}
       t.optargs = (optargs || {}).map {|k,v|
         ap = Term::AssocPair.new
         ap.key = k.to_s
-        ap.val = RQL.new.expr(v){@@allow_json[m]}.to_pb
+        ap.val = RQL.new.expr(v, :allow_json => @@allow_json[m]).to_pb
         ap
       }
       return RQL.new(t, bitop)

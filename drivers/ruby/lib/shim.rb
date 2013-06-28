@@ -123,8 +123,8 @@ module RethinkDB
       end
     end
 
-    def expr(x, &b)
-      allow_json = b && b.call
+    def expr(x, opts={})
+      allow_json = opts[:allow_json]
       unbound_if @body
       context = RPP.sanitize_context(caller)
       res = fast_expr(x, context, allow_json)
