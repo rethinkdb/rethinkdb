@@ -3,17 +3,29 @@ import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
 usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
-  rethinkdb dump -c HOST:PORT [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
+  rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect"
+    print "                                   to (defaults to localhost:28015)"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
-    print "  -f [ --file ] FILE               file to write archive to"
+    print "  -f [ --file ] FILE               file to write archive to (defaults to"
+    print "                                   rethinkdb_dump_DATE_TIME.tar.gz)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
+    print ""
+    print "EXAMPLES:"
+    print "rethinkdb dump -c mnemosyne:39500"
+    print "  archive all data from a cluster running on host 'mnemosyne' with a client port at 39500"
+    print ""
+    print "rethinkdb dump -e test -f rdb_dump.tar.gz"
+    print "  archive only the 'test' database from a local cluster into a named file"
+    print ""
+    print "rethinkdb dump -c hades -e test.subscribers -a hunter2"
+    print "  archive a specific table from a cluster running on host 'hades' which requires authorization"
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -43,7 +55,7 @@ def parse_options():
     (res["host"], res["port"]) = host_port
 
     # Verify valid output file
-    res["temp_filename"] = "rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
+    res["temp_filename"] = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
     if options.out_file is None:
         res["out_file"] = os.path.abspath("./" + res["temp_filename"] + ".tar.gz")
     else:

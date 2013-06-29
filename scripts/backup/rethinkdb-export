@@ -16,14 +16,15 @@ except ImportError:
     exit(1)
 
 usage = "'rethinkdb export` exports data from a rethinkdb cluster into a directory\n\
-  rethinkdb export -c HOST:PORT [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
+  rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
       [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
 
 def print_export_help():
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
-    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect to"
+    print "  -c [ --connect ] HOST:PORT       host and client port of a rethinkdb node to connect"
+    print "                                   to (defaults to localhost:28015)"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  -d [ --directory ] DIR           directory to output to (defaults to"
     print "                                   rethinkdb_export_DATE_TIME)"
@@ -32,6 +33,22 @@ def print_export_help():
     print "                                   (required for csv format)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
+    print ""
+    print "EXAMPLES:"
+    print "rethinkdb export -c mnemosyne:39500"
+    print "  export all data from a cluster running on host 'mnemosyne' with a client port at 39500"
+    print ""
+    print "rethinkdb export -e test -d rdb_export"
+    print "  export only the 'test' database on a local cluster into a named directory"
+    print ""
+    print "rethinkdb export -c hades -e test.subscribers -a hunter2"
+    print "  export a specific table from a cluster running on host 'hades' which requires authorization"
+    print ""
+    print "rethinkdb export --format csv -e test.history --fields time,message"
+    print "  export a specific table from a local cluster in csv format with the fields 'time' and 'message'"
+    print ""
+    print "rethinkdb export --fields id,value -e test.data"
+    print "  export a specific table from a local cluster in json format with only the fields 'id' and 'value'"
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
