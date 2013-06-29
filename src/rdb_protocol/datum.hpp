@@ -43,7 +43,7 @@ class datum_t : public slow_atomic_countable_t<datum_t>, public rcheckable_t {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
+    enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
     explicit datum_t(type_t _type);
 
@@ -62,7 +62,9 @@ public:
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
 
     // These construct a datum from an equivalent representation.
-    datum_t(const Datum *d, env_t *env);
+    datum_t();
+    datum_t(const Datum *d);
+    void init_from_pb(const Datum *d);
     datum_t(cJSON *json, env_t *env);
     datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
 
@@ -139,6 +141,8 @@ public:
         ql::runtime_check(exc_type, test, file, line, pred, msg);
     }
 
+    void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
 private:
     void init_empty();
     void init_str();
@@ -166,50 +170,11 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
-// A `wire_datum_t` is necessary to serialize data over the wire.
-class wire_datum_t {
-public:
-    wire_datum_t() : state(INVALID) { }
-    explicit wire_datum_t(counted_t<const datum_t> _ptr) : ptr(_ptr), state(COMPILED) { }
-    counted_t<const datum_t> get() const;
-    counted_t<const datum_t> reset(counted_t<const datum_t> ptr2);
-    counted_t<const datum_t> compile(env_t *env);
-
-    // Prepare ourselves for serialization over the wire (this is a performance
-    // optimizaiton that we need on the shards).
-    void finalize();
-
-    Datum get_datum() const {
-        return ptr_pb;
-    }
-private:
-    counted_t<const datum_t> ptr;
-    Datum ptr_pb;
-
-public:
-    friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
-        r_sanity_check(state == SERIALIZABLE);
-        msg << ptr_pb;
-    }
-    friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        archive_result_t res = deserialize(s, &ptr_pb);
-        if (res) return res;
-        state = SERIALIZABLE;
-        return ARCHIVE_SUCCESS;
-    }
-
-private:
-    enum { INVALID, SERIALIZABLE, COMPILED } state;
-};
-
 #ifndef NDEBUG
 static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
 #else
 static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
 #endif // NDEBUG
-
 
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
@@ -221,7 +186,7 @@ public:
     counted_t<const datum_t> get(counted_t<const datum_t> key);
     void set(counted_t<const datum_t> key, counted_t<const datum_t> val);
 
-    void compile(env_t *env);
+    void compile();
     void finalize();
 
     counted_t<const datum_t> to_arr() const;

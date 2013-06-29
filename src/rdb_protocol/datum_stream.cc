@@ -176,9 +176,7 @@ rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal
 
 counted_t<const datum_t> lazy_datum_stream_t::count() {
     rdb_protocol_t::rget_read_response_t::result_t res = run_terminal(count_wire_func_t());
-    wire_datum_t *wire_datum = boost::get<wire_datum_t>(&res);
-    r_sanity_check(wire_datum != NULL);
-    return wire_datum->compile(env);
+    return boost::get<counted_t<const datum_t> >(res);
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
@@ -186,8 +184,8 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
     rdb_protocol_t::rget_read_response_t::result_t res
         = run_terminal(reduce_wire_func_t(env, f));
 
-    if (wire_datum_t *wire_datum = boost::get<wire_datum_t>(&res)) {
-        counted_t<const datum_t> datum = wire_datum->compile(env);
+    if (counted_t<const datum_t> *d = boost::get<counted_t<const datum_t> >(&res)) {
+        counted_t<const datum_t> datum = *d;
         if (base_val.has()) {
             return f->call(base_val->as_datum(), datum)->as_datum();
         } else {
@@ -214,7 +212,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
             env, query_language::backtrace_t());
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
-    dm->compile(env);
+    dm->compile();
     counted_t<const datum_t> dm_arr = dm->to_arr();
     if (!base.has()) {
         return dm_arr;
