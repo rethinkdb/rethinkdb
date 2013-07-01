@@ -25,7 +25,11 @@ commands:
       <li><code>skipped</code> - <code>0</code> for a <code>replace</code> operation.</li>
       </ul>
 
-    body: "$PARENT.replace(json | expr)"
+    body:
+      js: "$PARENT.replace(json | expr[, {durability: 'soft', return_vals: true, upsert:true])"
+      py: "$PARENT.replace(json | expr[, durability='soft', return_vals=true, upsert=true])"
+      rb: "$PARENT.replace(json | expr[, durability => 'soft', return_vals => true, upsert => true])"
+
 
     io:
       - - table

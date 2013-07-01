@@ -22,9 +22,9 @@ commands:
       </ul>
 
     body:
-      js: "$PARENT.insert(json | [json][, {upsert:true}])"
-      py: "$PARENT.insert(json | [json][, upsert=False])"
-      rb: "$PARENT.insert(json | [json][, { :upsert => false }])"
+      js: "$PARENT.insert(json | [json][, {durability: 'soft', return_vals: true, upsert:true}])"
+      py: "$PARENT.insert(json | [json][, durability='soft', return_vals=True, upsert=True])"
+      rb: "$PARENT.insert(json | [json][, { :durability => 'soft', :return_vals => true :upsert => True}])"
 
     io:
       - - table

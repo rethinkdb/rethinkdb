@@ -20,9 +20,9 @@ commands:
       </ul>
 
     body:
-      js: "$PARENT.delete()"
-      py: "$PARENT.delete()"
-      rb: "$PARENT.delete"
+      js: "$PARENT.delete([{durability: 'soft', return_vals: true}])"
+      py: "$PARENT.delete([durability='soft', return_vals=true])"
+      rb: "$PARENT.delete[({:durability => soft, :return_vals => true})]"
 
     io:
       - - table
