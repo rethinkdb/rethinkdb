@@ -376,6 +376,8 @@ module 'ResolveIssuesView', ->
                         name = namespaces.get(@model.get('object_id')).get('name')
                     else
                         name = 'Unknown table'
+                when 'auth_key'
+                    object_type = 'the cluster'
 
             
             json =

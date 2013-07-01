@@ -3,13 +3,18 @@ commands:
     section: control
     order: 0
     description: | 
-      Evaluate the <code>inExpr</code> in the context of one or more value
+      Evaluate the <code>expr</code> in the context of one or more value
       bindings.<br /><br />
-      The type of the result is the type of the value returned from <code>inExpr</code>.
+      The type of the result is the type of the value returned from <code>expr</code>.
 
-    body: arg, [args*, ]inExpr
-    parent: r
-    returns: query
+    body:
+      py:  "$PARENT.do(arg [, args]*, expr)"
+      js:  "$PARENT.do(arg [, args]*, expr)"
+      rb:  "$PARENT.do(arg [, args]*) {expr}"
+
+    io:
+      - - any
+        - any
 
     examples:
       - description: The object(s) passed to do() can be bound to name(s). The

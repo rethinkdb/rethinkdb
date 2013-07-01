@@ -5,11 +5,13 @@ commands:
     description: Create a javascript expression.
 
     body:
-      js: jsString
-      py: js_string
-      rb: js_string
-    parent: r
-    returns: json
+      js: "$PARENT.js(jsString)"
+      py: "$PARENT.js(js_string)"
+      rb: "$PARENT.js(js_string)"
+
+    io:
+      - - r
+        - value
 
     examples:
       - description: Concatenate two strings using Javascript'

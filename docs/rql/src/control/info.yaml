@@ -4,8 +4,14 @@ commands:
     order: 8
     description: Get information about a RQL value.
 
-    parent: value
-    returns: object
+    body:
+      py: "$PARENT.info()"
+      js: "$PARENT.info()"
+      rb: "$PARENT.info"
+
+    io:
+      - - any
+        - object
 
     examples:
       - description: |
