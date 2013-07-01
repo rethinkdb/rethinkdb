@@ -11,11 +11,15 @@ commands:
       function.
 
     body:
-      js: mappingFunction
-      py: mapping_function
-      rb: mapping_function
-    parent: sequence
-    returns: sequence
+      js: "$PARENT.map(mappingFunction)"
+      py: "$PARENT.map(mapping_function)"
+      rb: "$PARENT.map(mapping_function)"
+
+    io:
+      - - sequence
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of hero power ratings.
@@ -41,9 +45,16 @@ commands:
       py: with_fields
       rb: with_fields
 
-    body: field1[, field2...]
-    parent: sequence
-    returns: sequence
+    body:
+      js: "$PARENT.withFields(field1[, field2...])"
+      py: "$PARENT.with_fields(field1[, field2...])"
+      rb: "$PARENT.with_fields(field1[, field2...])"
+
+    io:
+      - - sequence
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Get a list of heroes and their arch-nemeses, excluding any heroes that lack one.
@@ -61,12 +72,17 @@ commands:
       js: concatMap
       py: concat_map
       rb: concat_map
+
     body:
-      js: mappingFunction
-      py: mapping_function
-      rb: mapping_function
-    parent: sequence
-    returns: sequence
+      js: "$PARENT.concatMap(mappingFunction)"
+      py: "$PARENT.concat_map(mapping_function)"
+      rb: "$PARENT.concat_map(mapping_function)"
+
+    io:
+      - - sequence
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Construct a sequence of all monsters defeated by Marvel heroes.
@@ -94,9 +110,16 @@ commands:
       py: order_by
       rb: order_by
     
-    body: key1, [key2...]
-    parent: sequence
-    returns: sequence
+    body:
+      js: "$PARENT.orderBy(key1, [key2...])"
+      py: "$PARENT.order_by(key1, [key2...])"
+      rb: "$PARENT.order_by(key1, [key2...])"
+
+    io:
+      - - sequence
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Order our heroes by a series of performance metrics.
@@ -120,9 +143,13 @@ commands:
     section: transformations
     description: Skip a number of elements from the head of the sequence.
 
-    body: n
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.skip(n)"
+
+    io:
+      - - sequence
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Here in conjunction with `order_by` we choose to ignore the most
@@ -136,9 +163,13 @@ commands:
     section: transformations
     description: End the sequence after the given number of elements.
 
-    body: n
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.limit(n)"
+
+    io:
+      - - sequence
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: Only so many can fit in our Pantheon of heroes.
@@ -151,9 +182,21 @@ commands:
     section: transformations
     description: Trim the sequence to within the bounds provided.
 
-    body: startIndex[, endIndex]
-    parent: sequence
-    returns: sequence
+    name:
+      py: "[]"
+      rb: "[]"
+      js: slice
+
+    body:
+      js: "$PARENT.slice(startIndex[, endIndex])"
+      py: "$PARENT[start_index[, end_index]]"
+      rb: "$PARENT[start_index[, end_index]]"
+
+    io:
+      - - sequence
+        - stream 
+      - - array
+        - array
 
     examples:
       - description: For this fight, we need heroes with a good mix of strength and agility.
@@ -162,25 +205,23 @@ commands:
           py: r.table('marvel').order_by('strength')[5:10].run(conn)
           rb: r.table('marvel').order_by(:strength)[5..10].run(conn)
 
-    py:
-      name: '[]'
-      is_selector: true
-      name1: '['
-      name2: ']'
-
-    rb:
-      name: '[]'
-      is_selector: true
-      name1: '['
-      name2: ']'
-
   - tag: nth
     section: transformations
     description: Get the nth element of a sequence.
 
-    body: index
-    parent: sequence
-    returns: json
+    name:
+      py: "[]"
+      rb: "[]"
+      js: nth
+
+    body:
+      py: "$PARENT[index]"
+      rb: "$PARENT[index]"
+      js: "$PARENT.nth(index)"
+
+    io:
+      - - sequence
+        - object
 
     examples:
       - description: Select the second element in the array.
@@ -188,18 +229,6 @@ commands:
           js: r.expr([1,2,3]).nth(1).run(conn, callback)
           py: r.expr([1,2,3])[1].run(conn)
           rb: r([1,2,3])[1].run(conn)
-
-    py:
-      name: '[]'
-      is_selector: true
-      name1: '['
-      name2: ']'
-
-    rb:
-      name: '[]'
-      is_selector: true
-      name1: '['
-      name2: ']'
 
   - tag: indexes_of
     section: transformations
@@ -210,9 +239,15 @@ commands:
       js: indexesOf
       py: indexes_of
       rb: indexes_of
-    body: datum | predicate
-    parent: sequence
-    returns: sequence
+
+    body:
+      js: "$PARENT.indexesOf(datum | predicate)"
+      py: "$PARENT.indexes_of(datum | predicate)"
+      rb: "$PARENT.indexes_of(datum | predicate)"
+
+    io:
+      - - sequence
+        - array
 
     examples:
       - description: Find the position of the letter 'c'.
@@ -243,8 +278,15 @@ commands:
       js: isEmpty
       py: is_empty
       rb: is_empty
-    parent: sequence
-    returns: json
+
+    body:
+      js: "$PARENT.isEmpty()"
+      py: "$PARENT.is_empty()"
+      rb: "$PARENT.is_empty"
+
+    io:
+      - - sequence
+        - bool
 
     examples:
       - description: Are there any documents in the marvel table?
@@ -257,9 +299,11 @@ commands:
     section: transformations
     description: Concatenate two sequences.
 
-    body: sequence
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.union(sequence)"
+
+    io:
+      - - sequence
+        - array
 
     examples:
       - description: Construct a stream of all heroes.
@@ -274,9 +318,15 @@ commands:
       Select a given number of elements from a sequence with uniform random
       distribution. Selection is done without replacement.
 
-    body: number
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.sample(number)"
+
+    io:
+      - - sequence
+        - selection
+      - - stream
+        - array 
+      - - array
+        - array
 
     examples:
       - description: Select 3 random heroes.

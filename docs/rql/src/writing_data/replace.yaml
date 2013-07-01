@@ -25,9 +25,15 @@ commands:
       <li><code>skipped</code> - <code>0</code> for a <code>replace</code> operation.</li>
       </ul>
 
-    body: json | expr
-    parent: selection
-    returns: object
+    body: "$PARENT.replace(json | expr)"
+
+    io:
+      - - table
+        - object
+      - - selection
+        - object
+      - - singleSelection
+        - object
 
     examples:
       - description: Remove all existing attributes from Superman's document, and add an attribute 'age'.

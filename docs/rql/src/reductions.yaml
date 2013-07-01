@@ -9,9 +9,14 @@ commands:
     section: aggregators
     description: Count the total size of the group.
 
-    dont_need_parenthesis: true
-    parent: r
-    returns: null
+    body:
+      py: "$PARENT.count"
+      rb: "$PARENT.count"
+      js: "$PARENT.count"
+
+    io:
+      - - r
+        - null
 
     examples:
       - description: Just how many heroes do we have at each strength level?
@@ -24,9 +29,11 @@ commands:
     section: aggregators
     description: Compute the sum of the given field in the group.
 
-    body: attr
-    parent: r
-    returns: null
+    body: "$PARENT.sum(attr)"
+
+    io:
+      - - r
+        - null
 
     examples:
       - description: How many enemies have been vanquished by heroes at each strength level?
@@ -39,9 +46,11 @@ commands:
     section: aggregators
     description: Compute the average value of the given attribute for the group.
 
-    body: attr
-    parent: r
-    returns: null
+    body: "$PARENT.avg(attr)"
+
+    io:
+      - - r
+        - null
 
     examples:
       - description: What's the average agility of heroes at each strength level?
