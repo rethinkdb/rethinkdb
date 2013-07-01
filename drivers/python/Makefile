@@ -8,8 +8,8 @@ PYTHON_SRC=rethinkdb
 PBCPP_SRC=rethinkdb
 PYTHON_PB_FILE=$(PYTHON_SRC)/$(PROTO_BASE)_pb2.py
 CPP_PB_FILE=$(PBCPP_SRC)/$(PROTO_BASE).pb.cc
-PBCPP=pbcpp.so
-PBCPP_BUILT=./build/lib.linux-x86_64-2.7/pbcpp.so
+PBCPP=rethinkdb_pbcpp.so
+PBCPP_BUILT=./build/lib.linux-x86_64-2.7/rethinkdb_pbcpp.so
 
 all: $(PYTHON_PB_FILE) $(PBCPP)
 
