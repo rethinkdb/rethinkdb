@@ -236,7 +236,7 @@ class Connection
                 lst.apply(null, args)
 
 class TcpConnection extends Connection
-    @isAvailable: -> typeof require isnt 'undefined' and require('net')
+    @isAvailable: -> testFor('net')
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()

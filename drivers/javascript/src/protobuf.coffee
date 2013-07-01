@@ -7,6 +7,7 @@ goog.require("Datum")
 goog.require("Query")
 goog.require("VersionDummy")
 goog.require("goog.proto2.WireFormatSerializer")
+goog.require("rethinkdb.base")
 
 goog.provide("rethinkdb.protobuf")
 
@@ -145,19 +146,20 @@ class NodeResponse
     getBacktraceArray: -> (new NodeResponse::Frame(f) for f in @backtrace.frames)
 
 # Test for avilablility of native backend and enable it if available
-if require? and require('node-protobuf')
+if testFor('node-protobuf')
     # Initialize message serializer with
     desc = require('fs').readFileSync(__dirname + "/ql2.desc")
-    protobuf = require('node-protobuf').Protobuf
-    nodePB = new protobuf(desc)
+    nodePB = new require('node-protobuf').Protobuf(desc)
 
     QueryPB = NodeQuery
     TermPB = NodeTerm
     DatumPB = NodeDatum
     ResponsePB = NodeResponse
+    rethinkdb.protobuf_implementation = "cpp"
 else
     # Fallback on native JS backend
     QueryPB = BrowserQuery
     TermPB = BrowserTerm
     DatumPB = BrowserDatum
     ResponsePB = BrowserResponse
+    rethinkdb.protobuf_implementation = "js"
