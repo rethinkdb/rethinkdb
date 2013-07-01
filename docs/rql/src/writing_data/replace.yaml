@@ -26,9 +26,9 @@ commands:
       </ul>
 
     body:
-      js: "$PARENT.replace(json | expr[, {durability: 'soft', return_vals: true, upsert:true])"
-      py: "$PARENT.replace(json | expr[, durability='soft', return_vals=true, upsert=true])"
-      rb: "$PARENT.replace(json | expr[, durability => 'soft', return_vals => true, upsert => true])"
+      js: "$PARENT.replace(json | expr[, {durability: 'soft', return_vals: true}])"
+      py: "$PARENT.replace(json | expr[, durability='soft', return_vals=true])"
+      rb: "$PARENT.replace(json | expr[, durability => 'soft', return_vals => true])"
 
 
     io:
