@@ -81,9 +81,9 @@ commands:
       rb: get_all
 
     body:
-      py: key[, index='id']
-      rb: key[, :index => 'id']
-      js: key[, {index:'id'}]
+      py: key1[, key2..], [, index='id']
+      rb: key1[, key2..], :index => 'id']
+      js: key1[, key2..], {index:'id'}]
     parent: table
     returns: selection
 
@@ -104,6 +104,12 @@ commands:
             py: r.table('dc').get_all('superman').run(conn)
             js: r.table('dc').getAll('superman').run(conn, callback)
             rb: r.table('dc').get_all('superman').run(conn)
+        - description: |
+            You can get multiple documents in a single call to `get_all`.
+          code:
+            py: r.table('dc').get_all('superman', 'ant man').run(conn)
+            js: r.table('dc').getAll('superman', 'ant man').run(conn, callback)
+            rb: r.table('dc').get_all('superman', 'ant man').run(conn)
 
   - tag: between
     section: select
