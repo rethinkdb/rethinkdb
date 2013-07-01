@@ -2,8 +2,9 @@
 
 #include <string>
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/op.hpp"
+#include "rdb_protocol/pathspec.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -22,13 +23,20 @@ public:
     };
     obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
-        : op_term_t(env, term, argspec), poly_type(_poly_type),
-          func(make_counted_term()) {
+        : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+          poly_type(_poly_type), func(make_counted_term()) {
         int varnum = env->gensym();
         Term *arg = pb::set_func(func.get(), varnum);
         Term *body = NULL;
         switch (poly_type) {
-        case MAP: // fallthru
+        case MAP: {
+            body = arg;
+            *arg = *term;
+            Term_AssocPair *ap = arg->add_optargs();
+            ap->set_key("_NO_RECURSE_");
+            arg = ap->mutable_val();
+            NDATUM_BOOL(true);
+        } break;
         case FILTER: {
             body = arg;
             *arg = *term;
@@ -60,6 +68,10 @@ private:
                    (!d.has() && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
             // The above if statement is complicated because it produces better
             // error messages on e.g. strings.
+            if (counted_t<val_t> no_recurse = optarg("_NO_RECURSE_")) {
+                rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
+                       strprintf("Cannot perform %s on a sequence of sequences.", name()));
+            }
             switch (poly_type) {
             case MAP:
                 return new_val(v0->as_seq()->map(make_counted<func_t>(env, func)));
@@ -91,16 +103,12 @@ private:
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_OBJECT));
+        std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            const std::string &key = arg(i)->as_str();
-            counted_t<const datum_t> el = obj->get(key, NOTHROW);
-            if (el.has()) {
-                bool conflict = out->add(key, el);
-                r_sanity_check(!conflict);
-            }
+            paths.push_back(arg(i)->as_datum());
         }
-        return new_val(counted_t<const datum_t>(out.release()));
+        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        return new_val(project(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "pluck"; }
 };

@@ -39,8 +39,14 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_proxy(argc, argv);
         } else if (subcommand == "admin") {
             return main_rethinkdb_admin(argc, argv);
+        } else if (subcommand == "export") {
+            return main_rethinkdb_export(argc, argv);
         } else if (subcommand == "import") {
             return main_rethinkdb_import(argc, argv);
+        } else if (subcommand == "dump") {
+            return main_rethinkdb_dump(argc, argv);
+        } else if (subcommand == "restore") {
+            return main_rethinkdb_restore(argc, argv);
         } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
 		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());              
@@ -66,8 +72,14 @@ int main(int argc, char *argv[]) {
                     return 0;
                 } else if (subcommand2 == "proxy") {
                     help_rethinkdb_proxy();
+                } else if (subcommand2 == "export") {
+                    help_rethinkdb_export();
                 } else if (subcommand2 == "import") {
                     help_rethinkdb_import();
+                } else if (subcommand2 == "dump") {
+                    help_rethinkdb_dump();
+                } else if (subcommand2 == "restore") {
+                    help_rethinkdb_restore();
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;
