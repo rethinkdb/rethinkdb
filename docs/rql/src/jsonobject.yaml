@@ -43,7 +43,7 @@ commands:
     description: Plucks out one or more attributes from either an object or a sequence
       of objects (projection).
 
-    body: attr1[, attr2...]
+    body: [selector1, selector2...]
     parent: sequence
     returns: sequence
 
