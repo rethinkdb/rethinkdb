@@ -68,7 +68,6 @@ ifeq ($(PROTOC),$(TC_PROTOC_INT_EXE))
   LD_LIBRARY_PATH ?=
   PROTOC_DEP := $(TC_PROTOC_INT_EXE)
   PROTOC_RUN := env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(PROTOC)
-  CXXFLAGS += -isystem $(TC_PROTOC_INT_INC_DIR)
 else
   PROTOC_RUN := $(PROTOC)
 endif
@@ -82,6 +81,7 @@ endif
 
 ifeq ($(PROTOBUF_INT_LIB),$(PROTOBUF_LIBS))
   PROTOBUF_DEP := $(PROTOBUF_INT_LIB)
+  CXXFLAGS += -isystem $(TC_PROTOC_INT_INC_DIR)
 endif
 
 NPM ?= NO_NPM
@@ -203,7 +203,7 @@ $(GPERFTOOLS_SRC_DIR):
 
 $(LIBUNWIND_SRC_DIR):
 	$P DOWNLOAD libunwind
-	$(GETURL) http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz | ( \
+	$(GETURL) http://gnu.mirrors.pair.com/savannah/savannah//libunwind/libunwind-1.1.tar.gz | ( \
 	  cd $(TC_SRC_DIR) && \
 	  tar -xzf - && \
 	  rm -rf libunwind && \

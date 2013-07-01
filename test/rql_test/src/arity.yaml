@@ -133,7 +133,6 @@ tests:
         rb: err("ArgumentError", "wrong number of arguments (2 for 1)", [])
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
       cd:
-      - r.expr(1,2)
       - r.sum(1,2)
       - r.avg(1,2)
     - ot:
