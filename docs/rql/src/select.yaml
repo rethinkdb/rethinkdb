@@ -87,7 +87,7 @@ commands:
       rb: get_all
 
     body:
-      py: "$PARENT.get_all(key1[, index='id'])"
+      py: "$PARENT.get_all(key1[, key2...], [, index='id'])"
       rb: "$PARENT.get_all(key[, key2...], [, :index => 'id'])"
       js: "$PARENT.getAll(key[, key2...], [, {index:'id'}])"
 
