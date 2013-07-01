@@ -34,6 +34,12 @@ commands:
             r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
           py: r.table('marvel').delete(durability='soft').run(conn)
           rb: r.table('marvel').delete(:durability => 'soft').run(conn)
+      - description: You can get back a copy of the row you delete from the database as well.
+        code:
+          js: |
+            r.table('marvel').delete({return_vals: true}).run(conn, callback)
+          py: r.table('marvel').delete(return_vals=True).run(conn)
+          rb: r.table('marvel').delete(:return_vals => true).run(conn)
 
     rb:
       dont_need_parenthesis: true

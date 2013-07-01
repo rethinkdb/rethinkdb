@@ -74,4 +74,22 @@ commands:
               {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
               {:upsert => true }
             ).run(conn)
+      - description: Get back a copy of the new row, this is useful if you've done an upsert or generated an ID.
+        code:
+          js: |
+            r.table('marvel').insert(
+              { superhero: 'Iron Man', superpower: 'Arc Reactor' },
+              {upsert: true, return_vals: true}
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').insert(
+              { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },
+              upsert=True, return_vals=True
+            ).run(conn)
+          rb: |
+            r.table('marvel').insert(
+              {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
+              {:upsert => true , :return_vals => true}
+            ).run(conn)
+
 

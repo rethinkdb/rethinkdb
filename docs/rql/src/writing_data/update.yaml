@@ -53,4 +53,8 @@ commands:
           rb: |
             r.table('marvel').update({ :non_atomic => true }) {|hero| {:age => hero[:age] + r.js('1')}
              }.run(conn)
-
+      - description: You can get back a copy of the original row and the update row using the return_vals flag.
+        code:
+          js: "r.table('marvel').get('superman').update({ age: 30 }, {return_vals: true}).run(conn, callback)"
+          py: "r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)"
+          rb: r.table('marvel').get('superman').update{ {:age => 30}, :return_vals => True}.run(conn)
