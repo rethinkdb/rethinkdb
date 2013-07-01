@@ -3,12 +3,11 @@ commands:
     section: control
     description: Parse a JSON string on the server.
 
-    body:
-      js: json
-      py: json
-      rb: json
-    parent: r
-    returns: json
+    body: "$PARENT.json(json_string)"
+
+    io:
+      - - r
+        - value
 
     examples:
       - description: Send an array to the server'
