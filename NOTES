@@ -1,3 +1,54 @@
+# Release 1.7.0 (Nights of Cabiria)
+
+Released on 2013-07-02
+
+## New Features ##
+
+* ReQL
+  * Added `r.json` for parsing JSON strings server-side (#887)
+  * Added intelligent pattern matching to `pluck` (#889)
+  * `get_all` now takes a variable number of arguments (#915)
+  * Added atomic set and get (#976)
+    * `update` now takes an optional `return_vals` argument
+  * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
+  * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
+  * Drivers now use `r.json` to improve the performance of inserts (#1085)
+  * Improved the behaviour of `pluck` (#1095)
+    * A field with a non-pluckable value is considered absent
+* Web UI
+  * It is now possible to resolve `auth_key` conflicts (#1028)
+  * The web UI now uses relative paths (#1053)
+* Server
+  * Investigate performance (on rotational drives?) (#520)
+* CLI
+  * Import and export JSON and CSV files (#193)
+    * Four new subcommands: `import`, `export`, `dump` and `restore`
+  * `rethinkdb admin` no longer requires the `--join` option (#1052)
+    * It now connects to localhost:29015 by default
+* Documentation
+  * Document durability settings correctly (#1008)
+  * Improve instructions for migration (#1013)
+  * Document the allowed character names for tables (#1039)
+* Packaging
+  * RPMs for CentOS (#268)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Fix the behaviour of `between` with `null` and secondary indexes (#1001)
+* Web UI
+  * Use a patched bootstrap, handlebars 1.0.0 and less 1.4.0 (#954)
+  * Fix bug causing nested arrays to be shown as `{...}` (#1038)
+  * Inline comments are now parsed correctly in the data explorer (#1060)
+  * Clean and remove listeners from the dashboard view (#1044)
+* Server
+  * Fixed a crash caused by shutting down the server during secondary index creation (#1056)
+  * Fixed a potential btree corruption bug (#986)
+* Tests
+  * ReQL tests no longer leave zombie processes (#1055)
+
+--
+
 # Release 1.6.1 (Fargo)
 
 Released on 2013-06-19
