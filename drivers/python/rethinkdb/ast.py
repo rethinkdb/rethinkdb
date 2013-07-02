@@ -50,7 +50,7 @@ def isJSON(val):
     if isinstance(val, RqlQuery):
         return False
     elif isinstance(val, dict):
-        return all([isJSON(v) for k,v in val.iteritems()])
+        return all([isinstance(k, types.StringTypes) and isJSON(v) for k,v in val.iteritems()])
     elif isinstance(val, list):
         return all([isJSON(v) for v in val])
     elif isinstance(val, (int, float, str, unicode, bool)):
