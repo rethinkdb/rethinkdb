@@ -1,0 +1,28 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          firstrun
+# Required-Start:    $remote_fs
+# Required-Stop:
+# Default-Start:     1 2 3 4 5
+# Default-Stop:
+# Short-Description: Prepare the RethinkDB instance for its first run
+### END INIT INFO
+#
+# Restore /etc/resolv.conf if the system crashed before the ppp link
+# was shut down.
+
+start () {
+    cd /root/ami-setup
+    twistd --pidfile=/root/ami-setup/twisted.pid web --wsgi=firstrun_web.application --port=8888
+}
+
+stop () {
+    kill `cat /root/ami-setup/twisted.pid`
+}
+
+case "$1" in
+    start) start;;
+    stop) stop;;
+    restart) stop; start;;
+    *) ;;
+esac
