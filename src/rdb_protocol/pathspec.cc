@@ -106,9 +106,13 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
             for (auto it = map->begin(); it != map->end(); ++it) {
                 if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
-                    counted_t<const datum_t> sub_result = project(val, it->second, RECURSE);
-                    /* We know we're clobbering, that's the point. */
-                    UNUSED bool clobbered = res->add(it->first, sub_result, CLOBBER);
+                    try {
+                        counted_t<const datum_t> sub_result = project(val, it->second, RECURSE);
+                        /* We know we're clobbering, that's the point. */
+                        UNUSED bool clobbered = res->add(it->first, sub_result, CLOBBER);
+                    } catch (const datum_exc_t &e) {
+                        //do nothing
+                    }
                 }
             }
         } else {

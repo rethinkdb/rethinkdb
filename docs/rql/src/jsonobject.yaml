@@ -9,9 +9,11 @@ commands:
     section: jsonobject
     description: Returns the currently visited document.
 
-    dont_need_parenthesis: true
-    parent: r
-    returns: json
+    body: "$PARENT.row"
+
+    io:
+      - - r
+        - value 
 
     examples:
       - description: Get all users whose age is greater than 5.
@@ -43,9 +45,17 @@ commands:
     description: Plucks out one or more attributes from either an object or a sequence
       of objects (projection).
 
-    body: attr1[, attr2...]
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.pluck([selector1, selector2...])"
+
+    io:
+      - - sequence
+        - stream
+      - - array
+        - array
+      - - object
+        - object
+      - - singleSelection
+        - object
 
     examples:
       - description: We just need information about IronMan's reactor and not the rest of the document.
@@ -58,15 +68,34 @@ commands:
           py: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
           rb: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
           js: r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn, callback)
+      - description: Pluck can also be used on nested objects.
+        code:
+          py: "r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : True}, 'weapons' : True}).run(conn)"
+          rb: "r.table('marvel').pluck({:abilities => {:damage => True, :mana_cost => true}, :weapons => True}).run(conn)"
+          js: "r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : true}, 'weapons' : True}).run(conn)"
+      - description: The nested syntax can quickly become overly verbose so there's a shorthand for it.
+        code:
+          py: "r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)"
+          rb: "r.table('marvel').pluck({:abilities => [:damage, :mana_cost]}, :weapons).run(conn)"
+          js: "r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)"
 
   - tag: without
     section: jsonobject
     description: The opposite of pluck; takes an object or a sequence of objects,
       and removes all attributes except for the ones specified.
 
-    body: attr1[, attr2...]
-    parent: sequence
-    returns: sequence
+    body: "$PARENT.without(attr1[, attr2...])"
+
+    io:
+      - - sequence
+        - stream
+      - - array
+        - array
+      - - singleSelection
+        - object
+      - - object
+        - object
+
 
     examples:
       - description: Since we don't need it for this computation we'll save bandwidth
@@ -86,9 +115,17 @@ commands:
     description: Merge two objects together to construct a new object with properties
       from both. Gives preference to attributes from other when there is a conflict.
 
-    body: json
-    parent: json
-    returns: json
+    body: "$PARENT.merge(object)"
+
+    io:
+      - - singleSelection
+        - object
+      - - object
+        - object
+      - - sequence
+        - stream
+      - - array
+        - array
 
     examples:
       - description: Equip IronMan for battle.
@@ -107,9 +144,11 @@ commands:
     section: jsonobject
     description: Append a value to an array.
 
-    body: json
-    parent: json
-    returns: json
+    body: "$PARENT.append(value)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -122,9 +161,11 @@ commands:
     section: jsonobject
     description: Prepend a value to an array.
 
-    body: json
-    parent: json
-    returns: json
+    body: "$PARENT.prepend(value)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -137,9 +178,11 @@ commands:
     section: jsonobject
     description: Remove the elements of one array from another array.
 
-    body: json
-    parent: json
-    returns: json
+    body: "$PARENT.difference(array)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list without boots.
@@ -158,9 +201,15 @@ commands:
       js: setInsert
       py: set_insert
       rb: set_insert
-    body: json
-    parent: json
-    returns: json
+
+    body:
+      py: "$PARENT.set_insert(value)"
+      rb: "$PARENT.set_insert(value)"
+      js: "$PARENT.setInsert(value)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Retrieve Iron Man's equipment list with the addition of some new boots.
@@ -179,9 +228,15 @@ commands:
       js: setUnion
       rb: set_union
       py: set_union
-    body: json
-    parent: json
-    returns: json
+
+    body:
+      py: "$PARENT.set_union(array)"
+      rb: "$PARENT.set_union(array)"
+      js: "$PARENT.setUnion(array)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: |
@@ -203,9 +258,14 @@ commands:
       py: set_intersection
       rb: set_intersection
 
-    body: json
-    parent: json
-    returns: json
+    body:
+      py: "$PARENT.set_intersection(array)"
+      js: "$PARENT.set_intersection(array)"
+      rb: "$PARENT.setIntersection(array)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Check which pieces of equipment Iron Man has from a fixed list.
@@ -224,9 +284,15 @@ commands:
       js: setDifference
       py: set_difference
       rb: set_difference
-    body: json
-    parent: json
-    returns: json
+
+    body:
+      js: "$PARENT.setDifference(array)"
+      py: "$PARENT.set_difference(array)"
+      rb: "$PARENT.set_difference(array)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Check which pieces of equipment Iron Man has, excluding a fixed list.
@@ -239,13 +305,23 @@ commands:
     section: jsonobject
     description: Get a single field from an object.  If called on a sequence, gets that field from every object in the sequence, skipping objects that lack it.
 
-    name: '[]'
-    name1: '['
-    name2: ']'
-    is_selector: true
-    body: attr
-    parent: json
-    returns: json
+    name:
+      js: "()"
+      py: "[]"
+      rb: "[]"
+
+    body:
+      js: "$PARENT(attr)"
+      py: "$PARENT[attr]"
+      rb: "$PARENT[attr]"
+
+    io:
+      - - sequence
+        - sequence
+      - - singleSelection 
+        - value
+      - - object
+        - value
 
     examples:
       - description: What was Iron Man's first appearance in a comic?
@@ -253,16 +329,6 @@ commands:
           py: r.table('marvel').get('IronMan')['firstAppearance'].run(conn)
           js: r.table('marvel').get('IronMan')('firstAppearance').run(conn, callback)
           rb: r.table('marvel').get('IronMan')[:first_appearance].run(conn)
-    examples:
-      - description: What about everyone's first appearance?
-        code:
-          py: r.table('marvel')['firstAppearance'].run(conn)
-          js: r.table('marvel')('firstAppearance').run(conn, callback)
-          rb: r.table('marvel')[:first_appearance].run(conn)
-    js:
-      name: ()
-      name1: (
-      name2: )
 
   - tag: has_fields
     section: jsonobject
@@ -272,9 +338,21 @@ commands:
       js: hasFields
       py: has_fields
       rb: has_fields
-    body: field1[, field2...]
-    parent: json
-    returns: bool
+
+    body:
+      js: "$PARENT.hasFields(field1[, field2...])"
+      py: "$PARENT.has_fields(field1[, field2...])"
+      rb: "$PARENT.has_fields(field1[, field2...])"
+
+    io:
+      - - sequence
+        - stream
+      - - array
+        - array
+      - - singleSelection
+        - boolean
+      - - object
+        - boolean
 
     examples:
       - description: Which heroes are married?
@@ -294,9 +372,14 @@ commands:
       py: insert_at
       rb: insert_at
 
-    body: index, json
-    parent: json
-    returns: json
+    body:
+      py: "$PARENT.insert_at(index, value)"
+      rb: "$PARENT.insert_at(index, value)"
+      js: "$PARENT.insertAt(index, value)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk decides to join the avengers.
@@ -314,9 +397,14 @@ commands:
       py: splice_at
       rb: splice_at
 
-    body: index, json
-    parent: json
-    returns: json
+    body:
+      js: "$PARENT.spliceAt(index, array)"
+      py: "$PARENT.splice_at(index, array)"
+      rb: "$PARENT.splice_at(index, array)"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk and Thor decide to join the avengers.
@@ -334,9 +422,14 @@ commands:
       py: delete_at
       rb: delete_at
 
-    body: index [,endIndex]
-    parent: json
-    returns: json
+    body:
+      js: "$PARENT.deleteAt(index [,endIndex])"
+      py: "$PARENT.delete_at(index [,endIndex])"
+      rb: "$PARENT.delete_at(index [,endIndex])"
+
+    io:
+      - - array
+        - array
 
     examples:
       - description: Hulk decides to leave the avengers.
@@ -353,15 +446,19 @@ commands:
   - tag: change_at
     section: jsonobject
     description: Change a value in an array at a given index. Returns the modified array.
+    io:
+      - - array
+        - array
 
     name:
       js: changeAt
       py: change_at
       rb: change_at
 
-    body: index, json
-    parent: json
-    returns: json
+    body:
+      js: "$PARENT.changeAt(index, value)"
+      py: "$PARENT.change_at(index, value)"
+      rb: "$PARENT.change_at(index, value)"
 
     examples:
       - description: Bruce Banner hulks out.
@@ -374,8 +471,16 @@ commands:
     section: jsonobject
     description: Return an array containing all of the object's keys.
 
-    parent: json
-    returns: json
+    body:
+      py: "$PARENT.keys()"
+      js: "$PARENT.keys()"
+      rb: "$PARENT.keys"
+
+    io:
+      - - singleSelection
+        - array
+      - - object
+        - array
 
     examples:
       - description: Get all the keys of a row.
@@ -383,8 +488,4 @@ commands:
           rb: r.table('marvel').get('ironman').keys.run(conn)
           py: r.table('marvel').get('ironman').keys().run(conn)
           js: r.table('marvel').get('ironman').keys().run(conn, callback)
-
-    rb:
-      dont_need_parenthesis: true
-
 

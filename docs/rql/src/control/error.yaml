@@ -4,9 +4,11 @@ commands:
     order: 3
     description: Throw a runtime error.  If called with no arguments inside the second argument to `default`, re-throw the current error.
 
-    body: message
-    parent: r
-    returns: error
+    body: "$PARENT.error(message)"
+
+    io:
+      - - r
+        - error
 
     examples:
       - description: 'Iron Man can''t possibly have lost a battle:'
@@ -35,9 +37,13 @@ commands:
     order: 4
     description: Handle non-existence errors.  Tries to evaluate and return its first argument.  If an error related to the absence of a value is thrown in the process, or if its first argument returns null, returns its second argument.  (Alternatively, the second argument may be a function which will be called with either the text of the non-existence error or null.)
 
-    body: query, default_case
-    parent: r
-    returns: query
+    body: "$PARENT.default(default_value)"
+
+    io:
+      - - value
+        - any
+      - - sequence
+        - any
 
     examples:
       - description: 'Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.'

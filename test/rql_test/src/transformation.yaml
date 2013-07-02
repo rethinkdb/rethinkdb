@@ -213,6 +213,9 @@ tests:
       rb: r.expr(['a','b']).map{|x| r.expr({'a'=>1,'b'=>2}).pluck(x)}
       ot: ([{'a':1},{'b':2}])
 
+    - py: r.expr({"foo":{"bar":1}}).pluck({"foo":{"bar":"buzz"}})
+      ot: ({"foo":{}})
+
     # without
     - cd: tbl.without().order_by('id').nth(0)
       ot: ({'id':0,'a':0})

@@ -19,8 +19,18 @@ commands:
       <code>0</code> for a <code>delete</code> operation.</li>
       </ul>
 
-    parent: selection
-    returns: object
+    body:
+      js: "$PARENT.delete([{durability: 'soft', return_vals: true}])"
+      py: "$PARENT.delete([durability='soft', return_vals=true])"
+      rb: "$PARENT.delete[({:durability => soft, :return_vals => true})]"
+
+    io:
+      - - table
+        - object
+      - - selection
+        - object
+      - - singleSelection
+        - object
 
     examples:
       - description: Delete superman from the database.
@@ -34,7 +44,10 @@ commands:
             r.table('marvel').delete({durability: 'soft'}).run(conn, callback)
           py: r.table('marvel').delete(durability='soft').run(conn)
           rb: r.table('marvel').delete(:durability => 'soft').run(conn)
-
-    rb:
-      dont_need_parenthesis: true
+      - description: You can get back a copy of the row you delete from the database as well.
+        code:
+          js: |
+            r.table('marvel').delete({return_vals: true}).run(conn, callback)
+          py: r.table('marvel').delete(return_vals=True).run(conn)
+          rb: r.table('marvel').delete(:return_vals => true).run(conn)
 

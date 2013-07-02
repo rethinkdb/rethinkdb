@@ -6,6 +6,7 @@ goog.require("rethinkdb.base")
 goog.require("rethinkdb.errors")
 goog.require("rethinkdb.query")
 goog.require("rethinkdb.net")
+goog.require("rethinkdb.protobuf")
 
 # Export RethinDB namespace to commonjs module
 if typeof module isnt 'undefined' and module.exports

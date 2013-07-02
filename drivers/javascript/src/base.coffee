@@ -37,3 +37,10 @@ aropt = (fun) -> (args...) ->
     if expectedPosArgs isnt numPosArgs
          throw new RqlDriverError "Expected #{expectedPosArgs} argument(s) but found #{numPosArgs}."
     fun.apply(@, args)
+
+# Test if the requested node module is available
+testFor = (module) ->
+    try
+        return typeof require is 'function' and require(module)
+    catch e
+        return false
