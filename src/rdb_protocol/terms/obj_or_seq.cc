@@ -154,13 +154,14 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
         counted_t<const datum_t> obj = v0->as_datum();
+        r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
+
+        std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            counted_t<const datum_t> el = obj->get(arg(i)->as_str(), NOTHROW);
-            if (!el.has() || el->get_type() == datum_t::R_NULL) {
-                return new_val_bool(false);
-            }
+            paths.push_back(arg(i)->as_datum());
         }
-        return new_val_bool(true);
+        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }
 };
