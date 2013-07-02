@@ -78,6 +78,25 @@ pathspec_t::~pathspec_t() {
     }
 }
 
+void pathspec_t::init_from(const pathspec_t &other) {
+    type = other.type;
+    switch (type) {
+    case STR:
+        str = new std::string(*other.str);
+        break;
+    case VEC:
+        vec = new std::vector<pathspec_t>(*other.vec);
+        break;
+    case MAP:
+        map = new std::map<std::string, pathspec_t>(*other.map);
+        break;
+    default:
+        unreachable();
+    }
+    creator = other.creator;
+}
+
+
 /* Limit the datum to only the paths specified by the pathspec. */
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
@@ -122,24 +141,6 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
     }
 }
 
-void pathspec_t::init_from(const pathspec_t &other) {
-    type = other.type;
-    switch (type) {
-    case STR:
-        str = new std::string(*other.str);
-        break;
-    case VEC:
-        vec = new std::vector<pathspec_t>(*other.vec);
-        break;
-    case MAP:
-        map = new std::map<std::string, pathspec_t>(*other.map);
-        break;
-    default:
-        unreachable();
-    }
-    creator = other.creator;
-}
-
 void unproject_helper(datum_t *datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (const std::string *str = pathspec.as_str()) {
@@ -154,9 +155,13 @@ void unproject_helper(datum_t *datum,
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
-                counted_t<const datum_t> sub_result = unproject(val, it->second, RECURSE);
-                /* We know we're clobbering, that's the point. */
-                UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                try {
+                    counted_t<const datum_t> sub_result = unproject(val, it->second, RECURSE);
+                    /* We know we're clobbering, that's the point. */
+                    UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                } catch (const datum_exc_t &e) {
+                    //do nothing
+                }
             }
         }
     } else {
