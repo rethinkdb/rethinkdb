@@ -1,0 +1,18 @@
+desc: 1081 union two streams
+tests:
+
+    # Set up a stream
+    - rb: r.db('test').table_create('t309')
+      def: t = r.db('test').table('t309')
+
+    - rb: t.insert([{'id':0}, {'id':1}])
+
+    - rb: r([]).union([]).typeof
+      ot: ("ARRAY")
+    - rb: t.union(t).typeof
+      ot: ("STREAM")
+    - rb: t.union([]).typeof
+      ot: ("STREAM")
+
+    # clean up
+    - rb: r.db('test').table_drop('t309')
