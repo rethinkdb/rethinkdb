@@ -63,24 +63,24 @@ private:
 
     counted_t<term_t> js_parent;
     env_t *js_env;
-    js::id_t js_id;
+    boost::shared_ptr<js::runner_t> js_runner;
+    js::scoped_id_t js_id;
 };
+
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env, counted_t<term_t> _parent) : env(_env), parent(_parent) { }
-
+    js_result_visitor_t(env_t *_env, const std::string _code, counted_t<term_t> _parent)
+        : env(_env), code(_code), parent(_parent) { }
     // This JS evaluation resulted in an error
     counted_t<val_t> operator()(const std::string err_val) const;
-
     // This JS call resulted in a JSON value
     counted_t<val_t> operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const;
-
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
-
 private:
     env_t *env;
+    std::string code;
     counted_t<term_t> parent;
 };
 
