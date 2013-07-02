@@ -450,72 +450,6 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     return ret;
 }
 
-// RSI: Get rid of data_block_manager_t::write, just use many_writes.
-
-/*
- Instead of wrapping this into a coroutine, we are still using a callback as we want
- to be able to spawn a lot of writes in parallel. Having to spawn a coroutine for
- each of them would involve a major memory overhead for all the stacks.  Also this
- makes stuff easier in other places, as we get the offset as well as a freshly set
- block_sequence_id immediately.
- */
-counted_t<ls_block_token_pointee_t>
-data_block_manager_t::write(ser_buffer_t *buf, uint32_t ser_block_size,
-                            block_id_t block_id,
-                            bool assign_new_block_sequence_id,
-                            file_account_t *io_account, iocallback_t *cb) {
-    // Either we're ready to write, or we're shutting down and just
-    // finished reading blocks for gc and called do_write.
-    guarantee(state == state_ready
-           || (state == state_shutting_down && gc_state.step() == gc_write));
-
-    counted_t<ls_block_token_pointee_t> token
-        = gimme_a_new_offset(static_config->block_size().ser_value());
-
-    ++stats->pm_serializer_data_blocks_written;
-
-    buf->ser_header.block_id = block_id;
-
-    if (assign_new_block_sequence_id) {
-        buf->ser_header.block_sequence_id = ++serializer->latest_block_sequence_id;
-    }
-
-    if (divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf))
-        && divides(DEVICE_BLOCK_SIZE, ser_block_size)) {
-        dbfile->write_async(token->offset(), ser_block_size,
-                            buf, io_account, cb, file_t::NO_DATASYNCS);
-    } else {
-        size_t ceil_size = ceil_aligned(ser_block_size, DEVICE_BLOCK_SIZE);
-
-        scoped_malloc_t<char> copy(malloc_aligned(ceil_size, DEVICE_BLOCK_SIZE));
-        memcpy(copy.get(), buf, ser_block_size);
-        memset(copy.get() + ser_block_size, 0, ceil_size - ser_block_size);
-
-        struct intermediate_cb_t : public iocallback_t {
-            virtual void on_io_complete() {
-                iocallback_t *local_cb = cb;
-                delete this;
-                local_cb->on_io_complete();
-            }
-
-            iocallback_t *cb;
-            scoped_malloc_t<char> buf;
-        };
-
-        intermediate_cb_t *intermediate = new intermediate_cb_t;
-        intermediate->cb = cb;
-        intermediate->buf = std::move(copy);
-
-        dbfile->write_async(token->offset(), ceil_size,
-                            intermediate->buf.get(), io_account, intermediate,
-                            file_t::NO_DATASYNCS);
-    }
-
-
-
-    return token;
-}
-
 void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
     gc_entry_t *entry = entries.get(extent_id);
     if (!entry) {
@@ -671,18 +605,20 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
-                // The first "false" argument indicates that we do not with to assign
-                // a new block sequence id.
-                counted_t<ls_block_token_pointee_t> token
-                    = parent->write(writes[i].buf, writes[i].ser_block_size,
-                                    writes[i].buf->ser_header.block_id,
-                                    false,
-                                    parent->choose_gc_io_account(),
-                                    block_write_conds.back());
 
-                new_block_tokens.push_back(token);
+                // RSI: Use many_writes properly instead of this for loop.
+                std::vector<buf_write_info_t> the_writes;
+                the_writes.push_back(buf_write_info_t(writes[i].buf,
+                                                      writes[i].ser_block_size,
+                                                      writes[i].buf->ser_header.block_id));
 
-                writes[i].new_offset = token->offset();
+                std::vector<counted_t<ls_block_token_pointee_t> > token
+                    = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
+                                          block_write_conds.back());
+
+                guarantee(token.size() == 1);
+                writes[i].new_offset = token[0]->offset();
+                new_block_tokens.push_back(std::move(token[0]));
             }
         }
 
@@ -995,13 +931,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
     std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
 
-    // RSI: Remove this comment.
-    // struct buf_write_info_t {
-    //     ser_buffer_t *buf;
-    //     uint32_t ser_block_size;
-    //     block_id_t block_id;
-    // };
-
     // RSI: Make sure that file async write calls and read calls use spawn_ordered
     // or whatever order-preserving cross-thread communication is necessary.  SIGH.
 
@@ -1051,44 +980,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     }
 
     return ret;
-}
-
-counted_t<ls_block_token_pointee_t>
-data_block_manager_t::gimme_a_new_offset(uint32_t ser_block_size) {
-    ASSERT_NO_CORO_WAITING;
-    guarantee(ser_block_size == static_config->block_size().ser_value());
-
-    // Get an offset and index into the active_extent (and create if necessary).
-    bool got_offset_and_index = false;
-    uint32_t relative_offset = valgrind_undefined<uint32_t>(0);
-    unsigned int block_index = valgrind_undefined<unsigned int>(0);
-    while (!got_offset_and_index) {
-        // Start a new extent if necessary.
-        if (active_extent == NULL) {
-            active_extent = new gc_entry_t(this);
-
-            ++stats->pm_serializer_data_extents_allocated;
-        }
-
-        // Try to get a block offset from the active extent.
-        guarantee(active_extent->state == gc_entry_t::state_active);
-        got_offset_and_index = active_extent->new_offset(ser_block_size, true, &relative_offset, &block_index);
-        if (!got_offset_and_index) {
-            active_extent->state = gc_entry_t::state_young;
-            young_extent_queue.push_back(active_extent);
-            mark_unyoung_entries();
-            active_extent = NULL;
-        }
-    }
-
-    int64_t offset = active_extent->extent_ref.offset() + relative_offset;
-    active_extent->was_written = true;
-
-    guarantee(active_extent->block_is_garbage(block_index));
-    active_extent->mark_live_tokenwise(block_index);
-    guarantee(!active_extent->block_referenced_by_index(block_index));
-
-    return serializer->generate_block_token(offset, ser_block_size);
 }
 
 // Looks at young_extent_queue and pops things off the queue that are

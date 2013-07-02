@@ -25,6 +25,9 @@ struct gc_entry_less_t {
 };
 
 struct buf_write_info_t {
+    buf_write_info_t(ser_buffer_t *_buf, uint32_t _ser_block_size,
+                     block_id_t _block_id)
+        : buf(_buf), ser_block_size(_ser_block_size), block_id(_block_id) { }
     ser_buffer_t *buf;
     uint32_t ser_block_size;
     block_id_t block_id;
@@ -230,13 +233,6 @@ public:
     void read(int64_t off_in, uint32_t ser_block_size,
               void *buf_out, file_account_t *io_account);
 
-    /* Returns the offset to which the block will be written */
-    counted_t<ls_block_token_pointee_t>
-    write(ser_buffer_t *buf, uint32_t ser_block_size,
-          block_id_t block_id,
-          bool assign_new_block_sequence_id,
-          file_account_t *io_account, iocallback_t *cb);
-
     /* exposed gc api */
     /* mark a buffer as garbage */
     void mark_garbage(int64_t offset, extent_transaction_t *txn);  // Takes a real int64_t.
@@ -303,10 +299,6 @@ private:
     void actually_shutdown();
 
     file_account_t *choose_gc_io_account();
-
-    // Creates a new offset, marked as being referenced by a token.  So you had
-    // better refer to it with some kind of token!
-    counted_t<ls_block_token_pointee_t> gimme_a_new_offset(uint32_t ser_block_size);
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager
        and cleans up */

@@ -589,8 +589,14 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // RSI: We need the real block size of this block to pass to dbm::write.
     ser_buffer_t *ser_buf
         = static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
-    return data_block_manager->write(ser_buf, get_block_size().ser_value(),
-                                     block_id, true, io_account, cb);
+
+    std::vector<buf_write_info_t> writes;
+    writes.push_back(buf_write_info_t(ser_buf, get_block_size().ser_value(), block_id));
+
+    std::vector<counted_t<ls_block_token_pointee_t> > result
+        = data_block_manager->many_writes(writes, true, io_account, cb);
+    guarantee(result.size() == 1);
+    return result[0];
 }
 
 counted_t<ls_block_token_pointee_t>
