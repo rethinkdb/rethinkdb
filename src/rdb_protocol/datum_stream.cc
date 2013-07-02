@@ -168,14 +168,15 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
-rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
-    return json_stream->apply_terminal(t,
-                                       env,
-                                       query_language::backtrace_t());
+rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(
+    const rdb_protocol_details::terminal_variant_t &t) {
+    return json_stream->apply_terminal(
+        t, env, query_language::backtrace_t());
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::count() {
-    rdb_protocol_t::rget_read_response_t::result_t res = run_terminal(count_wire_func_t());
+    rdb_protocol_t::rget_read_response_t::result_t res =
+        run_terminal(count_wire_func_t());
     wire_datum_t *wire_datum = boost::get<wire_datum_t>(&res);
     r_sanity_check(wire_datum != NULL);
     return wire_datum->compile(env);
@@ -317,7 +318,7 @@ slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _rig
       left(_left), right(_right) { }
 
 counted_t<const datum_t> slice_datum_stream_t::next_impl() {
-    if (left > right || index > right) {
+    if (left >= right || index >= right) {
         return counted_t<const datum_t>();
     }
 

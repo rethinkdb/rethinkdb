@@ -55,8 +55,8 @@ tests:
     # Python uses the slice syntax
     - py: ["arr[1:2]", "arr.slice(1, 2)"]
       js: arr.slice(1,2)
-      rb: [ "arr[(1..2)]", "arr[(1...3)]", "arr.slice(1,2)"]
-      ot: [2,3]
+      rb: [ "arr[(1..2)]", "arr[(1...3)]", "arr.slice(1, 2, :right_bound => 'closed')"]
+      ot: [2, 3]
 
     # One ended slices
     - py: arr[:1]

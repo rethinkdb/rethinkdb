@@ -216,7 +216,7 @@ public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
     counted_t<const datum_t> next_impl();
-    size_t index, left, right;
+    uint64_t index, left, right;
 };
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {
