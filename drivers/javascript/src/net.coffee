@@ -2,9 +2,7 @@ goog.provide("rethinkdb.net")
 
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.cursor")
-goog.require("VersionDummy")
-goog.require("Query")
-goog.require("goog.proto2.WireFormatSerializer")
+goog.require("rethinkdb.protobuf")
 
 # Eventually when we ditch Closure we can actually use the node
 # event emitter library. For now it's simple enough that we'll
@@ -62,8 +60,7 @@ class Connection
                 break
 
             responseArray = new Uint8Array @buffer, 4, responseLength
-            deserializer = new goog.proto2.WireFormatSerializer
-            response = deserializer.deserialize Response.getDescriptor(), responseArray
+            response = ResponsePB::parse(responseArray)
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
@@ -75,7 +72,7 @@ class Connection
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
-        bt = for frame in response.getBacktrace().framesArray()
+        bt = for frame in response.getBacktraceArray()
                 if frame.getType() is Frame.FrameType.POS
                     parseInt frame.getPos()
                 else
@@ -148,26 +145,26 @@ class Connection
         @nextToken++
 
         # Construct query
-        query = new Query
-        query.setType Query.QueryType.START
+        query = new QueryPB
+        query.setType "START"
         query.setQuery term.build()
         query.setToken token
 
         # Set global options
         if @db?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('db')
             pair.setVal((new Db {}, @db).build())
             query.addGlobalOptargs(pair)
 
         if useOutdated?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('use_outdated')
             pair.setVal((new DatumTerm (!!useOutdated)).build())
             query.addGlobalOptargs(pair)
 
         if noreply?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('noreply')
             pair.setVal((new DatumTerm (!!noreply)).build())
             query.addGlobalOptargs(pair)
@@ -182,15 +179,15 @@ class Connection
                 cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
-        query = new Query
-        query.setType Query.QueryType.CONTINUE
+        query = new QueryPB
+        query.setType "CONTINUE"
         query.setToken token
 
         @_sendQuery(query)
 
     _endQuery: (token) ->
-        query = new Query
-        query.setType Query.QueryType.STOP
+        query = new QueryPB
+        query.setType "STOP"
         query.setToken token
 
         @_sendQuery(query)
@@ -199,13 +196,12 @@ class Connection
     _sendQuery: (query) ->
 
         # Serialize protobuf
-        serializer = new goog.proto2.WireFormatSerializer
-        data = serializer.serialize query
+        data = query.serialize()
 
         length = data.byteLength
         finalArray = new Uint8Array length + 4
         (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set data, 4
+        finalArray.set((new Uint8Array(data)), 4)
 
         @write finalArray.buffer
 
@@ -240,7 +236,7 @@ class Connection
                 lst.apply(null, args)
 
 class TcpConnection extends Connection
-    @isAvailable: -> typeof require isnt 'undefined' and require('net')
+    @isAvailable: -> testFor('net')
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()
