@@ -149,7 +149,8 @@ class NodeResponse
 if testFor('node-protobuf')
     # Initialize message serializer with
     desc = require('fs').readFileSync(__dirname + "/ql2.desc")
-    nodePB = new require('node-protobuf').Protobuf(desc)
+    npb = require('node-protobuf').Protobuf
+    nodePB = new npb(desc)
 
     QueryPB = NodeQuery
     TermPB = NodeTerm
