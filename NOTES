@@ -19,7 +19,7 @@ Released on 2013-07-02
   * It is now possible to resolve `auth_key` conflicts (#1028)
   * The web UI now uses relative paths (#1053)
 * Server
-  * Investigate performance (on rotational drives?) (#520)
+  * Flush to disk less often to improve performance without affecting durability (#520)
 * CLI
   * Import and export JSON and CSV files (#193)
     * Four new subcommands: `import`, `export`, `dump` and `restore`
