@@ -8,13 +8,13 @@
     { "url" : "http://github.com/rethinkdb/rethinkdb/issues"
     , "email" : "bugs@rethinkdb.com"
     }
-, "files" : ["rethinkdb.js", "README.md"]
+, "files" : ["rethinkdb.js", "README.md", "ql2.desc"]
 , "repository" :
     { "type" : "git"
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"
     }
 , "engine" : "node >= 0.10.0"
-, "dependencies" : {
+, "optionalDependencies" : {
      "node-protobuf": ">= 1.0.0"
     }
 }

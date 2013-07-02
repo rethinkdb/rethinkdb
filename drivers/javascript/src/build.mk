@@ -49,14 +49,20 @@ $(JS_DRIVER_LIB): $(PB_JS_FILE) $(PB_BIN_FILE) $(DRIVER_COMPILED_COFFEE) | $(JS_
 	    --output_mode=$(JS_OUTPUT_MODE) \
 	) > $@
 
-.PHONY: publish
-publish: $(JS_DRIVER_LIB)
-	$P PUBLISH-JS
+.PHONY: js-dist
+js-dist: $(JS_DRIVER_LIB) $(PB_BIN_FILE)
+	$P DIST-JS $(JS_PKG_DIR)
+	rm -rf $(JS_PKG_DIR)
 	mkdir -p $(JS_PKG_DIR)
 	cp package.json $(JS_PKG_DIR)
 	cp README.md $(JS_PKG_DIR)
 	cp $(JS_DRIVER_LIB) $(JS_PKG_DIR)
-	cd $(JS_PKG_DIR); npm publish --force
+	cp $(PB_BIN_FILE) $(JS_PKG_DIR)
+
+.PHONY: js-publish
+js-publish: dist
+	$P PUBLISH-JS $(JS_PKG_DIR)
+	cd $(JS_PKG_DIR) && npm publish --force
 
 .PHONY: test
 test-js: $(JS_DRIVER_LIB)
