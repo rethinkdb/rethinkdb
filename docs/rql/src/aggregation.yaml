@@ -19,7 +19,7 @@ commands:
       js: "$PARENT.reduce(reductionFunction[, base])"
       py: "$PARENT.reduce(reduction_function[, base])"
       rb: "$PARENT.reduce [(base)] { reduction_function }"
-    io: 
+    io:
       - - sequence
         - value
 
@@ -161,7 +161,7 @@ commands:
 
     io:
       - - sequence
-        - array 
+        - array
 
     examples:
       - description: Using a predefined reduction we can easily find the average
@@ -173,7 +173,7 @@ commands:
 
   - tag: contains
     section: aggregation
-    description: Returns whether or not a sequence contains all the specified values.
+    description: Returns whether or not a sequence contains all the specified values, or if functions are provided instead, returns whether or not a sequence contains values matching all the specified functions.
 
     body: "$PARENT.contains(value1[, value2...])"
 
@@ -182,8 +182,15 @@ commands:
         - bool
 
     examples:
-      - description: Iron Man ever fought Superman?
+      - description: Has Iron Man ever fought Superman?
         code:
           rb: r.table('marvel').get('ironman')[:opponents].contains('superman').run(conn)
           py: r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
           js: r.table('marvel').get('ironman')('opponents').contains('superman').run(conn, callback)
+
+      - description: Has Iron Man ever defeated Superman in battle?
+        code:
+          rb: r.table('marvel').get('ironman')[:battles].contains{|battle| battle[:winner].eq('ironman') & battel[:loser].eq('superman')}
+          py: |
+            r.table('marvel').get('ironman')['battles'].contains(lambda battle: (battle['winner'] == 'ironman') & (battle['loser'] == 'superman'))
+          js: r.table('marvel').get('ironman')('battles').contains(function (battle) {return battle('winner').eq('ironman').and(battle('loser').eq('superman')))

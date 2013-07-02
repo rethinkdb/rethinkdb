@@ -231,6 +231,31 @@ tests:
     - cd: arr.union(arr).contains(2, 2)
       ot: true
 
+    - cd: arr.contains{|x| x.eq(2)}
+      py: arr.contains(lambda x:x == 2)
+      js: arr.contains(function(x){return x.eq(2);})
+      ot: true
+    - cd: arr.contains(lambda {|x| x.eq(2)}, lambda {|x| x.eq(3)})
+      py: arr.contains(lambda x:x == 2, lambda x:x==3)
+      js: arr.contains(function(x){return x.eq(2);}, function(x){return x.eq(3);})
+      ot: true
+    - cd: arr.contains{|x| x.eq(4)}
+      py: arr.contains(lambda x:x == 4)
+      js: arr.contains(function(x){return x.eq(4);})
+      ot: false
+    - cd: arr.contains(lambda {|x| x.eq(2)}, lambda {|x| x.eq(4)})
+      py: arr.contains(lambda x:x == 2, lambda x:x==4)
+      js: arr.contains(function(x){return x.eq(2);}, function(x){return x.eq(4);})
+      ot: false
+    - cd: arr.contains(lambda {|x| x.eq(2)}, lambda {|x| x.eq(2)})
+      py: arr.contains(lambda x:x == 2, lambda x:x==2)
+      js: arr.contains(function(x){return x.eq(2);}, function(x){return x.eq(2);})
+      ot: false
+    - cd: arr.union(arr).contains(lambda {|x| x.eq(2)}, lambda {|x| x.eq(2)})
+      py: arr.union(arr).contains(lambda x:x == 2, lambda x:x==2)
+      js: arr.union(arr).contains(function(x){return x.eq(2);}, function(x){return x.eq(2);})
+      ot: true
+
     ## Get Field
     - cd: r.expr([{'a':1},{'b':2},{'a':3,'c':4}])['a']
       js: r.expr([{'a':1},{'b':2},{'a':3,'c':4}])('a')
