@@ -173,6 +173,19 @@ private:
                     return new_val(counted_t<const datum_t>(arr.release()));
                 }
 
+                // STR -> NUM
+                if (start_type == R_STR_TYPE && end_type == R_NUM_TYPE) {
+                    const std::string &s = d->as_str();
+                    double dbl;
+                    char end; // Used to ensure that there's no trailing garbage.
+                    if (sscanf(s.c_str(), "%lf%c", &dbl, &end) == 1) {
+                        return new_val(make_counted<const datum_t>(dbl));
+                    } else {
+                        rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
+                              s.c_str());
+                    }
+                    unreachable();
+                }
             }
             // TODO: Object to sequence?
         }
