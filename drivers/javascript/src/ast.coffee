@@ -73,7 +73,7 @@ class RDBVal extends TermBase
     setUnion: ar (val) -> new SetUnion {}, @, val
     setIntersection: ar (val) -> new SetIntersection {}, @, val
     setDifference: ar (val) -> new SetDifference {}, @, val
-    slice: ar (left, right) -> new Slice {}, @, left, right
+    slice: aropt (left, right, opts) -> new Slice opts, @, left, right
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getField: ar (field) -> new GetField {}, @, field
@@ -197,6 +197,8 @@ translateOptargs = (optargs) ->
             when 'useOutdated' then 'use_outdated'
             when 'nonAtomic' then 'non_atomic'
             when 'cacheSize' then 'cache_size'
+            when 'leftBound' then 'left_bound'
+            when 'rightBound' then 'right_bound'
             else key
 
         if key is undefined or val is undefined then continue
