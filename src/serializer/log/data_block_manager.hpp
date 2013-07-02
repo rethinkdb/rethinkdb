@@ -24,6 +24,11 @@ struct gc_entry_less_t {
     bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
+struct buf_write_info_t {
+    ser_buffer_t *buf;
+    uint32_t ser_block_size;
+    block_id_t block_id;
+};
 
 // Identifies an extent, the time we started writing to the
 // extent, whether it's the extent we're currently writing to, and
@@ -63,6 +68,7 @@ public:
     unsigned int block_index(int64_t offset) const;
 
     bool new_offset(uint32_t ser_block_size,
+                    bool align_to_device_block_size,
                     uint32_t *relative_offset_out,
                     unsigned int *block_index_out);
 
@@ -282,6 +288,16 @@ public:
 
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
+
+    std::vector<counted_t<ls_block_token_pointee_t> >
+    many_writes(const std::vector<buf_write_info_t> &writes,
+                bool assign_new_block_sequence_id,
+                file_account_t *io_account,
+                iocallback_t *cb);
+
+    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+    gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
+
 
 private:
     void actually_shutdown();
