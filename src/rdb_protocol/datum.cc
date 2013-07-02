@@ -167,6 +167,15 @@ std::string datum_t::print() const {
     return as_json()->Print();
 }
 
+std::string datum_t::trunc_print() const {
+    std::string s = print();
+    if (s.size() > trunc_len) {
+        s.erase(s.begin() + (trunc_len - 3), s.end());
+        s += "...";
+    }
+    return s;
+}
+
 void datum_t::num_to_str_key(std::string *str_out) const {
     r_sanity_check(type == R_NUM);
     str_out->append("N");
