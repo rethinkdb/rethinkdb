@@ -9,7 +9,7 @@ Released on 2013-07-02
   * Added intelligent pattern matching to `pluck` (#889)
   * `get_all` now takes a variable number of arguments (#915)
   * Added atomic set and get (#976)
-    * `update` now takes an optional `return_vals` argument
+    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument
   * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
   * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
   * Drivers now use `r.json` to improve the performance of inserts (#1085)
