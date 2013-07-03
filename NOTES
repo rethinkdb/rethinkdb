@@ -39,7 +39,7 @@ This release introduces hot backup, atomic set and get operations, significant i
 * ReQL
   * Fixed the behaviour of `between` with `null` and secondary indexes (#1001)
 * Web UI
-  * Use a patched bootstrap, handlebars 1.0.0 and less 1.4.0 (#954)
+  * Moved to using a patched Bootstrap, Handlebars.js 1.0.0 and LESS 1.4.0 (#954)
   * Fixed bug causing nested arrays to be shown as `{...}` (#1038)
   * Inline comments are now parsed correctly in the data explorer (#1060)
   * Properly remove event listeners from the dashboard view (#1044)
