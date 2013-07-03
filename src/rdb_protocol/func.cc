@@ -306,7 +306,7 @@ counted_t<val_t> js_result_visitor_t::operator()(
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
     counted_t<val_t> v = parent->new_val(make_counted<func_t>(env, id_val, parent));
-    if (code != "") {
+    if (!code.empty()) {
         env->cache_js_func(code, v);
     }
     return v;
