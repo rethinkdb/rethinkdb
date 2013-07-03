@@ -27,8 +27,9 @@ public:
     // function as their argument.
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                                const protob_t<const Backtrace> &root);
-    static counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
-                                                    const protob_t<const Backtrace> &bt_src);
+    static counted_t<func_t> new_eq_comparison_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &bt_src);
 
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
 
@@ -70,7 +71,7 @@ private:
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env, const std::string _code, counted_t<term_t> _parent)
+    js_result_visitor_t(env_t *_env, const std::string &_code, counted_t<term_t> _parent)
         : env(_env), code(_code), parent(_parent) { }
     // This JS evaluation resulted in an error
     counted_t<val_t> operator()(const std::string err_val) const;
