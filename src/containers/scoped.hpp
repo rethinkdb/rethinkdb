@@ -227,6 +227,11 @@ public:
         swap(tmp);
     }
 
+    void init(void *ptr) {
+        guarantee(ptr_ == NULL);
+        ptr_ = static_cast<T *>(ptr);
+    }
+
     T *get() const { return ptr_; }
     T *operator->() const { return ptr_; }
     T &operator*() const { return *ptr_; }

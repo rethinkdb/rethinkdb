@@ -743,9 +743,9 @@ void data_block_manager_t::run_gc() {
                 // gc_read, before any calls to read_async.
                 gc_state.refcount++;
 
-                guarantee(gc_state.gc_blocks == NULL);
-                gc_state.gc_blocks = static_cast<char *>(malloc_aligned(extent_manager->extent_size,
-                        DEVICE_BLOCK_SIZE));
+                guarantee(!gc_state.gc_blocks.has());
+                gc_state.gc_blocks.init(malloc_aligned(extent_manager->extent_size,
+                                                       DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
                 for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks(); i < bpe; i++) {
                     if (!gc_state.current_entry->block_is_garbage(i)) {
@@ -755,7 +755,7 @@ void data_block_manager_t::run_gc() {
                         gc_state.refcount++;
                         dbfile->read_async(gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
-                                           gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
+                                           gc_state.gc_blocks.get() + (i * static_config->block_size().ser_value()),
                                            choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
                     }
@@ -776,9 +776,8 @@ void data_block_manager_t::run_gc() {
                 garbage before we even finish GCing it, they will set current_entry
                 to NULL. */
                 if (gc_state.current_entry == NULL) {
-                    guarantee(gc_state.gc_blocks != NULL);
-                    free(gc_state.gc_blocks);
-                    gc_state.gc_blocks = NULL;
+                    guarantee(gc_state.gc_blocks.has());
+                    gc_state.gc_blocks.reset();
                     gc_state.set_step(gc_ready);
                     break;
                 }
@@ -796,7 +795,7 @@ void data_block_manager_t::run_gc() {
                         continue;
                     }
 
-                    ser_buffer_t *block = reinterpret_cast<ser_buffer_t *>(gc_state.gc_blocks + gc_state.current_entry->relative_offset(i));
+                    ser_buffer_t *block = reinterpret_cast<ser_buffer_t *>(gc_state.gc_blocks.get() + gc_state.current_entry->relative_offset(i));
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset()
                         + gc_state.current_entry->relative_offset(i);
 
@@ -843,9 +842,8 @@ void data_block_manager_t::run_gc() {
 
                 guarantee(gc_state.refcount == 0);
 
-                guarantee(gc_state.gc_blocks != NULL);
-                free(gc_state.gc_blocks);
-                gc_state.gc_blocks = NULL;
+                guarantee(gc_state.gc_blocks.has());
+                gc_state.gc_blocks.reset();
                 gc_state.set_step(gc_ready);
 
                 if (state == state_shutting_down) {

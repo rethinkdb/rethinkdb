@@ -407,7 +407,7 @@ private:
         int refcount;
 
         // A buffer for blocks we're transferring.
-        char *gc_blocks;
+        scoped_malloc_t<char> gc_blocks;
 
 
         // The entry we're currently GCing.
@@ -418,13 +418,9 @@ private:
 
         gc_state_t()
             : step_(gc_ready), should_be_stopped(0), refcount(0),
-              gc_blocks(NULL),
               current_entry(NULL) { }
 
-        ~gc_state_t() {
-            free(gc_blocks);
-            gc_blocks = NULL;  // An extra bit of paranoia in this async area.
-        }
+        ~gc_state_t() { }
 
         gc_step step() const { return step_; }
 
@@ -438,7 +434,7 @@ private:
             }
 
             step_ = next_step;
-            rassert(step_ != gc_ready || gc_blocks == NULL);
+            rassert(step_ != gc_ready || !gc_blocks.has());
         }
     };
 
