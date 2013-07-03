@@ -262,6 +262,16 @@ class TestConnection(TestWithConnection):
             r.RqlDriverError, "Connection is closed",
             r.expr(1).run)
 
+    def test_port_conversion(self):
+        c = r.connect(port=str(self.port))
+        r.expr(1).run(c)
+
+        c.close()
+        self.assertRaisesRegexp(
+            r.RqlDriverError,
+            "Could not convert port abc to an integer.",
+            lambda: r.connect(port='abc'))
+
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):
         c = r.connect(port=self.port)
