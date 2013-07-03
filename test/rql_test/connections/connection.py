@@ -262,6 +262,16 @@ class TestConnection(TestWithConnection):
             r.RqlDriverError, "Connection is closed",
             r.expr(1).run)
 
+    def test_port_conversion(self):
+        c = r.connect(port=str(self.port))
+        r.expr(1).run(c)
+
+        c.close()
+        self.assertRaisesRegexp(
+            r.RqlDriverError,
+            "Could not convert port abc to an integer.",
+            lambda: r.connect(port='abc'))
+
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):
         c = r.connect(port=self.port)
@@ -327,15 +337,15 @@ if __name__ == '__main__':
     print "Running py connection tests"
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
-    suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
-    suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
-    suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
-    suite.addTest(loader.loadTestsFromTestCase(TestTimeout))
-    suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
+    #suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
+    #suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
+    #suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
+    #suite.addTest(loader.loadTestsFromTestCase(TestTimeout))
+    #suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
-    suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
-    suite.addTest(TestPrinting())
-    suite.addTest(TestBatching())
+    #suite.addTest(loader.loadTestsFromTestCase(TestShutdown))
+    #suite.addTest(TestPrinting())
+    #suite.addTest(TestBatching())
 
     res = unittest.TextTestRunner(verbosity=2).run(suite)
 
