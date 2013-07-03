@@ -66,11 +66,17 @@ class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.host = host
-        self.port = port
         self.next_token = 1
         self.db = db
         self.auth_key = auth_key
         self.timeout = timeout
+
+        # Try to convert the port to an integer
+        try:
+          self.port = int(port)
+        except ValueError as err:
+          raise RqlDriverError("Could not convert port %s to an integer." % port)
+
         self.reconnect()
 
     def __enter__(self):
