@@ -28,7 +28,6 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     }
 
     // Merging a string is left-preferential, which is just a no-op.
-    debugf("%s %s\n", l->print().c_str(), l->trunc_print().c_str());
     rcheck_target(
         caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
