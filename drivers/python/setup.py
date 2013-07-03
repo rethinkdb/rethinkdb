@@ -2,6 +2,7 @@
 
 from setuptools import setup, Extension
 from distutils.command.build_ext import build_ext
+from distutils.errors import DistutilsPlatformError, CCompilerError, DistutilsExecError
 import sys
 
 class build_ext_nofail(build_ext):
@@ -17,7 +18,7 @@ class build_ext_nofail(build_ext):
     def build_extension(self, ext):
         try:
             build_ext.build_extension(self, ext)
-        except (CCompileError, DistutilsExecError), e:
+        except (CCompilerError, DistutilsExecError), e:
             self._failed(e)
         else:
             try:
