@@ -102,7 +102,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             js::js_result_t result = js->call(js_id.get(), json_args);
 
             return boost::apply_visitor(
-                js_result_visitor_t(js_env, "", js_parent),
+                js_result_visitor_t(js_env, std::string(), js_parent),
                 result);
         } else {
             r_sanity_check(body.has() && source.has() && js_env == NULL);
