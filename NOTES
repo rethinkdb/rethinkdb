@@ -1,46 +1,48 @@
 # Release 1.7.0 (Nights of Cabiria)
 
-Released on 2013-07-02
+Released on 2013-07-03
+
+This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
 
 ## New Features ##
 
 * ReQL
   * Added `r.json` for parsing JSON strings server-side (#887)
-  * Added intelligent pattern matching to `pluck` (#889)
+  * Added syntax to `pluck` to access nested documents (#889)
   * `get_all` now takes a variable number of arguments (#915)
-  * Added atomic set and get (#976)
-    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument
+  * Added atomic set and get operations (#976)
+    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument that returns the values that have been atomically modified
   * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
   * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
   * Drivers now use `r.json` to improve the performance of inserts (#1085)
   * Improved the behaviour of `pluck` (#1095)
     * A field with a non-pluckable value is considered absent
 * Web UI
-  * It is now possible to resolve `auth_key` conflicts (#1028)
+  * It is now possible to resolve `auth_key` conflicts via the web UI (#1028)
   * The web UI now uses relative paths (#1053)
 * Server
-  * Flush to disk less often to improve performance without affecting durability (#520)
+  * Flushes to disk less often to improve performance without affecting durability (#520)
 * CLI
   * Import and export JSON and CSV files (#193)
-    * Four new subcommands: `import`, `export`, `dump` and `restore`
+    * Four new subcommands: `rethinkdb import`, `rethinkdb export`, `rethinkdb dump` and `rethinkdb restore`
   * `rethinkdb admin` no longer requires the `--join` option (#1052)
     * It now connects to localhost:29015 by default
 * Documentation
-  * Document durability settings correctly (#1008)
-  * Improve instructions for migration (#1013)
-  * Document the allowed character names for tables (#1039)
+  * Documented durability settings correctly (#1008)
+  * Improved instructions for migration (#1013)
+  * Documented the allowed character names for tables (#1039)
 * Packaging
   * RPMs for CentOS (#268)
 
 ## Fixed Bugs ##
 
 * ReQL
-  * Fix the behaviour of `between` with `null` and secondary indexes (#1001)
+  * Fixed the behaviour of `between` with `null` and secondary indexes (#1001)
 * Web UI
   * Use a patched bootstrap, handlebars 1.0.0 and less 1.4.0 (#954)
-  * Fix bug causing nested arrays to be shown as `{...}` (#1038)
+  * Fixed bug causing nested arrays to be shown as `{...}` (#1038)
   * Inline comments are now parsed correctly in the data explorer (#1060)
-  * Clean and remove listeners from the dashboard view (#1044)
+  * Properly remove event listeners from the dashboard view (#1044)
 * Server
   * Fixed a crash caused by shutting down the server during secondary index creation (#1056)
   * Fixed a potential btree corruption bug (#986)
