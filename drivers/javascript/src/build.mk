@@ -54,13 +54,13 @@ js-dist: $(JS_DRIVER_LIB) $(PB_BIN_FILE)
 	$P DIST-JS $(JS_PKG_DIR)
 	rm -rf $(JS_PKG_DIR)
 	mkdir -p $(JS_PKG_DIR)
-	cp package.json $(JS_PKG_DIR)
-	cp README.md $(JS_PKG_DIR)
+	cp $(JS_SRC_DIR)/package.json $(JS_PKG_DIR)
+	cp $(JS_SRC_DIR)/README.md $(JS_PKG_DIR)
 	cp $(JS_DRIVER_LIB) $(JS_PKG_DIR)
 	cp $(PB_BIN_FILE) $(JS_PKG_DIR)
 
 .PHONY: js-publish
-js-publish: dist
+js-publish: js-dist
 	$P PUBLISH-JS $(JS_PKG_DIR)
 	cd $(JS_PKG_DIR) && npm publish --force
 
