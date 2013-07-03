@@ -128,6 +128,7 @@ class NodeResponse
     Frame: class
         constructor: (f) ->
             f.__proto__ = @__proto__
+            return f
 
         getType: -> Frame.FrameType[@type]
         getPos: -> @pos

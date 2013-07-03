@@ -53,12 +53,12 @@ class RqlQueryPrinter
                              composeCarrots(arg, frames)
                            else
                              composeTerm(arg)
-        if argNum >= 0
+        if argNum != -1
             term.compose(args, optargs)
         else
             carrotify(term.compose(args, optargs))
 
-    carrotify = (tree) -> (joinTree tree).replace(/[^\^]/g, '^')
+    carrotify = (tree) -> (joinTree tree).replace(/./g, '^')
 
     joinTree = (tree) ->
         str = ''
