@@ -66,4 +66,4 @@ commands:
         code:
           js: "r.table('marvel').get('superman').update({ age: 30 }, {return_vals: true}).run(conn, callback)"
           py: "r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)"
-          rb: r.table('marvel').get('superman').update{ {:age => 30}, :return_vals => True}.run(conn)
+          rb: r.table('marvel').get('superman').update( {:age => 30}, :return_vals => true).run(conn)

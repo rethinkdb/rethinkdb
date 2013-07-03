@@ -24,7 +24,7 @@ commands:
     body:
       js: "$PARENT.insert(json | [json][, {durability: 'soft', return_vals: true, upsert:true}])"
       py: "$PARENT.insert(json | [json][, durability='soft', return_vals=True, upsert=True])"
-      rb: "$PARENT.insert(json | [json][, { :durability => 'soft', :return_vals => true :upsert => True}])"
+      rb: "$PARENT.insert(json | [json][, { :durability => 'soft', :return_vals => true :upsert => true}])"
 
     io:
       - - table
