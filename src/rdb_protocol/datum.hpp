@@ -75,6 +75,8 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
     std::string print() const;
+    static const size_t trunc_len = 300;
+    std::string trunc_print() const;
     std::string print_primary() const;
     std::string print_secondary(const store_key_t &key) const;
     /* An inverse to print_secondary. Returns the primary key. */
