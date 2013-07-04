@@ -203,8 +203,8 @@ struct rdb_protocol_t {
             runtime_exc_t,
             ql::exc_t,
             ql::datum_exc_t,
-            ql::wire_datum_t,
-            std::vector<ql::wire_datum_t>,
+            counted_t<const ql::datum_t>,
+            //            std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
             std::vector<ql::wire_datum_map_t>,
             empty_t,
@@ -280,14 +280,8 @@ struct rdb_protocol_t {
 
         void init_sindexes(counted_t<const ql::datum_t> start,
                            counted_t<const ql::datum_t> end) {
-            if (start) {
-                sindex_start_value = ql::wire_datum_t(start);
-                sindex_start_value->finalize();
-            }
-            if (end) {
-                sindex_end_value = ql::wire_datum_t(end);
-                sindex_end_value->finalize();
-            }
+            sindex_start_value = start;
+            sindex_end_value = end;
         }
 
         rget_read_t(const std::string &_sindex,
@@ -362,8 +356,8 @@ struct rdb_protocol_t {
 
         /* The actual sindex values to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        boost::optional<ql::wire_datum_t> sindex_start_value;
-        boost::optional<ql::wire_datum_t> sindex_end_value;
+        counted_t<const ql::datum_t> sindex_start_value;
+        counted_t<const ql::datum_t> sindex_end_value;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
