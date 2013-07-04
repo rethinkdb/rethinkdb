@@ -9,6 +9,10 @@
 
 namespace ql {
 
+const char *const empty_stream_msg =
+    "Cannot reduce over an empty stream with no base.";
+
+
 // DATUM_STREAM_T
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
     return make_counted<slice_datum_stream_t>(env, l, r, this->counted_from_this());
@@ -64,8 +68,7 @@ counted_t<const datum_t> eager_datum_stream_t::count() {
 counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
                                                       counted_t<func_t> f) {
     counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
-    rcheck(base.has(), base_exc_t::NON_EXISTENCE,
-           "Cannot reduce over an empty stream with no base.");
+    rcheck(base.has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
 
     while (counted_t<const datum_t> rhs = next()) {
         base = f->call(base, rhs)->as_datum();
@@ -198,8 +201,7 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
         if (base_val.has()) {
             return base_val->as_datum();
         } else {
-            rfail(base_exc_t::NON_EXISTENCE,
-                  "Cannot reduce over an empty stream with no base.");
+            rfail(base_exc_t::NON_EXISTENCE, empty_stream_msg);
         }
     }
 }
@@ -353,8 +355,105 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
     return right.has() ? left->merge(right) : left;
 }
 
-
 // UNION_DATUM_STREAM_T
+counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f) {
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        *it = (*it)->filter(f);
+    }
+    return counted_t<datum_stream_t>(this);
+}
+counted_t<datum_stream_t> union_datum_stream_t::map(counted_t<func_t> f) {
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        *it = (*it)->map(f);
+    }
+    return counted_t<datum_stream_t>(this);
+}
+counted_t<datum_stream_t> union_datum_stream_t::concatmap(counted_t<func_t> f) {
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        *it = (*it)->concatmap(f);
+    }
+    return counted_t<datum_stream_t>(this);
+}
+counted_t<const datum_t> union_datum_stream_t::count() {
+    counted_t<const datum_t> acc(new datum_t(0.0));
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        acc = make_counted<const datum_t>(acc->as_num() + (*it)->count()->as_num());
+    }
+    return acc;
+}
+counted_t<const datum_t> union_datum_stream_t::reduce(
+    counted_t<val_t> base_val, counted_t<func_t> f) {
+    counted_t<const datum_t> base =
+        base_val.has() ? base_val->as_datum() : counted_t<const datum_t>();
+    std::vector<counted_t<const datum_t> > vals;
+
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        try {
+            counted_t<const datum_t> d = (*it)->reduce(base_val, f);
+            vals.push_back(d);
+        } catch (const base_exc_t &e) {
+            // TODO: This is a terrible hack that will go away when we get rid
+            // of the optional base, because we will have a better way of
+            // communicating this error case than throwing an error with a
+            // particular message.
+            if (std::string(e.what()) != empty_stream_msg) {
+                throw;
+            }
+        }
+    }
+    if (vals.empty()) {
+        rcheck(base.has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
+        return base;
+    } else {
+        counted_t<const datum_t> d;
+        auto start = vals.begin();
+        d = base.has() ? base : *(start++);
+        for (auto it = start; it != vals.end(); ++it) {
+            d = f->call(d, *it)->as_datum();
+        }
+        return d;
+    }
+}
+
+counted_t<const datum_t> union_datum_stream_t::gmr(
+    counted_t<func_t> g, counted_t<func_t> m,
+    counted_t<const datum_t> base, counted_t<func_t> r) {
+    wire_datum_map_t dm;
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        counted_t<const datum_t> d = (*it)->gmr(g, m, base, r);
+        for (size_t i = 0; i < d->size(); ++i) {
+            counted_t<const datum_t> el = d->get(i);
+            counted_t<const datum_t> el_group = el->get("group");
+            counted_t<const datum_t> el_reduction = el->get("reduction");
+            if (!dm.has(el_group)) {
+                dm.set(el_group, el_reduction);
+            } else {
+                dm.set(el_group, r->call(dm.get(el_group), el_reduction)->as_datum());
+            }
+        }
+    }
+    return dm.to_arr();
+}
+
+bool union_datum_stream_t::is_array() {
+    for (auto it = streams.begin(); it != streams.end(); ++it) {
+        if (!(*it)->is_array()) {
+            return false;
+        }
+    }
+    return true;
+}
+counted_t<const datum_t> union_datum_stream_t::as_array() {
+    if (!is_array()) {
+        return counted_t<const datum_t>();
+    }
+    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+    while (counted_t<const datum_t> d = next()) {
+        arr->add(d);
+    }
+    return counted_t<const datum_t>(arr.release());
+}
+
 counted_t<const datum_t> union_datum_stream_t::next_impl() {
     for (; streams_index < streams.size(); ++streams_index) {
         counted_t<const datum_t> datum = streams[streams_index]->next();
