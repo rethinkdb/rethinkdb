@@ -747,19 +747,56 @@ void data_block_manager_t::run_gc() {
                 gc_state.gc_blocks.init(malloc_aligned(extent_manager->extent_size,
                                                        DEVICE_BLOCK_SIZE));
                 gc_state.set_step(gc_read);
-                for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks(); i < bpe; i++) {
+
+                // We're going to send as few discrete reads as possible, minimizing
+                // disk->CPU bandwidth usage, instead of simply reading the entire
+                // extent.
+
+                uint32_t current_interval_begin = 0;
+                uint32_t current_interval_end = 0;
+
+                const int64_t extent_offset = gc_state.current_entry->extent_ref.offset();
+
+                for (unsigned int i = 0, bpe = gc_state.current_entry->num_blocks();
+                     i < bpe;
+                     ++i) {
                     if (!gc_state.current_entry->block_is_garbage(i)) {
-                        // Increment the refcount before read_async, because
-                        // read_async can call its callback immediately, causing the
-                        // decrement of the refcount.
-                        gc_state.refcount++;
-                        dbfile->read_async(gc_state.current_entry->extent_ref.offset() + (i * static_config->block_size().ser_value()),
-                                           static_config->block_size().ser_value(),
-                                           gc_state.gc_blocks.get() + (i * static_config->block_size().ser_value()),
-                                           choose_gc_io_account(),
-                                           &(gc_state.gc_read_callback));
+                        const uint32_t beg
+                            = floor_aligned(gc_state.current_entry->relative_offset(i),
+                                            DEVICE_BLOCK_SIZE);
+                        const uint32_t end
+                            = ceil_aligned(gc_state.current_entry->relative_offset(i)
+                                           + gc_state.current_entry->block_size(i),
+                                           DEVICE_BLOCK_SIZE);
+
+                        if (beg <= current_interval_end) {
+                            current_interval_end = end;
+                        } else {
+                            if (current_interval_end > current_interval_begin) {
+                                gc_state.refcount++;
+                                dbfile->read_async(
+                                        extent_offset + current_interval_begin,
+                                        current_interval_end - current_interval_begin,
+                                        gc_state.gc_blocks.get() + current_interval_begin,
+                                        choose_gc_io_account(),
+                                        &gc_state.gc_read_callback);
+                            }
+
+                            current_interval_begin = beg;
+                            current_interval_end = end;
+                        }
                     }
                 }
+
+                guarantee(current_interval_begin < current_interval_end);
+
+                gc_state.refcount++;
+                dbfile->read_async(
+                        extent_offset + current_interval_begin,
+                        current_interval_end - current_interval_begin,
+                        gc_state.gc_blocks.get() + current_interval_begin,
+                        choose_gc_io_account(),
+                        &gc_state.gc_read_callback);
 
                 // Fall through to the gc_read case, where we
                 // decrement the refcount we incremented before the
