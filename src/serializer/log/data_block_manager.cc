@@ -391,40 +391,40 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         iocallback_t *cb;
     };
 
-    intermediate_cb_t *intermediate_cb = new intermediate_cb_t;
+    intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
     intermediate_cb->ops_remaining = token_groups.size();
     intermediate_cb->bufs.init(token_groups.size());
     intermediate_cb->cb = cb;
 
     size_t write_number = 0;
     for (size_t i = 0; i < token_groups.size(); ++i) {
-        int64_t front_offset = token_groups[i].front()->offset();
-        int64_t back_offset = token_groups[i].back()->offset()
+        const int64_t front_offset = token_groups[i].front()->offset();
+        const int64_t back_offset = token_groups[i].back()->offset()
             + token_groups[i].back()->ser_block_size();
 
         guarantee(divides(DEVICE_BLOCK_SIZE, front_offset));
 
-        int64_t write_size = ceil_aligned(back_offset - front_offset, DEVICE_BLOCK_SIZE);
+        const int64_t write_size = ceil_aligned(back_offset - front_offset,
+                                                DEVICE_BLOCK_SIZE);
 
         scoped_malloc_t<char> buf(malloc_aligned(write_size, DEVICE_BLOCK_SIZE));
 
-        // Used to zero out unused portions of the buf, so that we don't write undefined
-        // data (arbitrary contents of memory) to disk.
+        // Used to zero out unused portions of the buf, so that we don't write
+        // undefined data (arbitrary contents of memory) to disk.
         int64_t last_written_offset = front_offset;
 
         for (auto it = token_groups[i].begin(); it != token_groups[i].end(); ++it) {
-            int64_t it_offset = (*it)->offset();
-            uint32_t it_ser_block_size = (*it)->ser_block_size();
+            const int64_t it_offset = (*it)->offset();
+            const uint32_t it_ser_block_size = (*it)->ser_block_size();
             guarantee(it_offset >= last_written_offset);
 
-            buf_write_info_t the_write = writes[write_number];
-            // The behavior of gimme_some_new_offsets is supposed to retain order, so we
-            // expect writes[write_number] to have the currently-relevant write.
-            guarantee(the_write.ser_block_size == it_ser_block_size);
+            // The behavior of gimme_some_new_offsets is supposed to retain order, so
+            // we expect writes[write_number] to have the currently-relevant write.
+            guarantee(writes[write_number].ser_block_size == it_ser_block_size);
 
             memset(buf.get() + (last_written_offset - front_offset), 0,
                    it_offset - last_written_offset);
-            memcpy(buf.get() + (it_offset - front_offset), the_write.buf,
+            memcpy(buf.get() + (it_offset - front_offset), writes[write_number].buf,
                    it_ser_block_size);
 
             last_written_offset = it_offset + it_ser_block_size;
@@ -927,7 +927,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
         ++stats->pm_serializer_data_extents_allocated;
     }
 
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
 
     // RSI: Make sure that file async write calls and read calls use spawn_ordered
     // or whatever order-preserving cross-thread communication is necessary.  SIGH.
@@ -936,6 +935,8 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     guarantee(active_extent->state == gc_entry_t::state_active);
 
     bool align_to_device_block_size = true;
+
+    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
 
     std::vector<counted_t<ls_block_token_pointee_t> > tokens;
     for (auto it = writes.begin(); it != writes.end(); ++it) {
@@ -966,7 +967,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
         align_to_device_block_size = false;
 
-        int64_t offset = active_extent->extent_ref.offset() + relative_offset;
+        const int64_t offset = active_extent->extent_ref.offset() + relative_offset;
         active_extent->was_written = true;
         active_extent->mark_live_tokenwise(block_index);
 
