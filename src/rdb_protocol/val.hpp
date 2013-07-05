@@ -197,14 +197,13 @@ public:
         }
     }
 
-    static const size_t trunc_len = 300;
     std::string trunc_print() {
-        std::string s = print();
-        if (s.size() > trunc_len) {
-            s.erase(s.begin() + (trunc_len - 3), s.end());
-            s += "...";
+        if (get_type().is_convertible(type_t::DATUM)) {
+            return as_datum()->trunc_print();
+        } else {
+            // TODO: Do something smarter here?
+            return strprintf("OPAQUE VALUE %s", get_type().name());
         }
-        return s;
     }
 
 private:

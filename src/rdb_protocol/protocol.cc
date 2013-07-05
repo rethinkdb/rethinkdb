@@ -137,7 +137,7 @@ void bring_sindexes_up_to_date(
     store->get_sindexes(sindex_block, txn, &sindexes);
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
-    for (auto it = sindexes_to_bring_up_to_date.begin(); 
+    for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
         guarantee(std_contains(sindexes, *it));
         sindexes_to_bring_up_to_date_uuid.insert(sindexes[*it].id);
@@ -604,42 +604,35 @@ public:
                             const rget_read_response_t *_rr =
                                 boost::get<rget_read_response_t>(&responses[i].response);
                             guarantee(_rr);
-                            ql::wire_datum_t *lhs = boost::get<ql::wire_datum_t>(&rg_response->result);
-                            const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
+                            counted_t<const ql::datum_t> *lhs =
+                                boost::get<counted_t<const ql::datum_t> >(&rg_response->result);
+                            const counted_t<const ql::datum_t> *rhs =
+                                boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
                             if (!rhs) {
                                 guarantee(boost::get<rget_read_response_t::empty_t>(&(_rr->result)));
                                 continue;
                             } else {
-                                ql::wire_datum_t local_rhs = *rhs;
                                 if (lhs) {
-                                    counted_t<const ql::datum_t> reduced_val = local_reduce_func.compile(&ql_env)->call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->as_datum();
-                                    rg_response->result = ql::wire_datum_t(reduced_val);
+                                    counted_t<const ql::datum_t> reduced_val =
+                                        local_reduce_func.compile(&ql_env)->call(*lhs, *rhs)->as_datum();
+                                    rg_response->result = reduced_val;
                                 } else {
                                     guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
                                     rg_response->result = _rr->result;
                                 }
                             }
                         }
-                        ql::wire_datum_t *final_val = boost::get<ql::wire_datum_t>(&rg_response->result);
-                        if (final_val) {
-                            final_val->finalize();
-                        }
                     } else if (boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
-                        rg_response->result =
-                            ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
+                        rg_response->result = make_counted<const ql::datum_t>(0.0);
 
                         for (size_t i = 0; i < count; ++i) {
                             const rget_read_response_t *_rr =
                                 boost::get<rget_read_response_t>(&responses[i].response);
                             guarantee(_rr);
-                            ql::wire_datum_t *lhs = boost::get<ql::wire_datum_t>(&rg_response->result);
-                            const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
-                            ql::wire_datum_t local_rhs = *rhs;
-
-                            counted_t<const ql::datum_t> sum = make_counted<ql::datum_t>(lhs->compile(&ql_env)->as_num() + local_rhs.compile(&ql_env)->as_num());
-                            rg_response->result = ql::wire_datum_t(sum);
+                            counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t>>(rg_response->result);
+                            counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t>>(_rr->result);
+                            rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
                         }
-                        boost::get<ql::wire_datum_t>(rg_response->result).finalize();
                     } else if (const ql::gmr_wire_func_t *gmr_func =
                             boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
                         ql::gmr_wire_func_t local_gmr_func = *gmr_func;
@@ -647,7 +640,7 @@ public:
                         ql::wire_datum_map_t *map =
                             boost::get<ql::wire_datum_map_t>(&rg_response->result);
 
-                        for (size_t i = 0; i < count; ++i) {
+                          for (size_t i = 0; i < count; ++i) {
                             const rget_read_response_t *_rr =
                                 boost::get<rget_read_response_t>(&responses[i].response);
                             guarantee(_rr);
@@ -655,7 +648,7 @@ public:
                                 boost::get<ql::wire_datum_map_t>(&(_rr->result));
                             r_sanity_check(rhs);
                             ql::wire_datum_map_t local_rhs = *rhs;
-                            local_rhs.compile(&ql_env);
+                            local_rhs.compile();
 
                             counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
                             for (size_t f = 0; f < rhs_arr->size(); ++f) {
@@ -1106,15 +1099,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             Term *arg = ql::pb::set_func(&filter_term, arg1);
             N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
                N2(ALL,
-                  if (rget.sindex_start_value) {
+                  if (rget.sindex_start_value.has()) {
                       N2(GE, NVAR(sindex_val),
-                         *ql::pb::set_datum(arg) =rget.sindex_start_value->get_datum());
+                         rget.sindex_start_value->write_to_protobuf(ql::pb::set_datum(arg)));
                   } else {
                       NDATUM_BOOL(true);
                   },
-                  if (rget.sindex_end_value) {
+                  if (rget.sindex_end_value.has()) {
                       N2(LE, NVAR(sindex_val),
-                         *ql::pb::set_datum(arg) = rget.sindex_end_value->get_datum());
+                         rget.sindex_end_value->write_to_protobuf(ql::pb::set_datum(arg)));
                   } else {
                       NDATUM_BOOL(true);
                   }),

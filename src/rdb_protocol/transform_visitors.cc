@@ -190,18 +190,18 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
 
 void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
     // TODO: just pass an int around
-    ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    d->reset(make_counted<ql::datum_t>(d->get()->as_int() + 1.0));
+    counted_t<const ql::datum_t> d = boost::get<counted_t<const ql::datum_t> >(*out);
+    *out = make_counted<const ql::datum_t>(d->as_int() + 1.0);
 }
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NOLINT(runtime/references)
-    ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
+    counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
     counted_t<const ql::datum_t> rhs(new ql::datum_t(json, ql_env));
-    if (d) {
-        d->reset(func.compile(ql_env)->call(d->get(), rhs)->as_datum());
+    if (d != NULL) {
+        *out = func.compile(ql_env)->call(*d, rhs)->as_datum();
     } else {
         guarantee(boost::get<rget_read_response_t::empty_t>(out));
-        *out = ql::wire_datum_t(rhs);
+        *out = rhs;
     }
 }
 
@@ -233,7 +233,7 @@ public:
     }
 
     void operator()(const ql::count_wire_func_t &) const {
-        *out = ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
+        *out = make_counted<const ql::datum_t>(0.0);
     }
 
     void operator()(ql::reduce_wire_func_t &f) const {  // NOLINT(runtime/references)

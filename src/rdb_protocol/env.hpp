@@ -28,6 +28,13 @@ public:
     const uuid_u uuid;
 
 public:
+    void cache_js_func(const std::string &s, counted_t<val_t> f);
+    counted_t<val_t> get_js_func(const std::string &s);
+private:
+    static const size_t cache_size = 100;
+    std::map<std::string, std::pair<microtime_t, counted_t<val_t> > > js_funcs;
+
+public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
