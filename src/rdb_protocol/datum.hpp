@@ -65,8 +65,8 @@ public:
     datum_t();
     datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
-    datum_t(cJSON *json, env_t *env);
-    datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env);
+    datum_t(cJSON *json);
+    datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
 
     ~datum_t();
 
@@ -150,7 +150,7 @@ private:
     void init_str();
     void init_array();
     void init_object();
-    void init_json(cJSON *json, env_t *env);
+    void init_json(cJSON *json);
 
     void check_str_validity(const std::string &str);
 
