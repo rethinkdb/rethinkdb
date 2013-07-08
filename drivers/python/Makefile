@@ -42,6 +42,7 @@ sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
 publish: $(PYTHON_PB_FILE)
 	mkdir -p $(PY_PKG_DIR)
 	cp setup.py $(PY_PKG_DIR)
+	cp MANIFEST.in $(PY_PKG_DIR)
 	cp -r rethinkdb $(PY_PKG_DIR)
 	cp $(PYTHON_PB_FILE) $(PY_PKG_DIR)/rethinkdb
 	cd $(PY_PKG_DIR); python setup.py register sdist upload
