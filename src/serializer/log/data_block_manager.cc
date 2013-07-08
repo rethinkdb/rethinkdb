@@ -652,9 +652,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
-                    debugf("block of old offset %" PRIi64 ", adding index write op with block id %u\n",
+                    debugf("block of old offset %" PRIi64 ", adding index write op with block id %u seqid %" PRIu64 "\n",
                            writes[i].old_offset,
-                           writes[i].buf->ser_header.block_id);
+                           writes[i].buf->ser_header.block_id,
+                           writes[i].buf->ser_header.block_sequence_id);
                     block_id_t block_id = writes[i].buf->ser_header.block_id;
 
                     index_write_ops.push_back(
