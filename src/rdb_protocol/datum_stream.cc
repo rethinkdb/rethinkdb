@@ -231,7 +231,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    return json ? make_counted<datum_t>(json, env) : counted_t<datum_t>();
+    return json ? make_counted<datum_t>(json) : counted_t<datum_t>();
 }
 
 // ARRAY_DATUM_STREAM_T

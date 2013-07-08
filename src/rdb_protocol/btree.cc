@@ -186,7 +186,7 @@ void rdb_replace_and_return_superblock(
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
+            old_val = make_counted<ql::datum_t>(old_val_json);
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
@@ -970,7 +970,7 @@ void rdb_update_single_sindex(
             promise_t<superblock_t *> return_superblock_local;
             {
                 counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted, &env);
+                    make_counted<ql::datum_t>(modification->info.deleted);
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -1002,7 +1002,7 @@ void rdb_update_single_sindex(
     if (modification->info.added) {
         try {
             counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added, &env);
+                make_counted<ql::datum_t>(modification->info.added);
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();
