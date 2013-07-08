@@ -12,13 +12,13 @@ class build_ext_nofail(build_ext):
     def run(self):
         try:
             build_ext.run(self)
-        except DistutilsPlatformError, e:
+        except DistutilsPlatformError as e:
             self._failed(e)
 
     def build_extension(self, ext):
         try:
             build_ext.build_extension(self, ext)
-        except (CCompilerError, DistutilsExecError), e:
+        except (CCompilerError, DistutilsExecError) as e:
             self._failed(e)
         else:
             try:
