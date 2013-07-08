@@ -57,9 +57,7 @@ language_drivers_dir := $(share_dir)/drivers
 
 FULL_SERVER_EXEC_NAME := $(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED := $(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
-
 ASSETS_DIR:=$(PACKAGING_DIR)/assets
-ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 ##### Install
@@ -109,7 +107,7 @@ $(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUI
 	   $< > $@
 
 .PHONY: install-tools
-install-tools: $(ASSET_SCRIPTS)
+install-tools: $(BUILD_DIR)/assets/rethinkdb.bash
 	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) \
 	                 $(DESTDIR)$(bash_completion_dir)
 	install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
@@ -118,9 +116,6 @@ install-tools: $(ASSET_SCRIPTS)
 	   $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
            $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
-	$P INSTALL $(ASSET_SCRIPTS) $(DESTDIR)$(scripts_dir)
-	install -m755 -d $(DESTDIR)$(scripts_dir)
-	for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
 	$P INSTALL $(INIT_SCRIPTS) $(DESTDIR)$(init_dir)
 	install -m755 -d $(DESTDIR)$(init_dir)
 	for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done
