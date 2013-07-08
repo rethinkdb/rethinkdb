@@ -1520,7 +1520,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
 iterator::iterator()
     : node_(NULL), index_(-1) { }
 
-iterator::iterator(const leaf_node_t *node, int index) 
+iterator::iterator(const leaf_node_t *node, int index)
     : node_(node), index_(index) { }
 
 std::pair<const btree_key_t *, const void *> iterator::operator*() const {
@@ -1531,8 +1531,7 @@ std::pair<const btree_key_t *, const void *> iterator::operator*() const {
 }
 
 iterator &iterator::operator++() {
-    if (index_ == node_->num_pairs) { return *this; }
-    guarantee(index_ <= int(node_->num_pairs));
+    guarantee(index_ < int(node_->num_pairs), "Trying to increment past the end of an iterator.");
     do {
         ++index_;
     } while (index_ < node_->num_pairs && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
@@ -1540,8 +1539,7 @@ iterator &iterator::operator++() {
 }
 
 iterator &iterator::operator--() {
-    if (index_ == -1) { return *this; }
-    guarantee(index_ >= -1);
+    guarantee(index_ > -1, "Trying to decrement past the beginning of an iterator.");
     do {
         --index_;
     } while (index_ >= 0 && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
@@ -1562,7 +1560,7 @@ int iterator::cmp(const iterator &other) const {
 
 reverse_iterator::reverse_iterator() { }
 
-reverse_iterator::reverse_iterator(const leaf_node_t *node, int index) 
+reverse_iterator::reverse_iterator(const leaf_node_t *node, int index)
     : inner_(node, index) { }
 
 std::pair<const btree_key_t *, const void *> reverse_iterator::operator*() const {
@@ -1606,7 +1604,8 @@ leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node) {
 leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
-    if (entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
+    if (index == leaf_node.num_pairs ||
+        entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
         return leaf_node_t::iterator(&leaf_node, index);
     } else {
         return ++leaf_node_t::iterator(&leaf_node, index);
