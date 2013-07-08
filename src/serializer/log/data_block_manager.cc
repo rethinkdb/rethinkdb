@@ -480,6 +480,11 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
             /* Notify the GC that the extent got released during GC */
             case gc_entry_t::state_in_gc:
                 guarantee(gc_state.current_entry == entry);
+                debugf("%p: extent %" PRIi64 " released during GC, set current_entry = NULL\n"
+                       " (entry has %u blocks..) dump:\n%s\n",
+                       this,
+                       entry->extent_ref.offset(), entry->num_blocks(),
+                       entry->format_block_infos("\n").c_str());
                 gc_state.current_entry = NULL;
                 break;
             default:
@@ -513,6 +518,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 }
 
 void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
+    debugf("%p: marking %" PRIi64 " garbage\n", this, offset);
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     unsigned int block_index = entry->block_index(offset);
@@ -520,10 +526,12 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // Now we set the i_array entry to zero.  We make an extra reference to the
     // extent which gets held until we commit the transaction.
     txn->push_extent(extent_manager->copy_extent_reference(entry->extent_ref));
+
+    guarantee(!entry->block_is_garbage(block_index));
     entry->mark_garbage_indexwise(block_index);
 
-    // Add to old garbage count if we have toggled the g_array bit (works because of
-    // the g_array[block_index] == 0 assertion above)
+    // Add to old garbage count if necessary (works because of the
+    // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
     }
@@ -552,8 +560,8 @@ void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
 
     entry->mark_garbage_tokenwise(block_index);
 
-    // Add to old garbage count if we have toggled the g_array bit (works because of
-    // the g_array[block_index] == 0 assertion above)
+    // Add to old garbage count if necessary (works because of the
+    // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
         gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
     }
@@ -577,10 +585,12 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
         pulse();
     }
 };
+
+// RSI: Make num_writes be a size_t.
 void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_writes) {
     if (parent->gc_state.current_entry != NULL) {
-        std::vector<block_write_cond_t *> block_write_conds;
-        block_write_conds.reserve(num_writes);
+        debugf("%p: Writing GCs for entry %" PRIi64 "\n", parent, parent->gc_state.current_entry->extent_ref.offset());
+        block_write_cond_t block_write_cond;
 
         // We acquire block tokens for all the blocks before writing new
         // version.  The point of this is to make sure the _new_ block is
@@ -593,40 +603,37 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
         // data_block_manager_t::write() instead of immediately discarding the
         // created token and causing the extent or block to be collected.
         std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
-        new_block_tokens.reserve(num_writes);
 
         {
-            ASSERT_NO_CORO_WAITING;
             // Step 1: Write buffers to disk and assemble index operations
+            ASSERT_NO_CORO_WAITING;
+
+            std::vector<buf_write_info_t> the_writes;
+            the_writes.reserve(num_writes);
             for (int i = 0; i < num_writes; ++i) {
-                block_write_conds.push_back(new block_write_cond_t());
-                // ... and save block tokens for the old offset.
-                guarantee(parent->gc_state.current_entry != NULL, "i = %d", i);
+                debugf("%p: Writing gc with old offset %" PRIi64 "\n", parent, writes[i].old_offset);
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
-
-                // RSI: Use many_writes properly instead of this for loop.
-                std::vector<buf_write_info_t> the_writes;
                 the_writes.push_back(buf_write_info_t(writes[i].buf,
                                                       writes[i].ser_block_size,
                                                       writes[i].buf->ser_header.block_id));
+            }
 
-                std::vector<counted_t<ls_block_token_pointee_t> > token
-                    = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
-                                          block_write_conds.back());
+            new_block_tokens
+                = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
+                                      &block_write_cond);
 
-                guarantee(token.size() == 1);
-                writes[i].new_offset = token[0]->offset();
-                new_block_tokens.push_back(std::move(token[0]));
+            guarantee(new_block_tokens.size() == static_cast<size_t>(num_writes));
+
+            for (int i = 0; i < num_writes; ++i) {
+                // RSI: Is setting writes[i].new_offset the right way to pass this information along?
+                writes[i].new_offset = new_block_tokens[i]->offset();
             }
         }
 
         // Step 2: Wait on all writes to finish
-        for (size_t i = 0; i < block_write_conds.size(); ++i) {
-            block_write_conds[i]->wait();
-            delete block_write_conds[i];
-        }
+        block_write_cond.wait();
 
         // We created block tokens for our blocks we're writing, so
         // there's no way the current entry could have become NULL.
@@ -645,6 +652,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
+                    debugf("block of old offset %" PRIi64 ", adding index write op with block id %u\n",
+                           writes[i].old_offset,
+                           writes[i].buf->ser_header.block_id);
                     block_id_t block_id = writes[i].buf->ser_header.block_id;
 
                     index_write_ops.push_back(
@@ -652,6 +662,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                                              to_standard_block_token(
                                                      block_id,
                                                      new_block_tokens[i])));
+                } else {
+                    debugf("block of old offset %" PRIi64 ", no longer referenced\n", writes[i].old_offset);
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -679,9 +691,12 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             new_block_tokens.clear();
         }
 
+        debugf("starting index write for gc ops\n");
         // Step 4B: Commit the transaction to the serializer, emptying
         // out all the i_array bits.
         parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+
+        debugf("finished index write for gc ops\n");
 
         ASSERT_NO_CORO_WAITING;
 
@@ -871,11 +886,15 @@ void data_block_manager_t::run_gc() {
                 and gc_state.current_entry to become NULL. */
 
                 guarantee(gc_state.current_entry == NULL,
-                          "%zd garbage bytes left on the extent, %zd index-referenced "
-                          "bytes, %zd token-referenced bytes.\n",
+                          "%p: %zd garbage bytes left on the extent, %zd index-referenced "
+                          "bytes, %zd token-referenced bytes, at offset %" PRIi64
+                          ".  block dump:\n%s\n",
+                          this,
                           gc_state.current_entry->garbage_bytes(),
                           gc_state.current_entry->index_bytes(),
-                          gc_state.current_entry->token_bytes());
+                          gc_state.current_entry->token_bytes(),
+                          gc_state.current_entry->extent_ref.offset(),
+                          gc_state.current_entry->format_block_infos("\n").c_str());
 
                 guarantee(gc_state.refcount == 0);
 
@@ -1202,6 +1221,8 @@ uint64_t gc_entry_t::index_bytes() const {
 
 void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
                                                  uint32_t ser_block_size) {
+    debugf("%p: mark_live_indexwise_with_offset %" PRIi64 " offset=%" PRIi64 " ser_block_size=%" PRIu32 "\n",
+           parent, extent_ref.offset(), offset, ser_block_size);
     guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
     uint32_t relative_offset = offset - extent_ref.offset();
@@ -1229,7 +1250,18 @@ void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
     block_infos.insert(it, block_info_t{relative_offset, ser_block_size, false, true});
 }
 
-
+std::string gc_entry_t::format_block_infos(const char *separator) const {
+    const int64_t offset = extent_ref.offset();
+    std::string ret;
+    for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+        ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
+                         it == block_infos.begin() ? "" : separator,
+                         offset + it->relative_offset, it->ser_block_size,
+                         it->token_referenced ? 'T' : ' ',
+                         it->index_referenced ? 'I' : ' ');
+    }
+    return ret;
+}
 
 /* functions for gc structures */
 

@@ -113,12 +113,6 @@ public:
 
     uint64_t token_bytes() const;
 
-    // The "indexwise" here refers to the LBA index, not the block_index parameter.
-    void mark_live_indexwise(unsigned int block_index) {
-        guarantee(state != state_reconstructing);
-        block_infos[block_index].index_referenced = true;
-    }
-
     void mark_live_indexwise_with_offset(int64_t block_offset, uint32_t ser_block_size);
 
     void mark_garbage_indexwise(unsigned int block_index) {
@@ -135,6 +129,8 @@ public:
     uint64_t index_bytes() const;
 
     void make_active();
+
+    std::string format_block_infos(const char *separator) const;
 
 private:
     data_block_manager_t *const parent;
