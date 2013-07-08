@@ -13,7 +13,7 @@ class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
     DEFAULT_AUTH_KEY: ''
-    DEFAULT_TIMEOUT: 20
+    DEFAULT_TIMEOUT: 20 # In seconds
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -275,12 +275,12 @@ class TcpConnection extends Connection
                         @buffer = bufferSlice(@buffer, i)
                         status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
 
+                        handshake_complete = true
                         if status_str == "SUCCESS"
                             # We're good, finish setting up the connection
                             @rawSocket.on 'data', (buf) =>
                                 @_data(toArrayBuffer(buf))
 
-                            handshake_complete = true
                             @emit 'connect'
                             return
                         else
@@ -297,7 +297,7 @@ class TcpConnection extends Connection
             if not handshake_complete
                 @rawSocket.destroy()
                 @emit 'error', new RqlDriverError "Handshake timedout"
-        ), @timeout)
+        ), @timeout*1000)
 
 
     close: () ->
