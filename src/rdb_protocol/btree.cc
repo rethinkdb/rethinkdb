@@ -1118,7 +1118,7 @@ public:
 
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
-        for (auto it = leaf_node->begin(); it != leaf_node->end(); ++it) {
+        for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             /* Grab relevant values from the leaf node. */
             const btree_key_t *key = (*it).first;
             const void *value = (*it).second;

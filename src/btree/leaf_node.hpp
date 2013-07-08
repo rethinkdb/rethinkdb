@@ -34,8 +34,7 @@ class reverse_iterator;
 } //namespace leaf
 
 // The leaf node begins with the following struct layout.
-class leaf_node_t {
-public:
+struct leaf_node_t {
     // The value-type-specific magic value.  It's a bit of a hack, but
     // it's possible to construct a value_sizer_t based on this value.
     block_magic_t magic;
@@ -60,19 +59,19 @@ public:
     //Iteration
     typedef leaf::iterator iterator;
     typedef leaf::reverse_iterator reverse_iterator;
-
-    leaf::iterator begin() const;
-    leaf::iterator end() const;
-
-    leaf::reverse_iterator rbegin() const;
-    leaf::reverse_iterator rend() const;
-
-    leaf::iterator inclusive_lower_bound(const btree_key_t *key) const;
-    leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key) const;
 };
 
-
 namespace leaf {
+
+leaf_node_t::iterator begin(const leaf_node_t &leaf_node);
+leaf_node_t::iterator end(const leaf_node_t &leaf_node);
+
+leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node);
+leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node);
+
+leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+leaf_node_t::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+
 
 
 // We must maintain timestamps and deletion entries as best we can,
