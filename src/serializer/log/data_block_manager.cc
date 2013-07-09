@@ -482,11 +482,6 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
             /* Notify the GC that the extent got released during GC */
             case gc_entry_t::state_in_gc:
                 guarantee(gc_state.current_entry == entry);
-                debugf("%p: extent %" PRIi64 " released during GC, set current_entry = NULL\n"
-                       " (entry has %u blocks..) dump:\n%s\n",
-                       this,
-                       entry->extent_ref.offset(), entry->num_blocks(),
-                       entry->format_block_infos("\n").c_str());
                 gc_state.current_entry = NULL;
                 break;
             default:
@@ -520,7 +515,6 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 }
 
 void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
-    debugf("%p: marking %" PRIi64 " garbage\n", this, offset);
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     unsigned int block_index = entry->block_index(offset);
@@ -591,7 +585,6 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
 // RSI: Make num_writes be a size_t.
 void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_writes) {
     if (parent->gc_state.current_entry != NULL) {
-        debugf("%p: Writing GCs for entry %" PRIi64 "\n", parent, parent->gc_state.current_entry->extent_ref.offset());
         block_write_cond_t block_write_cond;
 
         // We acquire block tokens for all the blocks before writing new
@@ -613,7 +606,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             std::vector<buf_write_info_t> the_writes;
             the_writes.reserve(num_writes);
             for (int i = 0; i < num_writes; ++i) {
-                debugf("%p: Writing gc with old offset %" PRIi64 "\n", parent, writes[i].old_offset);
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
@@ -654,10 +646,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
                 if (parent->gc_state.current_entry->block_referenced_by_index(block_index)) {
-                    debugf("block of old offset %" PRIi64 ", adding index write op with block id %u seqid %" PRIu64 "\n",
-                           writes[i].old_offset,
-                           writes[i].buf->ser_header.block_id,
-                           writes[i].buf->ser_header.block_sequence_id);
                     block_id_t block_id = writes[i].buf->ser_header.block_id;
 
                     index_write_ops.push_back(
@@ -665,8 +653,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                                              to_standard_block_token(
                                                      block_id,
                                                      new_block_tokens[i])));
-                } else {
-                    debugf("block of old offset %" PRIi64 ", no longer referenced\n", writes[i].old_offset);
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -694,12 +680,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             new_block_tokens.clear();
         }
 
-        debugf("starting index write for gc ops\n");
         // Step 4B: Commit the transaction to the serializer, emptying
         // out all the i_array bits.
         parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
-
-        debugf("finished index write for gc ops\n");
 
         ASSERT_NO_CORO_WAITING;
 
@@ -1224,8 +1207,6 @@ uint64_t gc_entry_t::index_bytes() const {
 
 void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
                                                  uint32_t ser_block_size) {
-    debugf("%p: mark_live_indexwise_with_offset %" PRIi64 " offset=%" PRIi64 " ser_block_size=%" PRIu32 "\n",
-           parent, extent_ref.offset(), offset, ser_block_size);
     guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
     uint32_t relative_offset = offset - extent_ref.offset();
