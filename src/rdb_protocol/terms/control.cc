@@ -63,7 +63,7 @@ public:
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<func_t> f = arg(0)->as_func(IDENTITY_SHORTCUT);
+        counted_t<func_t> f = arg(0)->as_func(CONSTANT_SHORTCUT);
         std::vector<counted_t<const datum_t> > args;
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
         return f->call(args);

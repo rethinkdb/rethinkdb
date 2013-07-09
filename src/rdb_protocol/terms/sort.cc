@@ -35,6 +35,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
+        counted_t<val_t> arg0 = arg(0);
         return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
     }
     virtual const char *name() const { return "desc"; }

@@ -271,11 +271,22 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
     }
 }
 
-counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                             const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
+counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t> key,
+                                            const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *arg = twrap.get();
+    int obj = env->gensym();
+    arg = pb::set_func(arg, obj);
+    N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
 }
