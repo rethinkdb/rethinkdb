@@ -124,7 +124,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
 
     counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
-        old_val = make_counted<ql::datum_t>(data->at(r.key)->get(), env);
+        old_val = make_counted<ql::datum_t>(data->at(r.key)->get());
     } else {
         old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
