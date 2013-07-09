@@ -718,18 +718,18 @@ int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
-int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
+int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
     nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
     return 0;
 }
 
-void delete_all(const char *path) {
+void remove_directory(const char *path) {
     // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
     // depth) and used by Linux to limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper than that).
     const int max_openfd = 128;
-    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
 
@@ -754,7 +754,7 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 void recreate_temporary_directory(const base_path_t& base_path) {
     const std::string path = temporary_directory_path(base_path);
 
-    delete_all(path.c_str());
+    remove_directory(path.c_str());
 
     int res;
     do {

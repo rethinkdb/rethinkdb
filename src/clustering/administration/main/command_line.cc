@@ -1572,15 +1572,24 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         initialize_logfile(opts, base_path);
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
+            if (new_directory) {
+                remove_directory(base_path.path().c_str());
+            }
             return EXIT_FAILURE;
         }
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
+            if (new_directory) {
+                remove_directory(base_path.path().c_str());
+            }
             return EXIT_SUCCESS;
         }
 
         if (write_pid_file(opts) != EXIT_SUCCESS) {
+            if (new_directory) {
+                remove_directory(base_path.path().c_str());
+            }
             return EXIT_FAILURE;
         }
 
