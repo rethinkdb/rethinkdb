@@ -47,48 +47,54 @@ public:
 private:
     class lt_cmp_t {
     public:
-        explicit lt_cmp_t(counted_t<const datum_t> _attrs) : attrs(_attrs) { }
+        lt_cmp_t(std::vector<counted_t<val_t> > _comparisons,
+                 term_t *_creator)
+            : comparisons(_comparisons), creator(_creator) { }
         bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
-            for (size_t i = 0; i < attrs->size(); ++i) {
-                std::string attrname = attrs->get(i)->as_str();
-                bool invert = (attrname[0] == '-');
-                r_sanity_check(attrname[0] == '-' || attrname[0] == '+');
-                attrname.erase(0, 1);
-                counted_t<const datum_t> lattr = l->get(attrname, NOTHROW);
-                counted_t<const datum_t> rattr = r->get(attrname, NOTHROW);
-                if (!lattr.has() && !rattr.has()) {
+            for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
+                counted_t<const datum_t> lval;
+                counted_t<const datum_t> rval;
+                if ((*it)->get_type().is_convertible(val_t::type_t::DATUM)) {
+                    std::string attrname = (*it)->as_str();
+                    lval = l->get(attrname, NOTHROW);
+                    rval = r->get(attrname, NOTHROW);
+                } else if ((*it)->get_type().is_convertible(val_t::type_t::FUNC)) {
+                    lval = (*it)->as_func()->call(l)->as_datum();
+                    rval = (*it)->as_func()->call(r)->as_datum();
+                } else {
+                    rfail_target(creator, base_exc_t::GENERIC,
+                          "Must pass either DATUM or FUNCTION to %s\n", creator->name());
+                }
+
+                if (!lval.has() && !rval.has()) {
                     continue;
                 }
-                if (!lattr.has()) {
-                    return static_cast<bool>(true ^ invert);
+                if (!lval.has()) {
+                    return static_cast<bool>(true);
                 }
-                if (!rattr.has()) {
-                    return static_cast<bool>(false ^ invert);
+                if (!rval.has()) {
+                    return static_cast<bool>(false);
                 }
                 // TODO: use datum_t::cmp instead to be faster
-                if (*lattr == *rattr) {
+                if (*lval == *rval) {
                     continue;
                 }
-                return static_cast<bool>((*lattr < *rattr) ^ invert);
+                return static_cast<bool>((*lval < *rval));
             }
             return false;
         }
     private:
-        counted_t<const datum_t> attrs;
+        std::vector<counted_t<val_t> > comparisons;
+        term_t *creator;
     };
 
     virtual counted_t<val_t> eval_impl() {
+        std::vector<counted_t<val_t> > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
-            Term::TermType type = src_term->args(i).type();
-            if (type != Term::ASC && type != Term::DESC) {
-                auto datum = make_counted<const datum_t>("+" + arg(i)->as_str());
-                arr->add(new_val(datum)->as_datum());
-            } else {
-                arr->add(arg(i)->as_datum());
-            }
+            comparisons.push_back(arg(i));
         }
-        lt_cmp_t lt_cmp(counted_t<const datum_t>(arr.release()));
+        lt_cmp_t lt_cmp(comparisons, this);
         // We can't have datum_stream_t::sort because templates suck.
 
         counted_t<table_t> tbl;
