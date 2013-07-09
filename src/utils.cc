@@ -724,7 +724,7 @@ int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNU
     return 0;
 }
 
-void remove_directory(const char *path) {
+void remove_directory_recursive(const char *path) {
     // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
     // depth) and used by Linux to limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper than that).
@@ -754,7 +754,7 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 void recreate_temporary_directory(const base_path_t& base_path) {
     const std::string path = temporary_directory_path(base_path);
 
-    remove_directory(path.c_str());
+    remove_directory_recursive(path.c_str());
 
     int res;
     do {
