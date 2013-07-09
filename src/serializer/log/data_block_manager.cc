@@ -428,6 +428,8 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                    it_ser_block_size);
 
             last_written_offset = it_offset + it_ser_block_size;
+
+            ++write_number;
         }
 
         memset(buf.get() + (last_written_offset - front_offset), 0,
