@@ -1135,7 +1135,8 @@ unsigned int gc_entry_t::block_index(const int64_t offset) const {
         }
     }
 
-    crash("block_index requested for invalid offset (offset = %ld)", offset);
+    crash("block_index requested for invalid offset (offset = %" PRIi64 ")",
+          offset);
 }
 
 bool gc_entry_t::new_offset(uint32_t ser_block_size,
