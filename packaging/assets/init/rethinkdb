@@ -174,8 +174,13 @@ do
         if [ ! -e "$rtdbpidfile" ] ; then
             echo "rethinkdb: $instance_name: The instance is not running (there is no pid file)"
         elif is_running "`cat "$rtdbpidfile"`" ; then
-            echo "rethinkdb: $instance_name: Stopping instance (pid `cat "$rtdbpidfile"`)"
+            echo -n "rethinkdb: $instance_name: Waiting for instance to stop (pid `cat "$rtdbpidfile"`) ..."
             kill -INT "`cat "$rtdbpidfile"`"
+            while is_running "`cat "$rtdbpidfile"`"; do
+                echo -n "."
+                sleep 1
+            done
+            echo " Stopped."
         else
             rm -f "$rtdbpidfile"
         fi

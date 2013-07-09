@@ -100,7 +100,14 @@ endif
 
 .PHONY: support
 support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
-support: $(LESSC) $(HANDLEBARS)
+
+ifdef LESSC
+  support: $(LESSC)
+endif
+
+ifdef HANDLEBARS
+  support: $(HANDLEBARS)
+endif
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
