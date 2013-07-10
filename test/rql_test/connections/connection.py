@@ -2,6 +2,7 @@
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
+import random
 import socket
 import threading
 import SocketServer
@@ -104,7 +105,7 @@ class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServe
 class TestTimeout(unittest.TestCase):
     def setUp(self):
         self.timeout = 0.5
-        self.port = 8987
+        self.port = random.randint(1025, 65535)
 
         self.server = ThreadedBlackHoleServer(('localhost', self.port), BlackHoleRequestHandler)
         self.server_thread = threading.Thread(target=self.server.serve_forever)

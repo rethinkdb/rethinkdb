@@ -22,6 +22,7 @@
 #include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
+#include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/persist.hpp"
@@ -374,10 +375,6 @@ void initialize_logfile(const std::map<std::string, options::values_t> &opts,
     install_fallback_log_writer(filename);
 }
 
-bool check_existence(const base_path_t& base_path) {
-    return 0 == access(base_path.path().c_str(), F_OK);
-}
-
 std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
     // We check first for a run-time option, then check the home of the binary,
     // and then we check in the install location if such a location was provided
@@ -610,16 +607,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
+                         directory_lock_t *data_directory_lock,
                          bool *const result_out) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
-
-    if (!check_existence(base_path)) {
-        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
-        *result_out = false;
-        return;
-    }
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
@@ -657,6 +649,10 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                                                                  &auth_perfmon_collection));
         }
 
+        // Tell the directory lock that the directory is now good to go, as it will
+        //  otherwise delete an uninitialized directory
+        data_directory_lock->directory_initialized();
+
         *result_out = serve(serve_info.spawner_info,
                             &io_backender,
                             base_path,
@@ -682,10 +678,11 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const int max_concurrent_io_requests,
                              const bool new_directory,
                              const serve_info_t &serve_info,
+                             directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, max_concurrent_io_requests,
-                            NULL, NULL,
+                            NULL, NULL, data_directory_lock,
                             result_out);
     } else {
         logINF("Creating directory %s\n", base_path.path().c_str());
@@ -718,7 +715,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         run_rethinkdb_serve(base_path, serve_info,
                             max_concurrent_io_requests,
-                            &our_machine_id, &cluster_metadata, result_out);
+                            &our_machine_id, &cluster_metadata,
+                            data_directory_lock, result_out);
     }
 }
 
@@ -1100,15 +1098,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         const int num_workers = get_cpu_count();
 
-        // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
-        if (check_existence(base_path)) {
-            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
-            return EXIT_FAILURE;
-        }
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
-        const int res = mkdir(base_path.path().c_str(), 0755);
-        if (res != 0) {
-            fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+        if (!is_new_directory) {
+            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
             return EXIT_FAILURE;
         }
 
@@ -1119,7 +1113,13 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, &result),
                            num_workers);
-        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+
+        if (result) {
+            // Tell the directory lock that the directory is now good to go, as it will
+            //  otherwise delete an uninitialized directory
+            data_directory_lock.directory_initialized();
+            return EXIT_SUCCESS;
+        }
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
         fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
@@ -1214,10 +1214,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (!check_existence(base_path)) {
-            fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
-            return EXIT_FAILURE;
-        }
+        // Open and lock the directory, but do not create it
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
+        guarantee(!is_new_directory);
 
         recreate_temporary_directory(base_path);
 
@@ -1249,6 +1249,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                        max_concurrent_io_requests,
                                        static_cast<machine_id_t*>(NULL),
                                        static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                       &data_directory_lock,
                                        &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -1555,16 +1556,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
-        if (!check_existence(base_path)) {
-            new_directory = true;
-            int mkdir_res = mkdir(base_path.path().c_str(), 0755);
-            if (mkdir_res != 0) {
-                fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
-                return EXIT_FAILURE;
-            }
-        }
+        // If we create the file, it will be cleaned up unless directory_initialized()
+        // is called on it.  This will be done after the metadata files have been created.
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
         recreate_temporary_directory(base_path);
 
@@ -1595,8 +1591,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                        base_path,
                                        machine_name,
                                        max_concurrent_io_requests,
-                                       new_directory,
+                                       is_new_directory,
                                        serve_info,
+                                       &data_directory_lock,
                                        &result),
                            num_workers);
 

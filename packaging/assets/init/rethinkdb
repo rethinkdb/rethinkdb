@@ -155,10 +155,10 @@ do
     get "$conf" cluster-port cluster_port || :
     get "$conf" http-port http_port || :
     get "$conf" port-offset port_offset || :
-    if [ "${driver_port:-$default_driver_port}" = "$default_driver_port" -o \
-         "${cluster_port:-$default_cluster_port}" = "$default_cluster_port" -o \
-         "${http-port:-$default_http_port}" = "$default_http_port" -o \
-         "${port_offset:-$default_port_offset}" = "$default_port_offset" ]; then
+    port_offset=${port_offset:-0}
+    if [ "${driver_port:-$((default_driver_port+port_offset))}" = "$default_driver_port" -o \
+         "${cluster_port:-$((default_cluster_port+port_offset))}" = "$default_cluster_port" -o \
+         "${http-port:-$((default_http_port+port_offset))}" = "$default_http_port" -o ]; then
         if $default_ports_available; then
             default_ports_available=false
         else

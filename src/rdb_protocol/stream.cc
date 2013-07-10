@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rdb_protocol/stream.hpp"
 
+#include "btree/keys.hpp"
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
@@ -113,7 +114,9 @@ batched_rget_stream_t::batched_rget_stream_t(
             right_bound.has()
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
-      table_scan_backtrace()
+      table_scan_backtrace(),
+      merge_sort(false),
+      direction(FORWARD)
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
@@ -139,7 +142,9 @@ batched_rget_stream_t::batched_rget_stream_t(
                 _sindex_end_value != NULL
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
-      table_scan_backtrace()
+      table_scan_backtrace(),
+      merge_sort(false),
+      direction(FORWARD)
 { }
 
 boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
@@ -208,14 +213,18 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
     if (!sindex_id) {
         return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
                                            transform,
-                                           optargs);
+                                           optargs,
+                                           merge_sort,
+                                           direction);
     } else {
         return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
                                            *sindex_id,
                                            sindex_start_value,
                                            sindex_end_value,
                                            transform,
-                                           optargs);
+                                           optargs,
+                                           merge_sort,
+                                           direction);
     }
 }
 
@@ -251,10 +260,22 @@ void batched_rget_stream_t::read_more() {
             data.push_back(i->second);
         }
 
-        range.left = p_res->last_considered_key;
+        if (direction == FORWARD) {
+            range.left = p_res->last_considered_key;
+        } else {
+            range.right = key_range_t::right_bound_t(p_res->last_considered_key);
+        }
 
-        if (!range.left.increment()) {
+        if (direction == FORWARD &&
+            (!range.left.increment() ||
+            (!range.right.unbounded && (range.right.key < range.left)))) {
             finished = true;
+        } else if (direction == BACKWARD) {
+            guarantee(!range.right.unbounded);
+            if (!range.right.key.decrement() ||
+                range.right.key < range.left) {
+                finished = true;
+            }
         }
     } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {

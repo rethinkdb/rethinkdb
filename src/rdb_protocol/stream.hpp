@@ -134,6 +134,9 @@ private:
     key_range_t range;
 
     boost::optional<backtrace_t> table_scan_backtrace;
+
+    bool merge_sort;
+    direction_t direction;
 };
 
 
