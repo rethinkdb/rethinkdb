@@ -60,8 +60,6 @@ public:
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    counted_t< scs_block_token_t<inner_serializer_t> > block_write(ser_buffer_t *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-
     std::vector<counted_t< scs_block_token_t<inner_serializer_t> > >
     block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 

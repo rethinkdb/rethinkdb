@@ -580,22 +580,6 @@ log_serializer_t::generate_block_token(int64_t offset, uint32_t ser_block_size) 
     return ret;
 }
 
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(ser_buffer_t *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
-    assert_thread();
-    // TODO: Implement a duration sampler perfmon for this
-    ++stats->pm_serializer_block_writes;
-
-    // RSI: We need the real block size of this block to pass to dbm::write.
-    std::vector<buf_write_info_t> writes;
-    writes.push_back(buf_write_info_t(buf, get_block_size().ser_value(), block_id));
-
-    std::vector<counted_t<ls_block_token_pointee_t> > result
-        = data_block_manager->many_writes(writes, true, io_account, cb);
-    guarantee(result.size() == 1);
-    return result[0];
-}
-
 std::vector<counted_t<ls_block_token_pointee_t> >
 log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                                file_account_t *io_account, iocallback_t *cb) {

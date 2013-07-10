@@ -215,17 +215,6 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-counted_t<standard_block_token_t>
-translator_serializer_t::block_write(ser_buffer_t *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
-    // NULL_BLOCK_ID is special: it indicates no block id specified.  Right now only the
-    // log_serializer_t ever sees a NULL_BLOCK_ID, passed in from its data block manager in some
-    // ugly circular code.
-    if (block_id != NULL_BLOCK_ID)
-        block_id = translate_block_id(block_id);
-    return inner->block_write(buf, block_id, io_account, cb);
-}
-
-
 std::vector<counted_t<standard_block_token_t> >
 translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                                       file_account_t *io_account, iocallback_t *cb) {
@@ -237,6 +226,7 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
     // NULL_BLOCK_ID.
 
     std::vector<buf_write_info_t> tmp;
+    tmp.reserve(write_infos.size());
     for (auto it = write_infos.begin(); it != write_infos.end(); ++it) {
         tmp.push_back(buf_write_info_t(it->buf, it->ser_block_size,
                                        it->block_id == NULL_BLOCK_ID
