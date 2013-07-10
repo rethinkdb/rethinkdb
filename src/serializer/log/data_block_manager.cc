@@ -1177,8 +1177,7 @@ uint64_t gc_entry_t::garbage_bytes() const {
     uint64_t b = parent->static_config->extent_size();
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->token_referenced || it->index_referenced) {
-            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
-            b -= ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+            b -= it->ser_block_size;
         }
     }
     return b;
@@ -1188,8 +1187,7 @@ uint64_t gc_entry_t::token_bytes() const {
     uint64_t b = 0;
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->token_referenced) {
-            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
-            b += ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+            b += it->ser_block_size;
         }
     }
     return b;
@@ -1199,8 +1197,7 @@ uint64_t gc_entry_t::index_bytes() const {
     uint64_t b = 0;
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->index_referenced) {
-            // RSI: Support writing blocks packed tighter than DEVICE_BLOCK_SIZE.
-            b += ceil_aligned(it->ser_block_size, DEVICE_BLOCK_SIZE);
+            b += it->ser_block_size;
         }
     }
     return b;
