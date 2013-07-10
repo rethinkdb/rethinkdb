@@ -175,8 +175,9 @@ do
             echo "rethinkdb: $instance_name: The instance is not running (there is no pid file)"
         elif is_running "`cat "$rtdbpidfile"`" ; then
             echo -n "rethinkdb: $instance_name: Waiting for instance to stop (pid `cat "$rtdbpidfile"`) ..."
-            kill -INT "`cat "$rtdbpidfile"`"
-            while is_running "`cat "$rtdbpidfile"`"; do
+            instance_pid=`cat "$rtdbpidfile"`
+            kill -INT "$instance_pid"
+            while is_running "$instance_pid"; do
                 echo -n "."
                 sleep 1
             done
