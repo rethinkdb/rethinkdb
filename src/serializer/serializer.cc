@@ -50,59 +50,70 @@ ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
     return static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
 }
 
-void perform_write(const serializer_write_t *write, serializer_t *ser, file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
-    switch (write->action_type) {
-    case serializer_write_t::UPDATE: {
-        conds->push_back(new write_cond_t(write->action.update.io_callback));
-        std::vector<buf_write_info_t> write_infos;
-        write_infos.push_back(buf_write_info_t(convert_buffer_cache_buf_to_ser_buffer(write->action.update.buf),
-                                               ser->get_block_size().ser_value(),  // RSI: use actual block size
-                                               op->block_id));
-        std::vector<counted_t<standard_block_token_t> > tokens
-            = ser->block_writes(write_infos, acct, conds->back());
-        guarantee(tokens.size() == 1);
-        op->token = tokens[0];
-
-        if (write->action.update.launch_callback) {
-            write->action.update.launch_callback->on_write_launched(op->token.get());
-        }
-        op->recency = write->action.update.recency;
-    } break;
-    case serializer_write_t::DELETE: {
-        op->token = counted_t<standard_block_token_t>();
-        op->recency = repli_timestamp_t::invalid;
-    } break;
-    case serializer_write_t::TOUCH: {
-        op->recency = write->action.touch.recency;
-    } break;
-    default:
-        unreachable();
-    }
-}
-
 void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes, file_account_t *io_account) {
     ser->assert_thread();
-    std::vector<write_cond_t*> block_write_conds;
     std::vector<index_write_op_t> index_write_ops;
-    block_write_conds.reserve(writes.size());
     index_write_ops.reserve(writes.size());
 
     // Step 1: Write buffers to disk and assemble index operations
+    std::vector<buf_write_info_t> write_infos;
+    write_infos.reserve(writes.size());
+
+    struct : public iocallback_t, public cond_t {
+        void on_io_complete() {
+            pulse();
+        }
+    } block_write_cond;
+
     for (size_t i = 0; i < writes.size(); ++i) {
-        const serializer_write_t *write = &writes[i];
-        index_write_op_t op(write->block_id);
-
-        perform_write(write, ser, io_account, &block_write_conds, &op);
-
-        index_write_ops.push_back(op);
+        if (writes[i].action_type == serializer_write_t::UPDATE) {
+            write_infos.push_back(buf_write_info_t(convert_buffer_cache_buf_to_ser_buffer(writes[i].action.update.buf),
+                                                   ser->get_block_size().ser_value(),  // RSI: Use actual block size.
+                                                   writes[i].block_id));
+        }
     }
+
+    // RSI: Make sure block_writes lets you do zero writes.
+    std::vector<counted_t<standard_block_token_t> > tokens;
+    if (!write_infos.empty()) {
+        tokens = ser->block_writes(write_infos, io_account, &block_write_cond);
+    }
+    guarantee(tokens.size() == write_infos.size());
+
+    size_t tokens_index = 0;
+    for (size_t i = 0; i < writes.size(); ++i) {
+        switch (writes[i].action_type) {
+        case serializer_write_t::UPDATE: {
+            guarantee(tokens_index < tokens.size());
+            index_write_ops.push_back(index_write_op_t(writes[i].block_id,
+                                                       tokens[tokens_index],
+                                                       writes[i].action.update.recency));
+
+            if (writes[i].action.update.launch_callback != NULL) {
+                writes[i].action.update.launch_callback->on_write_launched(tokens[tokens_index]);
+            }
+
+            ++tokens_index;
+        } break;
+        case serializer_write_t::DELETE: {
+            index_write_ops.push_back(index_write_op_t(writes[i].block_id,
+                                                       counted_t<standard_block_token_t>(),
+                                                       repli_timestamp_t::invalid));
+        } break;
+        case serializer_write_t::TOUCH: {
+            index_write_ops.push_back(index_write_op_t(writes[i].block_id,
+                                                       boost::none,
+                                                       writes[i].action.touch.recency));
+        } break;
+        default:
+            unreachable();
+        }
+    }
+
+    guarantee(tokens_index == tokens.size());
 
     // Step 2: Wait on all writes to finish
-    for (size_t i = 0; i < block_write_conds.size(); ++i) {
-        block_write_conds[i]->wait();
-        delete block_write_conds[i];
-    }
-    block_write_conds.clear();
+    block_write_cond.wait();
 
     // Step 3: Commit the transaction to the serializer
     ser->index_write(index_write_ops, io_account);
