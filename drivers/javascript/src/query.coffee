@@ -20,6 +20,8 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     else if goog.isObject val
         obj = {}
         for own k,v of val
+            if typeof v is 'undefined'
+                throw new RqlDriverError "Object field '#{k}' may not be undefined"
             obj[k] = rethinkdb.expr(v, nestingDepth - 1)
         new MakeObject obj
     else
@@ -106,7 +108,7 @@ isJSON = (val, nestingDepth=20) ->
         false
     else if (val instanceof Object)
         # Covers array case as well
-        for k,v of val
+        for own k,v of val
             if not isJSON(v, nestingDepth - 1) then return false
         true
     else
