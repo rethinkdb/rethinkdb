@@ -38,7 +38,7 @@ struct log_serializer_metablock_t {
 
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
-    data_block_manager_t::metablock_mixin_t data_block_manager_part;
+    data_block_manager::metablock_mixin_t data_block_manager_part;
     block_sequence_id_t block_sequence_id;
 };
 
@@ -194,7 +194,7 @@ public:
     // disable_gc will ALWAYS eventually call the callback.  It will
     // return 'true' (and will have already called the callback) if gc
     // is stopped immediately.
-    typedef data_block_manager_t::gc_disable_callback_t gc_disable_callback_t;
+    typedef data_block_manager::gc_disable_callback_t gc_disable_callback_t;
 
     bool disable_gc(gc_disable_callback_t *cb);
 

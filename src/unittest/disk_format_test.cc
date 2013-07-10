@@ -92,10 +92,10 @@ TEST(DiskFormatTest, LbaSuperblockT) {
 }
 
 TEST(DiskFormatTest, DataBlockManagerMetablockMixinT) {
-    EXPECT_EQ(0u, offsetof(data_block_manager_t::metablock_mixin_t, active_extent));
-    EXPECT_EQ(8u, offsetof(data_block_manager_t::metablock_mixin_t,
+    EXPECT_EQ(0u, offsetof(data_block_manager::metablock_mixin_t, active_extent));
+    EXPECT_EQ(8u, offsetof(data_block_manager::metablock_mixin_t,
                            blocks_in_active_extent));
-    EXPECT_EQ(16u, sizeof(data_block_manager_t::metablock_mixin_t));
+    EXPECT_EQ(16u, sizeof(data_block_manager::metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
@@ -113,7 +113,7 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     n += sizeof(lba_list_t::metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, data_block_manager_part));
 
-    n += sizeof(data_block_manager_t::metablock_mixin_t);
+    n += sizeof(data_block_manager::metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, block_sequence_id));
 
     EXPECT_EQ(8u, sizeof(block_sequence_id_t));

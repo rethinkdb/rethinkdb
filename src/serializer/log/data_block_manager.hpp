@@ -33,6 +33,18 @@ struct buf_write_info_t {
     block_id_t block_id;
 };
 
+namespace data_block_manager {
+    struct metablock_mixin_t {
+        int64_t active_extent;
+        // RSI: Is this useful anymore?
+        uint64_t blocks_in_active_extent;
+    } __attribute__((__packed__));
+
+    struct gc_disable_callback_t {
+        virtual void on_gc_disabled() = 0;
+        virtual ~gc_disable_callback_t() {}
+    };
+}  // namespace data_block_manager
 
 class data_block_manager_t {
     friend class gc_entry_t;
@@ -59,17 +71,15 @@ private:
         data_block_manager_t *parent;
     };
 
+    // RSI: Probably get rid of these typedefs.
+    typedef data_block_manager::metablock_mixin_t metablock_mixin_t;
+    typedef data_block_manager::gc_disable_callback_t gc_disable_callback_t;
+
 public:
     data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em,
                          log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config,
                          log_serializer_stats_t *parent);
     ~data_block_manager_t();
-
-    struct metablock_mixin_t {
-        int64_t active_extent;
-        // RSI: Is this useful anymore?
-        uint64_t blocks_in_active_extent;
-    } __attribute__((__packed__));
 
     /* When initializing the database from scratch, call start() with just the
     database FD. When restarting an existing database, call start() with the last
@@ -117,11 +127,6 @@ public:
     };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
-
-    struct gc_disable_callback_t {
-        virtual void on_gc_disabled() = 0;
-        virtual ~gc_disable_callback_t() {}
-    };
 
     // Always calls the callback, returns true if the callback has
     // already been called.
