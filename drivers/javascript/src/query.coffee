@@ -3,18 +3,25 @@ goog.provide("rethinkdb.query")
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.ast")
 
-rethinkdb.expr = ar (val) ->
+rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     if val is undefined
         throw new RqlDriverError "Cannot wrap undefined with r.expr()."
+
+    if nestingDepth <= 0
+        throw new RqlDriverError "Nesting depth limit exceeded"
 
     else if val instanceof TermBase
         val
     else if val instanceof Function
         new Func {}, val
     else if goog.isArray val
+        val = (rethinkdb.expr(v, nestingDepth - 1) for v in val)
         new MakeArray {}, val...
     else if goog.isObject val
-        new MakeObject val
+        obj = {}
+        for own k,v of val
+            obj[k] = rethinkdb.expr(v, nestingDepth - 1)
+        new MakeObject obj
     else
         new DatumTerm val
 
@@ -72,8 +79,11 @@ rethinkdb.info = ar (val) -> new Info {}, val
 
 # Use r.json to serialize as much of the obect as JSON as is
 # feasible to avoid doing too much protobuf serialization.
-rethinkdb.exprJSON = ar (val) ->
-    if isJSON(val)
+rethinkdb.exprJSON = varar 1, 2, (val, nestingDepth=20) ->
+    if nestingDepth <= 0
+        throw new RqlDriverError "Nesting depth limit exceeded"
+
+    if isJSON(val, nestingDepth - 1)
         rethinkdb.json(JSON.stringify(val))
     else if (val instanceof TermBase)
         val
@@ -84,17 +94,20 @@ rethinkdb.exprJSON = ar (val) ->
             wrapped = {}
 
         for k,v of val
-            wrapped[k] = rethinkdb.exprJSON(v)
+            wrapped[k] = rethinkdb.exprJSON(v, nestingDepth - 1)
         rethinkdb.expr(wrapped)
 
 # Is this JS value representable as JSON?
-isJSON = (val) ->
+isJSON = (val, nestingDepth=20) ->
+    if nestingDepth <= 0
+        throw new RqlDriverError "Nesting depth limit exceeded"
+
     if (val instanceof TermBase)
         false
     else if (val instanceof Object)
         # Covers array case as well
         for k,v of val
-            if not isJSON(v) then return false
+            if not isJSON(v, nestingDepth - 1) then return false
         true
     else
         # Primitive types can always be represented as JSON
