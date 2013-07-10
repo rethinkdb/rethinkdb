@@ -360,7 +360,7 @@ private:
     gc_entry_t *active_extent;
 
     /* Contains every extent in the gc_entry_t::state_young state */
-    intrusive_list_t< gc_entry_t > young_extent_queue;
+    intrusive_list_t<gc_entry_t> young_extent_queue;
 
     /* Contains every extent in the gc_entry_t::state_old state */
     priority_queue_t<gc_entry_t *, gc_entry_less_t> gc_pq;
