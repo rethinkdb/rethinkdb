@@ -183,13 +183,6 @@ counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_
 }
 
 template<class inner_serializer_t>
-counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return wrap_buf_token(block_id,
-                          buf,
-                          inner_serializer.block_write(buf, block_id, io_account));
-}
-
-template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
     return inner_serializer.coop_lock_and_check();
 }
