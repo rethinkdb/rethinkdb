@@ -62,6 +62,9 @@ public:
 
     counted_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
 
+    std::vector<counted_t< scs_block_token_t<inner_serializer_t> > >
+    block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
+
     block_size_t get_block_size() const;
 
     bool coop_lock_and_check();

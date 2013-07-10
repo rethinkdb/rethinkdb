@@ -183,6 +183,23 @@ counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_
 }
 
 template<class inner_serializer_t>
+std::vector<counted_t< scs_block_token_t<inner_serializer_t> > >
+semantic_checking_serializer_t<inner_serializer_t>::block_writes(const std::vector<buf_write_info_t> &write_infos,
+                                                                 file_account_t *io_account, iocallback_t *cb) {
+    std::vector<counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> > tmp
+        = inner_serializer.block_writes(write_infos, io_account, cb);
+
+    std::vector<counted_t<standard_block_token_t> > ret;
+    for (size_t i = 0; i < tmp.size(); ++i) {
+        ret.push_back(wrap_buf_token(write_infos[i].block_id, write_infos[i].buf,
+                                     tmp[i]));
+    }
+
+    return ret;
+}
+
+
+template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::coop_lock_and_check() {
     return inner_serializer.coop_lock_and_check();
 }
