@@ -597,7 +597,6 @@ linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
 
 bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     if (!bound && !bind_sockets()) {
-        logERR("Could not bind to port %d", port);
         return false;
     }
 
