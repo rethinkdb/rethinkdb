@@ -148,22 +148,28 @@ bool do_serve(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
         message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-        connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster,
-                                                               address_ports.local_addresses,
-                                                               address_ports.port,
-                                                               &message_multiplexer_run,
-                                                               address_ports.client_port,
-                                                               &heartbeat_manager);
+        object_buffer_t<connectivity_cluster_t::run_t> connectivity_cluster_run;
+
+        try {
+            connectivity_cluster_run.create(&connectivity_cluster,
+                                            address_ports.local_addresses,
+                                            address_ports.port,
+                                            &message_multiplexer_run,
+                                            address_ports.client_port,
+                                            &heartbeat_manager);
+        } catch (const address_in_use_exc_t &ex) {
+            throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
+        }
 
         // If (0 == port), then we asked the OS to give us a port number.
         if (address_ports.port != 0) {
-            guarantee(address_ports.port == connectivity_cluster_run.get_port());
+            guarantee(address_ports.port == connectivity_cluster_run->get_port());
         }
-        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run.get_port());
+        logINF("Listening for intracluster connections on port %d\n", connectivity_cluster_run->get_port());
 
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
-            &connectivity_cluster_run,
+            connectivity_cluster_run.get(),
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
@@ -189,7 +195,7 @@ bool do_serve(
 
         scoped_ptr_t<initial_joiner_t> initial_joiner;
         if (!joins.empty()) {
-            initial_joiner.init(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
+            initial_joiner.init(new initial_joiner_t(&connectivity_cluster, connectivity_cluster_run.get(), joins));
             try {
                 wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
             } catch (const interrupted_exc_t &) {
@@ -400,7 +406,7 @@ bool do_serve(
         logINF("Storage engine shut down.\n");
 
     } catch (const address_in_use_exc_t &ex) {
-        logERR("%s. Cannot bind to cluster port. Exiting.\n", ex.what());
+        logERR("%s.\n", ex.what());
         return false;
     }
 

@@ -38,7 +38,6 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
         rassert(s == &shutting_down_conds[i]);
     }
 
-    boost::optional<address_in_use_exc_t> address_exception;
     try {
         tcp_listener.init(new tcp_listener_t(
             local_addresses,
@@ -46,12 +45,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
             boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
                         this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        // Super awkward, but we can't crash in an exception clause and still log the error
-        address_exception.reset(ex);
-    }
-
-    if (address_exception) {
-        nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", address_exception->what());
+        throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
 }
 template <class request_t, class response_t, class context_t>
