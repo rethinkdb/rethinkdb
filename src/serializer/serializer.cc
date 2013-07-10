@@ -123,3 +123,35 @@ counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, cons
     return result;
 
 }
+
+// RSI: Remove this implementation.
+std::vector<counted_t<standard_block_token_t> >
+serializer_t::block_writes(const std::vector<block_write_info_t> &write_infos,
+                           file_account_t *io_account,
+                           iocallback_t *cb) {
+    struct intermediate_cb_t : public iocallback_t {
+        void on_io_complete() {
+            guarantee(countdown > 0);
+            --countdown;
+            if (countdown == 0) {
+                iocallback_t *local_callee = callee;
+                delete this;
+                local_callee->on_io_complete();
+            }
+        }
+
+        size_t countdown;
+        iocallback_t *callee;
+    };
+
+    intermediate_cb_t *intermediate = new intermediate_cb_t;
+    intermediate->countdown = write_infos.size();
+    intermediate->callee = cb;
+
+    std::vector<counted_t<standard_block_token_t> > ret;
+    for (auto it = write_infos.begin(); it != write_infos.end(); ++it) {
+        ret.push_back(block_write(it->buf, it->block_id, io_account, intermediate));
+    }
+
+    return ret;
+}
