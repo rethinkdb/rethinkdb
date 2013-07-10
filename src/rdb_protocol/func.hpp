@@ -47,6 +47,7 @@ public:
 
     std::string print_src() const;
     void set_default_filter_val(counted_t<func_t> func);
+    protob_t<const Term> get_source();
 private:
     // Pointers to this function's arguments.
     scoped_array_t<counted_t<const datum_t> > argptrs;

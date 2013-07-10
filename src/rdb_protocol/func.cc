@@ -167,6 +167,10 @@ void func_t::set_default_filter_val(counted_t<func_t> func) {
     default_filter_val = func;
 }
 
+protob_t<const Term> func_t::get_source() {
+    return source;
+}
+
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)) {

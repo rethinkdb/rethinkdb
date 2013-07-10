@@ -7,6 +7,9 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/term_walker.hpp"
+
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
@@ -24,7 +27,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
+        return new_val(arg(0)->as_func(GET_FIELD_SHORTCUT));
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -35,8 +38,17 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<val_t> arg0 = arg(0);
-        return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
+        counted_t<func_t> f = arg(0)->as_func(GET_FIELD_SHORTCUT);
+
+        protob_t<Term> twrap = make_counted_term();
+        Term *arg = twrap.get();
+        int obj = env->gensym();
+        arg = pb::set_func(arg, obj);
+        OPT2(MAKE_OBJ,
+                REQL_TYPE, NDATUM("DESC"),
+                "data", N2(FUNCALL, *arg = *f->get_source(), NVAR(obj)));
+        propagate_backtrace(twrap.get(), backtrace().get());
+        return new_val(make_counted<func_t>(env, twrap));
     }
     virtual const char *name() const { return "desc"; }
 };
