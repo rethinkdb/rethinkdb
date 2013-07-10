@@ -7,11 +7,6 @@ file_account_t *serializer_t::make_io_account(int priority) {
     return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
 }
 
-counted_t<standard_block_token_t>
-serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return serializer_block_write(this, buf, block_id, io_account);
-}
-
 serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
     serializer_write_t w;
     w.block_id = block_id;
@@ -115,4 +110,16 @@ void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_
     rassert(other.ptr_.has());
     rassert(!ptr_.has());
     ptr_ = ser->clone(other.ptr_.get());
+}
+
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const void *buf,
+                                                         block_id_t block_id, file_account_t *io_account) {
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    counted_t<standard_block_token_t> result
+        = ser->block_write(buf, block_id, io_account, &cb);
+    cb.wait();
+    return result;
+
 }

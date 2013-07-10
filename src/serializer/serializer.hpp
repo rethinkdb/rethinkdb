@@ -89,7 +89,6 @@ public:
 
     /* Non-blocking variants */
     virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
-    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
     virtual block_size_t get_block_size() const = 0;
@@ -145,16 +144,7 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
     return ser->index_write(ops, io_account);
 }
 
-template <class serializer_type>
-counted_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    counted_t<typename serializer_traits_t<serializer_type>::block_token_type> result
-        = ser->block_write(buf, block_id, io_account, &cb);
-    cb.wait();
-    return result;
-
-}
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const void *buf,
+                                                         block_id_t block_id, file_account_t *io_account);
 
 #endif /* SERIALIZER_SERIALIZER_HPP_ */

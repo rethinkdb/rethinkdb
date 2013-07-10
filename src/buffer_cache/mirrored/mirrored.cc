@@ -1110,7 +1110,7 @@ void mc_cache_t::create(serializer_t *serializer) {
     bzero(superblock->cache_data, serializer->get_block_size().value());
 
     index_write_op_t op(SUPERBLOCK_ID);
-    op.token = serializer->block_write(superblock->cache_data, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.token = serializer_block_write(serializer, superblock->cache_data, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 }
