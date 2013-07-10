@@ -15,6 +15,7 @@
 ### END INIT INFO
 
 set -e -u
+umask 022
 
 itask="${1:-}"
 
@@ -126,6 +127,8 @@ do
     # If no pid file is specified, assign one and make sure the parent folder has the correct permissions
     if ! get "$conf" pid-file rtdbpidfile; then
         rtdbpidfile="/var/run/rethinkdb/$instance_name/pid_file"
+    fi
+    if [ -d /var/run -a "${rtdbpidfile#/var/run/}" != "$rtdbpidfile" ]; then
         parent_directory="`dirname "$rtdbpidfile"`"
         if [ ! -e "$parent_directory" ]; then
             if mkdir -p "$parent_directory"; then
@@ -193,10 +196,6 @@ do
         if ! get "$conf" bind x; then
             echo "rethinkdb: $instance_name: will only listen on local network interfaces."
             echo "rethinkdb: $instance_name: To expose rethinkdb on the network, add the 'bind=all' option to $rtdbconffile"
-        fi
-
-        if [ -e /var/run -a "${rtdbpidfile#/var/run}" != "$rtdbpidfile" ] ; then
-            mkdir -p "`dirname "$rtdbpidfile"`"
         fi
 
         if [ -e "$rtdbpidfile" ] && is_running "$(cat "$rtdbpidfile")"; then
