@@ -1402,14 +1402,14 @@ std::string gc_entry_t::format_block_infos(const char *separator) const {
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::should_we_keep_gcing(UNUSED const gc_entry_t& entry) const {
-    return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_low_ratio;
+    return garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 
 // Answers the following question: Do we want to bother gc'ing?
 // Returns true when our garbage_ratio is greater than
 // GC_THRESHOLD_RATIO_*.
 bool data_block_manager_t::do_we_want_to_start_gcing() const {
-    return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_high_ratio;
+    return garbage_ratio() > dynamic_config->gc_high_ratio;
 }
 
 bool gc_entry_less_t::operator()(const gc_entry_t *x, const gc_entry_t *y) {
@@ -1428,25 +1428,6 @@ double data_block_manager_t::garbage_ratio() const {
         double old_total = gc_stats.old_total_block_bytes.get();
         return old_garbage / (old_total + extent_manager->held_extents() * static_config->extent_size());
     }
-}
-
-bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
-    // We _always_ call the callback!
-
-    guarantee(gc_state.gc_disable_callback == NULL);
-    gc_state.should_be_stopped = true;
-
-    if (gc_state.step() != gc_ready && gc_state.step() != gc_reconstruct) {
-        gc_state.gc_disable_callback = cb;
-        return false;
-    } else {
-        cb->on_gc_disabled();
-        return true;
-    }
-}
-
-void data_block_manager_t::enable_gc() {
-    gc_state.should_be_stopped = false;
 }
 
 void data_block_manager_t::gc_stat_t::operator+=(int64_t num) {

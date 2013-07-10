@@ -74,12 +74,6 @@ public:
 
     void register_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
-
-public:
-    typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;
-    bool disable_gc(gc_disable_callback_t *cb);
-    void enable_gc();
-
 };
 
 #endif /* SERIALIZER_SEMANTIC_CHECKING_HPP_ */

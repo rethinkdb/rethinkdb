@@ -187,23 +187,6 @@ private:
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
 
-public:
-    // disable_gc should be called when you want to turn off the gc
-    // temporarily.
-    //
-    // disable_gc will ALWAYS eventually call the callback.  It will
-    // return 'true' (and will have already called the callback) if gc
-    // is stopped immediately.
-    typedef data_block_manager::gc_disable_callback_t gc_disable_callback_t;
-
-    bool disable_gc(gc_disable_callback_t *cb);
-
-    // enable_gc() should be called when you want to turn on the gc.
-    // gc will be enabled immediately.  Always returns 'true' for
-    // do_on_thread.  TODO: who uses this return value?
-    void enable_gc();
-
-private:
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
 

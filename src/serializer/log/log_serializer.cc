@@ -871,16 +871,6 @@ void log_serializer_t::consider_start_gc() {
 }
 
 
-bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
-    assert_thread();
-    return data_block_manager->disable_gc(cb);
-}
-
-void log_serializer_t::enable_gc() {
-    assert_thread();
-    data_block_manager->enable_gc();
-}
-
 void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 

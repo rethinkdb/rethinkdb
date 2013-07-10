@@ -228,11 +228,3 @@ register_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) {
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) { }
-
-template<class inner_serializer_t>
-bool semantic_checking_serializer_t<inner_serializer_t>::
-disable_gc(gc_disable_callback_t *cb) { return inner_serializer.disable_gc(cb); }
-
-template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::
-enable_gc() { return inner_serializer.enable_gc(); }
