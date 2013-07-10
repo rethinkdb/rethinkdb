@@ -280,4 +280,15 @@ public:
                                       repli_timestamp_t recency_timestamp) = 0;
 };
 
+// RSI: Make this constructor use block_size_t instead of uint32_t ser_block_size.
+struct buf_write_info_t {
+    buf_write_info_t(ser_buffer_t *_buf, uint32_t _ser_block_size,
+                     block_id_t _block_id)
+        : buf(_buf), ser_block_size(_ser_block_size), block_id(_block_id) { }
+    ser_buffer_t *buf;
+    uint32_t ser_block_size;
+    block_id_t block_id;
+};
+
+
 #endif  // SERIALIZER_TYPES_HPP_

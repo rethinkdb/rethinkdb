@@ -126,7 +126,7 @@ counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, cons
 
 // RSI: Remove this implementation.
 std::vector<counted_t<standard_block_token_t> >
-serializer_t::block_writes(const std::vector<block_write_info_t> &write_infos,
+serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                            file_account_t *io_account,
                            iocallback_t *cb) {
     struct intermediate_cb_t : public iocallback_t {

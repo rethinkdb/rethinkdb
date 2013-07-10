@@ -599,6 +599,17 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     return result[0];
 }
 
+std::vector<counted_t<ls_block_token_pointee_t> >
+log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
+                               file_account_t *io_account, iocallback_t *cb) {
+    assert_thread();
+    stats->pm_serializer_block_writes += write_infos.size();
+
+    std::vector<counted_t<ls_block_token_pointee_t> > result
+        = data_block_manager->many_writes(write_infos, true, io_account, cb);
+    guarantee(result.size() == write_infos.size());
+    return result;
+}
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int64_t offset) {
     assert_thread();

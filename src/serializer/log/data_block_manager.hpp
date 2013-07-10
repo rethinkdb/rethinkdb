@@ -24,15 +24,6 @@ struct gc_entry_less_t {
     bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
-struct buf_write_info_t {
-    buf_write_info_t(ser_buffer_t *_buf, uint32_t _ser_block_size,
-                     block_id_t _block_id)
-        : buf(_buf), ser_block_size(_ser_block_size), block_id(_block_id) { }
-    ser_buffer_t *buf;
-    uint32_t ser_block_size;
-    block_id_t block_id;
-};
-
 namespace data_block_manager {
     struct metablock_mixin_t {
         int64_t active_extent;

@@ -90,19 +90,9 @@ public:
     /* Non-blocking variants */
     virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
 
-    // RSI: Rename this later.
-    struct block_write_info_t {
-        // RSI: Add block_size_t param.
-        const void *buf;
-        block_id_t block_id;
-
-        block_write_info_t(const void *_buf, block_id_t _block_id)
-            : buf(_buf), block_id(_block_id) { }
-    };
-
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >
-    block_writes(const std::vector<block_write_info_t> &write_infos,
+    block_writes(const std::vector<buf_write_info_t> &write_infos,
                  file_account_t *io_account,
                  iocallback_t *cb);
 
