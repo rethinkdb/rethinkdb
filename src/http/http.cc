@@ -183,10 +183,16 @@ http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
                              int port,
                              http_app_t *_application) :
     application(_application) {
+    boost::optional<address_in_use_exc_t> address_exception;
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        nice_crash("%s. Could not bind to http port. Exiting.\n", ex.what());
+        // Super awkward, but we can't crash in an exception clause and still log the error
+        address_exception.reset(ex);
+    }
+
+    if (address_exception) {
+        nice_crash("%s. Could not bind to http port. Exiting.\n", address_exception->what());
     }
 }
 
