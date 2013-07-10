@@ -970,48 +970,6 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
     help_out->push_back(help);
 }
 
-void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out,
-                                  std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Allowed options");
-
-#ifndef NDEBUG
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
-    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
-#endif  // NDEBUG
-
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
-    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
-
-    options_out->push_back(options::option_t(options::names_t("--table"),
-                                             options::MANDATORY));
-    help.add("--table db_name.table_name", "the database and table into which to import");
-
-    options_out->push_back(options::option_t(options::names_t("--datacenter"),
-                                             options::OPTIONAL));
-    help.add("--datacenter name", "the datacenter into which to create a table");
-
-    options_out->push_back(options::option_t(options::names_t("--primary-key"),
-                                             options::OPTIONAL,
-                                             "id"));
-    help.add("--primary-key key", "the primary key to create a new table with, or expected primary key");
-
-    options_out->push_back(options::option_t(options::names_t("--separators", "-s"),
-                                             options::OPTIONAL,
-                                             "\t,"));
-    help.add("-s [ --separators ]", "list of characters to be used as whitespace -- uses tabs and commas by default");
-
-    options_out->push_back(options::option_t(options::names_t("--input-file"),
-                                             options::MANDATORY));
-    help.add("--input-file path", "the csv input file");
-
-    help_out->push_back(help);
-    help_out->push_back(get_config_file_options(options_out));
-    help_out->push_back(get_help_options(options_out));
-}
-
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
                                      std::vector<options::option_t> *options_out) {
     help_out->push_back(get_file_options(options_out));
@@ -1033,8 +991,17 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
         throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
     }
 
+    std::vector<options::option_t> options_superset;
+    std::vector<options::help_section_t> helps_superset;
+
+    // There will be some duplicates in here, but it shouldn't be a problem
+    get_rethinkdb_create_options(&helps_superset, &options_superset);
+    get_rethinkdb_serve_options(&helps_superset, &options_superset);
+    get_rethinkdb_proxy_options(&helps_superset, &options_superset);
+    get_rethinkdb_porcelain_options(&helps_superset, &options_superset);
+
     return options::parse_config_file(file, config_filepath,
-                                      options);
+                                      options, options_superset);
 }
 
 std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,

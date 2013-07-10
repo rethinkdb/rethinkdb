@@ -77,12 +77,16 @@ TEST(OptionsTest, ConfigFileParsing) {
         "mandatory-repeat     =mandatory-repeat1#\n"
         "mandatory-repeat    =    mandatory-repeat2    \n"
         "    mandatory-repeat=mandatory-repeat3##comment\n"
-        "override-default = override-default1";
+        "override-default = override-default1\n"
+        "ignored-option=fake";
 
     const std::vector<options::option_t> options = make_options();
+    std::vector<options::option_t> options_superset = options;
+    options_superset.push_back(options::option_t(options::names_t("--ignored-option", "-i"), options::OPTIONAL));
+    options_superset.push_back(options::option_t(options::names_t("--fake-option", "-f"), options::OPTIONAL));
 
     const std::map<std::string, std::vector<std::string> > opts
-        = without_source(options::parse_config_file(config_file, "ConfigFileParsing file", options));
+        = without_source(options::parse_config_file(config_file, "ConfigFileParsing file", options, options_superset));
 
     const std::map<std::string, std::vector<std::string> > expected_parse = make_map<std::string, std::vector<std::string> >(
         std::make_pair("--no-parameter", make_vector<std::string>("")),
