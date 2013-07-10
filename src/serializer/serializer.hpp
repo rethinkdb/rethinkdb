@@ -100,6 +100,7 @@ public:
             : buf(_buf), block_id(_block_id) { }
     };
 
+    // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >
     block_writes(const std::vector<block_write_info_t> &write_infos,
                  file_account_t *io_account,
