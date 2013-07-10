@@ -27,7 +27,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(arg(0)->as_func(GET_FIELD_SHORTCUT));
+        return arg(0);
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -38,17 +38,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<func_t> f = arg(0)->as_func(GET_FIELD_SHORTCUT);
-
-        protob_t<Term> twrap = make_counted_term();
-        Term *arg = twrap.get();
-        int obj = env->gensym();
-        arg = pb::set_func(arg, obj);
-        OPT2(MAKE_OBJ,
-                REQL_TYPE, NDATUM("DESC"),
-                "data", N2(FUNCALL, *arg = *f->get_source(), NVAR(obj)));
-        propagate_backtrace(twrap.get(), backtrace().get());
-        return new_val(make_counted<func_t>(env, twrap));
+        return arg(0);
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -58,56 +48,65 @@ public:
     orderby_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
+    enum order_direction_t { ASC, DESC };
     class lt_cmp_t {
     public:
-        lt_cmp_t(std::vector<counted_t<val_t> > _comparisons,
-                 term_t *_creator)
-            : comparisons(_comparisons), creator(_creator) { }
+        explicit lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
+            : comparisons(_comparisons) { }
         bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
                 counted_t<const datum_t> lval;
                 counted_t<const datum_t> rval;
-                if ((*it)->get_type().is_convertible(val_t::type_t::DATUM)) {
-                    std::string attrname = (*it)->as_str();
-                    lval = l->get(attrname, NOTHROW);
-                    rval = r->get(attrname, NOTHROW);
-                } else if ((*it)->get_type().is_convertible(val_t::type_t::FUNC)) {
-                    lval = (*it)->as_func()->call(l)->as_datum();
-                    rval = (*it)->as_func()->call(r)->as_datum();
-                } else {
-                    rfail_target(creator, base_exc_t::GENERIC,
-                          "Must pass either DATUM or FUNCTION to %s\n", creator->name());
+                try {
+                     lval = it->second->call(l)->as_datum();
+                } catch (const base_exc_t &e) {
+                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
+                        throw;
+                    }
+                }
+
+                try {
+                     rval = it->second->call(r)->as_datum();
+                } catch (const base_exc_t &e) {
+                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
+                        throw;
+                    }
                 }
 
                 if (!lval.has() && !rval.has()) {
                     continue;
                 }
                 if (!lval.has()) {
-                    return static_cast<bool>(true);
+                    return true ^ (it->first == DESC);
                 }
                 if (!rval.has()) {
-                    return static_cast<bool>(false);
+                    return false ^ (it->first == DESC);
                 }
                 // TODO: use datum_t::cmp instead to be faster
                 if (*lval == *rval) {
                     continue;
                 }
-                return static_cast<bool>((*lval < *rval));
+                return (*lval < *rval) ^ (it->first == DESC);
             }
             return false;
         }
     private:
-        std::vector<counted_t<val_t> > comparisons;
-        term_t *creator;
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
     virtual counted_t<val_t> eval_impl() {
-        std::vector<counted_t<val_t> > comparisons;
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
-            comparisons.push_back(arg(i));
+            if (get_src()->args(i).type() == Term::DESC) {
+                comparisons.push_back(
+                        std::make_pair(DESC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
+            } else {
+                comparisons.push_back(
+                        std::make_pair(ASC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
+            }
         }
-        lt_cmp_t lt_cmp(comparisons, this);
+        lt_cmp_t lt_cmp(comparisons);
         // We can't have datum_stream_t::sort because templates suck.
 
         counted_t<table_t> tbl;
