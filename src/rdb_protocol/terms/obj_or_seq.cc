@@ -40,10 +40,18 @@ public:
         case FILTER: {
             body = arg;
             *arg = *term;
+            Term_AssocPair *ap = arg->add_optargs();
+            ap->set_key("_NO_RECURSE_");
+            arg = ap->mutable_val();
+            NDATUM_BOOL(true);
         } break;
         case SKIP_MAP: {
             N2(DEFAULT,
-               N1(MAKE_ARRAY, body = arg; *arg = *term),
+               N1(MAKE_ARRAY, body = arg; *arg = *term;
+               Term_AssocPair *ap = arg->add_optargs();
+               ap->set_key("_NO_RECURSE_");
+               arg = ap->mutable_val();
+               NDATUM_BOOL(true)),
                N0(MAKE_ARRAY));
         } break;
         default: unreachable();
