@@ -6,23 +6,30 @@
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
+
+#ifdef RQL_ERROR_BT
+#define RQL_ERROR_VAR
+#else
+#define RQL_ERROR_VAR __attribute__((unused))
+#endif
+
 void runtime_check(base_exc_t::type_t type,
-                   DEBUG_VAR const char *test, DEBUG_VAR const char *file,
-                   DEBUG_VAR int line, bool pred,
+                   RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
+                   RQL_ERROR_VAR int line, bool pred,
                    std::string msg, const Backtrace *bt_src,
                    int dummy_frames) {
     if (pred) return;
-#ifndef NDEBUG
+#ifdef RQL_ERROR_BT
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
     throw exc_t(type, msg, bt_src, dummy_frames);
 }
 void runtime_check(base_exc_t::type_t type,
-                   DEBUG_VAR const char *test, DEBUG_VAR const char *file,
-                   DEBUG_VAR int line, bool pred, std::string msg) {
+                   RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
+                   RQL_ERROR_VAR int line, bool pred, std::string msg) {
     if (pred) return;
-#ifndef NDEBUG
+#ifdef RQL_ERROR_BT
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif

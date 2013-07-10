@@ -26,6 +26,7 @@ const char *list_directory_command = "ls directory";
 const char *list_tables_command = "ls tables";
 const char *list_datacenters_command = "ls datacenters";
 const char *list_databases_command = "ls databases";
+const char *list_auth_command = "ls auth";
 const char *exit_command = "exit";
 const char *help_command = "help";
 const char *resolve_command = "resolve";
@@ -41,6 +42,8 @@ const char *unset_primary_command = "unset primary";
 const char *set_datacenter_command = "set datacenter";
 const char *unset_datacenter_command = "unset datacenter";
 const char *set_database_command = "set database";
+const char *set_auth_command = "set auth";
+const char *unset_auth_command = "unset auth";
 const char *create_table_command = "create table";
 const char *create_datacenter_command = "create datacenter";
 const char *create_database_command = "create database";
@@ -64,8 +67,9 @@ const char *list_tables_usage = "[--long]";
 // const char *list_tables_usage = "[--protocol <PROTOCOL>] [--long]";
 const char *list_datacenters_usage = "[--long]";
 const char *list_databases_usage = "[--long]";
+const char *list_auth_usage = "";
 const char *help_usage = "[ ls | create | rm | set | split | merge | pin | resolve | help ]";
-const char *resolve_usage = "<ID> <FIELD>";
+const char *resolve_usage = "<FIELD> <ID>";
 const char *pin_shard_usage = "<TABLE> <SHARD> [--master <MACHINE>] [--replicas <MACHINE>...]";
 const char *split_shard_usage = "<TABLE> <SPLIT-POINT>...";
 const char *merge_shard_usage = "<TABLE> <SPLIT-POINT>...";
@@ -78,6 +82,8 @@ const char *unset_primary_usage = "<TABLE>";
 const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
 const char *unset_datacenter_usage = "<MACHINE>";
 const char *set_database_usage = "<TABLE> <DATABASE>";
+const char *set_auth_usage = "<KEY>";
+const char *unset_auth_usage = "";
 // TODO: fix this once multiple protocols are supported again
 const char *create_table_usage = "<NAME> --database <DATABASE> [--primary <DATACENTER>] [--primary-key <KEY>]";
 // const char *create_table_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --database <DATABASE> [--primary <DATACENTER>]";
@@ -121,6 +127,7 @@ const char *set_datacenter_datacenter_option = "<DATACENTER>";
 const char *unset_datacenter_machine_option = "<MACHINE>";
 const char *set_database_table_option = "<TABLE>";
 const char *set_database_database_option = "<DATABASE>";
+const char *set_auth_key_option = "<KEY>";
 const char *create_table_name_option = "<NAME>";
 // TODO: fix this once multiple protocols are supported again
 // const char *create_table_port_option = "--port <PORT>";
@@ -140,7 +147,7 @@ const char *list_stats_table_option_desc = "limit stat collection to the set of 
 // const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
 // TODO: fix this once multiple protocols are supported again
-const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', primary_pinnings', or 'secondary_pinnings'";
+const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', primary_pinnings', or 'secondary_pinnings', if no object is specified, this may be 'auth'";
 // const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
 const char *pin_shard_table_option_desc = "the table to change the shard pinnings of";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
@@ -169,6 +176,7 @@ const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *unset_datacenter_machine_option_desc = "the machine to move out of any datacenter";
 const char *set_database_table_option_desc = "the table to move to the specified database";
 const char *set_database_database_option_desc = "the database to move to";
+const char *set_auth_key_option_desc = "the key that clients must provide when connecting, maximum length is 2048 characters";
 const char *create_table_name_option_desc = "the name of the new table";
 // TODO: fix this once multiple protocols are supported again
 // const char *create_table_port_option_desc = "the port for the table to serve data from for every machine in the cluster";
@@ -190,6 +198,7 @@ const char *list_tables_description = "Print a list of tables in the cluster alo
 // const char *list_tables_description = "Print a list of tables in the cluster along with some relevant data about each table. The list may be filtered by a table protocol type.";
 const char *list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
 const char *list_databases_description = "Print a list of databases in the cluster along with some relevant data about each database.";
+const char *list_auth_description = "Print the key used for authorizing client connections.";
 const char *exit_description = "Quit the cluster administration console.";
 const char *help_description = "Print help on a cluster administration command.";
 const char *resolve_description = "If there are any conflicted values in the cluster, list the possible values for a conflicted field, then resolve the conflict by selecting one of the values.";
@@ -205,6 +214,8 @@ const char *unset_primary_description = "Clear the primary datacenter of a table
 const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
 const char *unset_datacenter_description = "Clear the datacenter of a machine.";
 const char *set_database_description = "Set the database that a table belongs to.";
+const char *set_auth_description = "Set a key for client access control for the cluster.";
+const char *unset_auth_description = "Remove access control from the cluster.";
 // TODO: fix this once multiple protocols are supported again
 const char *create_table_description = "Create a new table in the given database and primary datacenter.";
 // const char *create_table_description = "Create a new table with the given protocol.  The table's primary datacenter and listening port must be specified.";
@@ -546,8 +557,8 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("split-points", -1, true); // TODO: list possible shards
 
     info = add_command(resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve, &commands);
-    info->add_positional("id", 1, true)->add_option("!conflict");
-    info->add_positional("field", 1, true); // TODO: list the conflicted fields in the previous id
+    info->add_positional("field", 1, true);
+    info->add_positional("id", 1, false)->add_option("!conflict"); // TODO: list the conflicted fields in the previous id
 
     info = add_command(set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name, &commands);
     info->add_positional("id", 1, true)->add_option("!id");
@@ -586,6 +597,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("table", 1, true)->add_option("!namespace");
     info->add_positional("database", 1, true)->add_option("!database");
 
+    info = add_command(set_auth_command, set_auth_command, set_auth_usage, &admin_cluster_link_t::do_admin_set_auth, &commands);
+    info->add_positional("key", 1, true)->add_option("!namespace");
+
+    info = add_command(unset_auth_command, unset_auth_command, unset_auth_usage, &admin_cluster_link_t::do_admin_unset_auth, &commands);
+
     info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
     info->add_positional("object", 1, false)->add_options("!id", NULLPTR);
     info->add_flag("long", 0, false);
@@ -612,6 +628,8 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(list_databases_command, list_databases_command, list_databases_usage, &admin_cluster_link_t::do_admin_list_databases, &commands);
     info->add_flag("long", 0, false);
+
+    info = add_command(list_auth_command, list_auth_command, list_auth_usage, &admin_cluster_link_t::do_admin_list_auth, &commands);
 
     info = add_command(create_table_command, create_table_command, create_table_usage, &admin_cluster_link_t::do_admin_create_table, &commands);
     info->add_positional("name", 1, true);
@@ -1162,6 +1180,9 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 helps.push_back(admin_help_info_t(list_databases_command, list_databases_usage, list_databases_description));
                 options.push_back(std::make_pair(list_long_option, list_long_option_desc));
                 do_usage_internal(helps, options, "ls databases - display a list of databases in the cluster", console_mode);
+            } else if (subcommand == "auth") {
+                helps.push_back(admin_help_info_t(list_auth_command, list_auth_usage, list_auth_description));
+                do_usage_internal(helps, options, "ls auth - display the client authorization key", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
@@ -1213,6 +1234,10 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 options.push_back(std::make_pair(set_database_table_option, set_database_table_option_desc));
                 options.push_back(std::make_pair(set_database_database_option, set_database_database_option_desc));
                 do_usage_internal(helps, options, "set database - change the database that a table belongs in", console_mode);
+            } else if (subcommand == "auth") {
+                helps.push_back(admin_help_info_t(set_auth_command, set_auth_usage, set_auth_description));
+                options.push_back(std::make_pair(set_auth_key_option, set_auth_key_option_desc));
+                do_usage_internal(helps, options, "set auth - add access control to client connections", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
@@ -1229,6 +1254,9 @@ void admin_command_parser_t::do_admin_help(const command_data_t& data) {
                 helps.push_back(admin_help_info_t(unset_datacenter_command, unset_datacenter_usage, unset_datacenter_description));
                 options.push_back(std::make_pair(unset_datacenter_machine_option, unset_datacenter_machine_option_desc));
                 do_usage_internal(helps, options, "unset datacenter - clear the datacenter for a machine", console_mode);
+            } else if (subcommand == "auth") {
+                helps.push_back(admin_help_info_t(unset_auth_command, unset_auth_usage, unset_auth_description));
+                do_usage_internal(helps, options, "unset auth - remove access control from client connections", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }

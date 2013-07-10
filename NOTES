@@ -1,3 +1,166 @@
+# Release 1.7.1 (Nights of Cabiria)
+
+Bug fix update.
+
+* Fixed a bug causing `rethinkdb import` to crash on single files
+* Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
+
+--
+
+# Release 1.7.0 (Nights of Cabiria)
+
+Released on 2013-07-03
+
+This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
+
+## New Features ##
+
+* ReQL
+  * Added `r.json` for parsing JSON strings server-side (#887)
+  * Added syntax to `pluck` to access nested documents (#889)
+  * `get_all` now takes a variable number of arguments (#915)
+  * Added atomic set and get operations (#976)
+    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument that returns the values that have been atomically modified
+  * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
+  * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
+  * Drivers now use `r.json` to improve the performance of inserts (#1085)
+  * Improved the behaviour of `pluck` (#1095)
+    * A field with a non-pluckable value is considered absent
+* Web UI
+  * It is now possible to resolve `auth_key` conflicts via the web UI (#1028)
+  * The web UI now uses relative paths (#1053)
+* Server
+  * Flushes to disk less often to improve performance without affecting durability (#520)
+* CLI
+  * Import and export JSON and CSV files (#193)
+    * Four new subcommands: `rethinkdb import`, `rethinkdb export`, `rethinkdb dump` and `rethinkdb restore`
+  * `rethinkdb admin` no longer requires the `--join` option (#1052)
+    * It now connects to localhost:29015 by default
+* Documentation
+  * Documented durability settings correctly (#1008)
+  * Improved instructions for migration (#1013)
+  * Documented the allowed character names for tables (#1039)
+* Packaging
+  * RPMs for CentOS (#268)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Fixed the behaviour of `between` with `null` and secondary indexes (#1001)
+* Web UI
+  * Moved to using a patched Bootstrap, Handlebars.js 1.0.0 and LESS 1.4.0 (#954)
+  * Fixed bug causing nested arrays to be shown as `{...}` in the Data Explorer (#1038)
+  * Inline comments are now parsed correctly in the Data Explorer (#1060)
+  * Properly remove event listeners from the dashboard view (#1044)
+* Server
+  * Fixed a crash caused by shutting down the server during secondary index creation (#1056)
+  * Fixed a potential btree corruption bug (#986)
+* Tests
+  * ReQL tests no longer leave zombie processes (#1055)
+
+--
+
+# Release 1.6.1 (Fargo)
+
+Released on 2013-06-19
+
+## Critical Security Fixes ##
+
+* Fixed a buffer overflow in the networking code
+* Fixed a possible timing attack on the API key
+
+## Other Changes ##
+
+* In python, `r.table_list()` no longer throws an error (#1005)
+* Fixed compilation failures with clang 3.2 (#1006)
+* Fixed compilation failures with gcc 4.4 (#1011)
+* Fixed problems with resolving a conflicted auth_key (#1024)
+
+--
+
+# Release 1.6.0 (Fargo)
+
+Released on 2013-06-13
+
+This release introduces basic access control, regular expression matching, new array operations, random sampling, better error handling, and many bug fixes.
+
+## New Features ##
+
+* ReQL
+  * Added access control with a single, common API key (#266)
+  * Improved handshake to the client driver protocol (#978)
+  * Added `sample` command for random sampling of sequences (#861, #182)
+  * Secondary indexes can be queried with boolean values (#854)
+  * Added `onFinished` callback to `each` in JavaScript to improve cursors (#443)
+  * Added per-command durability settings (#890)
+    * Changed `hard_durability=True` to `durability = 'soft' | 'hard'`
+    * Added a `durability` option to `run`
+  * Added `with_fields` command, and `pluck` no longer throws on missing attributes (#886)
+  * Renamed `contains` to `has_fields` (#885)
+    * `has_fields` runs on tables, objects, and arrays, and doesn't throw on missing attributes
+    * `contains` now checks if an element is in an array
+  * Added `default` command: replaces missing fields with a default value (#884)
+  * Added new array operations (#868, #198, #341)
+      * `prepend`: prepends an element to an array
+      * `append`: appends an element to an array
+      * `insert_at`: inserts an element at the specified index
+      * `splice_at`: splices a list into another list at the specified index
+      * `delete_at`: deletes the element at the specified index
+      * `change_at`: changes the element at the specified index to the specified value
+      * `+` operator: adds two arrays -- returns the ordered union
+      * `*` operator: repeats an array `n` times
+      * `difference`: removes all instances of specified elements from an array
+      * `count`: returns the number of elements in an array
+      * `indexes_of`: returns positions of elements that match the specified value in an array
+      * `is_empty`: check if an array or table is empty
+      * `set_insert`: adds an element to a set
+      * `set_intersection`: finds the intersection of two sets
+      * `set_union`: returns the union of two sets
+      * `set_difference`: returns the difference of two sets
+  * Added `match` command for regular expression matching (#867)
+  * Added `keys` command that returns the fields of an object (#181)
+* Web UI
+  * Document fields are now sorted in alphabetical order in the table view (#832)
+* CLI
+  * Added `-v` flag as an alias for `--version` (#839)
+  * Added `--io-threads` flag to allow limiting the amount of concurrent I/O operations (#928)
+* Build system
+  * Allow building the documentation with Python 3 (#826, #815)
+  * Have `make` build the Ruby and Python drivers (#923)
+
+## Fixed Bugs ##
+
+* Server
+  * Fixed a crash caused by resharding during secondary index creation (#852)
+  * Fixed style problems: code hygiene (#805)
+  * Server code cleanup (#920, #924)
+  * Properly check permissions for writing the pid file (#916)
+* ReQL
+  * Use the correct function name in backtraces (#995)
+  * Fixed callback issues in the JavaScript driver (#846)
+  * In JavaScript, call the callback when the connection is closed (#758)
+  * In JavaScript, GETATTR now checks the argument count (#992)
+  * Tweaked the CoffeeScript source to work with older versions of coffee and node (#963)
+  * Fixed a typo in the error handling of the JavaScript driver (#961)
+  * Fixed performance regression for `pluck` and `without` (#947)
+  * Make sure callbacks get cleared in the Javascript driver (#942)
+  * Improved errors when `return` is omitted in Javascript (#914)
+* Web UI
+  * Correctly distinguish case sensitive table names (#822)
+  * No longer display some results as `{ ... }` in the table view (#937)
+  * Ensured tables are available before listing their indexes (#926)
+  * Fixed the autocompletion for opening square brackets (#917)
+* Tests
+  * Modified the polyglot test framework to catch more possible errors (#724)
+  * Polyglot tests can now run in debug mode (#614)
+* Build
+  * Look for `libprotobuf` in the correct path (#860, #853)
+  * Always fetch and use the same version of Handlebars.js (#821, #819, #958)
+  * Check for versions of LESS that are known to work (#956)
+  * Removed bitrotted MOCK_CACHE_CHECK option (#804)
+
+--
+
 # Release 1.5.2 (Le Gras de Ouate)
 
 Released on 2013-05-24

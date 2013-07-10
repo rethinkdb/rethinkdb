@@ -48,7 +48,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::SET_UNION:          return make_set_union_term(env, t);
     case Term::SET_DIFFERENCE:     return make_set_difference_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
-    case Term::GETATTR:            return make_getattr_term(env, t);
+    case Term::GET_FIELD:          return make_get_field_term(env, t);
     case Term::INDEXES_OF:         return make_indexes_of_term(env, t);
     case Term::KEYS:               return make_keys_term(env, t);
     case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
@@ -102,9 +102,11 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::ASC:                return make_asc_term(env, t);
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
+    case Term::MATCH:              return make_match_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
+    case Term::JSON:               return make_json_term(env, t);
     default: unreachable();
     }
     unreachable();

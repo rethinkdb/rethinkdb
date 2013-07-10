@@ -37,6 +37,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
         mailbox_manager_t *mbox_manager,
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
+        metadata_change_handler_t<auth_semilattice_metadata_t> *_auth_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
@@ -94,7 +95,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/reql_docs.json");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/js/xdate.js");
-    white_list.insert("/js/handlebars.runtime-1.0.0.beta.6.js");
+    white_list.insert("/js/handlebars.runtime-1.0.0.js");
     white_list.insert("/js/template.js");
     white_list.insert("/js/rethinkdb.js");
     white_list.insert("/fonts/copse-regular-webfont.eot");
@@ -219,7 +220,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
     file_app.init(new file_http_app_t(white_list, path));
 
-    semilattice_app.init(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
+    cluster_semilattice_app.init(new cluster_semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
+    auth_semilattice_app.init(new auth_semilattice_http_app_t(_auth_change_handler, _directory_metadata, _us));
     directory_app.init(new directory_http_app_t(_directory_metadata));
     issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _semilattice_metadata));
@@ -243,12 +245,14 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
-    ajax_routes["semilattice"] = semilattice_app.get();
+    ajax_routes["semilattice"] = cluster_semilattice_app.get();
+    ajax_routes["auth"] = auth_semilattice_app.get();
     ajax_routes["reql"] = reql_app;
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
     std::map<std::string, http_json_app_t *> default_views;
-    default_views["semilattice"] = semilattice_app.get();
+    default_views["semilattice"] = cluster_semilattice_app.get();
+    default_views["auth"] = auth_semilattice_app.get();
     default_views["directory"] = directory_app.get();
     default_views["issues"] = issues_app.get();
     default_views["last_seen"] = last_seen_app.get();

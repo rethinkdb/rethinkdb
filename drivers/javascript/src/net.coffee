@@ -2,9 +2,7 @@ goog.provide("rethinkdb.net")
 
 goog.require("rethinkdb.base")
 goog.require("rethinkdb.cursor")
-goog.require("VersionDummy")
-goog.require("Query")
-goog.require("goog.proto2.WireFormatSerializer")
+goog.require("rethinkdb.protobuf")
 
 # Eventually when we ditch Closure we can actually use the node
 # event emitter library. For now it's simple enough that we'll
@@ -14,6 +12,8 @@ goog.require("goog.proto2.WireFormatSerializer")
 class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
+    DEFAULT_AUTH_KEY: ''
+    DEFAULT_TIMEOUT: 20 # In seconds
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -24,6 +24,8 @@ class Connection
         @host = host.host || @DEFAULT_HOST
         @port = host.port || @DEFAULT_PORT
         @db = host.db # left undefined if this is not set
+        @authKey = host.authKey || @DEFAULT_AUTH_KEY
+        @timeout = host.timeout || @DEFAULT_TIMEOUT
 
         @outstandingCallbacks = {}
         @nextToken = 1
@@ -35,7 +37,10 @@ class Connection
 
         errCallback = (e) =>
             @removeListener 'connect', conCallback
-            callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
+            if e instanceof RqlDriverError
+                callback e
+            else
+                callback new RqlDriverError "Could not connect to #{@host}:#{@port}."
         @once 'error', errCallback
 
         conCallback = =>
@@ -51,17 +56,15 @@ class Connection
 
         while @buffer.byteLength >= 4
             responseLength = (new DataView @buffer).getUint32 0, true
-            responseLength2= (new DataView @buffer).getUint32 0, true
             unless @buffer.byteLength >= (4 + responseLength)
                 break
 
             responseArray = new Uint8Array @buffer, 4, responseLength
-            deserializer = new goog.proto2.WireFormatSerializer
-            response = deserializer.deserialize Response.getDescriptor(), responseArray
+            response = ResponsePB::parse(responseArray)
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
-            @buffer = bufferSlice @buffer, (4 + responseLength)
+            @buffer = @buffer.slice(4 + responseLength)
 
     mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
@@ -69,7 +72,7 @@ class Connection
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
-        bt = for frame in response.getBacktrace().framesArray()
+        bt = for frame in response.getBacktraceArray()
                 if frame.getType() is Frame.FrameType.POS
                     parseInt frame.getPos()
                 else
@@ -128,9 +131,8 @@ class Connection
         @outstandingCallbacks = {}
 
     reconnect: ar (callback) ->
-        setTimeout(
-            () => @constructor.call(@, {host:@host, port:@port}, callback)
-           ,0)
+        cb = => @constructor.call(@, {host:@host, port:@port}, callback)
+        setTimeout(cb, 0)
 
     use: ar (db) ->
         @db = db
@@ -143,26 +145,26 @@ class Connection
         @nextToken++
 
         # Construct query
-        query = new Query
-        query.setType Query.QueryType.START
+        query = new QueryPB
+        query.setType "START"
         query.setQuery term.build()
         query.setToken token
 
         # Set global options
         if @db?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('db')
             pair.setVal((new Db {}, @db).build())
             query.addGlobalOptargs(pair)
 
         if useOutdated?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('use_outdated')
             pair.setVal((new DatumTerm (!!useOutdated)).build())
             query.addGlobalOptargs(pair)
 
         if noreply?
-            pair = new Query.AssocPair()
+            pair = new QueryPB::AssocPair
             pair.setKey('noreply')
             pair.setVal((new DatumTerm (!!noreply)).build())
             query.addGlobalOptargs(pair)
@@ -177,15 +179,15 @@ class Connection
                 cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
-        query = new Query
-        query.setType Query.QueryType.CONTINUE
+        query = new QueryPB
+        query.setType "CONTINUE"
         query.setToken token
 
         @_sendQuery(query)
 
     _endQuery: (token) ->
-        query = new Query
-        query.setType Query.QueryType.STOP
+        query = new QueryPB
+        query.setType "STOP"
         query.setToken token
 
         @_sendQuery(query)
@@ -194,13 +196,12 @@ class Connection
     _sendQuery: (query) ->
 
         # Serialize protobuf
-        serializer = new goog.proto2.WireFormatSerializer
-        data = serializer.serialize query
+        data = query.serialize()
 
         length = data.byteLength
         finalArray = new Uint8Array length + 4
         (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set data, 4
+        finalArray.set((new Uint8Array(data)), 4)
 
         @write finalArray.buffer
 
@@ -235,7 +236,7 @@ class Connection
                 lst.apply(null, args)
 
 class TcpConnection extends Connection
-    @isAvailable: -> typeof require isnt 'undefined' and require('net')
+    @isAvailable: -> testFor('net')
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()
@@ -250,23 +251,54 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
+        handshake_complete = false
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 4
-            (new DataView buf).setUint32 0, VersionDummy.Version.V0_1, true
+            buf = new ArrayBuffer 8
+            buf_view = new DataView buf
+            buf_view.setUint32 0, VersionDummy.Version.V0_2, true
+            buf_view.setUint32 4, @authKey.length, true
             @write buf
-            @emit 'connect'
+            @rawSocket.write @authKey, 'ascii'
+
+            # Now we have to wait for a response from the server
+            # acknowledging the new connection
+            handshake_callback = (buf) =>
+                arr = toArrayBuffer(buf)
+
+                @buffer = bufferConcat @buffer, arr
+                for b,i in new Uint8Array @buffer
+                    if b is 0
+                        @rawSocket.removeListener('data', handshake_callback)
+
+                        status_buf = @buffer.slice(0, i)
+                        @buffer = @buffer.slice(i + 1)
+                        status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
+
+                        handshake_complete = true
+                        if status_str == "SUCCESS"
+                            # We're good, finish setting up the connection
+                            @rawSocket.on 'data', (buf) =>
+                                @_data(toArrayBuffer(buf))
+
+                            @emit 'connect'
+                            return
+                        else
+                            @emit 'error', new RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
+                            return
+
+            @rawSocket.on 'data', handshake_callback
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'data', (buf) =>
-            # Convert from node buffer to array buffer
-            arr = new Uint8Array new ArrayBuffer buf.length
-            for byte,i in buf
-                arr[i] = byte
-            @_data(arr.buffer)
-
         @rawSocket.on 'close', => @open = false; @emit 'close'
+
+        setTimeout( (()=>
+            if not handshake_complete
+                @rawSocket.destroy()
+                @emit 'error', new RqlDriverError "Handshake timedout"
+        ), @timeout*1000)
+
 
     close: () ->
         super()
@@ -368,9 +400,9 @@ bufferConcat = (buf1, buf2) ->
     view.set new Uint8Array(buf2), buf1.byteLength
     view.buffer
 
-bufferSlice = (buffer, offset) ->
-    if offset > buffer.byteLength then offset = buffer.byteLength
-    residual = buffer.byteLength - offset
-    res = new Uint8Array residual
-    res.set (new Uint8Array buffer, offset)
-    res.buffer
+toArrayBuffer = (node_buffer) ->
+    # Convert from node buffer to array buffer
+    arr = new Uint8Array new ArrayBuffer node_buffer.length
+    for byte,i in node_buffer
+        arr[i] = byte
+    return arr.buffer

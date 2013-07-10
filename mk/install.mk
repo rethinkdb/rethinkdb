@@ -57,9 +57,7 @@ language_drivers_dir := $(share_dir)/drivers
 
 FULL_SERVER_EXEC_NAME := $(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED := $(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
-
 ASSETS_DIR:=$(PACKAGING_DIR)/assets
-ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
 INIT_SCRIPTS:=$(ASSETS_DIR)/init/rethinkdb
 
 ##### Install
@@ -71,7 +69,7 @@ else
 endif
 
 .PHONY: install-binaries
-install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME) install-backup-scripts
 	$P INSTALL $^ $(DESTDIR)$(bin_dir)
 	install -m755 -d $(DESTDIR)$(bin_dir)
 	install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
@@ -80,30 +78,44 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$(STRIP_UNNEEDED) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
 
-.PHONY: install-manpages
-install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
-	$P INSTALL $^ $(DESTDIR)$(man1_dir)
-	install -m755 -d $(DESTDIR)$(man1_dir)
+install-backup-scripts: $(BACKUP_SCRIPTS_REAL) $(BACKUP_SCRIPTS_PROXY)
+	$P INSTALL backup-scripts $(DESTDIR)$(bin_dir)
+	install -m755 -d $(DESTDIR)$(bin_dir)
+	for file in $^; do \
+	  install -m755 $$file $(DESTDIR)$(bin_dir) ; \
+	done
+
+$(BUILD_DIR)/assets/rethinkdb.1: $(ASSETS_DIR)/man/rethinkdb.1 | $(BUILD_DIR)/assets/.
+	$P M4
 	m4 -D "SHORT_VERSION=$(RETHINKDB_SHORT_VERSION)" \
 	   -D "CURRENT_DATE=$(shell date +%F)" \
-	   < $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 | \
-	   install -m644 /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
+	   < $< > $@
+
+%.gz: %
+	$P GZIP
+	gzip -9 < $< > $@
+
+.PHONY: install-manpages
+install-manpages: $(BUILD_DIR)/assets/rethinkdb.1.gz
+	$P INSTALL $^ $(DESTDIR)$(man1_dir)
+	install -m755 -d $(DESTDIR)$(man1_dir)
+	install -m644 $< $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz
+
+$(BUILD_DIR)/assets/rethinkdb.bash: $(ASSETS_DIR)/scripts/rethinkdb.bash | $(BUILD_DIR)/assets/.
+	m4 -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
+	   -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
+	   $< > $@
 
 .PHONY: install-tools
-install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
+install-tools: $(BUILD_DIR)/assets/rethinkdb.bash
 	$P INSTALL $< $(DESTDIR)$(internal_bash_completion_dir) \
 	                 $(DESTDIR)$(bash_completion_dir)
 	install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	install -m755 -d $(DESTDIR)$(bash_completion_dir)
-	m4 -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
-	   -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	   $(ASSETS_DIR)/scripts/rethinkdb.bash | \
-	  install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
-	install -m644 $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash \
-	              $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
-	$P INSTALL $(ASSET_SCRIPTS) $(DESTDIR)$(scripts_dir)
-	install -m755 -d $(DESTDIR)$(scripts_dir)
-	for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
+	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
+	   $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	install -m644 $(BUILD_DIR)/assets/rethinkdb.bash \
+           $(DESTDIR)$(bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 	$P INSTALL $(INIT_SCRIPTS) $(DESTDIR)$(init_dir)
 	install -m755 -d $(DESTDIR)$(init_dir)
 	for s in $(INIT_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(init_dir)/$$(basename $$s); done

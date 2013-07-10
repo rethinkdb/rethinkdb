@@ -46,6 +46,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     case R_OBJECT: {
         r_object = new std::map<std::string, counted_t<const datum_t> >();
     } break;
+    case UNINITIALIZED: //fallthru
     default: unreachable();
     }
 }
@@ -67,6 +68,7 @@ datum_t::~datum_t() {
         r_sanity_check(r_object != NULL);
         delete r_object;
     } break;
+    case UNINITIALIZED: break;
     default: unreachable();
     }
 }
@@ -86,7 +88,7 @@ void datum_t::init_object() {
     r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
-void datum_t::init_json(cJSON *json, env_t *env) {
+void datum_t::init_json(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
         type = R_BOOL;
@@ -104,7 +106,8 @@ void datum_t::init_json(cJSON *json, env_t *env) {
         r_num = json->valuedouble;
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
-        r_sanity_check(isfinite(r_num));
+        rcheck(isfinite(r_num), base_exc_t::GENERIC,
+               strprintf("Non-finite value `%lf` in JSON.", r_num));
     } break;
     case cJSON_String: {
         init_str();
@@ -113,15 +116,16 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Array: {
         init_array();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i), env));
+            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i)));
         }
     } break;
     case cJSON_Object: {
         init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool b = add(el->string, make_counted<datum_t>(el, env));
-            r_sanity_check(!b);
+            bool conflict = add(el->string, make_counted<datum_t>(el));
+            rcheck(!conflict, base_exc_t::GENERIC,
+                   strprintf("Duplicate key `%s` in JSON.", el->string));
         }
     } break;
     default: unreachable();
@@ -138,11 +142,11 @@ void datum_t::check_str_validity(const std::string &str) {
                      str.c_str(), null_offset));
 }
 
-datum_t::datum_t(cJSON *json, env_t *env) {
-    init_json(json, env);
+datum_t::datum_t(cJSON *json) {
+    init_json(json);
 }
-datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
-    init_json(json->get(), env);
+datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
+    init_json(json->get());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -154,6 +158,7 @@ const char *datum_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
+    case datum_t::UNINITIALIZED: //fallthru
     default: unreachable();
     }
     unreachable();
@@ -165,6 +170,15 @@ const char *datum_t::get_type_name() const {
 
 std::string datum_t::print() const {
     return as_json()->Print();
+}
+
+std::string datum_t::trunc_print() const {
+    std::string s = print();
+    if (s.size() > trunc_len) {
+        s.erase(s.begin() + (trunc_len - 3), s.end());
+        s += "...";
+    }
+    return s;
 }
 
 void datum_t::num_to_str_key(std::string *str_out) const {
@@ -348,8 +362,11 @@ void datum_t::type_error(const std::string &msg) const {
 }
 
 bool datum_t::as_bool() const {
-    check_type(R_BOOL);
-    return r_bool;
+    if (get_type() == R_BOOL) {
+        return r_bool;
+    } else {
+        return get_type() != R_NULL;
+    }
 }
 double datum_t::as_num() const {
     check_type(R_NUM);
@@ -487,6 +504,7 @@ cJSON *datum_t::as_raw_json() const {
         }
         return obj.release();
     } break;
+    case UNINITIALIZED: //fallthru
     default: unreachable();
     }
     unreachable();
@@ -511,6 +529,7 @@ datum_t::as_datum_stream(env_t *env,
         return make_counted<array_datum_stream_t>(env,
                                                   this->counted_from_this(),
                                                   backtrace);
+    case UNINITIALIZED: //fallthru
     default: unreachable();
     }
     unreachable();
@@ -612,6 +631,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         if (it2 != rhs_obj.end()) return -1;
         return 0;
     } unreachable();
+    case UNINITIALIZED: //fallthru
     default: unreachable();
     }
 }
@@ -623,16 +643,23 @@ bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
 
-datum_t::datum_t(const Datum *d, env_t *env) {
+datum_t::datum_t() : type(UNINITIALIZED) { }
+
+datum_t::datum_t(const Datum *d) : type(UNINITIALIZED) {
+    init_from_pb(d);
+}
+
+void datum_t::init_from_pb(const Datum *d) {
+    r_sanity_check(type == UNINITIALIZED);
     switch (d->type()) {
-    case Datum_DatumType_R_NULL: {
+    case Datum::R_NULL: {
         type = R_NULL;
     } break;
-    case Datum_DatumType_R_BOOL: {
+    case Datum::R_BOOL: {
         type = R_BOOL;
         r_bool = d->r_bool();
     } break;
-    case Datum_DatumType_R_NUM: {
+    case Datum::R_NUM: {
         type = R_NUM;
         r_num = d->r_num();
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
@@ -641,18 +668,18 @@ datum_t::datum_t(const Datum *d, env_t *env) {
                base_exc_t::GENERIC,
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
     } break;
-    case Datum_DatumType_R_STR: {
+    case Datum::R_STR: {
         init_str();
         *r_str = d->r_str();
         check_str_validity(*r_str);
     } break;
-    case Datum_DatumType_R_ARRAY: {
+    case Datum::R_ARRAY: {
         init_array();
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array->push_back(make_counted<datum_t>(&d->r_array(i), env));
+            r_array->push_back(make_counted<datum_t>(&d->r_array(i)));
         }
     } break;
-    case Datum_DatumType_R_OBJECT: {
+    case Datum::R_OBJECT: {
         init_object();
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
@@ -661,41 +688,55 @@ datum_t::datum_t(const Datum *d, env_t *env) {
             rcheck(r_object->count(key) == 0,
                    base_exc_t::GENERIC,
                    strprintf("Duplicate key %s in object.", key.c_str()));
-            (*r_object)[key] = make_counted<datum_t>(&ap->val(), env);
+            (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
     } break;
     default: unreachable();
     }
 }
 
+void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
+    Datum d;
+    write_to_protobuf(&d);
+    msg << d;
+}
+archive_result_t datum_t::rdb_deserialize(read_stream_t *s) {
+    Datum d;
+    archive_result_t res = deserialize(s, &d);
+    if (res) return res;
+    init_from_pb(&d);
+    return ARCHIVE_SUCCESS;
+}
+
+
 void datum_t::write_to_protobuf(Datum *d) const {
     switch (get_type()) {
     case R_NULL: {
-        d->set_type(Datum_DatumType_R_NULL);
+        d->set_type(Datum::R_NULL);
     } break;
     case R_BOOL: {
-        d->set_type(Datum_DatumType_R_BOOL);
+        d->set_type(Datum::R_BOOL);
         d->set_r_bool(r_bool);
     } break;
     case R_NUM: {
-        d->set_type(Datum_DatumType_R_NUM);
+        d->set_type(Datum::R_NUM);
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
         r_sanity_check(isfinite(r_num));
         d->set_r_num(r_num);
     } break;
     case R_STR: {
-        d->set_type(Datum_DatumType_R_STR);
+        d->set_type(Datum::R_STR);
         d->set_r_str(*r_str);
     } break;
     case R_ARRAY: {
-        d->set_type(Datum_DatumType_R_ARRAY);
+        d->set_type(Datum::R_ARRAY);
         for (size_t i = 0; i < r_array->size(); ++i) {
             (*r_array)[i]->write_to_protobuf(d->add_r_array());
         }
     } break;
     case R_OBJECT: {
-        d->set_type(Datum_DatumType_R_OBJECT);
+        d->set_type(Datum::R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.
         for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
                  it = r_object->rbegin(); it != r_object->rend(); ++it) {
@@ -704,36 +745,9 @@ void datum_t::write_to_protobuf(Datum *d) const {
             it->second->write_to_protobuf(ap->mutable_val());
         }
     } break;
+    case UNINITIALIZED: //fallthru
     default: unreachable();
     }
-}
-
-counted_t<const datum_t> wire_datum_t::get() const {
-    r_sanity_check(state == COMPILED);
-    return ptr;
-}
-counted_t<const datum_t> wire_datum_t::reset(counted_t<const datum_t> ptr2) {
-    r_sanity_check(state == COMPILED);
-    counted_t<const datum_t> tmp = ptr;
-    ptr = ptr2;
-    return tmp;
-}
-
-counted_t<const datum_t> wire_datum_t::compile(env_t *env) {
-    if (state == COMPILED) return ptr;
-    r_sanity_check(state != INVALID);
-    ptr = make_counted<datum_t>(&ptr_pb, env);
-    ptr_pb = Datum();
-    return ptr;
-}
-void wire_datum_t::finalize() {
-    if (state == SERIALIZABLE) {
-        return;
-    }
-    r_sanity_check(state == COMPILED);
-    ptr->write_to_protobuf(&ptr_pb);
-    ptr.reset();
-    state = SERIALIZABLE;
 }
 
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
@@ -752,11 +766,11 @@ void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t
     map[key] = val;
 }
 
-void wire_datum_map_t::compile(env_t *env) {
+void wire_datum_map_t::compile() {
     if (state == COMPILED) return;
     while (!map_pb.empty()) {
-        map[make_counted<datum_t>(&map_pb.back().first, env)] =
-            make_counted<datum_t>(&map_pb.back().second, env);
+        map[make_counted<datum_t>(&map_pb.back().first)] =
+            make_counted<datum_t>(&map_pb.back().second);
         map_pb.pop_back();
     }
     state = COMPILED;

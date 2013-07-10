@@ -41,12 +41,18 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 
     http_res_t res;
 
+    time_t expires;
 #ifndef NDEBUG
     // In debug mode, do not cache static web assets
-    time_t expires = get_secs() - 31536000; // Some time in the past
+    expires = get_secs() - 31536000; // Some time in the past (one year ago)
 #else
-    // In release mode, cache static web assets
-    time_t expires = get_secs() + 31536000; // One year from now
+    // In release mode, cache static web assets except index.html
+    if (filename == "/index.html") {
+        expires = get_secs() - 31536000; // Some time in the past (one year ago)
+    }
+    else {
+        expires = get_secs() + 31536000; // One year from now
+    }
 #endif
     res.add_header_line("Expires", http_format_date(expires));
 

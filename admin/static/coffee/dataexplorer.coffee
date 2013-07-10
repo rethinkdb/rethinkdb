@@ -250,45 +250,63 @@ module 'DataExplorerView', ->
         descriptions: {}
         suggestions: {} # Suggestions[state] = function for this state
 
+        types:
+            value: ['number', 'bool', 'string', 'array', 'object']
+            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
+            sequence: ['table', 'selection', 'stream', 'array']
+
+        # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
+        convert_type: (type) =>
+            if @types[type]?
+                return @types[type]
+            else
+                return [type]
+
+        # Flatten an array
+        expand_types: (ar) =>
+            result = []
+            if _.isArray(ar)
+                for element in ar
+                    result.concat @convert_type element
+            else
+                result.concat @convert_type element
+            return result
+
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
-            if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
-                full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                @descriptions[full_tag] =
-                    name: tag
-                    args: '( )'
-                    description: @description_with_example_template
-                        description: command['description']
-                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
-            else
-                if command['langs']['js']['dont_need_parenthesis'] is true
-                    full_tag = tag # Here full_tag is just the name of the tag
-                else
+            if command['langs']['js']['body']?
+                if command['langs']['js']['body'].match(/(\)(\s)*)$/)
                     full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                else
+                    full_tag = tag # Here full_tag is just the name of the tag
 
                 @descriptions[full_tag] =
                     name: tag
                     dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: ('( '+command['langs']['js']['body']+' )' if command['langs']['js']['dont_need_parenthesis'] isnt true)
+                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$PARENT', 'parentType')
                     description: @description_with_example_template
                         description: command['description']
                         examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
 
-            if command['parent']?
-                parents = command['parent']?.split(' | ')
-            else
-                parents = [null]
+            parents = {}
+            returns = []
+            for pair in command.io
+                parent_values = if (pair[0] == null) then '' else pair[0]
+                return_values = pair[1]
 
-            if parents?
-                for parent in parents
-                    if parent is null
-                        parent = ''
-                    if not suggestions[parent]?
-                        suggestions[parent] = []
-                    if tag isnt '' # We don't want to save ()
-                        suggestions[parent].push full_tag
+                parent_values = @convert_type parent_values
+                return_values = @convert_type return_values
+                returns = returns.concat return_values
+                for parent_value in parent_values
+                    parents[parent_value] = true
+                
+            if full_tag isnt '('
+                for parent_value of parents
+                    if not suggestions[parent_value]?
+                        suggestions[parent_value] = []
+                    suggestions[parent_value].push full_tag
 
-            @map_state[full_tag] = command['returns']?.split(' | ') # We use full_tag because we need to differentiate between r. and r(
+            @map_state[full_tag] = returns # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
         # TODO update the set of ignored commands for 1.4
@@ -310,41 +328,11 @@ module 'DataExplorerView', ->
                     tag = command['langs']['js']['name']
                     if tag of @ignored_commands
                         continue
-                    if tag is 'row' # In case we have row(, we give a better description than just (
-                        new_command = DataUtils.deep_copy command
-                        new_command['langs']['js']['dont_need_parenthesis'] = false
-                        new_command['langs']['js']['body'] = 'attr'
-                        new_command['description'] = 'Return the attribute of the currently visited document'
-                        @set_doc_description new_command, tag, @suggestions
-                    if tag is '()'
+                    if tag is '()' # The parentheses will be added later
                         tag = ''
                     @set_doc_description command, tag, @suggestions
 
             relations = data['types']
-
-            # For each element, we add its parent's functions to it suggestions
-            # We require the hierarchy to be a DAG else it's going to loop for ever
-            done = false
-            while done is false
-                done = true
-                for element of relations
-                    if not @suggestions[element]?
-                        @suggestions[element] = []
-                    if relations[element]['parents']?
-                        done = false
-
-                        index = 0
-                        while index < relations[element]['parents'].length
-                            parent = relations[element]['parents'][index]
-                            if not relations[parent]['parents']? # parent has all its method available
-                                if @suggestions[parent]?
-                                    for suggestion in @suggestions[parent]
-                                        @suggestions[element].push suggestion
-                                relations[element]['parents'].splice(index, 1)
-                            else # The suggestions for `parent` are not ready yet
-                                index++
-                        if relations[element]['parents'].length is 0
-                            relations[element]['parents'] = null
 
             for state of @suggestions
                 @suggestions[state].sort()
@@ -611,16 +599,16 @@ module 'DataExplorerView', ->
                                 return true
                     return true
 
+                if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
+                    return true
+
                 char_to_insert = String.fromCharCode event.which
-                if char_to_insert? and event.which isnt 91 # 91 map to [ on OS X
+                if char_to_insert? # and event.which isnt 91 # 91 map to [ on OS X
                     if @codemirror.getSelection() isnt ''
                         if (char_to_insert of @matching_opening_bracket or char_to_insert of @matching_closing_bracket)
                             @codemirror.replaceSelection ''
                         else
                             return true
-                    if event.type isnt 'keypress' # We catch keypress because single and double quotes have not the same keyCode on keydown/keypres #thisIsMadness
-                        return true
-
                     last_element_incomplete_type = @last_element_type_if_incomplete(stack)
                     if char_to_insert is '"' or char_to_insert is "'"
                         num_quote = @count_char char_to_insert
@@ -713,6 +701,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
+            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -765,6 +754,7 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
+            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -866,9 +856,11 @@ module 'DataExplorerView', ->
                         stack: stack
                         query: query_before_cursor
                         result: result
+                    result.suggestions = @uniq result.suggestions
 
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
+                            result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
                             @current_suggestions.push suggestion
                             @.$('.suggestion_name_list').append @template_suggestion_name
                                 id: i
@@ -1109,11 +1101,11 @@ module 'DataExplorerView', ->
             # We are scrolling in history
             if @history_displayed_id isnt 0 and event?
                 # We catch ctrl, shift, alt and command 
-                if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92 or event.type of @mouse_type_event
+                if event.ctrlKey or event.shiftKey or event.altKey or event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or (event.which is 91 and event.type isnt 'keypress') or event.which is 92 or event.type of @mouse_type_event
                     return false
 
             # We catch ctrl, shift, alt and command but don't look for active key (active key here refer to ctrl, shift, alt being pressed and hold)
-            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or event.which is 91 or event.which is 92)
+            if event? and (event.which is 16 or event.which is 17 or event.which is 18 or event.which is 20 or (event.which is 91 and event.type isnt 'keypress') or event.which is 92)
                 return false
 
 
@@ -1193,10 +1185,10 @@ module 'DataExplorerView', ->
                 #to_complete: undefined
                 #to_describe: undefined
                 
-            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
+            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers or a comment), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
 
-            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers or result_non_white_char_after_cursor[1]?.match(/^((\/\/)|(\/\*))/) isnt null)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
@@ -1210,6 +1202,7 @@ module 'DataExplorerView', ->
                 stack: stack
                 query: query_before_cursor
                 result: result
+            result.suggestions = @uniq result.suggestions
 
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
@@ -1239,13 +1232,27 @@ module 'DataExplorerView', ->
                     return false
             return true
 
+        # Similar to underscore's uniq but faster with a hashmap
+        uniq: (ar) ->
+            if not ar? or ar.length is 0
+                return ar
+            result = []
+            hash = {}
+            for element in ar
+                hash[element] = true
+            for key of hash
+                result.push key
+            result.sort()
+            return result
+
         # Extract information from the current query
         # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
-            method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
+            row: /^(\s)*row\(/
+            method_var: /^(\s)*(\d*[a-zA-Z][a-zA-Z0-9]*)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
             object: /^(\s)*{(\s)*/
             array: /^(\s)*\[(\s)*/
@@ -1370,11 +1377,12 @@ module 'DataExplorerView', ->
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
                                 list_args = result_regex[2]?.split(',')
-                                element.args = list_args
+                                element.args = []
                                 new_context = DataUtils.deep_copy context
                                 for arg in list_args
                                     arg = arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
                                     new_context[arg] = true
+                                    element.args.push arg
                                 element.context = new_context
                                 to_skip = result_regex[0].length
                                 body_start = i+result_regex[0].length
@@ -1440,47 +1448,80 @@ module 'DataExplorerView', ->
                             # Check for a standard method
                             result_regex = @regex.method.exec query.slice new_start
                             if result_regex isnt null
-                                if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
-                                    element.type = 'function'
-                                    element.name = result_regex[0]
-                                    element.position = position+new_start
-                                    start += new_start-i
-                                    to_skip = result_regex[0].length-1+new_start-i
+                                result_regex_row = @regex.row.exec query.slice new_start
+                                if result_regex_row isnt null
+                                    position_opening_parenthesis = result_regex_row[0].indexOf('(')
+                                    element.type = 'function' # TODO replace with function
+                                    element.name = 'row'
+                                    stack.push element
+                                    size_stack++
+                                    if size_stack > @max_size_stack
+                                        return null
+                                    element =
+                                        type: 'function'
+                                        name: '('
+                                        position: position+3+1
+                                        context: context
+                                        complete: 'false'
                                     stack_stop_char = ['(']
+                                    start += position_opening_parenthesis
+                                    to_skip = result_regex[0].length-1+new_start-i
                                     continue
+
                                 else
-                                    position_opening_parenthesis = result_regex[0].indexOf('(')
-                                    if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
-                                        # Save the var
-                                        element.real_type = 'json'
-                                        element.type = 'var'
-                                        element.name = result_regex[0].slice(0, position_opening_parenthesis)
-                                        stack.push element
-                                        size_stack++
-                                        if size_stack > @max_size_stack
-                                            return null
-                                        element =
-                                            type: 'function'
-                                            name: '('
-                                            position: position+position_opening_parenthesis+1
-                                            context: context
-                                            complete: 'false'
+                                    if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
+                                        element.type = 'function'
+                                        element.name = result_regex[0]
+                                        element.position = position+new_start
+                                        start += new_start-i
+                                        to_skip = result_regex[0].length-1+new_start-i
                                         stack_stop_char = ['(']
-                                        start = position_opening_parenthesis
-                                        to_skip = result_regex[0].length-1
                                         continue
+                                    else
+                                        position_opening_parenthesis = result_regex[0].indexOf('(')
+                                        if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
+                                            # Save the var
+                                            element.real_type = @types.value
+                                            element.type = 'var'
+                                            element.name = result_regex[0].slice(0, position_opening_parenthesis)
+                                            stack.push element
+                                            size_stack++
+                                            if size_stack > @max_size_stack
+                                                return null
+                                            element =
+                                                type: 'function'
+                                                name: '('
+                                                position: position+position_opening_parenthesis+1
+                                                context: context
+                                                complete: 'false'
+                                            stack_stop_char = ['(']
+                                            start = position_opening_parenthesis
+                                            to_skip = result_regex[0].length-1
+                                            continue
+                                        ###
+                                        # This last condition is a special case for r(expr)
+                                        else if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) is 'r'
+                                            element.type = 'var'
+                                            element.name = 'r'
+                                            element.real_type = @types.value
+                                            element.position = position+new_start
+                                            start += new_start-i
+                                            to_skip = result_regex[0].length-1+new_start-i
+                                            stack_stop_char = ['(']
+                                            continue
+                                        ###
+
 
                             # Check for method without parenthesis r., r.row., doc.
                             result_regex = @regex.method_var.exec query.slice new_start
                             if result_regex isnt null
                                 if result_regex[0].slice(0, result_regex[0].length-1) of context
                                     element.type = 'var'
-                                    element.real_type = 'json'
+                                    element.real_type = @types.value
                                 else
                                     element.type = 'function'
                                 element.position = position+new_start
                                 element.name = result_regex[0].slice(0, result_regex[0].length-1).replace(/\s/, '')
-                                start += new_start-i
                                 element.complete = true
                                 to_skip = element.name.length-1+new_start-i
                                 stack.push element
@@ -1492,6 +1533,7 @@ module 'DataExplorerView', ->
                                     context: context
                                     complete: false
                                 start = new_start+to_skip+1
+                                start -= new_start-i
                                 continue
 
                             # Look for a comma
@@ -1840,7 +1882,7 @@ module 'DataExplorerView', ->
                 if query.slice(start) of element.context
                     element.name = query.slice start
                     element.type = 'var'
-                    element.real_type = 'json'
+                    element.real_type = @types.value
                     element.complete = true
                 else if @regex.number.test(query.slice(start)) is true
                     element.type = 'number'
@@ -1984,24 +2026,22 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_state'
                     if element.type is 'function' and element.complete is true
                         result.state = element.name
-                        if @map_state[element.name]
-                            hash_suggestions = {} # To avoid redundancy. add() can returns string OR number, and add() works on both
+                        if @map_state[element.name]?
                             for state in @map_state[element.name]
                                 if @suggestions[state]?
                                     for suggestion in @suggestions[state]
                                         if result.suggestions_regex.test(suggestion) is true
-                                            hash_suggestions[suggestion] = true
-                            for suggestion of hash_suggestions
-                                result.suggestions.push suggestion
+                                            result.suggestions.push suggestion
                         #else # This is a non valid ReQL function.
                         # It may be a personalized function defined in the data explorer...
                         result.status = 'done'
                     else if element.type is 'var' and element.complete is true
                         result.state = element.real_type
-                        if @suggestions[result.state]?
-                            for suggestion in @suggestions[result.state]
-                                if result.suggestions_regex.test(suggestion) is true
-                                    result.suggestions.push suggestion
+                        for type in result.state
+                            if @suggestions[type]?
+                                for suggestion in @suggestions[type]
+                                    if result.suggestions_regex.test(suggestion) is true
+                                        result.suggestions.push suggestion
                         result.status = 'done'
                     #else # Is that possible? A function can only be preceded by a function (except for r)
 
@@ -2257,7 +2297,10 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
-            @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
+
+            @query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
+            @query = @query.replace(/(\s)*\/\*[^]*\*\//g, '')
+            @query = @replace_new_lines_in_query @query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
@@ -2867,7 +2910,9 @@ module 'DataExplorerView', ->
         # Build the table
         # We order by the most frequent keys then by alphabetic order
         json_to_table: (result) =>
-            if not (result.constructor? and result.constructor is ArrayResult)
+            # While an Array type is never returned by the driver, we still build an Array in the data explorer
+            # when a cursor is returned (since we just print @limit results)
+            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
                 result = [result]
 
             keys_count =
@@ -2981,7 +3026,7 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and value.constructor is ArrayResult
+            else if value.constructor? and (value.constructor is ArrayResult or value.constructor is Array)
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'

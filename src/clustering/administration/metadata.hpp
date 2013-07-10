@@ -19,6 +19,7 @@
 #include "clustering/administration/metadata_change_handler.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "containers/cow_ptr.hpp"
+#include "containers/auth_key.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/cow_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -52,6 +53,24 @@ cJSON *with_ctx_render_as_json(cluster_semilattice_metadata_t *target, const vcl
 void with_ctx_apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
 void with_ctx_on_subfield_change(cluster_semilattice_metadata_t *, const vclock_ctx_t &);
 
+class auth_semilattice_metadata_t {
+public:
+    auth_semilattice_metadata_t() { }
+
+    vclock_t<auth_key_t> auth_key;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(auth_key);
+};
+
+RDB_MAKE_SEMILATTICE_JOINABLE_1(auth_semilattice_metadata_t, auth_key);
+RDB_MAKE_EQUALITY_COMPARABLE_1(auth_semilattice_metadata_t, auth_key);
+
+// json adapter concept for auth_semilattice_metadata_t
+json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+cJSON *with_ctx_render_as_json(auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+void with_ctx_apply_json_to(cJSON *change, auth_semilattice_metadata_t *target, const vclock_ctx_t &ctx);
+void with_ctx_on_subfield_change(auth_semilattice_metadata_t *, const vclock_ctx_t &);
+
 enum cluster_directory_peer_type_t {
     ADMIN_PEER,
     SERVER_PEER,
@@ -70,9 +89,17 @@ public:
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
+            const metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t& _auth_change_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid), peer_id(pid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
+        machine_id(mid),
+        peer_id(pid),
+        ips(_ips),
+        get_stats_mailbox_address(_stats_mailbox),
+        semilattice_change_mailbox(_semilattice_change_mailbox),
+        auth_change_mailbox(_auth_change_mailbox),
+        log_mailbox(lmb),
+        peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -87,11 +114,12 @@ public:
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
+    metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t auth_change_mailbox;
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_11(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_12(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, peer_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, auth_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // ctx-less json adapter for directory_echo_wrapper_t
@@ -145,7 +173,7 @@ public:
         iterator it;
         for (it = start; it != end(); ++it) {
             if (it->second.is_deleted()) continue;
-            if (predicate(it->second.get())) break;
+            if (predicate(it->second.get_ref())) break;
         }
         return it;
     }

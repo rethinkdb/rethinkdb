@@ -32,7 +32,8 @@ void mock_file_t::read_async(size_t offset, size_t length, void *buf,
 }
 
 void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
-                              UNUSED file_account_t *account, linux_iocallback_t *cb) {
+                              UNUSED file_account_t *account, linux_iocallback_t *cb,
+                              UNUSED wrap_in_datasyncs_t wrap_in_datasyncs) {
     write_blocking(offset, length, buf);
     // RSI: This is to silence the serializer disk_structure.cc reader_t
     // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738

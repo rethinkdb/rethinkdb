@@ -4,18 +4,33 @@ commands:
     order: 5
     description: Create a javascript expression.
 
-    body: jsstring
-    parent: r
-    returns: json
+    body:
+      js: "$PARENT.js(jsString)"
+      py: "$PARENT.js(js_string)"
+      rb: "$PARENT.js(js_string)"
+
+    io:
+      - - r
+        - value
 
     examples:
       - description: Concatenate two strings using Javascript'
-        code: r.js("'str1' + 'str2'").run(conn)
+        code:
+          py: r.js("'str1' + 'str2'").run(conn)
+          rb: r.js("'str1' + 'str2'").run(conn)
+          js: r.js("'str1' + 'str2'").run(conn, callback)
       - description: Select all documents where the 'magazines' field is greater
           than 5 by running Javascript on the server.
-        code: |-
-          r.table('marvel').filter(
-            r.js('(function (row) { return row.magazines > 5; })')).run(conn)
+        code:
+          py: |-
+            r.table('marvel').filter(
+              r.js('(function (row) { return row.magazines > 5; })')).run(conn)
+          rb: |-
+            r.table('marvel').filter(
+              r.js('(function (row) { return row.magazines > 5; })')).run(conn)
+          js: |-
+            r.table('marvel').filter(
+              r.js('(function (row) { return row.magazines > 5; })')).run(conn, callback)
       - description: You may also specify a timeout in seconds (defaults to 5).
         code:
           py: r.js('while(true) {}', timeout=1.3).run(conn)

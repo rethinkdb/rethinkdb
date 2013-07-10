@@ -216,7 +216,8 @@ module 'NamespaceView', ->
             'click .cancel_btn': 'hide_add_index'
             'click .reconnect_link': 'init_connection'
             'click .close_hide': 'hide_alert'
-        interval: 60*1000 # Retrieve secondary indexes every minute
+        error_interval: 5*1000 # In case of an error, we try to retrieve the secondary index in 5 seconds
+        normal_interval: 60*1000 # Retrieve secondary indexes every minute
 
         initialize: =>
             @init_connection()
@@ -326,11 +327,14 @@ module 'NamespaceView', ->
        
         # Retrieve secondary indexes with an interval
         set_interval_get_indexes: =>
-            @get_indexes()
-            @interval = setInterval @get_indexes, @interval # The connection times out every 5 minutes
+            @get_indexes
+                set_timeout: true
 
-        get_indexes: =>
-            r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
+        get_indexes: (args) =>
+            if args?.set_timeout is true
+                r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list_repeat
+            else
+                r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
 
         # Callback on indexList
         on_index_list: (err, result) =>
@@ -345,6 +349,23 @@ module 'NamespaceView', ->
                 if not _.isEqual @secondary_indexes, secondary_indexes
                     @secondary_indexes = secondary_indexes
                     @render_content()
+
+        # Same as on_index_list except we set a timeout.
+        on_index_list_repeat: (err, result) =>
+            if err?
+                @loading = false
+                @render_content
+                    error: true
+                    index_list: true
+                @timeout = setTimeout @set_interval_get_indexes, @error_interval
+            else
+                @loading = false
+                secondary_indexes = result.sort()
+                if not _.isEqual @secondary_indexes, secondary_indexes
+                    @secondary_indexes = secondary_indexes
+                    @render_content()
+                @timeout = setTimeout @set_interval_get_indexes, @normal_interval
+
 
         
         on_fail_to_connect: =>
@@ -401,8 +422,8 @@ module 'NamespaceView', ->
             @$(event.target).parent().parent().slideUp 'fast'
 
         destroy: =>
-            if @interval?
-                clearInterval @interval
+            if @timeout?
+                clearTimeout @timeout
             @db.off 'change:name', @save_name
             @model.off 'change:name', @save_name
 

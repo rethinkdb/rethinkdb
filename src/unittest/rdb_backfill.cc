@@ -58,7 +58,9 @@ void run_with_broadcaster(
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
 
-    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
+    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
+                                  dummy_auth, &read_manager, generate_uuid());
 
     /* Set up a broadcaster and initial listener */
     test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
@@ -236,7 +238,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
         /* Create a secondary index object. */
         Term mapping;
         Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GETATTR, NVAR(1), NDATUM("id"));
+        N2(GET_FIELD, NVAR(1), NDATUM("id"));
 
         ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
@@ -304,8 +306,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         boost::shared_ptr<scoped_cJSON_t> sindex_key_json(new scoped_cJSON_t(cJSON_Parse(it->second.c_str())));
-        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json,
-                                                                  &dummy_env);
+        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_id,
                                                                 sindex_key_literal,
                                                                 sindex_key_literal));

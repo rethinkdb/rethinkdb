@@ -125,6 +125,7 @@ void bring_sindexes_up_to_date(
 
 
 class cluster_semilattice_metadata_t;
+class auth_semilattice_metadata_t;
 
 struct rdb_protocol_t {
     static const size_t MAX_PRIMARY_KEY_SIZE = 128;
@@ -144,7 +145,8 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc::pool_group_t *_pool_group,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
                   directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
                   uuid_u _machine_id);
         ~context_t();
@@ -156,7 +158,8 @@ struct rdb_protocol_t {
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
         scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
@@ -201,8 +204,8 @@ struct rdb_protocol_t {
             runtime_exc_t,
             ql::exc_t,
             ql::datum_exc_t,
-            ql::wire_datum_t,
-            std::vector<ql::wire_datum_t>,
+            counted_t<const ql::datum_t>,
+            //            std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
             std::vector<ql::wire_datum_map_t>,
             empty_t,
@@ -279,14 +282,8 @@ struct rdb_protocol_t {
 
         void init_sindexes(counted_t<const ql::datum_t> start,
                            counted_t<const ql::datum_t> end) {
-            if (start) {
-                sindex_start_value = ql::wire_datum_t(start);
-                sindex_start_value->finalize();
-            }
-            if (end) {
-                sindex_end_value = ql::wire_datum_t(end);
-                sindex_end_value->finalize();
-            }
+            sindex_start_value = start;
+            sindex_end_value = end;
         }
 
         rget_read_t(const std::string &_sindex,
@@ -374,8 +371,8 @@ struct rdb_protocol_t {
 
         /* The actual sindex values to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        boost::optional<ql::wire_datum_t> sindex_start_value;
-        boost::optional<ql::wire_datum_t> sindex_end_value;
+        counted_t<const ql::datum_t> sindex_start_value;
+        counted_t<const ql::datum_t> sindex_end_value;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -511,13 +508,16 @@ struct rdb_protocol_t {
         point_replace_t() { }
         point_replace_t(const std::string &_primary_key, const store_key_t &_key,
                         const ql::map_wire_func_t &_f,
-                        const std::map<std::string, ql::wire_func_t> &_optargs)
-            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs) { }
+                        const std::map<std::string, ql::wire_func_t> &_optargs,
+                        bool _return_vals)
+            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs),
+              return_vals(_return_vals) { }
 
         std::string primary_key;
         store_key_t key;
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
+        bool return_vals;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

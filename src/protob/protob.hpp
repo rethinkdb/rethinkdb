@@ -110,6 +110,7 @@ public:
                     int port,
                     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
                     response_t (*_on_unparsable_query)(request_t, std::string),
+                    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
                     protob_server_callback_mode_t _cb_mode = CORO_ORDERED);
     ~protob_server_t();
 
@@ -118,12 +119,15 @@ private:
 
     void handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn, auto_drainer_t::lock_t);
     void send(const response_t &, tcp_conn_t *conn, signal_t *closer) THROWS_ONLY(tcp_conn_write_closed_exc_t);
+    static auth_key_t read_auth_key(tcp_conn_t *conn, signal_t *interruptor);
 
     // For HTTP server
     http_res_t handle(const http_req_t &);
 
     boost::function<bool(request_t, response_t *, context_t *)> f;  // NOLINT(readability/casting)
     response_t (*on_unparsable_query)(request_t, std::string);
+
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
 
     protob_server_callback_mode_t cb_mode;
 

@@ -21,9 +21,11 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
     int port,
     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
     response_t (*_on_unparsable_query)(request_t, std::string),
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
     protob_server_callback_mode_t _cb_mode)
     : f(_f),
       on_unparsable_query(_on_unparsable_query),
+      auth_metadata(_auth_metadata),
       cb_mode(_cb_mode),
       shutting_down_conds(get_num_threads()),
       pulse_sdc_on_shutdown(&main_shutting_down_cond),
@@ -54,10 +56,45 @@ int protob_server_t<request_t, response_t, context_t>::get_port() const {
     return tcp_listener->get_port();
 }
 
+struct protob_server_exc_t : public std::exception {
+public:
+    explicit protob_server_exc_t(const std::string& data) : info(data) { }
+    ~protob_server_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
+
+template <class request_t, class response_t, class context_t>
+auth_key_t protob_server_t<request_t, response_t, context_t>::read_auth_key(tcp_conn_t *conn, signal_t *interruptor) {
+    char buffer[auth_key_t::max_length];
+    uint32_t auth_key_length;
+    conn->read(&auth_key_length, sizeof(uint32_t), interruptor);
+
+    const char *const too_long_error_message = "client provided an authorization key that is too long";
+
+    if (auth_key_length > sizeof(buffer)) {
+        throw protob_server_exc_t(too_long_error_message);
+    }
+
+    conn->read(buffer, auth_key_length, interruptor);
+    auth_key_t ret;
+    if (!ret.assign_value(std::string(buffer, auth_key_length))) {
+        // This should never happen, since we already checked above.
+        rassert(false);
+        throw protob_server_exc_t(too_long_error_message);
+    }
+    return ret;
+}
+
 template <class request_t, class response_t, class context_t>
 void protob_server_t<request_t, response_t, context_t>::handle_conn(
     const scoped_ptr_t<tcp_conn_descriptor_t> &nconn,
     auto_drainer_t::lock_t keepalive) {
+
+    // This must be read here because of home threads and stuff
+    const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
+
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
@@ -65,19 +102,43 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->make_overcomplicated(&conn);
 
+    std::string init_error;
+
     try {
+        if (auth_vclock.in_conflict()) {
+            throw protob_server_exc_t("authorization key is in conflict, resolve it through the admin UI before connecting clients");
+        }
+
         int32_t client_magic_number;
         conn->read(&client_magic_number, sizeof(int32_t), &ct_keepalive);
-        if (client_magic_number != context_t::magic_number) {
-            const char *msg =
-                "ERROR: This is the rdb protocol port! (bad magic number)\n";
-            conn->write(msg, strlen(msg), &ct_keepalive);
-            conn->shutdown_write();
-            return;
+
+        if (client_magic_number == context_t::no_auth_magic_number) {
+            if (!auth_vclock.get().str().empty()) {
+                throw protob_server_exc_t("authorization required, client does not support it");
+            }
+        } else if (client_magic_number == context_t::auth_magic_number) {
+            auth_key_t provided_auth = read_auth_key(conn.get(), &ct_keepalive);
+            if (!timing_sensitive_equals(provided_auth, auth_vclock.get())) {
+                throw protob_server_exc_t("incorrect authorization key");
+            }
+            const char *success_msg = "SUCCESS";
+            conn->write(success_msg, strlen(success_msg) + 1, &ct_keepalive);
+        } else {
+            throw protob_server_exc_t("this is the rdb protocol port (bad magic number)");
         }
+
+    } catch (const protob_server_exc_t &ex) {
+        // Can't write response here due to coro switching inside exception handler
+        init_error = strprintf("ERROR: %s\n", ex.what());
     } catch (const tcp_conn_read_closed_exc_t &) {
         return;
     } catch (const tcp_conn_write_closed_exc_t &) {
+        return;
+    }
+
+    if (!init_error.empty()) {
+        conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
+        conn->shutdown_write();
         return;
     }
 

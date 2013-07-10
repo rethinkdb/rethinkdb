@@ -9,13 +9,21 @@ commands:
     section: select
     description: Reference a database.
 
-    body: db_name
-    parent: r
-    returns: db
+    body:
+      js: "$PARENT.db(dbName)"
+      py: "$PARENT.db(db_name)"
+      rb: "$PARENT.db(db_name)"
+
+    io:
+      - - r
+        - db 
 
     examples:
       - description: Before we can query a table we have to select the correct database.
-        code: r.db('heroes').table('marvel').run(conn)
+        code:
+          py: r.db('heroes').table('marvel').run(conn)
+          rb: r.db('heroes').table('marvel').run(conn)
+          js: r.db('heroes').table('marvel').run(conn, callback)
 
   - tag: table
     section: select
@@ -24,17 +32,25 @@ commands:
       other commands to do further processing on the data.
 
     body:
-      js: "name[, {useOutdated: false}]"
-      py: name[, use_outdated=False]
-      rb: name[, opts]
-    parent: db
-    returns: table
+      js: "$PARENT.table(name[, {useOutdated: false}])"
+      py: "$PARENT.table(name[, use_outdated=False])"
+      rb: "$PARENT.table(name[, opts])"
+
+    io:
+      - - db
+        - table 
 
     examples:
       - description: Return all documents in the table 'marvel' of the default database.
-        code: r.table('marvel').run(conn)
+        code:
+          py: r.table('marvel').run(conn)
+          rb: r.table('marvel').run(conn)
+          js: r.table('marvel').run(conn, callback)
       - description: Return all documents in the table 'marvel' of the database 'heroes'.
-        code: r.db('heroes').table('marvel').run(conn)
+        code:
+          py: r.db('heroes').table('marvel').run(conn)
+          rb: r.db('heroes').table('marvel').run(conn)
+          js: r.db('heroes').table('marvel').run(conn, callback)
       - description: |
           If you are OK with potentially out of date data
           from this table and want potentially faster reads, pass
@@ -48,24 +64,36 @@ commands:
     section: select
     description: Get a document by primary key.
 
-    body: key
-    parent: table
-    returns: json
+    body: "$PARENT.get(key)"
+
+    io:
+      - - table
+        - singleRowSelection
 
     examples:
       - description: Find a document with the primary key 'superman'.
-        code: r.table('marvel').get('superman').run(conn)
+        code:
+          py: r.table('marvel').get('superman').run(conn)
+          rb: r.table('marvel').get('superman').run(conn)
+          js: r.table('marvel').get('superman').run(conn, callback)
 
   - tag: get_all
     section: select
     description: Get all documents where the given value matches the value of the requested index.
 
+    name:
+      js: getAll
+      py: get_all
+      rb: get_all
+
     body:
-      py: key[, index='id']
-      rb: key[, :index => 'id']
-      js: key[, {index:'id'}]
-    parent: table
-    returns: selection
+      py: "$PARENT.get_all(key1[, key2...], [, index='id'])"
+      rb: "$PARENT.get_all(key[, key2...], [, :index => 'id'])"
+      js: "$PARENT.getAll(key[, key2...], [, {index:'id'}])"
+
+    io:
+      - - table
+        - selection
 
     examples:
         - description: |
@@ -84,24 +112,32 @@ commands:
             py: r.table('dc').get_all('superman').run(conn)
             js: r.table('dc').getAll('superman').run(conn, callback)
             rb: r.table('dc').get_all('superman').run(conn)
-
-    js:
-      name: getAll
+        - description: |
+            You can get multiple documents in a single call to `get_all`.
+          code:
+            py: r.table('dc').get_all('superman', 'ant man').run(conn)
+            js: r.table('dc').getAll('superman', 'ant man').run(conn, callback)
+            rb: r.table('dc').get_all('superman', 'ant man').run(conn)
 
   - tag: between
     section: select
     description: Get all documents between two primary keys (both keys are inclusive).
 
     body:
-      py: lower_key, upper_key[, index='id']
-      rb: lower_key, upper_key[, :index => 'id']
-      js: lowerKey, upperKey[, {index:'id'}]
-    parent: selection
-    returns: selection
+      py: "$PARENT.between(lower_key, upper_key[, index='id'])"
+      rb: "$PARENT.between(lower_key, upper_key[, :index => 'id'])"
+      js: "$PARENT.between(lowerKey, upperKey[, {index:'id'}])"
+
+    io:
+      - - table
+        - selection
 
     examples:
         - description: Find all users with primary keys between 10 and 20, inclusive.
-          code: r.table('marvel').between(10, 20).run(conn)
+          code:
+            py: r.table('marvel').between(10, 20).run(conn)
+            rb: r.table('marvel').between(10, 20).run(conn)
+            js: r.table('marvel').between(10, 20).run(conn, callback)
         - description: |
             Between can be used on secondary indexes too. Just pass an optional index
             argument giving the secondary index to query.
@@ -123,9 +159,15 @@ commands:
       argument to `r.error()` will cause any non-existence errors to
       abort the filter.
 
-    body: predicate
-    parent: selection
-    returns: selection
+    body: "$PARENT.filter(predicate)"
+
+    io:
+      - - sequence
+        - selection 
+      - - stream
+        - stream
+      - - array
+        - array 
 
     examples:
       - description: Get all active users aged 30.
@@ -142,7 +184,7 @@ commands:
         code:
           js: |
             r.table('marvel').filter(function(hero) {
-              return hero('abilities').has_fields('super-strength')
+              return hero('abilities').hasFields('super-strength')
             }).run(conn, callback)
           py: |
             r.table('marvel').filter(

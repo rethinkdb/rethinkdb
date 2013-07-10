@@ -67,11 +67,10 @@ bool do_serve(
     bool i_am_a_server,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const base_path_t &base_path,
-    metadata_persistence::persistent_file_t *persistent_file,
+    metadata_persistence::cluster_persistent_file_t *cluster_metadata_file,
+    metadata_persistence::auth_persistent_file_t *auth_metadata_file,
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
-    machine_id_t machine_id,
-    const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets,
     signal_t *stop_cond,
     const boost::optional<std::string> &config_file) {
@@ -83,6 +82,17 @@ bool do_serve(
 
         thread_pool_log_writer_t log_writer(&local_issue_tracker);
 
+        cluster_semilattice_metadata_t cluster_metadata;
+        auth_semilattice_metadata_t auth_metadata;
+        machine_id_t machine_id = generate_uuid();
+
+        if (cluster_metadata_file != NULL) {
+            machine_id = cluster_metadata_file->read_machine_id();
+            cluster_metadata = cluster_metadata_file->read_metadata();
+        }
+        if (auth_metadata_file != NULL) {
+            auth_metadata = auth_metadata_file->read_metadata();
+        }
 #ifndef NDEBUG
         logINF("Our machine ID is %s", uuid_to_str(machine_id).c_str());
 #endif
@@ -99,8 +109,12 @@ bool do_serve(
         message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
 
         message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, semilattice_metadata);
+        semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_metadata);
         message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
+
+        message_multiplexer_t::client_t auth_manager_client(&message_multiplexer, 'A');
+        semilattice_manager_t<auth_semilattice_metadata_t> auth_manager_cluster(&auth_manager_client, auth_metadata);
+        message_multiplexer_t::client_t::run_t auth_manager_client_run(&auth_manager_client, &auth_manager_cluster);
 
         log_server_t log_server(&mailbox_manager, &log_writer);
 
@@ -110,6 +124,7 @@ bool do_serve(
         stat_manager_t stat_manager(&mailbox_manager);
 
         metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
+        metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
             cluster_directory_metadata_t(
@@ -118,6 +133,7 @@ bool do_serve(
                 get_ips(),
                 stat_manager.get_address(),
                 metadata_change_handler.get_request_mailbox_address(),
+                auth_change_handler.get_request_mailbox_address(),
                 log_server.get_business_card(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER));
 
@@ -157,8 +173,9 @@ bool do_serve(
             local_issue_tracker.get_issues_watchable(),
             &our_root_directory_variable);
 
-        admin_tracker_t admin_tracker(
-            semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
+        admin_tracker_t admin_tracker(semilattice_manager_cluster.get_root_view(),
+                                      auth_manager_cluster.get_root_view(),
+                                      directory_read_manager.get_root_view());
 
         perfmon_collection_t proc_stats_collection;
         perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
@@ -199,6 +216,7 @@ bool do_serve(
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
+                                          auth_manager_cluster.get_root_view(),
                                           &directory_read_manager,
                                           machine_id);
 
@@ -222,7 +240,7 @@ bool do_serve(
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
                         field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-                    persistent_file->get_dummy_branch_history_manager(),
+                    cluster_metadata_file->get_dummy_branch_history_manager(),
                     metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                     directory_read_manager.get_root_view()->subview(
@@ -246,7 +264,7 @@ bool do_serve(
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
                         field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-                    persistent_file->get_memcached_branch_history_manager(),
+                    cluster_metadata_file->get_memcached_branch_history_manager(),
                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                     directory_read_manager.get_root_view()->subview(
@@ -270,7 +288,7 @@ bool do_serve(
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
                         field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
-                    persistent_file->get_rdb_branch_history_manager(),
+                    cluster_metadata_file->get_rdb_branch_history_manager(),
                     metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                     directory_read_manager.get_root_view()->subview(
@@ -311,9 +329,17 @@ bool do_serve(
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_pb2_server.get_port());
 
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
-                    new metadata_persistence::semilattice_watching_persister_t(
-                        persistent_file, semilattice_manager_cluster.get_root_view()));
+                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> > 
+                    cluster_metadata_persister(!i_am_a_server ? NULL :
+                                               new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
+                                                   cluster_metadata_file,
+                                                   semilattice_manager_cluster.get_root_view()));
+
+                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> > 
+                    auth_metadata_persister(!i_am_a_server ? NULL :
+                                            new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
+                                                auth_metadata_file,
+                                                auth_manager_cluster.get_root_view()));
 
                 {
                     scoped_ptr_t<administrative_http_server_manager_t> admin_server_ptr;
@@ -328,6 +354,7 @@ bool do_serve(
                                 address_ports.http_port,
                                 &mailbox_manager,
                                 &metadata_change_handler,
+                                &auth_change_handler,
                                 semilattice_manager_cluster.get_root_view(),
                                 directory_read_manager.get_root_view(),
                                 &memcached_namespace_repo,
@@ -359,8 +386,9 @@ bool do_serve(
                 }
 
                 cond_t non_interruptor;
-                if (persister.has()) {
-                    persister->stop_and_flush(&non_interruptor);
+                if (i_am_a_server) {
+                    cluster_metadata_persister->stop_and_flush(&non_interruptor);
+                    auth_metadata_persister->stop_and_flush(&non_interruptor);
                 }
 
                 logINF("Shutting down client connections...\n");
@@ -381,11 +409,10 @@ bool do_serve(
 bool serve(extproc::spawner_info_t *spawner_info,
            io_backender_t *io_backender,
            const base_path_t &base_path,
-           metadata_persistence::persistent_file_t *persistent_file,
+           metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
+           metadata_persistence::auth_persistent_file_t *auth_persistent_file,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
-           machine_id_t machine_id,
-           const cluster_semilattice_metadata_t &semilattice_metadata,
            std::string web_assets,
            signal_t *stop_cond,
            const boost::optional<std::string>& config_file) {
@@ -393,11 +420,10 @@ bool serve(extproc::spawner_info_t *spawner_info,
                     io_backender,
                     true,
                     base_path,
-                    persistent_file,
+                    cluster_persistent_file,
+                    auth_persistent_file,
                     joins,
                     address_ports,
-                    machine_id,
-                    semilattice_metadata,
                     web_assets,
                     stop_cond,
                     config_file);
@@ -406,8 +432,6 @@ bool serve(extproc::spawner_info_t *spawner_info,
 bool serve_proxy(extproc::spawner_info_t *spawner_info,
                  const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
-                 machine_id_t machine_id,
-                 const cluster_semilattice_metadata_t &semilattice_metadata,
                  std::string web_assets,
                  signal_t *stop_cond,
                  const boost::optional<std::string>& config_file) {
@@ -418,10 +442,9 @@ bool serve_proxy(extproc::spawner_info_t *spawner_info,
                     false,
                     base_path_t(""),
                     NULL,
+                    NULL,
                     joins,
                     address_ports,
-                    machine_id,
-                    semilattice_metadata,
                     web_assets,
                     stop_cond,
                     config_file);

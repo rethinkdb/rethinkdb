@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
@@ -29,29 +30,27 @@ void server_test_helper_t::run() {
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
-    {
-        mock_file_opener_t file_opener;
-        standard_serializer_t::create(
+    mock_file_opener_t file_opener;
+    standard_serializer_t::create(
             &file_opener,
             standard_serializer_t::static_config_t());
-        standard_serializer_t log_serializer(
+    standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
             &file_opener,
             &get_global_perfmon_collection());
 
-        std::vector<standard_serializer_t *> serializers;
-        serializers.push_back(&log_serializer);
-        serializer_multiplexer_t::create(serializers, 1);
-        serializer_multiplexer_t multiplexer(serializers);
+    std::vector<standard_serializer_t *> serializers;
+    serializers.push_back(&log_serializer);
+    serializer_multiplexer_t::create(serializers, 1);
+    serializer_multiplexer_t multiplexer(serializers);
 
-        this->mock_file_opener = &file_opener;
-        this->serializer = multiplexer.proxies[0];
+    this->mock_file_opener = &file_opener;
+    this->serializer = multiplexer.proxies[0];
 
-        run_serializer_tests();
+    run_serializer_tests();
 
-        this->serializer = NULL;
-        this->mock_file_opener = NULL;
-    }
+    this->serializer = NULL;
+    this->mock_file_opener = NULL;
 }
 
 void server_test_helper_t::run_serializer_tests() {

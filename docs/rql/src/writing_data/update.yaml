@@ -7,7 +7,7 @@ commands:
       expression, or a combination of the two.  The optional argument
       <code>durability</code> with value <code>'hard'</code> or
       <code>'soft'</code> will override the table or query's default
-      durability setting.  The optional argument
+      durability setting.  The optional argument <code>return_vals</code> will return the old and new values of the row you're modifying when set to true (only valid for single-row updates).  The optional argument
       <code>non_atomic</code> lets you permit non-atomic updates.<br/><br/>
       Update returns an object that contains the following attributes:
       <ul>
@@ -22,9 +22,18 @@ commands:
       - <code>0</code> for an <code>update</code> operation.</li>
       </ul>
 
-    body: json | expr
-    parent: selection
-    returns: object
+    body:
+      js: "$PARENT.replace(json | expr[, {durability: 'soft', return_vals: true])"
+      py: "$PARENT.replace(json | expr[, durability='soft', return_vals=true])"
+      rb: "$PARENT.replace(json | expr[, durability => 'soft', return_vals => true])"
+
+    io:
+      - - table
+        - object
+      - - selection
+        - object
+      - - singleSelection
+        - object
 
     examples:
       - description: |
@@ -53,4 +62,8 @@ commands:
           rb: |
             r.table('marvel').update({ :non_atomic => true }) {|hero| {:age => hero[:age] + r.js('1')}
              }.run(conn)
-
+      - description: You can get back a copy of the original row and the update row using the return_vals flag.
+        code:
+          js: "r.table('marvel').get('superman').update({ age: 30 }, {return_vals: true}).run(conn, callback)"
+          py: "r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)"
+          rb: r.table('marvel').get('superman').update( {:age => 30}, :return_vals => true).run(conn)

@@ -16,6 +16,9 @@ private:
 
     virtual counted_t<val_t> eval_impl() {
         std::string source = arg(0)->as_datum()->as_str();
+        if (counted_t<val_t> cached_func = env->get_js_func(source)) {
+            return cached_func;
+        }
 
         boost::shared_ptr<js::runner_t> js = env->get_js_runner();
 
@@ -33,9 +36,9 @@ private:
 
         try {
             js::js_result_t result = js->eval(source, &config);
-            return boost::apply_visitor(js_result_visitor_t(env,
-                                                            this->counted_from_this()),
-                                        result);
+            return boost::apply_visitor(
+                js_result_visitor_t(env, source, this->counted_from_this()),
+                result);
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC,
                   "JavaScript query `%s` timed out after %.2G seconds.",

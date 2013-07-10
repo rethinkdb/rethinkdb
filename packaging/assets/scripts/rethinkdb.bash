@@ -51,15 +51,20 @@ _complete_rethinkdb_admin() {
 _complete_rethinkdb() {
     local io_backend=("--io-backend")
     local io_backends=("native" "pool")
+    local format_args=("--format")
+    local formats=("csv" "json")
     local commands=("create" "help" "serve" "admin" "proxy" "import")
-    local file_args=("--input-file" "--pid-file")
+    local file_args=("--input-file" "--pid-file" "-f" "--file")
     local directory_args=("-d" "--directory" "-l" "--log-file")
-    local numb_args=("-c" "--cores" "--client-port" "--cluster-port" "--driver-port" "-o" "--port-offset" "--http-port")
-    local help_tokens=("create" "serve" "admin" "proxy" "import")
+    local numb_args=("-c" "--cores" "--client-port" "--cluster-port" "--driver-port" "-o" "--port-offset" "--http-port" "--clients")
+    local help_tokens=("create" "serve" "admin" "proxy" "export" "import" "dump" "restore")
     local create_tokens=("-d" "--directory" "-n" "--machine-name" "--io-backend")
     local serve_tokens=("-d" "--directory" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "-c" "--cores" "--pid-file" "--io-backend")
     local proxy_tokens=("--log-file" "--cluster-port" "--driver-port" "-o" "--port-offset" "-j" "--join" "--http-port" "--pid-file" "--io-backend")
-    local import_tokens=("-j" "--join" "--table" "--datacenter" "--primary-key" "-s" "--separators" "--input-file")
+    local export_tokens=("-c" "--connect" "-a" "--auth" "-d" "--directory" "-e" "--export" "--format" "--fields")
+    local import_tokens=("-c" "--connect" "-a" "--auth" "-d" "--directory" "-i" "--import" "-f" "--file" "--format" "--table" "--pkey" "--clients" "--force")
+    local dump_tokens=("-c" "--connect" "-a" "--auth" "-e" "--export" "-f" "--file")
+    local restore_tokens=("-c" "--connect" "-a" "--auth" "-i" "--import" "--clients" "--force")
 
     local cur=${COMP_WORDS[COMP_CWORD]}
     local use=""
@@ -90,6 +95,12 @@ _complete_rethinkdb() {
 
         if _rethinkdb_value_in_array "$prev" "${io_backend[@]}"; then
             use="${io_backends[@]}"
+            COMPREPLY=( $( compgen -W "$use" -- "$cur" ) )
+            return
+        fi
+
+        if _rethinkdb_value_in_array "$prev" "${format_args[@]}"; then
+            use="${formats[@]}"
             COMPREPLY=( $( compgen -W "$use" -- "$cur" ) )
             return
         fi

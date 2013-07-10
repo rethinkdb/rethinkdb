@@ -133,7 +133,6 @@ tests:
         rb: err("ArgumentError", "wrong number of arguments (2 for 1)", [])
         py: err_regex('TypeError', ".*takes exactly 1 argument \(2 given\)", [])
       cd:
-      - r.expr(1,2)
       - r.sum(1,2)
       - r.avg(1,2)
     - ot:
@@ -260,6 +259,13 @@ tests:
       - tbl.group_by()
 
     - ot:
+        js: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.", [])
+        rb: err("RqlCompileError", "Expected 2 or more argument(s) but found 1.", [])
+        py: err('RqlCompileError', "Expected 2 or more argument(s) but found 1.", [])
+      cd:
+      - tbl.get_all()
+
+    - ot:
         js: err("RqlDriverError", "Expected 3 argument(s) but found 2.", [])
         rb: err("RqlCompileError", "Expected 3 argument(s) but found 2.", [])
         py: err_regex('TypeError', ".*takes exactly 3 arguments \(2 given\)", [])
@@ -275,6 +281,12 @@ tests:
         rb: err("RqlCompileError", "Expected 4 argument(s) but found 2.", [])
         py: err_regex('TypeError', ".*takes at least 4 arguments \(3 given\)", [])
       cd: tbl.grouped_map_reduce(1,2)
+
+    - ot: err("RqlDriverError", "Expected 1 argument(s) but found 2.", [])
+      js: r.expr({})(1,2)
+      py: []
+      rb: []
+
 
     # TODO: Math and logic
     # TODO: Upper bound on optional arguments

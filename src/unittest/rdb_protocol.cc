@@ -78,7 +78,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
     connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
 
-    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(), &read_manager, generate_uuid());
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
+    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
+                                  dummy_auth, &read_manager, generate_uuid());
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
@@ -169,7 +171,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     std::string id = uuid_to_str(generate_uuid());
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GETATTR, NVAR(1), NDATUM("sid"));
+    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
 
     ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 

@@ -1,9 +1,31 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor']
+__all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
 
 import socket
 import struct
+from os import environ
+
+if environ.has_key('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'):
+    protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
+    if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
+        import rethinkdb_pbcpp
+else:
+    try:
+        # Set an environment variable telling the protobuf library
+        # to use the fast C++ based serializer implementation
+        # over the pure python one if it is available.
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+
+        # The cpp_message module could change between versions of the
+        # protobuf module
+        from google.protobuf.internal import cpp_message
+        import rethinkdb_pbcpp
+        protobuf_implementation = 'cpp'
+    except ImportError, e:
+        # Default to using the python implementation of protobuf
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+        protobuf_implementation = 'python'
 
 import ql2_pb2 as p
 
@@ -41,12 +63,20 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None):
+    def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.host = host
-        self.port = port
         self.next_token = 1
         self.db = db
+        self.auth_key = auth_key
+        self.timeout = timeout
+
+        # Try to convert the port to an integer
+        try:
+          self.port = int(port)
+        except ValueError as err:
+          raise RqlDriverError("Could not convert port %s to an integer." % port)
+
         self.reconnect()
 
     def __enter__(self):
@@ -60,12 +90,31 @@ class Connection(object):
 
     def reconnect(self):
         self.close()
+
         try:
-            self.socket = socket.create_connection((self.host, self.port))
+            self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
-        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_1))
+        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
+        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
+
+        # Read out the response from the server, which will be a null-terminated string
+        response = ""
+        while True:
+            char = self.socket.recv(1)
+            if char == "\0":
+                break
+            response += char
+
+        if response != "SUCCESS":
+            self.socket.close()
+            raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+
+        # Connection is now initialized
+
+        # Clear timeout so we don't timeout on long running queries
+        self.socket.settimeout(None)
 
     def close(self):
         if self.socket:
@@ -203,5 +252,5 @@ class Connection(object):
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-def connect(host='localhost', port=28015, db=None):
-    return Connection(host, port, db)
+def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
+    return Connection(host, port, db, auth_key, timeout)

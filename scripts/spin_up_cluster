@@ -8,6 +8,7 @@ import time
 import random
 import sys
 import socket
+from optparse import OptionParser
 
 names = """Aphrodite
 Apollo
@@ -72,93 +73,96 @@ Selene
 Styx""".splitlines()
 
 
+parser = OptionParser()
+parser.add_option("--cores", dest="cores", metavar="THREAD_COUNT", default=0, type="int")
+parser.add_option("--keep", dest="keep_data", action="store_true", default=False)
+parser.add_option("--release", dest="release_mode", action="store_true", default=False)
+parser.add_option("--valgrind", dest="valgrind", action="store_true", default=False)
+(options, args) = parser.parse_args()
+
 def usage():
-    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--valgrind]"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep] [--valgrind] [--cores <thread_count>]"
     print """Where: 
     p is the port you want the cluster to use 
     N is the number of machines you want in the cluster
     data_root_directory is the directory where RethinkDB will store each server data
     --keep preserve the data directories between runs (by default they are deleted)
-    --valgrind will run the rethinkdb server processes under valgrind"""
+    --valgrind will run the rethinkdb server processes under valgrind
+    --cores will be passed through to rethinkdb"""
 
 
-if len(os.sys.argv) < 3:
+if len(args) < 2 or len(args) > 3:
     usage()
     exit(1)
 
-port = int(os.sys.argv[1])
-n_machines = int(os.sys.argv[2])
+# Determine launch options
+port = int(args[0])
+n_machines = int(args[1])
+parent_dir = ''
+valgrind = options.valgrind
+release = options.release_mode
+keep_data = options.keep_data
+hostname = socket.gethostname()
+cores = options.cores
+
+valgrind_options = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp"]
+
+if len(args) == 3:
+    parent_dir = args[2]
+
 if n_machines < 1:
     usage()
     exit(1)
-else:
-    parent_dir = ''
-    valgrind = False
-    release = False
-    keep_data = False
-    for opt in os.sys.argv[3:]:
-        if opt == '--keep':
-            keep_data = True
-        elif opt == '--valgrind':
-            valgrind = True
-        elif opt == '--release':
-            release = True
+
+kids = []
+machine_names = random.sample(names, n_machines)
+for i, machine_name in enumerate(machine_names):
+    directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
+    # cleanup the directory
+    if not keep_data:
+        os.system("rm -rf " + directory)
+
+    if release:
+        if (valgrind):
+            binary = "../build/release-valgrind/rethinkdb"
         else:
-            parent_dir = opt
-    kids = []
-    machine_names = random.sample(names, n_machines)
-    for i, machine_name in enumerate(machine_names):
-        directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
-        # cleanup the directory
-        if not keep_data:
-            os.system("rm -rf " + directory)
-
-        if release:
-            if (valgrind):
-                binary = "../build/release-valgrind/rethinkdb"
-                web = "../build/release-valgrind/web"
-            else:
-                binary = "../build/release/rethinkdb"
-                web = "../build/release/web"
+            binary = "../build/release/rethinkdb"
+    else:
+        if (valgrind):
+            binary = "../build/debug-valgrind/rethinkdb"
         else:
-            if (valgrind):
-                binary = "../build/debug-valgrind/rethinkdb"
-                web = "../build/debug-valgrind/web"
-            else:
-                binary = "../build/debug/rethinkdb"
-                web = "../build/debug/web"
+            binary = "../build/debug/rethinkdb"
 
+    rdb_options = [binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--bind", "all"]
 
-        hostname = socket.gethostname()
-        if (i == 0):
-            if (valgrind):
-                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--bind", "all"]
-            else:
-                cl = [binary, "--directory", directory, "--machine-name", machine_name, "--port-offset", str(i+port), "--bind", "all"]
-        else:
-            if (valgrind):
-                cl = ["valgrind", "--leak-check=full", "--track-origins=yes", "--suppressions=../scripts/rethinkdb-valgrind-suppressions.supp", binary, "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i+port), "--bind", "all"]
-            else:
-                cl = [binary, "--directory", directory, "--machine-name", machine_name, "--join", "%s:%d" % (hostname, 29015 + port), "--port-offset", str(i+port), "--bind", "all"]
-        print ' '.join(cl)
-        kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
-        time.sleep(1)
+    if cores != 0:
+        rdb_options += ["--cores", str(cores)]
 
+    if i != 0:
+        rdb_options += ["--join", "%s:%d" % (hostname, 29015 + port)]
+
+    if valgrind:
+        rdb_options = valgrind_options + rdb_options
+
+    print ' '.join(rdb_options)
+    kids += [subprocess.Popen(rdb_options, stdout=sys.stdout, stderr=sys.stderr)]
     time.sleep(1)
-    print "CTRL-C to kill me http requests can be sent to ports:",
-    for i in range(n_machines):
-        if i != 0:
-            print ",",
 
-        print port + (i * 2) + 1,
+time.sleep(1)
+print "CTRL-C to kill me http requests can be sent to ports:",
+for i in range(n_machines):
+    if i != 0:
+        print ",",
 
-    print ""
+    print port + (i * 2) + 1,
 
-    sys.stdout.flush()
-    sys.stderr.flush()
+print ""
 
-    try:
-        signal.pause()
-    except:
-        for kid in kids:
-            kid.terminate()
+sys.stdout.flush()
+sys.stderr.flush()
+
+try:
+    signal.pause()
+except:
+    for kid in kids:
+        kid.terminate()

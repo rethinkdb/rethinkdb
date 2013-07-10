@@ -10,7 +10,7 @@ module 'LogView', ->
         max_log_entries: 20
         interval_update_log: 10000
 
-        route: "/ajax/log/_?"
+        route: "ajax/log/_?"
 
         displayed_logs: 0
         max_timestamp: 0
@@ -149,7 +149,7 @@ module 'LogView', ->
             if @num_new_entries > @max_log_entries
                 @render()
             else
-                route = "/ajax/log/_?min_timestamp="+ @current_logs[0].get('timestamp')
+                route = "ajax/log/_?min_timestamp="+ @current_logs[0].get('timestamp')
 
                 $.getJSON route, @parse_new_log
 

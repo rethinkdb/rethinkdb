@@ -135,7 +135,7 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
@@ -173,12 +173,14 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }
@@ -248,7 +250,7 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
@@ -285,12 +287,14 @@ private:
         case Term::ASC:
         case Term::DESC:
         case Term::INFO:
+        case Term::MATCH:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
             return false;
         default: unreachable();
         }

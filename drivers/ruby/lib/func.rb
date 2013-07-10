@@ -37,6 +37,7 @@ module RethinkDB
       :js => :javascript,
       :type_of => :typeof
     }
+    @@allow_json = {:insert => true}
     def method_missing(m, *a, &b)
       unbound_if(m.to_s.downcase != m.to_s, m)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
@@ -54,7 +55,7 @@ module RethinkDB
       end
 
       m = @@rewrites[m] || m
-      termtype = Term::TermType.values[m.to_s.upcase.to_sym]
+      termtype = Term::TermType.const_get(m.to_s.upcase)
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])
@@ -73,11 +74,11 @@ module RethinkDB
 
       t = Term.new
       t.type = termtype
-      t.args = args.map{|x| RQL.new.expr(x).to_pb}
+      t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[m]).to_pb}
       t.optargs = (optargs || {}).map {|k,v|
         ap = Term::AssocPair.new
         ap.key = k.to_s
-        ap.val = RQL.new.expr(v).to_pb
+        ap.val = RQL.new.expr(v, :allow_json => @@allow_json[m]).to_pb
         ap
       }
       return RQL.new(t, bitop)
@@ -127,7 +128,7 @@ module RethinkDB
       if ind.class == Fixnum
         return nth(ind)
       elsif ind.class == Symbol || ind.class == String
-        return getattr(ind)
+        return get_field(ind)
       elsif ind.class == Range
         if ind.end == 0 && ind.exclude_end?
           raise ArgumentError, "Cannot slice to an excluded end of 0."

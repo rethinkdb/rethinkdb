@@ -59,6 +59,11 @@ GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 PACKAGE_NAME := $(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME := $(SERVER_EXEC_NAME)-unittest
 
+BACKUP_SCRIPTS_DIR := $(SCRIPTS_DIR)/backup
+BACKUP_SCRIPTS_NAMES := rethinkdb-export rethinkdb-import rethinkdb-dump rethinkdb-restore
+BACKUP_SCRIPTS_REAL := $(foreach _,$(BACKUP_SCRIPTS_NAMES),$(BUILD_DIR)/$_.py)
+BACKUP_SCRIPTS_PROXY := $(foreach _,$(BACKUP_SCRIPTS_NAMES),$(BUILD_DIR)/$_)
+
 EXTERNAL_DIR := $(TOP)/external
 EXTERNAL_DIR_ABS := $(abspath $(EXTERNAL_DIR))
 COLONIZE_SCRIPT := $(EXTERNAL_DIR)/colonist/colonize.sh

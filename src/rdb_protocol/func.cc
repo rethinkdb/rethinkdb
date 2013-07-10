@@ -11,14 +11,18 @@
 namespace ql {
 
 func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
-    : pb_rcheckable_t(parent->backtrace()), source(parent->get_src()),
-      js_parent(parent), js_env(env), js_id(id) {
+    : pb_rcheckable_t(parent->backtrace()),
+      source(parent->get_src()),
+      js_parent(parent),
+      js_env(env),
+      js_runner(env->get_js_runner()),
+      js_id(js_runner.get(), id) {
     env->dump_scope(&scope);
 }
 
 func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), source(_source),
-      js_env(NULL), js_id(js::INVALID_ID) {
+      js_env(NULL), js_id(NULL, js::INVALID_ID) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -94,9 +98,12 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             }
 
             boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
-            js::js_result_t result = js->call(js_id, json_args);
+            r_sanity_check(!js_id.empty());
+            js::js_result_t result = js->call(js_id.get(), json_args);
 
-            return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
+            return boost::apply_visitor(
+                js_result_visitor_t(js_env, std::string(), js_parent),
+                result);
         } else {
             r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
@@ -160,22 +167,6 @@ void func_t::set_default_filter_val(counted_t<func_t> func) {
     default_filter_val = func;
 }
 
-// This JS evaluation resulted in an error
-counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
-    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
-    unreachable();
-}
-
-counted_t<val_t>
-js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val, env));
-}
-
-// This JS evaluation resulted in an id for a js function
-counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
-    return parent->new_val(make_counted<func_t>(env, id_val, parent));
-}
-
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)) {
@@ -234,7 +225,9 @@ bool func_term_t::is_deterministic_impl() const {
 bool func_t::filter_call(counted_t<const datum_t> arg) {
     try {
         counted_t<const datum_t> d = call(arg)->as_datum();
-        if (d->get_type() == datum_t::R_OBJECT) {
+        if (d->get_type() == datum_t::R_OBJECT &&
+            (source->args(1).type() == Term::MAKE_OBJ ||
+             source->args(1).type() == Term::DATUM)) {
             const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
             for (auto it = obj.begin(); it != obj.end(); ++it) {
                 r_sanity_check(it->second.has());
@@ -247,13 +240,8 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
                 }
             }
             return true;
-        } else if (d->get_type() == datum_t::R_BOOL) {
-            return d->as_bool();
         } else {
-            d->type_error(
-                strprintf(
-                    "FILTER must be passed either an OBJECT or a predicate (got %s).",
-                    d->get_type_name()));
+            return d->as_bool();
         }
     } catch (const base_exc_t &e) {
         if (e.get_type() == base_exc_t::NON_EXISTENCE) {
@@ -307,5 +295,21 @@ void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
 
+counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
+    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
+    unreachable();
+}
+counted_t<val_t> js_result_visitor_t::operator()(
+    const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+    return parent->new_val(make_counted<const datum_t>(json_val));
+}
+// This JS evaluation resulted in an id for a js function
+counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
+    counted_t<val_t> v = parent->new_val(make_counted<func_t>(env, id_val, parent));
+    if (!code.empty()) {
+        env->cache_js_func(code, v);
+    }
+    return v;
+}
 
 } // namespace ql

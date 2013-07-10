@@ -9,9 +9,11 @@ commands:
     section: module
     description: The toplevel RQL namespace.
 
-    dont_need_parenthesis: true
-    parent: null
-    returns: r
+    body: "r"
+
+    io:
+      - - null
+        - r
 
     examples:
       - description: Setup your top level namespace.
@@ -31,21 +33,23 @@ commands:
       be thrown.
 
     body:
-      js: opts, callback
-      py: host='localhost', port=28015, db='test'
-      rb: host='localhost', port=28015, default_db='test'
-    parent: r
-    returns: connection
+      js: "$PARENT.connect(opts, callback)"
+      py: "$PARENT.connect(host='localhost', port=28015, db='test', auth_key='')"
+      rb: "$PARENT.connect(opts)"
+
+    io:
+      - - r
+        - connection
 
     examples:
       - description: Opens a new connection to the database.
         validate: false
         code:
           js: |
-            r.connect({host:'localhost', port:28015, db:'marvel'},
+              r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},
                  function(err, conn) { ... })
           py: conn = r.connect(db='heroes')
-          rb: conn = r.connect('localhost', 28015, 'heroes')
+          rb: conn = r.connect(:host => 'localhost', :port => 28015, :db => 'heroes', :auth_key => 'hunter2')
 
     py:
       examples:
@@ -55,7 +59,9 @@ commands:
     rb:
       examples:
         0:
-          description: Opens a connection to localhost:28015 with 'heroes' as the default database.
+          description: |
+            Opens a connection to localhost:28015 with 'heroes' as the default database,
+            and provides an authorization key to log on to the server.
 
   - tag: repl
     section: module
@@ -65,8 +71,13 @@ commands:
       Connection objects are not thread safe and <code>repl</code> connections
       should not be used in multi-threaded environments.
 
-    parent: connection
-    returns: null
+    io:
+      - - connection
+        - null
+
+    body:
+      py: "$PARENT.repl()"
+      rb: "$PARENT.repl"
 
     examples:
       - description: |
@@ -89,18 +100,22 @@ commands:
       Close an open connection. Closing a connection cancels all outstanding
       requests and frees the memory associated with the open requests.
 
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.close()"
+      rb: "$PARENT.close"
+      js: "$PARENT.close()"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Close an open connection.
         validate: false
-        code: conn.close()
-
-    rb:
-      examples:
-        0:
-          code: conn.close
+        code:
+          js: conn.close()
+          py: conn.close()
+          rb: conn.close
 
   - tag: reconnect
     section: module
@@ -108,8 +123,14 @@ commands:
       Close and attempt to reopen a connection. Has the effect of canceling
       any outstanding request while keeping the connection open.
 
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.reconnect()"
+      rb: "$PARENT.reconnect"
+      js: "$PARENT.reconnect()"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Cancel outstanding requests/queries that are no longer needed.
@@ -123,9 +144,14 @@ commands:
     section: module
     description: Change the default database on this connection.
 
-    body: dbName
-    parent: connection
-    returns: null
+    body:
+      py: "$PARENT.use(db_name)"
+      rb: "$PARENT.use(db_name)"
+      js: "$PARENT.use(dbName)"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: |
@@ -138,12 +164,13 @@ commands:
     description: Run a query on a connection.
 
     body:
-      js: conn[, callback]
-      py: conn[, use_outdated=False]
-      rb: conn[, opts]
+      js: "$PARENT.run(conn[, callback])"
+      py: "$PARENT.run(conn[, use_outdated=False])"
+      rb: "$PARENT.run(conn[, opts])"
 
-    parent: query
-    returns: cursor
+    io:
+      - - query
+        - cursor
 
     examples:
       - description: |
@@ -206,9 +233,11 @@ commands:
     section: module
     description: Get the next element in the cursor.
 
-    body: callback
-    parent: cursor
-    returns: null
+    body: "$PARENT.next(callback)"
+
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: Let's grab the next element!
@@ -224,8 +253,11 @@ commands:
     section: module
     description: Check if there are more elements in the cursor.
 
-    parent: cursor
-    returns: bool
+    body: "$PARENT.hasNext()"
+
+    io:
+      - - cursor
+        - bool
 
     examples:
       - description: Are there more elements in the cursor?
@@ -238,10 +270,11 @@ commands:
     section: module
     description: Lazily iterate over the result set one element at a time.
 
-    body: callback[, onFinished]
+    body: "$PARENT.each(callback[, onFinished])"
 
-    parent: cursor
-    returns: null
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: Let's process all the elements!
@@ -272,9 +305,11 @@ commands:
     section: module
     description: Retrieve all results and pass them as an array to the given callback.
 
-    body: callback
-    parent: cursor
-    returns: null
+    body: "$PARENT.toArray(callback)"
+
+    io:
+      - - cursor
+        - null
 
     examples:
       - description: For small result sets it may be more convenient to process them at once as an array.
@@ -294,13 +329,16 @@ commands:
         The connection object also supports the event emitter interface so you can listen for
         changes in connection state.
 
-    body: event, listener
-    parent: connection
+    body: "$PARENT.addListener(event, listener)"
+
+    io:
+      - - connection
+        - null
 
     examples:
       - description: Monitor connection state with events 'connect', 'close', and 'error'.
+        validate: false
         code: |
-
           r.connect({}, function(err, conn) {
               if (err) throw err;
 
@@ -316,6 +354,7 @@ commands:
           });
 
       - description: As in Node, 'on' is a synonym for 'addListener'.
+        validate: false
         code: |
             conn.on('close', function() {
                 cleanup();

@@ -136,7 +136,7 @@ void bring_sindexes_up_to_date(
     store->get_sindexes(sindex_block, txn, &sindexes);
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
-    for (auto it = sindexes_to_bring_up_to_date.begin(); 
+    for (auto it = sindexes_to_bring_up_to_date.begin();
          it != sindexes_to_bring_up_to_date.end(); ++it) {
         guarantee(std_contains(sindexes, *it));
         sindexes_to_bring_up_to_date_uuid.insert(sindexes[*it].id);
@@ -192,6 +192,11 @@ void post_construct_and_drain_queue(
 
             scoped_ptr_t<transaction_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
+
+            // If we get interrupted, post-construction will happen later, no need to
+            //  guarantee that we touch the sindex tree now
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+                destroyer(&token_pair.sindex_write_token);
 
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
@@ -271,6 +276,11 @@ void post_construct_and_drain_queue(
         scoped_ptr_t<transaction_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
+        // If we get interrupted, post-construction will happen later, no need to
+        //  guarantee that we touch the sindex tree now
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+            destroyer(&token_pair.sindex_write_token);
+
         store->acquire_superblock_for_write(
             rwi_write,
             repli_timestamp_t::distant_past,
@@ -320,14 +330,17 @@ rdb_protocol_t::context_t::context_t(
     extproc::pool_group_t *_pool_group,
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        _semilattice_metadata,
+        _cluster_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        _auth_metadata,
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
     machine_id_t _machine_id)
     : pool_group(_pool_group), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
-      semilattice_metadata(_semilattice_metadata),
+      cluster_metadata(_cluster_metadata),
+      auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
       machine_id(_machine_id)
@@ -336,12 +349,12 @@ rdb_protocol_t::context_t::context_t(
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                     clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
                                                         (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _semilattice_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), thread));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                                                     clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _semilattice_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), thread));
 
         signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
     }
@@ -513,7 +526,7 @@ public:
                      ->get_watchable(),
                  ctx->cross_thread_database_watchables[get_thread_id()].get()
                      ->get_watchable(),
-                 ctx->semilattice_metadata,
+                 ctx->cluster_metadata,
                  NULL,
                  boost::make_shared<js::runner_t>(),
                  interruptor,
@@ -730,42 +743,35 @@ private:
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    ql::wire_datum_t *lhs = boost::get<ql::wire_datum_t>(&rg_response->result);
-                    const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
+                    counted_t<const ql::datum_t> *lhs =
+                        boost::get<counted_t<const ql::datum_t> >(&rg_response->result);
+                    const counted_t<const ql::datum_t> *rhs =
+                        boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
                     if (!rhs) {
                         guarantee(boost::get<rget_read_response_t::empty_t>(&(_rr->result)));
                         continue;
                     } else {
-                        ql::wire_datum_t local_rhs = *rhs;
                         if (lhs) {
-                            counted_t<const ql::datum_t> reduced_val = local_reduce_func.compile(&ql_env)->call(lhs->compile(&ql_env), local_rhs.compile(&ql_env))->as_datum();
-                            rg_response->result = ql::wire_datum_t(reduced_val);
+                            counted_t<const ql::datum_t> reduced_val =
+                                local_reduce_func.compile(&ql_env)->call(*lhs, *rhs)->as_datum();
+                            rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
                             rg_response->result = _rr->result;
                         }
                     }
                 }
-                ql::wire_datum_t *final_val = boost::get<ql::wire_datum_t>(&rg_response->result);
-                if (final_val) {
-                    final_val->finalize();
-                }
             } else if (boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
-                rg_response->result =
-                    ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
+                rg_response->result = make_counted<const ql::datum_t>(0.0);
 
                 for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    ql::wire_datum_t *lhs = boost::get<ql::wire_datum_t>(&rg_response->result);
-                    const ql::wire_datum_t *rhs = boost::get<ql::wire_datum_t>(&(_rr->result));
-                    ql::wire_datum_t local_rhs = *rhs;
-
-                    counted_t<const ql::datum_t> sum = make_counted<ql::datum_t>(lhs->compile(&ql_env)->as_num() + local_rhs.compile(&ql_env)->as_num());
-                    rg_response->result = ql::wire_datum_t(sum);
+                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t>>(rg_response->result);
+                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t>>(_rr->result);
+                    rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
                 }
-                boost::get<ql::wire_datum_t>(rg_response->result).finalize();
             } else if (const ql::gmr_wire_func_t *gmr_func =
                     boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
                 ql::gmr_wire_func_t local_gmr_func = *gmr_func;
@@ -773,7 +779,7 @@ private:
                 ql::wire_datum_map_t *map =
                     boost::get<ql::wire_datum_map_t>(&rg_response->result);
 
-                for (size_t i = 0; i < count; ++i) {
+                  for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
@@ -781,7 +787,7 @@ private:
                         boost::get<ql::wire_datum_map_t>(&(_rr->result));
                     r_sanity_check(rhs);
                     ql::wire_datum_map_t local_rhs = *rhs;
-                    local_rhs.compile(&ql_env);
+                    local_rhs.compile();
 
                     counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
                     for (size_t f = 0; f < rhs_arr->size(); ++f) {
@@ -1151,15 +1157,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             Term *arg = ql::pb::set_func(&filter_term, arg1);
             N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
                N2(ALL,
-                  if (rget.sindex_start_value) {
+                  if (rget.sindex_start_value.has()) {
                       N2(GE, NVAR(sindex_val),
-                         *ql::pb::set_datum(arg) =rget.sindex_start_value->get_datum());
+                         rget.sindex_start_value->write_to_protobuf(ql::pb::set_datum(arg)));
                   } else {
                       NDATUM_BOOL(true);
                   },
-                  if (rget.sindex_end_value) {
+                  if (rget.sindex_end_value.has()) {
                       N2(LE, NVAR(sindex_val),
-                         *ql::pb::set_datum(arg) = rget.sindex_end_value->get_datum());
+                         rget.sindex_end_value->write_to_protobuf(ql::pb::set_datum(arg)));
                   } else {
                       NDATUM_BOOL(true);
                   }),
@@ -1240,7 +1246,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                    ->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id()].get()
                    ->get_watchable(),
-               ctx->semilattice_metadata,
+               ctx->cluster_metadata,
                NULL,
                boost::make_shared<js::runner_t>(),
                &interruptor,
@@ -1273,15 +1279,23 @@ void store_t::protocol_read(const read_t &read,
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
-        ql_env.init_optargs(r.optargs);
+        try {
+            ql_env.init_optargs(r.optargs);
+        } catch (const interrupted_exc_t &) {
+            // Clear the sindex_write_token because we didn't have a chance to use it
+            token_pair->sindex_write_token.reset();
+            throw;
+        }
+
         response->response = point_replace_response_t();
         point_replace_response_t *res = boost::get<point_replace_response_t>(&response->response);
         // TODO: modify surrounding code so we can dump this const_cast.
         ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
         rdb_modification_report_t mod_report(r.key);
         rdb_replace(btree, timestamp, txn, superblock->get(),
-                    r.primary_key, r.key, f, &ql_env, res,
-                    &mod_report.info);
+                    r.primary_key, r.key, f,
+                    r.return_vals ? RETURN_VALS : NO_RETURN_VALS,
+                    &ql_env, res, &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -1386,7 +1400,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                    get_thread_id()].get()->get_watchable(),
                ctx->cross_thread_database_watchables[
                    get_thread_id()].get()->get_watchable(),
-               ctx->semilattice_metadata,
+               ctx->cluster_metadata,
                0,
                boost::make_shared<js::runner_t>(),
                &interruptor,
@@ -1398,8 +1412,10 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
-                                              sindex_block_id, &interruptor);
+                                              sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
@@ -1594,9 +1610,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(rdb_modification_report_t *mod_report) const {
         scoped_ptr_t<buf_lock_t> sindex_block;
+        // Don't allow interruption here, or we may end up with inconsistent data
+        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(
             token_pair, txn, &sindex_block,
-            sindex_block_id, interruptor);
+            sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
@@ -1685,7 +1703,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs);
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs, return_vals);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);

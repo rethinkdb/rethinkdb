@@ -96,14 +96,26 @@ tests:
       ot: 1
     - cd: r.branch(False, 1, 2)
       ot: 2
-
-    # Branch errors
-
     - cd: r.branch(1, 'c', False)
-      ot: err("RqlRuntimeError", "Expected type BOOL but found NUMBER.", [0])
+      ot: ("c")
+    - cd: r.branch(null, {}, [])
+      ot: ([])
 
-    - cd: r.branch('a', {}, [])
-      ot: err("RqlRuntimeError", "Expected type BOOL but found STRING.", [0])
+    - cd: r.branch(r.db('test'), 1, 2)
+      ot: err("RqlRuntimeError", "Expected type DATUM but found DATABASE.", [])
+    - cd: r.branch(r.db('test').table('test1'), 1, 2)
+      ot: err("RqlRuntimeError", "Expected type DATUM but found TABLE.", [])
+    - cd: r.branch(r.error("a"), 1, 2)
+      ot: err("RqlRuntimeError", "a", [])
+
+    - cd: r.branch([], 1, 2)
+      ot: 1
+    - cd: r.branch({}, 1, 2)
+      ot: 1
+    - cd: r.branch("a", 1, 2)
+      ot: 1
+    - cd: r.branch(1.2, 1, 2)
+      ot: 1
 
     # r.error()
     - cd: r.error('Hello World')
@@ -195,15 +207,16 @@ tests:
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
 
     - cd: r.expr([1, 2, 3]).filter('foo')
-      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got STRING).", [0])
+      ot: ([1, 2, 3])
+    - cd: r.expr([1, 2, 4]).filter([])
+      ot: ([1, 2, 4])
+    - cd: r.expr([1, 2, 3]).filter(null)
+      ot: ([])
 
     - py: r.expr([1, 2, 4]).filter(False)
       js: r.expr([1, 2, 4]).filter(false)
       rb: r([1, 2, 4]).filter(false)
       ot: ([])
-
-    - cd: r.expr([1, 2, 4]).filter([])
-      ot: err("RqlRuntimeError", "FILTER must be passed either an OBJECT or a predicate (got ARRAY).", [0])
 
     # forEach
     - cd: tbl.count()
@@ -248,21 +261,21 @@ tests:
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':3})
 
     - cd: r.expr([1, 2, 3]).for_each(1)
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [0])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [0])'
 
     - py: r.expr([1, 2, 3]).for_each(lambda x:x)
       js: r([1, 2, 3]).forEach(function (x) { return x; })
       rb: r([1, 2, 3]).for_each{ |x| x }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - cd: r.expr([1, 2, 3]).for_each(r.row)
       rb: []
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Expected type ARRAY but found NUMBER.", [1, 1])'
 
     - js: r([1, 2, 3]).forEach(function (row) { return tbl; })
       py: r.expr([1, 2, 3]).for_each(lambda row:tbl)
       rb: r([1, 2, 3]).for_each{ |row| tbl }
-      ot: 'err("RqlRuntimeError", "FOREACH expects one or more write queries.", [1, 1])'
+      ot: 'err("RqlRuntimeError", "FOREACH expects one or more basic write queries.", [1, 1])'
 
       # This is only relevant in JS -- what happens when we return undefined
     - js: "r([1, 2, 3]).forEach(function (row) {})"

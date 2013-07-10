@@ -31,8 +31,9 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     rcheck_target(
         caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
-        strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
-                  l->get_type_name(), r->get_type_name()));
+        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
+                  l->trunc_print().c_str(), l->get_type_name(),
+                  r->trunc_print().c_str(), r->get_type_name()));
     return l;
 }
 
@@ -74,7 +75,7 @@ class insert_term_t : public op_term_t {
 public:
     insert_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({ "upsert", "durability" })) { }
+                    optargspec_t({"upsert", "durability", "return_vals"})) { }
 
 private:
     void maybe_generate_key(counted_t<table_t> tbl,
@@ -93,8 +94,10 @@ private:
 
     virtual counted_t<val_t> eval_impl() {
         counted_t<table_t> t = arg(0)->as_table();
-        const counted_t<val_t> upsert_val = optarg("upsert");
-        const bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
+        counted_t<val_t> upsert_val = optarg("upsert");
+        bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
+        counted_t<val_t> return_vals_val = optarg("return_vals");
+        bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(optarg("durability"), this);
@@ -112,13 +115,17 @@ private:
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                stats = stats->merge(t->replace(d, d, upsert, durability_requirement), stats_merge);
+                counted_t<const datum_t> new_stats =
+                    t->replace(d, d, upsert, durability_requirement, return_vals);
+                stats = stats->merge(new_stats, stats_merge);
                 done = true;
             }
         }
 
         if (!done) {
             counted_t<datum_stream_t> datum_stream = v1->as_seq();
+            rcheck(!return_vals, base_exc_t::GENERIC,
+                   "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
@@ -164,13 +171,17 @@ class replace_term_t : public op_term_t {
 public:
     replace_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2),
-                    optargspec_t({ "non_atomic", "durability" })) { }
+                    optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
     virtual counted_t<val_t> eval_impl() {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg("non_atomic")) {
             nondet_ok = v->as_bool();
+        }
+        bool return_vals = false;
+        if (counted_t<val_t> v = optarg("return_vals")) {
+            return_vals = v->as_bool();
         }
 
         const durability_requirement_t durability_requirement
@@ -186,16 +197,18 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
-            counted_t<const datum_t> result = tblrow.first->replace(tblrow.second,
-                                                                    f,
-                                                                    nondet_ok,
-                                                                    durability_requirement);
+            counted_t<const datum_t> result =
+                tblrow.first->replace(tblrow.second, f, nondet_ok,
+                                      durability_requirement, return_vals);
             stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection();
             counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
+
+            rcheck(!return_vals, base_exc_t::GENERIC,
+                   "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums = ds->next_batch();
@@ -225,7 +238,7 @@ public:
 
 private:
     virtual counted_t<val_t> eval_impl() {
-        const char *fail_msg = "FOREACH expects one or more write queries.";
+        const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
@@ -243,7 +256,7 @@ private:
             } catch (const exc_t &e) {
                 throw exc_t(e.get_type(), fail_msg, e.backtrace());
             } catch (const datum_exc_t &de) {
-                rfail_target(v, base_exc_t::GENERIC, "%s", fail_msg);
+                rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
             }
         }
         return new_val(stats);
