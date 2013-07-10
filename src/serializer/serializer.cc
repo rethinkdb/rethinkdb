@@ -80,7 +80,7 @@ void perform_write(const serializer_write_t *write, serializer_t *ser, file_acco
     }
 }
 
-void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account) {
+void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes, file_account_t *io_account) {
     ser->assert_thread();
     std::vector<write_cond_t*> block_write_conds;
     std::vector<index_write_op_t> index_write_ops;
