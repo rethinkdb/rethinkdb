@@ -569,7 +569,7 @@ void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
 
-data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *_parent)
+data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *_parent)
     : done(num_writes == 0), parent(_parent) {
     if (!done) {
         coro_t::spawn(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
@@ -582,8 +582,7 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
     }
 };
 
-// RSI: Make num_writes be a size_t.
-void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_writes) {
+void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num_writes) {
     if (parent->gc_state.current_entry != NULL) {
         block_write_cond_t block_write_cond;
 
@@ -605,7 +604,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
 
             std::vector<buf_write_info_t> the_writes;
             the_writes.reserve(num_writes);
-            for (int i = 0; i < num_writes; ++i) {
+            for (size_t i = 0; i < num_writes; ++i) {
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
                                                                                     writes[i].ser_block_size));
 
@@ -618,9 +617,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
                 = parent->many_writes(the_writes, false, parent->choose_gc_io_account(),
                                       &block_write_cond);
 
-            guarantee(new_block_tokens.size() == static_cast<size_t>(num_writes));
+            guarantee(new_block_tokens.size() == num_writes);
 
-            for (int i = 0; i < num_writes; ++i) {
+            for (size_t i = 0; i < num_writes; ++i) {
                 // RSI: Is setting writes[i].new_offset the right way to pass this information along?
                 writes[i].new_offset = new_block_tokens[i]->offset();
             }
@@ -641,7 +640,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
         {
             ASSERT_NO_CORO_WAITING;
 
-            for (int i = 0; i < num_writes; ++i) {
+            for (size_t i = 0; i < num_writes; ++i) {
                 unsigned int block_index
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
@@ -668,7 +667,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, int num_wr
             // returns in Step 4 below, resulting in i_array entries
             // that point to the current entry.  This should empty out
             // all the t_array bits.
-            for (int i = 0; i < num_writes; ++i) {
+            for (size_t i = 0; i < num_writes; ++i) {
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
             }
 
@@ -821,9 +820,10 @@ void data_block_manager_t::run_gc() {
                 }
 
                 /* an array to put our writes in */
-                int num_writes = gc_state.current_entry->num_live_blocks();
+                size_t num_writes = gc_state.current_entry->num_live_blocks();
 
                 gc_writes.clear();
+                gc_writes.reserve(num_writes);
                 for (unsigned int i = 0, iend = gc_state.current_entry->num_blocks(); i < iend; ++i) {
 
                     /* We re-check the bit array here in case a write came in for one
@@ -850,7 +850,7 @@ void data_block_manager_t::run_gc() {
                                                    gc_state.current_entry->block_size(i)));
                 }
 
-                guarantee(gc_writes.size() == static_cast<size_t>(num_writes));
+                guarantee(gc_writes.size() == num_writes);
 
                 gc_state.set_step(gc_write);
 

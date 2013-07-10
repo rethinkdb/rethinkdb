@@ -200,11 +200,10 @@ private:
     };
 
     struct gc_writer_t {
-        gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
+        gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *parent);
         bool done;
     private:
-        /* TODO: This should go into log_serializer_t */
-        void write_gcs(gc_write_t *writes, int num_writes);
+        void write_gcs(gc_write_t *writes, size_t num_writes);
         data_block_manager_t *parent;
     };
 
