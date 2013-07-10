@@ -88,7 +88,7 @@ public:
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     /* Non-blocking variants */
-    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual counted_t<standard_block_token_t> block_write(ser_buffer_t *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Returns block tokens in the same order as write_infos.
     virtual std::vector<counted_t<standard_block_token_t> >

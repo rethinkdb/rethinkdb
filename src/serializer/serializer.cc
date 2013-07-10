@@ -46,11 +46,23 @@ struct write_cond_t : public cond_t, public iocallback_t {
     iocallback_t *callback;
 };
 
+ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
+    return static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
+}
+
 void perform_write(const serializer_write_t *write, serializer_t *ser, file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
     switch (write->action_type) {
     case serializer_write_t::UPDATE: {
         conds->push_back(new write_cond_t(write->action.update.io_callback));
-        op->token = ser->block_write(write->action.update.buf, op->block_id, acct, conds->back());
+        std::vector<buf_write_info_t> write_infos;
+        write_infos.push_back(buf_write_info_t(convert_buffer_cache_buf_to_ser_buffer(write->action.update.buf),
+                                               ser->get_block_size().ser_value(),  // RSI: use actual block size
+                                               op->block_id));
+        std::vector<counted_t<standard_block_token_t> > tokens
+            = ser->block_writes(write_infos, acct, conds->back());
+        guarantee(tokens.size() == 1);
+        op->token = tokens[0];
+
         if (write->action.update.launch_callback) {
             write->action.update.launch_callback->on_write_launched(op->token.get());
         }
@@ -112,13 +124,15 @@ void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_
     ptr_ = ser->clone(other.ptr_.get());
 }
 
+// RSI: take a ser_buffer_t * arg.
 counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const void *buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
+    ser_buffer_t *ser_buf = convert_buffer_cache_buf_to_ser_buffer(buf);
     counted_t<standard_block_token_t> result
-        = ser->block_write(buf, block_id, io_account, &cb);
+        = ser->block_write(ser_buf, block_id, io_account, &cb);
     cb.wait();
     return result;
 
