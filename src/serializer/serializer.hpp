@@ -94,7 +94,7 @@ public:
     virtual std::vector<counted_t<standard_block_token_t> >
     block_writes(const std::vector<buf_write_info_t> &write_infos,
                  file_account_t *io_account,
-                 iocallback_t *cb);
+                 iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
     virtual block_size_t get_block_size() const = 0;
