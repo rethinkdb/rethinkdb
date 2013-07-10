@@ -399,11 +399,12 @@ bool do_serve(
         }
         logINF("Storage engine shut down.\n");
 
-        return true;
-
-    } catch (const address_in_use_exc_t &e) {
-        nice_crash("%s. Cannot bind to cluster port. Exiting.\n", e.what());
+    } catch (const address_in_use_exc_t &ex) {
+        logERR("%s. Cannot bind to cluster port. Exiting.\n", ex.what());
+        return false;
     }
+
+    return true;
 }
 
 bool serve(extproc::spawner_info_t *spawner_info,
