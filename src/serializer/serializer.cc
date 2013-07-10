@@ -118,7 +118,7 @@ void serializer_data_ptr_t::init_malloc(serializer_t *ser) {
     ptr_ = ser->malloc();
 }
 
-void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_ptr_t& other) {
+void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_ptr_t &other) {
     rassert(other.ptr_.has());
     rassert(!ptr_.has());
     ptr_ = ser->clone(other.ptr_.get());
