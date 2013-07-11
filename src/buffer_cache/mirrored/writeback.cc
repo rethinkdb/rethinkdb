@@ -379,8 +379,9 @@ void writeback_t::do_concurrent_flush() {
     state.serializer_writes.clear();
 
     // Wait for block sequence ids to be updated.
-    for (size_t i = 0; i < state.buf_writers.size(); ++i)
+    for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         state.buf_writers[i]->launch_cb.wait_until_sequence_ids_updated();
+    }
 
     // Allow new concurrent flushes to start from now on
     writeback_in_progress = false;

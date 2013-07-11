@@ -77,6 +77,8 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     std::vector<counted_t<standard_block_token_t> > tokens;
     if (!write_infos.empty()) {
         tokens = ser->block_writes(write_infos, io_account, &block_write_cond);
+    } else {
+        block_write_cond.pulse();
     }
     guarantee(tokens.size() == write_infos.size());
 
@@ -111,9 +113,21 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     }
 
     guarantee(tokens_index == tokens.size());
+    guarantee(index_write_ops.size() == writes.size());
 
     // Step 2: Wait on all writes to finish
     block_write_cond.wait();
+
+    // Step 2.5: Call these annoying io_callbacks.
+    // RSI: Refactor this without pointless individual io callbacks?
+    for (size_t i = 0; i < writes.size(); ++i) {
+        if (writes[i].action_type == serializer_write_t::UPDATE) {
+            // RSI: Check whether any NULLs are really used.. because that's dumb.
+            if (writes[i].action.update.io_callback != NULL) {
+                writes[i].action.update.io_callback->on_io_complete();
+            }
+        }
+    }
 
     // Step 3: Commit the transaction to the serializer
     ser->index_write(index_write_ops, io_account);
