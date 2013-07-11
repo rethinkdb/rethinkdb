@@ -20,8 +20,6 @@ const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
 // describes blocks are garbage.
 class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
 public:
-    // RSI: Implement the modern behavior of this class.
-
     /* This constructor is for starting a new extent. */
     explicit gc_entry_t(data_block_manager_t *parent);
 
@@ -40,7 +38,8 @@ public:
     // discrete device block boundary.
     std::vector<uint32_t> block_boundaries() const;
 
-    // RSI: Document.
+    // The offset at the beginning of unused space -- the end of the last block
+    // in the extent.
     uint32_t back_relative_offset() const;
 
     // Returns the ostensible size of the block_index'th block.  Note that
@@ -61,7 +60,7 @@ public:
         guarantee(state != state_reconstructing);
         return block_infos.size();
     }
-    // RSI: Does anybody actually use num_garbage_blocks or num_live_blocks?
+
     unsigned int num_garbage_blocks() const {
         unsigned int count = 0;
         for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
@@ -71,10 +70,13 @@ public:
         }
         return count;
     }
+
     unsigned int num_live_blocks() const { return num_blocks() - num_garbage_blocks(); }
 
     bool all_garbage() const { return num_live_blocks() == 0; }
+
     uint64_t garbage_bytes() const;
+
     bool block_is_garbage(unsigned int block_index) const {
         guarantee(state != state_reconstructing);
         guarantee(block_index < block_infos.size());
@@ -1123,7 +1125,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     // RSI: Make sure that file async write calls and read calls use spawn_ordered
     // or whatever order-preserving cross-thread communication is necessary.  SIGH.
 
-    // RSI: Add a unit test on a real file with a huuuge number of writes.
     guarantee(active_extent->state == gc_entry_t::state_active);
 
     bool align_to_device_block_size = true;

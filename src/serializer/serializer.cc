@@ -65,7 +65,6 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
         }
     }
 
-    // RSI: Make sure block_writes lets you do zero writes.
     std::vector<counted_t<standard_block_token_t> > tokens;
     if (!write_infos.empty()) {
         tokens = ser->block_writes(write_infos, io_account, &block_write_cond);

@@ -386,7 +386,6 @@ scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
 }
 
 scoped_malloc_t<ser_buffer_t> log_serializer_t::clone(const ser_buffer_t *_data) {
-    // RSI: We should presumably pass in a ser_block_size to this function.
     scoped_malloc_t<ser_buffer_t> buf(
         malloc_aligned(static_config.block_size().ser_value(),
                        DEVICE_BLOCK_SIZE));
@@ -896,7 +895,6 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
     : serializer_(serializer), ref_count_(0),
       ser_block_size_(initial_ser_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
-    // RSI: Should we pass block size to register_block_token?
     serializer_->register_block_token(this, initial_offset);
 }
 

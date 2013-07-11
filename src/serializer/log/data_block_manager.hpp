@@ -98,8 +98,7 @@ public:
     /* We must make sure that blocks which have tokens pointing to them don't
     get garbage collected. This interface allows log_serializer to tell us about
     tokens */
-    // RSI: Probably these should also take ser_block_size (or merely take block
-    // index).
+    // RSI: Probably these should take block index.
     void mark_live_tokenwise(int64_t offset);
     void mark_garbage_tokenwise(int64_t offset);
 
