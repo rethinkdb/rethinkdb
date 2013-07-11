@@ -283,7 +283,10 @@ public:
         // releasing a snapshot, which could cause an ls_block_token to hit refcount 0 and be
         // destroyed, which requires being in coroutine context to switch back to the serializer
         // thread and unregister it. So, we cannot do that here.
-        // TODO: fix this^ somehow.
+
+        // TODO: The rationale above is no longer true.
+        // ls_block_token_pointee_t does not use on_thread_t to destroy itself.
+        // Can we release the buf? ^
         self_cond_.pulse();
     }
     void wait_for_finish() {
