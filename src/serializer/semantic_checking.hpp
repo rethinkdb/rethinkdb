@@ -34,7 +34,7 @@ private:
     scoped_ptr_t<semantic_checking_file_t> semantic_file;
 
     // Helper functions
-    uint32_t compute_crc(const void *buf);
+    uint32_t compute_crc(const void *buf, block_size_t block_size) const;
     void update_block_info(block_id_t block_id, scs_block_info_t info);
 
     counted_t< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);

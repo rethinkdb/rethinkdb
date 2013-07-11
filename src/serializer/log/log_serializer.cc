@@ -408,7 +408,7 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    data_block_manager->read(token->offset_, token->ser_block_size_,
+    data_block_manager->read(token->offset_, token->ser_block_size(),
                              buf, io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
@@ -467,12 +467,12 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
                     offset = flagged_off64_t::make(token->offset_);
-                    ser_block_size = token->ser_block_size_;
+                    ser_block_size = token->ser_block_size();
 
                     /* mark the life */
                     // RSI: We probably want to mark the token live here by way of
                     // block index.
-                    data_block_manager->mark_live(offset.get_value(), token->ser_block_size_);
+                    data_block_manager->mark_live(offset.get_value(), token->ser_block_size());
                 } else {
                     offset = flagged_off64_t::unused();
                     ser_block_size = 0;
@@ -893,7 +893,7 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
                                                    int64_t initial_offset,
                                                    uint32_t initial_ser_block_size)
     : serializer_(serializer), ref_count_(0),
-      ser_block_size_(initial_ser_block_size), offset_(initial_offset) {
+      block_size_(block_size_t::unsafe_make(initial_ser_block_size)), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }

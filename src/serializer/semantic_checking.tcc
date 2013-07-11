@@ -7,12 +7,12 @@
 
 template<class inner_serializer_t>
 uint32_t semantic_checking_serializer_t<inner_serializer_t>::
-compute_crc(const void *buf) {
+compute_crc(const void *buf, block_size_t block_size) const {
     boost::crc_32_type crc_computer;
     // We need to not crc BLOCK_META_DATA_SIZE because it's
     // internal to the serializer.
     // RSI: We can't use get_block_size().value().
-    crc_computer.process_bytes(buf, get_block_size().value());
+    crc_computer.process_bytes(buf, block_size.value());
     return crc_computer.checksum();
 }
 
@@ -98,7 +98,7 @@ consistent with what was last written there. */
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) {
-    uint32_t actual_crc = compute_crc(buf);
+    uint32_t actual_crc = compute_crc(buf, token->block_size());
     const scs_block_info_t *expected = &token->info;
 
     switch (expected->state) {
@@ -173,7 +173,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
 
 template<class inner_serializer_t>
 counted_t< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::wrap_buf_token(block_id_t block_id, ser_buffer_t *buf, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
-    return wrap_token(block_id, scs_block_info_t(compute_crc(buf->cache_data)), inner_token);
+    return wrap_token(block_id, scs_block_info_t(compute_crc(buf->cache_data, inner_token->block_size())), inner_token);
 }
 
 template<class inner_serializer_t>

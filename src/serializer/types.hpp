@@ -71,7 +71,8 @@ class log_serializer_t;
 class ls_block_token_pointee_t {
 public:
     int64_t offset() const { return offset_; }
-    uint32_t ser_block_size() const { return ser_block_size_; }
+    block_size_t block_size() const { return block_size_; }
+    uint32_t ser_block_size() const { return block_size_.ser_value(); }
 
 private:
     friend class log_serializer_t;
@@ -81,13 +82,13 @@ private:
 
     ls_block_token_pointee_t(log_serializer_t *serializer,
                              int64_t initial_offset,
-                             uint32_t initial_ser_block_size);
+                             uint32_t initial_ser_block_size);  // RSI: Make this constructor take a block_size_t.
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
 
-    // The block's size on disk.
-    uint32_t ser_block_size_;
+    // The block's size.
+    block_size_t block_size_;
 
     // The block's offset on disk.
     int64_t offset_;
@@ -155,6 +156,10 @@ struct scs_block_token_t {
                       const counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> &tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
         rassert(inner_token, "scs_block_token wrapping null token");
+    }
+
+    block_size_t block_size() const {
+        return inner_token->block_size();
     }
 
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
