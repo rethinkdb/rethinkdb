@@ -4,6 +4,8 @@ set -ex
 add-apt-repository -y ppa:rethinkdb/ppa
 aptitude -y update
 aptitude install -y rethinkdb nginx-light apache2-utils python-twisted npm rubygems python-pip
+npm instal -g n
+n latest
 npm install -g rethinkdb
 pip install rethinkdb
 gem install rethinkdb
