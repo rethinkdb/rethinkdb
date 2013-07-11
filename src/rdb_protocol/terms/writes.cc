@@ -32,8 +32,8 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
         caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
-                  l->trunc_print().c_str(), l->get_type_name(),
-                  r->trunc_print().c_str(), r->get_type_name()));
+                  l->trunc_print().c_str(), l->get_type_name().c_str(),
+                  r->trunc_print().c_str(), r->get_type_name().c_str()));
     return l;
 }
 

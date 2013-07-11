@@ -12,8 +12,16 @@
 
 namespace ql {
 
+const char* const datum_t::reql_type_string = "__type__";
+
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
+}
+datum_t::datum_t(type_t _type, std::string _reql_type) 
+    : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
+    r_sanity_check(_type == R_PSEUDO);
+    r_object->insert(std::make_pair(std::string(reql_type_string),
+                                    make_counted<const datum_t>(_reql_type)));
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
@@ -39,6 +47,7 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     } break;
     case R_BOOL: // fallthru
     case R_NUM: // fallthru
+    case R_PSEUDO: // fallthru
     case R_STR: unreachable();
     case R_ARRAY: {
         r_array = new std::vector<counted_t<const datum_t> >();
@@ -64,6 +73,7 @@ datum_t::~datum_t() {
         r_sanity_check(r_array != NULL);
         delete r_array;
     } break;
+    case R_PSEUDO: //fallthru
     case R_OBJECT: {
         r_sanity_check(r_object != NULL);
         delete r_object;
@@ -150,7 +160,16 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
-const char *datum_type_name(datum_t::type_t type) {
+
+std::string datum_t::get_reql_type() const {
+    r_sanity_check(get_type() == R_PSEUDO);
+    counted_t<const datum_t> d = get(reql_type_string, NOTHROW);
+    r_sanity_check(d.has());
+    r_sanity_check(d->get_type() == R_STR);
+    return d->as_str();
+}
+
+std::string raw_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
     case datum_t::R_BOOL:   return "BOOL";
@@ -158,14 +177,19 @@ const char *datum_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
+    case datum_t::R_PSEUDO: 
+        r_sanity_check(false);
     case datum_t::UNINITIALIZED: //fallthru
     default: unreachable();
     }
-    unreachable();
 }
 
-const char *datum_t::get_type_name() const {
-    return datum_type_name(get_type());
+std::string datum_t::get_type_name() const {
+    if (type == R_PSEUDO) {
+        return "PSEUDO(" + get_reql_type() + ")";
+    } else {
+        return raw_type_name(type);
+    }
 }
 
 std::string datum_t::print() const {
@@ -236,38 +260,46 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         counted_t<const datum_t> item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
-        if (item->type == R_NUM) {
-            item->num_to_str_key(str_out);
-        } else if (item->type == R_STR) {
-            item->str_to_str_key(str_out);
-        } else if (item->type == R_BOOL) {
-            item->bool_to_str_key(str_out);
-        } else if (item->type == R_ARRAY) {
-            item->array_to_str_key(str_out);
-        } else {
-            item->type_error(
-                strprintf("Secondary keys must be a number, string, bool, or array "
-                          "(got %s of type %s).", item->print().c_str(),
-                          datum_type_name(item->type)));
+        switch (item->get_type()) {
+        case R_NUM: item->num_to_str_key(str_out); break;
+        case R_STR: item->str_to_str_key(str_out); break;
+        case R_BOOL: item->bool_to_str_key(str_out); break;
+        case R_ARRAY: item->array_to_str_key(str_out); break;
+        case R_NULL: //fallthru
+        case R_OBJECT: //fallthru
+        case R_PSEUDO:
+        item->type_error(
+            strprintf("Secondary keys must be a number, string, bool, or array "
+                      "(got %s of type %s).", item->print().c_str(),
+                      item->get_type_name().c_str()));
+        break;
+        case UNINITIALIZED: //fallthru
+        default:
+            unreachable();
         }
-
         str_out->append(std::string(1, '\0'));
     }
 }
 
 std::string datum_t::print_primary() const {
     std::string s;
-    if (type == R_NUM) {
-        num_to_str_key(&s);
-    } else if (type == R_STR) {
-        str_to_str_key(&s);
-    } else if (type == R_BOOL) {
-        bool_to_str_key(&s);
-    } else {
+    switch (get_type()) {
+    case R_NUM: num_to_str_key(&s); break;
+    case R_STR: str_to_str_key(&s); break;
+    case R_BOOL: bool_to_str_key(&s); break;
+    case R_ARRAY: array_to_str_key(&s); break;
+    case R_NULL: //fallthru
+    case R_OBJECT: //fallthru
+    case R_PSEUDO:
         type_error(strprintf(
             "Primary keys must be either a number, bool, or string (got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            print().c_str(), get_type_name().c_str()));
+        break;
+    case UNINITIALIZED: //fallthru
+    default:
+        unreachable();
     }
+
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
@@ -299,7 +331,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, or array "
             "(got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            print().c_str(), get_type_name().c_str()));
     }
 
     s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
@@ -333,7 +365,7 @@ store_key_t datum_t::truncated_secondary() const {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, or array "
             "(got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            print().c_str(), get_type_name().c_str()));
     }
 
     const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
@@ -355,7 +387,7 @@ void datum_t::check_type(type_t desired, const char *msg) const {
         (msg != NULL)
             ? std::string(msg)
             : strprintf("Expected type %s but found %s.",
-                        datum_type_name(desired), datum_type_name(get_type())));
+                        raw_type_name(desired).c_str(), get_type_name().c_str()));
 }
 void datum_t::type_error(const std::string &msg) const {
     rfail_typed_target(this, "%s", msg.c_str());
@@ -496,10 +528,11 @@ cJSON *datum_t::as_raw_json() const {
         }
         return arr.release();
     } break;
+    case R_PSEUDO: //fallthru
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<std::string, counted_t<const datum_t> >::const_iterator
-                 it = as_object().begin(); it != as_object().end(); ++it) {
+                 it = r_object->begin(); it != r_object->end(); ++it) {
             obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
         }
         return obj.release();
@@ -522,9 +555,10 @@ datum_t::as_datum_stream(env_t *env,
     case R_BOOL: //fallthru
     case R_NUM:  //fallthru
     case R_STR:  //fallthru
-    case R_OBJECT:
+    case R_OBJECT: //fallthru
+    case R_PSEUDO:
         type_error(strprintf("Cannot convert %s to SEQUENCE",
-                             datum_type_name(get_type())));
+                             get_type_name().c_str()));
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(env,
                                                   this->counted_from_this(),
@@ -632,6 +666,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         return 0;
     } unreachable();
     case UNINITIALIZED: //fallthru
+    case R_PSEUDO: //fallthru
     default: unreachable();
     }
 }
@@ -735,6 +770,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
             (*r_array)[i]->write_to_protobuf(d->add_r_array());
         }
     } break;
+    case R_PSEUDO: //fallthru
     case R_OBJECT: {
         d->set_type(Datum::R_OBJECT);
         // We use rbegin and rend so that things print the way we expect.

@@ -222,7 +222,7 @@ void rdb_replace_and_return_superblock(
                              old_val->print().c_str(), new_val->print().c_str())));
         } else {
             rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                               new_val->get_type_name(), new_val->print().c_str());
+                               new_val->get_type_name().c_str(), new_val->print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key

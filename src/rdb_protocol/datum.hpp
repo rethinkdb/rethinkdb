@@ -44,7 +44,7 @@ public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
     enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
-                  R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
+                  R_NUM = 4, R_OBJECT = 5, R_PSEUDO = 6, R_STR = 7 };
     explicit datum_t(type_t _type);
 
     // These allow you to construct a datum from the type of value it
@@ -55,6 +55,7 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
+    datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
@@ -73,7 +74,8 @@ public:
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
-    const char *get_type_name() const;
+    std::string get_reql_type() const;
+    std::string get_type_name() const;
     std::string print() const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
@@ -168,6 +170,8 @@ private:
         std::vector<counted_t<const datum_t> > *r_array;
         std::map<std::string, counted_t<const datum_t> > *r_object;
     };
+
+    static const char* const reql_type_string;
 
     DISABLE_COPYING(datum_t);
 };
