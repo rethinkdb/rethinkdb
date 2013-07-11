@@ -45,7 +45,8 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
+    op.token = serializer_block_write(ser, buf.get(), ser->get_block_size(),
+                                      CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 }
