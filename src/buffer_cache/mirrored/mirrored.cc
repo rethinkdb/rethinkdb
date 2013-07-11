@@ -780,15 +780,21 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-// RSI: Return block size to callers?
 void *mc_buf_lock_t::get_data_write() {
+    return get_data_write(inner_buf->cache->serializer->get_block_size().value());
+}
+
+void *mc_buf_lock_t::get_data_write(uint32_t cache_block_size) {
     ASSERT_NO_CORO_WAITING;
+    const block_size_t bs = block_size_t::make_from_cache(cache_block_size);
+    guarantee(bs.value() <= inner_buf->cache->serializer->get_block_size().value());
 
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
+    rassert(inner_buf->block_size == block_size);
     rassert(data != NULL,
             "Probably tried to write to a buffer acquired with !should_load.");
 
@@ -797,20 +803,11 @@ void *mc_buf_lock_t::get_data_write() {
     inner_buf->writeback_buf().set_dirty();
     inner_buf->data_token.reset();
 
+    inner_buf->block_size = bs;
+    block_size = bs;
+
     return data;
 }
-
-void mc_buf_lock_t::set_cache_block_size(uint32_t cache_block_size) {
-    block_size_t bs = block_size_t::make_from_cache(cache_block_size);
-    guarantee(bs.value() <= inner_buf->cache->serializer->get_block_size().value());
-
-    // We're calling this for its side effects -- the block must become dirty as if the
-    // data was touched.
-    UNUSED void *unused = get_data_write();
-
-    block_size = bs;
-}
-
 
 void mc_buf_lock_t::mark_deleted() {
     assert_thread();

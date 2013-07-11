@@ -52,6 +52,7 @@ public:
     block_id_t get_block_id() const;
     const void *get_data_read() const;
     void *get_data_write();
+    void *get_data_write(uint32_t cache_block_size);
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 
@@ -67,7 +68,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes(internal_buf_lock->get_data_read(), cache->get_block_size().value());
+        crc_computer.process_bytes(internal_buf_lock->get_data_read(), internal_buf_lock->cache_block_size());
         return crc_computer.checksum();
     }
 public:

@@ -481,7 +481,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             const block_size_t buf_block_size = buf->block_size;
             const void *const buf_data = buf->get_data_read();
 
-            guarantee(buf_block_size == cache->serializer->get_block_size());  // RSI: get rid of this assertion
+            guarantee(buf_block_size.value() <= cache->serializer->get_block_size().value());
 
 
             buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));

@@ -587,7 +587,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         memset(buf.get() + (last_written_offset - front_offset), 0,
                write_size - (last_written_offset - front_offset));
 
-        dbfile->write_async(front_offset, back_offset - front_offset,
+        dbfile->write_async(front_offset, write_size,
                             buf.get(), io_account, intermediate_cb, file_t::NO_DATASYNCS);
 
         intermediate_cb->bufs[i] = std::move(buf);

@@ -353,7 +353,7 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
             if (is_read_mode(mode)) {
                 leaf_buf = const_cast<void *>(buf->get_data_read());
             } else {
-                leaf_buf = buf->get_data_write();
+                leaf_buf = buf->get_data_write(suboffset + subsize);
             }
 
             char *data = blob::leaf_node_data(leaf_buf);

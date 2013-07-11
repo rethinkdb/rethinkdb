@@ -164,11 +164,18 @@ public:
 
     // Get the data buffer for reading
     const void *get_data_read() const;
-    // Gets data for writing, also means the block will have to be flushed.
+
+    // Gets data for writing, also means the block will have to be flushed.  Sets the
+    // block size to the full maximum block size for the serializer.
     void *get_data_write();
 
+    // Gets data for writing, also means the block will have to be flushed.  Sets the
+    // block size to the specified cache_block_size THIS TIME ONLY!  If you call
+    // get_data_write() with no argument later, it'll get reset back to the full block
+    // size.
+    void *get_data_write(uint32_t cache_block_size);
+
     uint32_t cache_block_size() const { return block_size.value(); }
-    void set_cache_block_size(uint32_t cache_block_size);
 
     block_id_t get_block_id() const;
 

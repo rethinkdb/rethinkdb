@@ -47,6 +47,13 @@ void *scc_buf_lock_t<inner_cache_t>::get_data_write() {
 }
 
 template<class inner_cache_t>
+void *scc_buf_lock_t<inner_cache_t>::get_data_write(uint32_t cache_block_size) {
+    rassert(internal_buf_lock.has());
+    has_been_changed = true;
+    return internal_buf_lock->get_data_write(cache_block_size);
+}
+
+template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
     rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();
