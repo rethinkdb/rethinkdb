@@ -117,6 +117,7 @@ struct serializer_write_t {
     union {
         struct {
             const void *buf;
+            uint32_t ser_block_size;
             repli_timestamp_t recency;
             iocallback_t *io_callback;
             serializer_write_launched_callback_t *launch_callback;
@@ -127,7 +128,8 @@ struct serializer_write_t {
     } action;
 
     static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-    static serializer_write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
+    static serializer_write_t make_update(block_id_t block_id, block_size_t block_size,
+                                          repli_timestamp_t recency, const void *buf,
                                           iocallback_t *io_callback,
                                           serializer_write_launched_callback_t *launch_callback);
     static serializer_write_t make_delete(block_id_t block_id);

@@ -15,9 +15,10 @@ serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_tim
     return w;
 }
 
-serializer_write_t serializer_write_t::make_update(
-        block_id_t block_id, repli_timestamp_t recency, const void *buf,
-        iocallback_t *io_callback, serializer_write_launched_callback_t *launch_callback) {
+serializer_write_t serializer_write_t::make_update(block_id_t block_id, block_size_t block_size,
+                                                   repli_timestamp_t recency, const void *buf,
+                                                   iocallback_t *io_callback,
+                                                   serializer_write_launched_callback_t *launch_callback) {
     guarantee(io_callback != NULL);
     guarantee(launch_callback != NULL);
 
@@ -25,6 +26,7 @@ serializer_write_t serializer_write_t::make_update(
     w.block_id = block_id;
     w.action_type = UPDATE;
     w.action.update.buf = buf;
+    w.action.update.ser_block_size = block_size.ser_value();
     w.action.update.recency = recency;
     w.action.update.io_callback = io_callback;
     w.action.update.launch_callback = launch_callback;
@@ -60,7 +62,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     for (size_t i = 0; i < writes.size(); ++i) {
         if (writes[i].action_type == serializer_write_t::UPDATE) {
             write_infos.push_back(buf_write_info_t(convert_buffer_cache_buf_to_ser_buffer(writes[i].action.update.buf),
-                                                   ser->get_block_size(),  // RSI: Use actual block size.
+                                                   block_size_t::unsafe_make(writes[i].action.update.ser_block_size),
                                                    writes[i].block_id));
         }
     }

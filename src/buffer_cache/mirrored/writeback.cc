@@ -486,6 +486,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             // Fill the serializer structure
             state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
+                                                cache->serializer->get_block_size(),  // RSI: Use real block size.
                                                 inner_buf->subtree_recency,
                                                 buf_data,
                                                 buf_writer,
