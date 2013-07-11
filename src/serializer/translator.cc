@@ -135,7 +135,8 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
 
         multiplexer_config_block_t *c
             = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
-        rassert(c->magic == multiplexer_config_block_t::expected_magic);
+        guarantee(c->magic == multiplexer_config_block_t::expected_magic,
+                  "c->magic is %s", debug_strprint(c->magic).c_str());
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
     }

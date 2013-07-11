@@ -73,7 +73,7 @@ struct block_magic_t {
     }
 };
 
-void debugf_print(printf_buffer_t *buf, block_magic_t magic);
+void debug_print(printf_buffer_t *buf, block_magic_t magic);
 
 // HEY: put this somewhere else.
 class get_subtree_recencies_callback_t {
