@@ -13,13 +13,29 @@ namespace extproc { class spawner_info_t; }
 
 #define MAX_PORT 65536
 
+class invalid_port_exc_t : public std::exception {
+public:
+    invalid_port_exc_t(const std::string& name, int port, int port_offset) {
+        if (port_offset == 0) {
+            info = strprintf("%s has a value (%d) above the maximum allowed port (%d).",
+                             name.c_str(), port, MAX_PORT);
+        } else {
+            info = strprintf("%s has a value (%d) above the maximum allowed port (%d)."
+                             " Note port_offset is set to %d which may cause this error.",
+                             name.c_str(), port, MAX_PORT, port_offset);
+        }
+    }
+    ~invalid_port_exc_t() throw () { }
+    const char *what() const throw () {
+        return info.c_str();
+    }
+private:
+    std::string info;
+};
+
 inline void sanitize_port(int port, const char *name, int port_offset) {
     if (port >= MAX_PORT) {
-        if (port_offset == 0) {
-            nice_crash("%s has a value (%d) above the maximum allowed port (%d).", name, port, MAX_PORT);
-        } else {
-            nice_crash("%s has a value (%d) above the maximum allowed port (%d). Note port_offset is set to %d which may cause this error.", name, port, MAX_PORT, port_offset);
-        }
+        throw invalid_port_exc_t(name, port, port_offset);
     }
 }
 

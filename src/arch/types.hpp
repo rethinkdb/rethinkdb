@@ -21,6 +21,11 @@ public:
             info = strprintf("The address at %s:%d is reserved or already in use", hostname, port);
         }
     }
+
+    address_in_use_exc_t(const std::string &msg) throw () {
+        info.assign(msg);
+    }
+
     ~address_in_use_exc_t() throw () { }
 
     const char *what() const throw () {

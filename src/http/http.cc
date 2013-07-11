@@ -186,7 +186,7 @@ http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        nice_crash("%s. Could not bind to http port. Exiting.\n", ex.what());
+        throw address_in_use_exc_t(strprintf("Could not bind to http port: %s", ex.what()));
     }
 }
 
