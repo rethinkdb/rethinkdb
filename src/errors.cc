@@ -19,16 +19,6 @@
 
 static __thread bool crashed = false; // to prevent crashing within crashes
 
-NORETURN void nice_crash(const char *msg, ...) {
-    va_list args;
-    va_start(args, msg);
-    vlogERR(msg, args);
-    if (coro_t::self() != NULL) {
-        nap(100);
-    }
-    exit(EXIT_FAILURE);
-}
-
 void report_user_error(const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
     if (crashed) {

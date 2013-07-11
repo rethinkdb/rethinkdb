@@ -103,8 +103,6 @@
         BREAKPOINT;                                                 \
     } while (0)
 
-void nice_crash(const char *msg, ...);
-
 void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
 void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
@@ -120,12 +118,6 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
         if (!(cond)) {                  \
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
-    } while (0)
-
-#define nice_guarantee(cond, msg, ...) do { \
-        if (!(cond)) {                      \
-            nice_crash(msg, ##__VA_ARGS__); \
-        }                                   \
     } while (0)
 
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
