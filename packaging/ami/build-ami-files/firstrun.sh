@@ -1,3 +1,4 @@
+set -x
 
 exec >> firstrun.log 2>&1
 
@@ -11,7 +12,7 @@ chmod a+rx /var/run/rethinkdb
 # nginx config
 htpasswd -b -c /etc/nginx/htpasswd rethinkdb "$password"
 chmod a+r /etc/nginx/htpasswd
-chown ubuntu@ubuntu /etc/nginx/htpasswd
+chown ubuntu:ubuntu /etc/nginx/htpasswd
 cp nginx.conf /etc/nginx/sites-available/default
 
 # rethinkdb config
@@ -21,6 +22,11 @@ cp nginx.conf /etc/nginx/sites-available/default
   done
 ) > /etc/rethinkdb/instances.d/default.conf
 
+# create the data directory
+parent_directory=/var/lib/rethinkdb/default
+mkdir -p $parent_directory
+chown rethinkdb:rethinkdb $parent_directory
+sudo -u rethinkdb rethinkdb create -d $parent_directory/data
 
 # reload nginx
 nginx -s reload
@@ -33,3 +39,6 @@ service rethinkdb restart
 # set api key
 sleep 3
 rethinkdb admin --join localhost:29015 set auth "$password"
+
+# create a test database
+test -z "$joins" && rethinkdb admin --join localhost:29015 create database test
