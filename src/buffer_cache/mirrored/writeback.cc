@@ -226,7 +226,7 @@ class writeback_t::buf_writer_t :
     public thread_message_t,
     public home_thread_mixin_t {
     friend class writeback_t;
-    cond_t self_cond_;
+    bool io_completed_;
 
 public:
     struct launch_callback_t :
@@ -262,7 +262,8 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf) {
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf)
+        : io_completed_(false) {
         launch_cb.parent = wb;
         launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
@@ -287,15 +288,12 @@ public:
         // TODO: The rationale above is no longer true.
         // ls_block_token_pointee_t does not use on_thread_t to destroy itself.
         // Can we release the buf? ^
-        self_cond_.pulse();
-    }
-    void wait_for_finish() {
-        self_cond_.wait();
+        io_completed_ = true;
     }
     ~buf_writer_t() {
         assert_thread();
-        rassert(self_cond_.is_pulsed());
-        rassert(launch_cb.finished_.is_pulsed());
+        guarantee(io_completed_);
+        guarantee(launch_cb.finished_.is_pulsed());
     }
 };
 
@@ -400,7 +398,6 @@ void writeback_t::do_concurrent_flush() {
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         // RSI: Make buf_writer_t not be an iocallback_t, since its callback is
         // always called before do_writes returns.
-        guarantee(state.buf_writers[i]->self_cond_.is_pulsed());
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
@@ -483,9 +480,10 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
 
             const void *buf_data = buf->get_data_read();
 
-            // Fill the serializer structure
             buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));
             state->buf_writers.push_back(buf_writer);
+
+            // Fill the serializer structure
             state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
                                                 inner_buf->subtree_recency,
