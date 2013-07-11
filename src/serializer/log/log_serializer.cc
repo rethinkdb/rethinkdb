@@ -601,8 +601,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int
         data_block_manager->mark_live_tokenwise(offset);
     }
 
-    offset_tokens.insert(location,
-                         std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
+    offset_tokens.insert(location, std::make_pair(offset, token));
 }
 
 bool log_serializer_t::tokens_exist_for_offset(int64_t off) {
