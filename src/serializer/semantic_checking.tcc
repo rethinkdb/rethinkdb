@@ -99,9 +99,9 @@ template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) {
     uint32_t actual_crc = compute_crc(buf);
-    scs_block_info_t &expected = token->info;
+    const scs_block_info_t *expected = &token->info;
 
-    switch (expected.state) {
+    switch (expected->state) {
         case scs_block_info_t::state_unknown: {
             /* We don't know what this block was supposed to contain, so we can't do any
             verification */
@@ -112,7 +112,7 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 #ifdef SERIALIZER_DEBUG_PRINT
             printf("Read %u: %u\n", token->block_id, actual_crc);
 #endif
-            guarantee(expected.crc == actual_crc, "Serializer returned bad value for block ID %u", token->block_id);
+            guarantee(expected->crc == actual_crc, "Serializer returned bad value for block ID %u", token->block_id);
             break;
         }
 
