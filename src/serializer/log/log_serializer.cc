@@ -709,12 +709,9 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
         return counted_t<ls_block_token_pointee_t>();
     }
 
-    // RSI: How should a block token refer to a block?  Purely by offset?  Or should
-    // the token also have block size information?
-    flagged_off64_t offset = lba_index->get_block_offset(block_id);
-    if (offset.has_value()) {
-        // RSI: Don't use get_block_size() for the block size.
-        return generate_block_token(offset.get_value(), get_block_size().ser_value());
+    index_block_info_t info = lba_index->get_block_info(block_id);
+    if (info.offset.has_value()) {
+        return generate_block_token(info.offset.get_value(), info.ser_block_size);
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }
