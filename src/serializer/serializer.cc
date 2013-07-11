@@ -36,16 +36,6 @@ serializer_write_t serializer_write_t::make_delete(block_id_t block_id) {
     return w;
 }
 
-struct write_cond_t : public cond_t, public iocallback_t {
-    explicit write_cond_t(iocallback_t *cb) : callback(cb) { }
-    void on_io_complete() {
-        if (callback)
-            callback->on_io_complete();
-        pulse();
-    }
-    iocallback_t *callback;
-};
-
 ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
     return static_cast<ser_buffer_t *>(const_cast<void *>(buf)) - 1;
 }
