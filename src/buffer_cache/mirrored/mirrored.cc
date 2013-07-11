@@ -789,7 +789,8 @@ void *mc_buf_lock_t::get_data_write() {
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
+    rassert(data != NULL,
+            "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
 
@@ -798,6 +799,18 @@ void *mc_buf_lock_t::get_data_write() {
 
     return data;
 }
+
+void mc_buf_lock_t::set_cache_block_size(uint32_t cache_block_size) {
+    block_size_t bs = block_size_t::make_from_cache(cache_block_size);
+    guarantee(bs.value() <= inner_buf->cache->serializer->get_block_size().value());
+
+    // We're calling this for its side effects -- the block must become dirty as if the
+    // data was touched.
+    UNUSED void *unused = get_data_write();
+
+    block_size = bs;
+}
+
 
 void mc_buf_lock_t::mark_deleted() {
     assert_thread();

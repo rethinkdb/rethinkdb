@@ -167,6 +167,9 @@ public:
     // Gets data for writing, also means the block will have to be flushed.
     void *get_data_write();
 
+    uint32_t cache_block_size() const { return block_size.value(); }
+    void set_cache_block_size(uint32_t cache_block_size);
+
     block_id_t get_block_id() const;
 
     bool is_deleted() const;

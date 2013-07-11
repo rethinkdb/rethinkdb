@@ -57,6 +57,10 @@ public:
         return ser_bs_;
     }
 
+    static block_size_t make_from_cache(uint32_t cache_block_size) {
+        return block_size_t(cache_block_size + sizeof(ls_buf_data_t));
+    }
+
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
     // the wrong value as a block_size_t.
