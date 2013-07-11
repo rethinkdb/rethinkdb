@@ -27,6 +27,8 @@ public:
     // function as their argument.
     static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
                                                const protob_t<const Backtrace> &root);
+    static counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+                                               const protob_t<const Backtrace> &root);
     static counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
                                                     const protob_t<const Backtrace> &bt_src);
 
