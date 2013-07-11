@@ -262,9 +262,9 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, mc_buf_lock_t *buf) {
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf) {
         launch_cb.parent = wb;
-        launch_cb.buf.init(buf);
+        launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
@@ -473,21 +473,23 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            mc_buf_lock_t *buf;
+            scoped_ptr_t<mc_buf_lock_t> buf;
             {
                 // Acquire always succeeds, but sometimes it blocks.
                 // But it won't block because we hold the flush lock.
                 ASSERT_NO_CORO_WAITING;
-                buf = new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
+                buf.init(new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok));
             }
 
+            const void *buf_data = buf->get_data_read();
+
             // Fill the serializer structure
-            buf_writer_t *buf_writer = new buf_writer_t(this, buf);
+            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));
             state->buf_writers.push_back(buf_writer);
             state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
                                                 inner_buf->subtree_recency,
-                                                buf->get_data_read(),
+                                                buf_data,
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
         } else {
