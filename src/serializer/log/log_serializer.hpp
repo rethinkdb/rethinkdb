@@ -99,7 +99,7 @@ class log_serializer_t :
 #else
     public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
-    private data_block_manager_t::shutdown_callback_t,
+    private data_block_manager::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
 {
     friend struct ls_start_existing_fsm_t;

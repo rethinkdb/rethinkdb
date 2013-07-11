@@ -30,6 +30,11 @@ namespace data_block_manager {
         // RSI: Is this useful anymore?
         uint64_t blocks_in_active_extent;
     } __attribute__((__packed__));
+
+    struct shutdown_callback_t {
+        virtual void on_datablock_manager_shutdown() = 0;
+        virtual ~shutdown_callback_t() {}
+    };
 }  // namespace data_block_manager
 
 class data_block_manager_t {
@@ -59,6 +64,7 @@ private:
 
     // RSI: Probably get rid of these typedefs.
     typedef data_block_manager::metablock_mixin_t metablock_mixin_t;
+    typedef data_block_manager::shutdown_callback_t shutdown_callback_t;
 
 public:
     data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em,
@@ -106,10 +112,6 @@ public:
     void prepare_metablock(metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
-    struct shutdown_callback_t {
-        virtual void on_datablock_manager_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
 
