@@ -80,7 +80,7 @@ public:
         {
             on_thread_t th(cache->serializer->home_thread());
             tmp.init_malloc(cache->serializer);
-            cache->serializer->block_read(token, tmp.get(), io_account);
+            cache->serializer->block_read(token, tmp.get_ser_buffer(), io_account);
         }
         rassert(!data.has(), "data changed while holding mutex");
         data.swap(tmp);
@@ -167,7 +167,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
         guarantee(data_token.has());
-        cache->serializer->block_read(data_token, data.get(), io_account);
+        cache->serializer->block_read(data_token, data.get_ser_buffer(), io_account);
     }
 
     if (should_lock) {

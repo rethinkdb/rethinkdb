@@ -400,7 +400,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
 }
 
 void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
-                                  void *buf, file_account_t *io_account) {
+                                  ser_buffer_t *buf, file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
     guarantee(state == state_ready);
@@ -409,7 +409,7 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     stats->pm_serializer_block_reads.begin(&pm_time);
 
     data_block_manager->read(token->offset_, token->ser_block_size_,
-                             static_cast<ls_buf_data_t *>(buf) - 1, io_account);
+                             buf, io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
 }

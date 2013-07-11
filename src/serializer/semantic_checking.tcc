@@ -124,14 +124,14 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account) {
+block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, ser_buffer_t *buf, file_account_t *io_account) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
 #endif
     inner_serializer.block_read(token->inner_token, buf, io_account);
-    read_check_state(token, buf);
+    read_check_state(token, buf->cache_data);
 }
 
 template<class inner_serializer_t>

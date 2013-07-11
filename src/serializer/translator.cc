@@ -72,9 +72,9 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* Load config block */
     scoped_malloc_t<ser_buffer_t> buf = ser->malloc();
+    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
-    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -130,11 +130,10 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
 
         /* Load config block */
         scoped_malloc_t<ser_buffer_t> buf = underlying[0]->malloc();
+        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), buf.get(), DEFAULT_DISK_ACCOUNT);
 
         multiplexer_config_block_t *c
             = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
-        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
-
         rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
@@ -230,7 +229,7 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, ser_buffer_t *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 

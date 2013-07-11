@@ -249,6 +249,11 @@ public:
         return ptr_.has();
     }
 
+    ser_buffer_t *get_ser_buffer() const {
+        rassert(ptr_.has());
+        return ptr_.get();
+    }
+
     void *get() const {
         rassert(ptr_.has());
         char *ret = ptr_->cache_data;
