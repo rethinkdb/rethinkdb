@@ -46,16 +46,27 @@ public:
     // things could call value() instead of ser_value() or vice versa.
 
     // The "block size" used by things above the serializer.
-    uint32_t value() const { return ser_bs_ - sizeof(ls_buf_data_t); }
+    uint32_t value() const {
+        rassert(ser_bs_ != 0);
+        return ser_bs_ - sizeof(ls_buf_data_t);
+    }
 
     // The "block size" used by things in the serializer.
-    uint32_t ser_value() const { return ser_bs_; }
+    uint32_t ser_value() const {
+        rassert(ser_bs_ != 0);
+        return ser_bs_;
+    }
 
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
     // the wrong value as a block_size_t.
     static block_size_t unsafe_make(uint32_t ser_bs) {
         return block_size_t(ser_bs);
+    }
+
+    // Returns an undefined value that you may not use.
+    static block_size_t undefined() {
+        return valgrind_undefined<block_size_t>(unsafe_make(0));
     }
 private:
     explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }

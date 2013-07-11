@@ -89,7 +89,8 @@ class mc_inner_buf_t : public evictable_t,
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
     // to release_snapshot_data to keep track of when data buffer is in use
-    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *recency_out);
+    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *recency_out,
+                                block_size_t *block_size_out);
     void release_snapshot_data(void *data);
 
 private:
@@ -104,6 +105,7 @@ private:
     repli_timestamp_t subtree_recency;
 
     // The data for the block.
+    block_size_t block_size;
     serializer_data_ptr_t data;
     // The snapshot version id of the block.
     version_id_t version_id;
@@ -204,6 +206,7 @@ private:
     // Usually the same as inner_buf->data. If a COW happens or this
     // mc_buf_lock_t is part of a snapshotted transaction, it reference a
     // different buffer however.
+    block_size_t block_size;
     void *data;
 
     // Similarly, usually the same as inner_buf->subtree_recency.  If

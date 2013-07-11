@@ -28,7 +28,9 @@ public:
                    size_t _snapshot_refcount, size_t _active_refcount,
                    bool leave_clone)
         : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
-          parent(buf), snapshotted_version(buf->version_id),
+          parent(buf),
+          snapshotted_version(buf->version_id),
+          block_size(buf->block_size),
           token(buf->data_token),
           subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
@@ -41,10 +43,11 @@ public:
             }
         } else {
             data.swap(buf->data);
+            buf->block_size = block_size_t::undefined();
         }
 
-        rassert(data.has() || token.has(),
-                "creating buf snapshot without data or block token");
+        guarantee(data.has() || token.has(),
+                  "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 
@@ -63,17 +66,19 @@ private:
     }
 
 public:
-    void *acquire_data(file_account_t *io_account) {
+    void *acquire_data(file_account_t *io_account, block_size_t *block_size_out) {
         cache->assert_thread();
         ++active_refcount;
 
         mutex_t::acq_t m(&data_mutex);
         // The buffer might have already been loaded.
         if (data.has()) {
+            *block_size_out = block_size;
             return data.get();
         }
         rassert(token.has(), "buffer snapshot lacks both token and data");
 
+        guarantee(token->block_size() == block_size);
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
         serializer_data_ptr_t tmp;
@@ -85,6 +90,7 @@ public:
         rassert(!data.has(), "data changed while holding mutex");
         data.swap(tmp);
 
+        *block_size_out = block_size;
         return data.get();
     }
 
@@ -131,6 +137,8 @@ private:
 
     mutable mutex_t data_mutex;
 
+    // The size of the block.
+    block_size_t block_size;
     // The buffer of the snapshot we hold.
     serializer_data_ptr_t data;
 
@@ -167,6 +175,8 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
         guarantee(data_token.has());
+        // RSI: Check that this works with other callers of load_inner_buf.
+        block_size = data_token->block_size();
         cache->serializer->block_read(data_token, data.get_ser_buffer(), io_account);
     }
 
@@ -181,6 +191,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
+      block_size(block_size_t::undefined()),  // Gets initialized by load_inner_buf
       data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       lock(),
@@ -217,6 +228,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id,
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
+      block_size(token->block_size()),
       data(std::move(_buf)),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       data_token(token),
@@ -254,7 +266,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         // as that would cause a conflict in the page map.
         // Instead, we keep the snapshots around and reset the remaining state of
         // the buffer to make it behave just like a freshly constructed one.
-        
+
         rassert(inner_buf->do_delete);
         rassert(!inner_buf->data.has());
 
@@ -269,15 +281,17 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
 // allocate() method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without
 // requiring the creation of a new mc_inner_buf_t object.
 // See the comment in allocate() for why this is necessary.
+// RSI: Who else uses initialize_to_new besides the constructor?
 void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
     rassert(!data.has());
-    
+
     subtree_recency = _recency_timestamp;
+    block_size = cache->serializer->get_block_size();
     data.init_malloc(cache->serializer);
 #if !defined(NDEBUG) || defined(VALGRIND)
-        // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
-        // between problems with uninitialized memory and problems with uninitialized blocks
-        memset(data.get(), 0xCD, cache->serializer->get_block_size().value());
+    // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+    // between problems with uninitialized memory and problems with uninitialized blocks
+    memset(data.get(), 0xCD, block_size.value());
 #endif
     version_id = _snapshot_version;
     do_delete = false;
@@ -294,6 +308,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
+      block_size(block_size_t::undefined()),
       lock(),
       refcount(0) {
 
@@ -400,12 +415,12 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *subtree_recency_out) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *subtree_recency_out, block_size_t *block_size_out) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
             *subtree_recency_out = snap->subtree_recency;
-            return snap->acquire_data(io_account);
+            return snap->acquire_data(io_account, block_size_out);
         }
     }
     unreachable("No acceptable snapshotted version found for version %" PRIu64, version_to_access);
@@ -464,6 +479,7 @@ mc_buf_lock_t::mc_buf_lock_t() :
     snapshotted(false),
     non_locking_access(false),
     inner_buf(NULL),
+    block_size(block_size_t::undefined()),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),
     parent_transaction(NULL)
@@ -480,6 +496,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction,
     non_locking_access(snapshotted),
     mode(_mode),
     inner_buf(transaction->cache->find_buf(block_id)),
+    block_size(block_size_t::undefined()),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),
     parent_transaction(transaction)
@@ -551,7 +568,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // acquire the snapshotted block; no need to lock
-        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &block_size);
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
@@ -571,7 +588,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
             inner_buf->lock.unlock();
 
             // acquire the snapshotted block; no need to lock
-            data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
+            data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &block_size);
             guarantee(data != NULL);
 
         } else {
@@ -592,6 +609,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) THROWS_NOTHING :
     non_locking_access(snapshotted),
     mode(transaction->access),
     inner_buf(NULL),
+    block_size(block_size_t::undefined()),
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid),
     parent_transaction(transaction)
@@ -641,6 +659,7 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
                 ++inner_buf->snap_refcount;
             }
             // TODO (sam): Obviously something's f'd up about this.
+            block_size = inner_buf->block_size;
             data = inner_buf->data.get();
             rassert(data != NULL);
             break;
@@ -648,6 +667,7 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
         case rwi_read_outdated_ok: {
             ++inner_buf->cow_refcount;
             // TODO (sam): Obviously something's f'd up about this.
+            block_size = inner_buf->block_size;
             data = inner_buf->data.get();
             rassert(data != NULL);
             // unlock the buffer now that we have established a COW reference to it so that
@@ -665,7 +685,8 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
 
             inner_buf->version_id = version_to_access;
             // TODO (sam): Obviously something's f'd up about this.
-            data = inner_buf->data.has() ? inner_buf->data.get() : 0;
+            block_size = inner_buf->block_size;
+            data = inner_buf->data.has() ? inner_buf->data.get() : NULL;
             rassert(data != NULL);
 
             break;
@@ -693,6 +714,7 @@ void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
     std::swap(start_time, swapee.start_time);
     std::swap(mode, swapee.mode);
     std::swap(inner_buf, swapee.inner_buf);
+    std::swap(block_size, swapee.block_size);
     std::swap(data, swapee.data);
     std::swap(subtree_recency, swapee.subtree_recency);
 #ifndef NDEBUG
@@ -709,8 +731,9 @@ bool mc_buf_lock_t::is_deleted() const {
     return data == NULL;
 }
 
-const void * mc_buf_lock_t::get_data_read() const {
-    rassert(data);
+// RSI: Return block_size to callers?
+const void *mc_buf_lock_t::get_data_read() const {
+    rassert(data != NULL);
     return data;
 }
 
@@ -757,6 +780,7 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
+// RSI: Return block size to callers?
 void *mc_buf_lock_t::get_data_write() {
     ASSERT_NO_CORO_WAITING;
 
@@ -794,6 +818,7 @@ void mc_buf_lock_t::mark_deleted() {
     }
 
     rassert(!inner_buf->data.has());
+    block_size = block_size_t::undefined();
     data = NULL;
 
     inner_buf->do_delete = true;

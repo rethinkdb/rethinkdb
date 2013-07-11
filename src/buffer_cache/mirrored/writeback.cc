@@ -478,7 +478,11 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
                 buf.init(new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok));
             }
 
-            const void *buf_data = buf->get_data_read();
+            const block_size_t buf_block_size = buf->block_size;
+            const void *const buf_data = buf->get_data_read();
+
+            guarantee(buf_block_size == cache->serializer->get_block_size());  // RSI: get rid of this assertion
+
 
             buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));
             state->buf_writers.push_back(buf_writer);
@@ -486,7 +490,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             // Fill the serializer structure
             state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
-                                                cache->serializer->get_block_size(),  // RSI: Use real block size.
+                                                buf_block_size,
                                                 inner_buf->subtree_recency,
                                                 buf_data,
                                                 buf_writer,
