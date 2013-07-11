@@ -17,8 +17,10 @@ serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_tim
 
 serializer_write_t serializer_write_t::make_update(
         block_id_t block_id, repli_timestamp_t recency, const void *buf,
-        iocallback_t *io_callback, serializer_write_launched_callback_t *launch_callback)
-{
+        iocallback_t *io_callback, serializer_write_launched_callback_t *launch_callback) {
+    guarantee(io_callback != NULL);
+    guarantee(launch_callback != NULL);
+
     serializer_write_t w;
     w.block_id = block_id;
     w.action_type = UPDATE;
@@ -109,13 +111,9 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     block_write_cond.wait();
 
     // Step 2.5: Call these annoying io_callbacks.
-    // RSI: Refactor this without pointless individual io callbacks?
     for (size_t i = 0; i < writes.size(); ++i) {
         if (writes[i].action_type == serializer_write_t::UPDATE) {
-            // RSI: Check whether any NULLs are really used.. because that's dumb.
-            if (writes[i].action.update.io_callback != NULL) {
-                writes[i].action.update.io_callback->on_io_complete();
-            }
+            writes[i].action.update.io_callback->on_io_complete();
         }
     }
 
