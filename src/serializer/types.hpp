@@ -229,11 +229,9 @@ struct serializer_traits_t<serializer_t> {
 // TODO: time_t's size is system-dependent.
 typedef time_t creation_timestamp_t;
 
-// RSI: Get rid of this datatype.
 class serializer_data_ptr_t {
 public:
     serializer_data_ptr_t() { }
-    // RSI: Get rid of this constructor.
     explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
     explicit serializer_data_ptr_t(scoped_malloc_t<ser_buffer_t> &&ptr)
         : ptr_(std::move(ptr)) { }
