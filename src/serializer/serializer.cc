@@ -136,8 +136,7 @@ void serializer_data_ptr_t::init_clone(serializer_t *ser, const serializer_data_
     ptr_ = ser->clone(other.ptr_.get());
 }
 
-// RSI: take a ser_buffer_t * arg.
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const void *buf,
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
                                                          block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }

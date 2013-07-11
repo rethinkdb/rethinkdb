@@ -147,7 +147,7 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
     return ser->index_write(ops, io_account);
 }
 
-counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, const void *buf,
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
                                                          block_id_t block_id, file_account_t *io_account);
 
 #endif /* SERIALIZER_SERIALIZER_HPP_ */
