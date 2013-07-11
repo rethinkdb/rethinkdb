@@ -596,13 +596,13 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int
     assert_thread();
     rassert(token->offset_ == offset);  // Assert *token was constructed properly.
 
-    const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
-    if (first_token_for_offset) {
-        // Mark offset live in GC
+    auto location = offset_tokens.find(offset);
+    if (location == offset_tokens.end()) {
         data_block_manager->mark_live_tokenwise(offset);
     }
 
-    offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
+    offset_tokens.insert(location,
+                         std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
 }
 
 bool log_serializer_t::tokens_exist_for_offset(int64_t off) {
