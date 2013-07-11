@@ -47,11 +47,11 @@ private:
         ser_buffer_t *buf;
         int64_t old_offset;
         int64_t new_offset;
-        uint32_t ser_block_size;
+        block_size_t block_size;
         gc_write_t(block_id_t i, ser_buffer_t *b, int64_t _old_offset,
-                   uint32_t _ser_block_size)
+                   block_size_t _block_size)
             : block_id(i), buf(b), old_offset(_old_offset), new_offset(0),
-              ser_block_size(_ser_block_size) { }
+              block_size(_block_size) { }
     };
 
     struct gc_writer_t {
@@ -92,7 +92,7 @@ public:
 
     /* r{start,end}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(int64_t offset, uint32_t ser_block_size);
+    void mark_live(int64_t offset, block_size_t block_size);
     void end_reconstruct();
 
     /* We must make sure that blocks which have tokens pointing to them don't

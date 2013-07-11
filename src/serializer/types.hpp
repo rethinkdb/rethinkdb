@@ -62,6 +62,14 @@ private:
     uint32_t ser_bs_;
 };
 
+inline bool operator==(block_size_t x, block_size_t y) {
+    return x.ser_value() == y.ser_value();
+}
+
+inline bool operator!=(block_size_t x, block_size_t y) {
+    return !(x == y);
+}
+
 class repli_timestamp_t;
 
 template <class serializer_type> struct serializer_traits_t;
@@ -82,7 +90,7 @@ private:
 
     ls_block_token_pointee_t(log_serializer_t *serializer,
                              int64_t initial_offset,
-                             uint32_t initial_ser_block_size);  // RSI: Make this constructor take a block_size_t.
+                             block_size_t initial_ser_block_size);
 
     log_serializer_t *serializer_;
     intptr_t ref_count_;
@@ -290,11 +298,11 @@ public:
 
 // RSI: Make this constructor use block_size_t instead of uint32_t ser_block_size.
 struct buf_write_info_t {
-    buf_write_info_t(ser_buffer_t *_buf, uint32_t _ser_block_size,
+    buf_write_info_t(ser_buffer_t *_buf, block_size_t _block_size,
                      block_id_t _block_id)
-        : buf(_buf), ser_block_size(_ser_block_size), block_id(_block_id) { }
+        : buf(_buf), block_size(_block_size), block_id(_block_id) { }
     ser_buffer_t *buf;
-    uint32_t ser_block_size;
+    block_size_t block_size;
     block_id_t block_id;
 };
 

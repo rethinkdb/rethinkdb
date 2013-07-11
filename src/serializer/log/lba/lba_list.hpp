@@ -37,6 +37,7 @@ public:
     // These return individual fields of get_block_info.
     flagged_off64_t get_block_offset(block_id_t block);
     uint32_t get_ser_block_size(block_id_t block);
+    block_size_t get_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than

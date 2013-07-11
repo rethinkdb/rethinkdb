@@ -105,6 +105,10 @@ uint32_t lba_list_t::get_ser_block_size(block_id_t block) {
     return get_block_info(block).ser_block_size;
 }
 
+block_size_t lba_list_t::get_block_size(block_id_t block) {
+    return block_size_t::unsafe_make(get_block_info(block).ser_block_size);
+}
+
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     return get_block_info(block).recency;
 }

@@ -44,14 +44,14 @@ public:
 
     // Returns the ostensible size of the block_index'th block.  Note that
     // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
-    uint32_t block_size(unsigned int block_index) const;
+    block_size_t block_size(unsigned int block_index) const;
 
     // Returns block_boundaries()[block_index].
     uint32_t relative_offset(unsigned int block_index) const;
 
     unsigned int block_index(int64_t offset) const;
 
-    bool new_offset(uint32_t ser_block_size,
+    bool new_offset(block_size_t block_size,
                     bool align_to_device_block_size,
                     uint32_t *relative_offset_out,
                     unsigned int *block_index_out);
@@ -97,7 +97,7 @@ public:
 
     uint64_t token_bytes() const;
 
-    void mark_live_indexwise_with_offset(int64_t block_offset, uint32_t ser_block_size);
+    void mark_live_indexwise_with_offset(int64_t block_offset, block_size_t block_size);
 
     void mark_garbage_indexwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
@@ -148,7 +148,7 @@ public:
 private:
     struct block_info_t {
         uint32_t relative_offset;
-        uint32_t ser_block_size;
+        block_size_t block_size;
         bool token_referenced;
         bool index_referenced;
     };
@@ -209,7 +209,7 @@ void data_block_manager_t::start_reconstruct() {
 // gc_entry_t in the entries table.  (This is used when we start up, when
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
-void data_block_manager_t::mark_live(int64_t offset, uint32_t ser_block_size) {
+void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size) {
     int extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
@@ -448,7 +448,7 @@ public:
 
                 counted_t<ls_block_token_pointee_t> ls_token
                     = parent->serializer->generate_block_token(current_offset,
-                                                               info.ser_block_size);
+                                                               block_size_t::unsafe_make(info.ser_block_size));
 
                 counted_t<standard_block_token_t> token
                     = to_standard_block_token(block_id, ls_token);
@@ -567,19 +567,19 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
         for (auto it = token_groups[i].begin(); it != token_groups[i].end(); ++it) {
             const int64_t it_offset = (*it)->offset();
-            const uint32_t it_ser_block_size = (*it)->ser_block_size();
+            const block_size_t it_block_size = (*it)->block_size();
             guarantee(it_offset >= last_written_offset);
 
             // The behavior of gimme_some_new_offsets is supposed to retain order, so
             // we expect writes[write_number] to have the currently-relevant write.
-            guarantee(writes[write_number].ser_block_size == it_ser_block_size);
+            guarantee(writes[write_number].block_size == it_block_size);
 
             memset(buf.get() + (last_written_offset - front_offset), 0,
                    it_offset - last_written_offset);
             memcpy(buf.get() + (it_offset - front_offset), writes[write_number].buf,
-                   it_ser_block_size);
+                   it_block_size.ser_value());
 
-            last_written_offset = it_offset + it_ser_block_size;
+            last_written_offset = it_offset + it_block_size.ser_value();
 
             ++write_number;
         }
@@ -681,7 +681,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
+        gc_stats.old_garbage_block_bytes += entry->block_size(block_index).ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -711,7 +711,7 @@ void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += entry->block_size(block_index);
+        gc_stats.old_garbage_block_bytes += entry->block_size(block_index).ser_value();
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -758,10 +758,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             the_writes.reserve(num_writes);
             for (size_t i = 0; i < num_writes; ++i) {
                 old_block_tokens.push_back(parent->serializer->generate_block_token(writes[i].old_offset,
-                                                                                    writes[i].ser_block_size));
+                                                                                    writes[i].block_size));
 
                 the_writes.push_back(buf_write_info_t(writes[i].buf,
-                                                      writes[i].ser_block_size,
+                                                      writes[i].block_size,
                                                       writes[i].buf->ser_header.block_id));
             }
 
@@ -918,7 +918,7 @@ void data_block_manager_t::run_gc() {
                                             DEVICE_BLOCK_SIZE);
                         const uint32_t end
                             = ceil_aligned(gc_state.current_entry->relative_offset(i)
-                                           + gc_state.current_entry->block_size(i),
+                                           + gc_state.current_entry->block_size(i).ser_value(),
                                            DEVICE_BLOCK_SIZE);
 
                         if (beg <= current_interval_end) {
@@ -1135,7 +1135,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         uint32_t relative_offset;
         unsigned int block_index;
-        if (!active_extent->new_offset(it->ser_block_size, align_to_device_block_size,
+        if (!active_extent->new_offset(it->block_size, align_to_device_block_size,
                                        &relative_offset, &block_index)) {
             // Move the active_extent gc_entry_t to the young extent queue, and make a
             // new gc_entry_t.
@@ -1145,7 +1145,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
             active_extent = new gc_entry_t(this);
             ++stats->pm_serializer_data_extents_allocated;
-            const bool succeeded = active_extent->new_offset(it->ser_block_size,
+            const bool succeeded = active_extent->new_offset(it->block_size,
                                                              true,
                                                              &relative_offset,
                                                              &block_index);
@@ -1164,7 +1164,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
         active_extent->was_written = true;
         active_extent->mark_live_tokenwise(block_index);
 
-        tokens.push_back(serializer->generate_block_token(offset, it->ser_block_size));
+        tokens.push_back(serializer->generate_block_token(offset, it->block_size));
     }
 
     if (!tokens.empty()) {
@@ -1247,7 +1247,7 @@ gc_entry_t::~gc_entry_t() {
 uint32_t gc_entry_t::back_relative_offset() const {
     return block_infos.empty()
         ? 0
-        : block_infos.back().relative_offset + block_infos.back().ser_block_size;
+        : block_infos.back().relative_offset + block_infos.back().block_size.ser_value();
 }
 
 std::vector<uint32_t> gc_entry_t::block_boundaries() const {
@@ -1262,10 +1262,10 @@ std::vector<uint32_t> gc_entry_t::block_boundaries() const {
     return ret;
 }
 
-uint32_t gc_entry_t::block_size(unsigned int block_index) const {
+block_size_t gc_entry_t::block_size(unsigned int block_index) const {
     guarantee(state != state_reconstructing);
     guarantee(block_index < block_infos.size());
-    return block_infos[block_index].ser_block_size;
+    return block_infos[block_index].block_size;
 }
 
 uint32_t gc_entry_t::relative_offset(unsigned int block_index) const {
@@ -1290,26 +1290,26 @@ unsigned int gc_entry_t::block_index(const int64_t offset) const {
           offset);
 }
 
-bool gc_entry_t::new_offset(uint32_t ser_block_size,
+bool gc_entry_t::new_offset(block_size_t block_size,
                             bool align_to_device_block_size,
                             uint32_t *relative_offset_out,
                             unsigned int *block_index_out) {
     // Returns true if there's enough room at the end of the extent for the new
     // block.
     guarantee(state == state_active);
-    guarantee(ser_block_size <= parent->static_config->extent_size());
+    guarantee(block_size.ser_value() <= parent->static_config->extent_size());
 
     uint32_t offset = align_to_device_block_size
         ? ceil_aligned(back_relative_offset(), DEVICE_BLOCK_SIZE)
         : back_relative_offset();
     guarantee(offset <= parent->static_config->extent_size());
 
-    if (offset > parent->static_config->extent_size() - ser_block_size) {
+    if (offset > parent->static_config->extent_size() - block_size.ser_value()) {
         return false;
     } else {
         *relative_offset_out = offset;
         *block_index_out = block_infos.size();
-        block_infos.push_back(block_info_t{offset, ser_block_size, false, false});
+        block_infos.push_back(block_info_t{offset, block_size, false, false});
         return true;
     }
 }
@@ -1328,7 +1328,7 @@ uint64_t gc_entry_t::garbage_bytes() const {
     uint64_t b = parent->static_config->extent_size();
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->token_referenced || it->index_referenced) {
-            b -= it->ser_block_size;
+            b -= it->block_size.ser_value();
         }
     }
     return b;
@@ -1338,7 +1338,7 @@ uint64_t gc_entry_t::token_bytes() const {
     uint64_t b = 0;
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->token_referenced) {
-            b += it->ser_block_size;
+            b += it->block_size.ser_value();
         }
     }
     return b;
@@ -1348,14 +1348,14 @@ uint64_t gc_entry_t::index_bytes() const {
     uint64_t b = 0;
     for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
         if (it->index_referenced) {
-            b += it->ser_block_size;
+            b += it->block_size.ser_value();
         }
     }
     return b;
 }
 
 void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
-                                                 uint32_t ser_block_size) {
+                                                 block_size_t block_size) {
     guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
     uint32_t relative_offset = offset - extent_ref.offset();
@@ -1364,15 +1364,15 @@ void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
     auto it = block_infos.begin();
     while (it != block_infos.end()) {
         if (it->relative_offset > relative_offset) {
-            guarantee(it->relative_offset >= relative_offset + ser_block_size);
-            block_infos.insert(it, block_info_t{relative_offset, ser_block_size, false, true});
+            guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
+            block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
             return;
         } else if (it->relative_offset == relative_offset) {
-            guarantee(it->ser_block_size == ser_block_size);
+            guarantee(it->block_size == block_size);
             it->index_referenced = true;
             return;
         } else {
-            last_back_offset = it->relative_offset + it->ser_block_size;
+            last_back_offset = it->relative_offset + it->block_size.ser_value();
             guarantee(last_back_offset <= relative_offset);
             ++it;
         }
@@ -1380,7 +1380,7 @@ void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
 
     // We reached block_infos.end(), still haven't inserted our block!
     // We already asserted that last_back_offset <= relative_offset.
-    block_infos.insert(it, block_info_t{relative_offset, ser_block_size, false, true});
+    block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
 }
 
 std::string gc_entry_t::format_block_infos(const char *separator) const {
@@ -1389,7 +1389,7 @@ std::string gc_entry_t::format_block_infos(const char *separator) const {
     for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
         ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
                          it == block_infos.begin() ? "" : separator,
-                         offset + it->relative_offset, it->ser_block_size,
+                         offset + it->relative_offset, it->block_size.ser_value(),
                          it->token_referenced ? 'T' : ' ',
                          it->index_referenced ? 'I' : ' ');
     }

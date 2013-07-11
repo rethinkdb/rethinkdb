@@ -271,7 +271,7 @@ struct ls_start_existing_fsm_t :
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_ser_block_size(id));
+                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_block_size(id));
                 }
             }
             ser->data_block_manager->end_reconstruct();
@@ -472,7 +472,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                     /* mark the life */
                     // RSI: We probably want to mark the token live here by way of
                     // block index.
-                    data_block_manager->mark_live(offset.get_value(), token->ser_block_size());
+                    data_block_manager->mark_live(offset.get_value(), token->block_size());
                 } else {
                     offset = flagged_off64_t::unused();
                     ser_block_size = 0;
@@ -573,9 +573,9 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 }
 
 counted_t<ls_block_token_pointee_t>
-log_serializer_t::generate_block_token(int64_t offset, uint32_t ser_block_size) {
+log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) {
     assert_thread();
-    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset, ser_block_size));
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset, block_size));
     return ret;
 }
 
@@ -709,7 +709,7 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
 
     index_block_info_t info = lba_index->get_block_info(block_id);
     if (info.offset.has_value()) {
-        return generate_block_token(info.offset.get_value(), info.ser_block_size);
+        return generate_block_token(info.offset.get_value(), block_size_t::unsafe_make(info.ser_block_size));
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }
@@ -891,9 +891,9 @@ bool log_serializer_t::should_perform_read_ahead() {
 
 ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
                                                    int64_t initial_offset,
-                                                   uint32_t initial_ser_block_size)
+                                                   block_size_t initial_block_size)
     : serializer_(serializer), ref_count_(0),
-      block_size_(block_size_t::unsafe_make(initial_ser_block_size)), offset_(initial_offset) {
+      block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }
