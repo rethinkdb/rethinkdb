@@ -225,6 +225,7 @@ class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
     public home_thread_mixin_t {
+    friend class writeback_t;
     cond_t self_cond_;
 
 public:
@@ -394,7 +395,9 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
-        state.buf_writers[i]->wait_for_finish();
+        // RSI: Make buf_writer_t not be an iocallback_t, since its callback is
+        // always called before do_writes returns.
+        guarantee(state.buf_writers[i]->self_cond_.is_pulsed());
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
