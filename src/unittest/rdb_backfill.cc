@@ -144,14 +144,14 @@ void write_to_broadcaster(broadcaster_t<rdb_protocol_t> *broadcaster, const std:
 }
 
 void run_backfill_test(io_backender_t *io_backender,
-                               simple_mailbox_cluster_t *cluster,
-                               branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
-                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                               test_store_t<rdb_protocol_t> *,
-                               scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
-                               rdb_protocol_t::context_t *ctx,
-                               order_source_t *order_source) {
+                       simple_mailbox_cluster_t *cluster,
+                       branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
+                       scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
+                       test_store_t<rdb_protocol_t> *,
+                       scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
+                       rdb_protocol_t::context_t *ctx,
+                       order_source_t *order_source) {
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -217,14 +217,14 @@ TEST(RDBProtocolBackfill, Backfill) {
 }
 
 void run_sindex_backfill_test(io_backender_t *io_backender,
-                               simple_mailbox_cluster_t *cluster,
-                               branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
-                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
-                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
-                               test_store_t<rdb_protocol_t> *,
-                               scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
-                               rdb_protocol_t::context_t *ctx,
-                               order_source_t *order_source) {
+                              simple_mailbox_cluster_t *cluster,
+                              branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
+                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
+                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
+                              test_store_t<rdb_protocol_t> *,
+                              scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
+                              rdb_protocol_t::context_t *ctx,
+                              order_source_t *order_source) {
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
