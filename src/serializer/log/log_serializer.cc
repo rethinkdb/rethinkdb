@@ -11,6 +11,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
 filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender)
     : filepath_(filepath), backender_(backender), opened_temporary_(false) { }

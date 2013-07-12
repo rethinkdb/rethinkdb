@@ -15,14 +15,27 @@
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
-#include "serializer/log/data_block_manager.hpp"
-
 #include "serializer/log/stats.hpp"
 
 class cond_t;
+class data_block_manager_t;
 struct block_magic_t;
 class io_backender_t;
 class log_serializer_t;
+
+namespace data_block_manager {
+struct shutdown_callback_t {
+    virtual void on_datablock_manager_shutdown() = 0;
+    virtual ~shutdown_callback_t() {}
+};
+
+struct metablock_mixin_t {
+    int64_t active_extent;
+    // RSI: Is this useful anymore?
+    uint64_t blocks_in_active_extent;
+} __attribute__((__packed__));
+
+}  // namespace data_block_manager
 
 /**
  * This is the log-structured serializer, the holiest of holies of

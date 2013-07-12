@@ -1067,7 +1067,7 @@ void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     }
 }
 
-bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
+bool data_block_manager_t::shutdown(data_block_manager::shutdown_callback_t *cb) {
     rassert(cb != NULL);
     guarantee(state == state_ready);
     state = state_shutting_down;
