@@ -121,9 +121,8 @@ private:
        and cleans up */
     void check_and_handle_empty_extent(unsigned int extent_id);
 
-    // Tells if we should keep gc'ing, being told the next extent that
-    // would be gc'ed.
-    bool should_we_keep_gcing(const gc_entry_t&) const;
+    // Tells if we should keep gc'ing.
+    bool should_we_keep_gcing() const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();

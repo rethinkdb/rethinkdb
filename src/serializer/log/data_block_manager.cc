@@ -860,7 +860,7 @@ void data_block_manager_t::run_gc() {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready: {
-                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                if (gc_pq.empty() || !should_we_keep_gcing()) {
                     return;
                 }
 
@@ -1389,7 +1389,7 @@ std::string gc_entry_t::format_block_infos(const char *separator) const {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::should_we_keep_gcing(UNUSED const gc_entry_t& entry) const {
+bool data_block_manager_t::should_we_keep_gcing() const {
     return garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 
