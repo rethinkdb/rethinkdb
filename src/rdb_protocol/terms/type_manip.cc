@@ -252,7 +252,13 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
+        counted_t<val_t> v = arg(0);
+        if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
+            counted_t<const datum_t> d = v->as_datum();
+            return new_val(make_counted<const datum_t>(d->get_type_name()));
+        } else {
+            return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
+        }
     }
     virtual const char *name() const { return "typeof"; }
 };
