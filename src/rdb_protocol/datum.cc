@@ -9,6 +9,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
+#include "rdb_protocol/time.hpp"
 
 namespace ql {
 
@@ -279,6 +280,14 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         }
         str_out->append(std::string(1, '\0'));
     }
+}
+
+int datum_t::pseudo_cmp(const datum_t &rhs) const {
+    if (get_reql_type() == pseudo::time_string) {
+        return pseudo::time_cmp(*this, rhs);
+    }
+
+    rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
 std::string datum_t::print_primary() const {
@@ -665,8 +674,13 @@ int datum_t::cmp(const datum_t &rhs) const {
         if (it2 != rhs_obj.end()) return -1;
         return 0;
     } unreachable();
+    case R_PSEUDO: {
+        if (get_reql_type() != rhs.get_reql_type()) {
+            return derived_cmp(get_reql_type(), rhs.get_reql_type());
+        }
+        return pseudo_cmp(rhs);
+    } unreachable();
     case UNINITIALIZED: //fallthru
-    case R_PSEUDO: //fallthru
     default: unreachable();
     }
 }

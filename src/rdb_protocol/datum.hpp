@@ -25,6 +25,12 @@ class datum_stream_t;
 class env_t;
 class val_t;
 
+namespace pseudo {
+class datum_cmp_t;
+} //namespace pseudo
+
+
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `el` or
 // `add` below).
@@ -161,6 +167,8 @@ private:
     void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
 
+    int pseudo_cmp(const datum_t &rhs) const;
+
     type_t type;
     union {
         bool r_bool;
@@ -217,6 +225,14 @@ public:
 private:
     enum { SERIALIZABLE, COMPILED } state;
 };
+
+namespace pseudo {
+class datum_cmp_t {
+public:
+    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual ~datum_cmp_t() { }
+};
+} //namespace pseudo
 
 } // namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_
