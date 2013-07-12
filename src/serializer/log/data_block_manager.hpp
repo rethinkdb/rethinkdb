@@ -36,11 +36,10 @@ private:
     struct gc_write_t {
         ser_buffer_t *buf;
         int64_t old_offset;
-        int64_t new_offset;
         block_size_t block_size;
         gc_write_t(ser_buffer_t *b, int64_t _old_offset,
                    block_size_t _block_size)
-            : buf(b), old_offset(_old_offset), new_offset(0),
+            : buf(b), old_offset(_old_offset),
               block_size(_block_size) { }
     };
 

@@ -771,11 +771,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
                                       &block_write_cond);
 
             guarantee(new_block_tokens.size() == num_writes);
-
-            for (size_t i = 0; i < num_writes; ++i) {
-                // RSI: Is setting writes[i].new_offset the right way to pass this information along?
-                writes[i].new_offset = new_block_tokens[i]->offset();
-            }
         }
 
         // Step 2: Wait on all writes to finish
@@ -821,7 +816,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             // that point to the current entry.  This should empty out
             // all the t_array bits.
             for (size_t i = 0; i < num_writes; ++i) {
-                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
+                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, new_block_tokens[i]->offset());
             }
 
             // Step 4A-2: Now that the block tokens have been remapped
