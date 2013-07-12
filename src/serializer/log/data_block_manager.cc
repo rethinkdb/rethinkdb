@@ -455,7 +455,6 @@ public:
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
                         std::move(data),
-                        block_size_t::unsafe_make(info.ser_block_size),
                         token,
                         info.recency);
             }

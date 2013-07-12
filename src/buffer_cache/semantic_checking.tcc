@@ -195,10 +195,9 @@ template<class inner_cache_t>
 void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(
         block_id_t block_id,
         scoped_malloc_t<ser_buffer_t> *buf,
-        block_size_t block_size,
         const counted_t<standard_block_token_t>& token,
         repli_timestamp_t recency_timestamp) {
-    inner_cache.offer_read_ahead_buf(block_id, buf, block_size,
+    inner_cache.offer_read_ahead_buf(block_id, buf,
                                      token, recency_timestamp);
 }
 

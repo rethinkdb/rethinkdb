@@ -107,8 +107,8 @@ public:
 
     const order_token_t order_token;
 
-    void set_token_pair(write_token_pair_t *token_pair) { 
-        inner_transaction.set_token_pair(token_pair); 
+    void set_token_pair(write_token_pair_t *token_pair) {
+        inner_transaction.set_token_pair(token_pair);
     }
 
 private:
@@ -141,7 +141,6 @@ public:
 
     void offer_read_ahead_buf(block_id_t block_id,
                               scoped_malloc_t<ser_buffer_t> *buf,
-                              block_size_t block_size,
                               const counted_t<standard_block_token_t>& token,
                               repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);

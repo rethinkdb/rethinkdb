@@ -57,7 +57,6 @@ private:
         EXPECT_FALSE(cache->contains_block(block_A));
         cache->offer_read_ahead_buf(block_A,
                                     &fake_buf,
-                                    serializer->get_block_size(),
                                     counted_t<standard_block_token_t>(),
                                     repli_timestamp_t::distant_past);
         EXPECT_FALSE(cache->contains_block(block_A));

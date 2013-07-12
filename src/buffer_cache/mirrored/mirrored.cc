@@ -175,7 +175,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         // TODO: Merge this initialization with the read itself eventually
         data_token = cache->serializer->index_read(block_id);
         guarantee(data_token.has());
-        // RSI: Check that this works with other callers of load_inner_buf.
         block_size = data_token->block_size();
         cache->serializer->block_read(data_token, data.get_ser_buffer(), io_account);
     }
@@ -281,7 +280,6 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
 // allocate() method. The latter uses it to reset an existing mc_inner_buf_t to its initial state, without
 // requiring the creation of a new mc_inner_buf_t object.
 // See the comment in allocate() for why this is necessary.
-// RSI: Who else uses initialize_to_new besides the constructor?
 void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
     rassert(!data.has());
 
@@ -731,7 +729,6 @@ bool mc_buf_lock_t::is_deleted() const {
     return data == NULL;
 }
 
-// RSI: Return block_size to callers?
 const void *mc_buf_lock_t::get_data_read() const {
     rassert(data != NULL);
     return data;
@@ -1346,12 +1343,8 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
 
 void mc_cache_t::offer_read_ahead_buf(block_id_t block_id,
                                       scoped_malloc_t<ser_buffer_t> *buf,
-                                      block_size_t block_size,
                                       const counted_t<standard_block_token_t>& token,
                                       repli_timestamp_t recency_timestamp) {
-    // RSI: We should actually use different block sizes at some point.
-    guarantee(block_size.value() == get_block_size().value());
-
     // Note that the offered block might get deleted between the point where the
     // serializer offers it and the message gets delivered!
     do_on_thread(home_thread(),

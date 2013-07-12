@@ -306,7 +306,6 @@ public:
     // ownership, by leaving the pointer owned by `*buf`.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       scoped_malloc_t<ser_buffer_t> *buf,
-                                      block_size_t block_size,
                                       const counted_t<standard_block_token_t> &token,
                                       repli_timestamp_t recency_timestamp) = 0;
 };
