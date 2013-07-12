@@ -84,10 +84,7 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-void write_to_broadcaster(size_t prefix_length, broadcaster_t<memcached_protocol_t> *broadcaster, const std::string& key, std::string value, order_token_t otok, signal_t *) {
-
-    value += std::string(prefix_length, 'a');
-
+void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     sarc_mutation_t set;
     set.key = store_key_t(key);
     set.data = data_buffer_t::create(value.size());
@@ -114,8 +111,7 @@ void write_to_broadcaster(size_t prefix_length, broadcaster_t<memcached_protocol
     write_callback.wait_lazily_unordered();
 }
 
-void run_partial_backfill_test(size_t value_prefix_length,
-                               io_backender_t *io_backender,
+void run_partial_backfill_test(io_backender_t *io_backender,
                                simple_mailbox_cluster_t *cluster,
                                branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > > broadcaster_metadata_view,
@@ -133,7 +129,7 @@ void run_partial_backfill_test(size_t value_prefix_length,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        boost::bind(&write_to_broadcaster, value_prefix_length, broadcaster->get(), _1, _2, _3, _4),
+        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
         &mc_key_gen,
         order_source,
@@ -180,7 +176,7 @@ void run_partial_backfill_test(size_t value_prefix_length,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(memcached)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         get_result_t get_result = boost::get<get_result_t>(response.result);
         EXPECT_TRUE(get_result.value.get() != NULL);
-        EXPECT_EQ(value_prefix_length + it->second.size(), static_cast<size_t>(get_result.value->size()));
+        EXPECT_EQ(it->second.size(), static_cast<size_t>(get_result.value->size()));
         if (static_cast<size_t>(get_result.value->size()) == it->second.size()) {
             EXPECT_EQ(it->second, std::string(get_result.value->buf(), get_result.value->size()));
         }
@@ -188,13 +184,7 @@ void run_partial_backfill_test(size_t value_prefix_length,
 }
 
 TEST(MemcachedBackfill, Backfill) {
-    run_in_thread_pool_with_broadcaster(boost::bind(&run_partial_backfill_test, 0,
-                                                    _1, _2, _3, _4, _5, _6, _7, _8));
-}
-
-TEST(MemcachedBackfill, BackfillLargeValues) {
-    run_in_thread_pool_with_broadcaster(boost::bind(&run_partial_backfill_test, 300,
-                                                    _1, _2, _3, _4, _5, _6, _7, _8));
+     run_in_thread_pool_with_broadcaster(&run_partial_backfill_test);
 }
 
 }   /* namespace unittest */
