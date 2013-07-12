@@ -82,9 +82,9 @@ commands:
   - tag: without
     section: jsonobject
     description: The opposite of pluck; takes an object or a sequence of objects,
-      and removes all attributes except for the ones specified.
+      and returns them with the specified paths removed.
 
-    body: "$PARENT.without(attr1[, attr2...])"
+    body: "$PARENT.without([selector1, selector2...])"
 
     io:
       - - sequence
@@ -109,6 +109,17 @@ commands:
           py: r.table('enemies').without('weapons').run(conn)
           rb: r.table('enemies').without('weapons').run(conn)
           js: r.table('enemies').without('weapons').run(conn, callback)
+      - description: Nested objects can be used to remove the damage subfield from
+          the weapons and abilities fields.
+        code:
+          py: "r.table('marvel').without({'weapons' : {'damage' : True}, 'abilities' : {'damage' : True}}).run(conn)"
+          rb: "r.table('marvel').without({:weapons => {:damage => true}, :abilities => {:damage => true}}).run(conn)"
+          js: "r.table('marvel').without({'weapons' : {'damage' : true}, 'abilities' : {'damage' : true}}).run(conn, callback)"
+      - description: The nested syntax can quickly become overly verbose so there's a shorthand for it.
+        code:
+          py: "r.table('marvel').without({'weapons' : 'damage', 'abilities' : 'damage'}).run(conn)"
+          rb: "r.table('marvel').without({:weapons => :damage, :abilities => :damage}).run(conn)"
+          js: "r.table('marvel').without({'weapons':'damage', 'abilities':'damage'}).run(conn, callback)"
 
   - tag: merge
     section: jsonobject
