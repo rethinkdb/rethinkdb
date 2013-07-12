@@ -428,8 +428,6 @@ public:
                 memcpy(buf_out, current_buf, ser_block_size_in);
                 handled_required_block = true;
             } else {
-                // RSI: Remove block id from block metadata, just put a
-                // reverse-lookup table in the gc entries, initialized from the LBA.
                 const block_id_t block_id
                     = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
