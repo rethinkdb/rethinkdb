@@ -351,9 +351,9 @@ commands:
       rb: has_fields
 
     body:
-      js: "$PARENT.hasFields(field1[, field2...])"
-      py: "$PARENT.has_fields(field1[, field2...])"
-      rb: "$PARENT.has_fields(field1[, field2...])"
+      js: "$PARENT.hasFields([selector1, selector2...])"
+      py: "$PARENT.has_fields([selector1, selector2...])"
+      rb: "$PARENT.has_fields([selector1, selector2...])"
 
     io:
       - - sequence
@@ -368,11 +368,24 @@ commands:
     examples:
       - description: Which heroes are married?
         code:
-          js: |
-            r.table('marvel').filter(function(hero) {return hero.hasFields('spouse')})
-             .run(conn, callback)
-          py: "r.table('marvel').filter(lambda hero: hero.has_fields('spouse')).run(conn)"
-          rb: r.table('marvel').filter{|hero| hero.has_fields(:spouse)}.run(conn)
+          js: r.table('marvel').hasFields('spouse')
+          py: r.table('marvel').has_fields('spouse').run(conn)
+          rb: r.table('marvel').has_fields(:spouse).run(conn)
+      - description: Test if a single object has a field.
+        code:
+          js: r.table('marvel').get("IronMan").hasFields('spouse')
+          py: r.table('marvel').get("IronMan").has_fields('spouse').run(conn)
+          rb: r.table('marvel').get("IronMan").has_fields(:spouse).run(conn)
+      - description: You can also test if nested fields exist to get only spouses with powers of their own.
+        code:
+          js: "r.table('marvel').hasFields({'spouse' : {'powers' : true}})"
+          py: "r.table('marvel').has_fields({'spouse' : {'powers' : True}}).run(conn)"
+          rb: "r.table('marvel').has_fields({:spouse => {:powers => true}}).run(conn)"
+      - description: The nested syntax can quickly get verbose so there's a shorthand.
+        code:
+          js: "r.table('marvel').hasFields({'spouse' : 'powers'})"
+          py: "r.table('marvel').has_fields({'spouse' : 'powers'}).run(conn)"
+          rb: "r.table('marvel').has_fields({:spouse => :powers}).run(conn)"
 
   - tag: insert_at
     section: jsonobject
