@@ -989,16 +989,7 @@ void data_block_manager_t::run_gc() {
                     const int64_t block_offset = gc_state.current_entry->extent_ref.offset()
                         + gc_state.current_entry->relative_offset(i);
 
-                    block_id_t id;
-                    // The block is either referenced by an index or by a token (or both)
-                    if (gc_state.current_entry->block_referenced_by_index(i)) {
-                        id = block->ser_header.block_id;
-                        guarantee(id != NULL_BLOCK_ID);
-                    } else {
-                        id = NULL_BLOCK_ID;
-                    }
-
-                    gc_writes.push_back(gc_write_t(id, block, block_offset,
+                    gc_writes.push_back(gc_write_t(block, block_offset,
                                                    gc_state.current_entry->block_size(i)));
                 }
 

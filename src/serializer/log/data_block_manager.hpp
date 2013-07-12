@@ -34,15 +34,13 @@ class data_block_manager_t {
     friend class dbm_read_ahead_t;
 private:
     struct gc_write_t {
-        // RSI: Nobody uses gc_write_t::block_id anymore?
-        block_id_t block_id;
         ser_buffer_t *buf;
         int64_t old_offset;
         int64_t new_offset;
         block_size_t block_size;
-        gc_write_t(block_id_t i, ser_buffer_t *b, int64_t _old_offset,
+        gc_write_t(ser_buffer_t *b, int64_t _old_offset,
                    block_size_t _block_size)
-            : block_id(i), buf(b), old_offset(_old_offset), new_offset(0),
+            : buf(b), old_offset(_old_offset), new_offset(0),
               block_size(_block_size) { }
     };
 
