@@ -191,7 +191,7 @@ std::string raw_type_name(datum_t::type_t type) {
 
 std::string datum_t::get_type_name() const {
     if (is_pseudo_type()) {
-        return "PSEUDO(" + get_reql_type() + ")";
+        return "PSEUDO_TYPE(" + get_reql_type() + ")";
     } else {
         return raw_type_name(type);
     }
