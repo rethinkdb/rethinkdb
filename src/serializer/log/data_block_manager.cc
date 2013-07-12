@@ -1107,9 +1107,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
     }
 
 
-    // RSI: Make sure that file async write calls and read calls use spawn_ordered
-    // or whatever order-preserving cross-thread communication is necessary.  SIGH.
-
     guarantee(active_extent->state == gc_entry_t::state_active);
 
     bool align_to_device_block_size = true;
