@@ -33,7 +33,6 @@ static const int R_NUM_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_NUM;
 static const int R_STR_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_STR;
 static const int R_ARRAY_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_ARRAY;
 static const int R_OBJECT_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_OBJECT;
-static const int R_PSEUDO_TYPE = val_t::type_t::DATUM * MAX_TYPE + datum_t::R_PSEUDO;
 
 class coerce_map_t {
 public:
@@ -53,7 +52,6 @@ public:
         map["STRING"] = R_STR_TYPE;
         map["ARRAY"] = R_ARRAY_TYPE;
         map["OBJECT"] = R_OBJECT_TYPE;
-        map["PSEUDO"] = R_PSEUDO_TYPE;
         CT_ASSERT(datum_t::R_STR < MAX_TYPE);
 
         for (std::map<std::string, int>::iterator
@@ -101,7 +99,6 @@ private:
         case datum_t::R_STR:
         case datum_t::R_ARRAY:
         case datum_t::R_OBJECT:
-        case datum_t::R_PSEUDO:
         case datum_t::UNINITIALIZED:
         default: break;
         }

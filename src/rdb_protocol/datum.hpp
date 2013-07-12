@@ -50,7 +50,7 @@ public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
     enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
-                  R_NUM = 4, R_OBJECT = 5, R_PSEUDO = 6, R_STR = 7 };
+                  R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
     explicit datum_t(type_t _type);
 
     // These allow you to construct a datum from the type of value it
@@ -80,6 +80,7 @@ public:
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
+    bool is_pseudo_type() const;
     std::string get_reql_type() const;
     std::string get_type_name() const;
     std::string print() const;
@@ -132,6 +133,11 @@ public:
     as_datum_stream(env_t *env,
                     const protob_t<const Backtrace> &backtrace) const;
 
+    // Check if the object is a pseudo and set its type field to `R_PSEUDO if
+    // it is.
+    void maybe_make_pseudo();
+    void rcheck_not_pseudo();
+
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
     // would compare lexicographcally, while dispareate types are compared
@@ -168,6 +174,7 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
+    void rcheck_pseudo_valid() const;
 
     type_t type;
     union {
@@ -179,8 +186,10 @@ private:
         std::map<std::string, counted_t<const datum_t> > *r_object;
     };
 
+public:
     static const char* const reql_type_string;
 
+private:
     DISABLE_COPYING(datum_t);
 };
 

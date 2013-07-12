@@ -8,6 +8,7 @@ namespace ql {
 namespace pseudo {
 extern const char *const time_string;
 int time_cmp(const datum_t& x, const datum_t& y);
+bool time_valid(const datum_t &time);
 } //namespace pseudo 
 } //namespace ql 
 
