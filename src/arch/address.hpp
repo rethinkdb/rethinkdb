@@ -79,4 +79,21 @@ private:
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
 
+struct ip_and_port_t {
+    ip_and_port_t() : port(0) { }
+    ip_and_port_t(const ip_address_t &_ip, int _port) : ip(_ip), port(_port) { }
+
+    bool operator < (const ip_and_port_t &other) const {
+        if (ip == other.ip) {
+            return port < other.port;
+        }
+        return ip < other.ip;
+    }
+
+    ip_address_t ip;
+    int port;
+    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
+};
+
+
 #endif /* ARCH_ADDRESS_HPP_ */

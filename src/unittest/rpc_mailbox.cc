@@ -75,7 +75,7 @@ void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
 void run_mailbox_start_stop_test() {
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), ANY_PORT, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     /* Make sure we can create a mailbox */
     dummy_mailbox_t mbox1(&m);
@@ -93,8 +93,8 @@ TEST(RPCMailboxTest, MailboxStartStop) {
 void run_mailbox_message_test() {
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), ANY_PORT, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), ANY_PORT, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m2, 0, NULL);
     r1.join(c2.get_peer_address(c2.get_me()));
     let_stuff_happen();
 
@@ -126,8 +126,8 @@ for the message to be silently ignored. */
 void run_dead_mailbox_test() {
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), ANY_PORT, &m1, 0, NULL);
-    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), ANY_PORT, &m2, 0, NULL);
+    connectivity_cluster_t::run_t r1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m1, 0, NULL);
+    connectivity_cluster_t::run_t r2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m2, 0, NULL);
 
     /* Create a mailbox, take its address, then destroy it. */
     raw_mailbox_t::address_t address;
@@ -157,7 +157,7 @@ void run_mailbox_address_semantics_test() {
 
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), ANY_PORT, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     dummy_mailbox_t mbox(&m);
     raw_mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
@@ -181,7 +181,7 @@ void run_typed_mailbox_test() {
 
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
-    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), ANY_PORT, &m, 0, NULL);
+    connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     std::vector<std::string> inbox;
     mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1), mailbox_callback_mode_inline);

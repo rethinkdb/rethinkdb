@@ -28,22 +28,23 @@ template <class> class function;
 
 class peer_address_t {
 public:
-    peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
-    peer_address_t() : port(ANY_PORT) { } // For deserialization
-    ip_address_t primary_ip() const {
-        guarantee(ips.begin() != ips.end());
-        return *ips.begin();
+    peer_address_t(const std::set<ip_and_port_t> &_addrs) : addrs(_addrs) { }
+    peer_address_t() { } // For deserialization
+
+    ip_and_port_t primary_addr() const {
+        guarantee(addrs.begin() != addrs.end());
+        return *addrs.begin();
     }
-    const std::set<ip_address_t> *all_ips() const { return &ips; }
-    int port;
+
+    const std::set<ip_and_port_t> &all_addrs() const { return addrs; }
 
     // Two addresses are considered equal if all of their IPs match
     bool operator==(const peer_address_t &a) const {
-        if (port != a.port) return false;
-        std::set<ip_address_t>::const_iterator it, ita;
-        for (it = ips.begin(); it != ips.end(); ++it) {
-            for (ita = a.all_ips()->begin(); ita != a.all_ips()->end(); ++ita) {
-                if (*it != *ita) return false;
+        std::set<ip_and_port_t>::const_iterator it, ita;
+        for (it = addrs.begin(); it != addrs.end(); ++it) {
+            for (ita = a.all_addrs().begin(); ita != a.all_addrs().end(); ++ita) {
+                if (it->port != ita->port ||
+                    it->ip != ita->ip) return false;
             }
         }
         return true;
@@ -54,8 +55,9 @@ public:
     }
 
 private:
-    std::set<ip_address_t> ips;
-    RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
+
+    std::set<ip_and_port_t> addrs;
+    RDB_MAKE_ME_SERIALIZABLE_1(addrs);
 };
 
 class peer_address_set_t {
@@ -104,6 +106,7 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
               const std::set<ip_address_t> &local_addresses,
+              const peer_address_t &canonical_addresses,
               int port,
               message_handler_t *message_handler,
               int client_port,

@@ -411,6 +411,26 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
     return get_web_path(web_static_directory, argv);
 }
 
+// Note that this defaults to the peer port if no port is specified
+//  (at the moment, this is only used for parsing --join directives)
+host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
+                                    const std::string &value, int default_port) {
+    size_t colon_loc = value.find_first_of(':');
+    if (colon_loc != std::string::npos) {
+        std::string host = value.substr(0, colon_loc);
+        int port = atoi(value.substr(colon_loc + 1).c_str());
+        if (host.size() != 0 && port != 0) {
+            return host_and_port_t(host, port);
+        }
+    } else if (value.size() != 0) {
+        return host_and_port_t(value, default_port);
+    }
+
+    throw options::value_error_t(source, option_name,
+                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                           option_name.c_str(), value.c_str()));
+}
+
 class address_lookup_exc_t : public std::exception {
 public:
     explicit address_lookup_exc_t(const std::string& data) : info(data) { }
@@ -421,25 +441,24 @@ private:
 };
 
 std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options) {
-    const std::vector<std::string> vector_filter = bind_options;
     std::set<ip_address_t> set_filter;
     bool all = false;
 
     // Scan through specified bind options
-    for (size_t i = 0; i < vector_filter.size(); ++i) {
-        if (vector_filter[i] == "all") {
+    for (size_t i = 0; i < bind_options.size(); ++i) {
+        if (bind_options[i] == "all") {
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
             struct in_addr addr;
-            if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
+            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
                 if (addr.s_addr == INADDR_ANY) {
                     all = true;
                 } else {
                     set_filter.insert(ip_address_t(addr));
                 }
             } else {
-                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
             }
         }
     }
@@ -463,6 +482,24 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     }
 
     return result;
+}
+
+peer_address_t get_canonical_addresses(const std::vector<std::string> &canonical_options,
+                                       int default_port) {
+    // Verify that all specified addresses are valid ip addresses
+    std::set<ip_and_port_t> our_addresses;
+    for (size_t i = 0; i < canonical_options.size(); ++i) {
+        // TODO: pass a real 'source' parameter here?
+        host_and_port_t host_port = parse_host_and_port(std::string(), "--canonical-address",
+                                                        canonical_options[i], default_port);
+
+        std::set<ip_address_t> ip_set = ip_address_t::from_hostname(host_port.host);
+        for (auto ip_it = ip_set.begin(); ip_it != ip_set.end(); ++ip_it) {
+            our_addresses.insert(ip_and_port_t(*ip_it, host_port.port));
+        }
+    }
+
+    return peer_address_t(our_addresses);
 }
 
 // Returns the options vector for a given option name.  The option must *exist*!  Typically this is
@@ -503,8 +540,11 @@ int offseted_port(const int port, const int port_offset) {
 
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
+    const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
-                                   offseted_port(get_single_int(opts, "--cluster-port"), port_offset),
+                                   get_canonical_addresses(all_options(opts, "--canonical-address"),
+                                                           cluster_port),
+                                   cluster_port,
 #ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
 #else
@@ -559,13 +599,22 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
-        peers.insert(peer_address_t(ip_address_t::from_hostname(names[i].host),
-                                    names[i].port));
+        std::set<ip_and_port_t> peer_addrs;
+        std::set<ip_address_t> ip_set = ip_address_t::from_hostname(names[i].host);
+        for (auto ip_it = ip_set.begin(); ip_it != ip_set.end(); ++ip_it) {
+            peer_addrs.insert(ip_and_port_t(*ip_it, names[i].port));
+        }
+        peers.insert(peer_addrs);
     }
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *const result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins,
+                         const peer_address_t &canonical_addresses,
+                         int client_port,
+                         const std::vector<std::string>& command_args,
+                         bool exit_on_failure,
+                         bool *const result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
     std::string host_port;
@@ -576,11 +625,20 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 
     try {
         if (command_args.empty())
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_console(exit_on_failure);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).run_console(exit_on_failure);
         else if (command_args[0] == admin_command_parser_t::complete_command)
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).run_completion(command_args);
         else
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (const admin_no_connection_exc_t& ex) {
         // Don't use logging, because we might want to printout multiple lines and such, which the log system doesn't like
         fprintf(stderr, "%s\n", ex.what());
@@ -779,32 +837,13 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
-// Note that this defaults to the peer port if no port is specified
-//  (at the moment, this is only used for parsing --join directives)
-host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
-                                    const std::string &value) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0) {
-            return host_and_port_t(host, port);
-        }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_defaults::peer_port);
-    }
-
-    throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
-                                           option_name.c_str(), value.c_str()));
-}
-
-std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts) {
+std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts,
+                                                int default_port) {
     std::string source;
     const std::vector<std::string> join_strings = all_options(opts, "--join", &source);
     std::vector<host_and_port_t> joins;
     for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-        joins.push_back(parse_host_and_port(source, "--join", *it));
+        joins.push_back(parse_host_and_port(source, "--join", *it, default_port));
     }
     return joins;
 }
@@ -855,6 +894,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
                                              join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--canonical-address"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
 
     return help;
 }
@@ -962,6 +1005,10 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                              options::OPTIONAL_REPEAT,
                                              "localhost"));
     help.add("-j [ --join ] host:port", "host and cluster port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--canonical-address"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));
@@ -1165,7 +1212,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -1246,7 +1293,11 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins =
+            parse_join_options(opts, port_defaults::peer_port);
+
+        peer_address_t canonical_addresses =
+            get_canonical_addresses(all_options(opts, "--canonical-address"), 0);
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
@@ -1258,7 +1309,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         const int num_workers = get_cpu_count();
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, command_args, exit_on_failure, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1287,7 +1338,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
+
+        service_address_ports_t address_ports = get_service_address_ports(opts);
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
@@ -1300,8 +1353,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         // Default to putting the log file in the current working directory
         base_path_t base_path(".");
         initialize_logfile(opts, base_path);
-
-        service_address_ports_t address_ports = get_service_address_ports(opts);
 
         const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
@@ -1507,7 +1558,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 

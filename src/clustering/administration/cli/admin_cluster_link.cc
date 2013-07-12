@@ -250,7 +250,9 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
     }
 }
 
-admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int client_port, signal_t *interruptor) :
+admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins,
+                                           const peer_address_t &canonical_addresses,
+                                           int client_port, signal_t *interruptor) :
     local_issue_tracker(),
     log_writer(&local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
@@ -286,7 +288,13 @@ admin_cluster_link_t::admin_cluster_link_t(const peer_address_set_t &joins, int 
     directory_write_manager(new directory_write_manager_t<cluster_directory_metadata_t>(&directory_manager_client, our_directory_metadata.get_watchable())),
     directory_manager_client_run(&directory_manager_client, directory_read_manager.get()),
     message_multiplexer_run(&message_multiplexer),
-    connectivity_cluster_run(&connectivity_cluster, ip_address_t::get_local_addresses(std::set<ip_address_t>(), false), 0, &message_multiplexer_run, client_port, &heartbeat_manager),
+    connectivity_cluster_run(&connectivity_cluster,
+                             ip_address_t::get_local_addresses(std::set<ip_address_t>(), false),
+                             canonical_addresses,
+                             0,
+                             &message_multiplexer_run, 
+                             client_port,
+                             &heartbeat_manager),
     admin_tracker(cluster_metadata_view, auth_metadata_view, directory_read_manager->get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {

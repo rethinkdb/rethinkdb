@@ -243,6 +243,7 @@ public:
         mailbox_manager(&connectivity_cluster),
         connectivity_cluster_run(&connectivity_cluster,
                                  get_unittest_addresses(),
+                                 peer_address_t(),
                                  ANY_PORT,
                                  &mailbox_manager,
                                  0,
