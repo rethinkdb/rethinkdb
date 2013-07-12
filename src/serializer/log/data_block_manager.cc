@@ -195,7 +195,7 @@ data_block_manager_t::~data_block_manager_t() {
     guarantee(state == state_unstarted || state == state_shut_down);
 }
 
-void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+void data_block_manager_t::prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb) {
     mb->active_extent = NULL_OFFSET;
     mb->blocks_in_active_extent = 0;
 }
@@ -229,7 +229,8 @@ void data_block_manager_t::end_reconstruct() {
     gc_state.set_step(gc_ready);
 }
 
-void data_block_manager_t::start_existing(file_t *file, metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start_existing(file_t *file,
+                                          data_block_manager::metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
@@ -1046,7 +1047,7 @@ void data_block_manager_t::run_gc() {
     }
 }
 
-void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
+void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
     if (active_extent != NULL) {

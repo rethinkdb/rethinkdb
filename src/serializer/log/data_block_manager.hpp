@@ -52,9 +52,6 @@ private:
         data_block_manager_t *parent;
     };
 
-    // RSI: Probably get rid of these typedefs.
-    typedef data_block_manager::metablock_mixin_t metablock_mixin_t;
-
 public:
     data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em,
                          log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config,
@@ -65,8 +62,8 @@ public:
     database FD. When restarting an existing database, call start() with the last
     metablock. */
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb);
-    void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
+    static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
+    void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
 
     void read(int64_t off_in, uint32_t ser_block_size,
               void *buf_out, file_account_t *io_account);
@@ -97,7 +94,7 @@ public:
     /* take step in gcing */
     void run_gc();
 
-    void prepare_metablock(metablock_mixin_t *metablock);
+    void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
     // The shutdown_callback_t may destroy the data_block_manager.
