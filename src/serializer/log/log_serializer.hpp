@@ -51,7 +51,7 @@ struct log_serializer_metablock_t {
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
     block_sequence_id_t block_sequence_id;
-};
+} __attribute__((__packed__));
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
