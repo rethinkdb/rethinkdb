@@ -42,8 +42,9 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
+        datum_t::add_txn_t ql_txn(acc.get());
         for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc->add(it->first, it->second->eval()->as_datum());
+            bool dup = acc->add(it->first, it->second->eval()->as_datum(), &ql_txn);
             rcheck(!dup, base_exc_t::GENERIC,
                    strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }

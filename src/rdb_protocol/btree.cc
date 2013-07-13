@@ -190,15 +190,15 @@ void rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("old_val", old_val)
-                         || resp->add("new_val", old_val); // changed below
+            bool conflict = resp->add("old_val", old_val, NULL)
+                         || resp->add("new_val", old_val, NULL); // changed below
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("new_val", new_val, ql::CLOBBER);
+            bool conflict = resp->add("new_val", new_val, NULL, ql::CLOBBER);
             guarantee(conflict); // We set it to `old_val` previously.
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
@@ -221,8 +221,9 @@ void rdb_replace_and_return_superblock(
                              primary_key.c_str(),
                              old_val->print().c_str(), new_val->print().c_str())));
         } else {
-            rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                               new_val->get_type_name().c_str(), new_val->print().c_str());
+            rfail_typed_target(
+                new_val, "Inserted value must be an OBJECT (got %s):\n%s",
+                new_val->get_type_name().c_str(), new_val->print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key
@@ -234,9 +235,9 @@ void rdb_replace_and_return_superblock(
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
-                conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0));
+                conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0), NULL);
             } else {
-                conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0));
+                conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0), NULL);
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
@@ -245,16 +246,17 @@ void rdb_replace_and_return_superblock(
             }
         } else {
             if (ended_empty) {
-                conflict = resp->add("deleted", make_counted<ql::datum_t>(1.0));
+                conflict = resp->add("deleted", make_counted<ql::datum_t>(1.0), NULL);
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
                 r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
                     conflict = resp->add("unchanged",
-                                         make_counted<ql::datum_t>(1.0));
+                                         make_counted<ql::datum_t>(1.0), NULL);
                 } else {
-                    conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
+                    conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0),
+                                         NULL);
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                     boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                         = new_val->as_json();
@@ -268,13 +270,13 @@ void rdb_replace_and_return_superblock(
         guarantee(!conflict); // message never added twice
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0), NULL)
+              || resp->add("first_error", make_counted<ql::datum_t>(msg), NULL);
         guarantee(!b);
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0), NULL)
+              || resp->add("first_error", make_counted<ql::datum_t>(msg), NULL);
         guarantee(!b);
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling

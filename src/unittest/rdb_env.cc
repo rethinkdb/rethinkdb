@@ -136,19 +136,19 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
         data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json()->release())));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("inserted", num_records);
+            not_added = resp->add("inserted", num_records, NULL);
         } else {
             if (*old_val == *new_val) {
-                not_added = resp->add("unchanged", num_records);
+                not_added = resp->add("unchanged", num_records, NULL);
             } else {
-                not_added = resp->add("replaced", num_records);
+                not_added = resp->add("replaced", num_records, NULL);
             }
         }
     } else if (new_val->get_type() == ql::datum_t::R_NULL) {
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("skipped", num_records);
+            not_added = resp->add("skipped", num_records, NULL);
         } else {
-            not_added = resp->add("deleted", num_records);
+            not_added = resp->add("deleted", num_records, NULL);
         }
     } else {
         throw cannot_perform_query_exc_t("value being inserted is neither an object nor an empty value");

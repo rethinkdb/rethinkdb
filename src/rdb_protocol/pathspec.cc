@@ -89,18 +89,19 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         return counted_t<const datum_t>(res.release());
     } else {
         scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+        datum_t::add_txn_t ql_txn(res.get());
         if (const std::string *str = pathspec.as_str()) {
             if (counted_t<const datum_t> val = datum->get(*str, NOTHROW)) {
                 // This bool indicates if things were clobbered. We're fine
                 // with things being clobbered so we ignore it.
-                UNUSED bool clobbered = res->add(*str, val, CLOBBER);
+                UNUSED bool clobbered = res->add(*str, val, &ql_txn, CLOBBER);
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 counted_t<const datum_t> sub_result = project(datum, *it, recurse);
                 for (auto jt = sub_result->as_object().begin();
                      jt != sub_result->as_object().end(); ++jt) {
-                    UNUSED bool clobbered = res->add(jt->first, jt->second, CLOBBER);
+                    UNUSED bool clobbered = res->add(jt->first, jt->second, &ql_txn, CLOBBER);
                 }
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
@@ -109,7 +110,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
                     try {
                         counted_t<const datum_t> sub_result = project(val, it->second, RECURSE);
                         /* We know we're clobbering, that's the point. */
-                        UNUSED bool clobbered = res->add(it->first, sub_result, CLOBBER);
+                        UNUSED bool clobbered = res->add(it->first, sub_result, &ql_txn, CLOBBER);
                     } catch (const datum_exc_t &e) {
                         //do nothing
                     }
@@ -141,22 +142,20 @@ void pathspec_t::init_from(const pathspec_t &other) {
 }
 
 void unproject_helper(datum_t *datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse) {
+        const pathspec_t &pathspec, recurse_flag_t recurse,
+        datum_t::add_txn_t *ql_txn) {
     if (const std::string *str = pathspec.as_str()) {
         UNUSED bool key_was_deleted = datum->delete_key(*str);
     } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
         for (auto it = vec->begin(); it != vec->end(); ++it) {
-            /* This is all some annoying bullshit caused by the fact that
-             * counted_t<datum_t> won't automatically convert to
-             * counted_t<const datum_t>. */
-            unproject_helper(datum, *it, recurse);
+            unproject_helper(datum, *it, recurse, ql_txn);
         }
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
                 counted_t<const datum_t> sub_result = unproject(val, it->second, RECURSE);
                 /* We know we're clobbering, that's the point. */
-                UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                UNUSED bool clobbered = datum->add(it->first, sub_result, ql_txn, CLOBBER);
             }
         }
     } else {
@@ -175,7 +174,8 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         return counted_t<const datum_t>(res.release());
     } else {
         scoped_ptr_t<datum_t> res(new datum_t(datum->as_object()));
-        unproject_helper(res.get(), pathspec, recurse);
+        datum_t::add_txn_t ql_txn(res.get());
+        unproject_helper(res.get(), pathspec, recurse, &ql_txn);
         return counted_t<const datum_t>(res.release());
     }
 }

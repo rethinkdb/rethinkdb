@@ -15,6 +15,7 @@ int time_cmp(const datum_t& x, const datum_t& y) {
 }
 
 bool time_valid(const datum_t &time) {
+    //TODO better validation for timezones.
     r_sanity_check(time.get_reql_type() == time_string);
     bool has_epoch_time = false;
     for (auto it = time.as_object().begin(); it != time.as_object().end(); ++it) {

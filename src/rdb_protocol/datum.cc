@@ -135,7 +135,8 @@ void datum_t::init_json(cJSON *json) {
         init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool conflict = add(el->string, make_counted<datum_t>(el));
+            datum_t::add_txn_t ql_txn(this);
+            bool conflict = add(el->string, make_counted<datum_t>(el), &ql_txn);
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
@@ -531,6 +532,12 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
     return counted_t<const datum_t>();
 }
 
+datum_t::add_txn_t::add_txn_t(const datum_t *_parent) : parent(_parent) { }
+
+datum_t::add_txn_t::~add_txn_t() {
+    parent->rcheck_pseudo_valid();
+}
+
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
     return *r_object;
@@ -601,12 +608,16 @@ void datum_t::add(counted_t<const datum_t> val) {
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
-                           clobber_bool_t clobber_bool) {
+                           add_txn_t *txn, clobber_bool_t clobber_bool) {
+    r_sanity_check(txn == NULL || txn->parent == this);
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
+    if (txn == NULL) {
+        rcheck_pseudo_valid();
+    }
     return key_in_obj;
 }
 
@@ -616,24 +627,26 @@ MUST_USE bool datum_t::delete_key(const std::string &key) {
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    datum_t::add_txn_t ql_txn(d.get());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d->add(it->first, it->second, CLOBBER);
+        UNUSED bool b = d->add(it->first, it->second, &ql_txn, CLOBBER);
     }
     return counted_t<const datum_t>(d.release());
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
     scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    datum_t::add_txn_t ql_txn(d.get());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
             bool b = d->add(it->first,
                             f(it->first, left, it->second, this),
-                            CLOBBER);
+                            &ql_txn, CLOBBER);
             r_sanity_check(b);
         } else {
-            bool b = d->add(it->first, it->second);
+            bool b = d->add(it->first, it->second, &ql_txn);
             r_sanity_check(!b);
         }
     }
@@ -859,10 +872,10 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
     for (auto it = map.begin(); it != map.end(); ++it) {
         scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
-        bool b1 = obj->add("group", it->first);
-        bool b2 = obj->add("reduction", it->second);
+        bool b1 = obj->add("group", it->first, NULL);
+        bool b2 = obj->add("reduction", it->second, NULL);
         r_sanity_check(!b1 && !b2);
-        arr->add(counted_t<datum_t>(obj.release()));
+        arr->add(counted_t<const datum_t>(obj.release()));
     }
     return counted_t<const datum_t>(arr.release());
 }

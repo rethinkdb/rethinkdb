@@ -60,11 +60,11 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
     // changes, you could store the bool and `r_sanity_check` that it's
     // false.
     DEBUG_VAR const bool had_first_error =
-        datum->add("first_error", make_counted<datum_t>(err));
+        datum->add("first_error", make_counted<datum_t>(err), NULL);
     rassert(!had_first_error);
 
     DEBUG_VAR const bool had_errors =
-        datum->add("errors", make_counted<datum_t>(1.0));
+        datum->add("errors", make_counted<datum_t>(1.0), NULL);
     rassert(!had_errors);
 
     return counted_t<const datum_t>(datum.release());
@@ -215,7 +215,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                     if (orig->get_type() == datum_t::R_NULL) {
                         scoped_ptr_t<datum_t> resp(new datum_t(datum_t::R_OBJECT));
                         counted_t<const datum_t> one(new datum_t(1.0));
-                        const bool b = resp->add("skipped", one);
+                        const bool b = resp->add("skipped", one, NULL);
                         r_sanity_check(!b);
                         ret[i] = counted_t<const datum_t>(resp.release());
                         continue;
@@ -326,7 +326,7 @@ counted_t<const datum_t> table_t::do_replace(
         orig = mwf2.compile(env)->call(orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             scoped_ptr_t<datum_t> resp(new datum_t(datum_t::R_OBJECT));
-            bool b = resp->add("skipped", make_counted<datum_t>(1.0));
+            bool b = resp->add("skipped", make_counted<datum_t>(1.0), NULL);
             r_sanity_check(!b);
             return counted_t<const datum_t>(resp.release());
         }

@@ -46,7 +46,8 @@ public:
         bool success = table->sindex_create(name, index_func);
         if (success) {
             scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("created", make_counted<datum_t>(1.0));
+            datum_t::add_txn_t ql_txn(res.get());
+            UNUSED bool b = res->add("created", make_counted<datum_t>(1.0), &ql_txn);
             return new_val(counted_t<const datum_t>(res.release()));
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` already exists.", name.c_str());
@@ -67,7 +68,7 @@ public:
         bool success = table->sindex_drop(name);
         if (success) {
             scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("dropped", make_counted<datum_t>(1.0));
+            UNUSED bool b = res->add("dropped", make_counted<datum_t>(1.0), NULL);
             return new_val(counted_t<const datum_t>(res.release()));
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` does not exist.", name.c_str());

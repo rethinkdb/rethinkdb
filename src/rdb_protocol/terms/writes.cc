@@ -51,9 +51,9 @@ counted_t<const datum_t> new_stats_object() {
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
-        UNUSED bool b = stats->add(keys[i], make_counted<datum_t>(0.0));
+        UNUSED bool b = stats->add(keys[i], make_counted<datum_t>(0.0), NULL);
     }
-    return counted_t<datum_t>(stats.release());
+    return counted_t<const datum_t>(stats.release());
 }
 
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
@@ -85,7 +85,7 @@ private:
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(key));
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
-            bool conflict = d->add(tbl->get_pkey(), keyd);
+            bool conflict = d->add(tbl->get_pkey(), keyd, NULL);
             r_sanity_check(!conflict);
             *datum_out = (*datum_out)->merge(counted_t<const datum_t>(d.release()), pure_merge);
             generated_keys_out->push_back(key);
@@ -158,7 +158,7 @@ private:
             }
             scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
             UNUSED bool b = d->add("generated_keys",
-                                   counted_t<const datum_t>(genkeys.release()));
+                                   counted_t<const datum_t>(genkeys.release()), NULL);
             stats = stats->merge(counted_t<const datum_t>(d.release()), pure_merge);
         }
 

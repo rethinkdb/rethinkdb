@@ -112,9 +112,19 @@ public:
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
     // Use of `get` is preferred to `as_object` when possible.
     const std::map<std::string, counted_t<const datum_t> > &as_object() const;
+
+    class add_txn_t {
+    public:
+        add_txn_t(const datum_t *_parent);
+        ~add_txn_t();
+    private:
+        friend class datum_t;
+        const datum_t *parent;
+    };
+
     // Returns true if `key` was already in object.
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
-                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+                      add_txn_t *txn, clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
     MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.

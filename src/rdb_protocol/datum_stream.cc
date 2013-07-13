@@ -115,7 +115,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, counted_t<datum_t>(), counted_t<datum_t>(),
+                      *ns_access, env->interruptor, counted_t<const datum_t>(), counted_t<const datum_t>(),
                       env->get_all_optargs(), use_outdated))
 { }
 
@@ -231,7 +231,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    return json ? make_counted<datum_t>(json) : counted_t<datum_t>();
+    return json ? make_counted<const datum_t>(json) : counted_t<const datum_t>();
 }
 
 // ARRAY_DATUM_STREAM_T

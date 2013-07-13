@@ -216,10 +216,11 @@ private:
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
+                    datum_t::add_txn_t txn(obj.get());
                     while (counted_t<const datum_t> pair = ds->next()) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
-                        bool b = obj->add(key, keyval);
+                        bool b = obj->add(key, keyval, &txn);
                         rcheck(!b, base_exc_t::GENERIC,
                                strprintf("Duplicate key %s in coerced object.  "
                                          "(got %s and %s as values)",
@@ -274,31 +275,31 @@ private:
     counted_t<const datum_t> val_info(counted_t<val_t> v) {
         scoped_ptr_t<datum_t> info(new datum_t(datum_t::R_OBJECT));
         int type = val_type(v);
-        bool b = info->add("type", make_counted<datum_t>(get_name(type)));
+        bool b = info->add("type", make_counted<datum_t>(get_name(type)), NULL);
 
         switch (type) {
         case DB_TYPE: {
-            b |= info->add("name", make_counted<datum_t>(v->as_db()->name));
+            b |= info->add("name", make_counted<datum_t>(v->as_db()->name), NULL);
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info->add("name", make_counted<datum_t>(table->name));
-            b |= info->add("primary_key", make_counted<datum_t>(table->get_pkey()));
-            b |= info->add("indexes", table->sindex_list());
-            b |= info->add("db", val_info(new_val(table->db)));
+            b |= info->add("name", make_counted<datum_t>(table->name), NULL);
+            b |= info->add("primary_key", make_counted<datum_t>(table->get_pkey()), NULL);
+            b |= info->add("indexes", table->sindex_list(), NULL);
+            b |= info->add("db", val_info(new_val(table->db)), NULL);
         } break;
         case SELECTION_TYPE: {
-            b |= info->add("table", val_info(new_val(v->as_selection().first)));
+            b |= info->add("table", val_info(new_val(v->as_selection().first)), NULL);
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info->add("table", val_info(new_val(v->as_single_selection().first)));
+            b |= info->add("table", val_info(new_val(v->as_single_selection().first)), NULL);
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
         } break;
 
         case FUNC_TYPE: {
-            b |= info->add("source_code", make_counted<datum_t>(v->as_func()->print_src()));
+            b |= info->add("source_code", make_counted<datum_t>(v->as_func()->print_src()), NULL);
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -308,7 +309,7 @@ private:
         case R_ARRAY_TYPE:  // fallthru
         case R_OBJECT_TYPE: // fallthru
         case DATUM_TYPE: {
-            b |= info->add("value", make_counted<datum_t>(v->as_datum()->print()));
+            b |= info->add("value", make_counted<datum_t>(v->as_datum()->print()), NULL);
         } break;
 
         default: unreachable();

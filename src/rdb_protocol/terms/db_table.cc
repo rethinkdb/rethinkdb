@@ -88,7 +88,7 @@ private:
     virtual counted_t<val_t> eval_impl() {
         std::string op = write_eval_impl();
         scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-        UNUSED bool b = res->add(op, make_counted<datum_t>(1.0));
+        UNUSED bool b = res->add(op, make_counted<datum_t>(1.0), NULL);
         return new_val(counted_t<const datum_t>(res.release()));
     }
 protected:
@@ -477,7 +477,7 @@ private:
             }
             counted_t<datum_stream_t> stream
                 = make_counted<array_datum_stream_t>(env,
-                    counted_t<datum_t>(arr.release()), backtrace());
+                    counted_t<const datum_t>(arr.release()), backtrace());
             return new_val(stream, table);
         }
     }
