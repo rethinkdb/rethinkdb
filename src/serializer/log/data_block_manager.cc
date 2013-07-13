@@ -346,7 +346,6 @@ data_block_manager_t::~data_block_manager_t() {
 
 void data_block_manager_t::prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb) {
     mb->active_extent = NULL_OFFSET;
-    mb->blocks_in_active_extent = 0;
 }
 
 void data_block_manager_t::start_reconstruct() {
@@ -1193,10 +1192,8 @@ void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin
 
     if (active_extent != NULL) {
         metablock->active_extent = active_extent->extent_ref.offset();
-        metablock->blocks_in_active_extent = active_extent->num_blocks();
     } else {
         metablock->active_extent = NULL_OFFSET;
-        metablock->blocks_in_active_extent = 0;
     }
 }
 

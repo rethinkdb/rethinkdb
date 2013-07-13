@@ -31,8 +31,6 @@ struct shutdown_callback_t {
 
 struct metablock_mixin_t {
     int64_t active_extent;
-    // RSI: Is this useful anymore?
-    uint64_t blocks_in_active_extent;
 } __attribute__((__packed__));
 
 }  // namespace data_block_manager

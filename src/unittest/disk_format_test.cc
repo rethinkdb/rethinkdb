@@ -93,9 +93,7 @@ TEST(DiskFormatTest, LbaSuperblockT) {
 
 TEST(DiskFormatTest, DataBlockManagerMetablockMixinT) {
     EXPECT_EQ(0u, offsetof(data_block_manager::metablock_mixin_t, active_extent));
-    EXPECT_EQ(8u, offsetof(data_block_manager::metablock_mixin_t,
-                           blocks_in_active_extent));
-    EXPECT_EQ(16u, sizeof(data_block_manager::metablock_mixin_t));
+    EXPECT_EQ(8u, sizeof(data_block_manager::metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
