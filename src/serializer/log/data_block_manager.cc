@@ -19,6 +19,14 @@ const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
 // extent, whether it's the extent we're currently writing to, and
 // describes blocks are garbage.
 class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
+private:
+    struct block_info_t {
+        uint32_t relative_offset;
+        block_size_t block_size;
+        bool token_referenced;
+        bool index_referenced;
+    };
+
 public:
     /* This constructor is for starting a new active extent. */
     explicit gc_entry_t(data_block_manager_t *_parent)
@@ -103,14 +111,9 @@ public:
         guarantee(offset < extent_ref.offset() + UINT32_MAX);
         const uint32_t relative_offset = offset - extent_ref.offset();
 
-        for (unsigned int i = 0; i < block_infos.size(); ++i) {
-            if (block_infos[i].relative_offset == relative_offset) {
-                return i;
-            }
-        }
-
-        crash("block_index requested for invalid offset (offset = %" PRIi64 ")",
-              offset);
+        auto it = find_lower_bound_iter(relative_offset);
+        guarantee(it != block_infos.end());
+        return it - block_infos.begin();
     }
 
     bool new_offset(block_size_t block_size,
@@ -194,32 +197,34 @@ public:
         return b;
     }
 
+    static bool info_less(const block_info_t &info, uint32_t relative_offset) {
+        return info.relative_offset < relative_offset;
+    }
+
+    std::vector<block_info_t>::const_iterator find_lower_bound_iter(uint32_t relative_offset) const {
+        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    }
+
+    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
+        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    }
+
     void mark_live_indexwise_with_offset(int64_t offset, block_size_t block_size) {
         guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
         uint32_t relative_offset = offset - extent_ref.offset();
 
-        uint32_t last_back_offset = 0;
-        auto it = block_infos.begin();
-        while (it != block_infos.end()) {
-            if (it->relative_offset > relative_offset) {
-                guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
-                block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
-                return;
-            } else if (it->relative_offset == relative_offset) {
-                guarantee(it->block_size == block_size);
-                it->index_referenced = true;
-                return;
-            } else {
-                last_back_offset = it->relative_offset + it->block_size.ser_value();
-                guarantee(last_back_offset <= relative_offset);
-                ++it;
-            }
+        auto it = find_lower_bound_iter(relative_offset);
+        if (it == block_infos.end()) {
+            block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
+        } else if (it->relative_offset > relative_offset) {
+            guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
+            block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+        } else {
+            guarantee(it->relative_offset == relative_offset);
+            guarantee(it->block_size == block_size);
+            it->index_referenced = true;
         }
-
-        // We reached block_infos.end(), still haven't inserted our block!
-        // We already asserted that last_back_offset <= relative_offset.
-        block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
     }
 
     void mark_garbage_indexwise(unsigned int block_index) {
@@ -301,13 +306,6 @@ public:
     } state;
 
 private:
-    struct block_info_t {
-        uint32_t relative_offset;
-        block_size_t block_size;
-        bool token_referenced;
-        bool index_referenced;
-    };
-
     // Block information, ordered by relative offset.
     std::vector<block_info_t> block_infos;
 

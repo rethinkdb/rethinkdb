@@ -11,7 +11,6 @@ compute_crc(const void *buf, block_size_t block_size) const {
     boost::crc_32_type crc_computer;
     // We need to not crc BLOCK_META_DATA_SIZE because it's
     // internal to the serializer.
-    // RSI: We can't use get_block_size().value().
     crc_computer.process_bytes(buf, block_size.value());
     return crc_computer.checksum();
 }
