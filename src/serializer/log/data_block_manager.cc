@@ -685,7 +685,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     check_and_handle_empty_extent(extent_id);
 }
 
-void data_block_manager_t::mark_live_tokenwise(int64_t offset) {
+void data_block_manager_t::mark_live_tokenwise_with_offset(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
@@ -694,7 +694,7 @@ void data_block_manager_t::mark_live_tokenwise(int64_t offset) {
     entry->mark_live_tokenwise(block_index);
 }
 
-void data_block_manager_t::mark_garbage_tokenwise(int64_t offset) {
+void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
 

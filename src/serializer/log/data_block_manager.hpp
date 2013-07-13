@@ -84,8 +84,8 @@ public:
     get garbage collected. This interface allows log_serializer to tell us about
     tokens */
     // RSI: Probably these should take block index.
-    void mark_live_tokenwise(int64_t offset);
-    void mark_garbage_tokenwise(int64_t offset);
+    void mark_live_tokenwise_with_offset(int64_t offset);
+    void mark_garbage_tokenwise_with_offset(int64_t offset);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
