@@ -42,11 +42,6 @@ struct metablock_mixin_t {
  */
 
 struct log_serializer_metablock_t {
-    // RSI: We need to update the serializer version number.
-
-    // RSI: Maybe this is a good opportunity to adjust the metablock to have
-    // individual metablock version info.
-
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
