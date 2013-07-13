@@ -204,6 +204,7 @@ void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     guarantee(source.has());
+    source = make_counted_term();
     archive_result_t res = deserialize(stream, source.get());
     if (res != ARCHIVE_SUCCESS) { return res; }
     res = deserialize(stream, &default_filter_val);
