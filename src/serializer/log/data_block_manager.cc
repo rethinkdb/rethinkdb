@@ -20,15 +20,40 @@ const int64_t APPROXIMATE_READ_AHEAD_SIZE = 32 * DEFAULT_BTREE_BLOCK_SIZE;
 // describes blocks are garbage.
 class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
 public:
-    /* This constructor is for starting a new extent. */
-    explicit gc_entry_t(data_block_manager_t *parent);
+    /* This constructor is for starting a new active extent. */
+    explicit gc_entry_t(data_block_manager_t *_parent)
+        : parent(_parent),
+          extent_ref(parent->extent_manager->gen_extent()),
+          timestamp(current_microtime()),
+          was_written(false),
+          state(state_active),
+          extent_offset(extent_ref.offset()) {
+        add_self_to_parent_entries();
+    }
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
-    gc_entry_t(data_block_manager_t *parent, int64_t offset);
+    gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
+        : parent(_parent),
+          extent_ref(parent->extent_manager->reserve_extent(_offset)),
+          timestamp(current_microtime()),
+          was_written(false),
+          state(state_reconstructing),
+          extent_offset(extent_ref.offset()) {
+        add_self_to_parent_entries();
+    }
 
-    void destroy();
-    ~gc_entry_t();
+    void destroy() {
+        parent->extent_manager->release_extent(std::move(extent_ref));
+        delete this;
+    }
+    ~gc_entry_t() {
+        unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+        guarantee(parent->entries.get(extent_id) == this);
+        parent->entries.set(extent_id, NULL);
+
+        --parent->stats->pm_serializer_data_extents;
+    }
 
     // Lists the num_blocks() offsets of the blocks, followed by some upper bound for
     // the last block that is no greater than the extent size.  For example, an
@@ -36,25 +61,81 @@ public:
     // 12288 }.  The blocks are actually [0, 4093), [4093, 8186), [8192, 12285).
     // Blocks are noncontiguous because each chunk of block writes must start at a
     // discrete device block boundary.
-    std::vector<uint32_t> block_boundaries() const;
+    // RSI: Remove this function.
+    std::vector<uint32_t> block_boundaries() const {
+        guarantee(state != state_reconstructing);
+
+        std::vector<uint32_t> ret;
+        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+            ret.push_back(it->relative_offset);
+        }
+
+        ret.push_back(back_relative_offset());
+        return ret;
+    }
 
     // The offset at the beginning of unused space -- the end of the last block
     // in the extent.
-    uint32_t back_relative_offset() const;
+    uint32_t back_relative_offset() const {
+        return block_infos.empty()
+            ? 0
+            : block_infos.back().relative_offset + block_infos.back().block_size.ser_value();
+    }
 
     // Returns the ostensible size of the block_index'th block.  Note that
     // block_boundaries[i] + block_size(i) <= block_boundaries[i + 1].
-    block_size_t block_size(unsigned int block_index) const;
+    block_size_t block_size(unsigned int block_index) const {
+        guarantee(state != state_reconstructing);
+        guarantee(block_index < block_infos.size());
+        return block_infos[block_index].block_size;
+    }
 
     // Returns block_boundaries()[block_index].
-    uint32_t relative_offset(unsigned int block_index) const;
+    uint32_t relative_offset(unsigned int block_index) const {
+        guarantee(state != state_reconstructing);
+        guarantee(block_index < block_infos.size());
+        return block_infos[block_index].relative_offset;
+    }
 
-    unsigned int block_index(int64_t offset) const;
+    unsigned int block_index(int64_t offset) const {
+        guarantee(state != state_reconstructing);
+        guarantee(offset >= extent_ref.offset());
+        guarantee(offset < extent_ref.offset() + UINT32_MAX);
+        const uint32_t relative_offset = offset - extent_ref.offset();
+
+        for (unsigned int i = 0; i < block_infos.size(); ++i) {
+            if (block_infos[i].relative_offset == relative_offset) {
+                return i;
+            }
+        }
+
+        crash("block_index requested for invalid offset (offset = %" PRIi64 ")",
+              offset);
+    }
 
     bool new_offset(block_size_t block_size,
                     bool align_to_device_block_size,
                     uint32_t *relative_offset_out,
-                    unsigned int *block_index_out);
+                    unsigned int *block_index_out) {
+        // Returns true if there's enough room at the end of the extent for the new
+        // block.
+        guarantee(state == state_active);
+        guarantee(block_size.ser_value() <= parent->static_config->extent_size());
+
+        uint32_t offset = align_to_device_block_size
+            ? ceil_aligned(back_relative_offset(), DEVICE_BLOCK_SIZE)
+            : back_relative_offset();
+        guarantee(offset <= parent->static_config->extent_size());
+
+        if (offset > parent->static_config->extent_size() - block_size.ser_value()) {
+            return false;
+        } else {
+            *relative_offset_out = offset;
+            *block_index_out = block_infos.size();
+            block_infos.push_back(block_info_t{offset, block_size, false, false});
+            return true;
+        }
+    }
 
     unsigned int num_blocks() const {
         guarantee(state != state_reconstructing);
@@ -75,7 +156,15 @@ public:
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
-    uint64_t garbage_bytes() const;
+    uint64_t garbage_bytes() const {
+        uint64_t b = parent->static_config->extent_size();
+        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+            if (it->token_referenced || it->index_referenced) {
+                b -= it->block_size.ser_value();
+            }
+        }
+        return b;
+    }
 
     bool block_is_garbage(unsigned int block_index) const {
         guarantee(state != state_reconstructing);
@@ -95,9 +184,43 @@ public:
         block_infos[block_index].token_referenced = false;
     }
 
-    uint64_t token_bytes() const;
+    uint64_t token_bytes() const {
+        uint64_t b = 0;
+        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+            if (it->token_referenced) {
+                b += it->block_size.ser_value();
+            }
+        }
+        return b;
+    }
 
-    void mark_live_indexwise_with_offset(int64_t block_offset, block_size_t block_size);
+    void mark_live_indexwise_with_offset(int64_t offset, block_size_t block_size) {
+        guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
+
+        uint32_t relative_offset = offset - extent_ref.offset();
+
+        uint32_t last_back_offset = 0;
+        auto it = block_infos.begin();
+        while (it != block_infos.end()) {
+            if (it->relative_offset > relative_offset) {
+                guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
+                block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+                return;
+            } else if (it->relative_offset == relative_offset) {
+                guarantee(it->block_size == block_size);
+                it->index_referenced = true;
+                return;
+            } else {
+                last_back_offset = it->relative_offset + it->block_size.ser_value();
+                guarantee(last_back_offset <= relative_offset);
+                ++it;
+            }
+        }
+
+        // We reached block_infos.end(), still haven't inserted our block!
+        // We already asserted that last_back_offset <= relative_offset.
+        block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+    }
 
     void mark_garbage_indexwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
@@ -110,13 +233,45 @@ public:
         return block_infos[block_index].index_referenced;
     }
 
-    uint64_t index_bytes() const;
+    uint64_t index_bytes() const {
+        uint64_t b = 0;
+        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+            if (it->index_referenced) {
+                b += it->block_size.ser_value();
+            }
+        }
+        return b;
+    }
 
-    void make_active();
+    void make_active() {
+        guarantee(state == state_reconstructing);
+        state = state_active;
+    }
 
-    std::string format_block_infos(const char *separator) const;
+    std::string format_block_infos(const char *separator) const {
+        const int64_t offset = extent_ref.offset();
+        std::string ret;
+        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+            ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
+                             it == block_infos.begin() ? "" : separator,
+                             offset + it->relative_offset, it->block_size.ser_value(),
+                             it->token_referenced ? 'T' : ' ',
+                             it->index_referenced ? 'I' : ' ');
+        }
+        return ret;
+    }
 
 private:
+    // Used by constructors.
+    void add_self_to_parent_entries() {
+        unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+        guarantee(parent->entries.get(extent_id) == NULL);
+        parent->entries.set(extent_id, this);
+
+        ++parent->stats->pm_serializer_data_extents;
+    }
+
+
     data_block_manager_t *const parent;
 
 public:
@@ -155,9 +310,6 @@ private:
 
     // Block information, ordered by relative offset.
     std::vector<block_info_t> block_infos;
-
-    // Used by constructors.
-    void add_self_to_parent_entries();
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.
@@ -1185,196 +1337,6 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 
     gc_stats.old_total_block_bytes += static_config->extent_size();
     gc_stats.old_garbage_block_bytes += entry->garbage_bytes();
-}
-
-void gc_entry_t::add_self_to_parent_entries() {
-    unsigned int extent_id = parent->static_config->extent_index(extent_offset);
-    guarantee(parent->entries.get(extent_id) == NULL);
-    parent->entries.set(extent_id, this);
-
-    ++parent->stats->pm_serializer_data_extents;
-}
-
-// Constructs a new active extent.
-gc_entry_t::gc_entry_t(data_block_manager_t *_parent)
-    : parent(_parent),
-      extent_ref(parent->extent_manager->gen_extent()),
-      timestamp(current_microtime()),
-      was_written(false),
-      state(state_active),
-      extent_offset(extent_ref.offset()) {
-    add_self_to_parent_entries();
-}
-
-// Constructor for a mid-reconstructing extent.
-gc_entry_t::gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
-    : parent(_parent),
-      extent_ref(parent->extent_manager->reserve_extent(_offset)),
-      timestamp(current_microtime()),
-      was_written(false),
-      state(state_reconstructing),
-      extent_offset(extent_ref.offset()) {
-    add_self_to_parent_entries();
-}
-
-gc_entry_t::~gc_entry_t() {
-    unsigned int extent_id = parent->static_config->extent_index(extent_offset);
-    guarantee(parent->entries.get(extent_id) == this);
-    parent->entries.set(extent_id, NULL);
-
-    --parent->stats->pm_serializer_data_extents;
-}
-
-uint32_t gc_entry_t::back_relative_offset() const {
-    return block_infos.empty()
-        ? 0
-        : block_infos.back().relative_offset + block_infos.back().block_size.ser_value();
-}
-
-std::vector<uint32_t> gc_entry_t::block_boundaries() const {
-    guarantee(state != state_reconstructing);
-
-    std::vector<uint32_t> ret;
-    for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-        ret.push_back(it->relative_offset);
-    }
-
-    ret.push_back(back_relative_offset());
-    return ret;
-}
-
-block_size_t gc_entry_t::block_size(unsigned int block_index) const {
-    guarantee(state != state_reconstructing);
-    guarantee(block_index < block_infos.size());
-    return block_infos[block_index].block_size;
-}
-
-uint32_t gc_entry_t::relative_offset(unsigned int block_index) const {
-    guarantee(state != state_reconstructing);
-    guarantee(block_index < block_infos.size());
-    return block_infos[block_index].relative_offset;
-}
-
-unsigned int gc_entry_t::block_index(const int64_t offset) const {
-    guarantee(state != state_reconstructing);
-    guarantee(offset >= extent_ref.offset());
-    guarantee(offset < extent_ref.offset() + UINT32_MAX);
-    const uint32_t relative_offset = offset - extent_ref.offset();
-
-    for (unsigned int i = 0; i < block_infos.size(); ++i) {
-        if (block_infos[i].relative_offset == relative_offset) {
-            return i;
-        }
-    }
-
-    crash("block_index requested for invalid offset (offset = %" PRIi64 ")",
-          offset);
-}
-
-bool gc_entry_t::new_offset(block_size_t block_size,
-                            bool align_to_device_block_size,
-                            uint32_t *relative_offset_out,
-                            unsigned int *block_index_out) {
-    // Returns true if there's enough room at the end of the extent for the new
-    // block.
-    guarantee(state == state_active);
-    guarantee(block_size.ser_value() <= parent->static_config->extent_size());
-
-    uint32_t offset = align_to_device_block_size
-        ? ceil_aligned(back_relative_offset(), DEVICE_BLOCK_SIZE)
-        : back_relative_offset();
-    guarantee(offset <= parent->static_config->extent_size());
-
-    if (offset > parent->static_config->extent_size() - block_size.ser_value()) {
-        return false;
-    } else {
-        *relative_offset_out = offset;
-        *block_index_out = block_infos.size();
-        block_infos.push_back(block_info_t{offset, block_size, false, false});
-        return true;
-    }
-}
-
-void gc_entry_t::make_active() {
-    guarantee(state == state_reconstructing);
-    state = state_active;
-}
-
-void gc_entry_t::destroy() {
-    parent->extent_manager->release_extent(std::move(extent_ref));
-    delete this;
-}
-
-uint64_t gc_entry_t::garbage_bytes() const {
-    uint64_t b = parent->static_config->extent_size();
-    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-        if (it->token_referenced || it->index_referenced) {
-            b -= it->block_size.ser_value();
-        }
-    }
-    return b;
-}
-
-uint64_t gc_entry_t::token_bytes() const {
-    uint64_t b = 0;
-    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-        if (it->token_referenced) {
-            b += it->block_size.ser_value();
-        }
-    }
-    return b;
-}
-
-uint64_t gc_entry_t::index_bytes() const {
-    uint64_t b = 0;
-    for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-        if (it->index_referenced) {
-            b += it->block_size.ser_value();
-        }
-    }
-    return b;
-}
-
-void gc_entry_t::mark_live_indexwise_with_offset(int64_t offset,
-                                                 block_size_t block_size) {
-    guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
-
-    uint32_t relative_offset = offset - extent_ref.offset();
-
-    uint32_t last_back_offset = 0;
-    auto it = block_infos.begin();
-    while (it != block_infos.end()) {
-        if (it->relative_offset > relative_offset) {
-            guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
-            block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
-            return;
-        } else if (it->relative_offset == relative_offset) {
-            guarantee(it->block_size == block_size);
-            it->index_referenced = true;
-            return;
-        } else {
-            last_back_offset = it->relative_offset + it->block_size.ser_value();
-            guarantee(last_back_offset <= relative_offset);
-            ++it;
-        }
-    }
-
-    // We reached block_infos.end(), still haven't inserted our block!
-    // We already asserted that last_back_offset <= relative_offset.
-    block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
-}
-
-std::string gc_entry_t::format_block_infos(const char *separator) const {
-    const int64_t offset = extent_ref.offset();
-    std::string ret;
-    for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-        ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
-                         it == block_infos.begin() ? "" : separator,
-                         offset + it->relative_offset, it->block_size.ser_value(),
-                         it->token_referenced ? 'T' : ' ',
-                         it->index_referenced ? 'I' : ' ');
-    }
-    return ret;
 }
 
 /* functions for gc structures */
