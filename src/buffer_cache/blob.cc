@@ -103,6 +103,8 @@ const char *leaf_node_data(const void *buf) {
     return reinterpret_cast<const char *>(buf) + sizeof(block_magic_t);
 }
 
+const size_t LEAF_NODE_DATA_OFFSET = sizeof(block_magic_t);
+
 int64_t internal_node_count(block_size_t block_size) {
     return (block_size.value() - sizeof(block_magic_t)) / sizeof(block_id_t);
 }
@@ -353,7 +355,7 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
             if (is_read_mode(mode)) {
                 leaf_buf = const_cast<void *>(buf->get_data_read());
             } else {
-                leaf_buf = buf->get_data_write(suboffset + subsize);
+                leaf_buf = buf->get_data_write(suboffset + subsize + blob::LEAF_NODE_DATA_OFFSET);
             }
 
             char *data = blob::leaf_node_data(leaf_buf);
