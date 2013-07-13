@@ -69,7 +69,6 @@ public:
     // 12288 }.  The blocks are actually [0, 4093), [4093, 8186), [8192, 12285).
     // Blocks are noncontiguous because each chunk of block writes must start at a
     // discrete device block boundary.
-    // RSI: Remove this function.
     std::vector<uint32_t> block_boundaries() const {
         guarantee(state != state_reconstructing);
 
