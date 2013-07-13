@@ -471,8 +471,6 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                     ser_block_size = token->ser_block_size();
 
                     /* mark the life */
-                    // RSI: We probably want to mark the token live here by way of
-                    // block index.
                     data_block_manager->mark_live(offset.get_value(), token->block_size());
                 } else {
                     offset = flagged_off64_t::unused();
