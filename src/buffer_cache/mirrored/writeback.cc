@@ -396,8 +396,6 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
-        // RSI: Make buf_writer_t not be an iocallback_t, since its callback is
-        // always called before do_writes returns.
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
