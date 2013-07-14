@@ -63,12 +63,8 @@ public:
         --parent->stats->pm_serializer_data_extents;
     }
 
-    // Lists the num_blocks() offsets of the blocks, followed by some upper bound for
-    // the last block that is no greater than the extent size.  For example, an
-    // extent with three blocks, each of size 4093, might return { 0, 4093, 8192,
-    // 12288 }.  The blocks are actually [0, 4093), [4093, 8186), [8192, 12285).
-    // Blocks are noncontiguous because each chunk of block writes must start at a
-    // discrete device block boundary.
+    // (To borrow Python syntax: returns [relative_offset(i) for i in range(0,
+    // num_blocks())] + [back_relative_offset()].
     std::vector<uint32_t> block_boundaries() const {
         guarantee(state != state_reconstructing);
 
@@ -82,11 +78,12 @@ public:
     }
 
     // The offset at the beginning of unused space -- the end of the last block
-    // in the extent.
+    // in the extent (rounded up to DEVICE_BLOCK_SIZE).
     uint32_t back_relative_offset() const {
         return block_infos.empty()
             ? 0
-            : block_infos.back().relative_offset + block_infos.back().block_size.ser_value();
+            : block_infos.back().relative_offset
+            + aligned_value(block_infos.back().block_size);
     }
 
     // Returns the ostensible size of the block_index'th block.  Note that
@@ -116,7 +113,6 @@ public:
     }
 
     bool new_offset(block_size_t block_size,
-                    bool align_to_device_block_size,
                     uint32_t *relative_offset_out,
                     unsigned int *block_index_out) {
         // Returns true if there's enough room at the end of the extent for the new
@@ -124,9 +120,7 @@ public:
         guarantee(state == state_active);
         guarantee(block_size.ser_value() <= parent->static_config->extent_size());
 
-        uint32_t offset = align_to_device_block_size
-            ? ceil_aligned(back_relative_offset(), DEVICE_BLOCK_SIZE)
-            : back_relative_offset();
+        uint32_t offset = back_relative_offset();
         guarantee(offset <= parent->static_config->extent_size());
 
         if (offset > parent->static_config->extent_size() - block_size.ser_value()) {
@@ -137,6 +131,10 @@ public:
             block_infos.push_back(block_info_t{offset, block_size, false, false});
             return true;
         }
+    }
+
+    static uint32_t aligned_value(block_size_t bs) {
+        return ceil_aligned(bs.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
     unsigned int num_blocks() const {
@@ -162,7 +160,7 @@ public:
         uint64_t b = parent->static_config->extent_size();
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->token_referenced || it->index_referenced) {
-                b -= it->block_size.ser_value();
+                b -= aligned_value(it->block_size);
             }
         }
         return b;
@@ -190,7 +188,7 @@ public:
         uint64_t b = 0;
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->token_referenced) {
-                b += it->block_size.ser_value();
+                b += aligned_value(it->block_size);
             }
         }
         return b;
@@ -217,7 +215,7 @@ public:
         if (it == block_infos.end()) {
             block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
         } else if (it->relative_offset > relative_offset) {
-            guarantee(it->relative_offset >= relative_offset + block_size.ser_value());
+            guarantee(it->relative_offset >= relative_offset + aligned_value(block_size));
             block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
         } else {
             guarantee(it->relative_offset == relative_offset);
@@ -241,7 +239,7 @@ public:
         uint64_t b = 0;
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->index_referenced) {
-                b += it->block_size.ser_value();
+                b += aligned_value(it->block_size);
             }
         }
         return b;
@@ -827,7 +825,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += entry->block_size(block_index).ser_value();
+        gc_stats.old_garbage_block_bytes += gc_entry_t::aligned_value(entry->block_size(block_index));
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -857,7 +855,7 @@ void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += entry->block_size(block_index).ser_value();
+        gc_stats.old_garbage_block_bytes += gc_entry_t::aligned_value(entry->block_size(block_index));
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -1055,12 +1053,12 @@ void data_block_manager_t::run_gc() {
                      ++i) {
                     if (!gc_state.current_entry->block_is_garbage(i)) {
                         const uint32_t beg
-                            = floor_aligned(gc_state.current_entry->relative_offset(i),
-                                            DEVICE_BLOCK_SIZE);
+                            = gc_state.current_entry->relative_offset(i);
+                        rassert(divides(DEVICE_BLOCK_SIZE, beg));
+
                         const uint32_t end
-                            = ceil_aligned(gc_state.current_entry->relative_offset(i)
-                                           + gc_state.current_entry->block_size(i).ser_value(),
-                                           DEVICE_BLOCK_SIZE);
+                            = gc_state.current_entry->relative_offset(i)
+                            + gc_entry_t::aligned_value(gc_state.current_entry->block_size(i));
 
                         if (beg <= current_interval_end) {
                             current_interval_end = end;
@@ -1254,15 +1252,13 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
     guarantee(active_extent->state == gc_entry_t::state_active);
 
-    bool align_to_device_block_size = true;
-
     std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
 
     std::vector<counted_t<ls_block_token_pointee_t> > tokens;
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         uint32_t relative_offset;
         unsigned int block_index;
-        if (!active_extent->new_offset(it->block_size, align_to_device_block_size,
+        if (!active_extent->new_offset(it->block_size,
                                        &relative_offset, &block_index)) {
             // Move the active_extent gc_entry_t to the young extent queue, and make a
             // new gc_entry_t.
@@ -1273,7 +1269,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
             active_extent = new gc_entry_t(this);
             ++stats->pm_serializer_data_extents_allocated;
             const bool succeeded = active_extent->new_offset(it->block_size,
-                                                             true,
                                                              &relative_offset,
                                                              &block_index);
             guarantee(succeeded);
@@ -1284,8 +1279,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
                 tokens.clear();
             }
         }
-
-        align_to_device_block_size = false;
 
         const int64_t offset = active_extent->extent_ref.offset() + relative_offset;
         active_extent->was_written = true;
