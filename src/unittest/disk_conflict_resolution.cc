@@ -32,23 +32,19 @@ struct core_action_t : public intrusive_list_node_t<core_action_t> {
     size_t count;
     int64_t offset;
 
-    bool has_begun, done;
     fd_t fd;
 
-    core_action_t() :
-        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
+    core_action_t() : fd(IRRELEVANT_DEFAULT_FD) { }
 };
 
 void debug_print(printf_buffer_t *buf,
                   const core_action_t &action) {
     buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
-                 "offset=%" PRIi64 ", has_begun=%s, done=%s, fd=%d}",
+                 "offset=%" PRIi64 ", fd=%d}",
                  action.is_read ? "true" : "false",
                  action.buf,
                  action.count,
                  action.offset,
-                 action.has_begun ? "true" : "false",
-                 action.done ? "true" : "false",
                  action.fd);
 }
 
@@ -63,6 +59,11 @@ struct test_driver_t {
     std::vector<char> data;
 
     conflict_resolving_diskmgr_t<core_action_t> conflict_resolver;
+
+    // These work because all actions are part of allocated_actions -- they have
+    // unique pointer values.
+    std::set<core_action_t *> actions_that_have_begun;
+    std::set<core_action_t *> actions_that_are_done;
 
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
@@ -89,11 +90,19 @@ struct test_driver_t {
         return ret;
     }
 
+    bool action_has_begun(core_action_t *action) const {
+        return actions_that_have_begun.find(action) != actions_that_have_begun.end();
+    }
+
+    bool action_is_done(core_action_t *action) const {
+        return actions_that_are_done.find(action) != actions_that_are_done.end();
+    }
+
     void submit_from_conflict_resolving_diskmgr(core_action_t *a) {
 
-        rassert(!a->has_begun);
-        rassert(!a->done);
-        a->has_begun = true;
+        rassert(!action_has_begun(a));
+        rassert(!action_is_done(a));
+        actions_that_have_begun.insert(a);
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
@@ -108,8 +117,10 @@ struct test_driver_t {
     }
 
     void permit(core_action_t *a) {
-        if (a->done) return;
-        rassert(a->has_begun);
+        if (action_is_done(a)) {
+            return;
+        }
+        rassert(action_has_begun(a));
         running_actions.remove(a);
 
         if (a->offset + a->count > data.size()) {
@@ -125,7 +136,7 @@ struct test_driver_t {
     }
 
     void done_from_conflict_resolving_diskmgr(core_action_t *a) {
-        a->done = true;
+        actions_that_are_done.insert(a);
     }
 };
 
@@ -150,10 +161,10 @@ struct read_test_t {
     scoped_array_t<char> buffer;
     test_driver_t::action_t *action;
     bool was_sent() {
-        return action->done || action->has_begun;
+        return driver->action_is_done(action) || driver->action_has_begun(action);
     }
     bool was_completed() {
-        return action->done;
+        return driver->action_is_done(action);
     }
     void go() {
         ASSERT_TRUE(was_sent());
@@ -188,10 +199,10 @@ struct write_test_t {
     test_driver_t::action_t *action;
 
     bool was_sent() {
-        return action->done || action->has_begun;
+        return driver->action_is_done(action) || driver->action_has_begun(action);
     }
     bool was_completed() {
-        return action->done;
+        return driver->action_is_done(action);
     }
     void go() {
         ASSERT_TRUE(was_sent());
