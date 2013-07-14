@@ -19,35 +19,22 @@ namespace unittest {
    it doesn't matter what that file descriptor is. */
 static const int IRRELEVANT_DEFAULT_FD = 0;
 
-typedef accounting_diskmgr_action_t core_action_t;
-
-void debug_print(printf_buffer_t *buf,
-                 const core_action_t &action) {
-    buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
-                 "offset=%" PRIi64 ", fd=%d}",
-                 action.get_is_read() ? "true" : "false",
-                 action.get_buf(),
-                 action.get_count(),
-                 action.get_offset(),
-                 action.get_fd());
-}
-
 struct test_driver_t {
-    typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
+    typedef conflict_resolving_diskmgr_t<accounting_diskmgr_action_t>::action_t action_t;
 
     // We avoid deallocating actions during the test to make sure that each action
     // has a unique pointer value.
     boost::ptr_vector<action_t> allocated_actions;
 
-    std::set<core_action_t *> running_actions;
+    std::set<accounting_diskmgr_action_t *> running_actions;
     std::vector<char> data;
 
-    conflict_resolving_diskmgr_t<core_action_t> conflict_resolver;
+    conflict_resolving_diskmgr_t<accounting_diskmgr_action_t> conflict_resolver;
 
     // These work because all actions are part of allocated_actions -- they have
     // unique pointer values.
-    std::set<core_action_t *> actions_that_have_begun;
-    std::set<core_action_t *> actions_that_are_done;
+    std::set<accounting_diskmgr_action_t *> actions_that_have_begun;
+    std::set<accounting_diskmgr_action_t *> actions_that_are_done;
 
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
@@ -74,15 +61,15 @@ struct test_driver_t {
         return ret;
     }
 
-    bool action_has_begun(core_action_t *action) const {
+    bool action_has_begun(accounting_diskmgr_action_t *action) const {
         return actions_that_have_begun.find(action) != actions_that_have_begun.end();
     }
 
-    bool action_is_done(core_action_t *action) const {
+    bool action_is_done(accounting_diskmgr_action_t *action) const {
         return actions_that_are_done.find(action) != actions_that_are_done.end();
     }
 
-    void submit_from_conflict_resolving_diskmgr(core_action_t *a) {
+    void submit_from_conflict_resolving_diskmgr(accounting_diskmgr_action_t *a) {
 
         rassert(!action_has_begun(a));
         rassert(!action_is_done(a));
@@ -91,7 +78,7 @@ struct test_driver_t {
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
         for (auto it = running_actions.begin(); it != running_actions.end(); ++it) {
-            core_action_t *const p = *it;
+            accounting_diskmgr_action_t *const p = *it;
             if (!(a->get_is_read() && p->get_is_read())) {
                 ASSERT_TRUE(a->get_offset() >= static_cast<int64_t>(p->get_offset() + p->get_count())
                             || p->get_offset() >= static_cast<int64_t>(a->get_offset() + a->get_count()));
@@ -102,7 +89,7 @@ struct test_driver_t {
         ASSERT_TRUE(insertion_took_place);
     }
 
-    void permit(core_action_t *a) {
+    void permit(accounting_diskmgr_action_t *a) {
         if (action_is_done(a)) {
             return;
         }
@@ -122,7 +109,7 @@ struct test_driver_t {
         conflict_resolver.done(a);
     }
 
-    void done_from_conflict_resolving_diskmgr(core_action_t *a) {
+    void done_from_conflict_resolving_diskmgr(accounting_diskmgr_action_t *a) {
         actions_that_are_done.insert(a);
     }
 };
