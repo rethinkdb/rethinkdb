@@ -19,7 +19,7 @@ namespace unittest {
    it doesn't matter what that file descriptor is. */
 static const int IRRELEVANT_DEFAULT_FD = 0;
 
-struct core_action_t : public intrusive_list_node_t<core_action_t>, public accounting_diskmgr_action_t { };
+typedef accounting_diskmgr_action_t core_action_t;
 
 void debug_print(printf_buffer_t *buf,
                  const core_action_t &action) {
@@ -39,7 +39,7 @@ struct test_driver_t {
     // has a unique pointer value.
     boost::ptr_vector<action_t> allocated_actions;
 
-    intrusive_list_t<core_action_t> running_actions;
+    std::set<core_action_t *> running_actions;
     std::vector<char> data;
 
     conflict_resolving_diskmgr_t<core_action_t> conflict_resolver;
@@ -90,14 +90,16 @@ struct test_driver_t {
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
-        for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
+        for (auto it = running_actions.begin(); it != running_actions.end(); ++it) {
+            core_action_t *const p = *it;
             if (!(a->get_is_read() && p->get_is_read())) {
                 ASSERT_TRUE(a->get_offset() >= static_cast<int64_t>(p->get_offset() + p->get_count())
                             || p->get_offset() >= static_cast<int64_t>(a->get_offset() + a->get_count()));
             }
         }
 
-        running_actions.push_back(a);
+        bool insertion_took_place = running_actions.insert(a).second;
+        ASSERT_TRUE(insertion_took_place);
     }
 
     void permit(core_action_t *a) {
@@ -105,7 +107,8 @@ struct test_driver_t {
             return;
         }
         rassert(action_has_begun(a));
-        running_actions.remove(a);
+        bool element_was_removed = running_actions.erase(a) == 1;
+        ASSERT_TRUE(element_was_removed);
 
         if (a->get_offset() + a->get_count() > data.size()) {
             data.resize(a->get_offset() + a->get_count(), 0);
