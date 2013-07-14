@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/runtime/thread_pool.hpp"
@@ -31,10 +32,11 @@ struct core_action_t : public intrusive_list_node_t<core_action_t> {
     size_t count;
     int64_t offset;
 
-    core_action_t() :
-        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
     bool has_begun, done;
     fd_t fd;
+
+    core_action_t() :
+        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
 };
 
 void debug_print(printf_buffer_t *buf,
@@ -51,12 +53,16 @@ void debug_print(printf_buffer_t *buf,
 }
 
 struct test_driver_t {
+    typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
+
+    // We avoid deallocating actions during the test to make sure that each action
+    // has a unique pointer value.
+    boost::ptr_vector<action_t> allocated_actions;
+
     intrusive_list_t<core_action_t> running_actions;
     std::vector<char> data;
 
     conflict_resolving_diskmgr_t<core_action_t> conflict_resolver;
-
-    typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
 
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
@@ -75,6 +81,12 @@ struct test_driver_t {
 
     void submit(action_t *a) {
         conflict_resolver.submit(a);
+    }
+
+    action_t *make_action() {
+        action_t *ret = new action_t;
+        allocated_actions.push_back(ret);
+        return ret;
     }
 
     void submit_from_conflict_resolving_diskmgr(core_action_t *a) {
@@ -123,29 +135,29 @@ struct read_test_t {
         driver(_driver),
         offset(o),
         expected(e),
-        buffer(expected.size())
-    {
-        action.is_read = true;
-        action.fd = 0;
-        action.buf = buffer.data();
-        action.count = expected.size();
-        action.offset = offset;
-        driver->submit(&action);
+        buffer(expected.size()),
+        action(driver->make_action()) {
+        action->is_read = true;
+        action->fd = 0;
+        action->buf = buffer.data();
+        action->count = expected.size();
+        action->offset = offset;
+        driver->submit(action);
     }
     test_driver_t *driver;
     int64_t offset;
     std::string expected;
     scoped_array_t<char> buffer;
-    test_driver_t::action_t action;
+    test_driver_t::action_t *action;
     bool was_sent() {
-        return action.done || action.has_begun;
+        return action->done || action->has_begun;
     }
     bool was_completed() {
-        return action.done;
+        return action->done;
     }
     void go() {
         ASSERT_TRUE(was_sent());
-        driver->permit(&action);
+        driver->permit(action);
         ASSERT_TRUE(was_completed());
     }
     ~read_test_t() {
@@ -160,30 +172,30 @@ struct write_test_t {
     write_test_t(test_driver_t *_driver, int64_t o, const std::string &d) :
         driver(_driver),
         offset(o),
-        data(d.begin(), d.end())
-    {
-        action.is_read = false;
-        action.fd = 0;
-        action.buf = data.data();
-        action.count = d.size();
-        action.offset = o;
-        driver->submit(&action);
+        data(d.begin(), d.end()),
+        action(driver->make_action()) {
+        action->is_read = false;
+        action->fd = 0;
+        action->buf = data.data();
+        action->count = d.size();
+        action->offset = o;
+        driver->submit(action);
     }
 
     test_driver_t *driver;
     int64_t offset;
     std::vector<char> data;
-    test_driver_t::action_t action;
+    test_driver_t::action_t *action;
 
     bool was_sent() {
-        return action.done || action.has_begun;
+        return action->done || action->has_begun;
     }
     bool was_completed() {
-        return action.done;
+        return action->done;
     }
     void go() {
         ASSERT_TRUE(was_sent());
-        driver->permit(&action);
+        driver->permit(action);
         ASSERT_TRUE(was_completed());
     }
     ~write_test_t() {
