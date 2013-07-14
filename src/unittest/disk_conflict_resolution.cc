@@ -20,7 +20,7 @@ namespace unittest {
 static const int IRRELEVANT_DEFAULT_FD = 0;
 
 struct test_driver_t {
-    typedef conflict_resolving_diskmgr_t<accounting_diskmgr_action_t>::action_t action_t;
+    typedef conflict_resolving_diskmgr_t::action_t action_t;
 
     // We avoid deallocating actions during the test to make sure that each action
     // has a unique pointer value.
@@ -29,7 +29,7 @@ struct test_driver_t {
     std::set<accounting_diskmgr_action_t *> running_actions;
     std::vector<char> data;
 
-    conflict_resolving_diskmgr_t<accounting_diskmgr_action_t> conflict_resolver;
+    conflict_resolving_diskmgr_t conflict_resolver;
 
     // These work because all actions are part of allocated_actions -- they have
     // unique pointer values.
