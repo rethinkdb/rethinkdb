@@ -6,6 +6,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
+#include "arch/io/disk/accounting.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
@@ -13,39 +14,22 @@
 
 namespace unittest {
 
-struct core_action_t : public intrusive_list_node_t<core_action_t> {
-    /* We need for multiple test_driver_t objects to share a file
-       descriptor in order to test the conflict resolution logic, but
-       it doesn't matter what that file descriptor is. */
-    static const int IRRELEVANT_DEFAULT_FD = 0;
+/* We need for multiple test_driver_t objects to share a file
+   descriptor in order to test the conflict resolution logic, but
+   it doesn't matter what that file descriptor is. */
+static const int IRRELEVANT_DEFAULT_FD = 0;
 
-    bool get_is_write() const { return !is_read; }
-    bool get_is_read() const { return is_read; }
-    fd_t get_fd() const { return fd; }
-    void *get_buf() const { return buf; }
-    size_t get_count() const { return count; }
-    int64_t get_offset() const { return offset; }
-    void set_successful_due_to_conflict() { }
-
-    bool is_read;
-    void *buf;
-    size_t count;
-    int64_t offset;
-
-    fd_t fd;
-
-    core_action_t() : fd(IRRELEVANT_DEFAULT_FD) { }
-};
+struct core_action_t : public intrusive_list_node_t<core_action_t>, public accounting_diskmgr_action_t { };
 
 void debug_print(printf_buffer_t *buf,
-                  const core_action_t &action) {
+                 const core_action_t &action) {
     buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
                  "offset=%" PRIi64 ", fd=%d}",
-                 action.is_read ? "true" : "false",
-                 action.buf,
-                 action.count,
-                 action.offset,
-                 action.fd);
+                 action.get_is_read() ? "true" : "false",
+                 action.get_buf(),
+                 action.get_count(),
+                 action.get_offset(),
+                 action.get_fd());
 }
 
 struct test_driver_t {
@@ -107,9 +91,9 @@ struct test_driver_t {
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
         for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
-            if (!(a->is_read && p->is_read)) {
-                ASSERT_TRUE(a->offset >= static_cast<int64_t>(p->offset + p->count)
-                            || p->offset >= static_cast<int64_t>(a->offset + a->count));
+            if (!(a->get_is_read() && p->get_is_read())) {
+                ASSERT_TRUE(a->get_offset() >= static_cast<int64_t>(p->get_offset() + p->get_count())
+                            || p->get_offset() >= static_cast<int64_t>(a->get_offset() + a->get_count()));
             }
         }
 
@@ -123,13 +107,13 @@ struct test_driver_t {
         rassert(action_has_begun(a));
         running_actions.remove(a);
 
-        if (a->offset + a->count > data.size()) {
-            data.resize(a->offset + a->count, 0);
+        if (a->get_offset() + a->get_count() > data.size()) {
+            data.resize(a->get_offset() + a->get_count(), 0);
         }
-        if (a->is_read) {
-            memcpy(a->buf, data.data() + a->offset, a->count);
+        if (a->get_is_read()) {
+            memcpy(a->get_buf(), data.data() + a->get_offset(), a->get_count());
         } else {
-            memcpy(data.data() + a->offset, a->buf, a->count);
+            memcpy(data.data() + a->get_offset(), a->get_buf(), a->get_count());
         }
 
         conflict_resolver.done(a);
@@ -148,11 +132,7 @@ struct read_test_t {
         expected(e),
         buffer(expected.size()),
         action(driver->make_action()) {
-        action->is_read = true;
-        action->fd = 0;
-        action->buf = buffer.data();
-        action->count = expected.size();
-        action->offset = offset;
+        action->make_read(IRRELEVANT_DEFAULT_FD, buffer.data(), expected.size(), offset);
         driver->submit(action);
     }
     test_driver_t *driver;
@@ -185,11 +165,7 @@ struct write_test_t {
         offset(o),
         data(d.begin(), d.end()),
         action(driver->make_action()) {
-        action->is_read = false;
-        action->fd = 0;
-        action->buf = data.data();
-        action->count = d.size();
-        action->offset = o;
+        action->make_write(IRRELEVANT_DEFAULT_FD, data.data(), d.size(), o, false);
         driver->submit(action);
     }
 
