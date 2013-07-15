@@ -194,14 +194,32 @@ tests:
     py: tbl.filter({'id':0}).eq_join('id', tbl)
     js: tbl.filter({'id':0}).eqJoin('id', tbl)
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
+  - rb: tbl.filter({:id => 0}).eq_join(lambda{|x| x[:id]}, tbl)
+    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl)"
+    js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl)
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :id)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='id')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'id'})
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
+  - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :id)
+    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl, index='id')"
+    js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'id'})
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :idi)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='idi')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'idi'})
     ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
+  - rb: tbl.filter({:id => 0}).eq_join(lambda {|x| x[:id]}, tbl, :index => :idi)
+    py: "tbl.filter({'id':0}).eq_join(lambda x: x['id'], tbl, index='idi')"
+    js: tbl.filter({'id':0}).eqJoin(function (x) { return x('id'); }, tbl, {index:'idi'})
+    ot: ([{'left':{'a':0,'b':0,'c':0,'id':0},'right':{'a':0,'b':0,'c':0,'id':0}}])
+
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl, :index => :ai).orderby(:right)
     py: tbl.filter({'id':0}).eq_join('id', tbl, index='ai').order_by('right')
     js: tbl.filter({'id':0}).eqJoin('id', tbl, {index:'ai'}).orderBy('right')
