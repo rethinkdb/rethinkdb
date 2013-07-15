@@ -59,16 +59,19 @@ class extent_zone_t {
     segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
 
     int64_t free_list_head;
+
+    file_t *const dbfile;
+
 private:
     int held_extents_;
+
 public:
     int held_extents() const {
         return held_extents_;
     }
 
-public:
-    extent_zone_t(size_t _extent_size)
-        : extent_size(_extent_size), held_extents_(0) { }
+    extent_zone_t(file_t *_dbfile, size_t _extent_size)
+        : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) { }
 
     extent_reference_t reserve_extent(int64_t extent) {
         unsigned int id = offset_to_id(extent);
@@ -114,10 +117,14 @@ public:
         extent_info_t *info = &extents[offset_to_id(extent)];
         info->set_state(extent_info_t::state_in_use);
 
+        extent_reference_t extent_ref = make_extent_reference(extent);
+
+        dbfile->set_size_at_least(extent + extent_size);
+
         return make_extent_reference(extent);
     }
 
-    extent_reference_t make_extent_reference(int64_t extent) {
+    extent_reference_t make_extent_reference(const int64_t extent) {
         unsigned int id = offset_to_id(extent);
         guarantee(id < extents.get_size());
         extent_info_t *info = &extents[id];
@@ -145,10 +152,10 @@ extent_manager_t::extent_manager_t(file_t *file,
                                    const log_serializer_on_disk_static_config_t *static_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
-      dbfile(file), state(state_reserving_extents) {
+      state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    zone.init(new extent_zone_t(extent_size));
+    zone.init(new extent_zone_t(file, extent_size));
 }
 
 extent_manager_t::~extent_manager_t() {
@@ -202,12 +209,7 @@ extent_reference_t extent_manager_t::gen_extent() {
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
-    extent_reference_t extent_ref = zone->gen_extent();
-
-    /* In case we are not on a block device */
-    dbfile->set_size_at_least(extent_ref.offset() + extent_size);
-
-    return extent_ref;
+    return zone->gen_extent();
 }
 
 extent_reference_t
