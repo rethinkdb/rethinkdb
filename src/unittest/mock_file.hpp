@@ -28,6 +28,9 @@ public:
     void write_async(size_t offset, size_t length, const void *buf,
                      file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
+    void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                      file_account_t *account, linux_iocallback_t *cb);
+
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);

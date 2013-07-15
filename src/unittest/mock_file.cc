@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/mock_file.hpp"
 
+#include <sys/uio.h>
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -38,6 +39,16 @@ void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
     // TODO: This is to silence the serializer disk_structure.cc reader_t
     // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
+}
+
+void mock_file_t::writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                               file_account_t *account, linux_iocallback_t *cb) {
+    scoped_array_t<char> buf(length);
+
+    iovec bufvec[1] = { { buf.data(), length } };
+    fill_bufs_from_source(bufvec, 1, bufs.data(), bufs.size(), 0);
+
+    write_async(offset, length, buf.data(), account, cb, NO_DATASYNCS);
 }
 
 void mock_file_t::read_blocking(size_t offset, size_t length, void *buf) {

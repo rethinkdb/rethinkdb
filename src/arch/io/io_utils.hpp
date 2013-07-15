@@ -4,6 +4,8 @@
 
 #include "arch/runtime/runtime_utils.hpp"
 
+struct iovec;
+
 // Thanks glibc for not providing a wrapper for this syscall :(
 int _gettid();
 
@@ -49,5 +51,11 @@ private:
     fd_t fd;
     DISABLE_COPYING(scoped_fd_t);
 };
+
+
+void fill_bufs_from_source(iovec *dest_vecs, const size_t dest_size,
+                           iovec *source_vecs, const size_t source_size,
+                           const size_t offset_into_source);
+
 
 #endif /* ARCH_IO_IO_UTILS_HPP_ */

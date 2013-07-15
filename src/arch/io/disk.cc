@@ -26,7 +26,9 @@
 
 using namespace std::placeholders;  // for _1, _2, ...
 
-// TODO: If two files are on the same disk, should they share part of the IO stack?
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length,
+                                DEBUG_VAR const scoped_array_t<iovec> &bufs);
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
    conflicts, and actually sending them to the disk. */
@@ -90,13 +92,29 @@ public:
         stack_stats.submit(a);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb,
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
+                      void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
         int calling_thread = get_thread_id();
 
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
-        a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
+        a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
+        a->cb = cb;
+        a->cb_thread = calling_thread;
+
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
+    }
+
+    void submit_writev(fd_t fd, scoped_array_t<iovec> &&bufs, size_t count,
+                       size_t offset, void *account, linux_iocallback_t *cb) {
+        int calling_thread = get_thread_id();
+
+        action_t *a = new action_t;
+        a->make_writev(fd, std::move(bufs), count, offset);
+        a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
 
@@ -221,12 +239,24 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
                                file_account_t *account, linux_iocallback_t *callback,
                                wrap_in_datasyncs_t wrap_in_datasyncs) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
-
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
                           account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
                           callback,
                           wrap_in_datasyncs == WRAP_IN_DATASYNCS);
+}
+
+void linux_file_t::writev_async(size_t offset, size_t length,
+                                scoped_array_t<iovec> &&bufs,
+                                file_account_t *account, linux_iocallback_t *callback) {
+    rassert(diskmgr != NULL,
+            "No diskmgr has been constructed (are we running without an event queue?)");
+    verify_aligned_file_access(file_size, offset, length, bufs);
+    diskmgr->submit_writev(fd.get(), std::move(bufs), length, offset,
+                           account == DEFAULT_DISK_ACCOUNT
+                           ? default_account->get_account()
+                           : account->get_account(),
+                           callback);
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
@@ -271,10 +301,29 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length,
+                                DEBUG_VAR const scoped_array_t<iovec> &bufs) {
+#ifndef NDEBUG
+    rassert(offset + length <= file_size);
+    rassert(divides(DEVICE_BLOCK_SIZE, offset));
+    rassert(divides(DEVICE_BLOCK_SIZE, length));
+
+    size_t sum = 0;
+    for (size_t i = 0; i < bufs.size(); ++i) {
+        rassert(divides(DEVICE_BLOCK_SIZE, bufs[i].iov_len));
+        rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(bufs[i].iov_base)));
+        sum += bufs[i].iov_len;
+    }
+    rassert(sum == length);
+#endif  // NDEBUG
+}
+
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-    rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
+    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }

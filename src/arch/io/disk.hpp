@@ -16,7 +16,7 @@
 // queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
 #define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
 
-
+struct iovec;
 
 class linux_iocallback_t;
 
@@ -64,6 +64,9 @@ public:
     void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
 
+    void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                      file_account_t *account, linux_iocallback_t *cb);
+
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
 
@@ -105,7 +108,7 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
-void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
+void verify_aligned_file_access(size_t file_size, int64_t offset, size_t length, const void *buf);
 
 // Makes blocking syscalls.  Upon error, returns the errno value.
 int perform_datasync(fd_t fd);

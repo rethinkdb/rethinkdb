@@ -16,11 +16,10 @@ int blocker_pool_queue_depth(int max_concurrent_io_requests) {
 
 void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action) {
-    buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
+    buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, count=%zu, "
                  "offset=%" PRIi64 ", errno=%d}",
                  action.get_is_read() ? "true" : "false",
                  action.get_fd(),
-                 action.get_buf(),
                  action.get_count(),
                  action.get_offset(),
                  action.get_succeeded() ? 0 : action.get_errno());
@@ -51,21 +50,38 @@ void pool_diskmgr_t::action_t::run() {
         }
     }
 
-    ssize_t res;
-    do {
-        if (is_read) {
-            res = pread(fd, buf, count, offset);
-        } else {
-            res = pwrite(fd, buf, count, offset);
-        }
-    } while (res == -1 && errno == EINTR);
+    ssize_t sum = 0;
+    {
+        iovec *vecs;
+        size_t vecs_len;
+        get_bufs(&vecs, &vecs_len);
+#ifdef __linux__
+        const size_t vecs_increment = IOV_MAX;
+#else
+        const size_t vecs_increment = UIO_MAXIOV;
+#endif
+        size_t len;
+        for (size_t i = 0; i < vecs_len; i += len) {
+            len = std::min(vecs_increment, vecs_len - i);
+            ssize_t res;
+            do {
+                if (is_read) {
+                    res = preadv(fd, vecs + i, len, offset);
+                } else {
+                    res = pwritev(fd, vecs + i, len, offset);
+                }
+            } while (res == -1 && errno == EINTR);
 
-    if (res == -1) {
-        io_result = -errno;
-        return;
+            if (res == -1) {
+                io_result = -errno;
+                return;
+            }
+
+            sum += res;
+        }
     }
 
-    io_result = res;
+    io_result = sum;
 
     if (wrap_in_datasyncs) {
         int errcode = perform_datasync(fd);

@@ -2,6 +2,8 @@
 #ifndef ARCH_IO_DISK_POOL_HPP_
 #define ARCH_IO_DISK_POOL_HPP_
 
+#include <sys/uio.h>
+
 #include <string>
 
 #include "errors.hpp"
@@ -10,8 +12,10 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
 #include "concurrency/queue/passive_producer.hpp"
+#include "containers/scoped.hpp"
 
 
+struct iovec;
 class pool_diskmgr_t;
 
 /* The pool disk manager uses a thread pool in conjunction with synchronous
@@ -21,38 +25,58 @@ struct pool_diskmgr_action_t
     : private blocker_pool_t::job_t {
     pool_diskmgr_action_t() { }
 
-    void make_write(fd_t f, const void *b, size_t c, int64_t o,
+    void make_write(fd_t _fd, const void *_buf, size_t _count, int64_t _offset,
                     bool _wrap_in_datasyncs) {
         is_read = false;
         wrap_in_datasyncs = _wrap_in_datasyncs;
-        fd = f;
-        buf = const_cast<void *>(b);
-        count = c;
-        offset = o;
+        fd = _fd;
+        buf_and_count.iov_base = const_cast<void *>(_buf);
+        buf_and_count.iov_len = _count;
+        offset = _offset;
     }
-    void make_read(fd_t f, void *b, size_t c, int64_t o) {
+
+    void make_writev(fd_t _fd, scoped_array_t<iovec> &&_bufs, size_t _count, int64_t _offset) {
+        is_read = false;
+        wrap_in_datasyncs = false;
+        fd = _fd;
+        iovecs = std::move(_bufs);
+        buf_and_count.iov_base = NULL;
+        buf_and_count.iov_len = _count;
+        offset = _offset;
+    }
+
+    void make_read(fd_t _fd, void *_buf, size_t _count, int64_t _offset) {
         is_read = true;
         wrap_in_datasyncs = false;
-        fd = f;
-        buf = b;
-        count = c;
-        offset = o;
+        fd = _fd;
+        buf_and_count.iov_base = _buf;
+        buf_and_count.iov_len = _count;
+        offset = _offset;
     }
 
     bool get_is_write() const { return !is_read; }
     bool get_is_read() const { return is_read; }
     fd_t get_fd() const { return fd; }
-    void *get_buf() const { return buf; }
-    size_t get_count() const { return count; }
+    void get_bufs(iovec **iovecs_out, size_t *iovecs_len_out) {
+        if (buf_and_count.iov_base != NULL) {
+            *iovecs_out = &buf_and_count;
+            *iovecs_len_out = 1;
+        } else {
+            *iovecs_out = iovecs.data();
+            *iovecs_len_out = iovecs.size();
+        }
+    }
+    size_t get_count() const { return buf_and_count.iov_len; }
     int64_t get_offset() const { return offset; }
 
-    void set_successful_due_to_conflict() { io_result = count; }
-    bool get_succeeded() const { return io_result == static_cast<int64_t>(count); }
+    void set_successful_due_to_conflict() { io_result = get_count(); }
+    bool get_succeeded() const { return io_result == static_cast<int64_t>(get_count()); }
     int get_errno() const {
         rassert(io_result < 0);
         return -io_result;
     }
 
+    // RSI: Does anybody actually use backtrace?
     std::string backtrace;
 
 private:
@@ -62,8 +86,13 @@ private:
     bool is_read;
     bool wrap_in_datasyncs;
     fd_t fd;
-    void *buf;
-    size_t count;
+
+    // Either buf_and_count.iov_base is used, or iovecs is used (for writev).  If
+    // iovecs is used, then buf_and_count.iov_len is the sum of the iovecs' iov_len
+    // fields.  Currently readv is not supported, but if you need it, it should be
+    // easy to add.
+    scoped_array_t<iovec> iovecs;
+    iovec buf_and_count;
     int64_t offset;
 
     int64_t io_result;
