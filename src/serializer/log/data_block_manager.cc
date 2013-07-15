@@ -2,6 +2,8 @@
 #define __STDC_FORMAT_MACROS
 #include "serializer/log/data_block_manager.hpp"
 
+#include <sys/uio.h>
+
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
@@ -683,58 +685,49 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         }
 
         size_t ops_remaining;
-        scoped_array_t<scoped_malloc_t<char> > bufs;
         iocallback_t *cb;
     };
 
     intermediate_cb_t *const intermediate_cb = new intermediate_cb_t;
     intermediate_cb->ops_remaining = token_groups.size();
-    intermediate_cb->bufs.init(token_groups.size());
     intermediate_cb->cb = cb;
 
     size_t write_number = 0;
     for (size_t i = 0; i < token_groups.size(); ++i) {
+
         const int64_t front_offset = token_groups[i].front()->offset();
         const int64_t back_offset = token_groups[i].back()->offset()
-            + token_groups[i].back()->ser_block_size();
+            + gc_entry_t::aligned_value(token_groups[i].back()->block_size());
 
         guarantee(divides(DEVICE_BLOCK_SIZE, front_offset));
 
-        const int64_t write_size = ceil_aligned(back_offset - front_offset,
-                                                DEVICE_BLOCK_SIZE);
+        const int64_t write_size = back_offset - front_offset;
 
-        scoped_malloc_t<char> buf(malloc_aligned(write_size, DEVICE_BLOCK_SIZE));
+        scoped_array_t<iovec> iovecs(token_groups[i].size());
 
-        // Used to zero out unused portions of the buf, so that we don't write
-        // undefined data (arbitrary contents of memory) to disk.
         int64_t last_written_offset = front_offset;
 
-        for (auto it = token_groups[i].begin(); it != token_groups[i].end(); ++it) {
-            const int64_t it_offset = (*it)->offset();
-            const block_size_t it_block_size = (*it)->block_size();
-            guarantee(it_offset >= last_written_offset);
+        for (size_t j = 0; j < token_groups[i].size(); ++j) {
+            const int64_t j_offset = token_groups[i][j]->offset();
+            const block_size_t j_block_size = token_groups[i][j]->block_size();
+            guarantee(j_offset == last_written_offset);
+            const size_t j_aligned_size = gc_entry_t::aligned_value(j_block_size);
 
             // The behavior of gimme_some_new_offsets is supposed to retain order, so
             // we expect writes[write_number] to have the currently-relevant write.
-            guarantee(writes[write_number].block_size == it_block_size);
+            guarantee(writes[write_number].block_size == j_block_size);
 
-            memset(buf.get() + (last_written_offset - front_offset), 0,
-                   it_offset - last_written_offset);
-            memcpy(buf.get() + (it_offset - front_offset), writes[write_number].buf,
-                   it_block_size.ser_value());
-
-            last_written_offset = it_offset + it_block_size.ser_value();
+            iovecs[j].iov_base = writes[write_number].buf;
+            iovecs[j].iov_len = j_aligned_size;
+            last_written_offset = j_offset + j_aligned_size;
 
             ++write_number;
         }
 
-        memset(buf.get() + (last_written_offset - front_offset), 0,
-               write_size - (last_written_offset - front_offset));
+        guarantee(last_written_offset == back_offset);
 
-        dbfile->write_async(front_offset, write_size,
-                            buf.get(), io_account, intermediate_cb, file_t::NO_DATASYNCS);
-
-        intermediate_cb->bufs[i] = std::move(buf);
+        dbfile->writev_async(front_offset, write_size,
+                             std::move(iovecs), io_account, intermediate_cb);
     }
 
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
