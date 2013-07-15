@@ -44,7 +44,7 @@ public:
 class extent_zone_t {
     const size_t extent_size;
 
-    unsigned int offset_to_id(int64_t extent) {
+    unsigned int offset_to_id(int64_t extent) const {
         rassert(divides(extent_size, extent));
         return extent / extent_size;
     }
