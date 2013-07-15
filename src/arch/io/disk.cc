@@ -108,6 +108,9 @@ public:
                                a));
     }
 
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
     void submit_writev(fd_t fd, scoped_array_t<iovec> &&bufs, size_t count,
                        size_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
@@ -122,6 +125,7 @@ public:
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
                                a));
     }
+#endif  // USE_WRITEV
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
@@ -252,11 +256,56 @@ void linux_file_t::writev_async(size_t offset, size_t length,
     rassert(diskmgr != NULL,
             "No diskmgr has been constructed (are we running without an event queue?)");
     verify_aligned_file_access(file_size, offset, length, bufs);
+
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
     diskmgr->submit_writev(fd.get(), std::move(bufs), length, offset,
                            account == DEFAULT_DISK_ACCOUNT
                            ? default_account->get_account()
                            : account->get_account(),
                            callback);
+#else  // USE_WRITEV
+    // OS X doesn't have pwritev.  Using lseek followed by a writev would
+    // require adding a mutex for OS X.  We simply break up the writes into
+    // separate write calls.
+
+    struct intermediate_cb_t : public linux_iocallback_t {
+        void on_io_complete() {
+            guarantee(refcount > 0);
+            --refcount;
+            if (refcount == 0) {
+                linux_iocallback_t *local_cb = cb;
+                delete this;
+                local_cb->on_io_complete();
+            }
+        }
+
+        size_t refcount;
+        linux_iocallback_t *cb;
+    };
+
+    intermediate_cb_t *intermediate_cb = new intermediate_cb_t;
+    // Hold a refcount while we launch writes.
+    intermediate_cb->refcount = 1;
+    intermediate_cb->cb = callback;
+
+    int64_t partial_offset = offset;
+    for (size_t i = 0; i < bufs.size(); ++i) {
+        diskmgr->submit_write(fd.get(), bufs[i].iov_base, bufs[i].iov_len,
+                              partial_offset, account == DEFAULT_DISK_ACCOUNT
+                              ? default_account->get_account()
+                              : account->get_account(),
+                              intermediate_cb,
+                              false);
+        partial_offset += bufs[i].iov_len;
+    }
+    guarantee(partial_offset - offset == length);
+
+    // Release its refcount.
+    intermediate_cb->on_io_complete();
+#endif  // USE_WRITEV
+
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {

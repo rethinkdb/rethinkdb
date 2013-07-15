@@ -2,6 +2,9 @@
 #include "arch/io/disk/pool.hpp"
 
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
@@ -55,20 +58,20 @@ void pool_diskmgr_t::action_t::run() {
         iovec *vecs;
         size_t vecs_len;
         get_bufs(&vecs, &vecs_len);
-#ifdef __linux__
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
         const size_t vecs_increment = IOV_MAX;
-#else
-        const size_t vecs_increment = UIO_MAXIOV;
-#endif
         size_t len;
+        int64_t partial_offset = offset;
         for (size_t i = 0; i < vecs_len; i += len) {
             len = std::min(vecs_increment, vecs_len - i);
             ssize_t res;
             do {
                 if (is_read) {
-                    res = preadv(fd, vecs + i, len, offset);
+                    res = preadv(fd, vecs + i, len, partial_offset);
                 } else {
-                    res = pwritev(fd, vecs + i, len, offset);
+                    res = pwritev(fd, vecs + i, len, partial_offset);
                 }
             } while (res == -1 && errno == EINTR);
 
@@ -77,8 +80,33 @@ void pool_diskmgr_t::action_t::run() {
                 return;
             }
 
+            int64_t lensum = 0;
+            for (size_t j = i; j < i + len; ++j) {
+                lensum += vecs[j].iov_len;
+            }
+            guarantee(lensum == res);
+
+            partial_offset += lensum;
             sum += res;
         }
+#else  // USE_WRITEV
+        guarantee(vecs_len == 1);
+        ssize_t res;
+        do {
+            if (is_read) {
+                res = pread(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
+            } else {
+                res = pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
+            }
+        } while (res == -1 && errno == EINTR);
+
+        if (res == -1) {
+            io_result = -errno;
+            return;
+        }
+
+        sum = res;
+#endif  // USE_WRITEV
     }
 
     io_result = sum;

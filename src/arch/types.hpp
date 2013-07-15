@@ -120,6 +120,7 @@ public:
     virtual void write_async(size_t offset, size_t length, const void *buf,
                              file_account_t *account, linux_iocallback_t *cb,
                              wrap_in_datasyncs_t wrap_in_datasyncs) = 0;
+    // writev_async doesn't provide the atomicity guarantees of writev.
     virtual void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                               file_account_t *account, linux_iocallback_t *cb) = 0;
 

@@ -14,6 +14,11 @@
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/scoped.hpp"
 
+#ifdef __MACH__
+#define USE_WRITEV 0
+#else
+#define USE_WRITEV 1
+#endif
 
 struct iovec;
 class pool_diskmgr_t;
@@ -35,6 +40,9 @@ struct pool_diskmgr_action_t
         offset = _offset;
     }
 
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined... but we are in pool.hpp.  Where is it?"
+#elif USE_WRITEV
     void make_writev(fd_t _fd, scoped_array_t<iovec> &&_bufs, size_t _count, int64_t _offset) {
         is_read = false;
         wrap_in_datasyncs = false;
@@ -44,6 +52,7 @@ struct pool_diskmgr_action_t
         buf_and_count.iov_len = _count;
         offset = _offset;
     }
+#endif
 
     void make_read(fd_t _fd, void *_buf, size_t _count, int64_t _offset) {
         is_read = true;
