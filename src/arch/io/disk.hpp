@@ -24,7 +24,7 @@ class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
+    explicit io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
 

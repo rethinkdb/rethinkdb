@@ -1,8 +1,9 @@
 #include "rdb_protocol/terms/terms.hpp"
 
+#include <re2/re2.h>
+
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
-#include <re2/re2.h>
 
 namespace ql {
 

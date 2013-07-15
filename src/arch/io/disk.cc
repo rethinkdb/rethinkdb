@@ -24,7 +24,7 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...
+using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 

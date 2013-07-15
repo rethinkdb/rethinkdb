@@ -63,10 +63,10 @@ public:
 
     // These construct a datum from an equivalent representation.
     datum_t();
-    datum_t(const Datum *d);
+    explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
-    datum_t(cJSON *json);
-    datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(cJSON *json);
+    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
 
     ~datum_t();
 
