@@ -290,8 +290,6 @@ private:
     // Regression test - these magic numbers caused failures previously.
     void special_4161600_prepend_12484801_test(cache_t *cache) {
         SCOPED_TRACE("special_4080_prepend_4081_test");
-        block_size_t block_size = cache->get_block_size();
-
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                           order_source.check_in("special_4161600_prepend_12484801_test"), WRITE_DURABILITY_SOFT);
