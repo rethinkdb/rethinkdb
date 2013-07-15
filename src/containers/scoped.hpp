@@ -116,11 +116,11 @@ template <class T>
 class scoped_array_t {
 public:
     scoped_array_t() : ptr_(NULL), size_(0) { }
-    explicit scoped_array_t(ssize_t n) : ptr_(NULL), size_(0) {
+    explicit scoped_array_t(size_t n) : ptr_(NULL), size_(0) {
         init(n);
     }
 
-    scoped_array_t(T *ptr, ssize_t size) : ptr_(NULL), size_(0) {
+    scoped_array_t(T *ptr, size_t size) : ptr_(NULL), size_(0) {
         init(ptr, size);
     }
 
@@ -139,16 +139,14 @@ public:
         return *this;
     }
 
-    void init(ssize_t n) {
+    void init(size_t n) {
         rassert(ptr_ == NULL);
-        rassert(n >= 0);
-
         ptr_ = new T[n];
         size_ = n;
     }
 
     // The opposite of release.
-    void init(T *ptr, ssize_t size) {
+    void init(T *ptr, size_t size) {
         rassert(ptr != NULL);
         rassert(ptr_ == NULL);
         rassert(size >= 0);
@@ -164,7 +162,7 @@ public:
         delete[] tmp;
     }
 
-    MUST_USE T *release(ssize_t *size_out) {
+    MUST_USE T *release(size_t *size_out) {
         *size_out = size_;
         T *tmp = ptr_;
         ptr_ = NULL;
@@ -174,7 +172,7 @@ public:
 
     void swap(scoped_array_t &other) {
         T *tmp = ptr_;
-        ssize_t tmpsize = size_;
+        size_t tmpsize = size_;
         ptr_ = other.ptr_;
         size_ = other.size_;
         other.ptr_ = tmp;
@@ -183,7 +181,7 @@ public:
 
 
 
-    T& operator[](ssize_t i) const {
+    T& operator[](size_t i) const {
         rassert(ptr_);
         rassert(0 <= i && i < size_);
         return ptr_[i];
@@ -194,7 +192,7 @@ public:
         return ptr_;
     }
 
-    ssize_t size() const {
+    size_t size() const {
         rassert(ptr_);
         return size_;
     }
@@ -205,7 +203,7 @@ public:
 
 private:
     T *ptr_;
-    ssize_t size_;
+    size_t size_;
 
     DISABLE_COPYING(scoped_array_t);
 };

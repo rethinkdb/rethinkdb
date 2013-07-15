@@ -85,7 +85,7 @@ public:
           machines_view_(machines_view),
           namespaces_view_(namespaces_view),
           per_thread_info_(get_num_db_threads()) {
-        for (ssize_t i = 0; i < per_thread_info_.size(); ++i) {
+        for (size_t i = 0; i < per_thread_info_.size(); ++i) {
             per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
         }
     }
