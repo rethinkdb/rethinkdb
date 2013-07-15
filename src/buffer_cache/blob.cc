@@ -595,25 +595,27 @@ bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64
         blob::shrink(bs, levels, offset, size, i, &suboffset, &subsize);
         scoped_malloc_t<char> block;
         if (!getter->get_block(ids[i], &block)) {
-            *msg_out = strprintf("could not read block %u", ids[i]);
+            *msg_out = strprintf("could not read block %" PR_BLOCK_ID, ids[i]);
             return false;
         }
 
         block_magic_t m = *reinterpret_cast<block_magic_t *>(block.get());
         if (levels == 1) {
             if (m != leaf_node_magic) {
-                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %" PR_BLOCK_ID ": bad leaf magic: '%.*s'",
+                                     ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
         } else {
             if (m != internal_node_magic) {
-                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
+                *msg_out = strprintf("in block %" PR_BLOCK_ID ": bad internal magic: '%.*s'",
+                                     ids[i], static_cast<int>(sizeof(block_magic_t)), m.bytes);
                 return false;
             }
 
             std::string tmp_msg;
             if (!deep_fsck_region(getter, bs, levels - 1, suboffset, subsize, internal_node_block_ids(block.get()), &tmp_msg)) {
-                *msg_out = strprintf("in block %u: %s", ids[i], tmp_msg.c_str());
+                *msg_out = strprintf("in block %" PR_BLOCK_ID ": %s", ids[i], tmp_msg.c_str());
                 return false;
             }
         }

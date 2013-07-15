@@ -15,9 +15,10 @@ TEST(SizeofTest, Sizes) {
 }
 
 TEST(SizeofTest, SerBuffer) {
-    EXPECT_EQ(12u, sizeof(ls_buf_data_t));
-    EXPECT_EQ(12u, sizeof(ser_buffer_t));
-    EXPECT_EQ(12u, offsetof(ser_buffer_t, cache_data));
+    // RSI: Changes made for new sizeof(block_id_t).
+    EXPECT_EQ(16u, sizeof(ls_buf_data_t));
+    EXPECT_EQ(16u, sizeof(ser_buffer_t));
+    EXPECT_EQ(16u, offsetof(ser_buffer_t, cache_data));
 }
 
 

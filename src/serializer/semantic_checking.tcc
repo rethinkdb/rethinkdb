@@ -111,7 +111,9 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 #ifdef SERIALIZER_DEBUG_PRINT
             printf("Read %u: %u\n", token->block_id, actual_crc);
 #endif
-            guarantee(expected->crc == actual_crc, "Serializer returned bad value for block ID %u", token->block_id);
+            guarantee(expected->crc == actual_crc,
+                      "Serializer returned bad value for block ID %" PR_BLOCK_ID,
+                      token->block_id);
             break;
         }
 
@@ -152,7 +154,9 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
 
                 info = token->info;
                 guarantee(token->block_id == op.block_id,
-                          "indexing token with block id %u under block id %u", token->block_id, op.block_id);
+                          "indexing token with block id %" PR_BLOCK_ID
+                          " under block id %" PR_BLOCK_ID,
+                          token->block_id, op.block_id);
             } else {
                 info.state = scs_block_info_t::state_deleted;
             }
@@ -218,7 +222,8 @@ get_delete_bit(block_id_t id) {
     // If we know what the state is, it should be consistent with the delete bit.
     if (state != scs_block_info_t::state_unknown)
         guarantee(bit == (state == scs_block_info_t::state_deleted),
-                  "serializer returned incorrect delete bit for block id %u", id);
+                  "serializer returned incorrect delete bit for block id %" PR_BLOCK_ID,
+                  id);
     return bit;
 }
 

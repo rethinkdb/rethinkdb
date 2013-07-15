@@ -87,7 +87,7 @@ struct lba_entry_t {
     // so, be sure to make lba entries backwards compatiblizable for now.  (We could
     // in the future use this value being non-zero to mean the lba entry is a
     // new-style entry.)
-    uint64_t zero2;
+    uint32_t zero2;
 
     repli_timestamp_t recency;
     // An offset into the file, with is_delete set appropriately.
