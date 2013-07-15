@@ -65,9 +65,13 @@ private:
 
     counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        lhs->check_type(datum_t::R_NUM);
-        rhs->check_type(datum_t::R_NUM);
-        return make_counted<datum_t>(lhs->as_num() - rhs->as_num());
+        if (lhs->is_pseudo_type(pseudo::time_string)) {
+            return pseudo::time_sub(lhs, rhs);
+        } else {
+            lhs->check_type(datum_t::R_NUM);
+            rhs->check_type(datum_t::R_NUM);
+            return make_counted<datum_t>(lhs->as_num() - rhs->as_num());
+        }
     }
     counted_t<const datum_t> mul(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
