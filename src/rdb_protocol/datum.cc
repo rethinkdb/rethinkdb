@@ -166,7 +166,7 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
 datum_t::type_t datum_t::get_type() const { return type; }
 
 bool datum_t::is_pseudo_type() const {
-    return std_contains(as_object(), reql_type_string);
+    return type == R_OBJECT && std_contains(*r_object, reql_type_string);
 }
 
 bool datum_t::is_pseudo_type(const std::string &reql_type) const {

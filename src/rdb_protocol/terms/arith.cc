@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "rdb_protocol/op.hpp"
+#include "rdb_protocol/time.hpp"
 
 namespace ql {
 
@@ -34,7 +35,10 @@ public:
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        if (lhs->get_type() == datum_t::R_NUM) {
+        if (lhs->is_pseudo_type(pseudo::time_string) ||
+            rhs->is_pseudo_type(pseudo::time_string)) {
+            return pseudo::time_add(lhs, rhs);
+        } else if (lhs->get_type() == datum_t::R_NUM) {
             rhs->check_type(datum_t::R_NUM);
             return make_counted<datum_t>(lhs->as_num() + rhs->as_num());
         } else if (lhs->get_type() == datum_t::R_STR) {
