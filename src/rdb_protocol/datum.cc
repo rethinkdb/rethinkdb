@@ -169,6 +169,10 @@ bool datum_t::is_pseudo_type() const {
     return std_contains(as_object(), reql_type_string);
 }
 
+bool datum_t::is_pseudo_type(const std::string &reql_type) const {
+    return is_pseudo_type() && get_reql_type() == reql_type;
+}
+
 std::string datum_t::get_reql_type() const {
     r_sanity_check(get_type() == R_OBJECT);
     auto maybe_reql_type = r_object->find(reql_type_string);

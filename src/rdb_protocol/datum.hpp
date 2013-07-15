@@ -81,6 +81,7 @@ public:
 
     type_t get_type() const;
     bool is_pseudo_type() const;
+    bool is_pseudo_type(const std::string &reql_type) const;
     std::string get_reql_type() const;
     std::string get_type_name() const;
     std::string print() const;
