@@ -2,7 +2,11 @@
 #ifndef SERIALIZER_TYPES_HPP_
 #define SERIALIZER_TYPES_HPP_
 
-#include <stdint.h>
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
+#include <inttypes.h>
 #include <time.h>
 
 #include <algorithm>
@@ -14,8 +18,10 @@
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
-typedef uint32_t block_id_t;
+typedef uint64_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
+
+#define PR_BLOCK_ID PRIu64
 
 /* Each time we write a block to disk, that block receives a new unique block sequence id */
 typedef uint64_t block_sequence_id_t;
