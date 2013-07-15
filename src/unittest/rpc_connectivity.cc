@@ -218,7 +218,7 @@ void run_get_peers_list_test() {
         /* Make sure `get_peers_list()` correctly notices that a peer connects */
         std::set<peer_id_t> list_2 = c1.get_peers_list();
         ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
-        EXPECT_EQ(cr2.get_port(), c1.get_peer_address(c2.get_me()).all_addrs().begin()->port);
+        EXPECT_EQ(cr2.get_port(), c1.get_peer_address(c2.get_me()).get_ips().begin()->port);
 
         /* `c2`'s destructor is called here */
     }
@@ -571,8 +571,9 @@ void run_check_headers_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
+    std::set<ip_and_port_t> c1_ips = addr.get_ips();
     cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(addr.primary_addr().ip, addr.primary_addr().port, &cond, 0);
+    tcp_conn_stream_t conn(c1_ips.begin()->ip, c1_ips.begin()->port, &cond, 0);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -615,8 +616,9 @@ void run_different_version_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
+    std::set<ip_and_port_t> c1_ips = addr.get_ips();
     cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(addr.primary_addr().ip, addr.primary_addr().port, &cond, 0);
+    tcp_conn_stream_t conn(c1_ips.begin()->ip, c1_ips.begin()->port, &cond, 0);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -662,8 +664,9 @@ void run_different_arch_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
+    std::set<ip_and_port_t> c1_ips = addr.get_ips();
     cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(addr.primary_addr().ip, addr.primary_addr().port, &cond, 0);
+    tcp_conn_stream_t conn(c1_ips.begin()->ip, c1_ips.begin()->port, &cond, 0);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -709,8 +712,9 @@ void run_different_build_mode_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
+    std::set<ip_and_port_t> c1_ips = addr.get_ips();
     cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(addr.primary_addr().ip, addr.primary_addr().port, &cond, 0);
+    tcp_conn_stream_t conn(c1_ips.begin()->ip, c1_ips.begin()->port, &cond, 0);
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
@@ -746,6 +750,114 @@ void run_different_build_mode_test() {
 
 TEST(RPCConnectivityTest, DifferentBuildMode) {
     unittest::run_in_thread_pool(&run_different_build_mode_test);
+}
+
+std::set<host_and_port_t> convert_from_any_port(const std::set<host_and_port_t> &addresses,
+                                                int actual_port) {
+    std::set<host_and_port_t> result;
+    for (auto it = addresses.begin(); it != addresses.end(); ++it) {
+        if (it->port == 0) {
+            result.insert(host_and_port_t(it->host, actual_port));
+        } else {
+            result.insert(*it);
+        }
+    }
+    return result;
+}
+
+// This could possibly cause some weird behavior on someone's network
+void run_canonical_address_test() {
+    // cr1 should use default addresses, cr2 and cr3 should use canonical addresses
+    std::set<host_and_port_t> c2_addresses;
+    c2_addresses.insert(host_and_port_t("10.9.9.254", 0));
+    c2_addresses.insert(host_and_port_t("192.168.255.55", 0));
+    c2_addresses.insert(host_and_port_t("192.168.255.55", 0));
+
+    std::set<host_and_port_t> c3_addresses;
+    c3_addresses.insert(host_and_port_t("10.9.9.254", 6811));
+    c3_addresses.insert(host_and_port_t("10.255.255.255", 0));
+    c3_addresses.insert(host_and_port_t("192.168.255.55", 1034));
+
+    // Note: this won't have full connectivity in the unit test because we aren't actually using
+    //  a proxy or anything
+    connectivity_cluster_t c1, c2, c3;
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, NULL, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(c2_addresses), ANY_PORT, NULL, 0, NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(c3_addresses), ANY_PORT, NULL, 0, NULL);
+
+    struct in_addr addr;
+    int c2_port = 0;
+    peer_address_t c2_self_address = c2.get_peer_address(c2.get_me());
+    ASSERT_EQ(inet_pton(AF_INET, "10.9.9.254", &addr), 1);
+    ip_address_t chosen_c2_addr(addr);
+    for (auto it = c2_self_address.get_ips().begin();
+         it != c2_self_address.get_ips().end(); ++it) {
+        if (it->ip == chosen_c2_addr) {
+            c2_port = it->port;
+        }
+    }
+    ASSERT_TRUE(c2_port != 0);
+
+    int c3_port = 0;
+    peer_address_t c3_self_address = c3.get_peer_address(c3.get_me());
+    ASSERT_EQ(inet_pton(AF_INET, "10.255.255.255", &addr), 1);
+    ip_address_t chosen_c3_addr(addr);
+    for (auto it = c3_self_address.get_ips().begin();
+         it != c3_self_address.get_ips().end(); ++it) {
+        if (it->ip == chosen_c3_addr) {
+            c3_port = it->port;
+        }
+    }
+    ASSERT_TRUE(c3_port != 0);
+
+    // Convert the addresses to what we expect
+    c2_addresses = convert_from_any_port(c2_addresses, c2_port);
+    peer_address_t c2_peer_address(c2_addresses);
+    c2_peer_address.resolve();
+
+    c3_addresses = convert_from_any_port(c3_addresses, c3_port);
+    peer_address_t c3_peer_address(c3_addresses);
+    c3_peer_address.resolve();
+
+    // Join the cluster together
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
+
+    let_stuff_happen();
+
+    // Check that the right addresses are available from the other peer
+    // Note that peers 2 and 3 can't actually connect to each other, since they
+    //  have fake canonical addresses (unless you have a very fucked up network)
+    peer_address_t c2_addr_from_c1 = c1.get_peer_address(c2.get_me());
+    peer_address_t c3_addr_from_c1 = c1.get_peer_address(c3.get_me());
+
+    if (c2_addr_from_c1 != c2_peer_address) {
+        printf_buffer_t buffer1;
+        debug_print(&buffer1, c2_addr_from_c1);
+        printf_buffer_t buffer2;
+        debug_print(&buffer2, c2_peer_address);
+
+        FAIL() << "peer address mismatch:"
+            << "\n  addr from c1: " << buffer1.c_str()
+            << "\n  expected: " << buffer2.c_str();
+    }
+    // cool
+
+    if (c3_addr_from_c1 != c3_peer_address) {
+        printf_buffer_t buffer1;
+        debug_print(&buffer1, c3_addr_from_c1);
+        printf_buffer_t buffer2;
+        debug_print(&buffer2, c3_peer_address);
+
+        FAIL() << "peer address mismatch:"
+            << "\n  addr from c1: " << buffer1.c_str()
+            << "\n  expected: " << buffer2.c_str();
+    }
+    // cool cool cool
+}
+
+TEST(RPCConnectivityTest, CanonicalAddress) {
+    unittest::run_in_thread_pool(&run_canonical_address_test);
 }
 
 }   /* namespace unittest */

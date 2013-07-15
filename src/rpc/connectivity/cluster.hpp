@@ -26,40 +26,6 @@ template <class> class scoped_ptr;
 template <class> class function;
 }
 
-class peer_address_t {
-public:
-    peer_address_t(const std::set<ip_and_port_t> &_addrs) : addrs(_addrs) { }
-    peer_address_t() { } // For deserialization
-
-    ip_and_port_t primary_addr() const {
-        guarantee(addrs.begin() != addrs.end());
-        return *addrs.begin();
-    }
-
-    const std::set<ip_and_port_t> &all_addrs() const { return addrs; }
-
-    // Two addresses are considered equal if all of their IPs match
-    bool operator==(const peer_address_t &a) const {
-        std::set<ip_and_port_t>::const_iterator it, ita;
-        for (it = addrs.begin(); it != addrs.end(); ++it) {
-            for (ita = a.all_addrs().begin(); ita != a.all_addrs().end(); ++ita) {
-                if (it->port != ita->port ||
-                    it->ip != ita->ip) return false;
-            }
-        }
-        return true;
-    }
-
-    bool operator!=(const peer_address_t &a) const {
-        return !(*this == a);
-    }
-
-private:
-
-    std::set<ip_and_port_t> addrs;
-    RDB_MAKE_ME_SERIALIZABLE_1(addrs);
-};
-
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
@@ -89,8 +55,6 @@ private:
     std::vector<peer_address_t> vec;
 };
 
-void debug_print(printf_buffer_t *buf, const peer_address_t &address);
-
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,
@@ -117,7 +81,7 @@ public:
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
-        void join(peer_address_t) THROWS_NOTHING;
+        void join(const peer_address_t &address) THROWS_NOTHING;
         int get_port();
 
     private:
@@ -127,13 +91,14 @@ public:
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
-            connection_entry_t(run_t *, peer_id_t, tcp_conn_stream_t *, peer_address_t) THROWS_NOTHING;
+            connection_entry_t(run_t *, peer_id_t, tcp_conn_stream_t *,
+                               const peer_address_t &peer) THROWS_NOTHING;
             ~connection_entry_t() THROWS_NOTHING;
 
             /* NULL for our "connection" to ourself */
             tcp_conn_stream_t *conn;
 
-            /* `connection_t` contains a `peer_address_t` so that we can call
+            /* `connection_t` contains the addresses so that we can call
             `get_peers_list()` on any thread. Otherwise, we would have to go
             cross-thread to access the routing table. */
             peer_address_t address;
@@ -204,7 +169,9 @@ public:
         coroutine by `connectivity_cluster_t::join()`. It's also run by
         `connectivity_cluster_t::handle()` when we hear about a new peer from a
         peer we are connected to. */
-        void join_blocking(peer_address_t address, boost::optional<peer_id_t>, auto_drainer_t::lock_t) THROWS_NOTHING;
+        void join_blocking(const peer_address_t hosts,
+                           boost::optional<peer_id_t>,
+                           auto_drainer_t::lock_t) THROWS_NOTHING;
 
         /* `handle()` takes an `auto_drainer_t::lock_t` so that we never shut
         down while there are still running instances of `handle()`. It's
@@ -280,7 +247,8 @@ public:
     /* Other public methods: */
 
     /* Returns the address of the given peer. Fatal error if we are not
-    connected to the peer. */
+    connected to the peer. This function will result in the lookup of the
+    peer's hostnames (if any) */
     peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
 
 private:

@@ -305,14 +305,6 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
     return get_single_option(opts, name, &source);
 }
 
-
-class host_and_port_t {
-public:
-    host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
-    std::string host;
-    int port;
-};
-
 class serve_info_t {
 public:
     serve_info_t(extproc::spawner_info_t *_spawner_info,
@@ -487,19 +479,22 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
 peer_address_t get_canonical_addresses(const std::vector<std::string> &canonical_options,
                                        int default_port) {
     // Verify that all specified addresses are valid ip addresses
-    std::set<ip_and_port_t> our_addresses;
+    std::set<host_and_port_t> result;
     for (size_t i = 0; i < canonical_options.size(); ++i) {
         // TODO: pass a real 'source' parameter here?
         host_and_port_t host_port = parse_host_and_port(std::string(), "--canonical-address",
                                                         canonical_options[i], default_port);
 
-        std::set<ip_address_t> ip_set = ip_address_t::from_hostname(host_port.host);
-        for (auto ip_it = ip_set.begin(); ip_it != ip_set.end(); ++ip_it) {
-            our_addresses.insert(ip_and_port_t(*ip_it, host_port.port));
+        if (host_port.port == 0 && default_port != 0) {
+            // The cluster layer would probably swap this out with whatever port we were
+            //  actually listening on, but since the user explicitly specified 0, it seems bad
+            throw std::logic_error("cannot specify a port of 0 in --canonical-address");
         }
+        result.insert(host_and_port_t(host_port.host, host_port.port));
     }
-
-    return peer_address_t(our_addresses);
+    peer_address_t addr_result(result);
+    addr_result.resolve();
+    return addr_result;
 }
 
 // Returns the options vector for a given option name.  The option must *exist*!  Typically this is
@@ -599,12 +594,11 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
-        std::set<ip_and_port_t> peer_addrs;
-        std::set<ip_address_t> ip_set = ip_address_t::from_hostname(names[i].host);
-        for (auto ip_it = ip_set.begin(); ip_it != ip_set.end(); ++ip_it) {
-            peer_addrs.insert(ip_and_port_t(*ip_it, names[i].port));
-        }
-        peers.insert(peer_addrs);
+        std::set<host_and_port_t> peer_host;
+        peer_host.insert(names[i]);
+        peer_address_t peer_addr(peer_host);
+        peer_addr.resolve();
+        peers.insert(peer_addr);
     }
     return peers;
 }

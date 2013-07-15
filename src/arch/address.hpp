@@ -11,6 +11,8 @@
 #include <string>
 #include <set>
 
+#include <boost/optional.hpp>
+
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
 #include "utils.hpp"
@@ -77,23 +79,72 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(s_addr);
 };
 
-void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
+class ip_and_port_t {
+public:
+    ip_and_port_t();
+    ip_and_port_t(const ip_address_t &_ip, int _port);
 
-struct ip_and_port_t {
-    ip_and_port_t() : port(0) { }
-    ip_and_port_t(const ip_address_t &_ip, int _port) : ip(_ip), port(_port) { }
-
-    bool operator < (const ip_and_port_t &other) const {
-        if (ip == other.ip) {
-            return port < other.port;
-        }
-        return ip < other.ip;
-    }
+    bool operator < (const ip_and_port_t &other) const;
 
     ip_address_t ip;
     int port;
+private:
     RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
+class host_and_port_t {
+public:
+    host_and_port_t();
+    host_and_port_t(const std::string& h, int p);
+
+    bool operator < (const host_and_port_t &other) const;
+
+    std::set<ip_and_port_t> resolve() const;
+
+    std::string host;
+    int port;
+
+private:
+    RDB_MAKE_ME_SERIALIZABLE_2(host, port);
+};
+
+class peer_address_t {
+public:
+    explicit peer_address_t(const std::set<host_and_port_t> &_hosts);
+    peer_address_t();
+
+    const std::set<host_and_port_t>& get_hosts() const;
+    const std::set<ip_and_port_t>& get_ips() const;
+
+    host_and_port_t primary_host() const;
+
+    void resolve();
+
+
+    // Two addresses are considered equal if all of their hosts match
+    bool operator == (const peer_address_t &a) const;
+    bool operator!=(const peer_address_t &a) const;
+
+private:
+    std::set<host_and_port_t> hosts;
+    boost::optional<std::set<ip_and_port_t> > resolved_ips;
+
+    // Look up all the hosts and convert them into ip addresses
+    void resolve_internal();
+
+    // Implement these manually rather than using a serializable macro
+    // Because we want to re-evaluate the 'resolve' outcome any time
+    //  this switches hands
+    friend class write_message_t;
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
+
+    friend class archive_deserializer_t;
+    archive_result_t rdb_deserialize(read_stream_t *s);
+};
+
+void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
+void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);
+void debug_print(printf_buffer_t *buf, const host_and_port_t &addr);
+void debug_print(printf_buffer_t *buf, const peer_address_t &address);
 
 #endif /* ARCH_ADDRESS_HPP_ */
