@@ -124,8 +124,19 @@ public:
         init(ptr, size);
     }
 
+    scoped_array_t(scoped_array_t &&movee) : ptr_(movee.ptr_), size_(movee.size_) {
+        movee.ptr_ = NULL;
+        movee.size_ = 0;
+    }
+
     ~scoped_array_t() {
         reset();
+    }
+
+    scoped_array_t &operator=(scoped_array_t &&movee) {
+        scoped_array_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
     }
 
     void init(ssize_t n) {
