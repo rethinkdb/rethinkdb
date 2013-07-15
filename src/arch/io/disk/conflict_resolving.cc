@@ -22,7 +22,7 @@ conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t 
 conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
 
     /* Make sure there are no requests still out. */
-    for (typename std::map<fd_t, std::map<int, std::deque<action_t *> > >::iterator
+    for (std::map<fd_t, std::map<int, std::deque<action_t *> > >::iterator
              fd_t_chunk_queues = all_chunk_queues.begin();
          fd_t_chunk_queues != all_chunk_queues.end();
          ++fd_t_chunk_queues) {
@@ -57,13 +57,13 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
 
         action_t *latest_write = NULL;
 
-        typename std::map<int, std::deque<action_t*> >::iterator it;
+        std::map<int, std::deque<action_t *> >::iterator it;
         it = chunk_queues->find(start);
         if (it != chunk_queues->end()) {
-            std::deque<action_t*> &queue = it->second;
+            std::deque<action_t *> &queue = it->second;
 
             /* Locate the latest write on the queue */
-            typename std::deque<action_t*>::reverse_iterator qrit;
+            std::deque<action_t *>::reverse_iterator qrit;
             for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
                 if ((*qrit)->get_is_write()) {
                     /* We found it! Check if it's of any use to us...
@@ -84,13 +84,12 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
         /* Now check that latest_write is also latest for all other chunks.
         Keep on validating as long as we have a latest_write candidate. */
         for (int block = start; latest_write && block < end; block++) {
-
             it = chunk_queues->find(start);
             rassert(it != chunk_queues->end()); // Note: At least latest_write should be there!
-            std::deque<action_t*> &queue = it->second;
+            std::deque<action_t *> &queue = it->second;
 
             /* Locate the latest write on the queue */
-            typename std::deque<action_t*>::reverse_iterator qrit;
+            std::deque<action_t *>::reverse_iterator qrit;
             for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
                 if ((*qrit)->get_is_write()) {
 
@@ -123,8 +122,7 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
     /* Determine if there are conflicts and put ourself on the queues */
     action->conflict_count = 0;
     for (int block = start; block < end; block++) {
-
-        typename std::map<int, std::deque<action_t*> >::iterator it;
+        std::map<int, std::deque<action_t *> >::iterator it;
         it = chunk_queues->find(block);
 
         if (it != chunk_queues->end()) {
@@ -135,7 +133,7 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
         /* Put ourself on the queue for this chunk */
         if (it == chunk_queues->end()) {
             /* Start a queue because there isn't one already */
-            it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t*>()));
+            it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t *>()));
         }
         rassert(it->first == block);
         it->second.push_back(action);
@@ -164,13 +162,12 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
     /* Visit every block and see if anything is blocking on us. As we iterate
     over block indices, we iterate through the corresponding entries in the map. */
 
-    typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
+    std::map<int, std::deque<action_t *> >::iterator it = chunk_queues->find(start);
     for (int block = start; block < end; block++) {
-
         /* We can assert this because at lest we must still be on the queue */
         rassert(it != chunk_queues->end() && it->first == block);
 
-        std::deque<action_t*> &queue = it->second;
+        std::deque<action_t *> &queue = it->second;
 
         /* Remove ourselves from the queue */
         rassert(queue.front() == action);
