@@ -251,7 +251,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
         // as that would cause a conflict in the page map.
         // Instead, we keep the snapshots around and reset the remaining state of
         // the buffer to make it behave just like a freshly constructed one.
-        
+
         rassert(inner_buf->do_delete);
         rassert(!inner_buf->data.has());
 
@@ -268,7 +268,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapsho
 // See the comment in allocate() for why this is necessary.
 void mc_inner_buf_t::initialize_to_new(version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp) {
     rassert(!data.has());
-    
+
     subtree_recency = _recency_timestamp;
     data.init_malloc(cache->serializer);
 #if !defined(NDEBUG) || defined(VALGRIND)
