@@ -136,6 +136,18 @@ commands:
           js: |
             r.table('marvel').eqJoin('main_weapon_origin',
                 r.table('mythical_weapons'), {index:'origin'}).run(conn, callback)
+      - description: You can pass a function instead of an attribute to join on more complicated expressions.
+          Here we join to the DC universe collaborator with whom the hero has the most appearances.
+        code:
+          py: |
+            r.table('marvel').eq_join(lambda doc: doc['dc_collaborators'].order_by('appearances')[0]['name'],
+                r.table('dc')).run(conn)
+          rb: |
+            r.table('marvel').eq_join(lambda {|doc| doc[:dc_collaborators].order_by(:appearances)[0][:name],
+                r.table('dc')).run(conn)
+          js: |
+            r.table('marvel').eqJoin(function (doc) { return doc('dcCollaborators').orderBy('appearances')[0]['name']; },
+                r.table('dc')).run(conn, callback)
 
   - tag: zip
     section: joins
