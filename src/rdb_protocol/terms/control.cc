@@ -60,10 +60,25 @@ private:
 class funcall_term_t : public op_term_t {
 public:
     funcall_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, -1)) { }
+        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"_SHORTCUT_"})) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        counted_t<func_t> f = arg(0)->as_func(CONSTANT_SHORTCUT);
+        function_shortcut_t shortcut = CONSTANT_SHORTCUT;
+        if (counted_t<val_t> v = optarg("_SHORTCUT_")) {
+            shortcut = static_cast<function_shortcut_t>(v->as_num());
+        }
+
+        /* This switch exists just to make sure that we don't get a bogus value
+         * for the shortcut. */
+        switch (shortcut) {
+            case NO_SHORTCUT: //fallthru
+            case CONSTANT_SHORTCUT: //fallthru
+            case GET_FIELD_SHORTCUT: //fallthru
+                break;
+            default:
+                unreachable();
+        }
+        counted_t<func_t> f = arg(0)->as_func(shortcut);
         std::vector<counted_t<const datum_t> > args;
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
         return f->call(args);
