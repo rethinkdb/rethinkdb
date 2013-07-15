@@ -18,7 +18,7 @@ class pool_diskmgr_t;
 (blocking) IO calls to asynchronously run IO requests. */
 
 struct pool_diskmgr_action_t
-    : private blocker_pool_t::job_t, public home_thread_mixin_debug_only_t {
+    : private blocker_pool_t::job_t {
     pool_diskmgr_action_t() { }
 
     void make_write(fd_t f, const void *b, size_t c, int64_t o,
