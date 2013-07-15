@@ -82,11 +82,26 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: "tbl.order_by(lambda x: x['id'])[0]"
+      js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
+      rb: tbl.order_by{|x| x[:id]}[0]
+      ot: ({'id':0, 'a':0})
+
     - cd: tbl.order_by('a', 'id').nth(0)
       ot: ({'id':0,'a':0})
 
+    - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"
+      js: tbl.orderBy(function (x) { return [x('a'), x('id')]; }).nth(0)
+      rb: tbl.order_by{|x| [x[:a], x[:id]]}[0]
+      ot: ({'id':0, 'a':0})
+
     - cd: tbl.order_by(r.desc('a'), r.asc('id')).nth(0)
       ot: ({'id':3,'a':3})
+
+    - py: "tbl.order_by(r.desc(lambda x: x['a']), 'id')[0]"
+      js: tbl.orderBy(r.desc(function (x) { return x('a'); }), 'id').nth(0)
+      rb: tbl.order_by(r.desc{|x| x[:a]}, 'id')[0]
+      ot: ({'id':3, 'a':3})
 
     - cd: tbl.order_by(r.asc('a'), r.desc('id')).nth(0)
       ot: ({'id':96,'a':0})
@@ -99,6 +114,11 @@ tests:
 
     - cd: tbl.order_by('id', 'missing').nth(0)
       ot: ({'id':0, 'a':0})
+
+    - py: "tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
+      rb: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
+      js: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
+      ot: true
 
 
     # test skip
