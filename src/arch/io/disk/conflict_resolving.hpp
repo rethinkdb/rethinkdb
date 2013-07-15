@@ -85,7 +85,7 @@ private:
     /* For efficiency reasons, we think in terms of DEVICE_BLOCK_SIZE-sized chunks
     of the file. We assume that if two operations touch the same chunk, then they
     are potentially conflicting. */
-    void get_range(const action_t *a, int *begin, int *end) {
+    void get_range(const action_t *a, int64_t *begin, int64_t *end) {
         *begin = a->get_offset() / DEVICE_BLOCK_SIZE;
         *end = ceil_aligned(a->get_offset() + a->get_count(), DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
     }
@@ -99,7 +99,7 @@ private:
     for B.  It could be a multimap instead, but that would mean depending on
     properties of multimaps that are not guaranteed by the C++ standard. */
 
-    std::map<fd_t, std::map<int, std::deque<action_t *> > > all_chunk_queues;
+    std::map<fd_t, std::map<int64_t, std::deque<action_t *> > > all_chunk_queues;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;
