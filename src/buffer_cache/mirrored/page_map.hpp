@@ -10,8 +10,6 @@
 class mc_inner_buf_t;
 
 class array_map_t {
-    typedef mc_inner_buf_t inner_buf_t;
-
 public:
     array_map_t() : count(0) { }
 
@@ -19,20 +17,19 @@ public:
         rassert(count == 0);
     }
 
-    static void constructing_inner_buf(inner_buf_t *gbuf);
-    static void destroying_inner_buf(inner_buf_t *gbuf);
+    static void constructing_inner_buf(mc_inner_buf_t *gbuf);
+    static void destroying_inner_buf(mc_inner_buf_t *gbuf);
 
-    inner_buf_t *find(block_id_t block_id) {
+    mc_inner_buf_t *find(block_id_t block_id) {
         return block_id < array.size() ? array[block_id] : NULL;
     }
 
-    unsigned int size() {
-        // RSI: Is this method used?  Rename it?
+    size_t num_pages() const {
         return count;
     }
 
 private:
-    std::vector<inner_buf_t *> array;
+    std::vector<mc_inner_buf_t *> array;
     // The count of non-null array entries.
     size_t count;
     // The minimum value such that {array[nonnull_back_offset],
