@@ -388,6 +388,23 @@ private:
 
 void recreate_temporary_directory(const base_path_t& base_path);
 
+// This will be thrown by remove_directory_recursive if a file cannot be removed
+class remove_directory_exc_t : public std::exception {
+public:
+    remove_directory_exc_t(const std::string &path, int err) :
+        info(strprintf("Fatal error: failed to delete file '%s': %s.",
+                       path.c_str(), strerror(err)))
+    { }
+    ~remove_directory_exc_t() throw () { }
+    const char *what() const throw () {
+        return info.c_str();
+    }
+private:
+    const std::string info;
+};
+
+void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
+
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 

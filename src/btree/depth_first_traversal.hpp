@@ -4,6 +4,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
+#include "containers/archive/archive.hpp"
 
 class superblock_t;
 
@@ -16,12 +17,23 @@ protected:
     virtual ~depth_first_traversal_callback_t() { }
 };
 
+enum direction_t {
+    FORWARD,
+    BACKWARD
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
+
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb);
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+        superblock_t *superblock, const key_range_t &range,
+        depth_first_traversal_callback_t *cb, direction_t direction);
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, buf_lock_t *block, const key_range_t &range, depth_first_traversal_callback_t *cb);
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+        buf_lock_t *block, const key_range_t &range,
+        depth_first_traversal_callback_t *cb, direction_t direction);
 
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */

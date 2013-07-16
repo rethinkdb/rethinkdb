@@ -2,6 +2,7 @@
 
 from setuptools import setup, Extension
 from distutils.command.build_ext import build_ext
+from distutils.errors import DistutilsPlatformError, CCompilerError, DistutilsExecError
 import sys
 
 class build_ext_nofail(build_ext):
@@ -11,13 +12,13 @@ class build_ext_nofail(build_ext):
     def run(self):
         try:
             build_ext.run(self)
-        except DistutilsPlatformError, e:
+        except DistutilsPlatformError as e:
             self._failed(e)
 
     def build_extension(self, ext):
         try:
             build_ext.build_extension(self, ext)
-        except (CCompileError, DistutilsExecError), e:
+        except (CCompilerError, DistutilsExecError) as e:
             self._failed(e)
         else:
             try:
@@ -32,7 +33,7 @@ class build_ext_nofail(build_ext):
             print >> sys.stderr, "*** WARNING: Defaulting to the python implementation"
 
 setup(name="rethinkdb"
-     ,version="1.6.0-0"
+     ,version="1.7.0-2"
      ,description="This package provides the Python driver library for the RethinkDB database server."
      ,url="http://rethinkdb.com"
      ,maintainer="RethinkDB Inc."

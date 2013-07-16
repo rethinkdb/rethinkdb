@@ -1517,60 +1517,112 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
     }
 }
 
-bool live_iter_t::step(const leaf_node_t *node) {
+iterator::iterator()
+    : node_(NULL), index_(-1) { }
+
+iterator::iterator(const leaf_node_t *node, int index)
+    : node_(node), index_(index) { }
+
+std::pair<const btree_key_t *, const void *> iterator::operator*() const {
+    guarantee(index_ < int(node_->num_pairs));
+    guarantee(index_ >= 0);
+    const entry_t *entree = get_entry(node_, node_->pair_offsets[index_]);
+    return std::make_pair(entry_key(entree), entry_value(entree));
+}
+
+iterator &iterator::operator++() {
+    guarantee(index_ < int(node_->num_pairs), "Trying to increment past the end of an iterator.");
     do {
         ++index_;
-    } while (index_ < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index_])));
-
-    return index_ < node->num_pairs;
+    } while (index_ < node_->num_pairs && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
+    return *this;
 }
 
-const btree_key_t *live_iter_t::get_key(const leaf_node_t *node) const {
-    rassert(index_ <= node->num_pairs);
-    if (index_ == node->num_pairs) {
-        return NULL;
-    } else {
-        return entry_key(get_entry(node, node->pair_offsets[index_]));
-    }
+iterator &iterator::operator--() {
+    guarantee(index_ > -1, "Trying to decrement past the beginning of an iterator.");
+    do {
+        --index_;
+    } while (index_ >= 0 && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
+    return *this;
 }
 
-const void *live_iter_t::get_value(const leaf_node_t *node) const {
-    // It's probably a mistake if users didn't check the result of
-    // get_key already, so fail if index_ == node->num_pairs.
-    rassert(index_ < node->num_pairs);
+bool iterator::operator==(const iterator &other) const { return cmp(other) == 0; }
+bool iterator::operator!=(const iterator &other) const { return cmp(other) != 0; }
+bool iterator::operator<(const iterator &other) const { return cmp(other) < 0; }
+bool iterator::operator>(const iterator &other) const { return cmp(other) > 0; }
+bool iterator::operator<=(const iterator &other) const { return cmp(other) <= 0; }
+bool iterator::operator>=(const iterator &other) const { return cmp(other) >= 0; }
 
-    if (index_ == node->num_pairs) {
-        return NULL;
-    } else {
-        return entry_value(get_entry(node, node->pair_offsets[index_]));
-    }
+int iterator::cmp(const iterator &other) const {
+    guarantee(node_ == other.node_);
+    return index_ - other.index_;
 }
 
+reverse_iterator::reverse_iterator() { }
+
+reverse_iterator::reverse_iterator(const leaf_node_t *node, int index)
+    : inner_(node, index) { }
+
+std::pair<const btree_key_t *, const void *> reverse_iterator::operator*() const {
+    return *inner_;
+}
+
+reverse_iterator &reverse_iterator::operator++() {
+    --inner_;
+    return *this;
+}
+
+reverse_iterator &reverse_iterator::operator--() {
+    ++inner_;
+    return *this;
+}
+
+bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
+bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
+bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
+bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
+bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
+bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
 
 
+leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
+    return ++leaf_node_t::iterator(&leaf_node, -1);
+}
 
+leaf_node_t::iterator end(const leaf_node_t &leaf_node) {
+    return leaf_node_t::iterator(&leaf_node, leaf_node.num_pairs);
+}
 
+leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node) {
+    return ++leaf_node_t::reverse_iterator(&leaf_node, leaf_node.num_pairs);
+}
 
-// Returns an iterator that starts at the first entry whose key is
-// greater than or equal to key.
-live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key) {
+leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node) {
+    return leaf_node_t::reverse_iterator(&leaf_node, -1);
+}
+
+leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
-    find_key(node, key, &index);
-    while (index < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
-        ++index;
+    leaf::find_key(&leaf_node, key, &index);
+    if (index == leaf_node.num_pairs ||
+        entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
+        return leaf_node_t::iterator(&leaf_node, index);
+    } else {
+        return ++leaf_node_t::iterator(&leaf_node, index);
     }
-    return live_iter_t(index);
 }
 
-// Returns an iterator that starts at the smallest key.
-live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
-    int index = 0;
-    while (index < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
-        ++index;
+leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+    int index;
+    leaf::find_key(&leaf_node, key, &index);
+    const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
+    const btree_key_t *ekey = leaf::entry_key(entry);
+    if (index < leaf_node.num_pairs && entry_is_live(entry) &&
+        sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
+        return leaf_node_t::reverse_iterator(&leaf_node, index);
+    } else {
+        return ++leaf_node_t::reverse_iterator(&leaf_node, index);
     }
-    return live_iter_t(index);
 }
-
-
 
 }  // namespace leaf

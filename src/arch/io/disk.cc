@@ -239,7 +239,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
         res = pread(fd.get(), buf, length, offset);
     } while (res == -1 && errno == EINTR);
 
-    nice_guarantee(size_t(res) == length, "Blocking read from file failed. Exiting.");
+    guarantee(size_t(res) == length, "Blocking read from file failed.");
 }
 
 void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
@@ -249,7 +249,7 @@ void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf)
         res = pwrite(fd.get(), buf, length, offset);
     } while (res == -1 && errno == EINTR);
 
-    nice_guarantee(size_t(res) == length, "Blocking write from file failed. Exiting.");
+    guarantee(size_t(res) == length, "Blocking write from file failed.");
 }
 
 bool linux_file_t::coop_lock_and_check() {

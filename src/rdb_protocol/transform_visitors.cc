@@ -108,12 +108,12 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
     out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
 }
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
     while (counted_t<const ql::datum_t> d = ds->next()) {
         out->push_back(d->as_json());
@@ -122,7 +122,7 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  /
 
 void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<ql::func_t> f = func.compile(ql_env);
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
     if (f->filter_call(arg)) {
         out->push_back(arg->as_json());
     }
@@ -137,7 +137,6 @@ void transform_apply(ql::env_t *ql_env,
     boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
                          *t);
 }
-
 
 /* A visitor for applying a terminal to a bit of json. */
 class terminal_visitor_t : public boost::static_visitor<void> {
@@ -158,7 +157,6 @@ private:
     rget_read_response_t::result_t *out;
 };
 
-
 terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
                    ql::env_t *_ql_env,
                    const backtrace_t &_backtrace,
@@ -173,10 +171,10 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
-    counted_t<const ql::datum_t> el(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> el(new ql::datum_t(json));
     counted_t<const ql::datum_t> el_group
         = func.compile_group(ql_env)->call(el)->as_datum();
-    counted_t<const ql::datum_t> elm(new ql::datum_t(json, ql_env));
+    counted_t<const ql::datum_t> elm(new ql::datum_t(json));
     counted_t<const ql::datum_t> el_map
         = func.compile_map(ql_env)->call(elm)->as_datum();
 
@@ -190,18 +188,18 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
 
 void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) const {
     // TODO: just pass an int around
-    ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    d->reset(make_counted<ql::datum_t>(d->get()->as_int() + 1.0));
+    counted_t<const ql::datum_t> d = boost::get<counted_t<const ql::datum_t> >(*out);
+    *out = make_counted<const ql::datum_t>(d->as_int() + 1.0);
 }
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NOLINT(runtime/references)
-    ql::wire_datum_t *d = boost::get<ql::wire_datum_t>(out);
-    counted_t<const ql::datum_t> rhs(new ql::datum_t(json, ql_env));
-    if (d) {
-        d->reset(func.compile(ql_env)->call(d->get(), rhs)->as_datum());
+    counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
+    counted_t<const ql::datum_t> rhs(new ql::datum_t(json));
+    if (d != NULL) {
+        *out = func.compile(ql_env)->call(*d, rhs)->as_datum();
     } else {
         guarantee(boost::get<rget_read_response_t::empty_t>(out));
-        *out = ql::wire_datum_t(rhs);
+        *out = rhs;
     }
 }
 
@@ -233,7 +231,7 @@ public:
     }
 
     void operator()(const ql::count_wire_func_t &) const {
-        *out = ql::wire_datum_t(make_counted<ql::datum_t>(0.0));
+        *out = make_counted<const ql::datum_t>(0.0);
     }
 
     void operator()(ql::reduce_wire_func_t &f) const {  // NOLINT(runtime/references)
@@ -252,9 +250,9 @@ void terminal_initialize(ql::env_t *ql_env,
                          const backtrace_t &backtrace,
                          rdb_protocol_details::terminal_variant_t *t,
                          rget_read_response_t::result_t *out) {
-    boost::apply_visitor(terminal_initializer_visitor_t(out, ql_env,
-                                                        backtrace),
-                         *t);
+    boost::apply_visitor(
+        terminal_initializer_visitor_t(out, ql_env, backtrace),
+        *t);
 }
 
 

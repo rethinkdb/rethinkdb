@@ -33,6 +33,10 @@ std::string key_to_debug_str(const store_key_t &key) {
     return s;
 }
 
+std::string key_to_debug_str(const btree_key_t *key) {
+    return key_to_debug_str(store_key_t(key));
+}
+
 key_range_t::key_range_t() :
     left(), right(store_key_t()) { }
 

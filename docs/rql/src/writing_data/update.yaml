@@ -23,9 +23,9 @@ commands:
       </ul>
 
     body:
-      js: "$PARENT.replace(json | expr[, {durability: 'soft', return_vals: true])"
-      py: "$PARENT.replace(json | expr[, durability='soft', return_vals=true])"
-      rb: "$PARENT.replace(json | expr[, durability => 'soft', return_vals => true])"
+      js: "$PARENT.update(json | expr[, {durability: 'soft', return_vals: true])"
+      py: "$PARENT.update(json | expr[, durability='soft', return_vals=true])"
+      rb: "$PARENT.update(json | expr[, durability => 'soft', return_vals => true])"
 
     io:
       - - table
@@ -66,4 +66,4 @@ commands:
         code:
           js: "r.table('marvel').get('superman').update({ age: 30 }, {return_vals: true}).run(conn, callback)"
           py: "r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)"
-          rb: r.table('marvel').get('superman').update{ {:age => 30}, :return_vals => True}.run(conn)
+          rb: r.table('marvel').get('superman').update( {:age => 30}, :return_vals => true).run(conn)

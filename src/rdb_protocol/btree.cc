@@ -186,7 +186,7 @@ void rdb_replace_and_return_superblock(
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
+            old_val = make_counted<ql::datum_t>(old_val_json);
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
@@ -592,6 +592,7 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
+                                              direction_t _direction,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -599,7 +600,8 @@ public:
         cumulative_size(0),
         ql_env(_ql_env),
         transform(_transform),
-        terminal(_terminal)
+        terminal(_terminal),
+        direction(_direction)
     {
         init(range);
     }
@@ -618,6 +620,7 @@ public:
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
+                                              direction_t _direction,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -626,13 +629,23 @@ public:
         ql_env(_ql_env),
         transform(_transform),
         terminal(_terminal),
-        primary_key_range(_primary_key_range)
+        primary_key_range(_primary_key_range),
+        direction(_direction)
     {
         init(range);
     }
     void init(const key_range_t &range) {
         try {
-            response->last_considered_key = range.left;
+            if (direction == FORWARD) {
+                response->last_considered_key = range.left;
+            } else {
+                guarantee(direction == BACKWARD);
+                if (!range.right.unbounded) {
+                    response->last_considered_key = range.right.key;
+                } else {
+                    response->last_considered_key = store_key_t::max();
+                }
+            }
 
             if (terminal) {
                 terminal_initialize(ql_env, terminal->backtrace,
@@ -667,7 +680,8 @@ public:
         }
         try {
             store_key_t store_key(key);
-            if (response->last_considered_key < store_key) {
+            if ((response->last_considered_key < store_key && direction == FORWARD) ||
+                (response->last_considered_key > store_key && direction == BACKWARD)) {
                 response->last_considered_key = store_key;
             }
 
@@ -748,6 +762,7 @@ public:
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
+    direction_t direction;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -760,14 +775,12 @@ public:
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
     void operator()(const ql::datum_exc_t &) const { }
-    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    //    void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
     void operator()(const rget_read_response_t::vec_t &) const { }
+    void operator()(const counted_t<const ql::datum_t> &) const { }
 
-    void operator()(ql::wire_datum_t &d) const {  // NOLINT(runtime/references)
-        d.finalize();
-    }
     void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
         dm.finalize();
     }
@@ -778,9 +791,10 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -797,9 +811,10 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
+                    direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, direction, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -972,7 +987,7 @@ void rdb_update_single_sindex(
             promise_t<superblock_t *> return_superblock_local;
             {
                 counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted, &env);
+                    make_counted<ql::datum_t>(modification->info.deleted);
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -1004,7 +1019,7 @@ void rdb_update_single_sindex(
     if (modification->info.added) {
         try {
             counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added, &env);
+                make_counted<ql::datum_t>(modification->info.added);
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();
@@ -1121,14 +1136,12 @@ public:
         }
 
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-        leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
-        const btree_key_t *key;
-        while ((key = node_iter.get_key(leaf_node))) {
+        for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             /* Grab relevant values from the leaf node. */
-            const void *value = node_iter.get_value(leaf_node);
+            const btree_key_t *key = (*it).first;
+            const void *value = (*it).second;
             guarantee(key);
-            node_iter.step(leaf_node);
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);

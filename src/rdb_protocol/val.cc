@@ -253,7 +253,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         for (size_t i = 0; i < ret.size(); ++i) {
             if (!ret[i].has()) {
                 r_sanity_check(j < datums->size());
-                ret[i] = make_counted<datum_t>(&(*datums)[j].second, env);
+                ret[i] = make_counted<datum_t>(&(*datums)[j].second);
                 ++j;
             }
         }
@@ -315,10 +315,11 @@ counted_t<const datum_t> table_t::sindex_list() {
     return counted_t<const datum_t>(array.release());
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
-                                             const map_wire_func_t &mwf,
-                                             durability_requirement_t durability_requirement,
-                                             bool return_vals) {
+counted_t<const datum_t> table_t::do_replace(
+    counted_t<const datum_t> orig,
+    const map_wire_func_t &mwf,
+    durability_requirement_t durability_requirement,
+    bool return_vals) {
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
@@ -340,7 +341,7 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
     access->get_namespace_if()->write(
         write, &response, order_token_t::ignore, env->interruptor);
     Datum *d = boost::get<Datum>(&response.response);
-    return make_counted<datum_t>(d, env);
+    return make_counted<datum_t>(d);
 }
 
 counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
@@ -395,7 +396,7 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
     r_sanity_check(p_res);
-    return make_counted<datum_t>(p_res->data, env);
+    return make_counted<datum_t>(p_res->data);
 }
 
 counted_t<datum_stream_t> table_t::get_rows(counted_t<const datum_t> left_bound,

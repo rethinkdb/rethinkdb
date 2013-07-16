@@ -1,3 +1,65 @@
+# Release 1.7.1 (Nights of Cabiria)
+
+Bug fix update.
+
+* Fixed a bug causing `rethinkdb import` to crash on single files
+* Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
+
+--
+
+# Release 1.7.0 (Nights of Cabiria)
+
+Released on 2013-07-03
+
+This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
+
+## New Features ##
+
+* ReQL
+  * Added `r.json` for parsing JSON strings server-side (#887)
+  * Added syntax to `pluck` to access nested documents (#889)
+  * `get_all` now takes a variable number of arguments (#915)
+  * Added atomic set and get operations (#976)
+    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument that returns the values that have been atomically modified
+  * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
+  * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
+  * Drivers now use `r.json` to improve the performance of inserts (#1085)
+  * Improved the behaviour of `pluck` (#1095)
+    * A field with a non-pluckable value is considered absent
+* Web UI
+  * It is now possible to resolve `auth_key` conflicts via the web UI (#1028)
+  * The web UI now uses relative paths (#1053)
+* Server
+  * Flushes to disk less often to improve performance without affecting durability (#520)
+* CLI
+  * Import and export JSON and CSV files (#193)
+    * Four new subcommands: `rethinkdb import`, `rethinkdb export`, `rethinkdb dump` and `rethinkdb restore`
+  * `rethinkdb admin` no longer requires the `--join` option (#1052)
+    * It now connects to localhost:29015 by default
+* Documentation
+  * Documented durability settings correctly (#1008)
+  * Improved instructions for migration (#1013)
+  * Documented the allowed character names for tables (#1039)
+* Packaging
+  * RPMs for CentOS (#268)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Fixed the behaviour of `between` with `null` and secondary indexes (#1001)
+* Web UI
+  * Moved to using a patched Bootstrap, Handlebars.js 1.0.0 and LESS 1.4.0 (#954)
+  * Fixed bug causing nested arrays to be shown as `{...}` in the Data Explorer (#1038)
+  * Inline comments are now parsed correctly in the Data Explorer (#1060)
+  * Properly remove event listeners from the dashboard view (#1044)
+* Server
+  * Fixed a crash caused by shutting down the server during secondary index creation (#1056)
+  * Fixed a potential btree corruption bug (#986)
+* Tests
+  * ReQL tests no longer leave zombie processes (#1055)
+
+--
+
 # Release 1.6.1 (Fargo)
 
 Released on 2013-06-19

@@ -78,7 +78,7 @@ module RethinkDB
       return x.to_pb if x.class == RQL
       t = Term.new
       t.type = Term::TermType::JSON
-      t.args = [Shim.native_to_datum_term(x.to_json)]
+      t.args = [Shim.native_to_datum_term(x.to_json(:max_nesting => 500))]
       return t
     end
 

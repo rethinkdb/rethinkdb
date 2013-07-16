@@ -2,7 +2,7 @@
 
 namespace ql {
 
-pathspec_t::pathspec_t(const pathspec_t &other) { 
+pathspec_t::pathspec_t(const pathspec_t &other) {
     init_from(other);
 }
 
@@ -11,13 +11,13 @@ pathspec_t& pathspec_t::operator=(const pathspec_t &other) {
     return *this;
 }
 
-pathspec_t::pathspec_t(const std::string &_str, term_t *_creator) 
+pathspec_t::pathspec_t(const std::string &_str, term_t *_creator)
     : type(STR), str(new std::string(_str)), creator(_creator) { }
 
 pathspec_t::pathspec_t(const std::map<std::string, pathspec_t> &_map, term_t *_creator)
     : type(MAP), map(new std::map<std::string, pathspec_t>(_map)), creator(_creator) { }
 
-pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator) 
+pathspec_t::pathspec_t(counted_t<const datum_t> datum, term_t *_creator)
     : creator(_creator)
 {
     if (datum->get_type() == datum_t::R_STR) {
@@ -219,4 +219,4 @@ bool contains(counted_t<const datum_t> datum,
         return false;
     }
 }
-} //namespace ql 
+} //namespace ql
