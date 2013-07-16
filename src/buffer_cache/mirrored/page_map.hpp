@@ -27,13 +27,17 @@ public:
     }
 
     unsigned int size() {
-        // RSI: Is this method used?
+        // RSI: Is this method used?  Rename it?
         return count;
     }
 
 private:
     std::vector<inner_buf_t *> array;
+    // The count of non-null array entries.
     size_t count;
+    // The minimum value such that {array[nonnull_back_offset],
+    // array[nonnull_back_offset + 1], ... } are all NULL.
+    size_t nonnull_back_offset;
 
     DISABLE_COPYING(array_map_t);
 };
