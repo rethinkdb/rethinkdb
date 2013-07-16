@@ -20,9 +20,9 @@ function eq_test(one, two) {
         return one(two);
     } else if (two instanceof Function) {
         return two(one);
-    } else if (goog.isArray(one)) {
+    } else if (Array.isArray(one)) {
 
-        if (!goog.isArray(two)) return false;
+        if (!Array.isArray(two)) return false;
 
         if (one.length != two.length) return false;
 

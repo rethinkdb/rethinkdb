@@ -13,8 +13,8 @@
     { "type" : "git"
     , "url" : "http://github.com/rethinkdb/rethinkdb.git"
     }
-, "engine" : "node >= 0.10.0"
-, "optionalDependencies" : {
+, "engines" : {"node": ">= 0.10.0"}
+, "dependencies" : {
      "node-protobuf": ">= 1.0.0"
     }
 }

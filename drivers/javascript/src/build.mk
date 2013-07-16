@@ -1,11 +1,6 @@
 # Copyright 2010-2013 RethinkDB, all rights reserved.
 
 EXTERNAL := $(TOP)/external
-CLOSURE_LIB := $(EXTERNAL)/google-closure-library/
-CLOSURE_BUILDER := $(CLOSURE_LIB)closure/bin/build/closurebuilder.py
-CLOSURE_COMPILER := $(EXTERNAL)/google-closure-compiler/compiler.jar
-
-PROTOC_JS := $(PROTOC) --plugin=$(PROTOC_JS_PLUGIN) # -I $(PROTOC_JS_IMPORT_DIR)
 
 JS_SRC_DIR=$(TOP)/drivers/javascript/src
 DRIVER_COFFEE_BUILD_DIR=$(JS_BUILD_DIR)/coffee
@@ -13,7 +8,6 @@ DRIVER_COFFEE_BUILD_DIR=$(JS_BUILD_DIR)/coffee
 PROTO_FILE_DIR := $(TOP)/src/rdb_protocol
 PROTO_BASE := ql2
 PROTO_FILE := $(PROTO_FILE_DIR)/$(PROTO_BASE).proto
-PB_JS_FILE := $(JS_BUILD_DIR)/$(PROTO_BASE).pb.js
 PB_BIN_FILE := $(JS_BUILD_DIR)/$(PROTO_BASE).desc
 
 DRIVER_COFFEE_FILES := $(wildcard $(JS_SRC_DIR)/*.coffee)
@@ -25,10 +19,6 @@ JS_OUTPUT_MODE := script
 
 JS_DRIVER_LIB=$(JS_BUILD_DIR)/rethinkdb.js
 
-$(PB_JS_FILE): $(PROTO_FILE) $(PROTOC_JS_PLUGIN) | $(JS_BUILD_DIR)/.
-	$P PROTOC-JS
-	$(PROTOC_JS) -I $(PROTO_FILE_DIR) --js_out=$(JS_BUILD_DIR) $(PROTO_FILE)
-
 $(PB_BIN_FILE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$(PROTOC) -I $(PROTO_FILE_DIR) -o $(JS_BUILD_DIR)/ql2.desc $(PROTO_FILE)
 
@@ -37,17 +27,8 @@ $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_
 	$P COFFEE
 	$(COFFEE) -b -p -c $< > $@
 
-$(JS_DRIVER_LIB): $(PB_JS_FILE) $(PB_BIN_FILE) $(DRIVER_COMPILED_COFFEE) | $(JS_BUILD_DIR)/.
-	$P CLOSURE-COMPILE $<
-	( if [[ script = "$(JS_OUTPUT_MODE)" ]]; then \
-	    echo 'CLOSURE_NO_DEPS=true;' ; \
-	  fi ; \
-	  $(CLOSURE_BUILDER) \
-	    --root=$(CLOSURE_LIB) \
-	    --root=$(JS_BUILD_DIR) \
-	    --namespace=rethinkdb.root \
-	    --output_mode=$(JS_OUTPUT_MODE) \
-	) > $@
+$(JS_DRIVER_LIB): $(PB_BIN_FILE) $(DRIVER_COMPILED_COFFEE) | $(JS_BUILD_DIR)/.
+	cp $(DRIVER_COFFEE_BUILD_DIR)/rethinkdb.js $(JS_BUILD_DIR)
 
 .PHONY: js-dist
 js-dist: $(JS_DRIVER_LIB) $(PB_BIN_FILE)
