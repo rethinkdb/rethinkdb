@@ -13,25 +13,27 @@ class array_map_t {
     typedef mc_inner_buf_t inner_buf_t;
 
 public:
-    array_map_t() { }
+    array_map_t() : count(0) { }
 
     ~array_map_t() {
-        rassert(array.size() == 0);
+        rassert(count == 0);
     }
 
     static void constructing_inner_buf(inner_buf_t *gbuf);
     static void destroying_inner_buf(inner_buf_t *gbuf);
 
     inner_buf_t *find(block_id_t block_id) {
-        return array.get(block_id);
+        return block_id < array.size() ? array[block_id] : NULL;
     }
 
     unsigned int size() {
-        return array.size();
+        // RSI: Is this method used?
+        return count;
     }
 
 private:
-    two_level_array_t<inner_buf_t*, MAX_BLOCK_ID> array;
+    std::vector<inner_buf_t *> array;
+    size_t count;
 
     DISABLE_COPYING(array_map_t);
 };
