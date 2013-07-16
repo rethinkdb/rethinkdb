@@ -30,6 +30,15 @@ bool time_valid(const datum_t &time) {
     return has_epoch_time;
 }
 
+counted_t<const datum_t> make_time(double epoch_time) {
+    scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
+    datum_t::add_txn_t txn(res.get());
+    bool clobber = res->add(datum_t::reql_type_string, make_counted<const datum_t>(time_string), &txn);
+    clobber |= res->add(epoch_time_key, make_counted<const datum_t>(epoch_time), &txn);
+    r_sanity_check(!clobber);
+    return counted_t<const datum_t>(res.release());
+}
+
 counted_t<const datum_t> time_add(counted_t<const datum_t> x, counted_t<const datum_t> y) {
     counted_t<const datum_t> time, duration;
     if (x->is_pseudo_type(time_string)) {
