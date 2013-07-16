@@ -356,7 +356,7 @@ void data_block_manager_t::start_reconstruct() {
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
 void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size) {
-    int extent_id = static_config->extent_index(offset);
+    unsigned int extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
         guarantee(gc_state.step() == gc_reconstruct);  // This is called at startup.
