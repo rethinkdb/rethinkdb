@@ -46,9 +46,6 @@ include $(TOP)/mk/install.mk
 # External dependencies
 include $(TOP)/external/build.mk
 
-# Javascript protobuf compiler
-include $(TOP)/external/protobuf-plugin-closure/build.mk
-
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
