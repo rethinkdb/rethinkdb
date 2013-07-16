@@ -92,7 +92,6 @@ public:
     }
 
     void reconstruct_free_list() {
-        // RSI: Iterate using extent id.
         for (unsigned int extent_id = 0; extent_id < extents.size(); ++extent_id) {
             if (extents[extent_id].state() == extent_info_t::state_unreserved) {
                 extents[extent_id].set_state(extent_info_t::state_free);
