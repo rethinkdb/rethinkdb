@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_restore(argc, argv);
         } else if (subcommand == "--version" || subcommand == "-v") {
             if (argc != 2) {
-		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());              
+		          printf("WARNING: Ignoring extra parameters after '%s'.", subcommand.c_str());
             }
             print_version_message();
             return 0;

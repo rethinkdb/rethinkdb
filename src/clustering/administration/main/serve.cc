@@ -335,13 +335,13 @@ bool do_serve(
                 logINF("Listening for client driver connections on port %d\n",
                        rdb_pb2_server.get_port());
 
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> > 
+                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t> >
                     cluster_metadata_persister(!i_am_a_server ? NULL :
                                                new metadata_persistence::semilattice_watching_persister_t<cluster_semilattice_metadata_t>(
                                                    cluster_metadata_file,
                                                    semilattice_manager_cluster.get_root_view()));
 
-                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> > 
+                scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t> >
                     auth_metadata_persister(!i_am_a_server ? NULL :
                                             new metadata_persistence::semilattice_watching_persister_t<auth_semilattice_metadata_t>(
                                                 auth_metadata_file,

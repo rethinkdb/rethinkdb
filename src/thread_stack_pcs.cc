@@ -3,14 +3,14 @@
  * Some parts Copyright (c) 2013 RethinkDB.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
+ *
  * This file contains Original Code and/or Modifications of Original Code
  * as defined in and that are subject to the Apple Public Source License
  * Version 2.0 (the 'License'). You may not use this file except in
  * compliance with the License. Please obtain a copy of the License at
  * http://www.opensource.apple.com/apsl/ and read it before using this
  * file.
- * 
+ *
  * The Original Code and all software distributed under the License are
  * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -18,7 +18,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
  * Please see the License for the specific language governing rights and
  * limitations under the License.
- * 
+ *
  * @APPLE_LICENSE_HEADER_END@
  *
  * Modified by RethinkDB to handle RethinkDB coroutines.  Also moved
@@ -47,7 +47,7 @@ int rethinkdb_backtrace(void** buffer, int size) {
 }
 
 
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) 
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
 #define FP_LINK_OFFSET 1
 #elif defined(__ppc__) || defined(__ppc64__)
 #define FP_LINK_OFFSET 2
@@ -58,7 +58,7 @@ int rethinkdb_backtrace(void** buffer, int size) {
 #define	INSTACK(a)	((a) >= stackbot && (a) <= stacktop)
 #if defined(__ppc__) || defined(__ppc64__) || defined(__x86_64__)
 #define	ISALIGNED(a)	((((uintptr_t)(a)) & 0xf) == 0)
-#elif defined(__arm__) 
+#elif defined(__arm__)
 #define	ISALIGNED(a)	((((uintptr_t)(a)) & 0x1) == 0)
 #elif defined(__i386__)
 #define	ISALIGNED(a)	((((uintptr_t)(a)) & 0xf) == 8)
@@ -101,7 +101,7 @@ _rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max,
      * optimization).  We now inline the code to get the stack frame pointer,
      * so we are consistent about the stack frame.
      */
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) 
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
     frame = __builtin_frame_address(0);
 #elif defined(__ppc__) || defined(__ppc64__)
     /* __builtin_frame_address IS BROKEN IN BEAKER: RADAR #2340421 */

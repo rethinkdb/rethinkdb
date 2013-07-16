@@ -761,6 +761,6 @@ struct range_key_tester_t : public key_tester_t {
 
     const rdb_protocol_t::region_t *delete_range;
 };
-} //namespace rdb_protocol_details 
+} //namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

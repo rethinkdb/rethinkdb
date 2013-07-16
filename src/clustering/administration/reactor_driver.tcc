@@ -401,7 +401,7 @@ reactor_driver_t<protocol_t>::~reactor_driver_t() {
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::delete_reactor_data(
-        auto_drainer_t::lock_t lock, 
+        auto_drainer_t::lock_t lock,
         typename reactor_map_t::auto_type *thing_to_delete,
         namespace_id_t namespace_id)
 {
