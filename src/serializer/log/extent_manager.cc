@@ -93,10 +93,7 @@ public:
 
     void reconstruct_free_list() {
         // RSI: Iterate using extent id.
-        for (int64_t extent = 0;
-             extent < static_cast<int64_t>(extents.size() * extent_size);
-             extent += extent_size) {
-            const unsigned int extent_id = offset_to_id(extent);
+        for (unsigned int extent_id = 0; extent_id < extents.size(); ++extent_id) {
             if (extents[extent_id].state() == extent_info_t::state_unreserved) {
                 extents[extent_id].set_state(extent_info_t::state_free);
                 free_queue.push(extent_id);
