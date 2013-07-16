@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
+#include <queue>
+
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
@@ -34,11 +36,8 @@ public:
     // object.
     int32_t extent_use_refcount;
 
-    int64_t next_in_free_list;   // Valid if state == state_free
-
     extent_info_t() : state_(state_unreserved),
-                      extent_use_refcount(0),
-                      next_in_free_list(-1) {}
+                      extent_use_refcount(0) { }
 };
 
 class extent_zone_t {
@@ -58,7 +57,11 @@ class extent_zone_t {
 
     segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
 
-    int64_t free_list_head;
+    // We want to remove the minimum element from the free_queue first, leaving
+    // free extents at the end of the file.
+    std::priority_queue<unsigned int,
+                        std::vector<unsigned int>,
+                        std::greater<unsigned int> > free_queue;
 
     file_t *const dbfile;
 
@@ -87,16 +90,14 @@ public:
     }
 
     void reconstruct_free_list() {
-        free_list_head = NULL_OFFSET;
-
         for (int64_t extent = 0;
              extent < static_cast<int64_t>(extents.get_size() * extent_size);
              extent += extent_size) {
-            if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
-                extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
-                extents[offset_to_id(extent)].next_in_free_list = free_list_head;
-                free_list_head = extent;
-                held_extents_++;
+            const unsigned int extent_id = offset_to_id(extent);
+            if (extents[extent_id].state() == extent_info_t::state_unreserved) {
+                extents[extent_id].set_state(extent_info_t::state_free);
+                free_queue.push(extent_id);
+                ++held_extents_;
             }
         }
     }
@@ -104,14 +105,13 @@ public:
     extent_reference_t gen_extent() {
         int64_t extent;
 
-        if (free_list_head == NULL_OFFSET) {
+        if (free_queue.empty()) {
             extent = extents.get_size() * extent_size;
-
             extents.set_size(extents.get_size() + 1);
         } else {
-            extent = free_list_head;
-            free_list_head = extents[offset_to_id(free_list_head)].next_in_free_list;
-            held_extents_--;
+            extent = free_queue.top() * extent_size;
+            free_queue.pop();
+            --held_extents_;
         }
 
         extent_info_t *info = &extents[offset_to_id(extent)];
@@ -121,7 +121,7 @@ public:
 
         dbfile->set_size_at_least(extent + extent_size);
 
-        return make_extent_reference(extent);
+        return extent_ref;
     }
 
     extent_reference_t make_extent_reference(const int64_t extent) {
@@ -141,9 +141,8 @@ public:
         --info->extent_use_refcount;
         if (info->extent_use_refcount == 0) {
             info->set_state(extent_info_t::state_free);
-            info->next_in_free_list = free_list_head;
-            free_list_head = extent;
-            held_extents_++;
+            free_queue.push(offset_to_id(extent));
+            ++held_extents_;
         }
     }
 };
