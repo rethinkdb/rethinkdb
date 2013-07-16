@@ -343,7 +343,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
 
 template <class region_map_t>
 bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::mapped_type state) {
-    for (typename region_map_t::const_iterator it  = metainfo.begin(); 
+    for (typename region_map_t::const_iterator it  = metainfo.begin();
                                                it != metainfo.end();
                                                ++it) {
         if (it->second != state) {
@@ -803,7 +803,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
     }
-    
+
     //return's true if we got all of the sindexes requested.
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
@@ -839,7 +839,7 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
     }
-    
+
     //return's true if we got all of the sindexes requested.
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }

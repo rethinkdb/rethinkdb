@@ -243,7 +243,7 @@ private:
         }
 
         /* Next, look for clients with a large difference between their target
-           number of tickets and their current number of tickets. But if the 
+           number of tickets and their current number of tickets. But if the
            difference is less than `chunk_size`, don't send any tickets at all
            to avoid flooding the network with many small ticket updates. */
         while (free_tickets > chunk_size) {

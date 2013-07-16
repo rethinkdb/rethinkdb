@@ -159,7 +159,7 @@ namespace unittest {
             } else {
                 expected = 0;
             }
-           
+
             ASSERT_SAME_SIGN(expected, compare_and_delete(render_as_json(&left), render_as_json(&right)));
         }
 
