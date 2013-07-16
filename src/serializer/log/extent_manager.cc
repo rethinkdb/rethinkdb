@@ -55,7 +55,7 @@ class extent_zone_t {
     extent free list, such that each free entry's 'next_in_free_list' field is the
     offset of the next free extent. */
 
-    segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
+    std::vector<extent_info_t> extents;
 
     // We want to remove the minimum element from the free_queue first, leaving
     // free extents at the end of the file.
@@ -65,7 +65,6 @@ class extent_zone_t {
 
     file_t *const dbfile;
 
-private:
     int held_extents_;
 
 public:
@@ -74,14 +73,17 @@ public:
     }
 
     extent_zone_t(file_t *_dbfile, size_t _extent_size)
-        : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) { }
+        : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
+        // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
+        // work on average).)
+        extents.reserve(dbfile->get_size() / extent_size);
+    }
 
     extent_reference_t reserve_extent(int64_t extent) {
         unsigned int id = offset_to_id(extent);
 
-        if (id >= extents.get_size()) {
-            extent_info_t default_info;
-            extents.set_size(id + 1, default_info);
+        if (id >= extents.size()) {
+            extents.resize(id + 1);
         }
 
         rassert(extents[id].state() == extent_info_t::state_unreserved);
@@ -90,8 +92,9 @@ public:
     }
 
     void reconstruct_free_list() {
+        // RSI: Iterate using extent id.
         for (int64_t extent = 0;
-             extent < static_cast<int64_t>(extents.get_size() * extent_size);
+             extent < static_cast<int64_t>(extents.size() * extent_size);
              extent += extent_size) {
             const unsigned int extent_id = offset_to_id(extent);
             if (extents[extent_id].state() == extent_info_t::state_unreserved) {
@@ -106,8 +109,8 @@ public:
         int64_t extent;
 
         if (free_queue.empty()) {
-            extent = extents.get_size() * extent_size;
-            extents.set_size(extents.get_size() + 1);
+            extent = extents.size() * extent_size;
+            extents.push_back(extent_info_t());
         } else {
             extent = free_queue.top() * extent_size;
             free_queue.pop();
@@ -126,7 +129,7 @@ public:
 
     extent_reference_t make_extent_reference(const int64_t extent) {
         unsigned int id = offset_to_id(extent);
-        guarantee(id < extents.get_size());
+        guarantee(id < extents.size());
         extent_info_t *info = &extents[id];
         guarantee(info->state() == extent_info_t::state_in_use);
         ++info->extent_use_refcount;
