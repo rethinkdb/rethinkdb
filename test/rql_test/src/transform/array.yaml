@@ -150,6 +150,16 @@ tests:
       rb: arr.reduce(0){ |a, b| a + b }
       ot: 6
 
+    - py: "arr.union(arr).reduce(lambda a, b: a + b)"
+      js: arr.union(arr).reduce(function(a,b) { return a.add(b); })
+      rb: arr.union(arr).reduce{ |a, b| a + b }
+      ot: 12
+
+    - py: arr.union(arr).reduce(lambda a, b:a + b, base=0)
+      js: arr.union(arr).reduce(function(a,b) { return a.add(b); }, 0)
+      rb: arr.union(arr).reduce(0){ |a, b| a + b }
+      ot: 12
+
     ## Filter
 
     - py: "objArr.filter(lambda row: row['b'] == 'b')"
