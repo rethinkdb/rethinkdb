@@ -313,8 +313,8 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
         && delete_range->inner.contains_key(key->contents, key->size);
 }
 
-typedef boost::variant<rdb_modification_report_t, 
-                       rdb_erase_range_report_t> 
+typedef boost::variant<rdb_modification_report_t,
+                       rdb_erase_range_report_t>
         sindex_change_t;
 
 }  // namespace rdb_protocol_details

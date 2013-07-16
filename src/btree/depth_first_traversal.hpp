@@ -26,7 +26,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, 
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
         superblock_t *superblock, const key_range_t &range,
         depth_first_traversal_callback_t *cb, direction_t direction);
 

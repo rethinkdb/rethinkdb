@@ -144,7 +144,7 @@ class rdb_value_deleter_t : public value_deleter_t {
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
                      transaction_t *txn, superblock_t *superblock,
-                     btree_store_t<rdb_protocol_t> *store, 
+                     btree_store_t<rdb_protocol_t> *store,
                      write_token_pair_t *token_pair,
                      signal_t *interruptor);
 
@@ -206,7 +206,7 @@ struct rdb_erase_range_report_t {
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-typedef boost::variant<rdb_modification_report_t, 
+typedef boost::variant<rdb_modification_report_t,
                        rdb_erase_range_report_t>
         rdb_sindex_change_t;
 

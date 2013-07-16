@@ -25,8 +25,14 @@ public:
     func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
-                                               const protob_t<const Backtrace> &root);
+    static counted_t<func_t> new_identity_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &root);
+
+    static counted_t<func_t> new_pluck_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &bt_src);
+
     static counted_t<func_t> new_eq_comparison_func(
         env_t *env, counted_t<const datum_t> obj,
         const protob_t<const Backtrace> &bt_src);
