@@ -1,3 +1,8 @@
+net = require('net')
+fs = require('fs')
+node_protobuf = require('node-protobuf')
+events = require('events')
+
 # rethinkdb is both the main export object for the module
 # and a function that shortcuts `r.expr`.
 rethinkdb = (args...) -> rethinkdb.expr(args...)
@@ -35,13 +40,6 @@ aropt = (fun) -> (args...) ->
     if expectedPosArgs isnt numPosArgs
          throw new RqlDriverError "Expected #{expectedPosArgs} argument(s) but found #{numPosArgs}."
     fun.apply(@, args)
-
-# Test if the requested node module is available
-testFor = (module) ->
-    try
-        return typeof require is 'function' and require(module)
-    catch e
-        return false
 
 funcWrap = (val) ->
     if val is undefined
@@ -211,9 +209,8 @@ nextCbCheck = (cb) ->
 # Protobuf
 
 # Initialize message serializer with
-desc = require('fs').readFileSync(__dirname + "/ql2.desc")
-npb = require('node-protobuf').Protobuf
-NodePB = new npb(desc)
+desc = fs.readFileSync(__dirname + "/ql2.desc")
+NodePB = new node_protobuf.Protobuf(desc)
 
 # Errors
 
@@ -287,9 +284,7 @@ class RqlQueryPrinter
 
 # Networking code
 
-EventEmitter = require('events').EventEmitter
-
-class Connection extends EventEmitter
+class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
     DEFAULT_AUTH_KEY: ''
@@ -486,7 +481,7 @@ class Connection extends EventEmitter
         @write finalArray.buffer
 
 class TcpConnection extends Connection
-    @isAvailable: -> testFor('net')
+    @isAvailable: () -> true
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()
@@ -497,7 +492,6 @@ class TcpConnection extends Connection
         if @rawSocket?
             @close()
 
-        net = require('net')
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
