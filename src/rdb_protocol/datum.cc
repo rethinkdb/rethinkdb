@@ -16,7 +16,8 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }

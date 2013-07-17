@@ -2,8 +2,9 @@
 #ifndef RDB_PROTOCOL_PATHSPEC_HPP_
 #define RDB_PROTOCOL_PATHSPEC_HPP_
 
-#include "errors.hpp"
-#include <boost/variant.hpp>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/term.hpp"
@@ -91,4 +92,4 @@ bool contains(counted_t<const datum_t> datum,
 
 } //namespace ql
 
-#endif
+#endif  // RDB_PROTOCOL_PATHSPEC_HPP_

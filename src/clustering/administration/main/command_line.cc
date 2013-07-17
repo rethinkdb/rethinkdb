@@ -11,6 +11,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// Needed for determining rethinkdb binary path below
+#if defined(__MACH__)
+#include <mach-o/dyld.h>
+#elif defined(__FreeBSD_version)
+#include <sys/sysctl.h>
+#endif
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -31,13 +38,6 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-
-// Needed for determining rethinkdb binary path below
-#if defined(__MACH__)
-#include <mach-o/dyld.h>
-#elif defined(__FreeBSD_version)
-#include <sys/sysctl.h>
-#endif
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"

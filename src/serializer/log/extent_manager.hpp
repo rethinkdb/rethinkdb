@@ -28,7 +28,7 @@ struct log_serializer_stats_t;
 class extent_reference_t {
 public:
     extent_reference_t() : extent_offset_(-1) {}
-    extent_reference_t(int64_t extent_offset) : extent_offset_(extent_offset) {}
+    explicit extent_reference_t(int64_t extent_offset) : extent_offset_(extent_offset) {}
     extent_reference_t(extent_reference_t &&movee)
         : extent_offset_(movee.release()) {}
     ~extent_reference_t() { guarantee(extent_offset_ == -1); }

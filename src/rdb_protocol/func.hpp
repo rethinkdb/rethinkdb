@@ -6,8 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-
 #include "errors.hpp"
 #include <boost/optional.hpp>
 

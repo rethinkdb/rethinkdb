@@ -769,8 +769,8 @@ private:
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t>>(rg_response->result);
-                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t>>(_rr->result);
+                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t> >(rg_response->result);
+                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t> >(_rr->result);
                     rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
                 }
             } else if (const ql::gmr_wire_func_t *gmr_func =

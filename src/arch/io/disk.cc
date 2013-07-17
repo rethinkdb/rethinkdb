@@ -24,7 +24,7 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...
+using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
 
 void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
