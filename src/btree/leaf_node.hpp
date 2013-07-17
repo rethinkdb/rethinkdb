@@ -3,6 +3,7 @@
 #define BTREE_LEAF_NODE_HPP_
 
 #include <string>
+#include <utility>
 
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"
@@ -28,6 +29,11 @@ public:
     static key_modification_proof_t real_proof() { return key_modification_proof_t(); }
 };
 
+namespace leaf {
+class iterator;
+class reverse_iterator;
+} //namespace leaf
+
 // The leaf node begins with the following struct layout.
 struct leaf_node_t {
     // The value-type-specific magic value.  It's a bit of a hack, but
@@ -50,10 +56,23 @@ struct leaf_node_t {
 
     // The pair offsets.
     uint16_t pair_offsets[];
+
+    //Iteration
+    typedef leaf::iterator iterator;
+    typedef leaf::reverse_iterator reverse_iterator;
 };
 
-
 namespace leaf {
+
+leaf_node_t::iterator begin(const leaf_node_t &leaf_node);
+leaf_node_t::iterator end(const leaf_node_t &leaf_node);
+
+leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node);
+leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node);
+
+leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+leaf_node_t::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+
 
 
 // We must maintain timestamps and deletion entries as best we can,
@@ -145,25 +164,42 @@ protected:
 
 void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t *cb);
 
-// We have to have an iterator and avoid exposing pair offset indexes
-// because people would use raw indexes incorrectly.
-class live_iter_t {
+class iterator {
 public:
-    bool step(const leaf_node_t *node);
-    const btree_key_t *get_key(const leaf_node_t *node) const;
-    const void *get_value(const leaf_node_t *node) const;
-
+    iterator();
+    iterator(const leaf_node_t *node, int index);
+    std::pair<const btree_key_t *, const void *> operator*() const;
+    iterator &operator++();
+    iterator &operator--();
+    bool operator==(const iterator &other) const;
+    bool operator!=(const iterator &other) const;
+    bool operator<(const iterator &other) const;
+    bool operator>(const iterator &other) const;
+    bool operator<=(const iterator &other) const;
+    bool operator>=(const iterator &other) const;
 private:
-    explicit live_iter_t(int index) : index_(index) { }
-
-    friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
-    friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
-
+    /* negative return => this < other */
+    int cmp(const iterator &other) const;
+    const leaf_node_t *node_;
     int index_;
 };
 
-live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
-live_iter_t iter_for_whole_leaf(const leaf_node_t *node);
+class reverse_iterator {
+public:
+    reverse_iterator();
+    reverse_iterator(const leaf_node_t *node, int index);
+    std::pair<const btree_key_t *, const void *> operator*() const;
+    reverse_iterator &operator++();
+    reverse_iterator &operator--();
+    bool operator==(const reverse_iterator &other) const;
+    bool operator!=(const reverse_iterator &other) const;
+    bool operator<(const reverse_iterator &other) const;
+    bool operator>(const reverse_iterator &other) const;
+    bool operator<=(const reverse_iterator &other) const;
+    bool operator>=(const reverse_iterator &other) const;
+private:
+    iterator inner_;
+};
 
 }  // namespace leaf
 

@@ -8,8 +8,6 @@
 #include <utility>
 
 #include "errors.hpp"
-#include "utils.hpp"
-
 #include <boost/type_traits/remove_const.hpp>
 
 #include "containers/archive/archive.hpp"

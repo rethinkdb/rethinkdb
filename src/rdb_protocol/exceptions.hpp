@@ -35,5 +35,5 @@ public:
 };
 
 
-}// namespace query_language 
+}// namespace query_language
 #endif /* RDB_PROTOCOL_EXCEPTIONS_HPP_ */

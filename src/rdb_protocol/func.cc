@@ -208,6 +208,7 @@ void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     guarantee(source.has());
+    source = make_counted_term();
     archive_result_t res = deserialize(stream, source.get());
     if (res != ARCHIVE_SUCCESS) { return res; }
     res = deserialize(stream, &default_filter_val);
@@ -295,6 +296,17 @@ counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t
     return make_counted<func_t>(env, twrap);
 }
 
+counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+                                 const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    int var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))), 
+       N2(PLUCK, NVAR(var), NDATUM(obj)));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
 counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
@@ -316,7 +328,7 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) cons
 }
 counted_t<val_t> js_result_visitor_t::operator()(
     const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val, env));
+    return parent->new_val(make_counted<const datum_t>(json_val));
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {

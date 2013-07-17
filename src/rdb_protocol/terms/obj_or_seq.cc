@@ -40,10 +40,18 @@ public:
         case FILTER: {
             body = arg;
             *arg = *term;
+            Term_AssocPair *ap = arg->add_optargs();
+            ap->set_key("_NO_RECURSE_");
+            arg = ap->mutable_val();
+            NDATUM_BOOL(true);
         } break;
         case SKIP_MAP: {
             N2(DEFAULT,
-               N1(MAKE_ARRAY, body = arg; *arg = *term),
+               N1(MAKE_ARRAY, body = arg; *arg = *term;
+               Term_AssocPair *ap = arg->add_optargs();
+               ap->set_key("_NO_RECURSE_");
+               arg = ap->mutable_val();
+               NDATUM_BOOL(true)),
                N0(MAKE_ARRAY));
         } break;
         default: unreachable();
@@ -122,12 +130,12 @@ private:
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
-        scoped_ptr_t<datum_t> out(new datum_t(obj->as_object()));
+        std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            const std::string &key = arg(i)->as_str();
-            UNUSED bool b = out->delete_key(key);
+            paths.push_back(arg(i)->as_datum());
         }
-        return new_val(counted_t<const datum_t>(out.release()));
+        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        return new_val(unproject(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "without"; }
 };
@@ -154,13 +162,14 @@ public:
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
         counted_t<const datum_t> obj = v0->as_datum();
+        r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
+
+        std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            counted_t<const datum_t> el = obj->get(arg(i)->as_str(), NOTHROW);
-            if (!el.has() || el->get_type() == datum_t::R_NULL) {
-                return new_val_bool(false);
-            }
+            paths.push_back(arg(i)->as_datum());
         }
-        return new_val_bool(true);
+        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }
 };

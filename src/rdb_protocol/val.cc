@@ -396,7 +396,7 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
     r_sanity_check(p_res);
-    return make_counted<datum_t>(p_res->data, env);
+    return make_counted<datum_t>(p_res->data);
 }
 
 counted_t<datum_stream_t> table_t::get_rows(counted_t<const datum_t> left_bound,
@@ -595,6 +595,8 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         return func_t::new_constant_func(env, as_datum(), backtrace());
     case GET_FIELD_SHORTCUT:
         return func_t::new_get_field_func(env, as_datum(), backtrace());
+    case PLUCK_SHORTCUT:
+        return func_t::new_pluck_func(env, as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

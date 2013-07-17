@@ -11,6 +11,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// Needed for determining rethinkdb binary path below
+#if defined(__MACH__)
+#include <mach-o/dyld.h>
+#elif defined(__FreeBSD_version)
+#include <sys/sysctl.h>
+#endif
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -22,6 +29,7 @@
 #include "clustering/administration/main/options.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
+#include "clustering/administration/main/directory_lock.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/persist.hpp"
@@ -30,13 +38,6 @@
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-
-// Needed for determining rethinkdb binary path below
-#if defined(__MACH__)
-#include <mach-o/dyld.h>
-#elif defined(__FreeBSD_version)
-#include <sys/sysctl.h>
-#endif
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -304,14 +305,6 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
     return get_single_option(opts, name, &source);
 }
 
-
-class host_and_port_t {
-public:
-    host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
-    std::string host;
-    int port;
-};
-
 class serve_info_t {
 public:
     serve_info_t(extproc::spawner_info_t *_spawner_info,
@@ -374,10 +367,6 @@ void initialize_logfile(const std::map<std::string, options::values_t> &opts,
     install_fallback_log_writer(filename);
 }
 
-bool check_existence(const base_path_t& base_path) {
-    return 0 == access(base_path.path().c_str(), F_OK);
-}
-
 std::string get_web_path(boost::optional<std::string> web_static_directory, char **argv) {
     // We check first for a run-time option, then check the home of the binary,
     // and then we check in the install location if such a location was provided
@@ -414,6 +403,26 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
     return get_web_path(web_static_directory, argv);
 }
 
+// Note that this defaults to the peer port if no port is specified
+//  (at the moment, this is only used for parsing --join directives)
+host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
+                                    const std::string &value, int default_port) {
+    size_t colon_loc = value.find_first_of(':');
+    if (colon_loc != std::string::npos) {
+        std::string host = value.substr(0, colon_loc);
+        int port = atoi(value.substr(colon_loc + 1).c_str());
+        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+            return host_and_port_t(host, port_t(port));
+        }
+    } else if (value.size() != 0) {
+        return host_and_port_t(value, port_t(default_port));
+    }
+
+    throw options::value_error_t(source, option_name,
+                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                           option_name.c_str(), value.c_str()));
+}
+
 class address_lookup_exc_t : public std::exception {
 public:
     explicit address_lookup_exc_t(const std::string& data) : info(data) { }
@@ -424,25 +433,24 @@ private:
 };
 
 std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_options) {
-    const std::vector<std::string> vector_filter = bind_options;
     std::set<ip_address_t> set_filter;
     bool all = false;
 
     // Scan through specified bind options
-    for (size_t i = 0; i < vector_filter.size(); ++i) {
-        if (vector_filter[i] == "all") {
+    for (size_t i = 0; i < bind_options.size(); ++i) {
+        if (bind_options[i] == "all") {
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
             struct in_addr addr;
-            if (inet_pton(AF_INET, vector_filter[i].c_str(), &addr) == 1) {
+            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
                 if (addr.s_addr == INADDR_ANY) {
                     all = true;
                 } else {
                     set_filter.insert(ip_address_t(addr));
                 }
             } else {
-                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", vector_filter[i].c_str()));
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
             }
         }
     }
@@ -504,10 +512,32 @@ int offseted_port(const int port, const int port_offset) {
     return port == 0 ? 0 : port + port_offset;
 }
 
+peer_address_t get_canonical_addresses(const std::map<std::string, options::values_t> &opts,
+                                       int default_port) {
+    std::string source;
+    std::vector<std::string> canonical_options = all_options(opts, "--canonical-address", &source);
+    // Verify that all specified addresses are valid ip addresses
+    std::set<host_and_port_t> result;
+    for (size_t i = 0; i < canonical_options.size(); ++i) {
+        host_and_port_t host_port = parse_host_and_port(source, "--canonical-address",
+                                                        canonical_options[i], default_port);
+
+        if (host_port.port().value() == 0 && default_port != 0) {
+            // The cluster layer would probably swap this out with whatever port we were
+            //  actually listening on, but since the user explicitly specified 0, it doesn't make sense
+            throw std::logic_error("cannot specify a port of 0 in --canonical-address");
+        }
+        result.insert(host_port);
+    }
+    return peer_address_t(result);
+}
+
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
+    const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
-                                   offseted_port(get_single_int(opts, "--cluster-port"), port_offset),
+                                   get_canonical_addresses(opts, cluster_port),
+                                   cluster_port,
 #ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
 #else
@@ -562,28 +592,43 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
 peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &names) {
     peer_address_set_t peers;
     for (size_t i = 0; i < names.size(); ++i) {
-        peers.insert(peer_address_t(ip_address_t::from_hostname(names[i].host),
-                                    names[i].port));
+        std::set<host_and_port_t> peer_host;
+        peer_host.insert(names[i]);
+        peers.insert(peer_address_t(peer_host));
     }
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *const result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins,
+                         const peer_address_t &canonical_addresses,
+                         int client_port,
+                         const std::vector<std::string>& command_args,
+                         bool exit_on_failure,
+                         bool *const result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
     std::string host_port;
 
     if (!joins.empty()) {
-        host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
+        host_port = strprintf("%s:%d", joins[0].host().c_str(), joins[0].port().value());
     }
 
     try {
         if (command_args.empty())
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_console(exit_on_failure);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).run_console(exit_on_failure);
         else if (command_args[0] == admin_command_parser_t::complete_command)
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).run_completion(command_args);
         else
-            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
+            admin_command_parser_t(host_port,
+                                   look_up_peers_addresses(joins),
+                                   canonical_addresses,
+                                   client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (const admin_no_connection_exc_t& ex) {
         // Don't use logging, because we might want to printout multiple lines and such, which the log system doesn't like
         fprintf(stderr, "%s\n", ex.what());
@@ -610,16 +655,11 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
+                         directory_lock_t *data_directory_lock,
                          bool *const result_out) {
     logINF("Running %s...\n", RETHINKDB_VERSION_STR);
     logINF("Running on %s", uname_msr().c_str());
     os_signal_cond_t sigint_cond;
-
-    if (!check_existence(base_path)) {
-        logERR("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
-        *result_out = false;
-        return;
-    }
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
@@ -657,6 +697,10 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                                                                  &auth_perfmon_collection));
         }
 
+        // Tell the directory lock that the directory is now good to go, as it will
+        //  otherwise delete an uninitialized directory
+        data_directory_lock->directory_initialized();
+
         *result_out = serve(serve_info.spawner_info,
                             &io_backender,
                             base_path,
@@ -682,10 +726,11 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const int max_concurrent_io_requests,
                              const bool new_directory,
                              const serve_info_t &serve_info,
+                             directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info, max_concurrent_io_requests,
-                            NULL, NULL,
+                            NULL, NULL, data_directory_lock,
                             result_out);
     } else {
         logINF("Creating directory %s\n", base_path.path().c_str());
@@ -718,7 +763,8 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
 
         run_rethinkdb_serve(base_path, serve_info,
                             max_concurrent_io_requests,
-                            &our_machine_id, &cluster_metadata, result_out);
+                            &our_machine_id, &cluster_metadata,
+                            data_directory_lock, result_out);
     }
 }
 
@@ -781,32 +827,13 @@ options::help_section_t get_config_file_options(std::vector<options::option_t> *
     return help;
 }
 
-// Note that this defaults to the peer port if no port is specified
-//  (at the moment, this is only used for parsing --join directives)
-host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
-                                    const std::string &value) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0) {
-            return host_and_port_t(host, port);
-        }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_defaults::peer_port);
-    }
-
-    throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
-                                           option_name.c_str(), value.c_str()));
-}
-
-std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts) {
+std::vector<host_and_port_t> parse_join_options(const std::map<std::string, options::values_t> &opts,
+                                                int default_port) {
     std::string source;
     const std::vector<std::string> join_strings = all_options(opts, "--join", &source);
     std::vector<host_and_port_t> joins;
     for (auto it = join_strings.begin(); it != join_strings.end(); ++it) {
-        joins.push_back(parse_host_and_port(source, "--join", *it));
+        joins.push_back(parse_host_and_port(source, "--join", *it, default_port));
     }
     return joins;
 }
@@ -857,6 +884,10 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--join", "-j"),
                                              join_required ? options::MANDATORY_REPEAT : options::OPTIONAL_REPEAT));
     help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
+
+    options_out->push_back(options::option_t(options::names_t("--canonical-address"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
 
     return help;
 }
@@ -965,53 +996,15 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
                                              "localhost"));
     help.add("-j [ --join ] host:port", "host and cluster port of a rethinkdb node to connect to");
 
+    options_out->push_back(options::option_t(options::names_t("--canonical-address"),
+                                             options::OPTIONAL_REPEAT));
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("-x [ --exit-failure ]", "exit with an error code immediately if a command fails");
 
     help_out->push_back(help);
-}
-
-void get_rethinkdb_import_options(std::vector<options::help_section_t> *help_out,
-                                  std::vector<options::option_t> *options_out) {
-    options::help_section_t help("Allowed options");
-
-#ifndef NDEBUG
-    options_out->push_back(options::option_t(options::names_t("--client-port"),
-                                             options::OPTIONAL,
-                                             strprintf("%d", port_defaults::client_port)));
-    help.add("--client-port port", "port to use when connecting to other nodes (for development)");
-#endif  // NDEBUG
-
-    options_out->push_back(options::option_t(options::names_t("--join", "-j"),
-                                             options::OPTIONAL_REPEAT));
-    help.add("-j [ --join ] host:port", "host and port of a rethinkdb node to connect to");
-
-    options_out->push_back(options::option_t(options::names_t("--table"),
-                                             options::MANDATORY));
-    help.add("--table db_name.table_name", "the database and table into which to import");
-
-    options_out->push_back(options::option_t(options::names_t("--datacenter"),
-                                             options::OPTIONAL));
-    help.add("--datacenter name", "the datacenter into which to create a table");
-
-    options_out->push_back(options::option_t(options::names_t("--primary-key"),
-                                             options::OPTIONAL,
-                                             "id"));
-    help.add("--primary-key key", "the primary key to create a new table with, or expected primary key");
-
-    options_out->push_back(options::option_t(options::names_t("--separators", "-s"),
-                                             options::OPTIONAL,
-                                             "\t,"));
-    help.add("-s [ --separators ]", "list of characters to be used as whitespace -- uses tabs and commas by default");
-
-    options_out->push_back(options::option_t(options::names_t("--input-file"),
-                                             options::MANDATORY));
-    help.add("--input-file path", "the csv input file");
-
-    help_out->push_back(help);
-    help_out->push_back(get_config_file_options(options_out));
-    help_out->push_back(get_help_options(options_out));
 }
 
 void get_rethinkdb_porcelain_options(std::vector<options::help_section_t> *help_out,
@@ -1035,8 +1028,17 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
         throw std::runtime_error(strprintf("Trouble reading config file '%s'", config_filepath.c_str()));
     }
 
+    std::vector<options::option_t> options_superset;
+    std::vector<options::help_section_t> helps_superset;
+
+    // There will be some duplicates in here, but it shouldn't be a problem
+    get_rethinkdb_create_options(&helps_superset, &options_superset);
+    get_rethinkdb_serve_options(&helps_superset, &options_superset);
+    get_rethinkdb_proxy_options(&helps_superset, &options_superset);
+    get_rethinkdb_porcelain_options(&helps_superset, &options_superset);
+
     return options::parse_config_file(file, config_filepath,
-                                      options);
+                                      options, options_superset);
 }
 
 std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,
@@ -1100,15 +1102,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         const int num_workers = get_cpu_count();
 
-        // TODO: Why do we call check_existence when we just try calling mkdir anyway?  This is stupid.
-        if (check_existence(base_path)) {
-            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
-            return EXIT_FAILURE;
-        }
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
-        const int res = mkdir(base_path.path().c_str(), 0755);
-        if (res != 0) {
-            fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
+        if (!is_new_directory) {
+            fprintf(stderr, "The path '%s' already exists.  Delete it and try again.\n", base_path.path().c_str());
             return EXIT_FAILURE;
         }
 
@@ -1119,7 +1117,13 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, &result),
                            num_workers);
-        return result ? EXIT_SUCCESS : EXIT_FAILURE;
+
+        if (result) {
+            // Tell the directory lock that the directory is now good to go, as it will
+            //  otherwise delete an uninitialized directory
+            data_directory_lock.directory_initialized();
+            return EXIT_SUCCESS;
+        }
     } catch (const options::named_error_t &ex) {
         output_named_error(ex, help);
         fprintf(stderr, "Run 'rethinkdb help create' for help on the command\n");
@@ -1198,7 +1202,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         base_path_t base_path(get_single_option(opts, "--directory"));
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -1214,10 +1218,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (!check_existence(base_path)) {
-            fprintf(stderr, "ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", base_path.path().c_str(), base_path.path().c_str());
-            return EXIT_FAILURE;
-        }
+        // Open and lock the directory, but do not create it
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, false, &is_new_directory);
+        guarantee(!is_new_directory);
 
         recreate_temporary_directory(base_path);
 
@@ -1249,6 +1253,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                        max_concurrent_io_requests,
                                        static_cast<machine_id_t*>(NULL),
                                        static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                       &data_directory_lock,
                                        &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -1278,7 +1283,10 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins =
+            parse_join_options(opts, port_defaults::peer_port);
+
+        peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");
@@ -1290,7 +1298,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         const int num_workers = get_cpu_count();
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, command_args, exit_on_failure, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1319,7 +1327,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
+
+        service_address_ports_t address_ports = get_service_address_ports(opts);
 
         if (joins.empty()) {
             fprintf(stderr, "No --join option(s) given. A proxy needs to connect to something!\n"
@@ -1332,8 +1342,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         // Default to putting the log file in the current working directory
         base_path_t base_path(".");
         initialize_logfile(opts, base_path);
-
-        service_address_ports_t address_ports = get_service_address_ports(opts);
 
         const std::string web_path = get_web_path(opts, argv);
         const int num_workers = get_cpu_count();
@@ -1539,7 +1547,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        const std::vector<host_and_port_t> joins = parse_join_options(opts);
+        const std::vector<host_and_port_t> joins = parse_join_options(opts, port_defaults::peer_port);
 
         const service_address_ports_t address_ports = get_service_address_ports(opts);
 
@@ -1555,16 +1563,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        bool new_directory = false;
         // Attempt to create the directory early so that the log file can use it.
-        if (!check_existence(base_path)) {
-            new_directory = true;
-            int mkdir_res = mkdir(base_path.path().c_str(), 0755);
-            if (mkdir_res != 0) {
-                fprintf(stderr, "Could not create directory: %s\n", errno_string(errno).c_str());
-                return EXIT_FAILURE;
-            }
-        }
+        // If we create the file, it will be cleaned up unless directory_initialized()
+        // is called on it.  This will be done after the metadata files have been created.
+        bool is_new_directory = false;
+        directory_lock_t data_directory_lock(base_path, true, &is_new_directory);
 
         recreate_temporary_directory(base_path);
 
@@ -1595,8 +1598,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                        base_path,
                                        machine_name,
                                        max_concurrent_io_requests,
-                                       new_directory,
+                                       is_new_directory,
                                        serve_info,
+                                       &data_directory_lock,
                                        &result),
                            num_workers);
 

@@ -7,18 +7,15 @@
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 
-// This is a helper function used by find_peer_address_in_set to avoice code duplication.
+// This is a helper function used by find_peer_address_in_set to avoid code duplication.
 // It will return an iterator to the first peer_address_t in the set that matches any
 // of the IP addresses in addr.
 peer_address_set_t::iterator find_peer_address_internal(const peer_address_set_t &peers,
-                                                        const peer_address_t &addr) {
+                                                        const std::set<ip_and_port_t> &addrs) {
     for (peer_address_set_t::iterator other = peers.begin(); other != peers.end(); ++other) {
-        if (addr.port != other->port) {
-            continue;
-        }
-
-        for (std::set<ip_address_t>::iterator it = addr.all_ips()->begin(); it != addr.all_ips()->end(); ++it) {
-            for (std::set<ip_address_t>::iterator jt = other->all_ips()->begin(); jt != other->all_ips()->end(); ++jt) {
+        for (auto it = addrs.begin(); it != addrs.end(); ++it) {
+            for (auto jt = other->ips().begin();
+                 jt != other->ips().end(); ++jt) {
                 if (*it == *jt) {
                     return other;
                 }
@@ -40,20 +37,21 @@ peer_address_set_t::iterator find_peer_address_internal(const peer_address_set_t
 peer_address_set_t::iterator find_peer_address_in_set(const peer_address_set_t &peers,
                                                       const peer_address_t &addr) {
     // Compare non-loopback addresses first
-    const std::set<ip_address_t> *ips = addr.all_ips();
-    std::set<ip_address_t> ips_no_loopback;
-    for (std::set<ip_address_t>::const_iterator it = ips->begin(); it != ips->end(); ++it) {
-        if (!it->is_loopback()) {
-            ips_no_loopback.insert(*it);
+    const std::set<ip_and_port_t> &addrs = addr.ips();
+    std::set<ip_and_port_t> addrs_no_loopback;
+    for (std::set<ip_and_port_t>::const_iterator it = addrs.begin();
+         it != addrs.end(); ++it) {
+        if (!it->ip().is_loopback()) {
+            addrs_no_loopback.insert(*it);
         }
     }
-    const peer_address_t addr_no_loopback(ips_no_loopback, addr.port);
 
-    peer_address_set_t::iterator result = find_peer_address_internal(peers, addr_no_loopback);
+    peer_address_set_t::iterator result =
+        find_peer_address_internal(peers, addrs_no_loopback);
 
     if (result == peers.end()) {
         // No match found, compare including loopback addresses
-        result = find_peer_address_internal(peers, addr);
+        result = find_peer_address_internal(peers, addr.ips());
     }
 
     return result;
@@ -116,11 +114,13 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
         } while (!peers_not_heard_from.empty() && (!grace_period_timer.has() || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
             peer_address_set_t::iterator it = peers_not_heard_from.begin();
-            std::string s = strprintf("%s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
+            printf_buffer_t buffer;
+            debug_print(&buffer, it->primary_host());
             for (it++; it != peers_not_heard_from.end(); it++) {
-                s += strprintf(", %s:%d", it->primary_ip().as_dotted_decimal().c_str(), it->port);
+                buffer.appendf(", ");
+                debug_print(&buffer, it->primary_host());
             }
-            logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
+            logWRN("We were unable to connect to the following peer%s, or the --join address does not match the peer's canonical address: %s", peers_not_heard_from.size() > 1 ? "s" : "", buffer.c_str());
         }
     } catch (const interrupted_exc_t &) {
         /* ignore */

@@ -46,9 +46,9 @@ commands:
       rb: with_fields
 
     body:
-      js: "$PARENT.withFields(field1[, field2...])"
-      py: "$PARENT.with_fields(field1[, field2...])"
-      rb: "$PARENT.with_fields(field1[, field2...])"
+      js: "$PARENT.withFields([selector1, selector2...])"
+      py: "$PARENT.with_selectors([selector1, selector2...])"
+      rb: "$PARENT.with_selectors([selector1, selector2...])"
 
     io:
       - - sequence
@@ -57,11 +57,21 @@ commands:
         - array
 
     examples:
-      - description: Get a list of heroes and their arch-nemeses, excluding any heroes that lack one.
+      - description: Get a list of heroes and their nemeses, excluding any heroes that lack one.
         code:
           rb: r.table('marvel').with_fields('id', 'nemesis')
           py: r.table('marvel').with_fields('id', 'nemesis')
           js: r.table('marvel').withFields('id', 'nemesis')
+      - description: Get a list of heroes and their nemeses, excluding any heroes whose nemesis isn't in an evil organization.
+        code:
+          rb: "r.table('marvel').with_fields(:id, {:nemesis => {:evil_organization => true}})"
+          py: "r.table('marvel').with_fields('id', {'nemesis' : {'evil_organization' => True}})"
+          js: "r.table('marvel').withFields('id', {'nemesis' : {'evil_organization' : true}})"
+      - description: The nested syntax can quickly become overly verbose so there's a shorthand.
+        code:
+          rb: "r.table('marvel').with_fields(:id, {:nemesis => :evil_organization})"
+          py: "r.table('marvel').with_fields('id', {'nemesis' : 'evil_organization'})"
+          js: "r.table('marvel').withFields('id', {'nemesis' : 'evil_organization'})"
 
   - tag: concat_map
     section: transformations

@@ -40,7 +40,12 @@ public:
     T *create(const Args &... args) {
         rassert(state == EMPTY);
         state = CONSTRUCTING;
-        new (&object_data[0]) T(args...);
+        try {
+            new (&object_data[0]) T(args...);
+        } catch (...) {
+            state = EMPTY;
+            throw;
+        }
         state = INSTANTIATED;
         return get();
     }

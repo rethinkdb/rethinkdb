@@ -16,7 +16,8 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
@@ -88,7 +89,7 @@ void datum_t::init_object() {
     r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
-void datum_t::init_json(cJSON *json, env_t *env) {
+void datum_t::init_json(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
         type = R_BOOL;
@@ -106,7 +107,8 @@ void datum_t::init_json(cJSON *json, env_t *env) {
         r_num = json->valuedouble;
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
-        r_sanity_check(isfinite(r_num));
+        rcheck(isfinite(r_num), base_exc_t::GENERIC,
+               strprintf("Non-finite value `%lf` in JSON.", r_num));
     } break;
     case cJSON_String: {
         init_str();
@@ -115,15 +117,16 @@ void datum_t::init_json(cJSON *json, env_t *env) {
     case cJSON_Array: {
         init_array();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i), env));
+            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i)));
         }
     } break;
     case cJSON_Object: {
         init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            bool b = add(el->string, make_counted<datum_t>(el, env));
-            r_sanity_check(!b);
+            bool conflict = add(el->string, make_counted<datum_t>(el));
+            rcheck(!conflict, base_exc_t::GENERIC,
+                   strprintf("Duplicate key `%s` in JSON.", el->string));
         }
     } break;
     default: unreachable();
@@ -140,11 +143,11 @@ void datum_t::check_str_validity(const std::string &str) {
                      str.c_str(), null_offset));
 }
 
-datum_t::datum_t(cJSON *json, env_t *env) {
-    init_json(json, env);
+datum_t::datum_t(cJSON *json) {
+    init_json(json);
 }
-datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json, env_t *env) {
-    init_json(json->get(), env);
+datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
+    init_json(json->get());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }

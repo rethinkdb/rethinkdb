@@ -15,6 +15,7 @@
 #include "utils.hpp"
 #include "backtrace.hpp"
 #include "clustering/administration/logger.hpp"
+#include "arch/timing.hpp"
 
 static __thread bool crashed = false; // to prevent crashing within crashes
 

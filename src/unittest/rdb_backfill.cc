@@ -52,11 +52,11 @@ void run_with_broadcaster(
 
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
 
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
@@ -306,8 +306,7 @@ void run_sindex_backfill_test(io_backender_t *io_backender,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         boost::shared_ptr<scoped_cJSON_t> sindex_key_json(new scoped_cJSON_t(cJSON_Parse(it->second.c_str())));
-        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json,
-                                                                  &dummy_env);
+        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(sindex_id,
                                                                 sindex_key_literal,
                                                                 sindex_key_literal));

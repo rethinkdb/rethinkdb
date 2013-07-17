@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string>
+#include <set>
 
 #include "errors.hpp"
 #include "utils.hpp"
@@ -265,10 +266,12 @@ bool is_not_space(char ch) {
 
 std::map<std::string, values_t> parse_config_file(const std::string &file_contents,
                                                   const std::string &filepath,
-                                                  const std::vector<option_t> &options) {
+                                                  const std::vector<option_t> &options,
+                                                  const std::vector<option_t> &options_superset) {
     const std::string source = "the configuration file " + filepath;
 
     const std::vector<std::string> lines = split_by_lines(file_contents);
+    std::set<std::string> ignored_options;
 
     std::map<std::string, values_t> ret;
 
@@ -315,13 +318,30 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
         const option_t *option = find_option(option_name.c_str(), options);
 
         if (option == NULL) {
-            throw file_parse_error_t(source,
-                                     strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
-                                               filepath.c_str(), it - lines.begin(), name.c_str()));
+            // Ignore 'known' options that are not valid now, but exist in the superset
+            if (find_option(option_name.c_str(), options_superset) == NULL) {
+                throw file_parse_error_t(source,
+                                         strprintf("Config file %s: parse error at line %zu: unrecognized option name '%s'",
+                                                   filepath.c_str(), it - lines.begin(), name.c_str()));
+            } else {
+                ignored_options.insert(name);
+            }
+        } else {
+            auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
+            res.first->second.values.push_back(value);
         }
+    }
 
-        auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
-        res.first->second.values.push_back(value);
+    if (!ignored_options.empty()) {
+        std::string ignored_string;
+        for (auto it = ignored_options.begin(); it != ignored_options.end(); ++it) {
+            if (!ignored_string.empty()) {
+                ignored_string += ", ";
+            }
+            ignored_string += *it;
+        }
+        fprintf(stderr, "Warning: The following options are not used by this invocation"
+                " of rethinkdb and will be ignored: %s\n", ignored_string.c_str());
     }
 
     return ret;

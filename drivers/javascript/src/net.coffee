@@ -13,7 +13,7 @@ class Connection
     DEFAULT_HOST: 'localhost'
     DEFAULT_PORT: 28015
     DEFAULT_AUTH_KEY: ''
-    DEFAULT_TIMEOUT: 20
+    DEFAULT_TIMEOUT: 20 # In seconds
 
     constructor: (host, callback) ->
         if typeof host is 'undefined'
@@ -64,7 +64,7 @@ class Connection
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
-            @buffer = bufferSlice @buffer, (4 + responseLength)
+            @buffer = @buffer.slice(4 + responseLength)
 
     mkAtom = (response) -> DatumTerm::deconstruct response.getResponse 0
 
@@ -271,16 +271,16 @@ class TcpConnection extends Connection
                     if b is 0
                         @rawSocket.removeListener('data', handshake_callback)
 
-                        status_buf = bufferSlice(@buffer, 0, i)
-                        @buffer = bufferSlice(@buffer, i)
+                        status_buf = @buffer.slice(0, i)
+                        @buffer = @buffer.slice(i + 1)
                         status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
 
+                        handshake_complete = true
                         if status_str == "SUCCESS"
                             # We're good, finish setting up the connection
                             @rawSocket.on 'data', (buf) =>
                                 @_data(toArrayBuffer(buf))
 
-                            handshake_complete = true
                             @emit 'connect'
                             return
                         else
@@ -297,7 +297,7 @@ class TcpConnection extends Connection
             if not handshake_complete
                 @rawSocket.destroy()
                 @emit 'error', new RqlDriverError "Handshake timedout"
-        ), @timeout)
+        ), @timeout*1000)
 
 
     close: () ->
@@ -399,9 +399,6 @@ bufferConcat = (buf1, buf2) ->
     view.set new Uint8Array(buf1), 0
     view.set new Uint8Array(buf2), buf1.byteLength
     view.buffer
-
-bufferSlice = (buffer, offset, end) ->
-    return buffer.slice(offset, end)
 
 toArrayBuffer = (node_buffer) ->
     # Convert from node buffer to array buffer

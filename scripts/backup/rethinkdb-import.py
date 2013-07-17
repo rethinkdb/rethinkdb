@@ -122,6 +122,11 @@ def parse_options():
     res["clients"] = options.clients
     res["force"] = options.force
 
+    # Default behavior for csv files - may be changed by options
+    res["delimiter"] = ","
+    res["no_header"] = False
+    res["custom_header"] = None
+
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -270,6 +275,9 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     if exit_event.is_set():
         raise RuntimeError("reader interrupted by import process")
 
+    if not isinstance(obj, dict):
+        raise RuntimeError("Invalid input, expected an object, but got %s" % type(obj))
+
     # filter out fields
     if fields is not None:
         for key in list(obj.iterkeys()):
@@ -283,14 +291,79 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
         task_queue.put((db, table, object_buffers))
         del object_buffers[0:len(object_buffers)]
         del buffer_sizes[0:len(buffer_sizes)]
-    return None
+    return obj
+
+json_read_chunk_size = 8 * 1024 * 1024
+
+def read_json_single_object(json_data, file_in, callback):
+    decoder = json.JSONDecoder()
+    while True:
+        try:
+            (obj, offset) = decoder.raw_decode(json_data)
+            json_data = json_data[offset:]
+            callback(obj)
+            break
+        except ValueError:
+            before_len = len(json_data)
+            json_data += file_in.read(json_read_chunk_size)
+            if before_len == len(json_data):
+                raise
+    return json_data
+
+def read_json_array(json_data, file_in, callback):
+    decoder = json.JSONDecoder()
+    offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+
+    if json_data[offset] == "]": # Empty file
+        return json_data[offset + 1:]
+
+    while True:
+        try:
+            (obj, offset) = decoder.raw_decode(json_data, offset)
+            json_data = json_data[offset:]
+            callback(obj)
+
+            # Read to the next record - "]" indicates the end of the objects
+            offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+            if json_data[offset] == "]":
+                break
+            elif json_data[offset] != ",":
+                raise ValueError("JSON format not recognized - expected ',' or ']' after object")
+
+            # Read past the comma
+            offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+        except ValueError:
+            before_len = len(json_data)
+            json_data += file_in.read(json_read_chunk_size)
+            if before_len == len(json_data):
+                raise
+    return json_data[offset + 1:]
 
 def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
     object_buffers = []
     buffer_sizes = []
 
     with open(filename, "r") as file_in:
-        json.load(file_in, object_hook=lambda x: object_callback(x, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event))
+        # Scan to the first '[', then load objects one-by-one
+        # Read in the data in chunks, since the json module would just read the whole thing at once
+        json_data = file_in.read(json_read_chunk_size)
+
+        callback = lambda x: object_callback(x, db, table, task_queue, object_buffers,
+                                             buffer_sizes, fields, exit_event)
+
+        offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+        if json_data[offset] == "[":
+            json_data = read_json_array(json_data[offset + 1:], file_in, callback)
+        elif json_data[offset] == "{":
+            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+        else:
+            raise RuntimeError("JSON format not recognized - file does not begin with an object or array")
+
+        # Make sure only remaining data is whitespace
+        while len(json_data) > 0:
+            if json.decoder.WHITESPACE.match(json_data, 0).end() != len(json_data):
+                raise RuntimeError("JSON format not recognized - extra characters found after end of data")
+            json_data = file_in.read(json_read_chunk_size)
 
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
@@ -358,7 +431,7 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
-        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
 
 def abort_import(signum, frame, exit_event, task_queue, clients, interrupt_event):
     interrupt_event.set()
@@ -430,7 +503,10 @@ def spawn_import_clients(options, files_info):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "Traceback: %s, %s: %s" % (error[2], error[0].__name__, error[1])
+            print >> sys.stderr, "Traceback: %s" % (error[2])
+            print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
+            if len(error) == 4:
+                print >> sys.stderr, "In file: %s" % (error[3])
         raise RuntimeError("errors occurred during import")
 
 def get_import_info_for_file(filename, db_filter, table_filter):
@@ -455,8 +531,10 @@ def import_directory(options):
     dbs = False
     db_filter = set([db_table[0] for db_table in options["tables"]]) | set(options["dbs"])
     files_to_import = []
+    files_ignored = []
     for (root, dirs, files) in os.walk(options["directory"]):
         if not dbs:
+            files_ignored.extend([os.path.join(root, f) for f in files])
             # The first iteration through should be the top-level directory, which contains the db folders
             dbs = True
             if len(db_filter) > 0:
@@ -465,8 +543,18 @@ def import_directory(options):
                         del dirs[i]
         else:
             if len(dirs) != 0:
-                raise RuntimeError("unexpected child directory in db folder: %s" % root)
-            files_to_import.extend([os.path.join(root, f) for f in files if f.split(".")[-1] != "info"])
+                files_ignored.extend([os.path.join(root, d) for d in dirs])
+                del dirs[0:len(dirs)]
+            for f in files:
+                split_file = f.split(".")
+                if len(split_file) != 2 or split_file[1] not in ["json", "csv", "info"]:
+                    files_ignored.append(os.path.join(root, f))
+                elif split_file[1] == "info":
+                    pass # Info files are included based on the data files
+                elif not os.access(os.path.join(root, split_file[0] + ".info"), os.F_OK):
+                    files_ignored.append(os.path.join(root, f))
+                else:
+                    files_to_import.append(os.path.join(root, f))
 
     # For each table to import collect: file, format, db, table, info
     files_info = []
@@ -515,6 +603,14 @@ def import_directory(options):
         already_exist.sort()
         extant_tables = "\n  ".join(already_exist)
         raise RuntimeError("the following tables already exist, run with --force to import into the existing tables:\n  %s" % extant_tables)
+
+    # Warn the user about the files that were ignored
+    if len(files_ignored) > 0:
+        print >> sys.stderr, "Unexpected files found in the specified directory.  Importing a directory expects"
+        print >> sys.stderr, " a directory from `rethinkdb export`.  If you want to import individual tables"
+        print >> sys.stderr, " import them as single files.  The following files were ignored:"
+        for f in files_ignored:
+            print >> sys.stderr, "%s" % str(f)
 
     spawn_import_clients(options, files_info)
 

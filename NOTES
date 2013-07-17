@@ -1,3 +1,12 @@
+# Release 1.7.1 (Nights of Cabiria)
+
+Bug fix update.
+
+* Fixed a bug causing `rethinkdb import` to crash on single files
+* Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
+
+--
+
 # Release 1.7.0 (Nights of Cabiria)
 
 Released on 2013-07-03
