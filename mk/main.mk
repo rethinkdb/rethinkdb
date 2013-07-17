@@ -74,6 +74,6 @@ include $(TOP)/test/build.mk
 include $(TOP)/mk/local.mk
 
 .PHONY: clean
-clean: build-clean js-clean
+clean: build-clean
 
 endif # CONFIGURE_STATUS = success

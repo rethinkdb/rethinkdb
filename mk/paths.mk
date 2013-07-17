@@ -7,7 +7,7 @@ SOURCE_DIR := $(TOP)/src
 BUILD_ROOT_DIR := $(TOP)/build
 PACKAGING_DIR := $(TOP)/packaging
 PACKAGES_DIR := $(BUILD_ROOT_DIR)/packages
-JS_BUILD_DIR=$(TOP)/drivers/javascript/build
+JS_BUILD_DIR=$(TOP)/build/drivers/javascript
 
 # If the BUILD_DIR is not set, generate a name that depends on the different settings
 ifeq ($(BUILD_DIR),)
