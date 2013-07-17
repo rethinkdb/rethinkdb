@@ -16,6 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -203,8 +204,8 @@ struct rdb_protocol_t {
             runtime_exc_t,
             ql::exc_t,
             ql::datum_exc_t,
-            ql::wire_datum_t,
-            std::vector<ql::wire_datum_t>,
+            counted_t<const ql::datum_t>,
+            //            std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
             std::vector<ql::wire_datum_map_t>,
             empty_t,
@@ -274,25 +275,22 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), optargs(_optargs) {
+                             bool _merge_sort = false,
+                             direction_t _direction = FORWARD)
+            : region(_region), merge_sort(_merge_sort), direction(_direction) {
         }
 
         void init_sindexes(counted_t<const ql::datum_t> start,
                            counted_t<const ql::datum_t> end) {
-            if (start) {
-                sindex_start_value = ql::wire_datum_t(start);
-                sindex_start_value->finalize();
-            }
-            if (end) {
-                sindex_end_value = ql::wire_datum_t(end);
-                sindex_end_value->finalize();
-            }
+            sindex_start_value = start;
+            sindex_end_value = end;
         }
 
         rget_read_t(const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_end_value,
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(rdb_protocol_t::sindex_key_range(
                                 _sindex_start_value != NULL
@@ -300,16 +298,20 @@ struct rdb_protocol_t {
                                   : store_key_t::min(),
                                 _sindex_end_value != NULL
                                   ? _sindex_end_value->truncated_secondary()
-                                  : store_key_t::max())) {
+                                  : store_key_t::max())),
+              merge_sort(_merge_sort), direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    counted_t<const ql::datum_t> _sindex_end_value,
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region) {
+              sindex_region(_sindex_region), merge_sort(_merge_sort),
+              direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
@@ -318,17 +320,24 @@ struct rdb_protocol_t {
                     counted_t<const ql::datum_t> _sindex_start_value,
                     counted_t<const ql::datum_t> _sindex_end_value,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs) {
+              transform(_transform), optargs(_optargs),
+              merge_sort(_merge_sort), direction(_direction) {
             init_sindexes(_sindex_start_value, _sindex_end_value);
         }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform), optargs(_optargs) {
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    bool _merge_sort = false,
+                    direction_t _direction = FORWARD)
+            : region(_region), transform(_transform),
+              optargs(_optargs), merge_sort(_merge_sort),
+              direction(_direction) {
             rassert(optargs.size() != 0);
         }
 
@@ -348,7 +357,7 @@ struct rdb_protocol_t {
             rassert(optargs.size() != 0);
         }
 
-        /* This region is in the primary indexe's keyspace. */
+        /* This region is in the primary index's keyspace. */
         region_t region;
 
         /* `sindex` and `sindex_region` are both non null if the instance
@@ -362,8 +371,8 @@ struct rdb_protocol_t {
 
         /* The actual sindex values to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        boost::optional<ql::wire_datum_t> sindex_start_value;
-        boost::optional<ql::wire_datum_t> sindex_end_value;
+        counted_t<const ql::datum_t> sindex_start_value;
+        counted_t<const ql::datum_t> sindex_end_value;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -372,6 +381,13 @@ struct rdb_protocol_t {
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         std::map<std::string, ql::wire_func_t> optargs;
+
+        /* Whether or not to merge sort the results from different shards. */
+        bool merge_sort;
+
+        /* Whether to start with the minimum key and work our way up or go the
+         * other way around. */
+        direction_t direction;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -745,6 +761,6 @@ struct range_key_tester_t : public key_tester_t {
 
     const rdb_protocol_t::region_t *delete_range;
 };
-} //namespace rdb_protocol_details 
+} //namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

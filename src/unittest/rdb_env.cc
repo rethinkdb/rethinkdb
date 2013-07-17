@@ -63,7 +63,7 @@ void mock_namespace_interface_t::read(const rdb_protocol_t::read_t &query,
 void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &query,
                                                rdb_protocol_t::read_response_t *response,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     read_visitor_t v(&data, response);
@@ -74,7 +74,7 @@ void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
                                        rdb_protocol_t::write_response_t *response,
                                        UNUSED order_token_t tok,
                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     write_visitor_t v(&data, parent->get_env(), response);
@@ -124,7 +124,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
 
     counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
-        old_val = make_counted<ql::datum_t>(data->at(r.key)->get(), env);
+        old_val = make_counted<ql::datum_t>(data->at(r.key)->get());
     } else {
         old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
@@ -201,7 +201,7 @@ test_rdb_env_t::test_rdb_env_t() :
 
 test_rdb_env_t::~test_rdb_env_t() {
     // Clean up initial datas (if there was no instance constructed, this may happen
-    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {       
+    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {
         delete it->second;
     }
 }

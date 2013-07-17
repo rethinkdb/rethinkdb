@@ -80,7 +80,7 @@ commands:
              .run(conn, callback)
           py: |
             r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
-                lambda hero: hero.merge({'is_fav': True}), return_vals=true).run(conn)
+                lambda hero: hero.merge({'is_fav': True}), return_vals=True).run(conn)
           rb: |
             r.table('heroes').filter { |hero| hero[:universe].eq 'marvel'
              }.replace(:return_vals => true) { |hero| hero.merge(:is_fav => true)

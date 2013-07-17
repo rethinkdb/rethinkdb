@@ -44,8 +44,8 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
             port,
             boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
                         this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    } catch (const address_in_use_exc_t &e) {
-        nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
+    } catch (const address_in_use_exc_t &ex) {
+        throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
 }
 template <class request_t, class response_t, class context_t>

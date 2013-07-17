@@ -19,7 +19,8 @@ usage = "'rethinkdb import` loads data into a rethinkdb cluster\n\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]"
+      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
     print usage
@@ -44,6 +45,12 @@ def print_import_help():
     print "  --format (csv | json)            the format of the file (defaults to json)"
     print "  --pkey PRIMARY_KEY               the field to use as the primary key in the table"
     print ""
+    print "Import CSV format:"
+    print "  --delimiter CHARACTER            character separating fields, or '\\t' for tab"
+    print "  --no-header                      do not read in a header of field names"
+    print "  --custom-header FIELD,FIELD...   header to use (overriding file header), must be"
+    print "                                   specified if --no-header"
+    print ""
     print "EXAMPLES:"
     print ""
     print "rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128"
@@ -59,14 +66,19 @@ def print_import_help():
     print "  using only the database 'test' from the named export directory"
     print ""
     print "rethinkdb import -f subscriber_info.json --fields id,name,hashtag --force"
-    print "  import data in a local cluster using the named json file, and only the fields"
+    print "  import data into a local cluster using the named json file, and only the fields"
     print "  'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key"
+    print ""
+    print "rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number"
+    print "  import data into a local cluster using the named csv file with no header and instead"
+    print "  use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than"
+    print "  a comma)"
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
-    parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
     parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
 
@@ -79,6 +91,9 @@ def parse_options():
     parser.add_option("--format", dest="import_format", metavar="json | csv", default=None, type="string")
     parser.add_option("--table", dest="import_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--pkey", dest="primary_key", metavar="KEY", default = None, type="string")
+    parser.add_option("--delimiter", dest="delimiter", metavar="CHARACTER", default = None, type="string")
+    parser.add_option("--no-header", dest="no_header", action="store_true", default = False)
+    parser.add_option("--custom-header", dest="custom_header", metavar="FIELD,FIELD...", default = None, type="string")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -107,6 +122,11 @@ def parse_options():
     res["clients"] = options.clients
     res["force"] = options.force
 
+    # Default behavior for csv files - may be changed by options
+    res["delimiter"] = ","
+    res["no_header"] = False
+    res["custom_header"] = None
+
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -117,6 +137,12 @@ def parse_options():
             raise RuntimeError("--table option is not valid when importing a directory")
         if options.primary_key is not None:
             raise RuntimeError("--pkey option is not valid when importing a directory")
+        if options.delimiter is not None:
+            raise RuntimeError("--delimiter option is not valid when importing a directory")
+        if options.no_header is not False:
+            raise RuntimeError("--no-header option is not valid when importing a directory")
+        if options.custom_header is not None:
+            raise RuntimeError("--custom-header option is not valid when importing a directory")
 
         # Verify valid directory option
         dirname = options.directory
@@ -184,6 +210,33 @@ def parse_options():
         else:
             res["fields"] = options.fields.split(",")
 
+        if options.import_format == "csv":
+            if options.delimiter is None:
+                res["delimiter"] = ","
+            else:
+                if len(options.delimiter) == 1:
+                    res["delimiter"] = options.delimiter
+                elif options.delimiter == "\\t":
+                    res["delimiter"] = "\t"
+                else:
+                    raise RuntimeError("must specify only one character for --delimiter")
+
+            if options.custom_header is None:
+                res["custom_header"] = None
+            else:
+                res["custom_header"] = options.custom_header.split(",")
+
+            if options.no_header == True and options.custom_header is None:
+                raise RuntimeError("cannot import a csv file with --no-header and no --custom-header")
+            res["no_header"] = options.no_header
+        else:
+            if options.delimiter is not None:
+                raise RuntimeError("--delimiter option is only valid for csv file formats")
+            if options.no_header == True:
+                raise RuntimeError("--no-header option is only valid for csv file formats")
+            if options.custom_header is not None:
+                raise RuntimeError("--custom-header option is only valid for csv file formats")
+
         res["primary_key"] = options.primary_key
     else:
         raise RuntimeError("must specify one of --directory or --file to import")
@@ -222,6 +275,9 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     if exit_event.is_set():
         raise RuntimeError("reader interrupted by import process")
 
+    if not isinstance(obj, dict):
+        raise RuntimeError("Invalid input, expected an object, but got %s" % type(obj))
+
     # filter out fields
     if fields is not None:
         for key in list(obj.iterkeys()):
@@ -235,25 +291,100 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
         task_queue.put((db, table, object_buffers))
         del object_buffers[0:len(object_buffers)]
         del buffer_sizes[0:len(buffer_sizes)]
-    return None
+    return obj
+
+json_read_chunk_size = 8 * 1024 * 1024
+
+def read_json_single_object(json_data, file_in, callback):
+    decoder = json.JSONDecoder()
+    while True:
+        try:
+            (obj, offset) = decoder.raw_decode(json_data)
+            json_data = json_data[offset:]
+            callback(obj)
+            break
+        except ValueError:
+            before_len = len(json_data)
+            json_data += file_in.read(json_read_chunk_size)
+            if before_len == len(json_data):
+                raise
+    return json_data
+
+def read_json_array(json_data, file_in, callback):
+    decoder = json.JSONDecoder()
+    offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+
+    if json_data[offset] == "]": # Empty file
+        return json_data[offset + 1:]
+
+    while True:
+        try:
+            (obj, offset) = decoder.raw_decode(json_data, offset)
+            json_data = json_data[offset:]
+            callback(obj)
+
+            # Read to the next record - "]" indicates the end of the objects
+            offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+            if json_data[offset] == "]":
+                break
+            elif json_data[offset] != ",":
+                raise ValueError("JSON format not recognized - expected ',' or ']' after object")
+
+            # Read past the comma
+            offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+        except ValueError:
+            before_len = len(json_data)
+            json_data += file_in.read(json_read_chunk_size)
+            if before_len == len(json_data):
+                raise
+    return json_data[offset + 1:]
 
 def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
     object_buffers = []
     buffer_sizes = []
 
     with open(filename, "r") as file_in:
-        json.load(file_in, object_hook=lambda x: object_callback(x, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event))
+        # Scan to the first '[', then load objects one-by-one
+        # Read in the data in chunks, since the json module would just read the whole thing at once
+        json_data = file_in.read(json_read_chunk_size)
+
+        callback = lambda x: object_callback(x, db, table, task_queue, object_buffers,
+                                             buffer_sizes, fields, exit_event)
+
+        offset = json.decoder.WHITESPACE.match(json_data, 0).end()
+        if json_data[offset] == "[":
+            json_data = read_json_array(json_data[offset + 1:], file_in, callback)
+        elif json_data[offset] == "{":
+            json_data = read_json_single_object(json_data[offset:], file_in, callback)
+        else:
+            raise RuntimeError("JSON format not recognized - file does not begin with an object or array")
+
+        # Make sure only remaining data is whitespace
+        while len(json_data) > 0:
+            if json.decoder.WHITESPACE.match(json_data, 0).end() != len(json_data):
+                raise RuntimeError("JSON format not recognized - extra characters found after end of data")
+            json_data = file_in.read(json_read_chunk_size)
 
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
-def csv_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
+def csv_reader(task_queue, filename, db, table, primary_key, options, exit_event):
     object_buffers = []
     buffer_sizes = []
 
     with open(filename, "r") as file_in:
-        reader = csv.reader(file_in)
-        fields_in = reader.next()
+        reader = csv.reader(file_in, delimiter=options["delimiter"])
+
+        if not options["no_header"]:
+            fields_in = reader.next()
+
+        # Field names may override fields from the header
+        if options["custom_header"] is not None:
+            if not options["no_header"]:
+                print "Ignoring header row: %s" % str(fields_in)
+            fields_in = options["custom_header"]
+        elif options["no_header"]:
+            raise RuntimeError("no field name information available")
 
         row_count = 1
         for row in reader:
@@ -264,7 +395,7 @@ def csv_reader(task_queue, filename, db, table, primary_key, fields, exit_event)
             for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
-            object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event)
+            object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
             row_count += 1
 
     if len(object_buffers) > 0:
@@ -292,7 +423,7 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
                        file_info["file"],
                        db, table,
                        primary_key,
-                       options["fields"],
+                       options,
                        exit_event)
         else:
             raise RuntimeError("unknown file format specified")
@@ -300,7 +431,7 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
-        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
 
 def abort_import(signum, frame, exit_event, task_queue, clients, interrupt_event):
     interrupt_event.set()
@@ -372,7 +503,10 @@ def spawn_import_clients(options, files_info):
         # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
         while not error_queue.empty():
             error = error_queue.get()
-            print >> sys.stderr, "Traceback: %s, %s: %s" % (error[2], error[0].__name__, error[1])
+            print >> sys.stderr, "Traceback: %s" % (error[2])
+            print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
+            if len(error) == 4:
+                print >> sys.stderr, "In file: %s" % (error[3])
         raise RuntimeError("errors occurred during import")
 
 def get_import_info_for_file(filename, db_filter, table_filter):
@@ -397,8 +531,10 @@ def import_directory(options):
     dbs = False
     db_filter = set([db_table[0] for db_table in options["tables"]]) | set(options["dbs"])
     files_to_import = []
+    files_ignored = []
     for (root, dirs, files) in os.walk(options["directory"]):
         if not dbs:
+            files_ignored.extend([os.path.join(root, f) for f in files])
             # The first iteration through should be the top-level directory, which contains the db folders
             dbs = True
             if len(db_filter) > 0:
@@ -407,8 +543,18 @@ def import_directory(options):
                         del dirs[i]
         else:
             if len(dirs) != 0:
-                raise RuntimeError("unexpected child directory in db folder: %s" % root)
-            files_to_import.extend([os.path.join(root, f) for f in files if f.split(".")[-1] != "info"])
+                files_ignored.extend([os.path.join(root, d) for d in dirs])
+                del dirs[0:len(dirs)]
+            for f in files:
+                split_file = f.split(".")
+                if len(split_file) != 2 or split_file[1] not in ["json", "csv", "info"]:
+                    files_ignored.append(os.path.join(root, f))
+                elif split_file[1] == "info":
+                    pass # Info files are included based on the data files
+                elif not os.access(os.path.join(root, split_file[0] + ".info"), os.F_OK):
+                    files_ignored.append(os.path.join(root, f))
+                else:
+                    files_to_import.append(os.path.join(root, f))
 
     # For each table to import collect: file, format, db, table, info
     files_info = []
@@ -458,6 +604,14 @@ def import_directory(options):
         extant_tables = "\n  ".join(already_exist)
         raise RuntimeError("the following tables already exist, run with --force to import into the existing tables:\n  %s" % extant_tables)
 
+    # Warn the user about the files that were ignored
+    if len(files_ignored) > 0:
+        print >> sys.stderr, "Unexpected files found in the specified directory.  Importing a directory expects"
+        print >> sys.stderr, " a directory from `rethinkdb export`.  If you want to import individual tables"
+        print >> sys.stderr, " import them as single files.  The following files were ignored:"
+        for f in files_ignored:
+            print >> sys.stderr, "%s" % str(f)
+
     spawn_import_clients(options, files_info)
 
 def import_file(options):
@@ -489,12 +643,15 @@ def import_file(options):
         else:
             r.db(db).table_create(table, primary_key=primary_key).run(conn)
 
-    if options["import_format"] == "json":
-        restore_table_from_json(conn, options["import_file"], db, table, primary_key, options["fields"])
-    elif options["import_format"] == "csv":
-        restore_table_from_csv(conn, options["import_file"], db, table, primary_key, options["fields"])
-    else:
-        raise RuntimeError("unknown file format specified")
+    # Make this up so we can use the same interface as with an import directory
+    file_info = {}
+    file_info["file"] = options["import_file"]
+    file_info["format"] = options["import_format"]
+    file_info["db"] = db
+    file_info["table"] = table
+    file_info["info"] = { "primary_key": primary_key }
+
+    spawn_import_clients(options, [file_info])
 
 def main():
     try:

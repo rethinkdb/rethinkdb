@@ -418,8 +418,14 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<datum_stream_t> seq = arg(0)->as_seq();
         std::vector<counted_t<const datum_t> > required_els;
+        std::vector<counted_t<func_t> > required_funcs;
         for (size_t i = 1; i < num_args(); ++i) {
-            required_els.push_back(arg(i)->as_datum());
+            counted_t<val_t> v = arg(i);
+            if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
+                required_funcs.push_back(v->as_func());
+            } else {
+                required_els.push_back(v->as_datum());
+            }
         }
         while (counted_t<const datum_t> el = seq->next()) {
             for (auto it = required_els.begin(); it != required_els.end(); ++it) {
@@ -429,7 +435,14 @@ private:
                     break; // Bag semantics for contains.
                 }
             }
-            if (required_els.size() == 0) {
+            for (auto it = required_funcs.begin(); it != required_funcs.end(); ++it) {
+                if ((*it)->call(el)->as_bool()) {
+                    std::swap(*it, required_funcs.back());
+                    required_funcs.pop_back();
+                    break; // Bag semantics for contains.
+                }
+            }
+            if (required_els.size() == 0 && required_funcs.size() == 0) {
                 return new_val_bool(true);
             }
         }
@@ -437,7 +450,6 @@ private:
     }
     virtual const char *name() const { return "contains"; }
 };
-
 
 counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
     return make_counted<contains_term_t>(env, term);

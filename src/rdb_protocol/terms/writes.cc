@@ -31,8 +31,9 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     rcheck_target(
         caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
-        strprintf("Cannot merge statistics of type %s/%s -- what are you doing?",
-                  l->get_type_name(), r->get_type_name()));
+        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
+                  l->trunc_print().c_str(), l->get_type_name(),
+                  r->trunc_print().c_str(), r->get_type_name()));
     return l;
 }
 
@@ -237,7 +238,7 @@ public:
 
 private:
     virtual counted_t<val_t> eval_impl() {
-        const char *fail_msg = "FOREACH expects one or more write queries.";
+        const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
@@ -255,7 +256,7 @@ private:
             } catch (const exc_t &e) {
                 throw exc_t(e.get_type(), fail_msg, e.backtrace());
             } catch (const datum_exc_t &de) {
-                rfail_target(v, base_exc_t::GENERIC, "%s", fail_msg);
+                rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
             }
         }
         return new_val(stats);

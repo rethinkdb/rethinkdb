@@ -2,6 +2,7 @@
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
+import random
 import socket
 import threading
 import SocketServer
@@ -104,7 +105,7 @@ class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServe
 class TestTimeout(unittest.TestCase):
     def setUp(self):
         self.timeout = 0.5
-        self.port = 8987
+        self.port = random.randint(1025, 65535)
 
         self.server = ThreadedBlackHoleServer(('localhost', self.port), BlackHoleRequestHandler)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
@@ -261,6 +262,16 @@ class TestConnection(TestWithConnection):
         self.assertRaisesRegexp(
             r.RqlDriverError, "Connection is closed",
             r.expr(1).run)
+
+    def test_port_conversion(self):
+        c = r.connect(port=str(self.port))
+        r.expr(1).run(c)
+
+        c.close()
+        self.assertRaisesRegexp(
+            r.RqlDriverError,
+            "Could not convert port abc to an integer.",
+            lambda: r.connect(port='abc'))
 
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):

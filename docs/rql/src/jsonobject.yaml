@@ -71,13 +71,13 @@ commands:
       - description: Pluck can also be used on nested objects.
         code:
           py: "r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : True}, 'weapons' : True}).run(conn)"
-          rb: "r.table('marvel').pluck({:abilities => {:damage => True, :mana_cost => true}, :weapons => True}).run(conn)"
-          js: "r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : true}, 'weapons' : True}).run(conn)"
+          rb: "r.table('marvel').pluck({:abilities => {:damage => true, :mana_cost => true}, :weapons => true}).run(conn)"
+          js: "r.table('marvel').pluck({'abilities' : {'damage' : true, 'mana_cost' : true}, 'weapons' : true}).run(conn, callback)"
       - description: The nested syntax can quickly become overly verbose so there's a shorthand for it.
         code:
           py: "r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)"
           rb: "r.table('marvel').pluck({:abilities => [:damage, :mana_cost]}, :weapons).run(conn)"
-          js: "r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)"
+          js: "r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn, callback)"
 
   - tag: without
     section: jsonobject

@@ -437,7 +437,7 @@ class SetDifference extends RDBOp
 
 class Slice extends RDBOp
     tt: "SLICE"
-    st: 'slice'
+    mt: 'slice'
 
 class Skip extends RDBOp
     tt: "SKIP"

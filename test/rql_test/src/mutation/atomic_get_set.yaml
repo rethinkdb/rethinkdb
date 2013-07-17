@@ -47,6 +47,12 @@ tests:
       js: r.table('asg').replace({'x':1}, {'return_vals':true})
       ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
 
+    - rb: r.table('asg').foreach{|row| [r.table('asg').get(0).update(nil, :return_vals => true), r.table('asg').get(0).update(nil, :return_vals => true)]}
+      # The testing framework seems to want to truncate the error
+      # message after the newline, but this at least shows that it's
+      # printing an object for the merge conflict.
+      ot: err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Cannot merge statistics `{", [])
+
     - cd: r.table('asg').get(0).delete(:return_vals => true).pluck('old_val', 'new_val', 'first_error')
       py: r.table('asg').get(0).delete(return_vals=True).pluck('old_val', 'new_val', 'first_error')
       js: r.table('asg').get(0).delete({'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
