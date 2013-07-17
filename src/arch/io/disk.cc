@@ -292,6 +292,7 @@ void linux_file_t::writev_async(size_t offset, size_t length,
 
     int64_t partial_offset = offset;
     for (size_t i = 0; i < bufs.size(); ++i) {
+        ++intermediate_cb->refcount;
         diskmgr->submit_write(fd.get(), bufs[i].iov_base, bufs[i].iov_len,
                               partial_offset, account == DEFAULT_DISK_ACCOUNT
                               ? default_account->get_account()
