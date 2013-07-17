@@ -2,7 +2,7 @@ desc: Tests manipulation operations on objects
 tests:
 
     # Define some objects to work with
-    - def: obj = r.expr({'a':1, 'b':2,'c':"str",'d':null})
+    - def: obj = r.expr({'a':1, 'b':2,'c':"str",'d':null,'e':{'f':'buzz'}})
 
     ##  Get attr
 
@@ -21,7 +21,11 @@ tests:
       ot: true
     - cd: obj.has_fields('d')
       ot: false
-    - cd: obj.has_fields('e')
+    - cd: obj.has_fields({'e':'f'})
+      ot: true
+    - cd: obj.has_fields({'e':'g'})
+      ot: false
+    - cd: obj.has_fields('f')
       ot: false
 
     # Has_Fields is variadic
@@ -29,14 +33,18 @@ tests:
       ot: true
     - cd: obj.has_fields('a', 'd')
       ot: false
-    - cd: obj.has_fields('a', 'e')
+    - cd: obj.has_fields('a', 'f')
       ot: false
+    - cd: obj.has_fields('a', {'e':'f'})
+      ot: true
 
     # Has_Fields is polymorphic
     - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'b').count()
       ot: 2
     - cd: r.expr([obj, obj.pluck('a', 'b')]).has_fields('a', 'c').count()
       ot: 1
+    - cd: r.expr([obj, obj.pluck('a', 'e')]).has_fields('a', {'e':'f'}).count()
+      ot: 2
 
     ## Pluck
 
@@ -48,11 +56,15 @@ tests:
     ## Without
 
     - cd: obj.without('a')
-      ot: ({'b':2, 'c':'str', 'd':null})
+      ot: ({'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
     - cd: obj.without('a', 'b')
-      ot: ({'c':'str', 'd':null})
+      ot: ({'c':'str', 'd':null,'e':{'f':'buzz'}})
     - cd: obj.without('a', 'b', 'c', 'd')
-      ot: ({})
+      ot: ({'e':{'f':'buzz'}})
+    - cd: obj.without({'e':'f'})
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{}})
+    - cd: obj.without({'e':'buzz'})
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
 
     ## Merge
 
@@ -62,8 +74,8 @@ tests:
 
     # overwrite
     - cd: "obj.merge({'a':-1})"
-      ot: ({'a':-1, 'b':2, 'c':'str', 'd':null})
+      ot: ({'a':-1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
 
     ## keys
     - cd: obj.keys()
-      ot: (['a', 'b', 'c', 'd'])
+      ot: (['a', 'b', 'c', 'd', 'e'])

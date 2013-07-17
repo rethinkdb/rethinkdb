@@ -145,8 +145,6 @@ private:
 
     scoped_ptr_t<extent_zone_t> zone;
 
-    file_t *const dbfile;
-
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the
     "state_reserving_extents" phase. Then extent_manager_t::start() is called

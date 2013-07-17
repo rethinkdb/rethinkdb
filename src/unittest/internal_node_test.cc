@@ -57,7 +57,7 @@ TEST(InternalNodeTest, Offsets) {
     EXPECT_EQ(8u, sizeof(internal_node_t));
 
     EXPECT_EQ(0u, offsetof(btree_internal_pair, lnode));
-    // RSI: 8u depends on sizeof(block_id_t).
+    // 8u depends on sizeof(block_id_t).
     EXPECT_EQ(8u, offsetof(btree_internal_pair, key));
     EXPECT_EQ(9u, sizeof(btree_internal_pair));
 }
