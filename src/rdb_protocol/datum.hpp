@@ -16,8 +16,6 @@
 #include "http/json.hpp"
 #include "rdb_protocol/error.hpp"
 
-#define REQL_TYPE "__reql_type__"
-
 class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
