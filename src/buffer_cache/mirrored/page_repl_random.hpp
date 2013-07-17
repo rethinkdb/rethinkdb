@@ -72,7 +72,7 @@ public:
 private:
     size_t unload_threshold;
     cache_t *cache;
-    std::vector<evictable_t *> arr;
+    std::vector<evictable_t *> array;
 };
 
 #endif  // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_

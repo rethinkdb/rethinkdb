@@ -29,19 +29,19 @@ bool evictable_t::in_page_repl() {
 
 void evictable_t::insert_into_page_repl() {
     cache->assert_thread();
-    page_repl_index = cache->page_repl.arr.size();
-    cache->page_repl.arr.push_back(this);
+    page_repl_index = cache->page_repl.array.size();
+    cache->page_repl.array.push_back(this);
 }
 
 void evictable_t::remove_from_page_repl() {
     cache->assert_thread();
 
-    rassert(page_repl_index < cache->page_repl.arr.size());
-    evictable_t *replacement = cache->page_repl.arr.back();
+    rassert(page_repl_index < cache->page_repl.array.size());
+    evictable_t *replacement = cache->page_repl.array.back();
     replacement->page_repl_index = page_repl_index;
-    std::swap(cache->page_repl.arr[page_repl_index],
-              cache->page_repl.arr.back());
-    cache->page_repl.arr.pop_back();
+    std::swap(cache->page_repl.array[page_repl_index],
+              cache->page_repl.array.back());
+    cache->page_repl.array.pop_back();
     page_repl_index = static_cast<size_t>(-1);
 }
 
@@ -52,7 +52,7 @@ page_repl_random_t::page_repl_random_t(size_t _unload_threshold, cache_t *_cache
 
 bool page_repl_random_t::is_full(size_t space_needed) {
     cache->assert_thread();
-    return arr.size() + space_needed > unload_threshold;
+    return array.size() + space_needed > unload_threshold;
 }
 
 //perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
@@ -79,14 +79,14 @@ void page_repl_random_t::make_space(size_t space_needed) {
         target = unload_threshold - space_needed;
     }
 
-    while (arr.size() > target) {
+    while (array.size() > target) {
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
         // dirty or in use.
         evictable_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
             /* Choose a block in memory at random. */
-            size_t n = randsize(arr.size());
-            evictable_t *block = arr[n];
+            size_t n = randsize(array.size());
+            evictable_t *block = array[n];
 
             // TODO we don't have code that sets buf_snapshot_t eviction priorities.
 
@@ -108,9 +108,9 @@ void page_repl_random_t::make_space(size_t space_needed) {
             // Commenting it out for 1.2. TODO: we might want to address it later in a different
             // way (i.e. spawn_maybe?)
             /*
-            if (arr.size() > target + (target / 100) + 10)
+            if (array.size() > target + (target / 100) + 10)
                 logWRN("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.",
-                       cache, arr.size(), cache->writeback.num_dirty_blocks(), target);
+                       cache, array.size(), cache->writeback.num_dirty_blocks(), target);
             */
             break;
         }
@@ -125,5 +125,5 @@ void page_repl_random_t::make_space(size_t space_needed) {
 
 evictable_t *page_repl_random_t::get_first_buf() {
     cache->assert_thread();
-    return arr.empty() ? NULL : arr[0];
+    return array.empty() ? NULL : array[0];
 }
