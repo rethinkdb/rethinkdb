@@ -1,0 +1,8 @@
+desc: 1155 -- Empty batched_replaces_t constructed
+tests:
+  - rb: r.db('test').table_create('1155')
+    ot: ({'created':1})
+  - rb: r.db('test').table('1155').insert([{:id => '2'}, {:id => '4'}])['inserted']
+    ot: 2
+  - rb: r.db('test').table_drop('1155')
+    ot: ({'dropped':1})
