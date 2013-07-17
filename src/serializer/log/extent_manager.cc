@@ -48,12 +48,12 @@ class extent_zone_t {
         return extent / extent_size;
     }
 
-    /* Combination free-list and extent map. Contains one entry per extent.
-    During the state_reserving_extents phase, each extent has state state_unreserved
-    or state state_in_use. When we transition to the state_running phase,
-    we link all of the state_unreserved entries in each zone together into an
-    extent free list, such that each free entry's 'next_in_free_list' field is the
-    offset of the next free extent. */
+    /* free-list and extent map. Contains one entry per extent.  During the
+    state_reserving_extents phase, each extent has state state_unreserved or
+    state state_in_use. When we transition to the state_running phase, we link
+    all of the state_unreserved entries in each zone together into extent free
+    queue.  The free queue can contain entries that point past the end of
+    extents, if the file size ever gets shrunk. */
 
     std::vector<extent_info_t> extents;
 
@@ -65,10 +65,12 @@ class extent_zone_t {
 
     file_t *const dbfile;
 
-    int held_extents_;
+    // The number of free extents in the file.
+    unsigned int held_extents_;
 
 public:
-    int held_extents() const {
+    // RSI: Track down this unsigned int offset usage.  Replace with size_t.
+    unsigned int held_extents() const {
         return held_extents_;
     }
 
@@ -105,6 +107,15 @@ public:
         int64_t extent;
 
         if (free_queue.empty()) {
+            rassert(held_extents_ == 0);
+            extent = extents.size() * extent_size;
+            extents.push_back(extent_info_t());
+        } else if (free_queue.top() >= extents.size()) {
+            rassert(held_extents_ == 0);
+            std::priority_queue<unsigned int,
+                                std::vector<unsigned int>,
+                                std::greater<unsigned int> > tmp;
+            free_queue = tmp;
             extent = extents.size() * extent_size;
             extents.push_back(extent_info_t());
         } else {
@@ -132,6 +143,35 @@ public:
         return extent_reference_t(extent);
     }
 
+    void try_shrink_file() {
+        // Now potentially shrink the file.
+        bool shrink_file = false;
+        while (!extents.empty() && extents.back().state() == extent_info_t::state_free) {
+            shrink_file = true;
+            --held_extents_;
+            extents.pop_back();
+        }
+
+        if (shrink_file) {
+            dbfile->set_size(extents.size() * extent_size);
+
+            // Prevent the existence arbitrarily large free queue when the
+            // file size shrinks.
+            if (held_extents_ < free_queue.size() / 2) {
+                std::priority_queue<unsigned int,
+                                    std::vector<unsigned int>,
+                                    std::greater<unsigned int> > tmp;
+                for (size_t i = 0; i < held_extents_; ++i) {
+                    tmp.push(free_queue.top());
+                    free_queue.pop();
+                }
+
+                guarantee(free_queue.top() >= extents.size());
+                free_queue = tmp;
+            }
+        }
+    }
+
     void release_extent(extent_reference_t &&extent_ref) {
         int64_t extent = extent_ref.release();
         extent_info_t *info = &extents[offset_to_id(extent)];
@@ -142,6 +182,7 @@ public:
             info->set_state(extent_info_t::state_free);
             free_queue.push(offset_to_id(extent));
             ++held_extents_;
+            try_shrink_file();
         }
     }
 };
