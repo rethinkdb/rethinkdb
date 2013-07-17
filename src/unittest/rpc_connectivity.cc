@@ -813,11 +813,9 @@ void run_canonical_address_test() {
     // Convert the addresses to what we expect
     c2_addresses = convert_from_any_port(c2_addresses, port_t(c2_port));
     peer_address_t c2_peer_address(c2_addresses);
-    c2_peer_address.resolve();
 
     c3_addresses = convert_from_any_port(c3_addresses, port_t(c3_port));
     peer_address_t c3_peer_address(c3_addresses);
-    c3_peer_address.resolve();
 
     // Join the cluster together
     cr2.join(c1.get_peer_address(c1.get_me()));

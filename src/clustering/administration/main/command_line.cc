@@ -529,9 +529,7 @@ peer_address_t get_canonical_addresses(const std::map<std::string, options::valu
         }
         result.insert(host_port);
     }
-    peer_address_t addr_result(result);
-    addr_result.resolve();
-    return addr_result;
+    return peer_address_t(result);
 }
 
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
@@ -596,9 +594,7 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
     for (size_t i = 0; i < names.size(); ++i) {
         std::set<host_and_port_t> peer_host;
         peer_host.insert(names[i]);
-        peer_address_t peer_addr(peer_host);
-        peer_addr.resolve();
-        peers.insert(peer_addr);
+        peers.insert(peer_address_t(peer_host));
     }
     return peers;
 }

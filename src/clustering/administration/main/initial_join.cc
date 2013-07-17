@@ -120,7 +120,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
                 buffer.appendf(", ");
                 debug_print(&buffer, it->primary_host());
             }
-            logWRN("We were unable to connect to the following peer(s): %s", buffer.c_str());
+            logWRN("We were unable to connect to the following peer%s, or the --join address does not match the peer's canonical address: %s", peers_not_heard_from.size() > 1 ? "s" : "", buffer.c_str());
         }
     } catch (const interrupted_exc_t &) {
         /* ignore */

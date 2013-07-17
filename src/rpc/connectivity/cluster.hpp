@@ -173,6 +173,12 @@ public:
                            boost::optional<peer_id_t>,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
 
+        // Normal routing table isn't serializable, so we send just the hosts/ports
+        bool get_routing_table_to_send_and_add_peer(const peer_id_t &other_peer_id,
+                                                    const peer_address_t &other_peer_addr,
+                                                    object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> > *routing_table_entry_sentry,
+                                                    std::map<peer_id_t, std::set<host_and_port_t> > *result);
+
         /* `handle()` takes an `auto_drainer_t::lock_t` so that we never shut
         down while there are still running instances of `handle()`. It's
         responsible for the entire lifetime of an intra-cluster TCP connection.

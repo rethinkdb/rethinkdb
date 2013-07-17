@@ -10,7 +10,6 @@
 
 #include <string>
 #include <set>
-#include <boost/optional.hpp>
 
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
@@ -129,6 +128,7 @@ private:
 
 class peer_address_t {
 public:
+    // Constructor will look up all the hosts and convert them to ip addresses
     explicit peer_address_t(const std::set<host_and_port_t> &_hosts);
     peer_address_t();
 
@@ -137,25 +137,13 @@ public:
 
     host_and_port_t primary_host() const;
 
-    // Look up all the hosts and convert them into ip addresses
-    void resolve();
-
     // Two addresses are considered equal if all of their hosts match
     bool operator == (const peer_address_t &a) const;
     bool operator != (const peer_address_t &a) const;
 
 private:
     std::set<host_and_port_t> hosts_;
-    boost::optional<std::set<ip_and_port_t> > resolved_ips;
-
-    // Implement these manually rather than using a serializable macro
-    // Because we want to re-evaluate the 'resolve' outcome any time
-    //  this switches hands
-    friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */ ) const;
-
-    friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    std::set<ip_and_port_t> resolved_ips;
 };
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);

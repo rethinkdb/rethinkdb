@@ -195,10 +195,14 @@ port_t host_and_port_t::port() const {
 
 peer_address_t::peer_address_t(const std::set<host_and_port_t> &_hosts) :
     hosts_(_hosts)
-{ }
+{
+    for (auto it = hosts_.begin(); it != hosts_.end(); ++it) {
+        std::set<ip_and_port_t> host_ips = it->resolve();
+        resolved_ips.insert(host_ips.begin(), host_ips.end());
+    }
+}
 
-peer_address_t::peer_address_t()
-{ }
+peer_address_t::peer_address_t() { }
 
 const std::set<host_and_port_t>& peer_address_t::hosts() const {
     return hosts_;
@@ -209,19 +213,8 @@ host_and_port_t peer_address_t::primary_host() const {
     return *hosts_.begin();
 }
 
-void peer_address_t::resolve() {
-    if (!resolved_ips) {
-        resolved_ips = std::set<ip_and_port_t>();
-        for (auto it = hosts_.begin(); it != hosts_.end(); ++it) {
-            std::set<ip_and_port_t> host_ips = it->resolve();
-            resolved_ips->insert(host_ips.begin(), host_ips.end());
-        }
-    }
-}
-
 const std::set<ip_and_port_t>& peer_address_t::ips() const {
-    guarantee(resolved_ips);
-    return resolved_ips.get();
+    return resolved_ips;
 }
 
 // Two addresses are considered equal if all of their hosts match
@@ -239,21 +232,6 @@ bool peer_address_t::operator == (const peer_address_t &a) const {
 
 bool peer_address_t::operator != (const peer_address_t &a) const {
     return !(*this == a);
-}
-
-void peer_address_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    msg << hosts_;
-}
-
-archive_result_t peer_address_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res = ARCHIVE_SUCCESS;
-    res = deserialize(s, &hosts_);
-    if (res) { return res; }
-
-    // Resolved addresses are not valid on the other side
-    resolved_ips.reset();
-
-    return res;
 }
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr) {

@@ -61,9 +61,7 @@ peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
             our_addrs.insert(host_and_port_t(it->as_dotted_decimal(), cluster_port));
         }
     }
-    peer_address_t result(our_addrs);
-    result.resolve();
-    return result;
+    return peer_address_t(our_addrs);
 }
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
@@ -269,6 +267,9 @@ void connectivity_cluster_t::run_t::join_blocking(
         attempt_table.insert(peer);
     }
 
+    // Make sure the peer address isn't bogus
+    guarantee(peer.ips().size() > 0);
+
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
     semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
@@ -412,6 +413,42 @@ bool is_similar_peer_address(const peer_address_t &left,
     return left_loopback_only || right_loopback_only;
 }
 
+// Critical section: we must check for conflicts and register ourself
+//  without the interference of any other connections. This ensures that
+//  any conflicts are resolved consistently. It also ensures that if we get
+//  two connections from different nodes, one will find out about the other.
+bool connectivity_cluster_t::run_t::get_routing_table_to_send_and_add_peer(
+        const peer_id_t &other_peer_id,
+        const peer_address_t &other_peer_addr,
+        object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> > *routing_table_entry_sentry,
+        std::map<peer_id_t, std::set<host_and_port_t> > *result) {
+    mutex_t::acq_t acq(&new_connection_mutex);
+
+    // Here's how this situation can happen:
+    // 1. We are connected to another node.
+    // 2. The connection is interrupted.
+    // 3. The other node gives up on the original TCP connection, but we have not given up on it yet.
+    // 4. The other node tries to reconnect, and the new TCP connection gets through and this node ends up here.
+    // 5. We now have a duplicate connection to the other node.
+    if (routing_table.find(other_peer_id) != routing_table.end()) {
+        // In this case, just exit this function, which will close the connection
+        // This will happen until the old connection dies
+        // TODO: ensure that the old connection shuts down?
+        return false;
+    }
+
+    // Make a serializable copy of `routing_table` before exiting the critical section
+    result->clear();
+    for (auto it = routing_table.begin(); it != routing_table.end(); ++it) {
+        result->insert(std::make_pair(it->first, it->second.hosts()));
+    }
+
+    // Register ourselves while in the critical section, so that whoever comes next will see us
+    routing_table_entry_sentry->create(&routing_table, other_peer_id, other_peer_addr);
+
+    return true;
+}
+
 // We log error conditions as follows:
 // - silent: network error; conflict between parallel connections
 // - warning: invalid header
@@ -449,7 +486,7 @@ void connectivity_cluster_t::run_t::handle(
         msg << cluster_arch_bitsize;
         msg << cluster_build_mode;
         msg << parent->me;
-        msg << routing_table[parent->me];
+        msg << routing_table[parent->me].hosts();
         if (send_write_message(conn, &msg))
             return; // network error.
     }
@@ -506,13 +543,13 @@ void connectivity_cluster_t::run_t::handle(
 
     // Receive id, host/ports.
     peer_id_t other_id;
-    peer_address_t other_peer_addr;
+    std::set<host_and_port_t> other_peer_addr_hosts;
     if (deserialize_and_check(conn, &other_id, peername) ||
-        deserialize_and_check(conn, &other_peer_addr, peername))
+        deserialize_and_check(conn, &other_peer_addr_hosts, peername))
         return;
 
     // Look up the ip addresses for the other host
-    other_peer_addr.resolve();
+    peer_address_t other_peer_addr(other_peer_addr_hosts);
 
     /* Sanity checks */
     if (other_id == parent->me) {
@@ -567,33 +604,15 @@ void connectivity_cluster_t::run_t::handle(
     // Just saying: Still on rpc listener thread, for
     // sending/receiving routing table
     parent->assert_thread();
-    std::map<peer_id_t, peer_address_t> other_routing_table;
+    std::map<peer_id_t, std::set<host_and_port_t> > other_routing_table;
 
     if (we_are_leader) {
-
-        std::map<peer_id_t, peer_address_t> routing_table_to_send;
-
-        /* Critical section: we must check for conflicts and register ourself
-        without the interference of any other connections. This ensures that
-        any conflicts are resolved consistently. It also ensures that if we get
-        two connections from different nodes, one will find out about the other.
-        */
-        {
-            mutex_t::acq_t acq(&new_connection_mutex);
-
-            if (routing_table.find(other_id) != routing_table.end()) {
-                /* Conflict! Abort! Terminate the connection unceremoniously;
-                the follower will find out. */
-                return;
-            }
-
-            /* Make a copy of `routing_table` before exiting the critical
-            section */
-            routing_table_to_send = routing_table;
-
-            /* Register ourselves while in the critical section, so that whoever
-            comes next will see us */
-            routing_table_entry_sentry.create(&routing_table, other_id, other_peer_addr);
+        std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
+        if (!get_routing_table_to_send_and_add_peer(other_id,
+                                                    other_peer_addr,
+                                                    &routing_table_entry_sentry,
+                                                    &routing_table_to_send)) {
+            return;
         }
 
         /* We're good to go! Transmit the routing table to the follower, so it
@@ -610,41 +629,18 @@ void connectivity_cluster_t::run_t::handle(
             return;
 
     } else {
-
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
         if (deserialize_and_check(conn, &other_routing_table, peername))
             return;
 
-        std::map<peer_id_t, peer_address_t> routing_table_to_send;
-
-        /* Register ourselves locally. This is in a critical section so that if
-        we get two connections from different nodes at the same time, one will
-        find out about the other. */
-        {
-            mutex_t::acq_t acq(&new_connection_mutex);
-
-            // Here's how this situation can happen:
-            // 1. We are connected to another node.
-            // 2. The connection is interrupted.
-            // 3. The other node gives up on the original TCP connection, but we have not given up on it yet.
-            // 4. The other node tries to reconnect, and the new TCP connection gets through and this node ends up here.
-            // 5. We now have a duplicate connection to the other node.
-            if (routing_table.find(other_id) != routing_table.end()) {
-                // In this case, just exit this function, which will close the connection
-                // This will happen until the old connection dies
-                // TODO: ensure that the old connection shuts down?
-                return;
-            }
-
-            /* Make a copy of `routing_table` before exiting the critical
-            section */
-            routing_table_to_send = routing_table;
-
-            /* Register ourselves while in the critical section, so that whoever
-            comes next will see us */
-            routing_table_entry_sentry.create(&routing_table, other_id, other_peer_addr);
+        std::map<peer_id_t, std::set<host_and_port_t> > routing_table_to_send;
+        if (!get_routing_table_to_send_and_add_peer(other_id,
+                                                    other_peer_addr,
+                                                    &routing_table_entry_sentry,
+                                                    &routing_table_to_send)) {
+            return;
         }
 
         /* Send our routing table to the leader */
@@ -677,11 +673,9 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 // `it->first` is the ID of a peer that our peer is connected
                 //  to, but we aren't connected to.
-                // Resolve the peer address into ip addresses
-                it->second.resolve();
                 coro_t::spawn_now_dangerously(boost::bind(
                     &connectivity_cluster_t::run_t::join_blocking, this,
-                    it->second,
+                    peer_address_t(it->second), // This is where we resolve the peer's ip addresses
                     boost::optional<peer_id_t>(it->first),
                     drainer_lock));
             }
