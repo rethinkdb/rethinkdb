@@ -85,7 +85,7 @@ void page_repl_random_t::make_space(size_t space_needed) {
         evictable_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
             /* Choose a block in memory at random. */
-            size_t n = randsize() % arr.size();
+            size_t n = randsize(arr.size());
             evictable_t *block = arr[n];
 
             // TODO we don't have code that sets buf_snapshot_t eviction priorities.
