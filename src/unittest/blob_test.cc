@@ -57,7 +57,7 @@ public:
         uint64_t rs = blob_.refsize(txn->get_cache()->get_block_size());
         if (size < 251) {
             ASSERT_EQ(1 + size, rs);
-        } else if (size <= size_after_magic) {
+        } else if (size <= static_cast<size_t>(size_after_magic)) {
             ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), rs);
         } else if (size <= int64_t(size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)))) {
             if (rs != 1 + 8 + 8 + sizeof(block_id_t)) {
