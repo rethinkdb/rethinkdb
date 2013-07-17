@@ -13,7 +13,7 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "containers/scoped.hpp"
-#include "containers/two_level_array.hpp"
+#include "containers/infinite_array.hpp"
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 

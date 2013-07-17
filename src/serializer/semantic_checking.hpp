@@ -11,7 +11,7 @@
 
 #include "arch/types.hpp"
 #include "config/args.hpp"
-#include "containers/two_level_array.hpp"
+#include "containers/infinite_array.hpp"
 #include "serializer/serializer.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
@@ -29,7 +29,7 @@ class semantic_checking_serializer_t :
 {
 private:
     inner_serializer_t inner_serializer;
-    two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
+    infinite_array_t<scs_block_info_t> blocks;
     int last_index_write_started, last_index_write_finished;
     scoped_ptr_t<semantic_checking_file_t> semantic_file;
 
