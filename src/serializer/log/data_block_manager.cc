@@ -58,7 +58,7 @@ public:
         delete this;
     }
     ~gc_entry_t() {
-        unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+        uint64_t extent_id = parent->static_config->extent_index(extent_offset);
         guarantee(parent->entries.get(extent_id) == this);
         parent->entries.set(extent_id, NULL);
 
@@ -268,7 +268,7 @@ public:
 private:
     // Used by constructors.
     void add_self_to_parent_entries() {
-        unsigned int extent_id = parent->static_config->extent_index(extent_offset);
+        uint64_t extent_id = parent->static_config->extent_index(extent_offset);
         guarantee(parent->entries.get(extent_id) == NULL);
         parent->entries.set(extent_id, this);
 
@@ -358,7 +358,7 @@ void data_block_manager_t::start_reconstruct() {
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
 void data_block_manager_t::mark_live(int64_t offset, block_size_t ser_block_size) {
-    unsigned int extent_id = static_config->extent_index(offset);
+    uint64_t extent_id = static_config->extent_index(offset);
 
     if (entries.get(extent_id) == NULL) {
         guarantee(gc_state.step() == gc_reconstruct);  // This is called at startup.
@@ -614,7 +614,7 @@ public:
 
 
 bool data_block_manager_t::should_perform_read_ahead(int64_t offset) {
-    unsigned int extent_id = static_config->extent_index(offset);
+    uint64_t extent_id = static_config->extent_index(offset);
 
     gc_entry_t *entry = entries.get(extent_id);
 
@@ -741,7 +741,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     return ret;
 }
 
-void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
+void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
     gc_entry_t *entry = entries.get(extent_id);
     if (!entry) {
         return; // The extent has already been deleted
@@ -804,7 +804,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
 }
 
 void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *txn) {
-    unsigned int extent_id = static_config->extent_index(offset);
+    uint64_t extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     unsigned int block_index = entry->block_index(offset);
 
@@ -825,7 +825,7 @@ void data_block_manager_t::mark_garbage(int64_t offset, extent_transaction_t *tx
 }
 
 void data_block_manager_t::mark_live_tokenwise_with_offset(int64_t offset) {
-    unsigned int extent_id = static_config->extent_index(offset);
+    uint64_t extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
     rassert(entry != NULL);
     unsigned int block_index = entry->block_index(offset);
@@ -834,7 +834,7 @@ void data_block_manager_t::mark_live_tokenwise_with_offset(int64_t offset) {
 }
 
 void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
-    unsigned int extent_id = static_config->extent_index(offset);
+    uint64_t extent_id = static_config->extent_index(offset);
     gc_entry_t *entry = entries.get(extent_id);
 
     rassert(entry != NULL);

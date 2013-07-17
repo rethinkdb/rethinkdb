@@ -71,10 +71,6 @@ public:
     /* mark a buffer as garbage */
     void mark_garbage(int64_t offset, extent_transaction_t *txn);  // Takes a real int64_t.
 
-    bool is_extent_in_use(unsigned int extent_id) {
-        return entries.get(extent_id) != NULL;
-    }
-
     /* r{start,end}_reconstruct functions for safety */
     void start_reconstruct();
     void mark_live(int64_t offset, block_size_t block_size);
@@ -118,7 +114,7 @@ private:
 
     /* Checks whether the extent is empty and if it is, notifies the extent manager
        and cleans up */
-    void check_and_handle_empty_extent(unsigned int extent_id);
+    void check_and_handle_empty_extent(uint64_t extent_id);
 
     // Tells if we should keep gc'ing.
     bool should_we_keep_gcing() const;
