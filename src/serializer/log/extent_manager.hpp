@@ -16,7 +16,6 @@
 #include "config/args.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/log/config.hpp"
-#include "containers/segmented_vector.hpp"
 
 #define NULL_OFFSET int64_t(-1)
 

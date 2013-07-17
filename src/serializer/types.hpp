@@ -172,9 +172,9 @@ struct scs_block_info_t {
 
     explicit scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
 
-    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
-    // uninitialized memory lying around, which annoys valgrind when we try to write
-    // persisted_block_info_ts to disk.
+    // For compatibility with infinite_array_t. We initialize crc to 0 to avoid
+    // having uninitialized memory lying around, which annoys valgrind when we try to
+    // write persisted_block_info_ts to disk.
     scs_block_info_t() : state(state_unknown), crc(0) {}
     operator bool() { return state != state_unknown; }
 };

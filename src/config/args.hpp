@@ -73,9 +73,6 @@
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
-// Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
-
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
 

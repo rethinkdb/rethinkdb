@@ -16,7 +16,6 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/intrusive_list.hpp"
-#include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/mirrored/stats.hpp"

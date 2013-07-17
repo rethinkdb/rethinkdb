@@ -10,6 +10,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
+#include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/data_block_manager.hpp"
 

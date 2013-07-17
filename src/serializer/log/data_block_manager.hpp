@@ -6,8 +6,8 @@
 
 #include "arch/types.hpp"
 #include "containers/bitset.hpp"
+#include "containers/infinite_array.hpp"
 #include "containers/priority_queue.hpp"
-#include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/types.hpp"
 #include "serializer/log/config.hpp"
@@ -170,7 +170,7 @@ private:
 
     /* Contains a pointer to every gc_entry_t, regardless of what its current state
        is */
-    two_level_array_t<gc_entry_t *, MAX_DATA_EXTENTS, (1 << 12)> entries;
+    infinite_array_t<gc_entry_t *> entries;
 
     /* Contains every extent in the gc_entry_t::state_reconstructing state */
     intrusive_list_t<gc_entry_t> reconstructed_extents;
