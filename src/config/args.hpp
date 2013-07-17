@@ -143,14 +143,9 @@
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               4
 
-// We assume there will never be more than this many blocks. The value
-// is computed by dividing 1 TB by the smallest reasonable block size.
-// This value currently fits in 32 bits, and so block_id_t is a uint32_t.
-// RSI: Figure out what uses this, fix the comment for this value.
-#define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
-
 // We assume that there will never be more than this many blocks held in memory by the cache at
 // any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
+// RSI: This value is stupid.  Remove it.
 #define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
 
 
