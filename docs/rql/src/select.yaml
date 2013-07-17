@@ -121,12 +121,13 @@ commands:
 
   - tag: between
     section: select
-    description: Get all documents between two keys.  Accepts three optional arguments: `index`, `left_bound`, and `right_bound`.  If `index` is set to the name of a secondary index, `between` will return all documents where that index's value is in the specified range (it uses the primary key by default).  `left_bound` or `right_bound` may be set to `open` or `closed` to indicate whether or not to include that endpoint of the range (by default, `left_bound` is closed and `right_bound` is open).
+    description: |
+      Get all documents between two keys.  Accepts three optional arguments: `index`, `left_bound`, and `right_bound`.  If `index` is set to the name of a secondary index, `between` will return all documents where that index's value is in the specified range (it uses the primary key by default).  `left_bound` or `right_bound` may be set to `open` or `closed` to indicate whether or not to include that endpoint of the range (by default, `left_bound` is closed and `right_bound` is open).
 
     body:
-      py: "$PARENT.between(lower_key, upper_key[, index='id'])"
-      rb: "$PARENT.between(lower_key, upper_key[, :index => 'id'])"
-      js: "$PARENT.between(lowerKey, upperKey[, {index:'id'}])"
+      py: "$PARENT.between(lower_key, upper_key[, index='id', left_bound='closed', right_bound='open'])"
+      rb: "$PARENT.between(lower_key, upper_key[, :index => 'id', :left_bound => 'closed', :right_bound => 'open'])"
+      js: "$PARENT.between(lowerKey, upperKey[, {index:'id', left_bound:'closed', right_bound:'open'}])"
 
     io:
       - - table
