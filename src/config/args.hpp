@@ -143,11 +143,6 @@
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               4
 
-// We assume that there will never be more than this many blocks held in memory by the cache at
-// any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
-// RSI: This value is stupid.  Remove it.
-#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
-
 
 // Special block IDs.  These don't really belong here because they're
 // more magic constants than tunable parameters.
