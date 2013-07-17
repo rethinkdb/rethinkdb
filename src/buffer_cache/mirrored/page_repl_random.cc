@@ -6,7 +6,7 @@
 #include "perfmon/perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded)
-    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1))
+    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<size_t>(-1))
 {
     cache->assert_thread();
     if (loaded) {
@@ -24,7 +24,7 @@ evictable_t::~evictable_t() {
 }
 
 bool evictable_t::in_page_repl() {
-    return page_repl_index != (unsigned) -1;
+    return page_repl_index != static_cast<size_t>(-1);
 }
 
 void evictable_t::insert_into_page_repl() {
@@ -33,7 +33,6 @@ void evictable_t::insert_into_page_repl() {
     cache->page_repl.arr.push_back(this);
 }
 
-// RSI: Make page_repl_index be a size_t, not an unsigned int.
 void evictable_t::remove_from_page_repl() {
     cache->assert_thread();
 
@@ -43,26 +42,35 @@ void evictable_t::remove_from_page_repl() {
     std::swap(cache->page_repl.arr[page_repl_index],
               cache->page_repl.arr.back());
     cache->page_repl.arr.pop_back();
-    page_repl_index = static_cast<unsigned int>(-1);
+    page_repl_index = static_cast<size_t>(-1);
 }
 
-page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)
+page_repl_random_t::page_repl_random_t(size_t _unload_threshold, cache_t *_cache)
     : unload_threshold(_unload_threshold),
       cache(_cache)
     {}
 
-bool page_repl_random_t::is_full(unsigned int space_needed) {
+bool page_repl_random_t::is_full(size_t space_needed) {
     cache->assert_thread();
     return arr.size() + space_needed > unload_threshold;
 }
 
 //perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
 
+size_t randsize(size_t n) {
+    size_t x = randint(0x10000);
+    x = x * 0x10000 + randint(0x10000);
+    x = x * 0x10000 + randint(0x10000);
+    x = x * 0x10000 + randint(0x10000);
+    return x % n;
+}
+
+
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
-void page_repl_random_t::make_space(unsigned int space_needed) {
+void page_repl_random_t::make_space(size_t space_needed) {
     cache->assert_thread();
-    unsigned int target;
+    size_t target;
     // TODO(rntz): why, if more space is needed than unload_threshold, do we set the target number
     // of pages in cache to unload_threshold rather than 0? (note: git blames this on tim)
     if (space_needed > unload_threshold) {
@@ -77,9 +85,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         evictable_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
             /* Choose a block in memory at random. */
-            // NOTE: this method of random selection is slightly biased towards lower indices, I
-            // think. @rntz
-            unsigned int n = random() % arr.size();
+            size_t n = randsize() % arr.size();
             evictable_t *block = arr[n];
 
             // TODO we don't have code that sets buf_snapshot_t eviction priorities.

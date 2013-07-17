@@ -41,7 +41,7 @@ public:
 protected:
     mc_cache_t *cache;
 private:
-    unsigned int page_repl_index;
+    size_t page_repl_index;
 };
 
 class page_repl_random_t {
@@ -49,16 +49,15 @@ class page_repl_random_t {
     friend class evictable_t;
 
 public:
-
-    page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache);
+    page_repl_random_t(size_t _unload_threshold, cache_t *_cache);
 
     // If is_full(space_needed), the next call to make_space(space_needed) probably
     // has to evict something
-    bool is_full(unsigned int space_needed);
+    bool is_full(size_t space_needed);
 
     // make_space tries to make sure that the number of blocks currently in memory is
     // at least 'space_needed' less than the user-specified memory limit.
-    void make_space(unsigned int space_needed = 0);
+    void make_space(size_t space_needed = 0);
 
     /* The page replacement component actually serves two roles. In addition to its
     primary role as a mechanism for kicking out buffers when memory runs low, it also
@@ -71,7 +70,7 @@ public:
     evictable_t *get_first_buf();
 
 private:
-    unsigned int unload_threshold;
+    size_t unload_threshold;
     cache_t *cache;
     std::vector<evictable_t *> arr;
 };
