@@ -411,11 +411,11 @@ host_and_port_t parse_host_and_port(const std::string &source, const std::string
     if (colon_loc != std::string::npos) {
         std::string host = value.substr(0, colon_loc);
         int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0) {
-            return host_and_port_t(host, port);
+        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+            return host_and_port_t(host, port_t(port));
         }
     } else if (value.size() != 0) {
-        return host_and_port_t(value, default_port);
+        return host_and_port_t(value, port_t(default_port));
     }
 
     throw options::value_error_t(source, option_name,
@@ -476,27 +476,6 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     return result;
 }
 
-peer_address_t get_canonical_addresses(const std::vector<std::string> &canonical_options,
-                                       int default_port) {
-    // Verify that all specified addresses are valid ip addresses
-    std::set<host_and_port_t> result;
-    for (size_t i = 0; i < canonical_options.size(); ++i) {
-        // TODO: pass a real 'source' parameter here?
-        host_and_port_t host_port = parse_host_and_port(std::string(), "--canonical-address",
-                                                        canonical_options[i], default_port);
-
-        if (host_port.port == 0 && default_port != 0) {
-            // The cluster layer would probably swap this out with whatever port we were
-            //  actually listening on, but since the user explicitly specified 0, it seems bad
-            throw std::logic_error("cannot specify a port of 0 in --canonical-address");
-        }
-        result.insert(host_and_port_t(host_port.host, host_port.port));
-    }
-    peer_address_t addr_result(result);
-    addr_result.resolve();
-    return addr_result;
-}
-
 // Returns the options vector for a given option name.  The option must *exist*!  Typically this is
 // for OPTIONAL_REPEAT options with a default value being the empty vector.
 const std::vector<std::string> &all_options(const std::map<std::string, options::values_t> &opts,
@@ -533,12 +512,33 @@ int offseted_port(const int port, const int port_offset) {
     return port == 0 ? 0 : port + port_offset;
 }
 
+peer_address_t get_canonical_addresses(const std::map<std::string, options::values_t> &opts,
+                                       int default_port) {
+    std::string source;
+    std::vector<std::string> canonical_options = all_options(opts, "--canonical-address", &source);
+    // Verify that all specified addresses are valid ip addresses
+    std::set<host_and_port_t> result;
+    for (size_t i = 0; i < canonical_options.size(); ++i) {
+        host_and_port_t host_port = parse_host_and_port(source, "--canonical-address",
+                                                        canonical_options[i], default_port);
+
+        if (host_port.port().value() == 0 && default_port != 0) {
+            // The cluster layer would probably swap this out with whatever port we were
+            //  actually listening on, but since the user explicitly specified 0, it doesn't make sense
+            throw std::logic_error("cannot specify a port of 0 in --canonical-address");
+        }
+        result.insert(host_port);
+    }
+    peer_address_t addr_result(result);
+    addr_result.resolve();
+    return addr_result;
+}
+
 service_address_ports_t get_service_address_ports(const std::map<std::string, options::values_t> &opts) {
     const int port_offset = get_single_int(opts, "--port-offset");
     const int cluster_port = offseted_port(get_single_int(opts, "--cluster-port"), port_offset);
     return service_address_ports_t(get_local_addresses(all_options(opts, "--bind")),
-                                   get_canonical_addresses(all_options(opts, "--canonical-address"),
-                                                           cluster_port),
+                                   get_canonical_addresses(opts, cluster_port),
                                    cluster_port,
 #ifndef NDEBUG
                                    get_single_int(opts, "--client-port"),
@@ -614,7 +614,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins,
     std::string host_port;
 
     if (!joins.empty()) {
-        host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
+        host_port = strprintf("%s:%d", joins[0].host().c_str(), joins[0].port().value());
     }
 
     try {
@@ -1290,8 +1290,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         const std::vector<host_and_port_t> joins =
             parse_join_options(opts, port_defaults::peer_port);
 
-        peer_address_t canonical_addresses =
-            get_canonical_addresses(all_options(opts, "--canonical-address"), 0);
+        peer_address_t canonical_addresses = get_canonical_addresses(opts, 0);
 
 #ifndef NDEBUG
         const int client_port = get_single_int(opts, "--client-port");

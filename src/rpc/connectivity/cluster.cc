@@ -36,17 +36,17 @@ const std::string connectivity_cluster_t::cluster_build_mode("debug");
 // Helper function for the run_t initialization list
 peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
                                 const peer_address_t &canonical_addresses,
-                                int cluster_port) {
+                                port_t cluster_port) {
     std::set<host_and_port_t> our_addrs;
 
     // If at least one canonical address was specified, we ignore all other addresses
-    if (!canonical_addresses.get_hosts().empty()) {
+    if (!canonical_addresses.hosts().empty()) {
         // We have to modify canonical addresses in case there is a port of 0
         //  use the real port from the socket
-        for (auto it = canonical_addresses.get_hosts().begin();
-             it != canonical_addresses.get_hosts().end(); ++it) {
-            if (it->port == 0) {
-                our_addrs.insert(host_and_port_t(it->host, cluster_port));
+        for (auto it = canonical_addresses.hosts().begin();
+             it != canonical_addresses.hosts().end(); ++it) {
+            if (it->port().value() == 0) {
+                our_addrs.insert(host_and_port_t(it->host(), cluster_port));
             } else {
                 our_addrs.insert(*it);
             }
@@ -99,8 +99,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     routing_table_entry_for_ourself(&routing_table,
                                     parent->me,
                                     our_peer_address(local_addresses,
-                                                       canonical_addresses,
-                                                       cluster_listener_socket->get_port())),
+                                                     canonical_addresses,
+                                                     port_t(cluster_listener_socket->get_port()))),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -231,7 +231,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
     }
 
     // Indexing through a std::set is rather awkward
-    const std::set<ip_and_port_t> &all_addrs = address->get_ips();
+    const std::set<ip_and_port_t> &all_addrs = address->ips();
     std::set<ip_and_port_t>::const_iterator selected_addr;
     for (selected_addr = all_addrs.begin(); selected_addr != all_addrs.end() && index > 0; ++selected_addr, --index);
     guarantee(index == 0);
@@ -239,7 +239,7 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
     // Don't bother if there's already a connection
     if (!*successful_join) {
         try {
-            keepalive_tcp_conn_stream_t conn(selected_addr->ip, selected_addr->port,
+            keepalive_tcp_conn_stream_t conn(selected_addr->ip(), selected_addr->port().value(),
                                              drainer_lock.get_drain_signal(), cluster_client_port);
             if (!*successful_join) {
                 handle(&conn, expected_id, boost::optional<peer_address_t>(*address), drainer_lock, successful_join);
@@ -271,10 +271,10 @@ void connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    semaphore_t rate_control(peer.get_ips().size()); // Mutex to control the rate that connection attempts are made
-    rate_control.co_lock(peer.get_ips().size() - 1); // Start with only one coroutine able to run
+    semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
+    rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
-    pmap(peer.get_ips().size(),
+    pmap(peer.ips().size(),
          boost::bind(&connectivity_cluster_t::run_t::connect_to_peer,
                      this,
                      &peer,
@@ -385,24 +385,23 @@ bool is_similar_peer_address(const peer_address_t &left,
 
     // We ignore any loopback addresses because they don't give us any useful information
     // Return true if any non-loopback addresses match
-    for (auto left_it = left.get_ips().begin();
-         left_it != left.get_ips().end(); ++left_it) {
-        if (left_it->ip.is_loopback()) {
+    for (auto left_it = left.ips().begin();
+         left_it != left.ips().end(); ++left_it) {
+        if (left_it->ip().is_loopback()) {
             continue;
         } else {
             left_loopback_only = false;
         }
 
-        for (auto right_it = right.get_ips().begin();
-             right_it != right.get_ips().end(); ++right_it) {
-            if (right_it->ip.is_loopback()) {
+        for (auto right_it = right.ips().begin();
+             right_it != right.ips().end(); ++right_it) {
+            if (right_it->ip().is_loopback()) {
                 continue;
             } else {
                 right_loopback_only = false;
             }
 
-            if (right_it->ip == left_it->ip &&
-                right_it->port == left_it->port) {
+            if (*right_it == *left_it) {
                 return true;
             }
         }

@@ -122,66 +122,104 @@ bool ip_address_t::is_loopback() const {
     return (ntohl(s_addr) >> 24) == 127;
 }
 
+port_t::port_t(int _value) : value_(_value) {
+    guarantee(value_ <= MAX_PORT);
+}
+
+int port_t::value() const {
+    return value_;
+}
+
 ip_and_port_t::ip_and_port_t() :
-    port(0)
+    port_(0)
 { }
 
-ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, int _port) :
-    ip(_ip), port(_port)
+ip_and_port_t::ip_and_port_t(const ip_address_t &_ip, port_t _port) :
+    ip_(_ip), port_(_port)
 { }
 
 bool ip_and_port_t::operator < (const ip_and_port_t &other) const {
-    if (ip == other.ip) {
-        return port < other.port;
+    if (ip_ == other.ip_) {
+        return port_.value() < other.port_.value();
     }
-    return ip < other.ip;
+    return ip_ < other.ip_;
+}
+
+bool ip_and_port_t::operator == (const ip_and_port_t &other) const {
+    return ip_ == other.ip_ && port_.value() == other.port_.value();
+}
+
+const ip_address_t & ip_and_port_t::ip() const {
+    return ip_;
+}
+
+port_t ip_and_port_t::port() const {
+    return port_;
 }
 
 host_and_port_t::host_and_port_t() :
-    port(0)
+    port_(0)
 { }
 
-host_and_port_t::host_and_port_t(const std::string& h, int p) :
-    host(h), port(p)
+host_and_port_t::host_and_port_t(const std::string& _host, port_t _port) :
+    host_(_host), port_(_port)
 { }
 
 bool host_and_port_t::operator < (const host_and_port_t &other) const {
-    if (host == other.host) {
-        return port < other.port;
+    if (host_ == other.host_) {
+        return port_.value() < other.port_.value();
     }
-    return host < other.host;
+    return host_ < other.host_;
+}
+
+bool host_and_port_t::operator == (const host_and_port_t &other) const {
+    return host_ == other.host_ && port_.value() == other.port_.value();
 }
 
 std::set<ip_and_port_t> host_and_port_t::resolve() const {
     std::set<ip_and_port_t> result;
-    std::set<ip_address_t> host_ips = ip_address_t::from_hostname(host);
+    std::set<ip_address_t> host_ips = ip_address_t::from_hostname(host_);
     for (auto jt = host_ips.begin(); jt != host_ips.end(); ++jt) {
-        result.insert(ip_and_port_t(*jt, port));
+        result.insert(ip_and_port_t(*jt, port_));
     }
     return result;
 }
 
+const std::string & host_and_port_t::host() const {
+    return host_;
+}
+
+port_t host_and_port_t::port() const {
+    return port_;
+}
+
 peer_address_t::peer_address_t(const std::set<host_and_port_t> &_hosts) :
-        hosts(_hosts)
+    hosts_(_hosts)
 { }
 
 peer_address_t::peer_address_t()
 { }
 
-const std::set<host_and_port_t>& peer_address_t::get_hosts() const {
-    return hosts;
+const std::set<host_and_port_t>& peer_address_t::hosts() const {
+    return hosts_;
 }
 
 host_and_port_t peer_address_t::primary_host() const {
-    guarantee(!hosts.empty());
-    return *hosts.begin();
+    guarantee(!hosts_.empty());
+    return *hosts_.begin();
 }
 
 void peer_address_t::resolve() {
-    resolve_internal();
+    if (!resolved_ips) {
+        resolved_ips = std::set<ip_and_port_t>();
+        for (auto it = hosts_.begin(); it != hosts_.end(); ++it) {
+            std::set<ip_and_port_t> host_ips = it->resolve();
+            resolved_ips->insert(host_ips.begin(), host_ips.end());
+        }
+    }
 }
 
-const std::set<ip_and_port_t>& peer_address_t::get_ips() const {
+const std::set<ip_and_port_t>& peer_address_t::ips() const {
     guarantee(resolved_ips);
     return resolved_ips.get();
 }
@@ -189,10 +227,10 @@ const std::set<ip_and_port_t>& peer_address_t::get_ips() const {
 // Two addresses are considered equal if all of their hosts match
 bool peer_address_t::operator == (const peer_address_t &a) const {
     std::set<host_and_port_t>::const_iterator it, jt;
-    for (it = hosts.begin(), jt = a.hosts.begin();
-         it != hosts.end() && jt != a.hosts.end(); ++it, ++jt) {
-        if (it->port != jt->port ||
-            it->host != jt->host) {
+    for (it = hosts_.begin(), jt = a.hosts_.begin();
+         it != hosts_.end() && jt != a.hosts_.end(); ++it, ++jt) {
+        if (it->port().value() != jt->port().value() ||
+            it->host() != jt->host()) {
             return false;
         }
     }
@@ -203,25 +241,13 @@ bool peer_address_t::operator != (const peer_address_t &a) const {
     return !(*this == a);
 }
 
-// Look up all the hosts and convert them into ip addresses
-void peer_address_t::resolve_internal() {
-    if (!resolved_ips) {
-        std::set<ip_and_port_t> ips;
-        for (auto it = hosts.begin(); it != hosts.end(); ++it) {
-            std::set<ip_and_port_t> host_ips = it->resolve();
-            ips.insert(host_ips.begin(), host_ips.end());
-        }
-        resolved_ips.reset(ips);
-    }
-}
-
 void peer_address_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    msg << hosts;
+    msg << hosts_;
 }
 
 archive_result_t peer_address_t::rdb_deserialize(read_stream_t *s) {
     archive_result_t res = ARCHIVE_SUCCESS;
-    res = deserialize(s, &hosts);
+    res = deserialize(s, &hosts_);
     if (res) { return res; }
 
     // Resolved addresses are not valid on the other side
@@ -235,16 +261,16 @@ void debug_print(printf_buffer_t *buf, const ip_address_t &addr) {
 }
 
 void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr) {
-    buf->appendf("%s:%d", addr.ip.as_dotted_decimal().c_str(), addr.port);
+    buf->appendf("%s:%d", addr.ip().as_dotted_decimal().c_str(), addr.port().value());
 }
 
 void debug_print(printf_buffer_t *buf, const host_and_port_t &addr) {
-    buf->appendf("%s:%d", addr.host.c_str(), addr.port);
+    buf->appendf("%s:%d", addr.host().c_str(), addr.port().value());
 }
 
 void debug_print(printf_buffer_t *buf, const peer_address_t &address) {
     buf->appendf("peer_address [");
-    const std::set<host_and_port_t> &hosts = address.get_hosts();
+    const std::set<host_and_port_t> &hosts = address.hosts();
     for (auto it = hosts.begin(); it != hosts.end(); ++it) {
         if (it != hosts.begin()) buf->appendf(", ");
         debug_print(buf, *it);

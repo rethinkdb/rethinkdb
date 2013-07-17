@@ -10,13 +10,14 @@
 
 #include <string>
 #include <set>
-
 #include <boost/optional.hpp>
 
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
 #include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
+
+#define MAX_PORT 65535
 
 class printf_buffer_t;
 
@@ -79,33 +80,51 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(s_addr);
 };
 
+class port_t {
+public:
+    explicit port_t(int _port);
+    int value() const;
+private:
+    int value_;
+    RDB_MAKE_ME_SERIALIZABLE_1(value_);
+};
+
 class ip_and_port_t {
 public:
     ip_and_port_t();
-    ip_and_port_t(const ip_address_t &_ip, int _port);
+    ip_and_port_t(const ip_address_t &_ip, port_t _port);
 
     bool operator < (const ip_and_port_t &other) const;
+    bool operator == (const ip_and_port_t &other) const;
 
-    ip_address_t ip;
-    int port;
+    const ip_address_t &ip() const;
+    port_t port() const;
+
 private:
-    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
+    ip_address_t ip_;
+    port_t port_;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
 };
 
 class host_and_port_t {
 public:
     host_and_port_t();
-    host_and_port_t(const std::string& h, int p);
+    host_and_port_t(const std::string& _host, port_t _port);
 
     bool operator < (const host_and_port_t &other) const;
+    bool operator == (const host_and_port_t &other) const;
 
     std::set<ip_and_port_t> resolve() const;
 
-    std::string host;
-    int port;
+    const std::string &host() const;
+    port_t port() const;
 
 private:
-    RDB_MAKE_ME_SERIALIZABLE_2(host, port);
+    std::string host_;
+    port_t port_;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
 };
 
 class peer_address_t {
@@ -113,30 +132,27 @@ public:
     explicit peer_address_t(const std::set<host_and_port_t> &_hosts);
     peer_address_t();
 
-    const std::set<host_and_port_t>& get_hosts() const;
-    const std::set<ip_and_port_t>& get_ips() const;
+    const std::set<host_and_port_t> &hosts() const;
+    const std::set<ip_and_port_t> &ips() const;
 
     host_and_port_t primary_host() const;
 
+    // Look up all the hosts and convert them into ip addresses
     void resolve();
-
 
     // Two addresses are considered equal if all of their hosts match
     bool operator == (const peer_address_t &a) const;
-    bool operator!=(const peer_address_t &a) const;
+    bool operator != (const peer_address_t &a) const;
 
 private:
-    std::set<host_and_port_t> hosts;
+    std::set<host_and_port_t> hosts_;
     boost::optional<std::set<ip_and_port_t> > resolved_ips;
-
-    // Look up all the hosts and convert them into ip addresses
-    void resolve_internal();
 
     // Implement these manually rather than using a serializable macro
     // Because we want to re-evaluate the 'resolve' outcome any time
     //  this switches hands
     friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
+    void rdb_serialize(write_message_t &msg /* NOLINT */ ) const;
 
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s);

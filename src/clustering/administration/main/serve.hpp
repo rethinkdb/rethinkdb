@@ -11,8 +11,6 @@
 
 namespace extproc { class spawner_info_t; }
 
-#define MAX_PORT 65536
-
 class invalid_port_exc_t : public std::exception {
 public:
     invalid_port_exc_t(const std::string& name, int port, int port_offset) {
@@ -34,7 +32,7 @@ private:
 };
 
 inline void sanitize_port(int port, const char *name, int port_offset) {
-    if (port >= MAX_PORT) {
+    if (port > MAX_PORT) {
         throw invalid_port_exc_t(name, port, port_offset);
     }
 }
