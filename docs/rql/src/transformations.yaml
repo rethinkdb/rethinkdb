@@ -142,12 +142,12 @@ commands:
         code:
           js: r.table('marvel').orderBy(function (doc) { return doc('enemiesVanquished') + doc('damselsSaved'); }).run(conn, callback)
           py: "r.table('marvel').orderBy(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)"
-          js: r.table('marvel').orderBy(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]}).run(conn)
+          rb: r.table('marvel').orderBy(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]}).run(conn)
       - description: Functions can also be used descendingly.
         code:
           js: r.table('marvel').orderBy(r.desc(function (doc) { return doc('enemiesVanquished') + doc('damselsSaved'); })).run(conn, callback)
           py: "r.table('marvel').orderBy(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)"
-          js: r.table('marvel').orderBy(r.desc(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]})).run(conn)
+          rb: r.table('marvel').orderBy(r.desc(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]})).run(conn)
 
   - tag: skip
     section: transformations
