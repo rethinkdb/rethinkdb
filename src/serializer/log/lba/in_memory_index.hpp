@@ -41,7 +41,6 @@ public:
     in_memory_index_t();
 
     // end_block_id is one greater than the max block id.
-    // RSI: Does anybody use end_block_id?
     block_id_t end_block_id();
 
     index_block_info_t get_block_info(block_id_t id);
