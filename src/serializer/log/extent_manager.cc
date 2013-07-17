@@ -34,7 +34,7 @@ public:
     // manager) but have not yet been commmitted.  The data_block_manager_t and LBA
     // ownership of the refcount also can get passed into the extent_transaction_t
     // object.
-    int32_t extent_use_refcount;
+    intptr_t extent_use_refcount;
 
     extent_info_t() : state_(state_unreserved),
                       extent_use_refcount(0) { }
@@ -43,7 +43,7 @@ public:
 class extent_zone_t {
     const size_t extent_size;
 
-    unsigned int offset_to_id(int64_t extent) const {
+    size_t offset_to_id(int64_t extent) const {
         rassert(divides(extent_size, extent));
         return extent / extent_size;
     }
@@ -59,18 +59,17 @@ class extent_zone_t {
 
     // We want to remove the minimum element from the free_queue first, leaving
     // free extents at the end of the file.
-    std::priority_queue<unsigned int,
-                        std::vector<unsigned int>,
-                        std::greater<unsigned int> > free_queue;
+    std::priority_queue<size_t,
+                        std::vector<size_t>,
+                        std::greater<size_t> > free_queue;
 
     file_t *const dbfile;
 
     // The number of free extents in the file.
-    unsigned int held_extents_;
+    size_t held_extents_;
 
 public:
-    // RSI: Track down this unsigned int offset usage.  Replace with size_t.
-    unsigned int held_extents() const {
+    size_t held_extents() const {
         return held_extents_;
     }
 
@@ -82,7 +81,7 @@ public:
     }
 
     extent_reference_t reserve_extent(int64_t extent) {
-        unsigned int id = offset_to_id(extent);
+        size_t id = offset_to_id(extent);
 
         if (id >= extents.size()) {
             extents.resize(id + 1);
@@ -94,7 +93,7 @@ public:
     }
 
     void reconstruct_free_list() {
-        for (unsigned int extent_id = 0; extent_id < extents.size(); ++extent_id) {
+        for (size_t extent_id = 0; extent_id < extents.size(); ++extent_id) {
             if (extents[extent_id].state() == extent_info_t::state_unreserved) {
                 extents[extent_id].set_state(extent_info_t::state_free);
                 free_queue.push(extent_id);
@@ -112,9 +111,9 @@ public:
             extents.push_back(extent_info_t());
         } else if (free_queue.top() >= extents.size()) {
             rassert(held_extents_ == 0);
-            std::priority_queue<unsigned int,
-                                std::vector<unsigned int>,
-                                std::greater<unsigned int> > tmp;
+            std::priority_queue<size_t,
+                                std::vector<size_t>,
+                                std::greater<size_t> > tmp;
             free_queue = tmp;
             extent = extents.size() * extent_size;
             extents.push_back(extent_info_t());
@@ -135,7 +134,7 @@ public:
     }
 
     extent_reference_t make_extent_reference(const int64_t extent) {
-        unsigned int id = offset_to_id(extent);
+        size_t id = offset_to_id(extent);
         guarantee(id < extents.size());
         extent_info_t *info = &extents[id];
         guarantee(info->state() == extent_info_t::state_in_use);
@@ -158,9 +157,9 @@ public:
             // Prevent the existence arbitrarily large free queue when the
             // file size shrinks.
             if (held_extents_ < free_queue.size() / 2) {
-                std::priority_queue<unsigned int,
-                                    std::vector<unsigned int>,
-                                    std::greater<unsigned int> > tmp;
+                std::priority_queue<size_t,
+                                    std::vector<size_t>,
+                                    std::greater<size_t> > tmp;
                 for (size_t i = 0; i < held_extents_; ++i) {
                     tmp.push(free_queue.top());
                     free_queue.pop();
@@ -292,7 +291,7 @@ void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     }
 }
 
-int extent_manager_t::held_extents() {
+size_t extent_manager_t::held_extents() {
     assert_thread();
     return zone->held_extents();
 }

@@ -134,7 +134,7 @@ public:
     void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */
-    int held_extents();
+    size_t held_extents();
 
     log_serializer_stats_t *const stats;
     const uint64_t extent_size;   /* Same as static_config->extent_size */
