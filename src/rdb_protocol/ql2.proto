@@ -499,6 +499,10 @@ message Term {
         // Parses its first argument as a json string and returns it as a
         // datum.
         JSON = 98; // STRING -> DATUM
+
+        // Parses its first arguments as an ISO8601 time and returns it as a
+        // datum.
+        ISO8601 = 99; // STRING -> DATUM
     }
     optional TermType type = 1;
 
