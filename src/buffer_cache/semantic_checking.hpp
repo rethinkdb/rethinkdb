@@ -156,7 +156,7 @@ private:
     friend class scc_buf_lock_t<inner_cache_t>;
 
     /* CRC checking stuff */
-    two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
+    infinite_array_t<crc_t> crc_map;
     /* order checking stuff */
     two_level_array_t<plain_sink_t, MAX_BLOCK_ID> sink_map;
 };
