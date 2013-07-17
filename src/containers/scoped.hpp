@@ -71,7 +71,7 @@ public:
         return tmp;
     }
 
-    void swap(scoped_ptr_t& other) {
+    void swap(scoped_ptr_t &other) {
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
@@ -149,7 +149,6 @@ public:
     void init(T *ptr, size_t size) {
         rassert(ptr != NULL);
         rassert(ptr_ == NULL);
-        rassert(size >= 0);
 
         ptr_ = ptr;
         size_ = size;
@@ -181,9 +180,9 @@ public:
 
 
 
-    T& operator[](size_t i) const {
+    T &operator[](size_t i) const {
         rassert(ptr_);
-        rassert(0 <= i && i < size_);
+        rassert(i < size_);
         return ptr_[i];
     }
 
