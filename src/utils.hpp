@@ -226,10 +226,7 @@ public:
 protected:
     explicit home_thread_mixin_debug_only_t(int specified_home_thread);
     home_thread_mixin_debug_only_t();
-    virtual ~home_thread_mixin_debug_only_t() { }
-
-private:
-    DISABLE_COPYING(home_thread_mixin_debug_only_t);
+    ~home_thread_mixin_debug_only_t() { }
 
 #ifndef NDEBUG
     int real_home_thread;

@@ -21,15 +21,15 @@ const order_token_t order_token_t::ignore;
 
 #ifndef NDEBUG
 
-bool operator==(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator==(const order_bucket_t &a, const order_bucket_t &b) {
     return a.uuid_ == b.uuid_;
 }
 
-bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator!=(const order_bucket_t &a, const order_bucket_t &b) {
     return !(a == b);
 }
 
-bool operator<(const order_bucket_t& a, const order_bucket_t& b) {
+bool operator<(const order_bucket_t &a, const order_bucket_t &b) {
     return a.uuid_ < b.uuid_;
 }
 
@@ -41,7 +41,7 @@ bool order_bucket_t::valid() const {
 
 order_token_t::order_token_t() : bucket_(order_bucket_t::invalid()), value_(ORDER_INVALID) { }
 
-order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag)
+order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string &tag)
     : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(tag) { }
 
 order_token_t order_token_t::with_read_mode() const {
@@ -56,7 +56,7 @@ void order_token_t::assert_write_mode() const {
     rassert(is_ignore() || !read_mode_, "Expected an order token in write mode");
 }
 
-const std::string& order_token_t::tag() const { return tag_; }
+const std::string &order_token_t::tag() const { return tag_; }
 
 bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == ORDER_INVALID; }
 bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORDER_IGNORE; }
@@ -69,7 +69,7 @@ order_source_t::order_source_t(int specified_home_thread)
 
 order_source_t::~order_source_t() { }
 
-order_token_t order_source_t::check_in(const std::string& tag) {
+order_token_t order_source_t::check_in(const std::string &tag) {
     assert_thread();
     ++counter_;
     return order_token_t(bucket_, counter_, false, tag);
@@ -127,8 +127,17 @@ void plain_sink_t::check_out(order_token_t token) {
     }
 }
 
+bool operator==(const tagged_seen_t &x, const tagged_seen_t &y) {
+    return x.value == y.value && x.tag == y.tag;
+}
 
-void order_checkpoint_t::set_tagappend(const std::string& tagappend) {
+bool plain_sink_t::operator==(const plain_sink_t &other) const {
+    return ls_pair_ == other.ls_pair_ && have_bucket_ == other.have_bucket_
+        && bucket_ == other.bucket_;
+}
+
+
+void order_checkpoint_t::set_tagappend(const std::string &tagappend) {
     rassert(tagappend_.empty());
     tagappend_ = "+" + tagappend;
 }
