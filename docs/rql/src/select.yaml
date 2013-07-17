@@ -121,7 +121,7 @@ commands:
 
   - tag: between
     section: select
-    description: Get all documents between two primary keys (both keys are inclusive).
+    description: Get all documents between two keys.  Accepts three optional arguments: `index`, `left_bound`, and `right_bound`.  If `index` is set to the name of a secondary index, `between` will return all documents where that index's value is in the specified range (it uses the primary key by default).  `left_bound` or `right_bound` may be set to `open` or `closed` to indicate whether or not to include that endpoint of the range (by default, `left_bound` is closed and `right_bound` is open).
 
     body:
       py: "$PARENT.between(lower_key, upper_key[, index='id'])"
@@ -133,11 +133,21 @@ commands:
         - selection
 
     examples:
-        - description: Find all users with primary keys between 10 and 20, inclusive.
+        - description: Find all users with primary key >= 10 and < 20 (a normal half-open interval).
           code:
             py: r.table('marvel').between(10, 20).run(conn)
             rb: r.table('marvel').between(10, 20).run(conn)
             js: r.table('marvel').between(10, 20).run(conn, callback)
+        - description: Find all users with primary key >= 10 and <= 20 (an interval closed on both sides).
+          code:
+            py: r.table('marvel').between(10, 20, right_bound='closed').run(conn)
+            rb: r.table('marvel').between(10, 20, :right_bound => 'closed').run(conn)
+            js: r.table('marvel').between(10, 20, {'right_bound':'closed'}).run(conn, callback)
+        - description: Find all users with primary key < 20.  (You can use `NULL` to mean "unbounded" for either endpoint.)
+          code:
+            py: r.table('marvel').between(None, 20, right_bound='closed').run(conn)
+            rb: r.table('marvel').between(nil, 20, :right_bound => 'closed').run(conn)
+            js: r.table('marvel').between(null, 20, {'right_bound':'closed'}).run(conn, callback)
         - description: |
             Between can be used on secondary indexes too. Just pass an optional index
             argument giving the secondary index to query.
