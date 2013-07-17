@@ -133,10 +133,6 @@ module RethinkDB
       elsif ind.class == Range
         return slice(ind.begin, ind.end, :right_bound =>
                      (ind.exclude_end? ? 'open' : 'closed'))
-        if ind.end == 0 && ind.exclude_end?
-          raise ArgumentError, "Cannot slice to an excluded end of 0."
-        end
-        return slice(ind.begin, ind.end - (ind.exclude_end? ? 1 : 0))
       end
       raise ArgumentError, "[] cannot handle #{ind.inspect} of type #{ind.class}."
     end
