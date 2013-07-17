@@ -115,29 +115,34 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, counted_t<datum_t>(), counted_t<datum_t>(),
+                      *ns_access, env->interruptor,
+                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
                       env->get_all_optargs(), use_outdated))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+    counted_t<const datum_t> left_bound, bool left_bound_open,
+    counted_t<const datum_t> right_bound, bool right_bound_open,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, left_bound, right_bound,
+                      *ns_access, env->interruptor,
+                      left_bound, left_bound_open, right_bound, right_bound_open,
                       env->get_all_optargs(), use_outdated))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+    counted_t<const datum_t> left_bound, bool left_bound_open,
+    counted_t<const datum_t> right_bound, bool right_bound_open,
     const std::string &sindex_id,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
-                      env->get_all_optargs(), use_outdated, left_bound, right_bound))
+                      env->get_all_optargs(), use_outdated,
+                      left_bound, left_bound_open, right_bound, right_bound_open))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)

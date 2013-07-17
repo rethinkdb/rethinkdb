@@ -36,6 +36,8 @@ public:
 
     bool contains(const std::string &key) const;
 
+    optargspec_t with(std::initializer_list<const char *> args) const;
+
 private:
     void init(int num_args, const char *const *args);
     explicit optargspec_t(bool _is_make_object_val);
@@ -74,9 +76,10 @@ private:
 
 class bounded_op_term_t : public op_term_t {
 public:
-    bounded_op_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
+    bounded_op_term_t(env_t *env, protob_t<const Term> term,
+                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, term, argspec,
-                    optargspec_t({"left_bound", "right_bound"})),
+                    optargspec.with({"left_bound", "right_bound"})),
           left_open_(false), right_open_(true) {
         left_open_ = open_bool("left_bound", false);
         right_open_ = open_bool("right_bound", true);

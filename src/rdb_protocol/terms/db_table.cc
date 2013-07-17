@@ -460,7 +460,8 @@ private:
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(i)->as_datum();
                 counted_t<datum_stream_t> seq =
-                    table->get_sindex_rows(key, key, index->as_str(), backtrace());
+                    table->get_sindex_rows(key, true, key, true,
+                                           index->as_str(), backtrace());
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream

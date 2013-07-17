@@ -238,9 +238,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -274,9 +274,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
+
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -393,9 +394,9 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::rget_read_t rget(sindex_id,
-                                                 sindex_key_literal,
-                                                 sindex_key_literal);
+                rdb_protocol_t::rget_read_t rget(
+                    sindex_id, rdb_protocol_t::sindex_range_t(
+                        sindex_key_literal, false, sindex_key_literal, false));
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 
