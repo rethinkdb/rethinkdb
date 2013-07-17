@@ -29,6 +29,7 @@ bool evictable_t::in_page_repl() {
 
 void evictable_t::insert_into_page_repl() {
     cache->assert_thread();
+    page_repl_index = cache->page_repl.arr.size();
     cache->page_repl.arr.push_back(this);
 }
 
@@ -37,6 +38,8 @@ void evictable_t::remove_from_page_repl() {
     cache->assert_thread();
 
     rassert(page_repl_index < cache->page_repl.arr.size());
+    evictable_t *replacement = cache->page_repl.arr.back();
+    replacement->page_repl_index = page_repl_index;
     std::swap(cache->page_repl.arr[page_repl_index],
               cache->page_repl.arr.back());
     cache->page_repl.arr.pop_back();
