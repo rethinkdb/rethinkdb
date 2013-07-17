@@ -125,11 +125,6 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
         if (latest_write) {
             copy_full_action_buf(action, latest_write, action->get_offset() - latest_write->get_offset());
 
-            // RSI: Remove commented lines.
-            // memcpy(action->get_buf(),
-            //        reinterpret_cast<const char*>(latest_write->get_buf()) + action->get_offset() - latest_write->get_offset(),
-            //        action->get_count());
-
             action->set_successful_due_to_conflict();
             done_fun(action);
             return;
