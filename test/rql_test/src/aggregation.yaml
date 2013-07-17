@@ -59,6 +59,81 @@ tests:
             {'group':2, 'reduction':1250},
             {'group':3, 'reduction':1275}])
 
+    # GMR
+    - rb: tbl.union(tbl).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+      py:
+        - tbl.union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+      js:
+        - |
+          tbl.union(tbl).groupedMapReduce(function(row) {
+              return row('a');
+          }, function(row) {
+              return row('id');
+          }, function(a,b) {
+              return a.add(b);
+          })
+        - |
+          tbl.union(tbl).groupedMapReduce(r.row('a'), r.row('id'),
+          function(a,b) {
+              return a.add(b);
+          })
+      ot: |
+          ([{'group':0, 'reduction':2400},
+            {'group':1, 'reduction':2450},
+            {'group':2, 'reduction':2500},
+            {'group':3, 'reduction':2550}])
+
+    # GMR
+    - rb: tbl.coerce_to("array").union(tbl).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+      py:
+        - tbl.coerce_to("array").union(tbl).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.coerce_to("array").union(tbl).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+      js:
+        - |
+          tbl.coerce_to("array").union(tbl).groupedMapReduce(function(row) {
+              return row('a');
+          }, function(row) {
+              return row('id');
+          }, function(a,b) {
+              return a.add(b);
+          })
+        - |
+          tbl.coerce_to("array").union(tbl).groupedMapReduce(r.row('a'), r.row('id'),
+          function(a,b) {
+              return a.add(b);
+          })
+      ot: |
+          ([{'group':0, 'reduction':2400},
+            {'group':1, 'reduction':2450},
+            {'group':2, 'reduction':2500},
+            {'group':3, 'reduction':2550}])
+
+    # GMR
+    - rb: tbl.union(tbl.coerce_to("array")).grouped_map_reduce(lambda { |row| row[:a] }, lambda { |row| row[:id] }, lambda { |a, b| a + b})
+      py:
+        - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.union(tbl.coerce_to("array")).grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
+      js:
+        - |
+          tbl.union(tbl.coerce_to("array")).groupedMapReduce(function(row) {
+              return row('a');
+          }, function(row) {
+              return row('id');
+          }, function(a,b) {
+              return a.add(b);
+          })
+        - |
+          tbl.union(tbl.coerce_to("array")).groupedMapReduce(r.row('a'), r.row('id'),
+          function(a,b) {
+              return a.add(b);
+          })
+      ot: |
+          ([{'group':0, 'reduction':2400},
+            {'group':1, 'reduction':2450},
+            {'group':2, 'reduction':2500},
+            {'group':3, 'reduction':2550}])
+
     # gmr optional base
     - py:
         - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b, base=0)
