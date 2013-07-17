@@ -48,7 +48,9 @@ union flagged_off64_t {
     }
 };
 
-
+inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
+    return x.the_value_ == y.the_value_;
+}
 
 struct lba_shard_metablock_t {
     /* Reference to the last lba extent (that's currently being

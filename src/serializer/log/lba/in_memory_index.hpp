@@ -9,18 +9,35 @@
 #include "serializer/log/lba/disk_format.hpp"
 
 struct index_block_info_t {
+    index_block_info_t()
+        : offset(flagged_off64_t::unused()),
+          recency(repli_timestamp_t::invalid),
+          ser_block_size(0) { }
+
+    index_block_info_t(flagged_off64_t _offset,
+                       repli_timestamp_t _recency,
+                       uint32_t _ser_block_size)
+        : offset(_offset),
+          recency(_recency),
+          ser_block_size(_ser_block_size) { }
+
+
+
+    bool operator==(const index_block_info_t &other) const {
+        return offset == other.offset && recency == other.recency
+            && ser_block_size == other.ser_block_size;
+    }
+
     flagged_off64_t offset;
     repli_timestamp_t recency;
     uint32_t ser_block_size;
-};
+} __attribute__((__packed__));
 
 class in_memory_index_t
 {
     // blocks.get_size() == timestamps.get_size().  We use parallel
     // arrays to avoid wasting memory from alignment.
-    segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
-    segmented_vector_t<repli_timestamp_t, MAX_BLOCK_ID> timestamps;
-    segmented_vector_t<uint32_t, MAX_BLOCK_ID> ser_block_sizes;
+    segmented_vector_t<index_block_info_t, MAX_BLOCK_ID> infos;
 
 public:
     in_memory_index_t();
@@ -32,9 +49,6 @@ public:
     void set_block_info(block_id_t id, repli_timestamp_t recency,
                         flagged_off64_t offset, uint32_t ser_block_size);
 
-#ifndef NDEBUG
-    void print();
-#endif
 };
 
 #endif  // SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
