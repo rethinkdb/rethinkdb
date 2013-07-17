@@ -8,10 +8,11 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 
+#include "arch/io/disk/accounting.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 #include "config/args.hpp"
 #include "containers/bitset.hpp"
 #include "perfmon/perfmon.hpp"
-#include "arch/runtime/runtime_utils.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
 where we have been sent a number of different reads or writes for overlapping
@@ -52,32 +53,29 @@ functions:
 You should make a separate conflict_resolving_diskmgr_t for each file. */
 
 
-template <class payload_t>
-struct conflict_resolving_diskmgr_action_t : public payload_t {
+struct conflict_resolving_diskmgr_action_t : public accounting_diskmgr_action_t {
     int conflict_count;
 };
 
-template <class payload_t>
 void debug_print(printf_buffer_t *buf,
-                 const conflict_resolving_diskmgr_action_t<payload_t> &action);
+                 const conflict_resolving_diskmgr_action_t &action);
 
-template <class payload_t>
 struct conflict_resolving_diskmgr_t {
     explicit conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
     ~conflict_resolving_diskmgr_t();
 
-    typedef conflict_resolving_diskmgr_action_t<payload_t> action_t;
+    typedef conflict_resolving_diskmgr_action_t action_t;
 
     /* Call submit() to send an action to the conflict_resolving_diskmgr_t.
     conflict_resolving_diskmgr_t calls done_fun() when the operation is done. */
     void submit(action_t *action);
-    boost::function<void(action_t*)> done_fun;
+    boost::function<void(action_t *)> done_fun;
 
     /* conflict_resolving_diskmgr_t calls submit_fun() to send actions down to the next
     level. The next level should call done() when the operation passed to submit_fun()
     is done. */
-    boost::function<void(payload_t*)> submit_fun;
-    void done(payload_t *payload);
+    boost::function<void(accounting_diskmgr_action_t *)> submit_fun;
+    void done(accounting_diskmgr_action_t *payload);
 
 private:
 
@@ -87,7 +85,7 @@ private:
     /* For efficiency reasons, we think in terms of DEVICE_BLOCK_SIZE-sized chunks
     of the file. We assume that if two operations touch the same chunk, then they
     are potentially conflicting. */
-    void get_range(const action_t *a, int *begin, int *end) {
+    void get_range(const action_t *a, int64_t *begin, int64_t *end) {
         *begin = a->get_offset() / DEVICE_BLOCK_SIZE;
         *end = ceil_aligned(a->get_offset() + a->get_count(), DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
     }
@@ -101,12 +99,10 @@ private:
     for B.  It could be a multimap instead, but that would mean depending on
     properties of multimaps that are not guaranteed by the C++ standard. */
 
-    std::map<fd_t, std::map<int, std::deque<action_t *> > > all_chunk_queues;
+    std::map<fd_t, std::map<int64_t, std::deque<action_t *> > > all_chunk_queues;
 
     perfmon_sampler_t conflict_sampler;
     perfmon_membership_t conflict_sampler_membership;
 };
-
-#include "arch/io/disk/conflict_resolving.tcc"
 
 #endif /* ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_ */

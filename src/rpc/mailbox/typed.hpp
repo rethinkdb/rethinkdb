@@ -13,11 +13,11 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
-/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` 
-constructor, it will spawn the callback in a new coroutine. If you 
-`mailbox_callback_mode_inline`, it will call the callback inline 
-and the callback must not block. The former is the default for 
-historical reasons, but the latter is better. Eventually the former 
+/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t`
+constructor, it will spawn the callback in a new coroutine. If you
+`mailbox_callback_mode_inline`, it will call the callback inline
+and the callback must not block. The former is the default for
+historical reasons, but the latter is better. Eventually the former
 will go away. */
 enum mailbox_callback_mode_t {
     mailbox_callback_mode_coroutine,

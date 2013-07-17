@@ -544,7 +544,7 @@ std::string http_format_date(const time_t date) {
     struct tm t;
     struct tm *res1 = gmtime_r(&date, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
-    
+
     static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };

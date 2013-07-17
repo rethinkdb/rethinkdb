@@ -31,11 +31,8 @@ using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
    conflicts, and actually sending them to the disk. */
 class linux_disk_manager_t : public home_thread_mixin_t {
-    typedef conflict_resolving_diskmgr_t<accounting_diskmgr_t::action_t> conflict_resolver_t;
-    typedef stats_diskmgr_t<conflict_resolver_t::action_t> stack_stats_t;
-
 public:
-    struct action_t : public stack_stats_t::action_t {
+    struct action_t : public stats_diskmgr_t::action_t {
         int cb_thread;
         linux_iocallback_t *cb;
     };
@@ -55,7 +52,7 @@ public:
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
-        stack_stats.submit_fun = std::bind(&conflict_resolver_t::submit,
+        stack_stats.submit_fun = std::bind(&conflict_resolving_diskmgr_t::submit,
                                            &conflict_resolver, _1);
         conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
                                                  &accounter, _1);
@@ -63,9 +60,9 @@ public:
         /* Hook up everything's `done_fun`. */
         backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
         backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
-        accounter.done_fun = std::bind(&conflict_resolver_t::done,
+        accounter.done_fun = std::bind(&conflict_resolving_diskmgr_t::done,
                                        &conflict_resolver, _1);
-        conflict_resolver.done_fun = std::bind(&stack_stats_t::done, &stack_stats, _1);
+        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, _1);
         stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
     }
 
@@ -122,7 +119,7 @@ public:
                                a));
     };
 
-    void done(stack_stats_t::action_t *a) {
+    void done(stats_diskmgr_t::action_t *a) {
         assert_thread();
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
@@ -156,8 +153,8 @@ private:
     it counts operations that have been queued by the backend but not sent to the OS yet
     as having been sent to the OS. */
 
-    stack_stats_t stack_stats;
-    conflict_resolver_t conflict_resolver;
+    stats_diskmgr_t stack_stats;
+    conflict_resolving_diskmgr_t conflict_resolver;
     accounting_diskmgr_t accounter;
     stats_diskmgr_2_t backend_stats;
     pool_diskmgr_t backend;

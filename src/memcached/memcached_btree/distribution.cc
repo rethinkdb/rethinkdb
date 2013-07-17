@@ -2,7 +2,7 @@
 #include "memcached/memcached_btree/distribution.hpp"
 #include "btree/get_distribution.hpp"
 
-distribution_result_t memcached_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key, 
+distribution_result_t memcached_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
         exptime_t, transaction_t *txn, superblock_t *superblock) {
     int64_t key_count_out;
     std::vector<store_key_t> key_splits;
