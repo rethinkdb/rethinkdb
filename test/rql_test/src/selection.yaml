@@ -139,13 +139,33 @@ tests:
       ot: ({'foo':10,'a':10})
 
     # Between
-    - cd: tbl.between(20,29).count()
-      ot: 10
-    - cd: tbl.between(-10,9).count()
-      ot: 10
-    - cd: tbl.between(80,2000).count()
+    - cd: tbl.between(20, 29).count()
+      ot: 9
+    - cd: tbl.between(-10, 9).count()
+      ot: 9
+    - cd: tbl.between(80, 2000).count()
       ot: 20
     - cd: tbl.between(-2000, 2000).count()
+      ot: 100
+
+    # Between
+    - cd: tbl.between(20, 29, :right_bound => 'closed').count()
+      ot: 10
+    - cd: tbl.between(-10, 9, :right_bound => 'closed').count()
+      ot: 10
+    - cd: tbl.between(80, 2000, :right_bound => 'closed').count()
+      ot: 20
+    - cd: tbl.between(-2000, 2000, :right_bound => 'closed').count()
+      ot: 100
+
+    # Between
+    - cd: tbl.between(20, 29, :left_bound => 'open').count()
+      ot: 8
+    - cd: tbl.between(-10, 9, :left_bound => 'open').count()
+      ot: 9
+    - cd: tbl.between(80, 2000, :left_bound => 'open').count()
+      ot: 19
+    - cd: tbl.between(-2000, 2000, :left_bound => 'open').count()
       ot: 100
 
     # Between shouldn't work on arrays
@@ -154,7 +174,11 @@ tests:
 
     # test between on open intervals
     - cd: tbl.between(null, 2).count()
+      ot: 2
+    - cd: tbl.between(null, 2, :right_bound => 'closed').count()
       ot: 3
+    - cd: tbl.between(null, 2, :left_bound => 'open').count()
+      ot: 2
 
     - cd: tbl.between(2, null).count()
       ot: 98
