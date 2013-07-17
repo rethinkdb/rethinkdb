@@ -3,7 +3,7 @@
 #define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
 
-#include "containers/segmented_vector.hpp"
+#include "containers/infinite_array.hpp"
 #include "config/args.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -33,16 +33,15 @@ struct index_block_info_t {
     uint32_t ser_block_size;
 } __attribute__((__packed__));
 
-class in_memory_index_t
-{
-    // blocks.get_size() == timestamps.get_size().  We use parallel
-    // arrays to avoid wasting memory from alignment.
-    segmented_vector_t<index_block_info_t, MAX_BLOCK_ID> infos;
+class in_memory_index_t {
+    infinite_array_t<index_block_info_t> infos_;
+    block_id_t end_block_id_;
 
 public:
     in_memory_index_t();
 
     // end_block_id is one greater than the max block id.
+    // RSI: Does anybody use end_block_id?
     block_id_t end_block_id();
 
     index_block_info_t get_block_info(block_id_t id);
