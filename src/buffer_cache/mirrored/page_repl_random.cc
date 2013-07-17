@@ -29,22 +29,17 @@ bool evictable_t::in_page_repl() {
 
 void evictable_t::insert_into_page_repl() {
     cache->assert_thread();
-    page_repl_index = cache->page_repl.array.size();
-    cache->page_repl.array.set(page_repl_index, this);
+    cache->page_repl.arr.push_back(this);
 }
 
+// RSI: Make page_repl_index be a size_t, not an unsigned int.
 void evictable_t::remove_from_page_repl() {
     cache->assert_thread();
-    unsigned int last_index = cache->page_repl.array.size() - 1;
 
-    if (page_repl_index == last_index) {
-        cache->page_repl.array.set(page_repl_index, NULL);
-    } else {
-        evictable_t *replacement = cache->page_repl.array.get(last_index);
-        replacement->page_repl_index = page_repl_index;
-        cache->page_repl.array.set(page_repl_index, replacement);
-        cache->page_repl.array.set(last_index, NULL);
-    }
+    rassert(page_repl_index < cache->page_repl.arr.size());
+    std::swap(cache->page_repl.arr[page_repl_index],
+              cache->page_repl.arr.back());
+    cache->page_repl.arr.pop_back();
     page_repl_index = static_cast<unsigned int>(-1);
 }
 
@@ -55,7 +50,7 @@ page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *
 
 bool page_repl_random_t::is_full(unsigned int space_needed) {
     cache->assert_thread();
-    return array.size() + space_needed > unload_threshold;
+    return arr.size() + space_needed > unload_threshold;
 }
 
 //perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
@@ -73,7 +68,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         target = unload_threshold - space_needed;
     }
 
-    while (array.size() > target) {
+    while (arr.size() > target) {
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
         // dirty or in use.
         evictable_t *block_to_unload = NULL;
@@ -81,8 +76,8 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             /* Choose a block in memory at random. */
             // NOTE: this method of random selection is slightly biased towards lower indices, I
             // think. @rntz
-            unsigned int n = random() % array.size();
-            evictable_t *block = array.get(n);
+            unsigned int n = random() % arr.size();
+            evictable_t *block = arr[n];
 
             // TODO we don't have code that sets buf_snapshot_t eviction priorities.
 
@@ -104,9 +99,9 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             // Commenting it out for 1.2. TODO: we might want to address it later in a different
             // way (i.e. spawn_maybe?)
             /*
-            if (array.size() > target + (target / 100) + 10)
+            if (arr.size() > target + (target / 100) + 10)
                 logWRN("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.",
-                       cache, array.size(), cache->writeback.num_dirty_blocks(), target);
+                       cache, arr.size(), cache->writeback.num_dirty_blocks(), target);
             */
             break;
         }
@@ -121,6 +116,5 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
 
 evictable_t *page_repl_random_t::get_first_buf() {
     cache->assert_thread();
-    if (array.size() == 0) return NULL;
-    return array.get(0);
+    return arr.empty() ? NULL : arr[0];
 }

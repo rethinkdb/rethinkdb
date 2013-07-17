@@ -2,9 +2,10 @@
 #ifndef BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 #define BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 
+#include <vector>
+
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
-#include "containers/two_level_array.hpp"
 
 /* The random page replacement algorithm needs to be able to quickly choose a random
 buf among all the bufs in memory. This is accomplished using a dense array of
@@ -72,7 +73,7 @@ public:
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY, (1 << 12)> array;
+    std::vector<evictable_t *> arr;
 };
 
 #endif  // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
