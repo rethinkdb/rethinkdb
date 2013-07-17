@@ -10,6 +10,10 @@ tests:
       ot: ({'created':1})
       def: tbl2 = r.db('test').table('test2')
 
+    - cd: r.db('test').table_create('test3')
+      ot: ({'created':1})
+      def: tbl3 = r.db('test').table('test3')
+
     - py: tbl.insert([{'id':i, 'a':i%4} for i in xrange(100)])
       js: |
         tbl.insert(function(){
@@ -32,6 +36,18 @@ tests:
             return res;
         }())
       rb: tbl2.insert((0..99).map{ |i| { :id => i, :b => i % 4 } })
+      ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
+
+    - py: tbl3.insert([{'id':i, 'a':i%4, 'b':{'c':i%5}} for i in xrange(100)])
+      js: |
+        tbl3.insert(function(){
+            var res = []
+            for (var i = 0; i < 100; i++) {
+                res.push({id:i, 'a':i%4, 'b':{'c':i%5}});
+            }
+            return res;
+        }())
+      rb: tbl3.insert((0..99).map{ |i| { :id => i, :a => i % 4, :b => { :c => i % 5 } } })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
 
     # GMR
@@ -174,26 +190,35 @@ tests:
 
     - cd: tbl.group_by('a', r.count)
       ot: |
-          ([{'group':[0], 'reduction':25},
-            {'group':[1], 'reduction':25},
-            {'group':[2], 'reduction':25},
-            {'group':[3], 'reduction':25}])
+          ([{'group':{'a':0}, 'reduction':25},
+            {'group':{'a':1}, 'reduction':25},
+            {'group':{'a':2}, 'reduction':25},
+            {'group':{'a':3}, 'reduction':25}])
 
     # SUM
     - cd: tbl.group_by('a', r.sum('id'))
       ot: |
-          ([{'group':[0], 'reduction':1200},
-            {'group':[1], 'reduction':1225},
-            {'group':[2], 'reduction':1250},
-            {'group':[3], 'reduction':1275}])
+          ([{'group':{'a':0}, 'reduction':1200},
+            {'group':{'a':1}, 'reduction':1225},
+            {'group':{'a':2}, 'reduction':1250},
+            {'group':{'a':3}, 'reduction':1275}])
 
     # AVG
     - cd: tbl.group_by('a', r.avg('id'))
       ot: |
-          ([{'group':[0], 'reduction':48},
-            {'group':[1], 'reduction':49},
-            {'group':[2], 'reduction':50},
-            {'group':[3], 'reduction':51}])
+          ([{'group':{'a':0}, 'reduction':48},
+            {'group':{'a':1}, 'reduction':49},
+            {'group':{'a':2}, 'reduction':50},
+            {'group':{'a':3}, 'reduction':51}])
+
+    # Pattern Matching
+    - cd: tbl3.group_by({'b':'c'}, r.count)
+      ot: |
+          ([{'group':{'b':{'c':0}}, 'reduction':20},
+            {'group':{'b':{'c':1}}, 'reduction':20},
+            {'group':{'b':{'c':2}}, 'reduction':20},
+            {'group':{'b':{'c':3}}, 'reduction':20},
+            {'group':{'b':{'c':4}}, 'reduction':20}])
 
     # Multiple keys
     - cd: tbl.group_by('a','id', r.count).count()
@@ -213,4 +238,6 @@ tests:
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})
     - cd: r.db('test').table_drop('test2')
+      ot: ({'dropped':1})
+    - cd: r.db('test').table_drop('test3')
       ot: ({'dropped':1})

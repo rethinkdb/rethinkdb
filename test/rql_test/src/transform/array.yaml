@@ -5,6 +5,7 @@ tests:
     - def: arr = r.expr([1, 2, 3])
     - def: dupe_arr = r.expr([1, 1, 2, 3])
     - def: objArr = r.expr([{'a':1, 'b':'a'}, {'a':2, 'b':'b'}, {'a':3, 'b':'c'}])
+    - def: nestedObjArr = r.expr([{'a':1, 'b':{'c':1}}, {'a':2, 'b':{'c':2}}, {'a':3, 'b':{'c':3}}])
 
     ## Append
 
@@ -114,8 +115,12 @@ tests:
     - cd: wftst.with_fields()
       ot: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
 
+    - def: wftst2 = nestedObjArr.union(objArr.pluck({'b':'missing'})).union(nestedObjArr.pluck({'b':'c'}))
+    - cd: wftst2.with_fields({'b':'c'})
+      ot: ([{'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}, {'b':{'c':1}}, {'b':{'c':2}}, {'b':{'c':3}}])
+
     - cd: wftst.with_fields(1)
-      ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
+      ot: err("RqlRuntimeError", "Invalid path argument of `1` to has_fields.", [])
     - cd: r.expr(1).with_fields()
       ot: err("RqlRuntimeError", "Cannot perform has_fields on a non-object non-sequence `1`.", [])
 

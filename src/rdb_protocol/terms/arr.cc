@@ -103,8 +103,8 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-      bool emptyp = ! arg(0)->as_seq()->next().has();
-      return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, emptyp));
+      bool is_empty = !arg(0)->as_seq()->next().has();
+      return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
 };

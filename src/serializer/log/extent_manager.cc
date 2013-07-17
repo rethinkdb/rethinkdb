@@ -67,7 +67,7 @@ public:
     }
 
 public:
-    extent_zone_t(size_t _extent_size)
+    explicit extent_zone_t(size_t _extent_size)
         : extent_size(_extent_size), held_extents_(0) { }
 
     extent_reference_t reserve_extent(int64_t extent) {

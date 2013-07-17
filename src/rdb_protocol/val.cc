@@ -593,6 +593,8 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     switch(shortcut) {
     case IDENTITY_SHORTCUT:
         return func_t::new_identity_func(env, as_datum(), backtrace());
+    case PLUCK_SHORTCUT:
+        return func_t::new_pluck_func(env, as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

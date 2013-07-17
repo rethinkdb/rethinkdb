@@ -281,6 +281,17 @@ counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t>
     return make_counted<func_t>(env, twrap);
 }
 
+counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+                                 const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    int var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))), 
+       N2(PLUCK, NVAR(var), NDATUM(obj)));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
 counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();

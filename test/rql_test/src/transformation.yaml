@@ -259,6 +259,15 @@ tests:
     - cd: tbl.without('a', 'missing').order_by('id').nth(0)
       ot: ({'id':0})
 
+    - cd: tbl3.without('a', {'b':'c'}).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{}})
+
+    - cd: tbl3.without(['a', {'b':'c'}]).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{}})
+
+    - cd: tbl3.without(['a', {'b':'d'}]).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{'c':0}})
+
     # Coerce a table to an array
     - cd: tbl.limit(5).type_of()
       ot: '"SELECTION"'
