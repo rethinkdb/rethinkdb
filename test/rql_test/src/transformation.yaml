@@ -60,6 +60,36 @@ tests:
       rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 4950
 
+    # Map-Reduce
+    - py:
+        - tbl.union(tbl).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.union(tbl).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.union(tbl).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.union(tbl).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.union(tbl).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
+    # Map-Reduce
+    - py:
+        - tbl.coerce_to("array").union(tbl).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.coerce_to("array").union(tbl).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.coerce_to("array").union(tbl).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.coerce_to("array").union(tbl).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.coerce_to("array").union(tbl).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
+    # Map-Reduce
+    - py:
+        - tbl.union(tbl.coerce_to("array")).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.union(tbl.coerce_to("array")).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.union(tbl.coerce_to("array")).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.union(tbl.coerce_to("array")).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.union(tbl.coerce_to("array")).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
     # Concat-map
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })
