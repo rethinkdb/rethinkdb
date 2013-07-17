@@ -85,9 +85,6 @@ struct pool_diskmgr_action_t
         return -io_result;
     }
 
-    // RSI: Does anybody actually use backtrace?
-    std::string backtrace;
-
 private:
     friend class pool_diskmgr_t;
     pool_diskmgr_t *parent;
