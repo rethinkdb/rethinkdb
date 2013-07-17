@@ -1,4 +1,4 @@
-var r = require('./../../../drivers/javascript/build/rethinkdb.js');
+var r = require('rethinkdb');
 
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
