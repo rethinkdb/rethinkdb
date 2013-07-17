@@ -76,7 +76,8 @@ private:
             case GET_FIELD_SHORTCUT: //fallthru
                 break;
             default:
-                unreachable();
+                rfail(base_exc_t::GENERIC,
+                      "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
         counted_t<func_t> f = arg(0)->as_func(shortcut);
         std::vector<counted_t<const datum_t> > args;
