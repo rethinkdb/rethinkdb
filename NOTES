@@ -15,7 +15,7 @@ Bug fix update.
 * Fixed `make install` to not use `/dev/stdin` (#1125)
 * Added missing files to the OS X uninstall script (#1123)
 * Fixed the documentation for insert with the returnVals flag in JavaScript (#1122)
-* No longer cache `index.html` (#1117)
+* No longer cache `index.html` in the web UI (#1117)
 * The init script now waits for rethinkdb to stop before restarting (#1115)
 * `rethinkdb` porcelain now removes the new directory if it fails (#1070)
 * Added cooperative locking to the rethinkdb data directory to detect conflicts earlier (#1109)
