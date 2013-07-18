@@ -17,7 +17,7 @@
 
 namespace ql {
 
-class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
+class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
 public:
     func_t(env_t *env, js::id_t id, counted_t<term_t> parent);
     func_t(env_t *env, protob_t<const Term> _source);

@@ -39,7 +39,7 @@ enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
 // TODO: When we optimize for memory, this needs to stop inheriting from `rcheckable_t`
-class datum_t : public slow_atomic_countable_t<datum_t>, public rcheckable_t {
+class datum_t : public single_threaded_countable_t<datum_t>, public rcheckable_t {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.

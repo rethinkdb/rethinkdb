@@ -19,7 +19,7 @@ class term_t;
 class stream_cache2_t;
 template <class> class protob_t;
 
-class db_t : public slow_atomic_countable_t<db_t> {
+class db_t : public single_threaded_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
     const uuid_u id;
@@ -122,7 +122,7 @@ enum function_shortcut_t {
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public slow_atomic_countable_t<val_t>, public pb_rcheckable_t {
+class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
