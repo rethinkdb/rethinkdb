@@ -137,9 +137,12 @@ private:
             r_sanity_check(sorting != UNORDERED);
             seq = tbl->get_sorted(index->as_str(), sorting, backtrace());
         }
-        counted_t<datum_stream_t> s
-            = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
-        return tbl.has() ? new_val(s, tbl) : new_val(s);
+
+        if (!comparisons.empty()) {
+            counted_t<datum_stream_t> seq
+                = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+        }
+        return tbl.has() ? new_val(seq, tbl) : new_val(seq);
     }
 
     virtual const char *name() const { return "orderby"; }
