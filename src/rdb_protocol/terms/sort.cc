@@ -139,9 +139,9 @@ private:
         }
 
         if (!comparisons.empty()) {
-            counted_t<datum_stream_t> seq
-                = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
         }
+
         return tbl.has() ? new_val(seq, tbl) : new_val(seq);
     }
 
