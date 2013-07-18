@@ -17,7 +17,7 @@ install: build
 	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install
 
 build:
-	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1
+	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1 SYMBOLS=1
 	touch build
 
 binary-indep: install

@@ -3,7 +3,7 @@
 # Launch a RethinkDB backup script using Python 2
 
 for python in python python2 python27 python2.7 python26 python2.6; do
-    ver="`$python -c 'import sys; print(sys.version_info.major)' 2>&1`"
+    ver="`$python -c 'import sys; print(sys.version_info[0])' 2>&1`"
     if test "$ver" = 2 ; then
         exec $python "$0.py" "$@"
     fi

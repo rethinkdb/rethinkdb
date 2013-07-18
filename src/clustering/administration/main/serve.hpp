@@ -32,7 +32,7 @@ private:
 };
 
 inline void sanitize_port(int port, const char *name, int port_offset) {
-    if (port > MAX_PORT) {
+    if (port >= MAX_PORT) {
         throw invalid_port_exc_t(name, port, port_offset);
     }
 }
