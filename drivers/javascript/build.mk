@@ -19,7 +19,7 @@ $(PB_BIN_FILE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$(PROTOC) -I $(PROTO_FILE_DIR) -o $(JS_BUILD_DIR)/ql2.desc $(PROTO_FILE)
 
 # Must be synced with the list in package.json
-JS_PKG_FILES := $(DRIVER_COFFEE_BUILD_DIR)/rethinkdb.js $(JS_SRC_DIR)/README.md $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
+JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
 $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/. $(COFFEE)
