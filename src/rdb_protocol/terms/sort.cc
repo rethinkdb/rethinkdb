@@ -121,6 +121,22 @@ private:
         } else {
             seq = v0->as_seq();
         }
+        if (counted_t<val_t> index = optarg("index")) {
+            rcheck(tbl.has(), base_exc_t::GENERIC,
+                   "Indexed order_by can only be performed on a TABLE.");
+            sorting_t sorting = UNORDERED;
+            for (int i = 0; i < get_src()->optargs_size(); ++i) {
+                if (get_src()->optargs(i).key() == "index") {
+                    if (get_src()->optargs(i).val().type() == Term::DESC) {
+                        sorting = DESCENDING;
+                    } else {
+                        sorting = ASCENDING;
+                    }
+                }
+            }
+            r_sanity_check(sorting != UNORDERED);
+            seq = tbl->get_sorted(index->as_str(), sorting, backtrace());
+        }
         counted_t<datum_stream_t> s
             = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
         return tbl.has() ? new_val(s, tbl) : new_val(s);
