@@ -185,6 +185,38 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
 wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope)
     : source(make_counted_term_copy(_source)), scope(_scope) { }
 
+wire_func_t::~wire_func_t() {
+    assert_thread();
+}
+
+wire_func_t::wire_func_t(const wire_func_t &wf)
+    : home_thread_mixin_t(),
+      source(wf.source),
+      default_filter_val(wf.default_filter_val),
+      scope(wf.scope) { }
+
+wire_func_t::wire_func_t(const wire_func_t &&wf)
+    : home_thread_mixin_t(),
+      source(std::move(wf.source)),
+      default_filter_val(std::move(wf.default_filter_val)),
+      scope(std::move(wf.scope)) { }
+
+wire_func_t &wire_func_t::operator=(const wire_func_t &wf) {
+    cached_funcs = std::map<uuid_u, counted_t<func_t> >();
+    source = wf.source;
+    default_filter_val = wf.default_filter_val;
+    scope = wf.scope;
+    return *this;
+}
+
+wire_func_t &wire_func_t::operator=(const wire_func_t &&wf) {
+    cached_funcs = std::map<uuid_u, counted_t<func_t> >();
+    source = std::move(wf.source);
+    default_filter_val = std::move(wf.default_filter_val);
+    scope = std::move(wf.scope);
+    return *this;
+}
+
 counted_t<func_t> wire_func_t::compile(env_t *env) {
     debugf("%d: COMP <%d,%p> <%d,%p>\n",
            get_thread_id(), -1, this,

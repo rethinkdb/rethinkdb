@@ -90,11 +90,17 @@ private:
 };
 
 // Used to serialize a function (or gmr) over the wire.
-class wire_func_t {
+class wire_func_t : home_thread_mixin_t {
 public:
     wire_func_t();
     wire_func_t(env_t *env, counted_t<func_t> _func);
     wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope);
+
+    ~wire_func_t();
+    wire_func_t(const wire_func_t &wf);
+    wire_func_t(const wire_func_t &&wf);
+    wire_func_t &operator=(const wire_func_t &wf);
+    wire_func_t &operator=(const wire_func_t &&wf);
 
     counted_t<func_t> compile(env_t *env);
 
