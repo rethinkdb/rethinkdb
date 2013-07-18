@@ -24,7 +24,6 @@ class datum_t;
 class term_t;
 
 class env_t : private home_thread_mixin_t {
-    friend class wire_func_t; // DEBUG
 public:
     const uuid_u uuid;
 

@@ -174,9 +174,6 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
         default_filter_val = *func->default_filter_val->source.get();
     }
     if (env) {
-        debugf("%d: INIT <%d,%p> <%d,%p>\n",
-               get_thread_id(), -1, this,
-               env->real_home_thread, env);
         cached_funcs[env->uuid] = func;
     }
 
@@ -218,9 +215,6 @@ wire_func_t &wire_func_t::operator=(const wire_func_t &&wf) {
 }
 
 counted_t<func_t> wire_func_t::compile(env_t *env) {
-    debugf("%d: COMP <%d,%p> <%d,%p>\n",
-           get_thread_id(), -1, this,
-           env->real_home_thread, env);
     if (cached_funcs.count(env->uuid) == 0) {
         env->push_scope(&scope);
         cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
