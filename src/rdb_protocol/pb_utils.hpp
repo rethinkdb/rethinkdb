@@ -126,6 +126,21 @@ void run(A a, B b, U arg) { run(datum_t(a, b), arg); }
         arg = PB_ap2->mutable_val();                    \
         ARG2;                                           \
     } while (0);
+#define OPT3(PB, STR1, ARG1, STR2, ARG2, STR3, ARG3) do {           \
+        arg->set_type(Term_TermType_##PB);             \
+        Term_AssocPair *PB_ap1 = arg->add_optargs();   \
+        PB_ap1->set_key(STR1);                          \
+        Term_AssocPair *PB_ap2 = arg->add_optargs();   \
+        PB_ap2->set_key(STR2);                          \
+        Term_AssocPair *PB_ap3 = arg->add_optargs();   \
+        PB_ap3->set_key(STR3);                          \
+        arg = PB_ap1->mutable_val();                    \
+        ARG1;                                           \
+        arg = PB_ap2->mutable_val();                    \
+        ARG2;                                           \
+        arg = PB_ap3->mutable_val();                    \
+        ARG3;                                           \
+    } while (0);
 
 // Used to empty portions of protobufs when we're modifying them in-place.
 template<class T>

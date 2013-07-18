@@ -261,7 +261,8 @@ private:
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
            N2(MAP,
               optarg_inheritor = arg;
-              N2(GET_ALL, *arg = *right, N2(GET_FIELD, NVAR(row), *arg = *left_attr)),
+              N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
+                  OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
 
               arg = pb::set_func(arg, v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));

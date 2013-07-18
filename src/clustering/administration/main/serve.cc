@@ -153,6 +153,7 @@ bool do_serve(
         try {
             connectivity_cluster_run.create(&connectivity_cluster,
                                             address_ports.local_addresses,
+                                            address_ports.canonical_addresses,
                                             address_ports.port,
                                             &message_multiplexer_run,
                                             address_ports.client_port,

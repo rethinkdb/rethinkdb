@@ -11,8 +11,6 @@
 
 namespace extproc { class spawner_info_t; }
 
-#define MAX_PORT 65536
-
 class invalid_port_exc_t : public std::exception {
 public:
     invalid_port_exc_t(const std::string& name, int port, int port_offset) {
@@ -34,7 +32,7 @@ private:
 };
 
 inline void sanitize_port(int port, const char *name, int port_offset) {
-    if (port >= MAX_PORT) {
+    if (port > MAX_PORT) {
         throw invalid_port_exc_t(name, port, port_offset);
     }
 }
@@ -48,6 +46,7 @@ struct service_address_ports_t {
         port_offset(0) { }
 
     service_address_ports_t(const std::set<ip_address_t> &_local_addresses,
+                            const peer_address_t &_canonical_addresses,
                             int _port,
                             int _client_port,
                             bool _http_admin_is_disabled,
@@ -55,6 +54,7 @@ struct service_address_ports_t {
                             int _reql_port,
                             int _port_offset) :
         local_addresses(_local_addresses),
+        canonical_addresses(_canonical_addresses),
         port(_port),
         client_port(_client_port),
         http_admin_is_disabled(_http_admin_is_disabled),
@@ -73,6 +73,7 @@ struct service_address_ports_t {
     bool is_bind_all() const;
 
     std::set<ip_address_t> local_addresses;
+    peer_address_t canonical_addresses;
     int port;
     int client_port;
     bool http_admin_is_disabled;

@@ -60,6 +60,7 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
+    datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
 
     // These construct a datum from an equivalent representation.
     datum_t();

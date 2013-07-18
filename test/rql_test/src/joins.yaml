@@ -81,15 +81,25 @@ tests:
       cd: ej.count()
       ot: 100
 
+    - py: "tbl.eq_join(lambda x: x['a'], tbl2).count()"
+      rb: tbl.eq_join(lambda {|x| x[:a]}, tbl2).count()
+      js: tbl.eq_join(function(x) { return x('a'); }, tbl2).count()
+      ot: 100
+
     # eqjoin where id isn't a primary key
     - def: ej = tbl.eq_join('a', tbl3).zip()
       cd: ej.count()
       ot: 100
-    
+
+    - py: "tbl.eq_join(lambda x: x['a'], tbl3).count()"
+      rb: tbl.eq_join(lambda {|x| x[:a]}, tbl3).count()
+      js: tbl.eq_join(function(x) { return x('a'); }, tbl3).count()
+      ot: 100
+
     # test an inner-join condition where inner-join differs from outer-join
     - def: left = r.expr([{'a':1},{'a':2},{'a':3}])
     - def: right = r.expr([{'b':2},{'b':3}])
-      
+
     - py: left.inner_join(right, lambda l, r:l['a'] == r['b']).zip()
       js: left.innerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
       rb: left.inner_join(right){ |lt, rt| lt[:a].eq(rt[:b]) }.zip

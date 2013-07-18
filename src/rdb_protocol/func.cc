@@ -167,6 +167,10 @@ void func_t::set_default_filter_val(counted_t<func_t> func) {
     default_filter_val = func;
 }
 
+protob_t<const Term> func_t::get_source() {
+    return source;
+}
+
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)) {
@@ -272,11 +276,22 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
     }
 }
 
-counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                             const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
+counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t> key,
+                                            const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *arg = twrap.get();
+    int obj = env->gensym();
+    arg = pb::set_func(arg, obj);
+    N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
 }

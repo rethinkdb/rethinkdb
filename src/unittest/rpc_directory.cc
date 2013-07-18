@@ -16,7 +16,7 @@ void run_one_node_test() {
     directory_read_manager_t<int> read_manager(&c);
     watchable_variable_t<int> watchable(5);
     directory_write_manager_t<int> write_manager(&c, watchable.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
     let_stuff_happen();
 }
 TEST(RPCDirectoryTest, OneNode) {
@@ -31,9 +31,9 @@ void run_three_nodes_test() {
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), ANY_PORT, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), ANY_PORT, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm1, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm2, 0, NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm3, 0, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -49,9 +49,9 @@ void run_exchange_test() {
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), ANY_PORT, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), ANY_PORT, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm1, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm2, 0, NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm3, 0, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -73,9 +73,9 @@ void run_update_test() {
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
     directory_write_manager_t<int> wm1(&c1, w1.get_watchable()), wm2(&c2, w2.get_watchable()), wm3(&c3, w3.get_watchable());
-    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), ANY_PORT, &rm1, 0, NULL);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &rm2, 0, NULL);
-    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), ANY_PORT, &rm3, 0, NULL);
+    connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm1, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm2, 0, NULL);
+    connectivity_cluster_t::run_t cr3(&c3, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm3, 0, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -99,7 +99,7 @@ void run_destructor_race_test() {
     directory_read_manager_t<int> rm(&c);
     watchable_variable_t<int> w(5);
     directory_write_manager_t<int> wm(&c, w.get_watchable());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &rm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &rm, 0, NULL);
 
     w.set_value(6);
 }
