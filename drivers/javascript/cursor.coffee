@@ -1,5 +1,5 @@
-err = require(__dirname + '/errors')
-util = require(__dirname + '/util')
+err = require('./errors')
+util = require('./util')
 
 # Import some names to this namespace for convienience
 ar = util.ar

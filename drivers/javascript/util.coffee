@@ -1,4 +1,4 @@
-err = require(__dirname + '/errors')
+err = require('./errors')
 
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments

@@ -1,12 +1,12 @@
 net = require('net')
 events = require('events')
 
-util = require(__dirname + '/util')
-err = require(__dirname + '/errors')
-cursors = require(__dirname + '/cursor')
-pb = require(__dirname + '/protobuf')
+util = require('./util')
+err = require('./errors')
+cursors = require('./cursor')
+pb = require('./protobuf')
 
-r = require(__dirname + '/ast')
+r = require('./ast')
 
 # Import some names to this namespace for convienience
 ar = util.ar

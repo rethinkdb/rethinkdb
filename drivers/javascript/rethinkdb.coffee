@@ -1,5 +1,5 @@
-rethinkdb = require(__dirname + '/ast')
-net = require(__dirname + '/net')
+rethinkdb = require('./ast')
+net = require('./net')
 
 # Add connect from net module
 rethinkdb.connect = net.connect
