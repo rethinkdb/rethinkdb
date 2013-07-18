@@ -103,7 +103,7 @@ batched_rget_stream_t::batched_rget_stream_t(
     counted_t<const ql::datum_t> left_bound,
     counted_t<const ql::datum_t> right_bound,
     const std::map<std::string, ql::wire_func_t> &_optargs,
-    bool _use_outdated)
+    bool _use_outdated, sorting_t _sorting)
     : ns_access(_ns_access), interruptor(_interruptor),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       range(key_range_t::closed,
@@ -115,8 +115,7 @@ batched_rget_stream_t::batched_rget_stream_t(
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
       table_scan_backtrace(),
-      merge_sort(false),
-      direction(FORWARD)
+      sorting(_sorting)
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
@@ -125,7 +124,8 @@ batched_rget_stream_t::batched_rget_stream_t(
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated,
     counted_t<const ql::datum_t> _sindex_start_value,
-    counted_t<const ql::datum_t> _sindex_end_value)
+    counted_t<const ql::datum_t> _sindex_end_value,
+    sorting_t _sorting)
     : ns_access(_ns_access),
       interruptor(_interruptor),
       sindex_id(_sindex_id),
@@ -143,8 +143,7 @@ batched_rget_stream_t::batched_rget_stream_t(
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
       table_scan_backtrace(),
-      merge_sort(false),
-      direction(FORWARD)
+      sorting(_sorting)
 { }
 
 boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
@@ -214,8 +213,7 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
         return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
                                            transform,
                                            optargs,
-                                           merge_sort,
-                                           direction);
+                                           sorting);
     } else {
         return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
                                            *sindex_id,
@@ -223,8 +221,7 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
                                            sindex_end_value,
                                            transform,
                                            optargs,
-                                           merge_sort,
-                                           direction);
+                                           sorting);
     }
 }
 
@@ -260,17 +257,17 @@ void batched_rget_stream_t::read_more() {
             data.push_back(i->second);
         }
 
-        if (direction == FORWARD) {
+        if (forward(sorting)) {
             range.left = p_res->last_considered_key;
         } else {
             range.right = key_range_t::right_bound_t(p_res->last_considered_key);
         }
 
-        if (direction == FORWARD &&
+        if (forward(sorting) &&
             (!range.left.increment() ||
             (!range.right.unbounded && (range.right.key < range.left)))) {
             finished = true;
-        } else if (direction == BACKWARD) {
+        } else if (backward(sorting)) {
             guarantee(!range.right.unbounded);
             if (!range.right.key.decrement() ||
                 range.right.key < range.left) {

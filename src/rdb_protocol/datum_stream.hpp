@@ -160,17 +160,21 @@ class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
                         counted_t<const datum_t> right_bound,
-                        const protob_t<const Backtrace> &bt_src);
+                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
                         counted_t<const datum_t> right_bound,
-                        const std::string &sindex_id,
+                        const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);

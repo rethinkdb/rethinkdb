@@ -46,7 +46,8 @@ private:
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
+        : op_term_t(env, term, argspec_t(1, -1),
+          optargspec_t({"index"})), src_term(term) { }
 private:
     enum order_direction_t { ASC, DESC };
     class lt_cmp_t {

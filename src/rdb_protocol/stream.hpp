@@ -93,7 +93,7 @@ public:
                           counted_t<const ql::datum_t> left_bound,
                           counted_t<const ql::datum_t> right_bound,
                           const std::map<std::string, ql::wire_func_t> &_optargs,
-                          bool _use_outdated);
+                          bool _use_outdated, sorting_t sorting);
 
     /* Sindex rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
@@ -101,7 +101,8 @@ public:
                           const std::map<std::string, ql::wire_func_t> &_optargs,
                           bool _use_outdated,
                           counted_t<const ql::datum_t> _sindex_start_value,
-                          counted_t<const ql::datum_t> _sindex_end_value);
+                          counted_t<const ql::datum_t> _sindex_end_value,
+                          sorting_t sorting);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
@@ -135,8 +136,7 @@ private:
 
     boost::optional<backtrace_t> table_scan_backtrace;
 
-    bool merge_sort;
-    direction_t direction;
+    sorting_t sorting;
 };
 
 
