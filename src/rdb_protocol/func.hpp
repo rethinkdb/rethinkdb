@@ -107,7 +107,7 @@ public:
         return source.make_child(&source->GetExtension(ql2::extension::backtrace));
     }
 
-    Term get_term() const {
+    const Term &get_term() const {
         return *source;
     }
 

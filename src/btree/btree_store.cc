@@ -283,7 +283,7 @@ void btree_store_t<protocol_t>::deregister_sindex_queue(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::emergency_deregister_sindex_queue(
-        internal_disk_backed_queue_t *disk_backed_queue) {
+    internal_disk_backed_queue_t *disk_backed_queue) {
     assert_thread();
     drainer.assert_draining();
     mutex_t::acq_t acq(&sindex_queue_mutex);

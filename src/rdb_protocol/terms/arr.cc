@@ -49,18 +49,19 @@ private:
 
 // This gets the literal index of a (possibly negative) index relative to a
 // fixed size.
-size_t canonicalize(const term_t *t, int32_t index, size_t size, bool *oob_out = 0) {
-    CT_ASSERT(sizeof(size_t) >= sizeof(int32_t));
+uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
+    CT_ASSERT(sizeof(size_t) <= sizeof(uint64_t));
     if (index >= 0) return index;
-    if (size_t(index * -1) > size) {
+    if (uint64_t(index * -1) > size) {
         if (oob_out) {
             *oob_out = true;
         } else {
-            rfail_target(t, base_exc_t::NON_EXISTENCE, "Index out of bounds: %d", index);
+            rfail_target(t, base_exc_t::NON_EXISTENCE,
+                         "Index out of bounds: %" PRIi64, index);
         }
         return 0;
     }
-    return size + index;
+    return uint64_t(size) + index;
 }
 
 class nth_term_t : public op_term_t {
@@ -110,27 +111,37 @@ private:
 };
 
 // TODO: this kinda sucks.
-class slice_term_t : public op_term_t {
+class slice_term_t : public bounded_op_term_t {
 public:
     slice_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(3)) { }
+        : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
-        int32_t fake_l = arg(1)->as_int<int32_t>();
-        int32_t fake_r = arg(2)->as_int<int32_t>();
+        int64_t fake_l = arg(1)->as_int<int64_t>();
+        int64_t fake_r = arg(2)->as_int<int64_t>();
+
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> arr = v->as_datum();
             arr->check_type(datum_t::R_ARRAY);
             bool l_oob = false;
-            size_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
-            if (l_oob) real_l = 0;
+            uint64_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
+            if (l_oob) {
+                real_l = 0;
+            } else if (left_open()) {
+                real_l += 1; // This is safe because it was an int64_t before.
+            }
             bool r_oob = false;
-            size_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
+            uint64_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
+            if (r_oob) {
+                return new_val(make_counted<const datum_t>(datum_t::R_ARRAY));
+            } else if (!right_open()) {
+                real_r += 1; // This is safe because it was an int64_t before.
+            }
 
             scoped_ptr_t<datum_t> out(new datum_t(datum_t::R_ARRAY));
             if (!r_oob) {
-                for (size_t i = real_l; i <= real_r; ++i) {
+                for (uint64_t i = real_l; i < real_r; ++i) {
                     if (i >= arr->size()) break;
                     out->add(arr->get(i));
                 }
@@ -150,9 +161,21 @@ private:
 
             rcheck(fake_l >= 0, base_exc_t::GENERIC,
                    "Cannot use a negative left index on a stream.");
-            rcheck(fake_r >= -1, base_exc_t::GENERIC,
-                   "Cannot use a right index < -1 on a stream");
-            counted_t<datum_stream_t> new_ds = seq->slice(fake_l, fake_r);
+            uint64_t real_l = fake_l;
+            if (left_open()) {
+                real_l += 1; // This is safe because it was an int64_t before.
+            }
+            uint64_t real_r = fake_r;
+            if (fake_r < -1) {
+                rfail(base_exc_t::GENERIC, "Cannot use a right index < -1 on a stream.");
+            } else if (fake_r == -1) {
+                rcheck(!right_open(), base_exc_t::GENERIC,
+                       "Cannot slice to an open right index of -1 on a stream.");
+                real_r = std::numeric_limits<uint64_t>::max();
+            } else if (!right_open()) {
+                real_r += 1;  // This is safe because it was an int32_t before.
+            }
+            counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
             return t.has() ? new_val(new_ds, t) : new_val(new_ds);
         }
         rcheck_typed_target(v, false, "Cannot slice non-sequences.");
@@ -176,12 +199,7 @@ private:
         int32_t r = arg(1)->as_int<int32_t>();
         rcheck(r >= 0, base_exc_t::GENERIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
-        counted_t<datum_stream_t> new_ds;
-        if (r == 0) {
-            new_ds = ds->slice(1, 0); // (0, -1) has a different meaning
-        } else {
-            new_ds = ds->slice(0, r-1); // note that both bounds are inclusive
-        }
+        counted_t<datum_stream_t> new_ds = ds->slice(0, r);
         return t.has() ? new_val(new_ds, t) : new_val(new_ds);
     }
     virtual const char *name() const { return "limit"; }
