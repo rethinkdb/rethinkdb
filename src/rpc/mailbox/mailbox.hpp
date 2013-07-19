@@ -14,11 +14,6 @@ struct mailbox_manager_t;
 to handle messages it receives. To send messages to the mailbox, call the
 `get_address()` method and then call `send()` on the address it returns. */
 
-enum mailbox_thread_mode_t {
-    mailbox_home_thread,
-    mailbox_any_thread
-};
-
 class mailbox_write_callback_t {
 public:
     virtual ~mailbox_write_callback_t() { }
@@ -28,13 +23,17 @@ public:
 class mailbox_read_callback_t {
 public:
     virtual ~mailbox_read_callback_t() { }
-    virtual void read(read_stream_t *stream) = 0;
-    virtual void read(mailbox_write_callback_t *writer) = 0;
+
+    virtual void read(read_stream_t *stream, int thread_id) = 0;
 };
 
 struct raw_mailbox_t : public home_thread_mixin_t {
 public:
     struct address_t;
+    typedef uint64_t id_t;
+
+    id_t get_id() const;
+    mailbox_manager_t *get_manager() const;
 
 private:
     friend struct mailbox_manager_t;
@@ -42,9 +41,7 @@ private:
     friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
     mailbox_manager_t *manager;
-    const mailbox_thread_mode_t thread_mode;
 
-    typedef uint64_t id_t;
     const id_t mailbox_id;
 
     mailbox_read_callback_t *callback;
@@ -89,7 +86,7 @@ public:
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, mailbox_thread_mode_t tm, mailbox_read_callback_t *callback);
+    raw_mailbox_t(mailbox_manager_t *, mailbox_read_callback_t *callback);
     ~raw_mailbox_t();
 
     address_t get_address() const;
@@ -110,7 +107,6 @@ because the `mailbox_manager_t` relies on something else to send the initial
 mailbox addresses back and forth between nodes. */
 
 struct mailbox_manager_t : public message_handler_t {
-
 public:
     explicit mailbox_manager_t(message_service_t *);
 
@@ -118,6 +114,8 @@ public:
     connectivity_service_t *get_connectivity_service() {
         return message_service->get_connectivity_service();
     }
+
+    bool check_existence(raw_mailbox_t::id_t id);
 
 private:
     friend struct raw_mailbox_t;
@@ -128,8 +126,7 @@ private:
     struct mailbox_table_t {
         mailbox_table_t();
         ~mailbox_table_t();
-        raw_mailbox_t::id_t next_local_mailbox_id;
-        raw_mailbox_t::id_t next_global_mailbox_id;
+        raw_mailbox_t::id_t next_mailbox_id;
         // TODO: use a buffered structure to reduce dynamic allocation
         std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
         raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
@@ -139,14 +136,11 @@ private:
     raw_mailbox_t::id_t generate_local_id();
     raw_mailbox_t::id_t generate_global_id();
 
-    raw_mailbox_t::id_t register_mailbox_one_thread(raw_mailbox_t *mb);
-    raw_mailbox_t::id_t register_mailbox_all_threads(raw_mailbox_t *mb);
-    void register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id);
-    void register_mailbox_wrapper(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread);
+    raw_mailbox_t::id_t register_mailbox(raw_mailbox_t *mb);
+    void register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread);
 
     void unregister_mailbox(raw_mailbox_t::id_t id);
-    void unregister_mailbox_wrapper(raw_mailbox_t::id_t id, int thread);
-    void unregister_mailbox_internal(raw_mailbox_t::id_t id);
+    void unregister_mailbox_internal(raw_mailbox_t::id_t id, int thread);
 
     static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, mailbox_write_callback_t *callback);
     void on_message(peer_id_t, read_stream_t *stream);
