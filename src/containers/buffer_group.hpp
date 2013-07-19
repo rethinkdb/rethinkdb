@@ -17,7 +17,7 @@ public:
     bool operator!=(const buffer_group_const_iterator_t &other) const;
 private:
     friend class const_buffer_group_t;
-    const_buffer_group_t *parent;
+    const const_buffer_group_t *parent;
     size_t current_buffer;
     ssize_t offset;
 };
@@ -51,6 +51,24 @@ public:
             s += buffers_[i].size;
         }
         return s;
+    }
+
+    typedef buffer_group_const_iterator_t iterator;
+
+    iterator begin() const {
+        buffer_group_const_iterator_t it;
+        it.parent = this;
+        it.current_buffer = 0;
+        it.offset = 0;
+        return it;
+    }
+
+    iterator end() const {
+        buffer_group_const_iterator_t it;
+        it.parent = this;
+        it.current_buffer = num_buffers() - 1;
+        it.offset = get_buffer(it.current_buffer).size;
+        return it;
     }
 
 private:
