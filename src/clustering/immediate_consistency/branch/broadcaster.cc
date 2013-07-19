@@ -215,9 +215,9 @@ public:
         background_write_workers(100, &background_write_queue, &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)), mailbox_callback_mode_inline),
+            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
         downgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)), mailbox_callback_mode_inline)
+            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
     {
         controller->assert_thread();
         controller->sanity_check();
@@ -348,8 +348,7 @@ void listener_write(
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        boost::bind(&cond_t::pulse, &ack_cond),
-        mailbox_callback_mode_inline);
+        boost::bind(&cond_t::pulse, &ack_cond));
 
     send(mailbox_manager, write_mailbox,
          w, ts, order_token, token, ack_mailbox.get_address());
@@ -375,8 +374,7 @@ void listener_read(
     cond_t resp_cond;
     mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
         mailbox_manager,
-        boost::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond),
-        mailbox_callback_mode_inline);
+        boost::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond));
 
     send(mailbox_manager, read_mailbox,
          r, ts, order_token, token, resp_mailbox.get_address());
@@ -536,8 +534,7 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
         typename protocol_t::write_response_t response;
         mailbox_t<void(typename protocol_t::write_response_t)> response_mailbox(
             mailbox_manager,
-            boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond),
-            mailbox_callback_mode_inline);
+            boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond));
 
         send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), durability);
 

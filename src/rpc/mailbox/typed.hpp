@@ -13,17 +13,6 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
-/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t`
-constructor, it will spawn the callback in a new coroutine. If you
-`mailbox_callback_mode_inline`, it will call the callback inline
-and the callback must not block. The former is the default for
-historical reasons, but the latter is better. Eventually the former
-will go away. */
-enum mailbox_callback_mode_t {
-    mailbox_callback_mode_coroutine,
-    mailbox_callback_mode_inline
-};
-
 template <class> class mailbox_t;
 
 template <class T>
@@ -112,9 +101,8 @@ public:
     typedef mailbox_addr_t< void() > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void()> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void()> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -127,7 +115,6 @@ private:
     friend void send(mailbox_manager_t*, address_t);
 
     boost::function< void() > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -175,9 +162,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -192,7 +178,6 @@ private:
                      typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
 
     boost::function< void(arg0_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -245,9 +230,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -262,7 +246,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
 
     boost::function< void(arg0_t, arg1_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -320,9 +303,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -337,7 +319,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -400,9 +381,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -417,7 +397,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -485,9 +464,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -502,7 +480,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -575,9 +552,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -592,7 +568,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -670,9 +645,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -687,7 +661,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -770,9 +743,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -787,7 +759,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -875,9 +846,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -892,7 +862,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -985,9 +954,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1002,7 +970,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1100,9 +1067,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1117,7 +1083,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1220,9 +1185,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1237,7 +1201,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1345,9 +1308,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1362,7 +1324,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1475,9 +1436,8 @@ public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager,
-              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t)> &f,
-              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
-        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)
+              const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t)> &f) :
+        reader(this), fun(f), mailbox(manager, &reader)
         { }
 
     address_t get_address() const {
@@ -1492,7 +1452,6 @@ private:
                      typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > fun;
-    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
