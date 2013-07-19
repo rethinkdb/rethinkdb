@@ -224,7 +224,7 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream_t *stream) {
+void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, string_read_stream_t *stream) {
     uint8_t code;
     {
         int res = deserialize(stream, &code);

@@ -24,16 +24,13 @@ class mailbox_read_callback_t {
 public:
     virtual ~mailbox_read_callback_t() { }
 
-    virtual void read(read_stream_t *stream, int thread_id) = 0;
+    virtual void read(read_stream_t *stream) = 0;
 };
 
 struct raw_mailbox_t : public home_thread_mixin_t {
 public:
     struct address_t;
     typedef uint64_t id_t;
-
-    id_t get_id() const;
-    mailbox_manager_t *get_manager() const;
 
 private:
     friend struct mailbox_manager_t;
@@ -133,17 +130,21 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    raw_mailbox_t::id_t generate_local_id();
-    raw_mailbox_t::id_t generate_global_id();
+    raw_mailbox_t::id_t generate_mailbox_id();
 
     raw_mailbox_t::id_t register_mailbox(raw_mailbox_t *mb);
-    void register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread);
-
     void unregister_mailbox(raw_mailbox_t::id_t id);
-    void unregister_mailbox_internal(raw_mailbox_t::id_t id, int thread);
 
-    static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, mailbox_write_callback_t *callback);
-    void on_message(peer_id_t, read_stream_t *stream);
+    static void write_mailbox_message(write_stream_t *stream,
+                                      int dest_thread,
+                                      raw_mailbox_t::id_t dest_mailbox_id,
+                                      mailbox_write_callback_t *callback);
+
+    void on_message(peer_id_t, string_read_stream_t *stream);
+
+    void mailbox_read_coroutine(int dest_thread,
+                                raw_mailbox_t::id_t dest_mailbox_id,
+                                string_read_stream_t *stream);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

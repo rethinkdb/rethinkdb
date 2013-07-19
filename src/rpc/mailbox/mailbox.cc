@@ -30,14 +30,6 @@ peer_id_t raw_mailbox_t::address_t::get_peer() const {
     return peer;
 }
 
-raw_mailbox_t::id_t raw_mailbox_t::get_id() const {
-    return mailbox_id;
-}
-
-mailbox_manager_t *raw_mailbox_t::get_manager() const {
-    return manager;
-}
-
 std::string raw_mailbox_t::address_t::human_readable() const {
     return strprintf("%s:%d:%" PRIu64, uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
@@ -118,7 +110,7 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {
+void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_stream_t *stream) {
     int dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
@@ -133,37 +125,44 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
         dest_thread = get_thread_id();
     }
 
+    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                              this, dest_thread, dest_mailbox_id, stream));
+}
+
+void mailbox_manager_t::mailbox_read_coroutine(int dest_thread,
+                                               raw_mailbox_t::id_t dest_mailbox_id,
+                                               string_read_stream_t *stream) {
+    // Take the string from the read stream, so it can be deallocated in the caller
+    std::string stream_data;
+    int64_t data_offset = 0;
+    stream->swap(&stream_data, &data_offset);
+
+    on_thread_t rethreader(dest_thread);
+
+    // Construct a new stream to use
+    string_read_stream_t new_stream(&stream_data, data_offset);
+
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox != NULL) {
-        mbox->callback->read(stream, dest_thread);
+        mbox->callback->read(&new_stream);
     }
 }
 
-raw_mailbox_t::id_t mailbox_manager_t::generate_global_id() {
+raw_mailbox_t::id_t mailbox_manager_t::generate_mailbox_id() {
     raw_mailbox_t::id_t id = ++mailbox_tables.get()->next_mailbox_id;
     return id;
 }
 
 raw_mailbox_t::id_t mailbox_manager_t::register_mailbox(raw_mailbox_t *mb) {
-    raw_mailbox_t::id_t id = generate_global_id();
-    pmap(get_num_threads(), boost::bind(&mailbox_manager_t::register_mailbox_internal, this, mb, id, _1));
-    return id;
-}
-
-void mailbox_manager_t::register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread) {
-    on_thread_t rethreader(thread);
+    raw_mailbox_t::id_t id = generate_mailbox_id();
     std::map<raw_mailbox_t::id_t, raw_mailbox_t *> *mailboxes = &mailbox_tables.get()->mailboxes;
     std::pair<std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator, bool> res
         = mailboxes->insert(std::make_pair(id, mb));
     guarantee(res.second);  // Assert a new element was inserted.
+    return id;
 }
 
 void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
-    pmap(get_num_threads(), boost::bind(&mailbox_manager_t::unregister_mailbox_internal, this, id, _1));
-}
-
-void mailbox_manager_t::unregister_mailbox_internal(raw_mailbox_t::id_t id, int thread) {
-    on_thread_t rethreader(thread);
     size_t num_elements_erased = mailbox_tables.get()->mailboxes.erase(id);
     guarantee(num_elements_erased == 1);
 }
