@@ -1,49 +1,48 @@
-<html>
-  <head>
-    <title>RethinkDB AMI</title>
-  </head>
-  <body>
-    <h1>Welcome to the RethinkDB AMI</h1>
+---
+layout: ami
+---
+<div class="section">
+    <h2 class="title">Setting up a RethinkDB AMI</h2>
     <p>
-      There are two steps to complete before this instance is
-      usable. First, the SSL certificate must be accepted by your
-      browser to enable encryption. Second, a password needs to be set
-      to secure the instance.
+        There are two steps to complete before this instance is
+        usable. First, the SSL certificate must be accepted by your
+        browser to enable encryption. Second, a password needs to be set
+        to secure the instance.
     </p>
     <p>
-      Visit <a href="http://www.rethinkdb.com/docs/todo/ami">RethinkDB.com</a>
-      for more documentation on the RethinkDB AMI.
+        Visit <a href="http://www.rethinkdb.com/docs/todo/ami">RethinkDB.com</a>
+        for more documentation on the RethinkDB AMI.
     </p>
     <p>
-      To encrypt your session, a new self-signed certificate has been
-      generated for this instance. This certificate is perfectly safe
-      but it cannot be automatically verified by your browser.
+        To encrypt your session, a new self-signed certificate has been
+        generated for this instance. This certificate is perfectly safe
+        but it cannot be automatically verified by your browser.
     </p>
     <p>
-      When you press <emph>Continue</emph> your browser will warn you
-      that the certificate could not be verified. If you use Chrome or
-      Firefox, follow the instructions below to add an exception.
+        When you press <emph>Continue</emph> your browser will warn you
+        that the certificate could not be verified. If you use Chrome or
+        Firefox, follow the instructions below to add an exception.
     </p>
-    <button id="continue">Continue</button>
-    <script>
-      document.getElementById('continue').onclick = function(){
-        window.location = 'https://' + window.location.hostname + '/settings.html';
-      }
-    </script>
-    <div style="width:50%; float:left">
-      <h2>Chrome</h2>
-      <ul>
-        <li>Click on <b>Proceed Anyway</b>
-      </ul>
+    <div class="row-fluid">
+        <div class="span6">
+            <h2>Chrome</h2>
+            <ul>
+                <li>Click on <b>Proceed Anyway</b>
+            </ul>
+        </div>
+        <div class="span6">
+            <h2>Firefox</h2>
+            <ul>
+                <li>Click on <b>I Understand the Risks</b>
+                <li>Click on <b>Add Exception...</b>
+                <li>Click on <b>Confirm Security Exception</b>
+            </ul>
+        </div>
     </div>
-    <div style="width:50%; float:right">
-      <h2>Firefox</h2>
-      <ul>
-        <li>Click on <b>I Understand the Risks</b>
-        <li>Click on <b>Add Exception...</b>
-        <li>Click on <b>Confirm Security Exception</b>
-      </ul>
-    </div>
-
-  </body>
-</html>
+    <button id="go-to-https" class="btn">Continue &rarr;</button>
+</div>
+<script>
+    document.getElementById('go-to-https').onclick = function(){
+        window.location = 'https://' + window.location.host + '/settings';
+    }
+</script>
