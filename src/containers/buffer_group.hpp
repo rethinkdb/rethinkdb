@@ -7,6 +7,21 @@
 
 #include "utils.hpp"
 
+class const_buffer_group_t;
+
+class buffer_group_const_iterator_t {
+public:
+    buffer_group_const_iterator_t &operator++();
+    char operator*() const;
+    bool operator==(const buffer_group_const_iterator_t &other) const;
+    bool operator!=(const buffer_group_const_iterator_t &other) const;
+private:
+    friend class const_buffer_group_t;
+    const_buffer_group_t *parent;
+    size_t current_buffer;
+    ssize_t offset;
+};
+
 class const_buffer_group_t {
 public:
     struct buffer_t {
