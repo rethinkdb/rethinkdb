@@ -1,4 +1,16 @@
+# Release 1.7.3 (Nights of Cabiria)
+
+Released on 2013-07-19
+
+Bug fix update.
+
+* RethinkDB no longer fails to create the data directory when using `--daemon` (#1191)
+
+--
+
 # Release 1.7.2 (Nights of Cabiria)
+
+Released on 2013-07-18
 
 Bug fix update.
 
@@ -27,6 +39,8 @@ Bug fix update.
 --
 
 # Release 1.7.1 (Nights of Cabiria)
+
+Released on 2013-07-04
 
 Bug fix update.
 
