@@ -116,7 +116,9 @@ private:
 
 enum function_shortcut_t {
     NO_SHORTCUT = 0,
-    IDENTITY_SHORTCUT = 1,
+    CONSTANT_SHORTCUT = 1,
+    GET_FIELD_SHORTCUT = 2,
+    PLUCK_SHORTCUT = 3
 };
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a

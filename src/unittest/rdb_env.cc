@@ -63,7 +63,7 @@ void mock_namespace_interface_t::read(const rdb_protocol_t::read_t &query,
 void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &query,
                                                rdb_protocol_t::read_response_t *response,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     read_visitor_t v(&data, response);
@@ -74,7 +74,7 @@ void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
                                        rdb_protocol_t::write_response_t *response,
                                        UNUSED order_token_t tok,
                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     write_visitor_t v(&data, parent->get_env(), response);
@@ -201,7 +201,7 @@ test_rdb_env_t::test_rdb_env_t() :
 
 test_rdb_env_t::~test_rdb_env_t() {
     // Clean up initial datas (if there was no instance constructed, this may happen
-    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {       
+    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {
         delete it->second;
     }
 }

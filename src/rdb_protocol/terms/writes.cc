@@ -187,7 +187,7 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(optarg("durability"), this);
 
-        counted_t<func_t> f = arg(1)->as_func(IDENTITY_SHORTCUT);
+        counted_t<func_t> f = arg(1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
@@ -243,7 +243,7 @@ private:
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> row = ds->next()) {
-            counted_t<val_t> v = arg(1)->as_func(IDENTITY_SHORTCUT)->call(row);
+            counted_t<val_t> v = arg(1)->as_func(CONSTANT_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

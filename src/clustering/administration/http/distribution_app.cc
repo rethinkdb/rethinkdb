@@ -15,7 +15,7 @@
 
 distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > > _namespaces_sl_metadata,
                                        namespace_repo_t<memcached_protocol_t> *_ns_repo,
-                                       boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > _rdb_namespaces_sl_metadata, 
+                                       boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > _rdb_namespaces_sl_metadata,
                                        namespace_repo_t<rdb_protocol_t> *_rdb_ns_repo)
     : namespaces_sl_metadata(_namespaces_sl_metadata),
       ns_repo(_ns_repo),

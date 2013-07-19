@@ -3,4 +3,4 @@ $LOAD_PATH.unshift('./lib')
 load 'rethinkdb.rb'
 include RethinkDB::Shortcuts
 $port_offset = ENV['PORT_OFFSET'].to_i
-$c = r.connect('localhost', $port_offset + 28015, 'test').repl
+$c = r.connect(:host => 'localhost', :port => $port_offset + 28015, :db => 'test').repl

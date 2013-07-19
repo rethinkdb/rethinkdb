@@ -312,8 +312,8 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
         && delete_range->inner.contains_key(key->contents, key->size);
 }
 
-typedef boost::variant<rdb_modification_report_t, 
-                       rdb_erase_range_report_t> 
+typedef boost::variant<rdb_modification_report_t,
+                       rdb_erase_range_report_t>
         sindex_change_t;
 
 }  // namespace rdb_protocol_details
@@ -768,8 +768,8 @@ private:
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t>>(rg_response->result);
-                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t>>(_rr->result);
+                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t> >(rg_response->result);
+                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t> >(_rr->result);
                     rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
                 }
             } else if (const ql::gmr_wire_func_t *gmr_func =

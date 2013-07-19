@@ -591,8 +591,12 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     // We use a switch here so that people have to update it if they add another
     // shortcut.
     switch(shortcut) {
-    case IDENTITY_SHORTCUT:
-        return func_t::new_identity_func(env, as_datum(), backtrace());
+    case CONSTANT_SHORTCUT:
+        return func_t::new_constant_func(env, as_datum(), backtrace());
+    case GET_FIELD_SHORTCUT:
+        return func_t::new_get_field_func(env, as_datum(), backtrace());
+    case PLUCK_SHORTCUT:
+        return func_t::new_pluck_func(env, as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

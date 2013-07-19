@@ -155,9 +155,9 @@ commands:
       js: groupBy
 
     body:
-      py: "$PARENT.group_by(attr1[, attr2...], reduction_object)"
-      rb: "$PARENT.group_by(attr1[, attr2...], reduction_object)"
-      js: "$PARENT.groupBy(attr1[, attr2...], reductionObject)"
+      py: "$PARENT.group_by(selector1[, selector2...], reduction_object)"
+      rb: "$PARENT.group_by(selector1[, selector2...], reduction_object)"
+      js: "$PARENT.groupBy(selector1[, selector2...], reductionObject)"
 
     io:
       - - sequence
@@ -170,6 +170,16 @@ commands:
           js: r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn, callback)
           py: r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
           rb: r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)
+      - description: Groupings can also be specified on nested attributes.
+        code:
+          js: "r.table('marvel').groupBy({'abilities' : {'primary' : true}}, r.avg('strength')).run(conn, callback)"
+          py: "r.table('marvel').group_by({'abilities' : {'primary' : True}}, r.avg('strength')).run(conn)"
+          rb: "r.table('marvel').group_by({:abilities => {:primary : true}}, r.avg(:strength)).run(conn)"
+      - description: The nested syntax can quickly become verbose so there's a shortcut.
+        code:
+          js: "r.table('marvel').groupBy({'abilities' : 'primary'}, r.avg('strength')).run(conn, callback)"
+          py: "r.table('marvel').group_by({'abilities' : 'primary'}, r.avg('strength')).run(conn)"
+          rb: "r.table('marvel').group_by({:abilities => :primary}, r.avg(:strength)).run(conn)"
 
   - tag: contains
     section: aggregation

@@ -672,7 +672,7 @@ cJSON *cJSON_CreateStringArray(const char **strings,int count) {
         n=cJSON_CreateString(strings[i]);
         if(!i) {
             a->head=n;
-        } else { 
+        } else {
             suffix_object(p,n);
         }
         p=n;
@@ -707,9 +707,9 @@ cJSON *cJSON_DeepCopy(cJSON *target) {
             cJSON *array_res = cJSON_CreateArray();
 
             hd = target->head;
-            while (hd) { 
+            while (hd) {
                 cJSON_AddItemToArray(array_res, cJSON_DeepCopy(hd));
-                hd = hd->next; 
+                hd = hd->next;
             }
             return array_res;
         }

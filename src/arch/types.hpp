@@ -22,7 +22,7 @@ public:
         }
     }
 
-    address_in_use_exc_t(const std::string &msg) throw () {
+    explicit address_in_use_exc_t(const std::string &msg) throw () {
         info.assign(msg);
     }
 

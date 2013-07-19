@@ -58,7 +58,7 @@ public:
         arg = final_wrap(env, arg, dc, &dc_arg);
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
-           group_fn(env, arg, &in->args(1)),
+           *arg = in->args(1),
            map_fn(env, arg, dc, &dc_arg),
            reduce_fn(env, arg, dc, &dc_arg));
         return out;
@@ -104,16 +104,6 @@ private:
         }
     }
 
-    static void group_fn(env_t *env, Term *arg, const Term *group_attrs) {
-        int obj = env->gensym();
-        int attr = env->gensym();
-        arg = pb::set_func(arg, obj);
-        N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
-           N3(BRANCH,
-              N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-              N2(GET_FIELD, NVAR(obj), NVAR(attr)),
-              NDATUM(datum_t::R_NULL)));
-    }
     static void map_fn(env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {
         int obj = env->gensym(), attr = env->gensym();
@@ -271,7 +261,8 @@ private:
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
            N2(MAP,
               optarg_inheritor = arg;
-              N2(GET_ALL, *arg = *right, N2(GET_FIELD, NVAR(row), *arg = *left_attr)),
+              N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
+                  OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
 
               arg = pb::set_func(arg, v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));

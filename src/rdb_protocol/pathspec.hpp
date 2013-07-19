@@ -2,8 +2,9 @@
 #ifndef RDB_PROTOCOL_PATHSPEC_HPP_
 #define RDB_PROTOCOL_PATHSPEC_HPP_
 
-#include "errors.hpp"
-#include <boost/variant.hpp>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/term.hpp"
@@ -87,8 +88,8 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse);
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
 bool contains(counted_t<const datum_t> datum,
-        const pathspec_t &pathspec, recurse_flag_t recurse);
+        const pathspec_t &pathspec);
 
 } //namespace ql
 
-#endif
+#endif  // RDB_PROTOCOL_PATHSPEC_HPP_

@@ -24,7 +24,7 @@ public:
         EMPTY_USER, // An error caused by `r.error` with no arguments.
         NON_EXISTENCE // An error related to the absence of an expected value.
     };
-    base_exc_t(type_t type) : type_(type) { }
+    explicit base_exc_t(type_t type) : type_(type) { }
     virtual ~base_exc_t() throw () { }
     type_t get_type() const { return type_; }
 protected:

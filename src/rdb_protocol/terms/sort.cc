@@ -7,6 +7,9 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/term_walker.hpp"
+
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
@@ -24,7 +27,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>("+" + arg(0)->as_str()));
+        return arg(0);
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -35,7 +38,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        return new_val(make_counted<const datum_t>("-" + arg(0)->as_str()));
+        return arg(0);
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -45,50 +48,65 @@ public:
     orderby_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
 private:
+    enum order_direction_t { ASC, DESC };
     class lt_cmp_t {
     public:
-        explicit lt_cmp_t(counted_t<const datum_t> _attrs) : attrs(_attrs) { }
+        explicit lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
+            : comparisons(_comparisons) { }
         bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
-            for (size_t i = 0; i < attrs->size(); ++i) {
-                std::string attrname = attrs->get(i)->as_str();
-                bool invert = (attrname[0] == '-');
-                r_sanity_check(attrname[0] == '-' || attrname[0] == '+');
-                attrname.erase(0, 1);
-                counted_t<const datum_t> lattr = l->get(attrname, NOTHROW);
-                counted_t<const datum_t> rattr = r->get(attrname, NOTHROW);
-                if (!lattr.has() && !rattr.has()) {
+            for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
+                counted_t<const datum_t> lval;
+                counted_t<const datum_t> rval;
+                try {
+                     lval = it->second->call(l)->as_datum();
+                } catch (const base_exc_t &e) {
+                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
+                        throw;
+                    }
+                }
+
+                try {
+                     rval = it->second->call(r)->as_datum();
+                } catch (const base_exc_t &e) {
+                    if (e.get_type() != base_exc_t::NON_EXISTENCE) {
+                        throw;
+                    }
+                }
+
+                if (!lval.has() && !rval.has()) {
                     continue;
                 }
-                if (!lattr.has()) {
-                    return static_cast<bool>(true ^ invert);
+                if (!lval.has()) {
+                    return true ^ (it->first == DESC);
                 }
-                if (!rattr.has()) {
-                    return static_cast<bool>(false ^ invert);
+                if (!rval.has()) {
+                    return false ^ (it->first == DESC);
                 }
                 // TODO: use datum_t::cmp instead to be faster
-                if (*lattr == *rattr) {
+                if (*lval == *rval) {
                     continue;
                 }
-                return static_cast<bool>((*lattr < *rattr) ^ invert);
+                return (*lval < *rval) ^ (it->first == DESC);
             }
             return false;
         }
     private:
-        counted_t<const datum_t> attrs;
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
     virtual counted_t<val_t> eval_impl() {
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
-            Term::TermType type = src_term->args(i).type();
-            if (type != Term::ASC && type != Term::DESC) {
-                auto datum = make_counted<const datum_t>("+" + arg(i)->as_str());
-                arr->add(new_val(datum)->as_datum());
+            if (get_src()->args(i).type() == Term::DESC) {
+                comparisons.push_back(
+                        std::make_pair(DESC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
             } else {
-                arr->add(arg(i)->as_datum());
+                comparisons.push_back(
+                        std::make_pair(ASC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
             }
         }
-        lt_cmp_t lt_cmp(counted_t<const datum_t>(arr.release()));
+        lt_cmp_t lt_cmp(comparisons);
         // We can't have datum_stream_t::sort because templates suck.
 
         counted_t<table_t> tbl;

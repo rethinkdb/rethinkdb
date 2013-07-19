@@ -60,13 +60,14 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
+    datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
 
     // These construct a datum from an equivalent representation.
     datum_t();
-    datum_t(const Datum *d);
+    explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
-    datum_t(cJSON *json);
-    datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(cJSON *json);
+    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
 
     ~datum_t();
 
