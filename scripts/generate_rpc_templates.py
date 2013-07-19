@@ -28,14 +28,12 @@ def generate_async_message_template(nargs):
     print
     print "template<%s>" % csep("class arg#_t")
     print "class %s {" % mailbox_t_str
-    print "    class fun_runner_t;"
     print "    class write_impl_t : public mailbox_write_callback_t {"
     if nargs == 0:
         print "    public:"
         print "        write_impl_t() { }"
     else:
         print "    private:"
-        print "        friend class fun_runner_t;"
         for i in xrange(nargs):
             print "        const arg%d_t &arg%d;" % (i, i)
         print "    public:"
@@ -54,45 +52,18 @@ def generate_async_message_template(nargs):
     print "        }"
     print "    };"
     print
-    print "    class fun_runner_t {"
-    print "    public:"
-    print "        fun_runner_t(%s *_parent," % mailbox_t_str
-    print "                     int _thread_id,"
-    print "                     %sread_stream_t *stream) :" % ("UNUSED " if nargs == 0 else "")
-    print "            parent(_parent), thread_id(_thread_id) {"
-    for i in xrange(nargs):
-        print "            %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
-        print "            if (res) { throw fake_archive_exc_t(); }"
-    print "        }"
-    print
-    print "        void run() {"
-    print "            scoped_ptr_t<fun_runner_t> self_deleter(this);"
-    print "            // Save these on the stack in case the mailbox is deleted during thread switch"
-    print "            mailbox_manager_t *manager = parent->mailbox.get_manager();"
-    print "            uint64_t mbox_id = parent->mailbox.get_id();"
-    print "            on_thread_t rethreader(thread_id);"
-    print "            if (!manager->check_existence(mbox_id)) {"
-    print "                return;"
-    print "            }"
-    print "            parent->fun(%s);" % csep("arg#")
-    print "        }"
-    print
-    print "        %s *parent;" % mailbox_t_str
-    print "        int thread_id;"
-    for i in xrange(nargs):
-        print "        arg%d_t arg%d;" % (i, i)
-    print "    };"
-    print
     print "    class read_impl_t : public mailbox_read_callback_t {"
     print "    public:"
     print "        explicit read_impl_t(%s *_parent) : parent(_parent) { }" % mailbox_t_str
     if nargs == 0:
-        print "        void read(UNUSED read_stream_t *stream, int thread_id) {"
+        print "        void read(UNUSED read_stream_t *stream) {"
     else:
-        print "        void read(read_stream_t *stream, int thread_id) {"
-    print "            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);"
-    print "            coro_t::spawn_now_dangerously(boost::bind(&%s::fun_runner_t::run," % mailbox_t_str
-    print "                                                      runner));"
+        print "        void read(read_stream_t *stream) {"
+    for i in xrange(nargs):
+        print "            arg%d_t arg%d;" % (i, i)
+        print "            %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
+        print "            if (res) { throw fake_archive_exc_t(); }"
+    print "            parent->fun(%s);" % csep("arg#")
     print "        }"
     print "    private:"
     print "        %s *parent;" % mailbox_t_str
@@ -162,11 +133,11 @@ if __name__ == "__main__":
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print
-    print "/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` "
-    print "constructor, it will spawn the callback in a new coroutine. If you "
-    print "`mailbox_callback_mode_inline`, it will call the callback inline "
-    print "and the callback must not block. The former is the default for "
-    print "historical reasons, but the latter is better. Eventually the former "
+    print "/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t`"
+    print "constructor, it will spawn the callback in a new coroutine. If you"
+    print "`mailbox_callback_mode_inline`, it will call the callback inline"
+    print "and the callback must not block. The former is the default for"
+    print "historical reasons, but the latter is better. Eventually the former"
     print "will go away. */"
     print "enum mailbox_callback_mode_t {"
     print "    mailbox_callback_mode_coroutine,"

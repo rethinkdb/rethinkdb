@@ -86,7 +86,6 @@ private:
 
 template<>
 class mailbox_t< void() > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     public:
         write_impl_t() { }
@@ -97,38 +96,11 @@ class mailbox_t< void() > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void() > *_parent,
-                     int _thread_id,
-                     UNUSED read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun();
-        }
-
-        mailbox_t< void() > *parent;
-        int thread_id;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void() > *_parent) : parent(_parent) { }
-        void read(UNUSED read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void() >::fun_runner_t::run,
-                                                      runner));
+        void read(UNUSED read_stream_t *stream) {
+            parent->fun();
         }
     private:
         mailbox_t< void() > *parent;
@@ -169,10 +141,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t>
 class mailbox_t< void(arg0_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
     public:
         explicit write_impl_t(const arg0_t& _arg0) :
@@ -186,41 +156,14 @@ class mailbox_t< void(arg0_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0);
-        }
-
-        mailbox_t< void(arg0_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0);
         }
     private:
         mailbox_t< void(arg0_t) > *parent;
@@ -263,10 +206,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t>
 class mailbox_t< void(arg0_t, arg1_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
     public:
@@ -282,44 +223,17 @@ class mailbox_t< void(arg0_t, arg1_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t) > *parent;
@@ -362,10 +276,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -383,47 +295,20 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t) > *parent;
@@ -466,10 +351,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -489,50 +372,23 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > *parent;
@@ -575,10 +431,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -600,53 +454,26 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > *parent;
@@ -689,10 +516,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -716,56 +541,29 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > *parent;
@@ -808,10 +606,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -837,59 +633,32 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > *parent;
@@ -932,10 +701,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -963,62 +730,35 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > *parent;
@@ -1061,10 +801,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1094,65 +832,38 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > *parent;
@@ -1195,10 +906,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1230,68 +939,41 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
+            res = deserialize(stream, &arg9);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > *parent;
@@ -1334,10 +1016,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1371,71 +1051,44 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
+            res = deserialize(stream, &arg9);
+            if (res) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
+            res = deserialize(stream, &arg10);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > *parent;
@@ -1478,10 +1131,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1517,74 +1168,47 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
+            res = deserialize(stream, &arg9);
+            if (res) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
+            res = deserialize(stream, &arg10);
+            if (res) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
+            res = deserialize(stream, &arg11);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > *parent;
@@ -1627,10 +1251,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1668,77 +1290,50 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
-        arg12_t arg12;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
+            res = deserialize(stream, &arg9);
+            if (res) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
+            res = deserialize(stream, &arg10);
+            if (res) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
+            res = deserialize(stream, &arg11);
+            if (res) { throw fake_archive_exc_t(); }
+            arg12_t arg12;
+            res = deserialize(stream, &arg12);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > *parent;
@@ -1781,10 +1376,8 @@ void send(mailbox_manager_t *src,
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
-    class fun_runner_t;
     class write_impl_t : public mailbox_write_callback_t {
     private:
-        friend class fun_runner_t;
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
@@ -1824,80 +1417,53 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
         }
     };
 
-    class fun_runner_t {
-    public:
-        fun_runner_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent,
-                     int _thread_id,
-                     read_stream_t *stream) :
-            parent(_parent), thread_id(_thread_id) {
-            int res = deserialize(stream, &arg0);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg1);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg2);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg3);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg4);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg5);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg6);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg7);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg8);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg9);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg10);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg11);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg12);
-            if (res) { throw fake_archive_exc_t(); }
-            res = deserialize(stream, &arg13);
-            if (res) { throw fake_archive_exc_t(); }
-        }
-
-        void run() {
-            scoped_ptr_t<fun_runner_t> self_deleter(this);
-            // Save these on the stack in case the mailbox is deleted during thread switch
-            mailbox_manager_t *manager = parent->mailbox.get_manager();
-            uint64_t mbox_id = parent->mailbox.get_id();
-            on_thread_t rethreader(thread_id);
-            if (!manager->check_existence(mbox_id)) {
-                debugf("mailbox has been destroyed, abandoning message\n");
-                return;
-            }
-            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
-        }
-
-        mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;
-        int thread_id;
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
-        arg9_t arg9;
-        arg10_t arg10;
-        arg11_t arg11;
-        arg12_t arg12;
-        arg13_t arg13;
-    };
-
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
-            fun_runner_t *runner = new fun_runner_t(parent, thread_id, stream);
-            coro_t::spawn_now_dangerously(boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::fun_runner_t::run,
-                                                      runner));
+        void read(read_stream_t *stream) {
+            arg0_t arg0;
+            int res = deserialize(stream, &arg0);
+            if (res) { throw fake_archive_exc_t(); }
+            arg1_t arg1;
+            res = deserialize(stream, &arg1);
+            if (res) { throw fake_archive_exc_t(); }
+            arg2_t arg2;
+            res = deserialize(stream, &arg2);
+            if (res) { throw fake_archive_exc_t(); }
+            arg3_t arg3;
+            res = deserialize(stream, &arg3);
+            if (res) { throw fake_archive_exc_t(); }
+            arg4_t arg4;
+            res = deserialize(stream, &arg4);
+            if (res) { throw fake_archive_exc_t(); }
+            arg5_t arg5;
+            res = deserialize(stream, &arg5);
+            if (res) { throw fake_archive_exc_t(); }
+            arg6_t arg6;
+            res = deserialize(stream, &arg6);
+            if (res) { throw fake_archive_exc_t(); }
+            arg7_t arg7;
+            res = deserialize(stream, &arg7);
+            if (res) { throw fake_archive_exc_t(); }
+            arg8_t arg8;
+            res = deserialize(stream, &arg8);
+            if (res) { throw fake_archive_exc_t(); }
+            arg9_t arg9;
+            res = deserialize(stream, &arg9);
+            if (res) { throw fake_archive_exc_t(); }
+            arg10_t arg10;
+            res = deserialize(stream, &arg10);
+            if (res) { throw fake_archive_exc_t(); }
+            arg11_t arg11;
+            res = deserialize(stream, &arg11);
+            if (res) { throw fake_archive_exc_t(); }
+            arg12_t arg12;
+            res = deserialize(stream, &arg12);
+            if (res) { throw fake_archive_exc_t(); }
+            arg13_t arg13;
+            res = deserialize(stream, &arg13);
+            if (res) { throw fake_archive_exc_t(); }
+            parent->fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
         }
     private:
         mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > *parent;

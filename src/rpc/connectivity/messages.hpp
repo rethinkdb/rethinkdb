@@ -4,8 +4,9 @@
 
 class connectivity_service_t;
 class peer_id_t;
-class read_stream_t;
 class write_stream_t;
+
+#include "containers/archive/string_stream.hpp"
 
 namespace boost {
 template <class> class function;
@@ -62,7 +63,7 @@ protected:
 
 class message_handler_t {
 public:
-    virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
+    virtual void on_message(peer_id_t source_peer, string_read_stream_t *) = 0;
 protected:
     virtual ~message_handler_t() { }
 };

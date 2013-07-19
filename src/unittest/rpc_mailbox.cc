@@ -36,14 +36,11 @@ private:
     class read_impl_t : public mailbox_read_callback_t {
     public:
         explicit read_impl_t(dummy_mailbox_t *_parent) : parent(_parent) { }
-        void read(read_stream_t *stream, int thread_id) {
+        void read(read_stream_t *stream) {
             int i;
             int res = deserialize(stream, &i);
             if (res) { throw fake_archive_exc_t(); }
-            coro_t::spawn_now_dangerously(boost::bind(&dummy_mailbox_t::do_fun,
-                                                      parent,
-                                                      i,
-                                                      thread_id));
+            parent->inbox.insert(i);
         }
     private:
         dummy_mailbox_t *parent;
@@ -52,16 +49,6 @@ private:
     read_impl_t reader;
 public:
     friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, int);
-
-    void do_fun(int i, int thread_id) {
-        mailbox_manager_t *manager = mailbox.get_manager();
-        raw_mailbox_t::id_t mbox_id = mailbox.get_id();
-        on_thread_t rethreader(thread_id);
-        if (!manager->check_existence(mbox_id)) {
-            return;
-        }
-        inbox.insert(i);
-    }
 
     explicit dummy_mailbox_t(mailbox_manager_t *m) :
         reader(this), mailbox(m, &reader)
