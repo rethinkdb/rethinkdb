@@ -4,9 +4,18 @@ permalink: wait/
 ---
 <script>
     setTimeout(function(){
-        document.location.href = "/";
-    }, 5000)
+        document.getElementById('last-step').className = "complete";
+        setTimeout(function() {
+            document.location.href = "/";
+        }, 1000);
+    }, 4000);
 </script>
 <div class="section">
+    <div class="steps">
+        <p class="complete">Create a self-signed certificate</p>
+        <p class="complete">Choose a password for the AMI</p>
+        <p id="last-step" class="step-three">Initialize the AMI</p> 
+    </div>
+    <div class="step-content">
     <p id="waiting">Initializing instance, please wait...</p>
 </div>
