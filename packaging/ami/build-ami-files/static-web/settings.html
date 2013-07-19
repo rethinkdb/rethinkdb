@@ -3,9 +3,9 @@ layout: ami
 permalink: settings/
 ---
 <div class="section">
-    <h2 class="title">Setting up a RethinkDB AMI: Choose a password</h2>
+    <h2 class="title">Choose an AMI password</h2>
     <form name="form" method="POST" action="/action/set_password" onsubmit="return validate()">
-        <p>To initialize the AMI, please chose a password. This password will be used to access the web UI and as an authentication key for client drivers.</p>
+        <p>Please chose a password to initialize the AMI. This password will be used to access the web UI and as an authentication key for client drivers.</p>
         <p><label for="password">Chose a password:</label> <input type="password" name="password" id="password" /></p>
         <p><label for="password2">Repeat password:</label> <input type="password" name="password2" id="password2" /></p>
         <p>If you want this instance to connect to an existing cluster, enter one or more host:port values here, separated by spaces. Otherwise leave this field blank.</p>
