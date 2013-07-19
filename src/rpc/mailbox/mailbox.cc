@@ -88,11 +88,6 @@ mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
     message_service(ms)
     { }
 
-bool mailbox_manager_t::check_existence(raw_mailbox_t::id_t id) {
-    raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(id);
-    return mbox != NULL;
-}
-
 mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
     next_mailbox_id = (UINT64_MAX / get_num_threads()) * get_thread_id();
 }

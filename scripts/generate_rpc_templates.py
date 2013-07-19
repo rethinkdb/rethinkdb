@@ -75,9 +75,8 @@ def generate_async_message_template(nargs):
     print "    typedef mailbox_addr_t< void(%s) > address_t;" % csep("arg#_t")
     print
     print "    mailbox_t(mailbox_manager_t *manager,"
-    print "              const boost::function< void(%s)> &f," % csep("arg#_t")
-    print "              mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :"
-    print "        reader(this), fun(f), callback_mode(cbm), mailbox(manager, &reader)"
+    print "              const boost::function< void(%s)> &f) :" % csep("arg#_t")
+    print "        reader(this), fun(f), mailbox(manager, &reader)"
     print "        { }"
     print
     print "    address_t get_address() const {"
@@ -95,7 +94,6 @@ def generate_async_message_template(nargs):
         print "                     typename mailbox_t< void(%s) >::address_t%s);" % (csep("a#_t"), cpre("const a#_t&"))
     print
     print "    boost::function< void(%s) > fun;" % csep("arg#_t")
-    print "    mailbox_callback_mode_t callback_mode;"
     print "    raw_mailbox_t mailbox;"
     print "};"
     print
@@ -132,17 +130,6 @@ if __name__ == "__main__":
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
-    print
-    print "/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t`"
-    print "constructor, it will spawn the callback in a new coroutine. If you"
-    print "`mailbox_callback_mode_inline`, it will call the callback inline"
-    print "and the callback must not block. The former is the default for"
-    print "historical reasons, but the latter is better. Eventually the former"
-    print "will go away. */"
-    print "enum mailbox_callback_mode_t {"
-    print "    mailbox_callback_mode_coroutine,"
-    print "    mailbox_callback_mode_inline"
-    print "};"
     print
     print "template <class> class mailbox_t;"
     print

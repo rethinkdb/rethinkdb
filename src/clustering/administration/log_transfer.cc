@@ -44,8 +44,7 @@ std::vector<log_message_t> fetch_log_file(
     promise_t<boost::variant<std::vector<log_message_t>, std::string> > promise;
     log_server_business_card_t::result_mailbox_t reply_mailbox(
         mm,
-        boost::bind(&promise_t<boost::variant<std::vector<log_message_t>, std::string> >::pulse, &promise, _1),
-        mailbox_callback_mode_inline);
+        boost::bind(&promise_t<boost::variant<std::vector<log_message_t>, std::string> >::pulse, &promise, _1));
     disconnect_watcher_t dw(mm->get_connectivity_service(), bcard.address.get_peer());
     send(mm, bcard.address, max_lines, min_timestamp, max_timestamp, reply_mailbox.get_address());
     wait_any_t waiter(promise.get_ready_signal(), &dw);

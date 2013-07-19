@@ -112,8 +112,6 @@ public:
         return message_service->get_connectivity_service();
     }
 
-    bool check_existence(raw_mailbox_t::id_t id);
-
 private:
     friend struct raw_mailbox_t;
     friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
