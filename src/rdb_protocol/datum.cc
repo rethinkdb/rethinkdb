@@ -19,7 +19,7 @@ const char* const datum_t::reql_type_string = "__type__";
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
-datum_t::datum_t(type_t _type, std::string _reql_type) 
+datum_t::datum_t(type_t _type, std::string _reql_type)
     : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
     r_sanity_check(_type == R_OBJECT);
     r_object->insert(std::make_pair(std::string(reql_type_string),
@@ -42,7 +42,7 @@ datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
-    maybe_make_pseudo();
+    maybe_check_pseudo();
 }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -141,7 +141,7 @@ void datum_t::init_json(cJSON *json) {
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
-        maybe_make_pseudo();
+        maybe_check_pseudo();
     } break;
     default: unreachable();
     }
@@ -166,12 +166,12 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
 
 datum_t::type_t datum_t::get_type() const { return type; }
 
-bool datum_t::is_pseudo_type() const {
+bool datum_t::is_pseudotype() const {
     return type == R_OBJECT && std_contains(*r_object, reql_type_string);
 }
 
-bool datum_t::is_pseudo_type(const std::string &reql_type) const {
-    return is_pseudo_type() && get_reql_type() == reql_type;
+bool datum_t::is_pseudotype(const std::string &reql_type) const {
+    return is_pseudotype() && get_reql_type() == reql_type;
 }
 
 std::string datum_t::get_reql_type() const {
@@ -196,8 +196,8 @@ std::string raw_type_name(datum_t::type_t type) {
 }
 
 std::string datum_t::get_type_name() const {
-    if (is_pseudo_type()) {
-        return "PSEUDO_TYPE(" + get_reql_type() + ")";
+    if (is_pseudotype()) {
+        return "PSEUDOTYPE(" + get_reql_type() + ")";
     } else {
         return raw_type_name(type);
     }
@@ -292,6 +292,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
+    r_sanity_check(is_pseudotype());
     if (get_reql_type() == pseudo::time_string) {
         return pseudo::time_cmp(*this, rhs);
     }
@@ -300,6 +301,7 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
 }
 
 void datum_t::rcheck_pseudo_valid() const {
+    r_sanity_check(is_pseudotype());
     if (get_reql_type() == pseudo::time_string) {
         rcheck(pseudo::time_valid(*this), base_exc_t::GENERIC,
                strprintf("Invalid time object constructed:\n%s", trunc_print().c_str()));
@@ -540,7 +542,7 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
 datum_t::add_txn_t::add_txn_t(const datum_t *_parent) : parent(_parent) { }
 
 datum_t::add_txn_t::~add_txn_t() {
-    parent->rcheck_pseudo_valid();
+    parent->maybe_check_pseudo();
 }
 
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
@@ -600,8 +602,8 @@ datum_t::as_datum_stream(env_t *env,
     unreachable();
 };
 
-void datum_t::maybe_make_pseudo() {
-    if (get_type() == R_OBJECT && std_contains(*r_object, reql_type_string)) {
+void datum_t::maybe_check_pseudo() const {
+    if (is_pseudotype()) {
         rcheck_pseudo_valid();
     }
 }
@@ -621,7 +623,7 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
     if (txn == NULL) {
-        rcheck_pseudo_valid();
+        maybe_check_pseudo();
     }
     return key_in_obj;
 }
@@ -687,7 +689,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        if (is_pseudo_type()) {
+        if (is_pseudotype()) {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
@@ -774,7 +776,7 @@ void datum_t::init_from_pb(const Datum *d) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
-        maybe_make_pseudo();
+        maybe_check_pseudo();
     } break;
     default: unreachable();
     }

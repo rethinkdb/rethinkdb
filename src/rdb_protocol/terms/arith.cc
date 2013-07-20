@@ -35,8 +35,8 @@ public:
 private:
     counted_t<const datum_t> add(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        if (lhs->is_pseudo_type(pseudo::time_string) ||
-            rhs->is_pseudo_type(pseudo::time_string)) {
+        if (lhs->is_pseudotype(pseudo::time_string) ||
+            rhs->is_pseudotype(pseudo::time_string)) {
             return pseudo::time_add(lhs, rhs);
         } else if (lhs->get_type() == datum_t::R_NUM) {
             rhs->check_type(datum_t::R_NUM);
@@ -65,7 +65,7 @@ private:
 
     counted_t<const datum_t> sub(counted_t<const datum_t> lhs,
                                  counted_t<const datum_t> rhs) {
-        if (lhs->is_pseudo_type(pseudo::time_string)) {
+        if (lhs->is_pseudotype(pseudo::time_string)) {
             return pseudo::time_sub(lhs, rhs);
         } else {
             lhs->check_type(datum_t::R_NUM);

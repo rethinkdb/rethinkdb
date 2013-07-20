@@ -44,7 +44,7 @@ tests:
     # No error
 
   - cd: tbl.get([])
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number, bool, or string (got [] of type ARRAY).", [])'
+    ot: (null)
   - cd: tbl.get(-1)
     ot: (null)
   - rb: tbl.get(1)[:id]
@@ -137,7 +137,7 @@ tests:
   - rb: tbl.get_all([], :index => :id)
     py: tbl.get_all([], index='id')
     js: tbl.getAll([], {index:'id'})
-    ot: 'err("RqlRuntimeError", "Primary keys must be either a number, bool, or string (got [] of type ARRAY).", [])'
+    ot: ([])
   - rb: tbl.get_all(true, :index => :idi)
     py: tbl.get_all(True, index='idi')
     js: tbl.getAll(true, {index:'idi'})

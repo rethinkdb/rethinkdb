@@ -254,7 +254,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<val_t> v = arg(0);
-        if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
+        if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {

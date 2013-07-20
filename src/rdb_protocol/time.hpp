@@ -9,7 +9,7 @@ namespace pseudo {
 extern const char *const time_string;
 int time_cmp(const datum_t& x, const datum_t& y);
 bool time_valid(const datum_t &time);
-counted_t<const datum_t> make_time(double epoch_time);
+counted_t<const datum_t> make_time(double epoch_time, std::string tz="");
 counted_t<const datum_t> time_add(counted_t<const datum_t> x, counted_t<const datum_t> y);
 counted_t<const datum_t> time_sub(counted_t<const datum_t> x, counted_t<const datum_t> y);
 } //namespace pseudo

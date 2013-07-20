@@ -330,8 +330,8 @@ def run(build, lang=None):
             run_tests('rb', servers)
 
 def attach(driver_port, cluster_port, rethinkdb_executable, lang='js'):
-    with RethinkDBRunningServer(driver_port, cluster_port, rethinkdb_executable) as server:
-        run_tests(lang, server)
+    server =  RethinkDBRunningServer(driver_port, cluster_port, rethinkdb_executable)
+    run_tests(lang, server)
 
 class RethinkDBRunningServer:
     def __init__(self, driver_port, cluster_port, rethinkdb_executable):
