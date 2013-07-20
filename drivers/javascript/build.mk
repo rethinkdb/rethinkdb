@@ -8,6 +8,7 @@ DRIVER_COFFEE_BUILD_DIR=$(JS_BUILD_DIR)/coffee
 PROTO_FILE_DIR := $(TOP)/src/rdb_protocol
 PROTO_BASE := ql2
 PROTO_FILE := $(PROTO_FILE_DIR)/$(PROTO_BASE).proto
+PROTO_MODULE := $(JS_BUILD_DIR)/proto-def.js
 PB_BIN_FILE := $(JS_BUILD_DIR)/$(PROTO_BASE).desc
 
 DRIVER_COFFEE_FILES := $(wildcard $(JS_SRC_DIR)/*.coffee)
@@ -18,8 +19,11 @@ JS_PKG_DIR := $(PACKAGES_DIR)/js
 $(PB_BIN_FILE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$(PROTOC) -I $(PROTO_FILE_DIR) -o $(JS_BUILD_DIR)/ql2.desc $(PROTO_FILE)
 
+$(PROTO_MODULE): $(PROTO_FILE)
+	proto2js $< -commonjs > $@
+
 # Must be synced with the list in package.json
-JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_FILE) $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
+JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_MODULE) $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
 $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/. $(COFFEE)
