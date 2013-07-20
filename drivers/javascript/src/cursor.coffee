@@ -7,6 +7,11 @@ class IterableResult
     next: -> throw "Abstract Method"
 
     each: varar(1, 2, (cb, onFinished) ->
+        unless typeof cb is 'function'
+            throw new RqlDriverError "First argument to each must be a function."
+        if onFinished? and typeof onFinished isnt 'function'
+            throw new RqlDriverError "Optional second argument to each must be a function."
+
         brk = false
         n = =>
             if not brk and @hasNext()
@@ -19,6 +24,9 @@ class IterableResult
     )
 
     toArray: ar (cb) ->
+        unless typeof cb is 'function'
+            throw new RqlDriverError "Argument to toArray must be a function."
+
         arr = []
         if not @hasNext()
             cb null, arr
@@ -107,6 +115,7 @@ class Cursor extends IterableResult
     hasNext: ar () -> !@_endFlag || @_chunks[0]?
 
     next: ar (cb) ->
+        nextCbCheck(cb)
         @_cbQueue.push cb
         @_promptNext()
 
@@ -120,7 +129,9 @@ class Cursor extends IterableResult
 # API as cursors.
 class ArrayResult extends IterableResult
     hasNext: ar () -> (@__index < @.length)
-    next: ar (cb) -> cb(null, @[@__proto__.__index++])
+    next: ar (cb) ->
+        nextCbCheck(cb)
+        cb(null, @[@__proto__.__index++])
 
     makeIterable: (response) ->
         for name, method of ArrayResult.prototype
@@ -129,3 +140,6 @@ class ArrayResult extends IterableResult
         response.__proto__.__index = 0
         response
 
+nextCbCheck = (cb) ->
+    unless typeof cb is 'function'
+        throw new RqlDriverError "Argument to next must be a function."

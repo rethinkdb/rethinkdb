@@ -49,8 +49,7 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     // In release mode, cache static web assets except index.html
     if (filename == "/index.html") {
         expires = get_secs() - 31536000; // Some time in the past (one year ago)
-    }
-    else {
+    } else {
         expires = get_secs() + 31536000; // One year from now
     }
 #endif

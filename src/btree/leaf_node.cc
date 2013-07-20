@@ -1524,14 +1524,15 @@ iterator::iterator(const leaf_node_t *node, int index)
     : node_(node), index_(index) { }
 
 std::pair<const btree_key_t *, const void *> iterator::operator*() const {
-    guarantee(index_ < int(node_->num_pairs));
+    guarantee(index_ < static_cast<int>(node_->num_pairs));
     guarantee(index_ >= 0);
     const entry_t *entree = get_entry(node_, node_->pair_offsets[index_]);
     return std::make_pair(entry_key(entree), entry_value(entree));
 }
 
 iterator &iterator::operator++() {
-    guarantee(index_ < int(node_->num_pairs), "Trying to increment past the end of an iterator.");
+    guarantee(index_ < static_cast<int>(node_->num_pairs),
+              "Trying to increment past the end of an iterator.");
     do {
         ++index_;
     } while (index_ < node_->num_pairs && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
@@ -1546,12 +1547,12 @@ iterator &iterator::operator--() {
     return *this;
 }
 
-inline bool iterator::operator==(const iterator &other) const { return cmp(other) == 0; }
-inline bool iterator::operator!=(const iterator &other) const { return cmp(other) != 0; }
-inline bool iterator::operator<(const iterator &other) const { return cmp(other) < 0; }
-inline bool iterator::operator>(const iterator &other) const { return cmp(other) > 0; }
-inline bool iterator::operator<=(const iterator &other) const { return cmp(other) <= 0; }
-inline bool iterator::operator>=(const iterator &other) const { return cmp(other) >= 0; }
+bool iterator::operator==(const iterator &other) const { return cmp(other) == 0; }
+bool iterator::operator!=(const iterator &other) const { return cmp(other) != 0; }
+bool iterator::operator<(const iterator &other) const { return cmp(other) < 0; }
+bool iterator::operator>(const iterator &other) const { return cmp(other) > 0; }
+bool iterator::operator<=(const iterator &other) const { return cmp(other) <= 0; }
+bool iterator::operator>=(const iterator &other) const { return cmp(other) >= 0; }
 
 int iterator::cmp(const iterator &other) const {
     guarantee(node_ == other.node_);

@@ -26,7 +26,8 @@ datum_t::datum_t(type_t _type, std::string _reql_type)
                                     make_counted<const datum_t>(_reql_type)));
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
-    using namespace std; // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    // so we can use `isfinite` in a GCC 4.4.3-compatible way
+    using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
@@ -489,7 +490,7 @@ void datum_t::erase_range(size_t start, size_t end) {
            base_exc_t::NON_EXISTENCE,
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      start, r_array->size()));
-    rcheck(end < r_array->size(),
+    rcheck(end <= r_array->size(),
            base_exc_t::NON_EXISTENCE,
            strprintf("Index `%zu` out of bounds for array of size: `%zu`.",
                      end, r_array->size()));
@@ -497,7 +498,7 @@ void datum_t::erase_range(size_t start, size_t end) {
            base_exc_t::GENERIC,
            strprintf("Start index `%zu` is greater than end index `%zu`.",
                       start, end));
-    r_array->erase(r_array->begin() + start, r_array->begin() + end + 1);
+    r_array->erase(r_array->begin() + start, r_array->begin() + end);
 }
 
 void datum_t::splice(size_t index, counted_t<const datum_t> values) {

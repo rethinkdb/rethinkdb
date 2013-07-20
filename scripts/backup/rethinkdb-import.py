@@ -122,6 +122,11 @@ def parse_options():
     res["clients"] = options.clients
     res["force"] = options.force
 
+    # Default behavior for csv files - may be changed by options
+    res["delimiter"] = ","
+    res["no_header"] = False
+    res["custom_header"] = None
+
     if options.directory is not None:
         # Directory mode, verify directory import options
         if options.import_file is not None:
@@ -526,8 +531,10 @@ def import_directory(options):
     dbs = False
     db_filter = set([db_table[0] for db_table in options["tables"]]) | set(options["dbs"])
     files_to_import = []
+    files_ignored = []
     for (root, dirs, files) in os.walk(options["directory"]):
         if not dbs:
+            files_ignored.extend([os.path.join(root, f) for f in files])
             # The first iteration through should be the top-level directory, which contains the db folders
             dbs = True
             if len(db_filter) > 0:
@@ -536,8 +543,18 @@ def import_directory(options):
                         del dirs[i]
         else:
             if len(dirs) != 0:
-                raise RuntimeError("unexpected child directory in db folder: %s" % root)
-            files_to_import.extend([os.path.join(root, f) for f in files if f.split(".")[-1] != "info"])
+                files_ignored.extend([os.path.join(root, d) for d in dirs])
+                del dirs[0:len(dirs)]
+            for f in files:
+                split_file = f.split(".")
+                if len(split_file) != 2 or split_file[1] not in ["json", "csv", "info"]:
+                    files_ignored.append(os.path.join(root, f))
+                elif split_file[1] == "info":
+                    pass # Info files are included based on the data files
+                elif not os.access(os.path.join(root, split_file[0] + ".info"), os.F_OK):
+                    files_ignored.append(os.path.join(root, f))
+                else:
+                    files_to_import.append(os.path.join(root, f))
 
     # For each table to import collect: file, format, db, table, info
     files_info = []
@@ -586,6 +603,14 @@ def import_directory(options):
         already_exist.sort()
         extant_tables = "\n  ".join(already_exist)
         raise RuntimeError("the following tables already exist, run with --force to import into the existing tables:\n  %s" % extant_tables)
+
+    # Warn the user about the files that were ignored
+    if len(files_ignored) > 0:
+        print >> sys.stderr, "Unexpected files found in the specified directory.  Importing a directory expects"
+        print >> sys.stderr, " a directory from `rethinkdb export`.  If you want to import individual tables"
+        print >> sys.stderr, " import them as single files.  The following files were ignored:"
+        for f in files_ignored:
+            print >> sys.stderr, "%s" % str(f)
 
     spawn_import_clients(options, files_info)
 

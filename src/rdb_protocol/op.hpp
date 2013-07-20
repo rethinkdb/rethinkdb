@@ -36,6 +36,8 @@ public:
 
     bool contains(const std::string &key) const;
 
+    optargspec_t with(std::initializer_list<const char *> args) const;
+
 private:
     void init(int num_args, const char *const *args);
     explicit optargspec_t(bool _is_make_object_val);
@@ -70,6 +72,38 @@ private:
 
     friend class make_obj_term_t; // needs special access to optargs
     std::map<std::string, counted_t<term_t> > optargs;
+};
+
+class bounded_op_term_t : public op_term_t {
+public:
+    bounded_op_term_t(env_t *env, protob_t<const Term> term,
+                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}))
+        : op_term_t(env, term, argspec,
+                    optargspec.with({"left_bound", "right_bound"})),
+          left_open_(false), right_open_(true) {
+        left_open_ = open_bool("left_bound", false);
+        right_open_ = open_bool("right_bound", true);
+    }
+    virtual ~bounded_op_term_t() { }
+protected:
+    bool left_open() { return left_open_; }
+    bool right_open() { return right_open_; }
+private:
+    bool open_bool(const std::string &key, bool def/*ault*/) {
+        counted_t<val_t> v = optarg(key);
+        if (!v.has()) return def;
+        const std::string &s = v->as_str();
+        if (s == "open") {
+            return true;
+        } else if (s == "closed") {
+            return false;
+        } else {
+            rfail(base_exc_t::GENERIC,
+                  "Expected `open` or `closed` for optarg `%s` (got `%s`).",
+                  key.c_str(), v->trunc_print().c_str());
+        }
+    }
+    bool left_open_, right_open_;
 };
 
 }  // namespace ql

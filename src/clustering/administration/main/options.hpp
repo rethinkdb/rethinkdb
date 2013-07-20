@@ -207,10 +207,11 @@ void verify_option_counts(const std::vector<option_t> &options,
 std::map<std::string, values_t> default_values_map(const std::vector<option_t> &options);
 
 // Parses the file contents, using filepath solely to help build error messages, retrieving some
-// options.
+// options.  Ignore options that are in the superset, but not in the regular set.
 std::map<std::string, values_t> parse_config_file(const std::string &contents,
                                                   const std::string &filepath,
-                                                  const std::vector<option_t> &options);
+                                                  const std::vector<option_t> &options,
+                                                  const std::vector<option_t> &options_superset);
 
 // A help_line_t is a syntax description and a blurb.  When used in a help_section_t, the blurbs get
 // aligned and word-wrapped.

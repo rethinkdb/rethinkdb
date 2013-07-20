@@ -270,6 +270,22 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+
+    class sindex_range_t {
+    public:
+        sindex_range_t() { }
+        sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
+                       counted_t<const ql::datum_t> _end, bool _end_open)
+            : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
+        void write_filter_func(ql::env_t *env, Term *filter,
+                               const Term &sindex_mapping) const;
+        region_t to_region() const;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    private:
+        counted_t<const ql::datum_t> start, end;
+        bool start_open, end_open;
+      };
+
     class rget_read_t {
     public:
         rget_read_t() { }
@@ -280,55 +296,38 @@ struct rdb_protocol_t {
             : region(_region), merge_sort(_merge_sort), direction(_direction) {
         }
 
-        void init_sindexes(counted_t<const ql::datum_t> start,
-                           counted_t<const ql::datum_t> end) {
-            sindex_start_value = start;
-            sindex_end_value = end;
-        }
 
         rget_read_t(const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     bool _merge_sort = false,
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(
-                                _sindex_start_value != NULL
-                                  ? _sindex_start_value->truncated_secondary()
-                                  : store_key_t::min(),
-                                _sindex_end_value != NULL
-                                  ? _sindex_end_value->truncated_secondary()
-                                  : store_key_t::max())),
-              merge_sort(_merge_sort), direction(_direction) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sindex_range(_sindex_range),
+              sindex_region(sindex_range.to_region()),
+              merge_sort(_merge_sort), direction(_direction) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     bool _merge_sort = false,
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_range(_sindex_range),
               sindex_region(_sindex_region), merge_sort(_merge_sort),
-              direction(_direction) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              direction(_direction) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
                     bool _merge_sort = false,
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_range(_sindex_range),
               sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs),
-              merge_sort(_merge_sort), direction(_direction) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              merge_sort(_merge_sort), direction(_direction) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
@@ -369,10 +368,9 @@ struct rdb_protocol_t {
         /* The sindex from which we're reading. */
         boost::optional<std::string> sindex;
 
-        /* The actual sindex values to use for bounds, since the sindex key may
+        /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        counted_t<const ql::datum_t> sindex_start_value;
-        counted_t<const ql::datum_t> sindex_end_value;
+        sindex_range_t sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -761,6 +759,6 @@ struct range_key_tester_t : public key_tester_t {
 
     const rdb_protocol_t::region_t *delete_range;
 };
-} //namespace rdb_protocol_details 
+} //namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

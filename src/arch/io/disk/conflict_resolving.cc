@@ -6,26 +6,23 @@
 
 #include "perfmon/perfmon.hpp"
 
-template <class payload_t>
 void debug_print(printf_buffer_t *buf,
-                 const conflict_resolving_diskmgr_action_t<payload_t> &action) {
+                 const conflict_resolving_diskmgr_action_t &action) {
     buf->appendf("cr_diskmgr_action{conflict_count=%d}<", action.conflict_count);
-    const payload_t &parent_action = action;
+    const accounting_diskmgr_action_t &parent_action = action;
     debug_print(buf, parent_action);
 }
 
 
-template<class payload_t>
-conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
+conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
     conflict_sampler(secs_to_ticks(1), true),
     conflict_sampler_membership(stats, &conflict_sampler, "conflict")
 { }
 
-template<class payload_t>
-conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
+conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
 
     /* Make sure there are no requests still out. */
-    for (typename std::map<fd_t, std::map<int, std::deque<action_t *> > >::iterator
+    for (std::map<fd_t, std::map<int64_t, std::deque<action_t *> > >::iterator
              fd_t_chunk_queues = all_chunk_queues.begin();
          fd_t_chunk_queues != all_chunk_queues.end();
          ++fd_t_chunk_queues) {
@@ -33,11 +30,11 @@ conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
     }
 }
 
-template<class payload_t>
-void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
-    std::map<int, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
+void conflict_resolving_diskmgr_t::submit(action_t *action) {
+    std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
     /* Determine the range of file-blocks that this action spans */
-    int start, end;
+    int64_t start;
+    int64_t end;
     get_range(action, &start, &end);
 
     /* If this is a read, we check whether there is a write from which we
@@ -61,13 +58,13 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
         action_t *latest_write = NULL;
 
-        typename std::map<int, std::deque<action_t*> >::iterator it;
+        std::map<int64_t, std::deque<action_t*> >::iterator it;
         it = chunk_queues->find(start);
         if (it != chunk_queues->end()) {
-            std::deque<action_t*> &queue = it->second;
+            std::deque<action_t *> &queue = it->second;
 
             /* Locate the latest write on the queue */
-            typename std::deque<action_t*>::reverse_iterator qrit;
+            std::deque<action_t *>::reverse_iterator qrit;
             for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
                 if ((*qrit)->get_is_write()) {
                     /* We found it! Check if it's of any use to us...
@@ -87,14 +84,13 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
         /* Now check that latest_write is also latest for all other chunks.
         Keep on validating as long as we have a latest_write candidate. */
-        for (int block = start; latest_write && block < end; block++) {
-
+        for (int64_t block = start; latest_write && block < end; block++) {
             it = chunk_queues->find(start);
             rassert(it != chunk_queues->end()); // Note: At least latest_write should be there!
-            std::deque<action_t*> &queue = it->second;
+            std::deque<action_t *> &queue = it->second;
 
             /* Locate the latest write on the queue */
-            typename std::deque<action_t*>::reverse_iterator qrit;
+            std::deque<action_t *>::reverse_iterator qrit;
             for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
                 if ((*qrit)->get_is_write()) {
 
@@ -126,9 +122,8 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
     /* Determine if there are conflicts and put ourself on the queues */
     action->conflict_count = 0;
-    for (int block = start; block < end; block++) {
-
-        typename std::map<int, std::deque<action_t*> >::iterator it;
+    for (int64_t block = start; block < end; block++) {
+        std::map<int64_t, std::deque<action_t*> >::iterator it;
         it = chunk_queues->find(block);
 
         if (it != chunk_queues->end()) {
@@ -139,7 +134,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         /* Put ourself on the queue for this chunk */
         if (it == chunk_queues->end()) {
             /* Start a queue because there isn't one already */
-            it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t*>()));
+            it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t *>()));
         }
         rassert(it->first == block);
         it->second.push_back(action);
@@ -147,7 +142,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
     /* If there are no conflicts, we can start right away. */
     if (action->conflict_count == 0) {
-        payload_t *payload = action;
+        accounting_diskmgr_action_t *payload = action;
         submit_fun(payload);
     } else {
         // TODO: Refine the perfmon such that it measures the actual time that ops spend
@@ -156,26 +151,24 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
     }
 }
 
-template<class payload_t>
-void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
+void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
     /* The only payloads we get back via done() should be payloads that we sent into
     submit_fun(), which means they should actually be action_t objects secretly. */
     action_t *action = static_cast<action_t *>(payload);
-    std::map<int, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
+    std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
 
-    int start, end;
+    int64_t start, end;
     get_range(action, &start, &end);
 
     /* Visit every block and see if anything is blocking on us. As we iterate
     over block indices, we iterate through the corresponding entries in the map. */
 
-    typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
-    for (int block = start; block < end; block++) {
-
+    std::map<int64_t, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
+    for (int64_t block = start; block < end; block++) {
         /* We can assert this because at lest we must still be on the queue */
         rassert(it != chunk_queues->end() && it->first == block);
 
-        std::deque<action_t*> &queue = it->second;
+        std::deque<action_t *> &queue = it->second;
 
         /* Remove ourselves from the queue */
         rassert(queue.front() == action);
@@ -222,7 +215,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
 
                 } else {
                     /* The shortcut didn't work out; do things the normal way */
-                    payload_t *waiter_payload = waiter;
+                    accounting_diskmgr_action_t *waiter_payload = waiter;
                     submit_fun(waiter_payload);
                 }
             }

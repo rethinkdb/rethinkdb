@@ -1,18 +1,33 @@
 import subprocess
 import urllib2
 
-def application(e, r):
-  if e['PATH_INFO'] == '/set_password':
-      q = {}
-      for x in e['wsgi.input'].read(int(e['CONTENT_LENGTH'])).split('&', 1):
-          a = x.split('=',1)
-          if len(a) == 2:
-              q[a[0]] = urllib2.unquote(a[1])
-      if not q.has_key('password'):
-          r('302 Redirect', [('Location', '/')])
+# This web application gets launched by firstrun-init
+# The form in settings.html posts to /action/set_password
+# This application then launches firstrun.sh with the given parameters
+
+def application(env, reply):
+  if env['PATH_INFO'] == '/action/set_password':
+
+      # Parse the query string from the POST data
+      query = {}
+      post_data = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
+      for elem in post_data.split('&'):
+          pair = elem.split('=',1)
+          if len(pair) == 2:
+              query[pair[0]] = urllib2.unquote(pair[1])
+
+      if not query.has_key('password'):
+          reply('302 Redirect', [('Location', '/settings.html')])
           return []
-      subprocess.call(['bash', '-c', 'nohup bash firstrun.sh "$0" &', q['password']])
-      r('200 OK', [('Content-Type', 'text/html')])
-      return [file('wait.html').read()]
-  r('200 OK', [('Content-Type', 'text/html')])
-  return [file('index.html').read()]
+
+      # Launch firstrun.sh
+      # bash -c is invoked in this contorted way to background the process
+      subprocess.call(['bash', '-c', 'sleep 2; nohup bash firstrun.sh "$1" "$2" &','-',
+                       query['password'],
+                       query.get('join','')])
+
+      reply('302 Redirect', [('Location', '/wait.html')])
+      return []
+
+  reply('404 Not Found', [])
+  return ["404 Not Found ", env['PATH_INFO']]

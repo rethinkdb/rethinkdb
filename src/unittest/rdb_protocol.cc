@@ -72,11 +72,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
 
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
     rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
@@ -238,9 +238,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -274,9 +274,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
+
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -393,9 +394,9 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::rget_read_t rget(sindex_id,
-                                                 sindex_key_literal,
-                                                 sindex_key_literal);
+                rdb_protocol_t::rget_read_t rget(
+                    sindex_id, rdb_protocol_t::sindex_range_t(
+                        sindex_key_literal, false, sindex_key_literal, false));
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 

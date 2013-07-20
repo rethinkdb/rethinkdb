@@ -27,6 +27,6 @@ tests:
          t
         )
       ).orderby(:group)
-    ot: [{"group":[0], "reduction":4}, {"group":[1], "reduction":2}]
+    ot: [{"group":{"a":0}, "reduction":4}, {"group":{"a":1}, "reduction":2}]
 
   - cd: r.db('test').table_drop('733')

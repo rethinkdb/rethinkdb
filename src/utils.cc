@@ -708,7 +708,6 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-
 // The last thread is a service thread that runs an connection acceptor, a log writer, and possibly
 // similar services, and does not run any db code (caches, serializers, etc). The reasoning is that
 // when the acceptor (and possibly other utils) get placed on an event queue with the db code, the
@@ -720,11 +719,13 @@ int get_num_db_threads() {
 
 int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
-    nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
+    if (res != 0) {
+        throw remove_directory_exc_t(path, errno);
+    }
     return 0;
 }
 
-void remove_directory_recursive(const char *path) {
+void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t) {
     // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
     // depth) and used by Linux to limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper than that).

@@ -367,3 +367,7 @@ build-clean:
 	$P RM $(BUILD_ROOT_DIR)
 	rm -rf $(BUILD_ROOT_DIR)
 
+# For emacs' flymake-mode
+.PHONY: check-syntax
+check-syntax:
+	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
