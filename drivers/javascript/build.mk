@@ -19,7 +19,7 @@ $(PB_BIN_FILE): $(PROTO_FILE) | $(JS_BUILD_DIR)/.
 	$(PROTOC) -I $(PROTO_FILE_DIR) -o $(JS_BUILD_DIR)/ql2.desc $(PROTO_FILE)
 
 # Must be synced with the list in package.json
-JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
+JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_FILE) $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
 $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/. $(COFFEE)
@@ -48,10 +48,12 @@ js-driver: js-dist
 	$P NPM INSTALL $(JS_PKG_DIR)
 	#TODO This currently won't run without erroring because it recursively calls make
 	# which results in a make error
-	#npm install $(JS_PKG_DIR)
+	npm install $(JS_PKG_DIR)
 
-$(JS_BUILD_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/.
-	echo "throw new Error('Web version of JS driver not available');" > $(JS_BUILD_DIR)/rethinkdb.js
+$(JS_BUILD_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/. js-driver
+	#echo "throw new Error('Web version of JS driver not available');" > $(JS_BUILD_DIR)/rethinkdb.js
+	$P BROWSERIFY
+	browserify --require rethinkdb --outfile $@
 
 .PHONY: all
 all: js-driver

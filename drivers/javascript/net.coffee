@@ -14,22 +14,25 @@ varar = util.varar
 aropt = util.aropt
 
 deconstructDatum = (datum) ->
-    switch datum.type
-        when "R_NULL"
+    pb.DatumTypeSwitch(datum, {
+        "R_NULL": =>
             null
-        when "R_BOOL"
+       ,"R_BOOL": =>
             datum.r_bool
-        when "R_NUM"
+       ,"R_NUM": =>
             datum.r_num
-        when "R_STR"
+       ,"R_STR": =>
             datum.r_str
-        when "R_ARRAY"
+       ,"R_ARRAY": =>
             deconstructDatum dt for dt in datum.r_array
-        when "R_OBJECT"
+       ,"R_OBJECT": =>
             obj = {}
             for pair in datum.r_object
                 obj[pair.key] = deconstructDatum(pair.val)
             obj
+        },
+            => throw new err.RqlDriverError "Unknown Datum type"
+        )
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -81,8 +84,8 @@ class Connection extends events.EventEmitter
             unless @buffer.byteLength >= (4 + responseLength)
                 break
 
-            responseArray = new Uint8Array @buffer, 4, responseLength
-            response = pb.ParseResponse(responseArray)
+            responseBuffer = @buffer.slice(4, responseLength + 4)
+            response = pb.ParseResponse(responseBuffer)
             @_processResponse response
 
             # For some reason, Arraybuffer.slice is not in my version of node
@@ -113,39 +116,44 @@ class Connection extends events.EventEmitter
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
             if cursor?
-                if response.type is "SUCCESS_PARTIAL"
-                    cursor._addData mkSeq response
-                else if response.type is "SUCCESS_SEQUENCE"
-                    cursor._endData mkSeq response
-                    @_delQuery(token)
+                pb.ResponseTypeSwitch(response, {
+                     "SUCCESS_PARTIAL": =>
+                        cursor._addData mkSeq response
+                    ,"SUCCESS_SEQUENCE": =>
+                        cursor._endData mkSeq response
+                        @_delQuery(token)
+                },
+                    => cb new err.RqlDriverError "Unknown response type"
+                )
             else if cb?
                 # Behavior varies considerably based on response type
-                switch response.type
-                    when "COMPILE_ERROR"
+                pb.ResponseTypeSwitch(response, {
+                    "COMPILE_ERROR": =>
                         cb mkErr(err.RqlCompileError, response, root)
                         @_delQuery(token)
-                    when "CLIENT_ERROR"
+                   ,"CLIENT_ERROR": =>
                         cb mkErr(err.RqlClientError, response, root)
                         @_delQuery(token)
-                    when "RUNTIME_ERROR"
+                   ,"RUNTIME_ERROR": =>
                         cb mkErr(err.RqlRuntimeError, response, root)
                         @_delQuery(token)
-                    when "SUCCESS_ATOM"
+                   ,"SUCCESS_ATOM": =>
                         response = mkAtom response
                         if Array.isArray response
                             response = cursors.makeIterable response
                         cb null, response
                         @_delQuery(token)
-                    when "SUCCESS_PARTIAL"
+                   ,"SUCCESS_PARTIAL": =>
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
                         cb null, cursor._addData(mkSeq response)
-                    when "SUCCESS_SEQUENCE"
+                   ,"SUCCESS_SEQUENCE": =>
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
                         cb null, cursor._endData(mkSeq response)
-                    else
-                        cb new err.RqlDriverError "Unknown response type"
+                },
+                    => cb new err.RqlDriverError "Unknown response type"
+                )
 
     close: ar () ->
         @open = false
@@ -228,7 +236,7 @@ class Connection extends events.EventEmitter
         @write finalArray.buffer
 
 class TcpConnection extends Connection
-    @isAvailable: () -> true
+    @isAvailable: () -> !(process.browser)
 
     constructor: (host, callback) ->
         unless TcpConnection.isAvailable()
