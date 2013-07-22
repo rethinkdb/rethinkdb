@@ -368,6 +368,8 @@ module 'DataExplorerView', ->
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
+            @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
+
             # Load options from local storage
             if window.localStorage?.options?
                 @options = JSON.parse window.localStorage.options
@@ -2344,8 +2346,7 @@ module 'DataExplorerView', ->
                     return false
 
                 @index++
-
-                if rdb_query instanceof TermBase
+                if rdb_query instanceof @TermBaseConstructor
                     @skip_value = 0
                     @start_time = new Date()
                     @current_results = []
@@ -2744,6 +2745,7 @@ module 'DataExplorerView', ->
 
             @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
 
         set_limit: (limit) =>
             @limit = limit
@@ -3483,10 +3485,11 @@ module 'DataExplorerView', ->
         
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
-            if not TermBase.prototype.private_run?
+            TermBase = r.expr(1).constructor.__super__.constructor.__super__
+            if not TermBase.private_run?
                 that = @
-                TermBase.prototype.private_run = TermBase.prototype.run
-                TermBase.prototype.run = ->
+                TermBase.private_run = TermBase.run
+                TermBase.run = ->
                     throw that.query_error_template
                         found_run: true
 
