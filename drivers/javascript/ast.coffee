@@ -161,6 +161,46 @@ class RDBVal extends TermBase
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
 
+    # Database operations
+
+    tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
+    tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
+    tableList: ar(-> new TableList {}, @)
+
+    table: aropt (tblName, opts) -> new Table opts, @, tblName
+
+    # Table operations
+
+    get: ar (key) -> new Get {}, @, key
+
+    getAll: (keysAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        keys = keysAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
+        if perhapsOptDict and
+                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+            opts = perhapsOptDict
+            keys = keysAndOpts[0...(keysAndOpts.length - 1)]
+
+        new GetAll opts, @, keys...
+
+    # For this function only use `exprJSON` rather than letting it default to regular
+    # `expr`. This will attempt to serialize as much of the document as JSON as possible.
+    # This behavior can be manually overridden with either direct JSON serialization
+    # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
+    insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
+    indexCreate: varar(1, 2, (name, defun) ->
+        if defun?
+            new IndexCreate {}, @, name, funcWrap(defun)
+        else
+            new IndexCreate {}, @, name
+        )
+    indexDrop: ar (name) -> new IndexDrop {}, @, name
+    indexList: ar () -> new IndexList {}, @
+
 class DatumTerm extends RDBVal
     args: []
     optargs: {}
@@ -315,45 +355,9 @@ class Db extends RDBOp
     tt: "DB"
     st: 'db'
 
-    tableCreate: aropt (tblName, opts) -> new TableCreate opts, @, tblName
-    tableDrop: ar (tblName) -> new TableDrop {}, @, tblName
-    tableList: ar(-> new TableList {}, @)
-
-    table: aropt (tblName, opts) -> new Table opts, @, tblName
-
 class Table extends RDBOp
     tt: "TABLE"
     st: 'table'
-
-    get: ar (key) -> new Get {}, @, key
-
-    getAll: (keysAndOpts...) ->
-        # Default if no opts dict provided
-        opts = {}
-        keys = keysAndOpts
-
-        # Look for opts dict
-        perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
-        if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
-            opts = perhapsOptDict
-            keys = keysAndOpts[0...(keysAndOpts.length - 1)]
-
-        new GetAll opts, @, keys...
-
-    # For this function only use `exprJSON` rather than letting it default to regular
-    # `expr`. This will attempt to serialize as much of the document as JSON as possible.
-    # This behavior can be manually overridden with either direct JSON serialization
-    # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
-    insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
-    indexCreate: varar(1, 2, (name, defun) ->
-        if defun?
-            new IndexCreate {}, @, name, funcWrap(defun)
-        else
-            new IndexCreate {}, @, name
-        )
-    indexDrop: ar (name) -> new IndexDrop {}, @, name
-    indexList: ar () -> new IndexList {}, @
 
     compose: (args, optargs) ->
         if @args[0] instanceof Db
