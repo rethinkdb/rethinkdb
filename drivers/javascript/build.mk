@@ -23,7 +23,7 @@ $(PROTO_MODULE): $(PROTO_FILE) | $(PROTO2JS)
 	$(PROTO2JS) $< -commonjs > $@
 
 # Must be synced with the list in package.json
-JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_MODULE) $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json
+JS_PKG_FILES := $(DRIVER_COMPILED_COFFEE) $(JS_SRC_DIR)/README.md $(PROTO_MODULE) $(PB_BIN_FILE) $(JS_SRC_DIR)/package.json $(JS_SRC_DIR)/npm-shrinkwrap.json
 
 .SECONDARY: $(DRIVER_COFFEE_BUILD_DIR)/.
 $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_DIR)/. $(COFFEE)
@@ -53,7 +53,21 @@ js-install: $(JS_PKG_DIR)
 	$P NPM-INSTALL $(JS_PKG_DIR)
 	MAKEFLAGS= npm install $(JS_PKG_DIR) --prefix $(NPM_PREFIX)
 
-$(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) | $(BROWSERIFY)
+.PHONY: js-dependencies
+js-dependencies: $(JS_PKG_DIR)/node_modules
+
+$(JS_PKG_DIR)/node_modules: $(JS_PKG_DIR)
+	$P NPM-I dependencies
+	( cd $(JS_PKG_DIR) && \
+	  MAKEFLAGS= npm install --prefix $(abspath $(JS_PKG_DIR)) \
+	    > $(abspath $(JS_PKG_DIR)/.npm_install_log) 2>&1 \
+	) || ( \
+	  echo === npm install failed === ; \
+	  cat $(JS_PKG_DIR)/.npm_install_log ; \
+	  false \
+	)
+
+$(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) js-dependencies | $(BROWSERIFY)
 	$P BROWSERIFY
 	cd $(JS_PKG_DIR) && \
 	  $(abspath $(BROWSERIFY)) --require rethinkdb --outfile $(abspath $@)
