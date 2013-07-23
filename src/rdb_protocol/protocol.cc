@@ -1188,7 +1188,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     rget.sindex_region->inner,
                     txn, sindex_sb.get(), &ql_env, sindex_transform,
                     rget.terminal, rget.region.inner,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD), res);
+                    (forward(rget.sorting) ? FORWARD : BACKWARD),
+                    sindex_mapping, res);
         }
     }
 
