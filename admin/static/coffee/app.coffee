@@ -218,7 +218,6 @@ collect_stat_data = ->
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
     window.r = require('rethinkdb')
-    #DataExplorerView.Container.TermBase = r.expr(1).constructor.__super__.constructor.__super__
 
     render_loading()
     bind_dev_tools()
