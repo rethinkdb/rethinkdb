@@ -7,15 +7,17 @@ permalink: settings/
     <div class="steps">
         <p class="complete">Create a self-signed certificate</p>
         <p class="step-two">Choose a password for the AMI</p>
-        <p class="step-three">Initialize the AMI</p> 
+        <p class="step-three">Initialize the AMI</p>
     </div>
     <div class="step-content">
         <form name="form" method="POST" action="/action/set_password" onsubmit="return validate()">
             <p>Please chose a password to initialize the AMI. This password will be used to access the web UI and as an authentication key for client drivers.</p>
             <p><label for="password">Chose a password:</label> <input type="password" name="password" id="password" /></p>
             <p><label for="password2">Repeat password:</label> <input type="password" name="password2" id="password2" /></p>
+            <!--
             <p>If you want this instance to connect to an existing cluster, enter one or more host:port values here, separated by spaces. Otherwise leave this field blank.</p>
             <p><label for="join">Connect to cluster:</label> <input type="text" name="join" id="join" /></p>
+            -->
             <button id="submit-password" class="btn btn-primary" type="submit">Set up AMI &rarr;</button>
         </form>
 
