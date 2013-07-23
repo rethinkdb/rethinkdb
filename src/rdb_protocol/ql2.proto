@@ -500,9 +500,11 @@ message Term {
         // datum.
         JSON = 98; // STRING -> DATUM
 
-        // Parses its first arguments as an ISO8601 time and returns it as a
+        // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.
         ISO8601 = 99; // STRING -> DATUM
+        // Prints a time as an ISO 8601 time.
+        TO_ISO8601 = 100; // DATUM -> STRING
     }
     optional TermType type = 1;
 

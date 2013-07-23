@@ -610,6 +610,17 @@ counted_t<const db_t> val_t::as_db() {
     return db();
 }
 
+counted_t<const datum_t> val_t::as_pt(const std::string s) {
+    try {
+        counted_t<const datum_t> d = as_datum();
+        r_sanity_check(d.has());
+        d->rcheck_valid_pt(s);
+        return d;
+    } catch (const datum_exc_t &e) {
+        rfail(e.get_type(), "%s", e.what());
+    }
+}
+
 bool val_t::as_bool() {
     try {
         counted_t<const datum_t> d = as_datum();

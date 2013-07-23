@@ -182,6 +182,7 @@ private:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:
+        case Term::TO_ISO8601:
             return false;
         default: unreachable();
         }
@@ -297,6 +298,7 @@ private:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:
+        case Term::TO_ISO8601:
             return false;
         default: unreachable();
         }
