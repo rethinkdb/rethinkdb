@@ -312,7 +312,8 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         }
     }
 
-    signal_timer_t timer(timeout);
+    signal_timer_t timer;
+    timer.start(timeout);
 
     /* Now we write a bunch of nested for loops to iterate through each layer,
      * this is annoying but hopefully it's pretty clear what's going on. */

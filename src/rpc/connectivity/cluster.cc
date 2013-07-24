@@ -216,7 +216,8 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
                                                     bool *successful_join,
                                                     semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
-    signal_timer_t timeout(index * 1000);
+    signal_timer_t timeout;
+    timeout.start(index * 1000);
     try {
         wait_any_t interrupt(&timeout, drainer_lock.get_drain_signal());
         rate_control->co_lock_interruptible(&interrupt);

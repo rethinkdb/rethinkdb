@@ -11,7 +11,7 @@
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/js.hpp"
+#include "extproc/js_runner.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -19,7 +19,7 @@ namespace ql {
 
 class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    func_t(env_t *env, js::id_t id, counted_t<term_t> parent);
+    func_t(env_t *env, js_id_t id, uint64_t timeout_ms, counted_t<term_t> parent);
     func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
@@ -73,15 +73,22 @@ private:
 
     counted_t<term_t> js_parent;
     env_t *js_env;
-    boost::shared_ptr<js::runner_t> js_runner;
-    js::scoped_id_t js_id;
+    boost::shared_ptr<js_runner_t> js_runner;
+    js_scoped_id_t js_id;
+    uint64_t js_timeout_ms;
 };
 
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env, const std::string &_code, counted_t<term_t> _parent)
-        : env(_env), code(_code), parent(_parent) { }
+    js_result_visitor_t(env_t *_env,
+                        const std::string &_code,
+                        uint64_t _timeout_ms,
+                        counted_t<term_t> _parent)
+        : env(_env),
+          code(_code),
+          timeout_ms(_timeout_ms),
+          parent(_parent) { }
     // This JS evaluation resulted in an error
     counted_t<val_t> operator()(const std::string err_val) const;
     // This JS call resulted in a JSON value
@@ -91,6 +98,7 @@ public:
 private:
     env_t *env;
     std::string code;
+    uint64_t timeout_ms;
     counted_t<term_t> parent;
 };
 

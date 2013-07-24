@@ -82,7 +82,8 @@ void run_state_transfer_test() {
     fifo_enforcer_write_token_t tok2 = source.enter_write();
     {
         try {
-            signal_timer_t interruptor(1000);
+            signal_timer_t interruptor;
+            interruptor.start(1000);
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&sink, tok2);
             wait_interruptible(&fifo_exit, &interruptor);
         } catch (const interrupted_exc_t &) {

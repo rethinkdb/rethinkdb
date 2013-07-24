@@ -23,6 +23,8 @@
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "extproc/extproc_pool.hpp"
+#include "extproc/extproc_spawner.hpp"
 
 namespace unittest {
 
@@ -155,7 +157,6 @@ public:
     public:
         explicit instance_t(test_rdb_env_t *test_env);
 
-        extproc::pool_group_t *create_pool_group(test_rdb_env_t *test_env);
         ql::env_t *get();
         void interrupt();
 
@@ -165,7 +166,7 @@ public:
         dummy_semilattice_controller_t<cluster_semilattice_metadata_t> dummy_semilattice_controller;
         clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > namespaces_metadata;
         clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> > databases_metadata;
-        scoped_ptr_t<extproc::pool_group_t> pool_group;
+        extproc_pool_t extproc_pool;
         scoped_ptr_t<ql::env_t> env;
         reactor_test_cluster_t<rdb_protocol_t> test_cluster;
         mock_namespace_repo_t rdb_ns_repo;
@@ -177,11 +178,10 @@ public:
 private:
     friend class instance_t;
 
-    extproc::spawner_info_t spawner_info;
-
     uuid_u machine_id;
-    boost::shared_ptr<js::runner_t> js_runner;
+    boost::shared_ptr<js_runner_t> js_runner;
     cluster_semilattice_metadata_t metadata;
+    extproc_spawner_t extproc_spawner;
 
     // Initial data for tables are stored here until the instance_t is constructed, at
     //  which point, it is moved into a mock_namespace_interface_t, and this is cleared.

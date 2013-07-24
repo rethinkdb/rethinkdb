@@ -9,6 +9,9 @@
 #include "do_on_thread.hpp"
 
 int get_thread_id() {
+    if (i_am_in_blocker_pool_thread()) {
+        return -1;
+    }
     return linux_thread_pool_t::thread_id;
 }
 

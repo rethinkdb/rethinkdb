@@ -10,19 +10,20 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
+func_t::func_t(env_t *env, js_id_t id, uint64_t timeout_ms, counted_t<term_t> parent)
     : pb_rcheckable_t(parent->backtrace()),
       source(parent->get_src()),
       js_parent(parent),
       js_env(env),
       js_runner(env->get_js_runner()),
-      js_id(js_runner.get(), id) {
+      js_id(js_runner.get(), id),
+      js_timeout_ms(timeout_ms) {
     env->dump_scope(&scope);
 }
 
 func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), source(_source),
-      js_env(NULL), js_id(NULL, js::INVALID_ID) {
+      js_env(NULL), js_id(NULL), js_timeout_ms(0) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -97,12 +98,27 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                 json_args.push_back((*arg_iter)->as_json());
             }
 
-            boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
+            js_runner_t::req_config_t config;
+            config.timeout_ms = js_timeout_ms;
+
+            boost::shared_ptr<js_runner_t> js = js_env->get_js_runner();
             r_sanity_check(!js_id.empty());
-            js::js_result_t result = js->call(js_id.get(), json_args);
+            js_result_t result;
+
+            try {
+                result = js->call(js_id.get(), json_args, config);
+            } catch (const js_worker_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "Javascript query '%s' caused a crash in a worker process.",
+                      source->DebugString().c_str());
+            } catch (const interrupted_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "JavaScript query `%s` timed out after %" PRIu64 ".03%" PRIu64 " seconds.",
+                      source->DebugString().c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
+            }
 
             return boost::apply_visitor(
-                js_result_visitor_t(js_env, std::string(), js_parent),
+                js_result_visitor_t(js_env, std::string(), 0, js_parent),
                 result);
         } else {
             r_sanity_check(body.has() && source.has() && js_env == NULL);
@@ -332,9 +348,9 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
-    counted_t<val_t> v = parent->new_val(make_counted<func_t>(env, id_val, parent));
+    counted_t<val_t> v = parent->new_val(make_counted<func_t>(env, id_val, timeout_ms, parent));
     if (!code.empty()) {
-        env->cache_js_func(code, v);
+        env->cache_js_func(code, timeout_ms, v);
     }
     return v;
 }

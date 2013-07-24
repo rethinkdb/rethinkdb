@@ -187,10 +187,8 @@ mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_
 
 test_rdb_env_t::test_rdb_env_t() :
     machine_id(generate_uuid()), // Not like we actually care
-    js_runner(new js::runner_t())
+    js_runner(new js_runner_t())
 {
-    extproc::spawner_t::create(&spawner_info);
-
     machine_semilattice_metadata_t machine;
     name_string_t machine_name;
     if (!machine_name.assign_value("test_machine")) throw invalid_name_exc_t("test_machine");
@@ -262,11 +260,11 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     dummy_semilattice_controller(test_env->metadata),
     namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
     databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
-    pool_group(create_pool_group(test_env)),
+    extproc_pool(2),
     test_cluster(0),
     rdb_ns_repo()
 {
-    env.init(new ql::env_t(pool_group.get(),
+    env.init(new ql::env_t(&extproc_pool,
                            &rdb_ns_repo,
                            namespaces_metadata,
                            databases_metadata,
@@ -285,13 +283,6 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
         delete it->second;
     }
     test_env->initial_datas.clear();
-}
-
-extproc::pool_group_t *test_rdb_env_t::instance_t::create_pool_group(test_rdb_env_t *test_env) {
-    extproc::pool_group_t::config_t config;
-    config.min_workers = 1;
-    config.max_workers = 1;
-    return new extproc::pool_group_t(&test_env->spawner_info, config);
 }
 
 ql::env_t *test_rdb_env_t::instance_t::get() {
