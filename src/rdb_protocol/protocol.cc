@@ -1183,13 +1183,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
                                             sindex_filter, backtrace_t()));
 
+            bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
                     rget.sindex_region->inner,
                     txn, sindex_sb.get(), &ql_env, sindex_transform,
                     rget.terminal, rget.region.inner,
                     (forward(rget.sorting) ? FORWARD : BACKWARD),
-                    sindex_mapping, res);
+                    (is_ordered ? sindex_mapping : boost::optional<ql::map_wire_func_t>()),
+                    res);
         }
     }
 

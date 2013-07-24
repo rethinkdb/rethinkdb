@@ -621,7 +621,7 @@ public:
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
                                               direction_t _direction,
-                                              const ql::map_wire_func_t &_sindex_function,
+                                              const boost::optional<ql::map_wire_func_t> &_sindex_function,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -767,7 +767,7 @@ public:
     boost::optional<key_range_t> primary_key_range;
     direction_t direction;
 
-    ql::map_wire_func_t sindex_function;
+    boost::optional<ql::map_wire_func_t> sindex_function;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -817,7 +817,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
                     direction_t direction,
-                    const ql::map_wire_func_t &map_wire_func,
+                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
             range, pk_range, direction, map_wire_func, response);
