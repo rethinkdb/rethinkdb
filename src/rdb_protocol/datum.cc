@@ -14,7 +14,7 @@
 
 namespace ql {
 
-const char* const datum_t::reql_type_string = "__type__";
+const char* const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);

@@ -72,6 +72,17 @@ private:
     virtual const char *name() const { return "now"; }
 };
 
+class in_timezone_term_t : public op_term_t {
+public:
+    in_timezone_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(2)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        return counted_t<val_t>();
+    }
+    virtual const char *name() const { return "in_timezone"; }
+};
+
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term) {
     return make_counted<iso8601_term_t>(env, term);
 }
