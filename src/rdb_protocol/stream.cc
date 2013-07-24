@@ -253,8 +253,8 @@ void batched_rget_stream_t::read_more() {
         guarantee(stream);
 
         for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
-            guarantee(i->second);
-            data.push_back(i->second);
+            guarantee(i->data);
+            data.push_back(i->data);
         }
 
         if (forward(sorting)) {

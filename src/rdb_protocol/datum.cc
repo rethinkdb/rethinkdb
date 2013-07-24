@@ -337,14 +337,12 @@ store_key_t datum_t::truncated_secondary() const {
             print().c_str(), datum_type_name(type)));
     }
 
-    const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
-
     // If the key does not need truncation, add a null byte at the end to filter out more
     //  potential results
-    if (s.length() < max_trunc_size) {
+    if (s.length() < max_trunc_size()) {
         s += std::string(1, '\0');
     } else {
-        s.erase(max_trunc_size);
+        s.erase(max_trunc_size());
     }
 
     return store_key_t(s);
@@ -694,6 +692,10 @@ void datum_t::init_from_pb(const Datum *d) {
     } break;
     default: unreachable();
     }
+}
+
+size_t datum_t::max_trunc_size() {
+    return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
 }
 
 void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {

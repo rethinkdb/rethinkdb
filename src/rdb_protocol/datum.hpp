@@ -144,8 +144,11 @@ public:
         ql::runtime_check(exc_type, test, file, line, pred, msg);
     }
 
+    static size_t max_trunc_size();
+
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
+
 private:
     void init_empty();
     void init_str();

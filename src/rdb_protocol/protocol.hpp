@@ -138,6 +138,21 @@ void bring_sindexes_up_to_date(
         transaction_t *txn)
     THROWS_NOTHING;
 
+struct rget_item_t {
+    rget_item_t() { }
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), data(_data) { }
+
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _sindex_key,
+                boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), sindex_key(_sindex_key), data(_data) { }
+
+    store_key_t key;
+    boost::shared_ptr<scoped_cJSON_t> sindex_key;
+    boost::shared_ptr<scoped_cJSON_t> data;
+    RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
+};
+
 } // namespace rdb_protocol_details
 
 
@@ -194,7 +209,7 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
+        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t; //Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
 

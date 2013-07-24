@@ -680,8 +680,8 @@ private:
                 const stream_t *stream = boost::get<stream_t>(&(rr->result));
 
                 for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                    if ((it->first <= rg_response->last_considered_key && forward(rg.sorting)) ||
-                            (it->first >= rg_response->last_considered_key && backward(rg.sorting))) {
+                    if ((it->key <= rg_response->last_considered_key && forward(rg.sorting)) ||
+                            (it->key >= rg_response->last_considered_key && backward(rg.sorting))) {
                         res_stream->push_back(*it);
                     }
                 }
@@ -711,12 +711,12 @@ private:
                     }
 
                     if ((forward(rg.sorting) &&
-                                it->first->first <= key_to_beat &&
-                                it->first->first <= rg_response->last_considered_key) ||
+                                it->first->key <= key_to_beat &&
+                                it->first->key <= rg_response->last_considered_key) ||
                             (backward(rg.sorting) &&
-                             it->first->first >= key_to_beat &&
-                             it->first->first >= rg_response->last_considered_key)) {
-                        key_to_beat = it->first->first;
+                             it->first->key >= key_to_beat &&
+                             it->first->key >= rg_response->last_considered_key)) {
+                        key_to_beat = it->first->key;
                         found_value = true;
                         value = &it->first;
                     }
