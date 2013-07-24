@@ -65,10 +65,10 @@ env_t::env_t(extproc::job_control_t *control)
 
 env_t::~env_t() {
     // Clean up handles.
-    for (std::map<id_t, v8::Persistent<v8::Value> >::iterator it = values_.begin();
+    for (std::map<id_t, v8::Persistent<v8::Value> *>::iterator it = values_.begin();
          it != values_.end();
          ++it)
-        it->second.Dispose();
+        it->second->Dispose();
 }
 
 void env_t::run() {
@@ -82,14 +82,24 @@ void env_t::shutdown() { should_quit_ = true; }
 
 id_t env_t::rememberValue(v8::Handle<v8::Value> value) {
     id_t id = new_id();
-    values_.insert(std::make_pair(id, v8::Persistent<v8::Value>::New(value)));
+
+    // Save this value in a persistent handle so it isn't deallocated when
+    // its scope is destructed.
+    v8::Persistent<v8::Value> persistent_handle;
+    persistent_handle.Reset(v8::Isolate::GetCurrent(), value);
+
+    values_.insert(std::make_pair(id, &persistent_handle));
     return id;
 }
 
 v8::Handle<v8::Value> env_t::findValue(id_t id) {
-    std::map<id_t, v8::Persistent<v8::Value> >::iterator it = values_.find(id);
+    std::map<id_t, v8::Persistent<v8::Value> *>::iterator it = values_.find(id);
     guarantee(it != values_.end());
-    return it->second;
+
+    // Construct local handle from persistent handle
+    auto local_handle = v8::Local<v8::Value>::New(v8::Isolate::GetCurrent(), *(it->second));
+
+    return local_handle;
 }
 
 id_t env_t::new_id() {

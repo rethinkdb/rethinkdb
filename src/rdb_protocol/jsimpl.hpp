@@ -71,16 +71,15 @@ class env_t {
     extproc::job_control_t *control_;
     bool should_quit_;
     id_t next_id_;
-    std::map<id_t, v8::Persistent<v8::Value> > values_;
+    std::map<id_t, v8::Persistent<v8::Value> *> values_;
 };
 
 
 // Puts us into a fresh v8 context.
 // By default each task gets its own context.
 struct context_t {
-    explicit context_t(UNUSED env_t *env) : cx(v8::Context::New()), scope(cx) {}
-    ~context_t() { cx.Dispose(); }
-    v8::Persistent<v8::Context> cx;
+    explicit context_t(UNUSED env_t *env) : cx(v8::Context::New(v8::Isolate::GetCurrent())), scope(cx) {}
+    v8::Local<v8::Context> cx;
     v8::Context::Scope scope;
 };
 
