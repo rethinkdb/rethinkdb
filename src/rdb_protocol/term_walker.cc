@@ -185,6 +185,7 @@ private:
         case Term::TO_ISO8601:
         case Term::EPOCH_TIME:
         case Term::TO_EPOCH_TIME:
+        case Term::NOW:
             return false;
         default: unreachable();
         }
@@ -303,6 +304,7 @@ private:
         case Term::TO_ISO8601:
         case Term::EPOCH_TIME:
         case Term::TO_EPOCH_TIME:
+        case Term::NOW:
             return false;
         default: unreachable();
         }

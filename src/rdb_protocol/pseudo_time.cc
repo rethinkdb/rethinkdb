@@ -171,6 +171,11 @@ double time_to_epoch_time(counted_t<const datum_t> d) {
     return d->get(epoch_time_key)->as_num();
 }
 
+counted_t<const datum_t> time_now() {
+    boost::posix_time::ptime t = boost::posix_time::microsec_clock::universal_time();
+    return make_time((t - raw_epoch).total_microseconds() / 1000000.0);
+}
+
 int time_cmp(const datum_t &x, const datum_t &y) {
     r_sanity_check(x.get_reql_type() == time_string);
     r_sanity_check(y.get_reql_type() == time_string);

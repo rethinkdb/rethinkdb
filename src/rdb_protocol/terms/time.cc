@@ -60,6 +60,18 @@ private:
     virtual const char *name() const { return "to_epoch_time"; }
 };
 
+class now_term_t : public op_term_t {
+public:
+    now_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(0)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        return new_val(pseudo::time_now());
+    }
+    bool is_deterministic() const { return false; }
+    virtual const char *name() const { return "now"; }
+};
+
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term) {
     return make_counted<iso8601_term_t>(env, term);
 }
@@ -71,6 +83,9 @@ counted_t<term_t> make_epoch_time_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_to_epoch_time_term(env_t *env, protob_t<const Term> term) {
     return make_counted<to_epoch_time_term_t>(env, term);
+}
+counted_t<term_t> make_now_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<now_term_t>(env, term);
 }
 
 } //namespace ql

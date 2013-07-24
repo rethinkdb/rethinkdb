@@ -508,6 +508,8 @@ message Term {
 
         EPOCH_TIME = 101; // NUMBER -> PSEUDOTYPE(TIME)
         TO_EPOCH_TIME = 102; // PSEUDOTYPE(TIME) -> NUMBER
+
+        NOW = 103; // -> PSEUDOTYPE(TIME)
     }
     optional TermType type = 1;
 
