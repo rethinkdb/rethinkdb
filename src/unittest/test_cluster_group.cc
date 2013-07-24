@@ -327,7 +327,8 @@ template <class protocol_t>
 void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
     try {
         const int timeout_ms = 60000;
-        signal_timer_t timer(timeout_ms);
+        signal_timer_t timer;
+        timer.start(timeout_ms);
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
             ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);

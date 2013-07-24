@@ -785,9 +785,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
-            signal_timer_t backoff_delay_timer(backoff_delay_ms);
-            wait_any_t waiter(&backoff_delay_timer, lock.get_drain_signal());
-            waiter.wait_lazily_unordered();
+            nap(backoff_delay_ms, lock.get_drain_signal());
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;

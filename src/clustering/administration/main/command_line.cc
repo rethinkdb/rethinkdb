@@ -24,6 +24,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
+#include "extproc/extproc_spawner.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/names.hpp"
 #include "clustering/administration/main/options.hpp"
@@ -34,7 +35,6 @@
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
-#include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
 #include "help.hpp"
@@ -307,18 +307,15 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
 
 class serve_info_t {
 public:
-    serve_info_t(extproc::spawner_info_t *_spawner_info,
-                 const std::vector<host_and_port_t> &_joins,
+    serve_info_t(const std::vector<host_and_port_t> &_joins,
                  service_address_ports_t _ports,
                  std::string _web_assets,
                  boost::optional<std::string> _config_file):
-        spawner_info(_spawner_info),
         joins(&_joins),
         ports(_ports),
         web_assets(_web_assets),
         config_file(_config_file) { }
 
-    extproc::spawner_info_t *spawner_info;
     const std::vector<host_and_port_t> *joins;
     service_address_ports_t ports;
     std::string web_assets;
@@ -701,8 +698,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         //  otherwise delete an uninitialized directory
         data_directory_lock->directory_initialized();
 
-        *result_out = serve(serve_info.spawner_info,
-                            &io_backender,
+        *result_out = serve(&io_backender,
                             base_path,
                             cluster_metadata_file.get(),
                             auth_metadata_file.get(),
@@ -773,8 +769,7 @@ void run_rethinkdb_proxy(const serve_info_t &serve_info, bool *const result_out)
     guarantee(!serve_info.joins->empty());
 
     try {
-        *result_out = serve_proxy(serve_info.spawner_info,
-                                  look_up_peers_addresses(*serve_info.joins),
+        *result_out = serve_proxy(look_up_peers_addresses(*serve_info.joins),
                                   serve_info.ports,
                                   serve_info.web_assets,
                                   &sigint_cond,
@@ -1241,10 +1236,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
         bool result;
@@ -1359,10 +1353,9 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
         bool result;
@@ -1590,10 +1583,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        extproc::spawner_info_t spawner_info;
-        extproc::spawner_t::create(&spawner_info);
+        extproc_spawner_t extproc_spawner;
 
-        serve_info_t serve_info(&spawner_info, joins, address_ports, web_path,
+        serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
         bool result;

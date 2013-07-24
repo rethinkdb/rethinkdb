@@ -3,6 +3,7 @@
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
+#include "extproc/js_runner.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -17,7 +18,7 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-void env_t::cache_js_func(const std::string &s, counted_t<val_t> f) {
+void env_t::cache_js_func(const std::string &s, uint64_t timeout_ms, counted_t<val_t> f) {
     if (js_funcs.size() >= cache_size) {
         auto oldest_func = js_funcs.begin();
         for (auto it = ++js_funcs.begin(); it != js_funcs.end(); ++it) {
@@ -27,11 +28,11 @@ void env_t::cache_js_func(const std::string &s, counted_t<val_t> f) {
         }
         js_funcs.erase(oldest_func);
     }
-    js_funcs.insert(std::make_pair(s, std::make_pair(current_microtime(), f)));
+    js_funcs.insert(std::make_pair(std::make_pair(s, timeout_ms), std::make_pair(current_microtime(), f)));
 }
 
-counted_t<val_t> env_t::get_js_func(const std::string &s) {
-    auto it = js_funcs.find(s);
+counted_t<val_t> env_t::get_js_func(const std::string &s, uint64_t timeout_ms) {
+    auto it = js_funcs.find(std::make_pair(s, timeout_ms));
     return (it == js_funcs.end()) ? counted_t<val_t>() : it->second.second;
 }
 
@@ -203,16 +204,16 @@ void env_t::join_and_wait_to_propagate(
     }
 }
 
-boost::shared_ptr<js::runner_t> env_t::get_js_runner() {
-    r_sanity_check(pool != NULL && get_thread_id() == pool->home_thread());
+boost::shared_ptr<js_runner_t> env_t::get_js_runner() {
+    r_sanity_check(extproc_pool != NULL);
     if (!js_runner->connected()) {
-        js_runner->begin(pool);
+        js_runner->begin(extproc_pool, interruptor);
     }
     return js_runner;
 }
 
 env_t::env_t(
-    extproc::pool_group_t *_pool_group,
+    extproc_pool_t *_extproc_pool,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -223,7 +224,7 @@ env_t::env_t(
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
     _semilattice_metadata,
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-    boost::shared_ptr<js::runner_t> _js_runner,
+    boost::shared_ptr<js_runner_t> _js_runner,
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
@@ -231,7 +232,7 @@ env_t::env_t(
     optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
-    pool(_pool_group->get()),
+    extproc_pool(_extproc_pool),
     ns_repo(_ns_repo),
     namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
     databases_semilattice_metadata(_databases_semilattice_metadata),
@@ -249,7 +250,7 @@ env_t::env_t(signal_t *_interruptor)
   : uuid(generate_uuid()),
     next_gensym_val(-2),
     implicit_depth(0),
-    pool(NULL),
+    extproc_pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
     DEBUG_ONLY(eval_callback(NULL), )

@@ -9,8 +9,6 @@
 #include "clustering/administration/persist.hpp"
 #include "arch/address.hpp"
 
-namespace extproc { class spawner_info_t; }
-
 class invalid_port_exc_t : public std::exception {
 public:
     invalid_port_exc_t(const std::string& name, int port, int port_offset) {
@@ -85,8 +83,7 @@ struct service_address_ports_t {
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
-bool serve(extproc::spawner_info_t *spawner_info,
-           io_backender_t *io_backender,
+bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
@@ -96,8 +93,7 @@ bool serve(extproc::spawner_info_t *spawner_info,
            signal_t *stop_cond,
            const boost::optional<std::string>& config_file);
 
-bool serve_proxy(extproc::spawner_info_t *spawner_info,
-                 const peer_address_set_t &joins,
+bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t ports,
                  std::string web_assets,
                  signal_t *stop_cond,

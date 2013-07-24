@@ -47,12 +47,12 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
 
     bool response_needed = true;
     try {
-        boost::shared_ptr<js::runner_t> js_runner = boost::make_shared<js::runner_t>();
+        boost::shared_ptr<js_runner_t> js_runner = boost::make_shared<js_runner_t>();
         int thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
-                ctx->pool_group, ctx->ns_repo,
+                ctx->extproc_pool, ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,

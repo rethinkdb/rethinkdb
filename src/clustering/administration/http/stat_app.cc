@@ -162,7 +162,8 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
      * get_stat function  has gone out of existence we'll never get a response.
      * Thus we need to have a time out.
      */
-    signal_timer_t timer(static_cast<int>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
+    signal_timer_t timer;
+    timer.start(static_cast<int64_t>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
 
     for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
                                        it != peers_to_metadata.end();
