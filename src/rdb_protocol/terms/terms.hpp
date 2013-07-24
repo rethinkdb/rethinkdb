@@ -121,6 +121,8 @@ counted_t<term_t> make_desc_term(env_t *env, protob_t<const Term> term);
 // time.cc
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_to_iso8601_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_epoch_time_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_to_epoch_time_term(env_t *env, protob_t<const Term> term);
 
 // type_manip.cc
 counted_t<term_t> make_coerce_term(env_t *env, protob_t<const Term> term);

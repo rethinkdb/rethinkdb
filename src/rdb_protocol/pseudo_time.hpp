@@ -9,8 +9,10 @@
 namespace ql {
 namespace pseudo {
 extern const char *const time_string;
+
 counted_t<const datum_t> iso8601_to_time(const std::string &s, const rcheckable_t *t);
 std::string time_to_iso8601(counted_t<const datum_t> d);
+double time_to_epoch_time(counted_t<const datum_t> d);
 
 int time_cmp(const datum_t& x, const datum_t& y);
 bool time_valid(const datum_t &time);

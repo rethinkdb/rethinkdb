@@ -183,6 +183,8 @@ private:
         case Term::JSON:
         case Term::ISO8601:
         case Term::TO_ISO8601:
+        case Term::EPOCH_TIME:
+        case Term::TO_EPOCH_TIME:
             return false;
         default: unreachable();
         }
@@ -299,6 +301,8 @@ private:
         case Term::JSON:
         case Term::ISO8601:
         case Term::TO_ISO8601:
+        case Term::EPOCH_TIME:
+        case Term::TO_EPOCH_TIME:
             return false;
         default: unreachable();
         }

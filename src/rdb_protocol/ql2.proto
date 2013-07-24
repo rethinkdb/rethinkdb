@@ -502,9 +502,12 @@ message Term {
 
         // Parses its first arguments as an ISO 8601 time and returns it as a
         // datum.
-        ISO8601 = 99; // STRING -> DATUM
+        ISO8601 = 99; // STRING -> PSEUDOTYPE(TIME)
         // Prints a time as an ISO 8601 time.
-        TO_ISO8601 = 100; // DATUM -> STRING
+        TO_ISO8601 = 100; // PSEUDOTYPE(TIME) -> STRING
+
+        EPOCH_TIME = 101; // NUMBER -> PSEUDOTYPE(TIME)
+        TO_EPOCH_TIME = 102; // PSEUDOTYPE(TIME) -> NUMBER
     }
     optional TermType type = 1;
 
