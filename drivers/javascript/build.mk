@@ -70,7 +70,7 @@ $(JS_PKG_DIR)/node_modules: $(JS_PKG_DIR)
 $(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) js-dependencies | $(BROWSERIFY)
 	$P BROWSERIFY
 	cd $(JS_PKG_DIR) && \
-	  $(abspath $(BROWSERIFY)) --require ./rethinkdb --outfile $(abspath $@)
+		$(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --outfile $(abspath $@)
 
 .PHONY: js-driver
 js-driver: $(JS_BUILD_DIR)/rethinkdb.js
