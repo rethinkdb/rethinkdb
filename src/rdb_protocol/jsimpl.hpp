@@ -56,7 +56,7 @@ class env_t {
 
     id_t rememberValue(const v8::Handle<v8::Value> &value);
 
-    const boost::shared_ptr<v8::Persistent<v8::Value> >findValue(id_t id);
+    const boost::shared_ptr<v8::Persistent<v8::Value> > findValue(id_t id);
 
     void forget(id_t id);
 
