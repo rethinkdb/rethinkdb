@@ -101,7 +101,6 @@ class ls_block_token_pointee_t {
 public:
     int64_t offset() const { return offset_; }
     block_size_t block_size() const { return block_size_; }
-    uint32_t ser_block_size() const { return block_size_.ser_value(); }
 
 private:
     friend class log_serializer_t;

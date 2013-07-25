@@ -410,7 +410,7 @@ void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& tok
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);
 
-    data_block_manager->read(token->offset_, token->ser_block_size(),
+    data_block_manager->read(token->offset_, token->block_size().ser_value(),
                              buf, io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
@@ -469,7 +469,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
                     offset = flagged_off64_t::make(token->offset_);
-                    ser_block_size = token->ser_block_size();
+                    ser_block_size = token->block_size().ser_value();
 
                     /* mark the life */
                     data_block_manager->mark_live(offset.get_value(), token->block_size());
