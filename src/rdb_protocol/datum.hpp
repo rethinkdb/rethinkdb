@@ -82,6 +82,7 @@ public:
     std::string print_secondary(const store_key_t &key) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string unprint_secondary(const std::string &secondary_and_primary);
+    static std::string extract_secondary(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -145,11 +146,12 @@ public:
     }
 
     static size_t max_trunc_size();
-    /* Note key_is_truncated returns true if the size of the secondary index
-     * portion of the key is max_trunc_size. This means that a key of exactly
-     * max_trunc_size counts as truncated by this function. Unfortunately there
-     * isn't a general way to tell if keys of max_trunc_size were exactly that
-     * size or longer and thus truncated. */
+    /* Note key_is_truncated returns true if the key is of max size. This gives
+     * a false positive if the sum sizes of the keys is exactly the maximum but
+     * not over at all. This means that a key of exactly max_trunc_size counts
+     * as truncated by this function. Unfortunately there isn't a general way
+     * to tell if keys of max_trunc_size were exactly that size or longer and
+     * thus truncated. */
     static bool key_is_truncated(const store_key_t &key);
 
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;

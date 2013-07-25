@@ -316,6 +316,13 @@ std::string datum_t::unprint_secondary(
     return secondary_and_primary.substr(separator + 1, std::string::npos);
 }
 
+std::string datum_t::extract_secondary(
+        const std::string &secondary_and_primary) {
+    size_t separator = secondary_and_primary.find_last_of('\0');
+
+    return secondary_and_primary.substr(0, separator);
+}
+
 // This function returns a store_key_t suitable for searching by a secondary-index.
 //  This is needed because secondary indexes may be truncated, but the amount truncated
 //  depends on the length of the primary key.  Since we do not know how much was truncated,
@@ -699,7 +706,7 @@ size_t datum_t::max_trunc_size() {
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
-    return unprint_secondary(key_to_unescaped_str(key)).size() == max_trunc_size();
+    return key.size() == MAX_KEY_SIZE;
 }
 
 void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
