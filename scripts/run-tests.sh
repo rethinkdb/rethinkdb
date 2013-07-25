@@ -19,6 +19,7 @@ report_out=
 build_dir=
 dashboard_url=
 colorful=true
+timeout=5m
 
 # Print usage
 usage () {
@@ -36,6 +37,7 @@ usage () {
     echo "   -b <build>      RethinkDB build directory (default: build/debug)"
     echo "   -u <url>        Post the test results to the url"
     echo "   -c              Disable color"
+    echo "   -t <timeout>    Kill tests that last longer (default: $timeout)"
     echo "   -s <name> -- <command>  For internal use only"
     echo "Output Directory Format:"
     echo "   A folder is created for each test. Files in the folder contain the command"
@@ -55,7 +57,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:b:u:c" opt; do
+while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -69,6 +71,7 @@ while getopts ":lo:hvs:j:r:d:w:b:u:c" opt; do
         b) build_dir=$OPTARG ;;
         u) dashboard_url=$OPTARG ;;
         c) colorful=false ;;
+        t) timeout=$OPTARG ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -302,6 +305,18 @@ if $list_only; then
     exit
 fi
 
+# On OSX, timeout is available as gtimeout from brew's coreutils package
+for cmd in timeout gtimeout ; do
+    if output=`$cmd 1s echo 2>&1` ; then
+        timeout_cmd=$cmd
+        break
+    fi
+done
+if test -z "${timeout_cmd:-}"; then
+    echo "$output" >&2
+    exit 1
+fi
+
 # Run the tests
 run_dir_msg=
 $run_elsewhere && run_dir_msg=", run dir: $run_dir"
@@ -313,7 +328,9 @@ $run_elsewhere && args="$args -d $(printf %q "$run_dir")"
 ! $colorful && args="$args -c"
 for i in `seq $repeats`; do
     for item in "${list[@]}"; do
+        echo -n "$timeout_cmd --kill-after 10s $timeout "
         echo -n "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
+        echo -n "; code=\$? ; if [ \$code = 124 ]; then echo '${red}Time ${item%%^*} ($i)${plain}'; fi; exit \$code"
         printf '\0'
     done
 done | xargs -0 -n 1 -P $parallel_tasks bash -c

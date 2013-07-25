@@ -1,14 +1,10 @@
 #
 # RethinkDB instance configuration sample
 #
+# - Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
+# - See http://www.rethinkdb.com/docs/guides/startup/ for the complete documentation
+# - Uncomment an option to change its value.
 #
-# Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
-#
-# See http://www.rethinkdb.com/docs/guides/startup/ for the complete documentation
-#
-# Uncomment an option to change its value.
-#
-# Some options have different default values when run from the rethinkdb init script.
 
 ###############################
 ## RethinkDB configuration
@@ -17,21 +13,21 @@
 ### Process options
 
 ## User and group used to run rethinkdb
-## Default: do not change user or group
-## Init default: rethinkdb user and group
+## Command line default: do not change user or group
+## Init script default: rethinkdb user and group
 # runuser=rethinkdb
 # rungroup=rethinkdb
 
 ## Stash the pid in this file when the process is running
-## Default: none
-## Init default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
+## Command line default: none
+## Init script default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
 # pid-file=/var/run/rethinkdb/rethinkdb.pid
 
 ### File path options
 
 ## Directory to store data and metadata
-## Default: ./rethinkdb_data
-## Init default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
+## Command line default: ./rethinkdb_data
+## Init script default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
 # directory=/var/lib/rethinkdb/default
 
 ### Network options

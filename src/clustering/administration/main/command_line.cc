@@ -1580,6 +1580,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         if (!maybe_daemonize(opts)) {
             // This is the parent process of the daemon, just exit
+            // Make sure the parent process doesn't remove the directory,
+            //  the child process will handle it from here
+            data_directory_lock.directory_initialized();
             return EXIT_SUCCESS;
         }
 

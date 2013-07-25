@@ -18,8 +18,8 @@
 
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/proto_utils.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
 
@@ -88,20 +88,22 @@ private:
 class batched_rget_stream_t : public json_stream_t {
 public:
     /* Primary key rget. */
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                          signal_t *_interruptor,
-                          counted_t<const ql::datum_t> left_bound,
-                          counted_t<const ql::datum_t> right_bound,
-                          const std::map<std::string, ql::wire_func_t> &_optargs,
-                          bool _use_outdated);
+    batched_rget_stream_t(
+        const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+        signal_t *_interruptor,
+        counted_t<const ql::datum_t> left_bound, bool left_bound_open,
+        counted_t<const ql::datum_t> right_bound, bool right_bound_open,
+        const std::map<std::string, ql::wire_func_t> &_optargs,
+        bool _use_outdated);
 
     /* Sindex rget. */
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-                          signal_t *_interruptor, const std::string &_sindex_id,
-                          const std::map<std::string, ql::wire_func_t> &_optargs,
-                          bool _use_outdated,
-                          counted_t<const ql::datum_t> _sindex_start_value,
-                          counted_t<const ql::datum_t> _sindex_end_value);
+    batched_rget_stream_t(
+        const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+        signal_t *_interruptor, const std::string &_sindex_id,
+        const std::map<std::string, ql::wire_func_t> &_optargs,
+        bool _use_outdated,
+        counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
+        counted_t<const ql::datum_t> _sindex_end_value, bool right_value_open);
 
     boost::shared_ptr<scoped_cJSON_t> next();
 
@@ -128,9 +130,7 @@ private:
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
 
-    counted_t<const ql::datum_t> sindex_start_value;
-    counted_t<const ql::datum_t> sindex_end_value;
-
+    rdb_protocol_t::sindex_range_t sindex_range;
     key_range_t range;
 
     boost::optional<backtrace_t> table_scan_backtrace;
@@ -138,7 +138,6 @@ private:
     bool merge_sort;
     direction_t direction;
 };
-
 
 } //namespace query_language
 
