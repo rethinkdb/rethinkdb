@@ -159,7 +159,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
         }
     }
 
-    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
+    boost::shared_ptr<scoped_cJSON_t> datum = data.front().data;
     data.pop_front();
     return datum;
 }
@@ -254,7 +254,7 @@ void batched_rget_stream_t::read_more() {
 
         for (stream_t::iterator i = stream->begin(); i != stream->end(); ++i) {
             guarantee(i->data);
-            data.push_back(i->data);
+            data.push_back(*i);
         }
 
         if (forward(sorting)) {

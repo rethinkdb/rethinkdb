@@ -27,6 +27,7 @@ namespace ql { class env_t; }
 namespace query_language {
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<rdb_protocol_details::rget_item_t> extended_json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
@@ -124,7 +125,12 @@ private:
     signal_t *interruptor;
     boost::optional<std::string> sindex_id;
 
-    json_list_t data;
+    /* This needs to use an extended_json_list_t because that includes
+     * information about the secondary index key of the object which is needed
+     * for sorting. */
+    /* TODO We could potentially put a json_list_t in here in cases when we're not
+     * sorting to save some space. */
+    extended_json_list_t data;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
