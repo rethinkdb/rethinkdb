@@ -107,8 +107,6 @@ public:
                           counted_t<const ql::datum_t> _sindex_end_value,
                           sorting_t sorting);
 
-    boost::optional<rget_item_t> head();
-    void pop();
     boost::shared_ptr<scoped_cJSON_t> next();
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
@@ -121,6 +119,8 @@ public:
     };
 
 private:
+    boost::optional<rget_item_t> head();
+    void pop();
     rdb_protocol_t::rget_read_t get_rget();
     void read_more();
 
