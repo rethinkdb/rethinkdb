@@ -767,9 +767,11 @@ rethinkdb.exprJSON = ar (val) ->
 isJSON = (val) ->
     if (val instanceof TermBase)
         false
+    else if (val instanceof Function)
+        false
     else if (val instanceof Object)
         # Covers array case as well
-        for k,v of val
+        for own k,v of val
             if not isJSON(v) then return false
         true
     else

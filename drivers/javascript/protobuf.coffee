@@ -2,7 +2,12 @@
 # We can serialize and desierialize with protobufjs but prefer 'native-protobuf'
 # (which uses node-protobuf) because it's faster.
 pb = require('protobufjs')
-native_pb = require('./native-protobuf')
+
+try
+    native_pb = require('./native-protobuf')
+catch err
+    # In the browserified code (require('./native-protobuf')) always returns ({})
+    native_pb = {}
 
 # Initialize message classes from protobuf definition module
 protodef = require('./proto-def')
