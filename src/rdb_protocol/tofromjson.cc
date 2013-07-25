@@ -18,7 +18,7 @@ namespace js {
 //
 // TODO(rntz): Is there a better way of detecting cyclic data structures than
 // using a recursion limit?
-static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std::string *errmsg) {
+static cJSON *mkJSON(const v8::Handle<v8::Value> &value, int recursion_limit, std::string *errmsg) {
     if (0 == recursion_limit) {
         *errmsg = "toJSON recursion limit exceeded (cyclic datastructure?)";
         return NULL;
@@ -162,7 +162,7 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, int recursion_limit, std
     }
 }
 
-boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
+boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> &value, std::string *errmsg) {
     guarantee(!value.IsEmpty());
     guarantee(errmsg);
 

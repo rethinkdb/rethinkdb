@@ -149,7 +149,7 @@ $(NODE_MODULES_DIR)/handlebars: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 $(V8_SRC_DIR):
 	$P SVN-CO v8
 	( cd $(TC_SRC_DIR) && \
-	  svn checkout http://v8.googlecode.com/svn/tags/3.17.4.1 v8 ) $(SUPPORT_LOG_REDIRECT)
+	  svn checkout http://v8.googlecode.com/svn/tags/3.19.18.4 v8 ) $(SUPPORT_LOG_REDIRECT)
 
 	$P MAKE v8 dependencies
 	$(EXTERN_MAKE) -C $(V8_SRC_DIR) dependencies $(SUPPORT_LOG_REDIRECT)
