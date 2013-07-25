@@ -160,8 +160,8 @@ public:
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
-    uint64_t garbage_bytes() const {
-        uint64_t b = parent->static_config->extent_size();
+    uint32_t garbage_bytes() const {
+        uint32_t b = parent->static_config->extent_size();
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->token_referenced || it->index_referenced) {
                 b -= aligned_value(it->block_size);
@@ -188,8 +188,8 @@ public:
         block_infos[block_index].token_referenced = false;
     }
 
-    uint64_t token_bytes() const {
-        uint64_t b = 0;
+    uint32_t token_bytes() const {
+        uint32_t b = 0;
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->token_referenced) {
                 b += aligned_value(it->block_size);
@@ -239,8 +239,8 @@ public:
         return block_infos[block_index].index_referenced;
     }
 
-    uint64_t index_bytes() const {
-        uint64_t b = 0;
+    uint32_t index_bytes() const {
+        uint32_t b = 0;
         for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
             if (it->index_referenced) {
                 b += aligned_value(it->block_size);
@@ -1149,8 +1149,9 @@ void data_block_manager_t::run_gc() {
                 and gc_state.current_entry to become NULL. */
 
                 guarantee(gc_state.current_entry == NULL,
-                          "%p: %zd garbage bytes left on the extent, %zd index-referenced "
-                          "bytes, %zd token-referenced bytes, at offset %" PRIi64
+                          "%p: %" PRIu32 " garbage bytes left on the extent, %" PRIu32
+                          " index-referenced bytes, %" PRIu32
+                          " token-referenced bytes, at offset %" PRIi64
                           ".  block dump:\n%s\n",
                           this,
                           gc_state.current_entry->garbage_bytes(),
