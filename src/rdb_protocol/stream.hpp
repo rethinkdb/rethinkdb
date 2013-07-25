@@ -29,7 +29,7 @@ namespace query_language {
 typedef rdb_protocol_details::rget_item_t rget_item_t;
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-typedef std::deque<rget_item_t> extended_json_list_t;
+typedef std::deque<rget_item_t> extended_json_deque_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
@@ -134,8 +134,8 @@ private:
      * for sorting. */
     /* TODO We could potentially put a json_list_t in here in cases when we're not
      * sorting to save some space. */
-    extended_json_list_t data;
-    extended_json_list_t sorting_buffer;
+    extended_json_deque_t data;
+    extended_json_deque_t sorting_buffer;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
