@@ -11,7 +11,6 @@
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
-#include "http/json.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
