@@ -2,28 +2,6 @@
 #include "containers/buffer_group.hpp"
 #include <string.h>
 
-buffer_group_const_iterator_t &buffer_group_const_iterator_t::operator++() {
-    const_buffer_group_t::buffer_t buffer = parent->get_buffer(current_buffer);
-    if (++offset == buffer.size) {
-        current_buffer++;
-        offset = 0;
-    }
-    return *this;
-}
-
-char buffer_group_const_iterator_t::operator*() const {
-    return static_cast<const char *>(parent->get_buffer(current_buffer).data)[offset];
-}
-
-bool buffer_group_const_iterator_t::operator==(const buffer_group_const_iterator_t &other) const {
-    guarantee(parent == other.parent);
-    return current_buffer == other.current_buffer && offset == other.offset;
-}
-
-bool buffer_group_const_iterator_t::operator!=(const buffer_group_const_iterator_t &other) const {
-    return !operator==(other);
-}
-
 void buffer_group_copy_data(const buffer_group_t *dest, const const_buffer_group_t *source) {
 
     // TODO: Is a buffer group size an int?
