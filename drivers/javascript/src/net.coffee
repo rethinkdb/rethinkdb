@@ -327,7 +327,7 @@ class HttpConnection extends Connection
         super(host, callback)
 
         protocol = if host.protocol is 'https' then 'https' else @DEFAULT_PROTOCOL
-        url = "#{protocol}://#{@host}:#{@port}/ajax/reql/"
+        url = "#{protocol}://#{@host}:#{@port}#{host.pathname}ajax/reql/"
         xhr = new XMLHttpRequest
         xhr.open("GET", url+"open-new-connection", true)
         xhr.responseType = "arraybuffer"

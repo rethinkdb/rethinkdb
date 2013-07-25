@@ -3477,6 +3477,7 @@ module 'DataExplorerView', ->
                 host: window.location.hostname
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
+                pathname: window.location.pathname
 
             @hack_driver()
             @connect()
