@@ -154,8 +154,8 @@ public:
         if (shrink_file) {
             dbfile->set_size(extents.size() * extent_size);
 
-            // Prevent the existence arbitrarily large free queue when the
-            // file size shrinks.
+            // Prevent the existence of a relatively large free queue after the file
+            // size shrinks.
             if (held_extents_ < free_queue.size() / 2) {
                 std::priority_queue<size_t,
                                     std::vector<size_t>,
@@ -165,8 +165,13 @@ public:
                     free_queue.pop();
                 }
 
-                guarantee(free_queue.top() >= extents.size());
-                free_queue = tmp;
+                // held_extents_ was and will be the number of entries in the free_queue
+                // that _didn't_ point off the end of the file.  We just moved those
+                // entries to tmp.  The remaining entries must therefore point off the
+                // end of the file.  Check that no remaining entries point within the
+                // file.
+                guarantee(free_queue.top() >= extents.size(), "Tried to discard valid held extents.");
+                free_queue = std::move(tmp);
             }
         }
     }

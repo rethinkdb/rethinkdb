@@ -21,7 +21,8 @@ fd_t scoped_fd_t::reset(fd_t f2) {
     return f2;
 }
 
-
+// This completely fills dest_vecs with data from source_vecs (starting at
+// offset_into_source).  Crashes if source_vecs is too small!
 void fill_bufs_from_source(iovec *dest_vecs, const size_t dest_size,
                            iovec *source_vecs, const size_t source_size,
                            const size_t offset_into_source) {
@@ -45,7 +46,7 @@ void fill_bufs_from_source(iovec *dest_vecs, const size_t dest_size,
         }
     }
 
-    // Copy bytes.
+    // Copy bytes until dest is filled.
     while (dest_buf < dest_size) {
         guarantee(source_buf < source_size);
         size_t copy_size = std::min(dest_vecs[dest_buf].iov_len - dest_byte,

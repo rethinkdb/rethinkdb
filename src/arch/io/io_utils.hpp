@@ -52,7 +52,8 @@ private:
     DISABLE_COPYING(scoped_fd_t);
 };
 
-
+// This completely fills dest_vecs with data from source_vecs (starting at
+// offset_into_source).  Crashes if source_vecs is too small!
 void fill_bufs_from_source(iovec *dest_vecs, const size_t dest_size,
                            iovec *source_vecs, const size_t source_size,
                            const size_t offset_into_source);
