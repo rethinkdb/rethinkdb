@@ -1,7 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
+#define __STDC_LIMIT_MACROS
 #include "serializer/log/data_block_manager.hpp"
 
+#include <inttypes.h>
 #include <sys/uio.h>
 
 #include "utils.hpp"
@@ -1249,8 +1251,8 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
     std::vector<counted_t<ls_block_token_pointee_t> > tokens;
     for (auto it = writes.begin(); it != writes.end(); ++it) {
-        uint32_t relative_offset;
-        unsigned int block_index;
+        uint32_t relative_offset = valgrind_undefined<uint32_t>(UINT32_MAX);
+        unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
         if (!active_extent->new_offset(it->block_size,
                                        &relative_offset, &block_index)) {
             // Move the active_extent gc_entry_t to the young extent queue, and make a
