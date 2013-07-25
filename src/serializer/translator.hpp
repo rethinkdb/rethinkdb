@@ -113,18 +113,16 @@ public:
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
     translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
 
-    void *malloc();
-    void *clone(void*);
-    void free(void *ptr);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
     /* Allocates a new io account for the underlying file */
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    /* Non-blocking variant */
-    counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    using serializer_t::block_write;
+    std::vector<counted_t<standard_block_token_t> >
+    block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size() const;
 
@@ -140,12 +138,14 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
 
-    void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
-    void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t<standard_block_token_t>& token, ser_buffer_t *buf, file_account_t *io_account);
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
+                              const counted_t<standard_block_token_t>& token,
+                              repli_timestamp_t recency_timestamp);
 };
 
 #endif /* SERIALIZER_TRANSLATOR_HPP_ */

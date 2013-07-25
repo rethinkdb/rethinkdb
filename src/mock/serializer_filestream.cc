@@ -45,10 +45,6 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     const int64_t num_copied = end_block_offset - block_offset;
     rassert(num_copied > 0);
 
-    if (block_number >= MAX_BLOCK_ID) {
-        return -1;
-    }
-
     transaction_t txn(cache_.get(), rwi_read, order_token_t::ignore);
     buf_lock_t block(&txn, block_number, rwi_read);
     const char *data = static_cast<const char *>(block.get_data_read());
@@ -72,7 +68,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     buf_lock_t z(&txn, 0, rwi_write);
     int64_t *p = static_cast<int64_t *>(z.get_data_write());
     *p = 0;
-    for (block_id_t i = 1; i < MAX_BLOCK_ID && cache_->contains_block(i); ++i) {
+    for (block_id_t i = 1; cache_->contains_block(i); ++i) {
         buf_lock_t b(&txn, i, rwi_write);
         b.mark_deleted();
     }
@@ -93,10 +89,6 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     const int64_t end_offset = offset + n;
     while (offset < end_offset) {
         int64_t block_id = offset / block_size;
-        guarantee(block_id <= MAX_BLOCK_ID);
-        if (block_id >= MAX_BLOCK_ID) {
-            return -1;
-        }
 
         buf_lock_t block;
         buf_lock_t *b = &z;

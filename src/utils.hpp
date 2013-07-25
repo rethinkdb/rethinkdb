@@ -127,7 +127,7 @@ void debug_print(printf_buffer_t *buf, const std::string& s);
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
-void debugf_print(const char *msg, const T& obj) {
+void debugf_print(const char *msg, const T &obj) {
     printf_buffer_t buf;
     debugf_prefix_buf(&buf);
     buf.appendf("%s: ", msg);
@@ -139,6 +139,13 @@ void debugf_print(const char *msg, const T& obj) {
 #define debugf(...) ((void)0)
 #define debugf_print(...) ((void)0)
 #endif  // NDEBUG
+
+template <class T>
+std::string debug_strprint(const T &obj) {
+    printf_buffer_t buf;
+    debug_print(&buf, obj);
+    return std::string(buf.data(), buf.size());
+}
 
 class debugf_in_dtor_t {
 public:
@@ -219,10 +226,7 @@ public:
 protected:
     explicit home_thread_mixin_debug_only_t(int specified_home_thread);
     home_thread_mixin_debug_only_t();
-    virtual ~home_thread_mixin_debug_only_t() { }
-
-private:
-    DISABLE_COPYING(home_thread_mixin_debug_only_t);
+    ~home_thread_mixin_debug_only_t() { }
 
 #ifndef NDEBUG
     int real_home_thread;

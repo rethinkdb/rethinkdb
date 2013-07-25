@@ -20,7 +20,6 @@ conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t 
 { }
 
 conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
-
     /* Make sure there are no requests still out. */
     for (std::map<fd_t, std::map<int64_t, std::deque<action_t *> > >::iterator
              fd_t_chunk_queues = all_chunk_queues.begin();
@@ -29,6 +28,22 @@ conflict_resolving_diskmgr_t::~conflict_resolving_diskmgr_t() {
         rassert(fd_t_chunk_queues->second.empty());
     }
 }
+
+// Fills dest's bufs with data from source.  source's range is a superset of dest's.
+void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *source,
+                          const size_t offset_into_source) {
+    guarantee(source->get_offset() <= dest->get_offset()
+              && source->get_offset() + source->get_count() >= dest->get_offset() + dest->get_count());
+
+    iovec *dest_vecs;
+    size_t dest_size;
+    dest->get_bufs(&dest_vecs, &dest_size);
+    iovec *source_vecs;
+    size_t source_size;
+    source->get_bufs(&source_vecs, &source_size);
+
+    fill_bufs_from_source(dest_vecs, dest_size, source_vecs, source_size, offset_into_source);
+};
 
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
@@ -108,11 +123,7 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
         }
 
         if (latest_write) {
-
-            /* We can use the data from latest_write to fulfil the read immediately. */
-            memcpy(action->get_buf(),
-                   reinterpret_cast<const char*>(latest_write->get_buf()) + action->get_offset() - latest_write->get_offset(),
-                   action->get_count());
+            copy_full_action_buf(action, latest_write, action->get_offset() - latest_write->get_offset());
 
             action->set_successful_due_to_conflict();
             done_fun(action);
@@ -195,9 +206,7 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
                         waiter->get_offset() >= action->get_offset() &&
                         waiter->get_offset() + waiter->get_count() <= action->get_offset() + action->get_count() ) {
 
-                    memcpy(waiter->get_buf(),
-                           reinterpret_cast<const char*>(action->get_buf()) + waiter->get_offset() - action->get_offset(),
-                           waiter->get_count());
+                    copy_full_action_buf(waiter, action, waiter->get_offset() - action->get_offset());
 
                     waiter->set_successful_due_to_conflict();
 

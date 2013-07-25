@@ -6,6 +6,9 @@
 
 #include "utils.hpp"
 
+template <class> class scoped_array_t;
+struct iovec;
+
 #define DEFAULT_DISK_ACCOUNT (static_cast<file_account_t *>(0))
 #define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
@@ -86,11 +89,27 @@ typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;
 
+
+class semantic_checking_file_t {
+public:
+    semantic_checking_file_t() { }
+    virtual ~semantic_checking_file_t() { }
+    // May not return -1.  Crashes instead.
+    virtual size_t semantic_blocking_read(void *buf, size_t length) = 0;
+    // May not return -1.  Crashes instead.
+    virtual size_t semantic_blocking_write(const void *buf, size_t length) = 0;
+
+private:
+    DISABLE_COPYING(semantic_checking_file_t);
+};
+
 // A linux file.  It expects reads and writes and buffers to have an
 // alignment of DEVICE_BLOCK_SIZE.
 class file_t {
 public:
     enum wrap_in_datasyncs_t { NO_DATASYNCS, WRAP_IN_DATASYNCS };
+
+    file_t() { }
 
     virtual ~file_t() { }
     virtual uint64_t get_size() = 0;
@@ -101,6 +120,9 @@ public:
     virtual void write_async(size_t offset, size_t length, const void *buf,
                              file_account_t *account, linux_iocallback_t *cb,
                              wrap_in_datasyncs_t wrap_in_datasyncs) = 0;
+    // writev_async doesn't provide the atomicity guarantees of writev.
+    virtual void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                              file_account_t *account, linux_iocallback_t *cb) = 0;
 
     virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
     virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
@@ -109,6 +131,9 @@ public:
     virtual void destroy_account(void *account) = 0;
 
     virtual bool coop_lock_and_check() = 0;
+
+private:
+    DISABLE_COPYING(file_t);
 };
 
 class file_account_t {

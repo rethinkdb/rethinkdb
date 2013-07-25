@@ -111,7 +111,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                    base_exc_t::GENERIC,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
-            for (ssize_t i = 0; i < argptrs.size(); ++i) {
+            for (size_t i = 0; i < argptrs.size(); ++i) {
                 r_sanity_check(args[i].has());
                 argptrs[i] = args[i];
             }

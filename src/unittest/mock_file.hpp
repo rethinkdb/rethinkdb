@@ -28,6 +28,9 @@ public:
     void write_async(size_t offset, size_t length, const void *buf,
                      file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
+    void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                      file_account_t *account, linux_iocallback_t *cb);
+
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
@@ -50,6 +53,22 @@ private:
     DISABLE_COPYING(mock_file_t);
 };
 
+class mock_semantic_checking_file_t : public semantic_checking_file_t {
+public:
+    mock_semantic_checking_file_t(std::vector<char> *data) : pos_(0), data_(data) { }
+
+    size_t semantic_blocking_read(void *buf, size_t length);
+
+    size_t semantic_blocking_write(const void *buf, size_t length);
+
+private:
+    // The position within the "file".
+    size_t pos_;
+    std::vector<char> *data_;
+
+    DISABLE_COPYING(mock_semantic_checking_file_t);
+};
+
 class mock_file_opener_t : public serializer_file_opener_t {
 public:
     mock_file_opener_t() : file_existence_state_(no_file) { }
@@ -60,7 +79,7 @@ public:
     void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
     void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    void open_semantic_checking_file(int *fd_out);
+    void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);
 #endif
 
 private:

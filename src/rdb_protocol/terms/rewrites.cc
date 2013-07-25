@@ -328,6 +328,7 @@ private:
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
+        OPT1(SLICE, "right_bound", NDATUM("closed"));
         return out;
      }
      virtual const char *name() const { return "skip"; }

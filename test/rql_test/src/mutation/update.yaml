@@ -71,9 +71,9 @@ tests:
 
     # Update selection of table
 
-    - py: tbl.between(10, 19).update(lambda row:{'a':row['id']})
-      js: tbl.between(10, 19).update(function(row) { return {'a':row('id')}; })
-      rb: tbl.between(10, 19).update{ |row| { :a => row[:id] } }
+    - py: tbl.between(10, 20).update(lambda row:{'a':row['id']})
+      js: tbl.between(10, 20).update(function(row) { return {'a':row('id')}; })
+      rb: tbl.between(10, 20).update{ |row| { :a => row[:id] } }
       ot: ({'deleted':0.0,'replaced':9,'unchanged':1,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
     - py: tbl.filter(lambda row:(row['id'] >= 10) & (row['id'] < 20)).update(lambda row:{'a':row['id']})

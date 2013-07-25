@@ -225,7 +225,8 @@ class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
     public home_thread_mixin_t {
-    cond_t self_cond_;
+    friend class writeback_t;
+    bool io_completed_;
 
 public:
     struct launch_callback_t :
@@ -261,9 +262,10 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, mc_buf_lock_t *buf) {
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf)
+        : io_completed_(false) {
         launch_cb.parent = wb;
-        launch_cb.buf.init(buf);
+        launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
@@ -282,16 +284,16 @@ public:
         // releasing a snapshot, which could cause an ls_block_token to hit refcount 0 and be
         // destroyed, which requires being in coroutine context to switch back to the serializer
         // thread and unregister it. So, we cannot do that here.
-        // TODO: fix this^ somehow.
-        self_cond_.pulse();
-    }
-    void wait_for_finish() {
-        self_cond_.wait();
+
+        // TODO: The rationale above is no longer true.
+        // ls_block_token_pointee_t does not use on_thread_t to destroy itself.
+        // Can we release the buf? ^
+        io_completed_ = true;
     }
     ~buf_writer_t() {
         assert_thread();
-        rassert(self_cond_.is_pulsed());
-        rassert(launch_cb.finished_.is_pulsed());
+        guarantee(io_completed_);
+        guarantee(launch_cb.finished_.is_pulsed());
     }
 };
 
@@ -379,8 +381,9 @@ void writeback_t::do_concurrent_flush() {
     state.serializer_writes.clear();
 
     // Wait for block sequence ids to be updated.
-    for (size_t i = 0; i < state.buf_writers.size(); ++i)
+    for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         state.buf_writers[i]->launch_cb.wait_until_sequence_ids_updated();
+    }
 
     // Allow new concurrent flushes to start from now on
     writeback_in_progress = false;
@@ -393,7 +396,6 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
-        state.buf_writers[i]->wait_for_finish();
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
@@ -466,21 +468,29 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            mc_buf_lock_t *buf;
+            scoped_ptr_t<mc_buf_lock_t> buf;
             {
                 // Acquire always succeeds, but sometimes it blocks.
                 // But it won't block because we hold the flush lock.
                 ASSERT_NO_CORO_WAITING;
-                buf = new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
+                buf.init(new mc_buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok));
             }
 
-            // Fill the serializer structure
-            buf_writer_t *buf_writer = new buf_writer_t(this, buf);
+            const block_size_t buf_block_size = buf->block_size;
+            const void *const buf_data = buf->get_data_read();
+
+            guarantee(buf_block_size.value() <= cache->serializer->get_block_size().value());
+
+
+            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));
             state->buf_writers.push_back(buf_writer);
+
+            // Fill the serializer structure
             state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
+                                                buf_block_size,
                                                 inner_buf->subtree_recency,
-                                                buf->get_data_read(),
+                                                buf_data,
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
         } else {

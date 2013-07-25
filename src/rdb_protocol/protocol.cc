@@ -103,6 +103,7 @@ void post_construct_and_drain_queue(
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING;
+
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
@@ -1152,30 +1153,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             Term filter_term;
-            int arg1 = ql_env.gensym();
-            int sindex_val = ql_env.gensym();
-            Term *arg = ql::pb::set_func(&filter_term, arg1);
-            N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
-               N2(ALL,
-                  if (rget.sindex_start_value.has()) {
-                      N2(GE, NVAR(sindex_val),
-                         rget.sindex_start_value->write_to_protobuf(ql::pb::set_datum(arg)));
-                  } else {
-                      NDATUM_BOOL(true);
-                  },
-                  if (rget.sindex_end_value.has()) {
-                      N2(LE, NVAR(sindex_val),
-                         rget.sindex_end_value->write_to_protobuf(ql::pb::set_datum(arg)));
-                  } else {
-                      NDATUM_BOOL(true);
-                  }),
-               N2(FUNCALL,
-                  *arg = sindex_mapping.get_term(),
-                  NVAR(arg1)));
-
+            rget.sindex_range.write_filter_func(
+                &ql_env, &filter_term, sindex_mapping.get_term());
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(filter_term, std::map<int64_t, Datum>());
+            ql::filter_wire_func_t sindex_filter(
+                filter_term, std::map<int64_t, Datum>());
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
@@ -1674,6 +1657,47 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
+
+void rdb_protocol_t::sindex_range_t::write_filter_func(
+    ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
+    int arg1 = env->gensym();
+    int sindex_val = env->gensym();
+    Term *arg = ql::pb::set_func(filter, arg1);
+    if (!start.has() && !end.has()) {
+        NDATUM_BOOL(true);
+        return;
+    }
+
+    N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
+       N2(ALL,
+          if (start.has()) {
+              if (start_open) {
+                  N2(GT, NVAR(sindex_val), NDATUM(start));
+              } else {
+                  N2(GE, NVAR(sindex_val), NDATUM(start));
+              }
+          } else {
+              NDATUM_BOOL(true);
+          },
+          if (end.has()) {
+              if (end_open) {
+                  N2(LT, NVAR(sindex_val), NDATUM(end));
+              } else {
+                  N2(LE, NVAR(sindex_val), NDATUM(end));
+              }
+          } else {
+              NDATUM_BOOL(true);
+          }),
+       N2(FUNCALL, *arg = sindex_mapping, NVAR(arg1)));
+}
+
+region_t rdb_protocol_t::sindex_range_t ::to_region() const {
+    return region_t(rdb_protocol_t::sindex_key_range(
+        start != NULL ? start->truncated_secondary() : store_key_t::min(),
+        end != NULL ? end->truncated_secondary() : store_key_t::max()));
+}
+
+
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
 
@@ -1685,8 +1709,11 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
-RDB_IMPL_ME_SERIALIZABLE_10(rdb_protocol_t::rget_read_t, region, sindex,
-                           sindex_region, sindex_start_value, sindex_end_value,
+
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
+                           start, end, start_open, end_open);
+RDB_IMPL_ME_SERIALIZABLE_9(rdb_protocol_t::rget_read_t, region, sindex,
+                           sindex_region, sindex_range,
                            transform, terminal, optargs, merge_sort, direction);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);

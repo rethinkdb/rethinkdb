@@ -6,8 +6,8 @@
 
 #include "arch/types.hpp"
 #include "containers/bitset.hpp"
+#include "containers/infinite_array.hpp"
 #include "containers/priority_queue.hpp"
-#include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/types.hpp"
 #include "serializer/log/config.hpp"
@@ -18,90 +18,36 @@ class log_serializer_t;
 
 class data_block_manager_t;
 
-class gc_entry;
+class gc_entry_t;
 
-struct gc_entry_less {
-    bool operator() (const gc_entry *x, const gc_entry *y);
+struct gc_entry_less_t {
+    bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
-
-// Identifies an extent, the time we started writing to the
-// extent, whether it's the extent we're currently writing to, and
-// describes blocks are garbage.
-class gc_entry :
-    public intrusive_list_node_t<gc_entry>
-{
-public:
-    data_block_manager_t *parent;
-
-    extent_reference_t extent_ref;
-    bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-    bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
-    bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
-    // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
-    void update_g_array(unsigned int block_id) {
-        g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
-    }
-    microtime_t timestamp; /* !< when we started writing to the extent */
-    priority_queue_t<gc_entry*, gc_entry_less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
-    bool was_written; /* true iff the extent has been written to after starting up the serializer */
-
-    enum state_t {
-        // It has been, or is being, reconstructed from data on disk.
-        state_reconstructing,
-        // We are currently putting things on this extent. It is equal to last_data_extent.
-        state_active,
-        // Not active, but not a GC candidate yet. It is in young_extent_queue.
-        state_young,
-        // Candidate to be GCed. It is in gc_pq.
-        state_old,
-        // Currently being GCed. It is equal to gc_state.current_entry.
-        state_in_gc
-    } state;
-
-public:
-    /* This constructor is for starting a new extent. */
-    explicit gc_entry(data_block_manager_t *parent);
-
-    /* This constructor is for reconstructing extents that the LBA tells us contained
-       data blocks. */
-    gc_entry(data_block_manager_t *parent, int64_t offset);
-
-    void destroy();
-    ~gc_entry();
-
-#ifndef NDEBUG
-    void print();
-#endif
-
-private:
-    // Only to be used by the destructor, used to look up the gc entry in the parent's entries
-    // array.
-    int64_t offset;
-
-    DISABLE_COPYING(gc_entry);
-};
+namespace data_block_manager {
+struct shutdown_callback_t;  // see log_serializer.hpp.
+struct metablock_mixin_t;  // see log_serializer.hpp.
+}  // namespace data_block_manager
 
 class data_block_manager_t {
-    friend class gc_entry;
-    friend class dbm_read_ahead_fsm_t;
-
+    friend class gc_entry_t;
+    friend class dbm_read_ahead_t;
 private:
     struct gc_write_t {
-        block_id_t block_id;
-        const void *buf;
+        ser_buffer_t *buf;
         int64_t old_offset;
-        int64_t new_offset;
-        gc_write_t(block_id_t i, const void *b, int64_t _old_offset)
-            : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
+        block_size_t block_size;
+        gc_write_t(ser_buffer_t *b, int64_t _old_offset,
+                   block_size_t _block_size)
+            : buf(b), old_offset(_old_offset),
+              block_size(_block_size) { }
     };
 
     struct gc_writer_t {
-        gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
+        gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *parent);
         bool done;
     private:
-        /* TODO: This should go into log_serializer_t */
-        void write_gcs(gc_write_t *writes, int num_writes);
+        void write_gcs(gc_write_t *writes, size_t num_writes);
         data_block_manager_t *parent;
     };
 
@@ -111,42 +57,30 @@ public:
                          log_serializer_stats_t *parent);
     ~data_block_manager_t();
 
-    struct metablock_mixin_t {
-        int64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
-        uint64_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
-    };
+    /* When initializing the database from scratch, call start() with just the
+    database FD. When restarting an existing database, call start() with the last
+    metablock. */
 
-    /* When initializing the database from scratch, call start() with just the database FD. When
-    restarting an existing database, call start() with the last metablock. */
+    static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
+    void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb);
-    void start_existing(file_t *dbfile, metablock_mixin_t *last_metablock);
-
-    void read(int64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
-
-    /* Returns the offset to which the block will be written */
-    int64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                  file_account_t *io_account, iocallback_t *cb,
-                  bool token_referenced);
+    void read(int64_t off_in, uint32_t ser_block_size,
+              void *buf_out, file_account_t *io_account);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
     void mark_garbage(int64_t offset, extent_transaction_t *txn);  // Takes a real int64_t.
 
-    bool is_extent_in_use(unsigned int extent_id) {
-        return entries.get(extent_id) != NULL;
-    }
-
-    /* r{start,stop}_reconstruct functions for safety */
+    /* r{start,end}_reconstruct functions for safety */
     void start_reconstruct();
-    void mark_live(int64_t);  // Takes a real int64_t.
+    void mark_live(int64_t offset, block_size_t block_size);
     void end_reconstruct();
 
     /* We must make sure that blocks which have tokens pointing to them don't
     get garbage collected. This interface allows log_serializer to tell us about
     tokens */
-    void mark_token_live(int64_t);
-    void mark_token_garbage(int64_t);
+    void mark_live_tokenwise_with_offset(int64_t offset);
+    void mark_garbage_tokenwise_with_offset(int64_t offset);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
@@ -154,52 +88,41 @@ public:
     /* take step in gcing */
     void run_gc();
 
-    void prepare_metablock(metablock_mixin_t *metablock);
+    void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
-    struct shutdown_callback_t {
-        virtual void on_datablock_manager_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
     // The shutdown_callback_t may destroy the data_block_manager.
-    bool shutdown(shutdown_callback_t *cb);
-
-    struct gc_disable_callback_t {
-        virtual void on_gc_disabled() = 0;
-        virtual ~gc_disable_callback_t() {}
-    };
-
-    // Always calls the callback, returns true if the callback has
-    // already been called.
-    bool disable_gc(gc_disable_callback_t *cb);
-
-    // Enables gc, immediately.
-    void enable_gc();
+    bool shutdown(data_block_manager::shutdown_callback_t *cb);
 
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
-    int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
+    std::vector<counted_t<ls_block_token_pointee_t> >
+    many_writes(const std::vector<buf_write_info_t> &writes,
+                bool assign_new_block_sequence_id,
+                file_account_t *io_account,
+                iocallback_t *cb);
+
+    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+    gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
+
 
 private:
     void actually_shutdown();
 
     file_account_t *choose_gc_io_account();
 
-    int64_t gimme_a_new_offset(bool token_referenced);
+    /* Checks whether the extent is empty and if it is, notifies the extent manager
+       and cleans up */
+    void check_and_handle_empty_extent(uint64_t extent_id);
 
-    /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
-    void check_and_handle_empty_extent(unsigned int extent_id);
-
-    // Tells if we should keep gc'ing, being told the next extent that
-    // would be gc'ed.
-    bool should_we_keep_gcing(const gc_entry&) const;
+    // Tells if we should keep gc'ing.
+    bool should_we_keep_gcing() const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
 
-    // Pops the last gc_entry off young_extent_queue and declares it
+    // Pops the last gc_entry_t off young_extent_queue and declares it
     // to be not young.
     void remove_last_unyoung_entry();
 
@@ -220,7 +143,7 @@ private:
     log_serializer_stats_t *const stats;
 
     // This is permitted to destroy the data_block_manager.
-    shutdown_callback_t *shutdown_callback;
+    data_block_manager::shutdown_callback_t *shutdown_callback;
 
     enum state_t {
         state_unstarted,
@@ -241,23 +164,21 @@ private:
     scoped_ptr_t<file_account_t> gc_io_account_nice;
     scoped_ptr_t<file_account_t> gc_io_account_high;
 
-    /* Contains a pointer to every gc_entry, regardless of what its current state is */
-    two_level_array_t<gc_entry *, MAX_DATA_EXTENTS, (1 << 12)> entries;
+    /* Contains a pointer to every gc_entry_t, regardless of what its current state
+       is */
+    infinite_array_t<gc_entry_t *> entries;
 
-    /* Contains every extent in the gc_entry::state_reconstructing state */
-    intrusive_list_t< gc_entry > reconstructed_extents;
+    /* Contains every extent in the gc_entry_t::state_reconstructing state */
+    intrusive_list_t<gc_entry_t> reconstructed_extents;
 
-    /* Contains the extents in the gc_entry::state_active state. The number of active extents
-    is determined by dynamic_config->num_active_data_extents. */
-    unsigned int next_active_extent;   // Cycles through the active extents
-    gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
-    unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
+    /* Contains the extent in the gc_entry_t::state_active state. */
+    gc_entry_t *active_extent;
 
-    /* Contains every extent in the gc_entry::state_young state */
-    intrusive_list_t< gc_entry > young_extent_queue;
+    /* Contains every extent in the gc_entry_t::state_young state */
+    intrusive_list_t<gc_entry_t> young_extent_queue;
 
-    /* Contains every extent in the gc_entry::state_old state */
-    priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
+    /* Contains every extent in the gc_entry_t::state_old state */
+    priority_queue_t<gc_entry_t *, gc_entry_less_t> gc_pq;
 
 
     /* Buffer used during GC. */
@@ -274,14 +195,12 @@ private:
      */
     class gc_stat_t {
     private:
-        int val;
+        int64_t val;
         perfmon_counter_t *perfmon;
     public:
         explicit gc_stat_t(perfmon_counter_t *_perfmon)
             : val(0), perfmon(_perfmon) { }
-        void operator++();
         void operator+=(int64_t num);
-        void operator--();
         void operator-=(int64_t num);
         int get() const { return val; }
     };
@@ -292,43 +211,30 @@ private:
         gc_step step_;
 
     public:
-        // Whether gc is/should be stopped.
-        bool should_be_stopped;
-
         // Outstanding io requests
         int refcount;
 
         // A buffer for blocks we're transferring.
-        char *gc_blocks;
+        scoped_malloc_t<char> gc_blocks;
+
 
         // The entry we're currently GCing.
-        gc_entry *current_entry;
+        gc_entry_t *current_entry;
 
         data_block_manager_t::gc_read_callback_t gc_read_callback;
-        data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
         gc_state_t()
-            : step_(gc_ready), should_be_stopped(0), refcount(0),
-              gc_blocks(NULL),
+            : step_(gc_ready), refcount(0),
               current_entry(NULL) { }
 
-        ~gc_state_t() {
-            free(gc_blocks);
-            gc_blocks = NULL;  // An extra bit of paranoia in this async area.
-        }
+        ~gc_state_t() { }
 
-        inline gc_step step() const { return step_; }
+        gc_step step() const { return step_; }
 
-        // Sets step_, and calls gc_disable_callback if relevant.
+        // Sets step_.
         void set_step(gc_step next_step) {
-            if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
-                rassert(gc_disable_callback);
-                gc_disable_callback->on_gc_disabled();
-                gc_disable_callback = NULL;
-            }
-
             step_ = next_step;
-            rassert(step_ != gc_ready || gc_blocks == NULL);
+            rassert(step_ != gc_ready || !gc_blocks.has());
         }
     };
 
@@ -336,8 +242,8 @@ private:
 
 
     struct gc_stats_t {
-        gc_stat_t old_total_blocks;
-        gc_stat_t old_garbage_blocks;
+        gc_stat_t old_total_block_bytes;
+        gc_stat_t old_garbage_block_bytes;
         explicit gc_stats_t(log_serializer_stats_t *);
     };
 
@@ -345,5 +251,16 @@ private:
 
     DISABLE_COPYING(data_block_manager_t);
 };
+
+// Exposed for unit tests.  Returns a super-interval of [block_offset,
+// ser_block_size) that is almost appropriate for a read-ahead disk read -- it still
+// needs to be stretched to be aligned with disk block boundaries.
+void unaligned_read_ahead_interval(const int64_t block_offset,
+                                   const uint32_t ser_block_size,
+                                   const int64_t extent_size,
+                                   const int64_t read_ahead_size,
+                                   const std::vector<uint32_t> &boundaries,
+                                   int64_t *const offset_out,
+                                   int64_t *const end_offset_out);
 
 #endif /* SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_ */

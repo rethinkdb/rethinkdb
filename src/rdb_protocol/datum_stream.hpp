@@ -164,12 +164,16 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
+                        bool left_bound_open,
                         counted_t<const datum_t> right_bound,
+                        bool right_bound_open,
                         const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
+                        bool left_bound_open,
                         counted_t<const datum_t> right_bound,
+                        bool right_bound_open,
                         const std::string &sindex_id,
                         const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
@@ -215,7 +219,7 @@ public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
     counted_t<const datum_t> next_impl();
-    size_t index, left, right;
+    uint64_t index, left, right;
 };
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {

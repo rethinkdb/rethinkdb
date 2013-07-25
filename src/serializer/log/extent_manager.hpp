@@ -16,7 +16,6 @@
 #include "config/args.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/log/config.hpp"
-#include "containers/segmented_vector.hpp"
 
 #define NULL_OFFSET int64_t(-1)
 
@@ -135,7 +134,7 @@ public:
     void commit_transaction(extent_transaction_t *t);
 
     /* Number of extents that have been released but not handed back out again. */
-    int held_extents();
+    size_t held_extents();
 
     log_serializer_stats_t *const stats;
     const uint64_t extent_size;   /* Same as static_config->extent_size */
@@ -144,8 +143,6 @@ private:
     void release_extent_preliminaries();
 
     scoped_ptr_t<extent_zone_t> zone;
-
-    file_t *const dbfile;
 
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the
