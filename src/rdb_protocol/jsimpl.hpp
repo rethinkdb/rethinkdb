@@ -78,10 +78,22 @@ class env_t {
 // Puts us into a fresh v8 context.
 // By default each task gets its own context.
 struct context_t {
-    explicit context_t(UNUSED env_t *env) : cx(v8::Context::New(v8::Isolate::GetCurrent())), scope(cx) {}
+#ifdef V8_PRE_3_19
+    explicit context_t(UNUSED env_t *env) :
+        cx(v8::Context::New()),
+        scope(cx) {}
+
+    v8::Persistent<v8::Context> cx;
+    v8::Context::Scope scope;
+#else
+    explicit context_t(UNUSED env_t *env) :
+        cx(v8::Context::New(v8::Isolate::GetCurrent())),
+        scope(cx) {}
+
     v8::HandleScope local_scope;
     v8::Local<v8::Context> cx;
     v8::Context::Scope scope;
+#endif
 };
 
 // Tasks: jobs we run on the JS worker, within an env_t
