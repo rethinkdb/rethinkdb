@@ -87,9 +87,9 @@ private:
     virtual std::string write_eval_impl() = 0;
     virtual counted_t<val_t> eval_impl() {
         std::string op = write_eval_impl();
-        scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-        UNUSED bool b = res->add(op, make_counted<datum_t>(1.0), NULL);
-        return new_val(counted_t<const datum_t>(res.release()));
+        datum_ptr_t res(datum_t::R_OBJECT);
+        UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
+        return new_val(res.to_counted());
     }
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
@@ -353,7 +353,7 @@ public:
         meta_op_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        datum_ptr_t arr(datum_t::R_ARRAY);
         std::vector<std::string> dbs;
         {
             rethreading_metadata_accessor_t meta(this);
@@ -366,9 +366,9 @@ private:
             }
         }
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr->add(make_counted<datum_t>(*it));
+            arr.add(make_counted<datum_t>(*it));
         }
-        return new_val(counted_t<const datum_t>(arr.release()));
+        return new_val(arr.to_counted());
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -379,7 +379,7 @@ public:
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        datum_ptr_t arr(datum_t::R_ARRAY);
         uuid_u db_id;
         if (num_args() == 0) {
             counted_t<val_t> dbv = optarg("db");
@@ -401,9 +401,9 @@ private:
             }
         }
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr->add(make_counted<datum_t>(*it));
+            arr.add(make_counted<datum_t>(*it));
         }
-        return new_val(counted_t<const datum_t>(arr.release()));
+        return new_val(arr.to_counted());
     }
     virtual const char *name() const { return "table_list"; }
 };
@@ -468,17 +468,17 @@ private:
                 = make_counted<union_datum_stream_t>(env, streams, backtrace());
             return new_val(stream, table);
         } else {
-            scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+            datum_ptr_t arr(datum_t::R_ARRAY);
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(key);
                 if (row->get_type() != datum_t::R_NULL) {
-                    arr->add(row);
+                    arr.add(row);
                 }
             }
             counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(env,
-                    counted_t<const datum_t>(arr.release()), backtrace());
+                = make_counted<array_datum_stream_t>(
+                    env, arr.to_counted(), backtrace());
             return new_val(stream, table);
         }
     }

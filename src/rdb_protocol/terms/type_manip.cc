@@ -162,16 +162,16 @@ private:
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+                    datum_ptr_t arr(datum_t::R_ARRAY);
                     const std::map<std::string, counted_t<const datum_t> > &obj
                         = d->as_object();
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        scoped_ptr_t<datum_t> pair(new datum_t(datum_t::R_ARRAY));
-                        pair->add(make_counted<datum_t>(it->first));
-                        pair->add(it->second);
-                        arr->add(counted_t<const datum_t>(pair.release()));
+                        datum_ptr_t pair(datum_t::R_ARRAY);
+                        pair.add(make_counted<datum_t>(it->first));
+                        pair.add(it->second);
+                        arr.add(pair.to_counted());
                     }
-                    return new_val(counted_t<const datum_t>(arr.release()));
+                    return new_val(arr.to_counted());
                 }
 
                 // STR -> NUM
@@ -205,22 +205,21 @@ private:
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+                datum_ptr_t arr(datum_t::R_ARRAY);
                 while (counted_t<const datum_t> el = ds->next()) {
-                    arr->add(el);
+                    arr.add(el);
                 }
-                return new_val(counted_t<const datum_t>(arr.release()));
+                return new_val(arr.to_counted());
             }
 
             // SEQUENCE -> OBJECT
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
-                    datum_t::add_txn_t txn(obj.get());
+                    datum_ptr_t obj(datum_t::R_OBJECT);
                     while (counted_t<const datum_t> pair = ds->next()) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
-                        bool b = obj->add(key, keyval, &txn);
+                        bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
                                strprintf("Duplicate key %s in coerced object.  "
                                          "(got %s and %s as values)",
@@ -228,7 +227,7 @@ private:
                                          obj->get(key)->print().c_str(),
                                          keyval->print().c_str()));
                     }
-                    return new_val(counted_t<const datum_t>(obj.release()));
+                    return new_val(obj.to_counted());
                 }
             }
         }
@@ -273,33 +272,34 @@ private:
     }
 
     counted_t<const datum_t> val_info(counted_t<val_t> v) {
-        scoped_ptr_t<datum_t> info(new datum_t(datum_t::R_OBJECT));
+        datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
-        bool b = info->add("type", make_counted<datum_t>(get_name(type)), NULL);
+        bool b = info.add("type", make_counted<datum_t>(get_name(type)));
 
         switch (type) {
         case DB_TYPE: {
-            b |= info->add("name", make_counted<datum_t>(v->as_db()->name), NULL);
+            b |= info.add("name", make_counted<datum_t>(v->as_db()->name));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info->add("name", make_counted<datum_t>(table->name), NULL);
-            b |= info->add("primary_key", make_counted<datum_t>(table->get_pkey()), NULL);
-            b |= info->add("indexes", table->sindex_list(), NULL);
-            b |= info->add("db", val_info(new_val(table->db)), NULL);
+            b |= info.add("name", make_counted<datum_t>(table->name));
+            b |= info.add("primary_key", make_counted<datum_t>(table->get_pkey()));
+            b |= info.add("indexes", table->sindex_list());
+            b |= info.add("db", val_info(new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info->add("table", val_info(new_val(v->as_selection().first)), NULL);
+            b |= info.add("table", val_info(new_val(v->as_selection().first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info->add("table", val_info(new_val(v->as_single_selection().first)), NULL);
+            b |= info.add("table", val_info(new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
         } break;
 
         case FUNC_TYPE: {
-            b |= info->add("source_code", make_counted<datum_t>(v->as_func()->print_src()), NULL);
+            b |= info.add("source_code",
+                          make_counted<datum_t>(v->as_func()->print_src()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -309,13 +309,13 @@ private:
         case R_ARRAY_TYPE:  // fallthru
         case R_OBJECT_TYPE: // fallthru
         case DATUM_TYPE: {
-            b |= info->add("value", make_counted<datum_t>(v->as_datum()->print()), NULL);
+            b |= info.add("value", make_counted<datum_t>(v->as_datum()->print()));
         } break;
 
         default: unreachable();
         }
         r_sanity_check(!b);
-        return counted_t<const datum_t>(info.release());
+        return info.to_counted();
     }
 
     virtual const char *name() const { return "info"; }

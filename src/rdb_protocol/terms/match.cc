@@ -26,38 +26,38 @@ private:
         int ngroups = regexp.NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
         if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
-            scoped_ptr_t<datum_t> match(new datum_t(datum_t::R_OBJECT));
+            datum_ptr_t match(datum_t::R_OBJECT);
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't
             // using user-generated keys, but the result of `add` is marked
             // MUST_USE.
             bool b = false;
-            b |= match->add("str", make_counted<const datum_t>(groups[0].as_string()), NULL);
-            b |= match->add("start", make_counted<const datum_t>(
-                                static_cast<double>(groups[0].begin() - str.data())), NULL);
-            b |= match->add("end", make_counted<const datum_t>(
-                                static_cast<double>(groups[0].end() - str.data())), NULL);
-            scoped_ptr_t<datum_t> match_groups(new datum_t(datum_t::R_ARRAY));
+            b |= match.add("str", make_counted<const datum_t>(groups[0].as_string()));
+            b |= match.add("start", make_counted<const datum_t>(
+                               static_cast<double>(groups[0].begin() - str.data())));
+            b |= match.add("end", make_counted<const datum_t>(
+                               static_cast<double>(groups[0].end() - str.data())));
+            datum_ptr_t match_groups(datum_t::R_ARRAY);
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups->add(make_counted<datum_t>(datum_t::R_NULL));
+                    match_groups.add(make_counted<datum_t>(datum_t::R_NULL));
                 } else {
-                    scoped_ptr_t<datum_t> match_group(new datum_t(datum_t::R_OBJECT));
-                    b |= match_group->add(
-                        "str", make_counted<const datum_t>(group.as_string()), NULL);
-                    b |= match_group->add(
+                    datum_ptr_t match_group(datum_t::R_OBJECT);
+                    b |= match_group.add(
+                        "str", make_counted<const datum_t>(group.as_string()));
+                    b |= match_group.add(
                         "start", make_counted<const datum_t>(
-                            static_cast<double>(group.begin() - str.data())), NULL);
-                    b |= match_group->add(
+                            static_cast<double>(group.begin() - str.data())));
+                    b |= match_group.add(
                         "end", make_counted<const datum_t>(
-                            static_cast<double>(group.end() - str.data())), NULL);
-                    match_groups->add(counted_t<const datum_t>(match_group.release()));
+                            static_cast<double>(group.end() - str.data())));
+                    match_groups.add(match_group.to_counted());
                 }
             }
-            b |= match->add("groups", counted_t<const datum_t>(match_groups.release()), NULL);
+            b |= match.add("groups", match_groups.to_counted());
             r_sanity_check(!b);
-            return new_val(counted_t<const datum_t>(match.release()));
+            return new_val(match.to_counted());
         } else {
             return new_val(make_counted<const datum_t>(datum_t::R_NULL));
         }

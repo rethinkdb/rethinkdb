@@ -112,6 +112,8 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::EPOCH_TIME:         return make_epoch_time_term(env, t);
     case Term::TO_EPOCH_TIME:      return make_to_epoch_time_term(env, t);
     case Term::NOW:                return make_now_term(env, t);
+    case Term::IN_TIMEZONE:        return make_in_timezone_term(env, t);
+    case Term::DURING:             return make_during_term(env, t);
     default: unreachable();
     }
     unreachable();

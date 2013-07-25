@@ -29,8 +29,6 @@ namespace pseudo {
 class datum_cmp_t;
 } //namespace pseudo
 
-
-
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `el` or
 // `add` below).
@@ -103,32 +101,12 @@ public:
 
     // Use of `size` and `el` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
-    void add(counted_t<const datum_t> val); // add to an array
-    void change(size_t index, counted_t<const datum_t> val); //change an element of an array
-    void insert(size_t index, counted_t<const datum_t> val); //insert into an array
-    void erase(size_t index); //erase from an array
-    void erase_range(size_t start, size_t end); //erase a range from an array
-    void splice(size_t index, counted_t<const datum_t> values);
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
     // Use of `get` is preferred to `as_object` when possible.
     const std::map<std::string, counted_t<const datum_t> > &as_object() const;
 
-    class add_txn_t {
-    public:
-        add_txn_t(const datum_t *_parent);
-        ~add_txn_t();
-    private:
-        friend class datum_t;
-        const datum_t *parent;
-    };
-
-    // Returns true if `key` was already in object.
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
-                      add_txn_t *txn, clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
-    // Returns true if key was in object.
-    MUST_USE bool delete_key(const std::string &key);
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
@@ -141,9 +119,8 @@ public:
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    counted_t<datum_stream_t>
-    as_datum_stream(env_t *env,
-                    const protob_t<const Backtrace> &backtrace) const;
+    counted_t<datum_stream_t> as_datum_stream(
+        env_t *env, const protob_t<const Backtrace> &backtrace) const;
 
     // Check that we have a valid pseudotype.  Implies `rcheck_is_pt`.
     void rcheck_valid_pt(const std::string s = "") const;
@@ -172,6 +149,19 @@ public:
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
 private:
+    friend class datum_ptr_t;
+    void add(counted_t<const datum_t> val); // add to an array
+    // change an element of an array
+    void change(size_t index, counted_t<const datum_t> val);
+    void insert(size_t index, counted_t<const datum_t> val); // insert into an array
+    void erase(size_t index); // erase from an array
+    void erase_range(size_t start, size_t end); // erase a range from an array
+    void splice(size_t index, counted_t<const datum_t> values);
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
+                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+    // Returns true if key was in object.
+    MUST_USE bool delete_field(const std::string &key);
+
     void init_empty();
     void init_str();
     void init_array();
@@ -203,6 +193,46 @@ public:
 
 private:
     DISABLE_COPYING(datum_t);
+};
+
+// If you need to do mutable operations to a `datum_t`, use one of these (it's
+// basically a `scoped_ptr_t` that can access private methods on `datum_t` and
+// checks for pseudotype validity when you turn it into a `counted_t<const
+// datum_t>`).
+class datum_ptr_t {
+public:
+    template<class... Args>
+    datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
+    counted_t<const datum_t> to_counted() {
+        ptr()->maybe_rcheck_valid_pt();
+        return counted_t<const datum_t>(_p.release());
+    }
+    const datum_t *operator->() const { return const_ptr(); }
+    void add(counted_t<const datum_t> val) { ptr()->add(val); }
+    void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
+    void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
+    void erase(size_t i) { ptr()->erase(i); }
+    void erase_range(size_t start, size_t end) { ptr()->erase_range(start, end); }
+    void splice(size_t index, counted_t<const datum_t> values) {
+        ptr()->splice(index, values);
+    }
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
+                      clobber_bool_t clobber_bool = NOCLOBBER) {
+        return ptr()->add(key, val, clobber_bool);
+    }
+    MUST_USE bool delete_field(const std::string &key) {
+        return ptr()->delete_field(key);
+    }
+private:
+    datum_t *ptr() {
+        r_sanity_check(_p.has());
+        return _p.get();
+    }
+    const datum_t *const_ptr() const {
+        r_sanity_check(_p.has());
+        return _p.get();
+    }
+    scoped_ptr_t<datum_t> _p;
 };
 
 #ifndef NDEBUG

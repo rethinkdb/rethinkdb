@@ -51,7 +51,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
-    scoped_ptr_t<datum_t> datum(new datum_t(datum_t::R_OBJECT));
+    datum_ptr_t d(datum_t::R_OBJECT);
     const std::string err = exception.what();
 
     // The bool is true if there's a conflict when inserting the
@@ -59,15 +59,13 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
     // are impossible here.  If you want to harden this against future
     // changes, you could store the bool and `r_sanity_check` that it's
     // false.
-    DEBUG_VAR const bool had_first_error =
-        datum->add("first_error", make_counted<datum_t>(err), NULL);
+    DEBUG_VAR bool had_first_error = d.add("first_error", make_counted<datum_t>(err));
     rassert(!had_first_error);
 
-    DEBUG_VAR const bool had_errors =
-        datum->add("errors", make_counted<datum_t>(1.0), NULL);
+    DEBUG_VAR bool had_errors = d.add("errors", make_counted<datum_t>(1.0));
     rassert(!had_errors);
 
-    return counted_t<const datum_t>(datum.release());
+    return d.to_counted();
 }
 
 counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
@@ -213,11 +211,11 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                     map_wire_func_t mwf = *replacements[i].replacer;
                     orig = mwf.compile(env)->call(orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
-                        scoped_ptr_t<datum_t> resp(new datum_t(datum_t::R_OBJECT));
+                        datum_ptr_t resp(datum_t::R_OBJECT);
                         counted_t<const datum_t> one(new datum_t(1.0));
-                        const bool b = resp->add("skipped", one, NULL);
+                        const bool b = resp.add("skipped", one);
                         r_sanity_check(!b);
-                        ret[i] = counted_t<const datum_t>(resp.release());
+                        ret[i] = resp.to_counted();
                         continue;
                     }
                 }
@@ -295,24 +293,26 @@ MUST_USE bool table_t::sindex_drop(const std::string &id) {
 }
 
 counted_t<const datum_t> table_t::sindex_list() {
-    scoped_ptr_t<datum_t> array(new datum_t(datum_t::R_ARRAY));
+    datum_ptr_t array(datum_t::R_ARRAY);
     rdb_protocol_t::sindex_list_t sindex_list;
     rdb_protocol_t::read_t read(sindex_list);
     try {
         rdb_protocol_t::read_response_t res;
-        access->get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
-        rdb_protocol_t::sindex_list_response_t *s_res = boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
+        access->get_namespace_if()->read(
+            read, &res, order_token_t::ignore, env->interruptor);
+        rdb_protocol_t::sindex_list_response_t *s_res =
+            boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
 
         for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
              it != s_res->sindexes.end(); ++it) {
-            array->add(make_counted<datum_t>(*it));
+            array.add(make_counted<datum_t>(*it));
         }
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail(ql::base_exc_t::GENERIC, "cannot perform read: %s", ex.what());
     }
 
-    return counted_t<const datum_t>(array.release());
+    return array.to_counted();
 }
 
 counted_t<const datum_t> table_t::do_replace(
@@ -325,10 +325,10 @@ counted_t<const datum_t> table_t::do_replace(
         map_wire_func_t mwf2 = mwf;
         orig = mwf2.compile(env)->call(orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
-            scoped_ptr_t<datum_t> resp(new datum_t(datum_t::R_OBJECT));
-            bool b = resp->add("skipped", make_counted<datum_t>(1.0), NULL);
+            datum_ptr_t resp(datum_t::R_OBJECT);
+            bool b = resp.add("skipped", make_counted<datum_t>(1.0));
             r_sanity_check(!b);
-            return counted_t<const datum_t>(resp.release());
+            return resp.to_counted();
         }
     }
     store_key_t store_key(orig->get(pk)->print_primary());

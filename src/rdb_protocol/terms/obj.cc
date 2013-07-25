@@ -13,11 +13,11 @@ private:
     virtual counted_t<val_t> eval_impl() {
         counted_t<const datum_t> d = arg(0)->as_datum();
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        datum_ptr_t arr(datum_t::R_ARRAY);
         for (auto it = obj.begin(); it != obj.end(); ++it) {
-            arr->add(make_counted<const datum_t>(it->first));
+            arr.add(make_counted<const datum_t>(it->first));
         }
-        return new_val(counted_t<const datum_t>(arr.release()));
+        return new_val(arr.to_counted());
     }
     virtual const char *name() const { return "keys"; }
 };

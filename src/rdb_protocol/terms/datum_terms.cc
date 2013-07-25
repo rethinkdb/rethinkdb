@@ -26,11 +26,11 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_ARRAY));
+        datum_ptr_t acc(datum_t::R_ARRAY);
         for (size_t i = 0; i < num_args(); ++i) {
-            acc->add(arg(i)->as_datum());
+            acc.add(arg(i)->as_datum());
         }
-        return new_val(counted_t<const datum_t>(acc.release()));
+        return new_val(acc.to_counted());
     }
     virtual const char *name() const { return "make_array"; }
 };
@@ -41,14 +41,13 @@ public:
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_t> acc(new datum_t(datum_t::R_OBJECT));
-        datum_t::add_txn_t ql_txn(acc.get());
+        datum_ptr_t acc(datum_t::R_OBJECT);
         for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc->add(it->first, it->second->eval()->as_datum(), &ql_txn);
+            bool dup = acc.add(it->first, it->second->eval()->as_datum());
             rcheck(!dup, base_exc_t::GENERIC,
                    strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }
-        return new_val(counted_t<const datum_t>(acc.release()));
+        return new_val(acc.to_counted());
     }
     virtual const char *name() const { return "make_obj"; }
 };

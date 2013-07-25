@@ -45,6 +45,7 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     r_sanity_check(force_compilation != NULL);
     return false;
 }
+
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;

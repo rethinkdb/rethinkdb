@@ -114,6 +114,46 @@ const boost::local_time::time_zone_ptr utc(
     new boost::local_time::posix_time_zone("UTC"));
 const boost::local_time::local_date_time epoch(raw_epoch, utc);
 
+
+bool hours_valid(char l, char r) {
+    return ((l == '0' || l == '1') && ('0' <= r && r <= '9'))
+        || ((l == '2') && ('0' <= r && r <= '4'));
+}
+bool minutes_valid(char l, char r) {
+    return ('0' <= l && l <= '5') && ('0' <= r && r <= '9');
+}
+bool tz_valid(const std::string &tz) {
+    if (tz == "") {
+        return false;
+    } else if (tz == "Z") {
+        return true;
+    } else if (tz[0] == '+' || tz[0] == '-') {
+        if (tz.size() == 3) {
+            return hours_valid(tz[1], tz[2]);
+        } else if (tz.size() == 5) {
+            return hours_valid(tz[1], tz[2]) && minutes_valid(tz[3], tz[4]);
+        } else if (tz.size() == 6) {
+            return hours_valid(tz[1], tz[2])
+                && tz[3] == ':'
+                && minutes_valid(tz[4], tz[5]);
+        }
+    }
+    return false;
+}
+
+std::string sanitize_tz(const std::string &tz, const rcheckable_t *target) {
+    if (tz == "UTC+00" || tz == "") {
+        return "";
+    } else if (tz == "Z+00") {
+        return "Z";
+    } else if (tz_valid(tz)) {
+        return tz;
+    }
+    // TODO: FIX
+    rfail_target(target, base_exc_t::GENERIC,
+                 "Invalid ISO 8601 timezone: `%s`.", tz.c_str());
+}
+
 counted_t<const datum_t> iso8601_to_time(
     const std::string &s, const rcheckable_t *target) {
     time_t t(boost::date_time::not_a_date_time);
@@ -132,15 +172,9 @@ counted_t<const datum_t> iso8601_to_time(
     boost::posix_time::time_duration dur(t - epoch);
     double seconds = dur.total_microseconds() / 1000000.0;
     std::string tz = t.zone_as_posix_string();
-    if (tz == "UTC+00" || tz == "") {
-        return make_time(seconds);
-    } else {
-        rcheck_target(target, base_exc_t::GENERIC,
-                      tz[0] == '-' || tz[0] == '+'
-                      || (tz[0] == 'Z' && (tz == "Z" || tz[1] == '-' || tz[1] == '+')),
-                      strprintf("Invalid ISO 8601 timezone: `%s`.", tz.c_str()));
-        return make_time(seconds, tz);
-    }
+    tz = sanitize_tz(tz, target);
+    r_sanity_check(tz == "" || tz_valid(tz));
+    return make_time(seconds, tz);
 }
 
 const std::locale tz_format =
@@ -177,41 +211,87 @@ counted_t<const datum_t> time_now() {
 }
 
 int time_cmp(const datum_t &x, const datum_t &y) {
-    r_sanity_check(x.get_reql_type() == time_string);
-    r_sanity_check(y.get_reql_type() == time_string);
+    r_sanity_check(x.is_pt(time_string));
+    r_sanity_check(y.is_pt(time_string));
     return x.get(epoch_time_key)->cmp(*y.get(epoch_time_key));
 }
 
-bool time_valid(const datum_t &time) {
-    //TODO better validation for timezones.
-    r_sanity_check(time.get_reql_type() == time_string);
+void rcheck_time_valid(const datum_t *time) {
+    r_sanity_check(time != NULL);
+    r_sanity_check(time->is_pt(time_string));
+    std::string msg;
     bool has_epoch_time = false;
-    for (auto it = time.as_object().begin(); it != time.as_object().end(); ++it) {
+    for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
         if (it->first == epoch_time_key) {
-            has_epoch_time = true;
-        } else if (it->first == timezone_key || it->first == datum_t::reql_type_string) {
+            if (it->second->get_type() == datum_t::R_NUM) {
+                has_epoch_time = true;
+                continue;
+            } else {
+                msg = strprintf("field `%s` must be a number (got `%s` of type %s)",
+                                epoch_time_key, it->second->trunc_print().c_str(),
+                                it->second->get_type_name().c_str());
+                break;
+            }
+        } else if (it->first == timezone_key) {
+            if (it->second->get_type() == datum_t::R_STR) {
+                if (tz_valid(it->second->as_str())) {
+                    continue;
+                } else {
+                    msg = strprintf("invalide timezone string `%s`",
+                                    it->second->trunc_print().c_str());
+                    break;
+                }
+            } else {
+                msg = strprintf("field `%s` must be a string (got `%s` of type %s)",
+                                timezone_key, it->second->trunc_print().c_str(),
+                                it->second->get_type_name().c_str());
+                break;
+            }
+        } else if (it->first == datum_t::reql_type_string) {
             continue;
         } else {
-            return false;
+            msg = strprintf("unrecognized field `%s`", it->first.c_str());
+            break;
         }
     }
-    return has_epoch_time;
+
+    if (msg == "" && !has_epoch_time) {
+        msg = strprintf("no field `%s`", epoch_time_key);
+    }
+
+    if (msg != "") {
+        rfail_target(time, base_exc_t::GENERIC,
+                     "Invalid time object constructed (%s):\n%s",
+                     msg.c_str(), time->trunc_print().c_str());
+    }
+}
+
+counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
+                                    counted_t<const datum_t> tz) {
+    r_sanity_check(t->is_pt(time_string));
+    datum_ptr_t t2(t->as_object());
+    if (tz->get_type() == datum_t::R_NULL) {
+        UNUSED bool b = t2.delete_field(timezone_key);
+    } else {
+        UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
+    }
+    return t2.to_counted();
 }
 
 counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
-    scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-    datum_t::add_txn_t txn(res.get());
-    bool clobber = res->add(datum_t::reql_type_string,
-                            make_counted<const datum_t>(time_string), &txn);
-    clobber |= res->add(epoch_time_key, make_counted<const datum_t>(epoch_time), &txn);
+    datum_ptr_t res(datum_t::R_OBJECT);
+    bool clobber = res.add(datum_t::reql_type_string,
+                           make_counted<const datum_t>(time_string));
+    clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
     if (tz != "") {
-        clobber |= res->add(timezone_key, make_counted<const datum_t>(tz), &txn);
+        clobber |= res.add(timezone_key, make_counted<const datum_t>(tz));
     }
     r_sanity_check(!clobber);
-    return counted_t<const datum_t>(res.release());
+    return res.to_counted();
 }
 
-counted_t<const datum_t> time_add(counted_t<const datum_t> x, counted_t<const datum_t> y) {
+counted_t<const datum_t> time_add(counted_t<const datum_t> x,
+                                  counted_t<const datum_t> y) {
     counted_t<const datum_t> time, duration;
     if (x->is_pt(time_string)) {
         time = x;
@@ -222,35 +302,34 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x, counted_t<const da
         duration = x;
     }
 
-    scoped_ptr_t<datum_t> res(new datum_t(time->as_object()));
-    bool clobbered = res->add(
+    datum_ptr_t res(time->as_object());
+    bool clobbered = res.add(
         epoch_time_key,
         make_counted<const datum_t>(res->get(epoch_time_key)->as_num() +
                                     duration->as_num()),
-        NULL, CLOBBER);
+        CLOBBER);
     r_sanity_check(clobbered);
 
-    return counted_t<const datum_t>(res.release());
+    return res.to_counted();
 }
 
 counted_t<const datum_t> time_sub(counted_t<const datum_t> time, counted_t<const datum_t> time_or_duration) {
     r_sanity_check(time->is_pt(time_string));
 
-    scoped_ptr_t<datum_t> res;
     if (time_or_duration->is_pt(time_string)) {
-        res.init(new datum_t(time->get(epoch_time_key)->as_num() -
-                             time_or_duration->get(epoch_time_key)->as_num()));
+        return make_counted<const datum_t>(
+            time->get(epoch_time_key)->as_num()
+            - time_or_duration->get(epoch_time_key)->as_num());
     } else {
-        res.init(new datum_t(time->as_object()));
-        bool clobbered = res->add(
+        datum_ptr_t res(time->as_object());
+        bool clobbered = res.add(
             epoch_time_key,
             make_counted<const datum_t>(res->get(epoch_time_key)->as_num() -
                                         time_or_duration->as_num()),
-            NULL, CLOBBER);
+            CLOBBER);
         r_sanity_check(clobbered);
+        return res.to_counted();
     }
-
-    return counted_t<const datum_t>(res.release());
 }
 
 } //namespace pseudo

@@ -138,20 +138,21 @@ public:
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
     virtual counted_t<val_t> eval_impl() {
-        scoped_ptr_t<datum_stream_t> s(new sort_datum_stream_t<bool (*)(counted_t<const datum_t>, counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        scoped_ptr_t<datum_stream_t> s(
+            new sort_datum_stream_t<bool (*)(
+                counted_t<const datum_t>,
+                counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
+        datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next()) {
             if (last.has() && *last == *d) {
                 continue;
             }
             last = d;
-            arr->add(last);
+            arr.add(last);
         }
-        counted_t<datum_stream_t> out
-            = make_counted<array_datum_stream_t>(env,
-                                                 counted_t<const datum_t>(arr.release()),
-                                                 backtrace());
+        counted_t<datum_stream_t> out =
+            make_counted<array_datum_stream_t>(env, arr.to_counted(), backtrace());
         return new_val(out);
     }
     virtual const char *name() const { return "distinct"; }

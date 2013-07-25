@@ -136,8 +136,7 @@ void datum_t::init_json(cJSON *json) {
         init_object();
         for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
             cJSON *el = cJSON_GetArrayItem(json, i);
-            datum_t::add_txn_t ql_txn(this);
-            bool conflict = add(el->string, make_counted<datum_t>(el), &ql_txn);
+            bool conflict = add(el->string, make_counted<datum_t>(el));
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
@@ -312,8 +311,7 @@ void datum_t::rcheck_is_pt(const std::string s) const {
 void datum_t::rcheck_valid_pt(const std::string s) const {
     rcheck_is_pt(s);
     if (get_reql_type() == pseudo::time_string) {
-        rcheck(pseudo::time_valid(*this), base_exc_t::GENERIC,
-               strprintf("Invalid time object constructed:\n%s", trunc_print().c_str()));
+        pseudo::rcheck_time_valid(this);
         return;
     }
 
@@ -554,12 +552,6 @@ counted_t<const datum_t> datum_t::get(const std::string &key,
     return counted_t<const datum_t>();
 }
 
-datum_t::add_txn_t::add_txn_t(const datum_t *_parent) : parent(_parent) { }
-
-datum_t::add_txn_t::~add_txn_t() {
-    parent->maybe_rcheck_valid_pt();
-}
-
 const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() const {
     check_type(R_OBJECT);
     return *r_object;
@@ -624,49 +616,41 @@ void datum_t::add(counted_t<const datum_t> val) {
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
-                           add_txn_t *txn, clobber_bool_t clobber_bool) {
-    r_sanity_check(txn == NULL || txn->parent == this);
+                           clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
     bool key_in_obj = r_object->count(key) > 0;
     if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
-    if (txn == NULL) {
-        maybe_rcheck_valid_pt();
-    }
     return key_in_obj;
 }
 
-MUST_USE bool datum_t::delete_key(const std::string &key) {
+MUST_USE bool datum_t::delete_field(const std::string &key) {
     return r_object->erase(key);
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
-    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
-    datum_t::add_txn_t ql_txn(d.get());
+    datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d->add(it->first, it->second, &ql_txn, CLOBBER);
+        UNUSED bool b = d.add(it->first, it->second, CLOBBER);
     }
-    return counted_t<const datum_t>(d.release());
+    return d.to_counted();
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
-    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
-    datum_t::add_txn_t ql_txn(d.get());
+    datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d->add(it->first,
-                            f(it->first, left, it->second, this),
-                            &ql_txn, CLOBBER);
+            bool b = d.add(it->first, f(it->first, left, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
-            bool b = d->add(it->first, it->second, &ql_txn);
+            bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
         }
     }
-    return counted_t<const datum_t>(d.release());
+    return d.to_counted();
 }
 
 template<class T>
@@ -885,15 +869,15 @@ void wire_datum_map_t::finalize() {
 
 counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     r_sanity_check(state == COMPILED);
-    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+    datum_ptr_t arr(datum_t::R_ARRAY);
     for (auto it = map.begin(); it != map.end(); ++it) {
-        scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
-        bool b1 = obj->add("group", it->first, NULL);
-        bool b2 = obj->add("reduction", it->second, NULL);
+        datum_ptr_t obj(datum_t::R_OBJECT);
+        bool b1 = obj.add("group", it->first);
+        bool b2 = obj.add("reduction", it->second);
         r_sanity_check(!b1 && !b2);
-        arr->add(counted_t<const datum_t>(obj.release()));
+        arr.add(obj.to_counted());
     }
-    return counted_t<const datum_t>(arr.release());
+    return arr.to_counted();
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
