@@ -146,22 +146,68 @@ batched_rget_stream_t::batched_rget_stream_t(
       sorting(_sorting)
 { }
 
-boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+boost::optional<rget_item_t> batched_rget_stream_t::head() {
     started = true;
     if (data.empty()) {
         if (finished) {
-            return boost::shared_ptr<scoped_cJSON_t>();
+            return boost::optional<rget_item_t>();
         }
         read_more();
         if (data.empty()) {
             finished = true;
-            return boost::shared_ptr<scoped_cJSON_t>();
+            return boost::optional<rget_item_t>();
         }
     }
 
-    boost::shared_ptr<scoped_cJSON_t> datum = data.front().data;
+    return data.front();
+}
+
+void batched_rget_stream_t::pop() {
+    guarantee(!data.empty());
     data.pop_front();
-    return datum;
+}
+
+bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right) {
+    return json_cmp(left.sindex_key->get(), right.sindex_key->get()) < 0;
+}
+
+boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+    if (!sorting_buffer.empty()) {
+        boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        sorting_buffer.pop_front();
+        return datum;
+    } else {
+        for (;;) {
+            boost::optional<rget_item_t> item = head();
+            if (!item) {
+                break;
+            } else if (!ql::datum_t::key_is_truncated(item->key)) {
+                if (sorting_buffer.empty()) {
+                    pop();
+                    return item->data;
+                } else {
+                    break;
+                }
+            } else {
+                pop();
+                sorting_buffer.push_back(*item);
+            }
+        }
+    }
+
+    /* The sorting buffer should now have unsorted data in it. Time to sort it. */
+    if (sorting_buffer.empty()) {
+        /* Nothing in the sorting buffer, this means we don't have any data to
+         * return so we return nothing. */
+        return boost::shared_ptr<scoped_cJSON_t>();
+    } else {
+        /* There's data in the sorting_buffer time to sort it. */
+        std::sort(sorting_buffer.begin(), sorting_buffer.end(),
+                  &rget_item_sindex_key_less);
+        boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        sorting_buffer.pop_front();
+        return datum;
+    }
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &per_op_backtrace) {

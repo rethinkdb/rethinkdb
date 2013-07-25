@@ -145,6 +145,12 @@ public:
     }
 
     static size_t max_trunc_size();
+    /* Note key_is_truncated returns true if the size of the secondary index
+     * portion of the key is max_trunc_size. This means that a key of exactly
+     * max_trunc_size counts as truncated by this function. Unfortunately there
+     * isn't a general way to tell if keys of max_trunc_size were exactly that
+     * size or longer and thus truncated. */
+    static bool key_is_truncated(const store_key_t &key);
 
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
     archive_result_t rdb_deserialize(read_stream_t *s);

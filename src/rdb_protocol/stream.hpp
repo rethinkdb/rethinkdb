@@ -26,8 +26,10 @@ enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
 namespace ql { class env_t; }
 namespace query_language {
 
+typedef rdb_protocol_details::rget_item_t rget_item_t;
+
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-typedef std::list<rdb_protocol_details::rget_item_t> extended_json_list_t;
+typedef std::deque<rget_item_t> extended_json_list_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
@@ -105,6 +107,8 @@ public:
                           counted_t<const ql::datum_t> _sindex_end_value,
                           sorting_t sorting);
 
+    boost::optional<rget_item_t> head();
+    void pop();
     boost::shared_ptr<scoped_cJSON_t> next();
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
@@ -131,6 +135,7 @@ private:
     /* TODO We could potentially put a json_list_t in here in cases when we're not
      * sorting to save some space. */
     extended_json_list_t data;
+    extended_json_list_t sorting_buffer;
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;

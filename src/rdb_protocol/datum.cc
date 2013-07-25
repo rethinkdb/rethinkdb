@@ -698,6 +698,10 @@ size_t datum_t::max_trunc_size() {
     return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
 }
 
+bool datum_t::key_is_truncated(const store_key_t &key) {
+    return unprint_secondary(key_to_unescaped_str(key)).size() == max_trunc_size();
+}
+
 void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
     Datum d;
     write_to_protobuf(&d);

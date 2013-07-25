@@ -696,10 +696,9 @@ public:
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
-            std::string str_key = key_to_unescaped_str(store_key);
 
             if (sindex_function &&
-                ql::datum_t::unprint_secondary(str_key).size() == ql::datum_t::max_trunc_size()) {
+                ql::datum_t::key_is_truncated(store_key)) {
                 counted_t<const ql::datum_t> datum_value = 
                     make_counted<const ql::datum_t>(first_value);
                 sindex_value = sindex_function->call(datum_value)->as_datum();
