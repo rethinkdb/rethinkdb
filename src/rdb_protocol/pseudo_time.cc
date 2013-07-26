@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include "rdb_protocol/pseudo_time.hpp"
 
 namespace ql {
@@ -10,6 +12,8 @@ const char *const timezone_key = "timezone";
 typedef boost::local_time::local_time_input_facet input_timefmt_t;
 typedef boost::local_time::local_time_facet output_timefmt_t;
 typedef boost::local_time::local_date_time time_t;
+typedef boost::posix_time::ptime ptime_t;
+typedef boost::gregorian::date date_t;
 
 // This is the complete set of accepted formats by my reading of the ISO 8601
 // spec.  I would be absolutely astonished if it contained no errors or
@@ -109,11 +113,10 @@ const std::locale input_formats[] = {
 };
 const size_t num_input_formats = sizeof(input_formats)/sizeof(input_formats[0]);
 
-const boost::posix_time::ptime raw_epoch(boost::gregorian::date(1970, 1, 1));
+const ptime_t raw_epoch(date_t(1970, 1, 1));
 const boost::local_time::time_zone_ptr utc(
     new boost::local_time::posix_time_zone("UTC"));
 const boost::local_time::local_date_time epoch(raw_epoch, utc);
-
 
 bool hours_valid(char l, char r) {
     return ((l == '0' || l == '1') && ('0' <= r && r <= '9'))
@@ -154,6 +157,15 @@ std::string sanitize_tz(const std::string &tz, const rcheckable_t *target) {
                  "Invalid ISO 8601 timezone: `%s`.", tz.c_str());
 }
 
+counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
+    boost::posix_time::time_duration dur(t - epoch);
+    double seconds = dur.total_microseconds() / 1000000.0;
+    std::string tz = t.zone_as_posix_string();
+    tz = sanitize_tz(tz, target);
+    r_sanity_check(tz == "" || tz_valid(tz));
+    return make_time(seconds, tz);
+}
+
 counted_t<const datum_t> iso8601_to_time(
     const std::string &s, const rcheckable_t *target) {
     time_t t(boost::date_time::not_a_date_time);
@@ -168,36 +180,48 @@ counted_t<const datum_t> iso8601_to_time(
     rcheck_target(target, base_exc_t::GENERIC,
                   t != time_t(boost::date_time::not_a_date_time),
                   strprintf("Failed to parse `%s` as ISO 8601 time.", s.c_str()));
-
-    boost::posix_time::time_duration dur(t - epoch);
-    double seconds = dur.total_microseconds() / 1000000.0;
-    std::string tz = t.zone_as_posix_string();
-    tz = sanitize_tz(tz, target);
-    r_sanity_check(tz == "" || tz_valid(tz));
-    return make_time(seconds, tz);
+    return boost_to_time(t, target);
 }
+
+const int64_t sec_incr = INT_MAX;
+time_t time_to_boost(counted_t<const datum_t> d) {
+    double raw_sec = d->get(epoch_time_key)->as_num();
+    int64_t sec = raw_sec;
+    int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
+    ptime_t t(date_t(1970, 1, 1));
+
+    // boost::posix_time::seconds doesn't like large numbers
+    int sign = sec < 0 ? -1 : 1;
+    sec *= sign;
+    while (sec > 0) {
+        int64_t diff = std::min(sec, sec_incr);
+        sec -= diff;
+        t += boost::posix_time::seconds(diff * sign);
+    }
+
+    t += boost::posix_time::microseconds(microsec);
+    if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+        boost::local_time::time_zone_ptr zone(
+            new boost::local_time::posix_time_zone(tz->as_str()));
+        return time_t(t, zone);
+    } else {
+        return time_t(t, utc);
+    }
+}
+
 
 const std::locale tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
 const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
 std::string time_to_iso8601(counted_t<const datum_t> d) {
-    double raw_sec = d->get(epoch_time_key)->as_num();
-    double sec = double(int64_t(raw_sec));
-    double microsec = (raw_sec * 1000000) - (sec * 1000000);
     std::ostringstream ss;
-    boost::posix_time::ptime t(boost::gregorian::date(1970, 1, 1));
-    t += boost::posix_time::seconds(sec);
-    t += boost::posix_time::microseconds(microsec);
     if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
         ss.imbue(tz_format);
-        boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(tz->as_str()));
-        ss << time_t(t, zone);
     } else {
         ss.imbue(no_tz_format);
-        ss << time_t(t, utc);
     }
+    ss << time_to_boost(d);
     return ss.str();
 }
 
@@ -206,7 +230,7 @@ double time_to_epoch_time(counted_t<const datum_t> d) {
 }
 
 counted_t<const datum_t> time_now() {
-    boost::posix_time::ptime t = boost::posix_time::microsec_clock::universal_time();
+    ptime_t t = boost::posix_time::microsec_clock::universal_time();
     return make_time((t - raw_epoch).total_microseconds() / 1000000.0);
 }
 
@@ -313,7 +337,8 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x,
     return res.to_counted();
 }
 
-counted_t<const datum_t> time_sub(counted_t<const datum_t> time, counted_t<const datum_t> time_or_duration) {
+counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
+                                  counted_t<const datum_t> time_or_duration) {
     r_sanity_check(time->is_pt(time_string));
 
     if (time_or_duration->is_pt(time_string)) {
@@ -330,6 +355,31 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time, counted_t<const
         r_sanity_check(clobbered);
         return res.to_counted();
     }
+}
+
+double time_portion(counted_t<const datum_t> time, time_component_t c) {
+    ptime_t ptime = time_to_boost(time).local_time();
+    switch (c) {
+    case YEAR:        return ptime.date().year();
+    case MONTH:       return ptime.date().month();
+    case DAY:         return ptime.date().day();
+    case DAY_OF_WEEK: return ptime.date().day_of_week();
+    case DAY_OF_YEAR: return ptime.date().day_of_year();
+    case HOURS:       return ptime.time_of_day().hours();
+    case MINUTES:     return ptime.time_of_day().minutes();
+    case SECONDS:     return ptime.time_of_day().seconds();
+    default: unreachable();
+    }
+    unreachable();
+}
+
+counted_t<const datum_t> time_date(counted_t<const datum_t> time,
+                                   const rcheckable_t *target) {
+    time_t boost_time = time_to_boost(time);
+    ptime_t ptime = boost_time.local_time();
+    date_t d(ptime.date().year_month_day());
+    time_t new_boost_time(ptime_t(d), boost_time.zone());
+    return boost_to_time(new_boost_time, target);
 }
 
 } //namespace pseudo

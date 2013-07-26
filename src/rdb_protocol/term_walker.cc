@@ -196,6 +196,7 @@ private:
         case Term::NOW:
         case Term::IN_TIMEZONE:
         case Term::DURING:
+        case Term::DATE:
             return false;
         default: unreachable();
         }
@@ -317,6 +318,7 @@ private:
         case Term::NOW:
         case Term::IN_TIMEZONE:
         case Term::DURING:
+        case Term::DATE:
             return false;
         default: unreachable();
         }

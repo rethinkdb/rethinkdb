@@ -104,6 +104,18 @@ private:
     virtual const char *name() const { return "during"; }
 };
 
+class date_term_t : public op_term_t {
+public:
+    date_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        return new_val(pseudo::time_date(arg(0)->as_pt(pseudo::time_string), this));
+    }
+    virtual const char *name() const { return "date"; }
+};
+
+
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term) {
     return make_counted<iso8601_term_t>(env, term);
 }
@@ -124,6 +136,10 @@ counted_t<term_t> make_in_timezone_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_during_term(env_t *env, protob_t<const Term> term) {
     return make_counted<during_term_t>(env, term);
+}
+
+counted_t<term_t> make_date_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<date_term_t>(env, term);
 }
 
 } //namespace ql

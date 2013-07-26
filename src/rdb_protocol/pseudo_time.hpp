@@ -25,6 +25,21 @@ counted_t<const datum_t> time_add(
     counted_t<const datum_t> x, counted_t<const datum_t> y);
 counted_t<const datum_t> time_sub(
     counted_t<const datum_t> x, counted_t<const datum_t> y);
+
+enum time_component_t {
+    YEAR,
+    MONTH,
+    DAY,
+    DAY_OF_WEEK,
+    DAY_OF_YEAR,
+    HOURS,
+    MINUTES,
+    SECONDS
+};
+double time_portion(counted_t<const datum_t> time, time_component_t c);
+counted_t<const datum_t> time_date(counted_t<const datum_t> time,
+                                   const rcheckable_t *target);
+
 } //namespace pseudo
 } //namespace ql
 
