@@ -135,7 +135,7 @@ void mailbox_manager_t::mailbox_read_coroutine(int dest_thread,
     on_thread_t rethreader(dest_thread);
 
     // Construct a new stream to use
-    string_read_stream_t new_stream(&stream_data, data_offset);
+    string_read_stream_t new_stream(std::move(stream_data), data_offset);
 
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox != NULL) {

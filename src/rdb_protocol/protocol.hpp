@@ -303,7 +303,7 @@ struct rdb_protocol_t {
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
-              sindex_region(sindex_range.to_region()),
+              sindex_region(sindex_range->to_region()),
               merge_sort(_merge_sort), direction(_direction) { }
 
         rget_read_t(const region_t &_sindex_region,
@@ -370,7 +370,7 @@ struct rdb_protocol_t {
 
         /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        sindex_range_t sindex_range;
+        boost::optional<sindex_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */

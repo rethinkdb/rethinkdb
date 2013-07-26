@@ -1153,7 +1153,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             Term filter_term;
-            rget.sindex_range.write_filter_func(
+            rget.sindex_range->write_filter_func(
                 &ql_env, &filter_term, sindex_mapping.get_term());
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);

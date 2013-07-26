@@ -725,7 +725,7 @@ void connectivity_cluster_t::run_t::handle(
                 if (deserialize_and_check(conn, &message, peername))
                     break;
 
-                string_read_stream_t stream(&message, 0);
+                string_read_stream_t stream(std::move(message), 0);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
             }
         } catch (const fake_archive_exc_t &) {
@@ -843,14 +843,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         conn_structure_lock = it->second.second;
     }
 
+    size_t bytes_sent = buffer.str().size();
+
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
-        string_read_stream_t read_stream(buffer.str(), 0);
+        string_read_stream_t read_stream(std::move(buffer.str()), 0);
         current_run->message_handler->on_message(me, &read_stream);
-        conn_structure->pm_bytes_sent.record(buffer.str()->size());
-
     } else {
         guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());
@@ -861,9 +861,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
         {
             write_message_t msg;
-            msg << *buffer.str();
+            msg << buffer.str();
             int res = send_write_message(conn_structure->conn, &msg);
-            conn_structure->pm_bytes_sent.record(buffer.str()->size());
             if (res) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
@@ -874,6 +873,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
             }
         }
     }
+
+    conn_structure->pm_bytes_sent.record(bytes_sent);
 }
 
 void connectivity_cluster_t::kill_connection(peer_id_t peer) THROWS_NOTHING {
