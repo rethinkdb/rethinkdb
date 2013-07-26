@@ -119,6 +119,7 @@ configure () {
     for lib in $required_libs; do
         check_lib $lib
     done
+    check_v8_pre_3_19
     if [[ $NO_TCMALLOC = 0 ]] ; then
         check_lib tcmalloc_minimal
         if contains "$fetch_list" tcmalloc_minimal; then
@@ -844,6 +845,31 @@ test_protobuf () {
 fetch_allowed () {
      (contains "$npm_deps" $1 ||
          (contains "$support_deps" $1 && $allow_fetch)) || return 1
+}
+
+check_v8_pre_3_19 () {
+    if contains "$fetch_list" v8; then
+        return
+    fi
+    require "Use pre-3.19 v8 API"
+    local tmpfile=`dirname $0`/mk/gen/check_v8_pre_3_19
+    cat > "$tmpfile.cc" <<EOF
+#include <v8.h>
+int main() {
+    v8::Local<v8::Context> lc = v8::Context::New(v8::Isolate::GetCurrent());
+    v8::Persistent<v8::Context> ps;
+    ps.Reset(v8::Isolate::GetCurrent(), lc);
+    v8::Local<v8::Context> lh = v8::Local<v8::Context>::New(v8::Isolate::GetCurrent(), ps);
+}
+EOF
+    if
+        "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
+            $V8_LIBS $PTHREAD_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
+    then
+        boolvar V8_PRE_3_19 false
+    else
+        boolvar V8_PRE_3_19 true
+    fi
 }
 
 # Call the main command with the command line arguments

@@ -65,10 +65,10 @@ env_t::env_t(extproc::job_control_t *control)
 
 env_t::~env_t() {
     // Clean up handles.
-    for (std::map<id_t, v8::Persistent<v8::Value> >::iterator it = values_.begin();
+    for (std::map<id_t, boost::shared_ptr<v8::Persistent<v8::Value> > >::iterator it = values_.begin();
          it != values_.end();
          ++it)
-        it->second.Dispose();
+        it->second->Dispose();
 }
 
 void env_t::run() {
@@ -80,14 +80,25 @@ void env_t::run() {
 
 void env_t::shutdown() { should_quit_ = true; }
 
-id_t env_t::rememberValue(v8::Handle<v8::Value> value) {
+id_t env_t::rememberValue(const v8::Handle<v8::Value> &value) {
     id_t id = new_id();
-    values_.insert(std::make_pair(id, v8::Persistent<v8::Value>::New(value)));
+
+    // Save this value in a persistent handle so it isn't deallocated when
+    // its scope is destructed.
+    
+#ifdef V8_PRE_3_19
+    boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>(value));
+#else
+    boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>());
+    persistent_handle->Reset(v8::Isolate::GetCurrent(), value);
+#endif
+
+    values_.insert(std::make_pair(id, persistent_handle));
     return id;
 }
 
-v8::Handle<v8::Value> env_t::findValue(id_t id) {
-    std::map<id_t, v8::Persistent<v8::Value> >::iterator it = values_.find(id);
+const boost::shared_ptr<v8::Persistent<v8::Value> >env_t::findValue(id_t id) {
+    std::map<id_t, boost::shared_ptr<v8::Persistent<v8::Value> > >::iterator it = values_.find(id);
     guarantee(it != values_.end());
     return it->second;
 }
@@ -324,10 +335,19 @@ struct call_task_t : auto_task_t<call_task_t> {
         js_result_t result("");
         std::string *errmsg = boost::get<std::string>(&result);
 
+        const boost::shared_ptr<v8::Persistent<v8::Value> > found_value = env->findValue(func_id_);
+        guarantee(!found_value->IsEmpty());
+
         v8::HandleScope handle_scope;
-        v8::Handle<v8::Function> func
-            = v8::Handle<v8::Function>::Cast(env->findValue(func_id_));
-        guarantee(!func.IsEmpty());
+
+        // Construct local handle from persistent handle
+
+#ifdef V8_PRE_3_19
+        v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(*found_value);
+#else
+        v8::Local<v8::Value> local_handle = v8::Local<v8::Value>::New(v8::Isolate::GetCurrent(), *found_value);
+#endif
+        v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(local_handle);
 
         v8::Handle<v8::Value> value = eval(func, errmsg);
         if (!value.IsEmpty()) {

@@ -253,6 +253,10 @@ ifeq ($(LEGACY_PROC_STAT),1)
   RT_CXXFLAGS += -DLEGACY_PROC_STAT
 endif
 
+ifeq ($(V8_PRE_3_19),1)
+  RT_CXXFLAGS += -DV8_PRE_3_19
+endif
+
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
 UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a

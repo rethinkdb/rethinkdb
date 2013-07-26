@@ -32,7 +32,7 @@ class job_control_t;
 namespace js {
 
 // Returns an empty pointer on error.
-boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value,
+boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> &value,
                                          std::string *errmsg);
 
 // Should never error.
@@ -54,9 +54,9 @@ class env_t {
   public:                       // Interface exposed to JS tasks.
     extproc::job_control_t *control() { return control_; }
 
-    id_t rememberValue(v8::Handle<v8::Value> value);
+    id_t rememberValue(const v8::Handle<v8::Value> &value);
 
-    v8::Handle<v8::Value> findValue(id_t id);
+    const boost::shared_ptr<v8::Persistent<v8::Value> > findValue(id_t id);
 
     void forget(id_t id);
 
@@ -71,17 +71,29 @@ class env_t {
     extproc::job_control_t *control_;
     bool should_quit_;
     id_t next_id_;
-    std::map<id_t, v8::Persistent<v8::Value> > values_;
+    std::map<id_t, boost::shared_ptr<v8::Persistent<v8::Value> > > values_;
 };
 
 
 // Puts us into a fresh v8 context.
 // By default each task gets its own context.
 struct context_t {
-    explicit context_t(UNUSED env_t *env) : cx(v8::Context::New()), scope(cx) {}
-    ~context_t() { cx.Dispose(); }
+#ifdef V8_PRE_3_19
+    explicit context_t(UNUSED env_t *env) :
+        cx(v8::Context::New()),
+        scope(cx) {}
+
     v8::Persistent<v8::Context> cx;
     v8::Context::Scope scope;
+#else
+    explicit context_t(UNUSED env_t *env) :
+        cx(v8::Context::New(v8::Isolate::GetCurrent())),
+        scope(cx) {}
+
+    v8::HandleScope local_scope;
+    v8::Local<v8::Context> cx;
+    v8::Context::Scope scope;
+#endif
 };
 
 // Tasks: jobs we run on the JS worker, within an env_t
