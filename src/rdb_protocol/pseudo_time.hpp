@@ -1,5 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_PSEUOD_TIME_HPP_
+#ifndef RDB_PROTOCOL_PSEUDO_TIME_HPP_
 #define RDB_PROTOCOL_PSEUDO_TIME_HPP_
 
 #include <boost/date_time.hpp>
@@ -15,6 +15,7 @@ std::string time_to_iso8601(counted_t<const datum_t> d);
 double time_to_epoch_time(counted_t<const datum_t> d);
 
 counted_t<const datum_t> time_now();
+counted_t<const datum_t> time_tz(counted_t<const datum_t> time);
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz);
 
@@ -39,6 +40,7 @@ enum time_component_t {
 double time_portion(counted_t<const datum_t> time, time_component_t c);
 counted_t<const datum_t> time_date(counted_t<const datum_t> time,
                                    const rcheckable_t *target);
+counted_t<const datum_t> time_of_day(counted_t<const datum_t> time);
 
 } //namespace pseudo
 } //namespace ql

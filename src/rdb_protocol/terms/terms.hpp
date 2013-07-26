@@ -3,6 +3,7 @@
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/term.hpp"
 
 namespace ql {
@@ -41,6 +42,8 @@ counted_t<term_t> make_funcall_term(env_t *env, protob_t<const Term> term);
 
 // datum_terms.cc
 counted_t<term_t> make_datum_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_constant_term(env_t *env, protob_t<const Term> term,
+                                     double constant, const char *name);
 counted_t<term_t> make_make_array_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_make_obj_term(env_t *env, protob_t<const Term> term);
 
@@ -127,6 +130,10 @@ counted_t<term_t> make_now_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_in_timezone_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_during_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_date_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_time_of_day_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_timezone_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_portion_term(env_t *env, protob_t<const Term> term,
+                                    pseudo::time_component_t component);
 
 // type_manip.cc
 counted_t<term_t> make_coerce_term(env_t *env, protob_t<const Term> term);

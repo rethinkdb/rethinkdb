@@ -115,6 +115,37 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::IN_TIMEZONE:        return make_in_timezone_term(env, t);
     case Term::DURING:             return make_during_term(env, t);
     case Term::DATE:               return make_date_term(env, t);
+    case Term::TIME_OF_DAY:        return make_time_of_day_term(env, t);
+    case Term::TIMEZONE:           return make_timezone_term(env, t);
+
+    case Term::YEAR:               return make_portion_term(env, t, pseudo::YEAR);
+    case Term::MONTH:              return make_portion_term(env, t, pseudo::MONTH);
+    case Term::DAY:                return make_portion_term(env, t, pseudo::DAY);
+    case Term::DAY_OF_WEEK:        return make_portion_term(env, t, pseudo::DAY_OF_WEEK);
+    case Term::DAY_OF_YEAR:        return make_portion_term(env, t, pseudo::DAY_OF_YEAR);
+    case Term::HOURS:              return make_portion_term(env, t, pseudo::HOURS);
+    case Term::MINUTES:            return make_portion_term(env, t, pseudo::MINUTES);
+    case Term::SECONDS:            return make_portion_term(env, t, pseudo::SECONDS);
+
+    case Term::MONDAY:             return make_constant_term(env, t, 1, "monday");
+    case Term::TUESDAY:            return make_constant_term(env, t, 2, "tuesday");
+    case Term::WEDNESDAY:          return make_constant_term(env, t, 3, "wednesday");
+    case Term::THURSDAY:           return make_constant_term(env, t, 4, "thursday");
+    case Term::FRIDAY:             return make_constant_term(env, t, 5, "friday");
+    case Term::SATURDAY:           return make_constant_term(env, t, 6, "saturday");
+    case Term::SUNDAY:             return make_constant_term(env, t, 7, "sunday");
+    case Term::JANUARY:            return make_constant_term(env, t, 1, "january");
+    case Term::FEBRUARY:           return make_constant_term(env, t, 2, "february");
+    case Term::MARCH:              return make_constant_term(env, t, 3, "march");
+    case Term::APRIL:              return make_constant_term(env, t, 4, "april");
+    case Term::MAY:                return make_constant_term(env, t, 5, "may");
+    case Term::JUNE:               return make_constant_term(env, t, 6, "june");
+    case Term::JULY:               return make_constant_term(env, t, 7, "july");
+    case Term::AUGUST:             return make_constant_term(env, t, 8, "august");
+    case Term::SEPTEMBER:          return make_constant_term(env, t, 9, "september");
+    case Term::OCTOBER:            return make_constant_term(env, t, 10, "october");
+    case Term::NOVEMBER:           return make_constant_term(env, t, 11, "november");
+    case Term::DECEMBER:           return make_constant_term(env, t, 12, "december");
     default: unreachable();
     }
     unreachable();

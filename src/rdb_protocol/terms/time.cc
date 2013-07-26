@@ -115,6 +115,53 @@ private:
     virtual const char *name() const { return "date"; }
 };
 
+class time_of_day_term_t : public op_term_t {
+public:
+    time_of_day_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        return new_val(pseudo::time_of_day(arg(0)->as_pt(pseudo::time_string)));
+    }
+    virtual const char *name() const { return "time_of_day"; }
+};
+
+class timezone_term_t : public op_term_t {
+public:
+    timezone_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        return new_val(pseudo::time_tz(arg(0)->as_pt(pseudo::time_string)));
+    }
+    virtual const char *name() const { return "timezone"; }
+};
+
+class portion_term_t : public op_term_t {
+public:
+    portion_term_t(env_t *env, protob_t<const Term> term,
+                   pseudo::time_component_t _component)
+        : op_term_t(env, term, argspec_t(1)), component(_component) { }
+private:
+    counted_t<val_t> eval_impl() {
+        double d = pseudo::time_portion(arg(0)->as_pt(pseudo::time_string), component);
+        return new_val(make_counted<const datum_t>(d));
+    }
+    virtual const char *name() const {
+        switch (component) {
+        case pseudo::YEAR: return "year";
+        case pseudo::MONTH: return "month";
+        case pseudo::DAY: return "day";
+        case pseudo::DAY_OF_WEEK: return "day_of_week";
+        case pseudo::DAY_OF_YEAR: return "day_of_year";
+        case pseudo::HOURS: return "hours";
+        case pseudo::MINUTES: return "minutes";
+        case pseudo::SECONDS: return "seconds";
+        default: unreachable();
+        }
+    }
+    pseudo::time_component_t component;
+};
 
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term) {
     return make_counted<iso8601_term_t>(env, term);
@@ -140,6 +187,16 @@ counted_t<term_t> make_during_term(env_t *env, protob_t<const Term> term) {
 
 counted_t<term_t> make_date_term(env_t *env, protob_t<const Term> term) {
     return make_counted<date_term_t>(env, term);
+}
+counted_t<term_t> make_time_of_day_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<time_of_day_term_t>(env, term);
+}
+counted_t<term_t> make_timezone_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<timezone_term_t>(env, term);
+}
+counted_t<term_t> make_portion_term(env_t *env, protob_t<const Term> term,
+                                    pseudo::time_component_t component) {
+    return make_counted<portion_term_t>(env, term, component);
 }
 
 } //namespace ql

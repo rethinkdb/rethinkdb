@@ -513,6 +513,38 @@ message Term {
         IN_TIMEZONE = 104; // PSEUDOTYPE(TIME), STRING -> PSEUDOTYPE(TIME)
         DURING = 105; // PSEUDOTYPE(TIME), PSEUDOTYPE(TIME), PSEUDOTYPE(TIME) -> BOOL
         DATE = 106; // PSEUDOTYPE(TIME) -> PSEUDOTYPE(TIME)
+        TIME_OF_DAY = 126; // PSEUDOTYPE(TIME) -> NUMBER
+        TIMEZONE = 127; // PSEUDOTYPE(TIME) -> STRING
+
+        YEAR = 128;
+        MONTH = 129;
+        DAY = 130;
+        DAY_OF_WEEK = 131;
+        DAY_OF_YEAR = 132;
+        HOURS = 133;
+        MINUTES = 134;
+        SECONDS = 135;
+
+        MONDAY = 107;
+        TUESDAY = 108;
+        WEDNESDAY = 109;
+        THURSDAY = 110;
+        FRIDAY = 111;
+        SATURDAY = 112;
+        SUNDAY = 113;
+
+        JANUARY = 114;
+        FEBRUARY = 115;
+        MARCH = 116;
+        APRIL = 117;
+        MAY = 118;
+        JUNE = 119;
+        JULY = 120;
+        AUGUST = 121;
+        SEPTEMBER = 122;
+        OCTOBER = 123;
+        NOVEMBER = 124;
+        DECEMBER = 125;
     }
     optional TermType type = 1;
 

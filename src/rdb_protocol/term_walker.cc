@@ -197,6 +197,35 @@ private:
         case Term::IN_TIMEZONE:
         case Term::DURING:
         case Term::DATE:
+        case Term::TIME_OF_DAY:
+        case Term::TIMEZONE:
+        case Term::YEAR:
+        case Term::MONTH:
+        case Term::DAY:
+        case Term::DAY_OF_WEEK:
+        case Term::DAY_OF_YEAR:
+        case Term::HOURS:
+        case Term::MINUTES:
+        case Term::SECONDS:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
             return false;
         default: unreachable();
         }
@@ -319,6 +348,35 @@ private:
         case Term::IN_TIMEZONE:
         case Term::DURING:
         case Term::DATE:
+        case Term::TIME_OF_DAY:
+        case Term::TIMEZONE:
+        case Term::YEAR:
+        case Term::MONTH:
+        case Term::DAY:
+        case Term::DAY_OF_WEEK:
+        case Term::DAY_OF_YEAR:
+        case Term::HOURS:
+        case Term::MINUTES:
+        case Term::SECONDS:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
             return false;
         default: unreachable();
         }

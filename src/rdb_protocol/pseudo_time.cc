@@ -133,12 +133,23 @@ bool tz_valid(const std::string &tz) {
     } else if (tz[0] == '+' || tz[0] == '-') {
         if (tz.size() == 3) {
             return hours_valid(tz[1], tz[2]);
-        } else if (tz.size() == 5) {
-            return hours_valid(tz[1], tz[2]) && minutes_valid(tz[3], tz[4]);
+            // TODO: Figure out why Boost doesn't like non-`:` UTC offsets in
+            // %ZP, or else get %Q to parse properly.
+            // } else if (tz.size() == 5) {
+            //     return hours_valid(tz[1], tz[2]) && minutes_valid(tz[3], tz[4]);
         } else if (tz.size() == 6) {
+            return (hours_valid(tz[1], tz[2])
+                    && tz[3] == ':'
+                    && minutes_valid(tz[4], tz[5]))
+                || (hours_valid(tz[1], tz[2])
+                    && tz[3] == ':'
+                    && tz[4] == '-'
+                    && minutes_valid('0', tz[5]));
+        } else if (tz.size() == 7) {
             return hours_valid(tz[1], tz[2])
                 && tz[3] == ':'
-                && minutes_valid(tz[4], tz[5]);
+                && tz[4] == '-'
+                && minutes_valid(tz[5], tz[6]);
         }
     }
     return false;
@@ -190,7 +201,9 @@ time_t time_to_boost(counted_t<const datum_t> d) {
     int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
     ptime_t t(date_t(1970, 1, 1));
 
-    // boost::posix_time::seconds doesn't like large numbers
+    // boost::posix_time::seconds doesn't like large numbers, and like any
+    // mature library, it reacts by silently overflowing somehwere and producing
+    // an incorrect date if you give it a number that it doesn't like.
     int sign = sec < 0 ? -1 : 1;
     sec *= sign;
     while (sec > 0) {
@@ -198,6 +211,7 @@ time_t time_to_boost(counted_t<const datum_t> d) {
         sec -= diff;
         t += boost::posix_time::seconds(diff * sign);
     }
+    r_sanity_check(sec == 0);
 
     t += boost::posix_time::microseconds(microsec);
     if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
@@ -290,6 +304,15 @@ void rcheck_time_valid(const datum_t *time) {
     }
 }
 
+counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
+    r_sanity_check(time->is_pt(time_string));
+    if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
+        return tz;
+    } else {
+        return make_counted<const datum_t>(datum_t::R_NULL);
+    }
+}
+
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
     r_sanity_check(t->is_pt(time_string));
@@ -360,26 +383,43 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
 double time_portion(counted_t<const datum_t> time, time_component_t c) {
     ptime_t ptime = time_to_boost(time).local_time();
     switch (c) {
-    case YEAR:        return ptime.date().year();
-    case MONTH:       return ptime.date().month();
-    case DAY:         return ptime.date().day();
-    case DAY_OF_WEEK: return ptime.date().day_of_week();
+    case YEAR: return ptime.date().year();
+    case MONTH: return ptime.date().month();
+    case DAY: return ptime.date().day();
+    case DAY_OF_WEEK: {
+        // We use the ISO 8601 convention which counts from 1 and starts with Monday.
+        int d = ptime.date().day_of_week();
+        return d == 0 ? 7 : d;
+    } unreachable();
     case DAY_OF_YEAR: return ptime.date().day_of_year();
-    case HOURS:       return ptime.time_of_day().hours();
-    case MINUTES:     return ptime.time_of_day().minutes();
-    case SECONDS:     return ptime.time_of_day().seconds();
+    case HOURS: return ptime.time_of_day().hours();
+    case MINUTES: return ptime.time_of_day().minutes();
+    case SECONDS: {
+        boost::posix_time::time_duration dur = ptime.time_of_day();
+        double microsec = dur.total_microseconds();
+        double sec = dur.total_seconds();
+        return dur.seconds() + ((microsec - sec * 1000000) / 1000000.0);
+    } unreachable();
     default: unreachable();
     }
     unreachable();
 }
 
-counted_t<const datum_t> time_date(counted_t<const datum_t> time,
-                                   const rcheckable_t *target) {
-    time_t boost_time = time_to_boost(time);
+time_t boost_date(time_t boost_time) {
     ptime_t ptime = boost_time.local_time();
     date_t d(ptime.date().year_month_day());
-    time_t new_boost_time(ptime_t(d), boost_time.zone());
-    return boost_to_time(new_boost_time, target);
+    return time_t(ptime_t(d), boost_time.zone());
+}
+
+counted_t<const datum_t> time_date(counted_t<const datum_t> time,
+                                   const rcheckable_t *target) {
+    return boost_to_time(boost_date(time_to_boost(time)), target);
+}
+
+counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
+    time_t boost_time = time_to_boost(time);
+    double sec = (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
+    return make_counted<const datum_t>(sec);
 }
 
 } //namespace pseudo
