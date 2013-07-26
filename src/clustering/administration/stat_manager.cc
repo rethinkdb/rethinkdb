@@ -10,7 +10,7 @@
 
 stat_manager_t::stat_manager_t(mailbox_manager_t* mm) :
     mailbox_manager(mm),
-    get_stats_mailbox(mailbox_manager, boost::bind(&stat_manager_t::on_stats_request, this, _1, _2), mailbox_callback_mode_inline)
+    get_stats_mailbox(mailbox_manager, boost::bind(&stat_manager_t::on_stats_request, this, _1, _2))
     { }
 
 get_stats_mailbox_address_t stat_manager_t::get_address() {

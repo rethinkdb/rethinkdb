@@ -10,7 +10,8 @@
 #include "btree/internal_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
-
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 
 // Traversal
 
@@ -73,7 +74,7 @@ protected:
     virtual ~acquisition_waiter_callback_t() { }
 };
 
-class traversal_state_t {
+class traversal_state_t : public coro_pool_callback_t<acquisition_waiter_callback_t *> {
 public:
     traversal_state_t(transaction_t *txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper,
             signal_t *_interruptor)
@@ -82,7 +83,8 @@ public:
           stat_block(NULL_BLOCK_ID),
           helper(_helper),
           interruptor(_interruptor),
-          interrupted(false)
+          interrupted(false),
+          coro_pool(4, &pending_acquires, this)
     {
         interruptor_watcher.parent = this;
         interruptor_watcher.reset(_interruptor);
@@ -177,7 +179,7 @@ public:
                         // Spawn a coroutine so that it's safe to acquire
                         // blocks.
                         level_count(i) += 1;
-                        coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
+                        pending_acquires.push(waiter_cb);
                         diff -= 1;
                     }
                 }
@@ -187,6 +189,10 @@ public:
         if (total_level_count() == 0) {
             finished_cond.pulse();
         }
+    }
+
+    void coro_pool_callback(acquisition_waiter_callback_t *waiter_cb, UNUSED signal_t *pool_interruptor) {
+        waiter_cb->you_may_acquire();
     }
 
     void interrupt() {
@@ -207,7 +213,6 @@ public:
         return sum;
     }
 
-
     std::vector< std::vector<acquisition_waiter_callback_t *> > acquisition_waiter_stacks;
 
     std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
@@ -226,6 +231,8 @@ public:
     }
 
 private:
+    unlimited_fifo_queue_t<acquisition_waiter_callback_t *> pending_acquires;
+    coro_pool_t<acquisition_waiter_callback_t *> coro_pool;
     DISABLE_COPYING(traversal_state_t);
 };
 

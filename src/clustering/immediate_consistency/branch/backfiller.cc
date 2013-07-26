@@ -161,7 +161,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
     semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
-    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&semaphore_t::unlock, &chunk_semaphore, _1), mailbox_callback_mode_inline);
+    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&semaphore_t::unlock, &chunk_semaphore, _1));
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {
