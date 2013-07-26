@@ -18,6 +18,10 @@ tests:
       py: r.expr([]).reduce(lambda a,b:a+b).default(2)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(2)
       ot: 2
+    - rb: r.expr([]).union([]).reduce{|a,b| a+b}.default(2)
+      py: r.expr([]).union([]).reduce(lambda a,b:a+b).default(2)
+      js: r.expr([]).union([]).reduce(function(a,b){return a+b}).default(2)
+      ot: 2
     - rb: r.expr('a').reduce{|a,b| a+b}.default(2)
       py: r.expr('a').reduce(lambda a,b:a+b).default(2)
       js: r.expr('a').reduce(function(a,b){return a+b}).default(2)
@@ -58,6 +62,10 @@ tests:
       py: r.expr([]).reduce(lambda a,b:a+b).default(r.error)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(r.error)
       ot: err("RqlRuntimeError", "Cannot reduce over an empty stream with no base.", [])
+    - rb: r.expr([]).union([]).reduce{|a,b| a+b}.default(r.error)
+      py: r.expr([]).union([]).reduce(lambda a,b:a+b).default(r.error)
+      js: r.expr([]).union([]).reduce(function(a,b){return a+b}).default(r.error)
+      ot: err("RqlRuntimeError", "Cannot reduce over an empty stream with no base.", [])
     - cd: (r.expr(null) + 5).default(r.error)
       js: (r.expr(null).add(5)).default(r.error)
       ot: err("RqlRuntimeError", "Expected type NUMBER but found NULL.", [])
@@ -86,6 +94,10 @@ tests:
     - cd: r.expr([]).reduce{|a,b| a+b}.default{|e| e}
       py: r.expr([]).reduce(lambda a,b:a+b).default(lambda e:e)
       js: r.expr([]).reduce(function(a,b){return a+b}).default(function(e){return e})
+      ot: ("Cannot reduce over an empty stream with no base.")
+    - cd: r.expr([]).union([]).reduce{|a,b| a+b}.default{|e| e}
+      py: r.expr([]).union([]).reduce(lambda a,b:a+b).default(lambda e:e)
+      js: r.expr([]).union([]).reduce(function(a,b){return a+b}).default(function(e){return e})
       ot: ("Cannot reduce over an empty stream with no base.")
     - cd: (r.expr(null) + 5).default{|e| e}
       py: (r.expr(null) + 5).default(lambda e:e)

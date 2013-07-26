@@ -49,8 +49,7 @@ void master_access_t<protocol_t>::read(
     promise_t<boost::variant<typename protocol_t::read_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> result_or_failure_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >::pulse, &result_or_failure, _1),
-        mailbox_callback_mode_inline);
+        boost::bind(&promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >::pulse, &result_or_failure, _1));
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
@@ -103,8 +102,7 @@ void master_access_t<protocol_t>::write(
     promise_t<boost::variant<typename protocol_t::write_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> result_or_failure_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, _1),
-        mailbox_callback_mode_inline);
+        boost::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, _1));
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();

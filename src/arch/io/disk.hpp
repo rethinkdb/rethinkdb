@@ -16,7 +16,7 @@
 // queue.  (A million is a ridiculously high value, but also safely nowhere near INT_MAX.)
 #define MAXIMUM_MAX_CONCURRENT_IO_REQUESTS MILLION
 
-
+struct iovec;
 
 class linux_iocallback_t;
 
@@ -24,7 +24,7 @@ class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
+    explicit io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
 
@@ -64,6 +64,10 @@ public:
     void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
 
+    // Does not guarantee the atomicity that writev guarantees.
+    void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+                      file_account_t *account, linux_iocallback_t *cb);
+
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
 
@@ -88,13 +92,24 @@ private:
     DISABLE_COPYING(linux_file_t);
 };
 
+class linux_semantic_checking_file_t : public semantic_checking_file_t {
+public:
+    linux_semantic_checking_file_t(int fd);
+
+    virtual size_t semantic_blocking_read(void *buf, size_t length);
+    virtual size_t semantic_blocking_write(const void *buf, size_t length);
+
+private:
+    scoped_fd_t fd_;
+};
+
 file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
-void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
+void verify_aligned_file_access(size_t file_size, int64_t offset, size_t length, const void *buf);
 
 // Makes blocking syscalls.  Upon error, returns the errno value.
 int perform_datasync(fd_t fd);

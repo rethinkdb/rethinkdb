@@ -150,8 +150,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
             mbox_manager,
-            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
-            mailbox_callback_mode_inline);
+            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
 
         send(mbox_manager, backfiller->request_progress_mailbox, loc.backfill_session_id, resp_mbox->get_address());
 

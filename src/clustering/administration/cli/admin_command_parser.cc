@@ -474,9 +474,14 @@ void admin_command_parser_t::do_usage(bool console) {
     do_usage_internal(helps, options, header_string, console);
 }
 
-admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const peer_address_set_t& joins, int client_port, signal_t *_interruptor) :
+admin_command_parser_t::admin_command_parser_t(const std::string& peer_string,
+                                               const peer_address_set_t& joins,
+                                               const peer_address_t &_canonical_addresses,
+                                               int client_port,
+                                               signal_t *_interruptor) :
     join_peer(peer_string),
     joins_param(joins),
+    canonical_addresses(_canonical_addresses),
     client_port_param(client_port),
     cluster(NULL),
     console_mode(false),
@@ -672,7 +677,8 @@ admin_cluster_link_t *admin_command_parser_t::get_cluster() {
         if (joins_param.empty()) {
             throw admin_no_connection_exc_t("no join parameter specified");
         }
-        cluster.init(new admin_cluster_link_t(joins_param, client_port_param, interruptor));
+        cluster.init(new admin_cluster_link_t(joins_param, canonical_addresses,
+                                              client_port_param, interruptor));
 
         // Spin for some time, trying to connect to the whole cluster
         for (uint64_t time_waited = 0; time_waited < cluster_join_timeout &&

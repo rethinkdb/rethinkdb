@@ -12,12 +12,19 @@
 # was shut down.
 
 start () {
-    cd /root/ami-setup
-    twistd --pidfile=/root/ami-setup/twisted.pid web --wsgi=firstrun_web.application --port=8888
+    if ! test -e /etc/nginx/ssl.key; then
+        echo "Generating a new self-signed SSL certificate."
+        openssl req -new -newkey rsa:4096 -days 1024 -nodes -x509 \
+                -subj "/C=US/ST=California/L=MountainView/O=IT/CN=localhost" \
+                -keyout /etc/nginx/ssl.key -out /etc/nginx/ssl.crt
+    fi
+    cd /opt/ami-setup
+    echo "Launching first-run web app."
+    twistd --pidfile=/opt/ami-setup/twisted.pid web --wsgi=firstrun_web.application --port=8888
 }
 
 stop () {
-    kill `cat /root/ami-setup/twisted.pid`
+    kill `cat /opt/ami-setup/twisted.pid`
 }
 
 case "$1" in

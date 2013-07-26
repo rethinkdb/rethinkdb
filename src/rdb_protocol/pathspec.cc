@@ -78,6 +78,25 @@ pathspec_t::~pathspec_t() {
     }
 }
 
+void pathspec_t::init_from(const pathspec_t &other) {
+    type = other.type;
+    switch (type) {
+    case STR:
+        str = new std::string(*other.str);
+        break;
+    case VEC:
+        vec = new std::vector<pathspec_t>(*other.vec);
+        break;
+    case MAP:
+        map = new std::map<std::string, pathspec_t>(*other.map);
+        break;
+    default:
+        unreachable();
+    }
+    creator = other.creator;
+}
+
+
 /* Limit the datum to only the paths specified by the pathspec. */
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
@@ -122,24 +141,6 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
     }
 }
 
-void pathspec_t::init_from(const pathspec_t &other) {
-    type = other.type;
-    switch (type) {
-    case STR:
-        str = new std::string(*other.str);
-        break;
-    case VEC:
-        vec = new std::vector<pathspec_t>(*other.vec);
-        break;
-    case MAP:
-        map = new std::map<std::string, pathspec_t>(*other.map);
-        break;
-    default:
-        unreachable();
-    }
-    creator = other.creator;
-}
-
 void unproject_helper(datum_t *datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (const std::string *str = pathspec.as_str()) {
@@ -154,9 +155,13 @@ void unproject_helper(datum_t *datum,
     } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
         for (auto it = map->begin(); it != map->end(); ++it) {
             if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
-                counted_t<const datum_t> sub_result = unproject(val, it->second, RECURSE);
-                /* We know we're clobbering, that's the point. */
-                UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                try {
+                    counted_t<const datum_t> sub_result = unproject(val, it->second, RECURSE);
+                    /* We know we're clobbering, that's the point. */
+                    UNUSED bool clobbered = datum->add(it->first, sub_result, CLOBBER);
+                } catch (const datum_exc_t &e) {
+                    //do nothing
+                }
             }
         }
     } else {
@@ -183,30 +188,35 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
 /* Return whether or not ALL of the paths in the pathspec exist in the datum. */
 bool contains(counted_t<const datum_t> datum,
         const pathspec_t &pathspec) {
-    bool res = true;
-    if (const std::string *str = pathspec.as_str()) {
-        if (!(res &= datum->get(*str, NOTHROW).has())) {
-            return res;
-        }
-    } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
-        for (auto it = vec->begin(); it != vec->end(); ++it) {
-            if (!(res &= contains(datum, *it))) {
+    try {
+        bool res = true;
+        if (const std::string *str = pathspec.as_str()) {
+            if (!(res &= (datum->get(*str, NOTHROW).has() &&
+                          datum->get(*str)->get_type() != datum_t::R_NULL))) {
                 return res;
             }
-        }
-    } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
-        for (auto it = map->begin(); it != map->end(); ++it) {
-            if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
-                if (!(res &= contains(val, it->second))) {
+        } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
+            for (auto it = vec->begin(); it != vec->end(); ++it) {
+                if (!(res &= contains(datum, *it))) {
                     return res;
                 }
-            } else {
-                return false;
             }
+        } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
+            for (auto it = map->begin(); it != map->end(); ++it) {
+                if (counted_t<const datum_t> val = datum->get(it->first, NOTHROW)) {
+                    if (!(res &= contains(val, it->second))) {
+                        return res;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            unreachable();
         }
-    } else {
-        unreachable();
+        return res;
+    } catch (const datum_exc_t &e) {
+        return false;
     }
-    return res;
 }
 } //namespace ql

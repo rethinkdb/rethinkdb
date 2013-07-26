@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/extent_manager.hpp"
 
+#include <queue>
+
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
@@ -32,50 +34,57 @@ public:
     // manager) but have not yet been commmitted.  The data_block_manager_t and LBA
     // ownership of the refcount also can get passed into the extent_transaction_t
     // object.
-    int32_t extent_use_refcount;
-
-    int64_t next_in_free_list;   // Valid if state == state_free
+    intptr_t extent_use_refcount;
 
     extent_info_t() : state_(state_unreserved),
-                      extent_use_refcount(0),
-                      next_in_free_list(-1) {}
+                      extent_use_refcount(0) { }
 };
 
 class extent_zone_t {
     const size_t extent_size;
 
-    unsigned int offset_to_id(int64_t extent) {
+    size_t offset_to_id(int64_t extent) const {
         rassert(divides(extent_size, extent));
         return extent / extent_size;
     }
 
-    /* Combination free-list and extent map. Contains one entry per extent.
-    During the state_reserving_extents phase, each extent has state state_unreserved
-    or state state_in_use. When we transition to the state_running phase,
-    we link all of the state_unreserved entries in each zone together into an
-    extent free list, such that each free entry's 'next_in_free_list' field is the
-    offset of the next free extent. */
+    /* free-list and extent map. Contains one entry per extent.  During the
+    state_reserving_extents phase, each extent has state state_unreserved or
+    state state_in_use. When we transition to the state_running phase, we link
+    all of the state_unreserved entries in each zone together into extent free
+    queue.  The free queue can contain entries that point past the end of
+    extents, if the file size ever gets shrunk. */
 
-    segmented_vector_t<extent_info_t, MAX_DATA_EXTENTS> extents;
+    std::vector<extent_info_t> extents;
 
-    int64_t free_list_head;
-private:
-    int held_extents_;
+    // We want to remove the minimum element from the free_queue first, leaving
+    // free extents at the end of the file.
+    std::priority_queue<size_t,
+                        std::vector<size_t>,
+                        std::greater<size_t> > free_queue;
+
+    file_t *const dbfile;
+
+    // The number of free extents in the file.
+    size_t held_extents_;
+
 public:
-    int held_extents() const {
+    size_t held_extents() const {
         return held_extents_;
     }
 
-public:
-    extent_zone_t(size_t _extent_size)
-        : extent_size(_extent_size), held_extents_(0) { }
+    extent_zone_t(file_t *_dbfile, size_t _extent_size)
+        : extent_size(_extent_size), dbfile(_dbfile), held_extents_(0) {
+        // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
+        // work on average).)
+        extents.reserve(dbfile->get_size() / extent_size);
+    }
 
     extent_reference_t reserve_extent(int64_t extent) {
-        unsigned int id = offset_to_id(extent);
+        size_t id = offset_to_id(extent);
 
-        if (id >= extents.get_size()) {
-            extent_info_t default_info;
-            extents.set_size(id + 1, default_info);
+        if (id >= extents.size()) {
+            extents.resize(id + 1);
         }
 
         rassert(extents[id].state() == extent_info_t::state_unreserved);
@@ -84,16 +93,11 @@ public:
     }
 
     void reconstruct_free_list() {
-        free_list_head = NULL_OFFSET;
-
-        for (int64_t extent = 0;
-             extent < static_cast<int64_t>(extents.get_size() * extent_size);
-             extent += extent_size) {
-            if (extents[offset_to_id(extent)].state() == extent_info_t::state_unreserved) {
-                extents[offset_to_id(extent)].set_state(extent_info_t::state_free);
-                extents[offset_to_id(extent)].next_in_free_list = free_list_head;
-                free_list_head = extent;
-                held_extents_++;
+        for (size_t extent_id = 0; extent_id < extents.size(); ++extent_id) {
+            if (extents[extent_id].state() == extent_info_t::state_unreserved) {
+                extents[extent_id].set_state(extent_info_t::state_free);
+                free_queue.push(extent_id);
+                ++held_extents_;
             }
         }
     }
@@ -101,29 +105,75 @@ public:
     extent_reference_t gen_extent() {
         int64_t extent;
 
-        if (free_list_head == NULL_OFFSET) {
-            extent = extents.get_size() * extent_size;
-
-            extents.set_size(extents.get_size() + 1);
+        if (free_queue.empty()) {
+            rassert(held_extents_ == 0);
+            extent = extents.size() * extent_size;
+            extents.push_back(extent_info_t());
+        } else if (free_queue.top() >= extents.size()) {
+            rassert(held_extents_ == 0);
+            std::priority_queue<size_t,
+                                std::vector<size_t>,
+                                std::greater<size_t> > tmp;
+            free_queue = tmp;
+            extent = extents.size() * extent_size;
+            extents.push_back(extent_info_t());
         } else {
-            extent = free_list_head;
-            free_list_head = extents[offset_to_id(free_list_head)].next_in_free_list;
-            held_extents_--;
+            extent = free_queue.top() * extent_size;
+            free_queue.pop();
+            --held_extents_;
         }
 
         extent_info_t *info = &extents[offset_to_id(extent)];
         info->set_state(extent_info_t::state_in_use);
 
-        return make_extent_reference(extent);
+        extent_reference_t extent_ref = make_extent_reference(extent);
+
+        dbfile->set_size_at_least(extent + extent_size);
+
+        return extent_ref;
     }
 
-    extent_reference_t make_extent_reference(int64_t extent) {
-        unsigned int id = offset_to_id(extent);
-        guarantee(id < extents.get_size());
+    extent_reference_t make_extent_reference(const int64_t extent) {
+        size_t id = offset_to_id(extent);
+        guarantee(id < extents.size());
         extent_info_t *info = &extents[id];
         guarantee(info->state() == extent_info_t::state_in_use);
         ++info->extent_use_refcount;
         return extent_reference_t(extent);
+    }
+
+    void try_shrink_file() {
+        // Now potentially shrink the file.
+        bool shrink_file = false;
+        while (!extents.empty() && extents.back().state() == extent_info_t::state_free) {
+            shrink_file = true;
+            --held_extents_;
+            extents.pop_back();
+        }
+
+        if (shrink_file) {
+            dbfile->set_size(extents.size() * extent_size);
+
+            // Prevent the existence of a relatively large free queue after the file
+            // size shrinks.
+            if (held_extents_ < free_queue.size() / 2) {
+                std::priority_queue<size_t,
+                                    std::vector<size_t>,
+                                    std::greater<size_t> > tmp;
+                for (size_t i = 0; i < held_extents_; ++i) {
+                    tmp.push(free_queue.top());
+                    free_queue.pop();
+                }
+
+                // held_extents_ was and will be the number of entries in the free_queue
+                // that _didn't_ point off the end of the file.  We just moved those
+                // entries to tmp.  The remaining entries must therefore point off the
+                // end of the file.  Check that no remaining entries point within the
+                // file.
+                guarantee(free_queue.top() >= extents.size(), "Tried to discard valid held extents.");
+                free_queue = std::move(tmp);
+            }
+        }
     }
 
     void release_extent(extent_reference_t &&extent_ref) {
@@ -134,9 +184,9 @@ public:
         --info->extent_use_refcount;
         if (info->extent_use_refcount == 0) {
             info->set_state(extent_info_t::state_free);
-            info->next_in_free_list = free_list_head;
-            free_list_head = extent;
-            held_extents_++;
+            free_queue.push(offset_to_id(extent));
+            ++held_extents_;
+            try_shrink_file();
         }
     }
 };
@@ -145,10 +195,10 @@ extent_manager_t::extent_manager_t(file_t *file,
                                    const log_serializer_on_disk_static_config_t *static_config,
                                    log_serializer_stats_t *_stats)
     : stats(_stats), extent_size(static_config->extent_size()),
-      dbfile(file), state(state_reserving_extents) {
+      state(state_reserving_extents) {
     guarantee(divides(DEVICE_BLOCK_SIZE, extent_size));
 
-    zone.init(new extent_zone_t(extent_size));
+    zone.init(new extent_zone_t(file, extent_size));
 }
 
 extent_manager_t::~extent_manager_t() {
@@ -202,12 +252,7 @@ extent_reference_t extent_manager_t::gen_extent() {
     ++stats->pm_extents_in_use;
     stats->pm_bytes_in_use += extent_size;
 
-    extent_reference_t extent_ref = zone->gen_extent();
-
-    /* In case we are not on a block device */
-    dbfile->set_size_at_least(extent_ref.offset() + extent_size);
-
-    return extent_ref;
+    return zone->gen_extent();
 }
 
 extent_reference_t
@@ -251,7 +296,7 @@ void extent_manager_t::commit_transaction(extent_transaction_t *t) {
     }
 }
 
-int extent_manager_t::held_extents() {
+size_t extent_manager_t::held_extents() {
     assert_thread();
     return zone->held_extents();
 }

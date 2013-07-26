@@ -3,8 +3,10 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
+#include "arch/io/disk/accounting.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
@@ -12,51 +14,27 @@
 
 namespace unittest {
 
-struct core_action_t : public intrusive_list_node_t<core_action_t> {
-    /* We need for multiple test_driver_t objects to share a file
-       descriptor in order to test the conflict resolution logic, but
-       it doesn't matter what that file descriptor is. */
-    static const int IRRELEVANT_DEFAULT_FD = 0;
-
-    bool get_is_write() const { return !is_read; }
-    bool get_is_read() const { return is_read; }
-    fd_t get_fd() const { return fd; }
-    void *get_buf() const { return buf; }
-    size_t get_count() const { return count; }
-    int64_t get_offset() const { return offset; }
-    void set_successful_due_to_conflict() { }
-
-    bool is_read;
-    void *buf;
-    size_t count;
-    int64_t offset;
-
-    core_action_t() :
-        has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
-    bool has_begun, done;
-    fd_t fd;
-};
-
-void debug_print(printf_buffer_t *buf,
-                  const core_action_t &action) {
-    buf->appendf("core_action{is_read=%s, buf=%p, count=%zu, "
-                 "offset=%" PRIi64 ", has_begun=%s, done=%s, fd=%d}",
-                 action.is_read ? "true" : "false",
-                 action.buf,
-                 action.count,
-                 action.offset,
-                 action.has_begun ? "true" : "false",
-                 action.done ? "true" : "false",
-                 action.fd);
-}
+/* We need for multiple test_driver_t objects to share a file
+   descriptor in order to test the conflict resolution logic, but
+   it doesn't matter what that file descriptor is. */
+static const int IRRELEVANT_DEFAULT_FD = 0;
 
 struct test_driver_t {
-    intrusive_list_t<core_action_t> running_actions;
+    typedef conflict_resolving_diskmgr_t::action_t action_t;
+
+    // We avoid deallocating actions during the test to make sure that each action
+    // has a unique pointer value.
+    boost::ptr_vector<action_t> allocated_actions;
+
+    std::set<accounting_diskmgr_action_t *> running_actions;
     std::vector<char> data;
 
-    conflict_resolving_diskmgr_t<core_action_t> conflict_resolver;
+    conflict_resolving_diskmgr_t conflict_resolver;
 
-    typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
+    // These work because all actions are part of allocated_actions -- they have
+    // unique pointer values.
+    std::set<accounting_diskmgr_action_t *> actions_that_have_begun;
+    std::set<accounting_diskmgr_action_t *> actions_that_are_done;
 
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
@@ -77,43 +55,70 @@ struct test_driver_t {
         conflict_resolver.submit(a);
     }
 
-    void submit_from_conflict_resolving_diskmgr(core_action_t *a) {
+    action_t *make_action() {
+        action_t *ret = new action_t;
+        allocated_actions.push_back(ret);
+        return ret;
+    }
 
-        rassert(!a->has_begun);
-        rassert(!a->done);
-        a->has_begun = true;
+    bool action_has_begun(accounting_diskmgr_action_t *action) const {
+        return actions_that_have_begun.find(action) != actions_that_have_begun.end();
+    }
+
+    bool action_is_done(accounting_diskmgr_action_t *action) const {
+        return actions_that_are_done.find(action) != actions_that_are_done.end();
+    }
+
+    void submit_from_conflict_resolving_diskmgr(accounting_diskmgr_action_t *a) {
+
+        rassert(!action_has_begun(a));
+        rassert(!action_is_done(a));
+        actions_that_have_begun.insert(a);
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
-        for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
-            if (!(a->is_read && p->is_read)) {
-                ASSERT_TRUE(a->offset >= static_cast<int64_t>(p->offset + p->count)
-                            || p->offset >= static_cast<int64_t>(a->offset + a->count));
+        for (auto it = running_actions.begin(); it != running_actions.end(); ++it) {
+            accounting_diskmgr_action_t *const p = *it;
+            if (!(a->get_is_read() && p->get_is_read())) {
+                ASSERT_TRUE(a->get_offset() >= static_cast<int64_t>(p->get_offset() + p->get_count())
+                            || p->get_offset() >= static_cast<int64_t>(a->get_offset() + a->get_count()));
             }
         }
 
-        running_actions.push_back(a);
+        bool insertion_took_place = running_actions.insert(a).second;
+        ASSERT_TRUE(insertion_took_place);
     }
 
-    void permit(core_action_t *a) {
-        if (a->done) return;
-        rassert(a->has_begun);
-        running_actions.remove(a);
-
-        if (a->offset + a->count > data.size()) {
-            data.resize(a->offset + a->count, 0);
+    void permit(accounting_diskmgr_action_t *a) {
+        if (action_is_done(a)) {
+            return;
         }
-        if (a->is_read) {
-            memcpy(a->buf, data.data() + a->offset, a->count);
+        rassert(action_has_begun(a));
+        bool element_was_removed = running_actions.erase(a) == 1;
+        ASSERT_TRUE(element_was_removed);
+
+        if (a->get_offset() + a->get_count() > data.size()) {
+            data.resize(a->get_offset() + a->get_count(), 0);
+        }
+        if (a->get_is_read()) {
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec source_vecs[1] = { { data.data(), data.size() } };
+            fill_bufs_from_source(a_vecs, a_size, source_vecs, 1, a->get_offset());
         } else {
-            memcpy(data.data() + a->offset, a->buf, a->count);
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec dest_vecs[1] = { { data.data() + a->get_offset(), a->get_count() } };
+            fill_bufs_from_source(dest_vecs, 1, a_vecs, a_size, 0);
         }
 
         conflict_resolver.done(a);
     }
 
-    void done_from_conflict_resolving_diskmgr(core_action_t *a) {
-        a->done = true;
+    void done_from_conflict_resolving_diskmgr(accounting_diskmgr_action_t *a) {
+        actions_that_are_done.insert(a);
     }
 };
 
@@ -123,29 +128,25 @@ struct read_test_t {
         driver(_driver),
         offset(o),
         expected(e),
-        buffer(expected.size())
-    {
-        action.is_read = true;
-        action.fd = 0;
-        action.buf = buffer.data();
-        action.count = expected.size();
-        action.offset = offset;
-        driver->submit(&action);
+        buffer(expected.size()),
+        action(driver->make_action()) {
+        action->make_read(IRRELEVANT_DEFAULT_FD, buffer.data(), expected.size(), offset);
+        driver->submit(action);
     }
     test_driver_t *driver;
     int64_t offset;
     std::string expected;
     scoped_array_t<char> buffer;
-    test_driver_t::action_t action;
+    test_driver_t::action_t *action;
     bool was_sent() {
-        return action.done || action.has_begun;
+        return driver->action_is_done(action) || driver->action_has_begun(action);
     }
     bool was_completed() {
-        return action.done;
+        return driver->action_is_done(action);
     }
     void go() {
         ASSERT_TRUE(was_sent());
-        driver->permit(&action);
+        driver->permit(action);
         ASSERT_TRUE(was_completed());
     }
     ~read_test_t() {
@@ -160,30 +161,26 @@ struct write_test_t {
     write_test_t(test_driver_t *_driver, int64_t o, const std::string &d) :
         driver(_driver),
         offset(o),
-        data(d.begin(), d.end())
-    {
-        action.is_read = false;
-        action.fd = 0;
-        action.buf = data.data();
-        action.count = d.size();
-        action.offset = o;
-        driver->submit(&action);
+        data(d.begin(), d.end()),
+        action(driver->make_action()) {
+        action->make_write(IRRELEVANT_DEFAULT_FD, data.data(), d.size(), o, false);
+        driver->submit(action);
     }
 
     test_driver_t *driver;
     int64_t offset;
     std::vector<char> data;
-    test_driver_t::action_t action;
+    test_driver_t::action_t *action;
 
     bool was_sent() {
-        return action.done || action.has_begun;
+        return driver->action_is_done(action) || driver->action_has_begun(action);
     }
     bool was_completed() {
-        return action.done;
+        return driver->action_is_done(action);
     }
     void go() {
         ASSERT_TRUE(was_sent());
-        driver->permit(&action);
+        driver->permit(action);
         ASSERT_TRUE(was_completed());
     }
     ~write_test_t() {
@@ -294,6 +291,29 @@ void cause_test_failure() {
 TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
+
+TEST(DiskConflictTest, FillBufsFromSource) {
+    // A 27-element array.
+    char s[] = "abcdefghijklmnopqrstuvwxyz";
+
+    iovec source[5] = { { s + 0, 5 },
+                        { s + 5, 5 },
+                        { s + 10, 7 },
+                        { s + 17, 9 },
+                        { s + 26, 1 } };
+
+    // A 20-element array.
+    char t[sizeof(s) - 7];
+    memset(t, 'A', sizeof(t));
+    iovec dest[3] = { { t + 0, 5 },
+                      { t + 5, 5 },
+                      { t + 10, 10 } };
+
+    fill_bufs_from_source(dest, 3, source, 5, 7);
+
+    ASSERT_EQ('\0', t[sizeof(t) - 1]);
+    ASSERT_EQ(std::string(s + 7), std::string(t));
+}
 
 }  // namespace unittest
 

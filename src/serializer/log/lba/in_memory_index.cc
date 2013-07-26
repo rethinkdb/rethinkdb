@@ -9,38 +9,23 @@
 
 #include "serializer/log/lba/disk_format.hpp"
 
-in_memory_index_t::in_memory_index_t() { }
+in_memory_index_t::in_memory_index_t() : end_block_id_(0) { }
 
 block_id_t in_memory_index_t::end_block_id() {
-    return blocks.get_size();
+    return end_block_id_;
 }
 
-in_memory_index_t::info_t in_memory_index_t::get_block_info(block_id_t id) {
-    if (id >= blocks.get_size()) {
-        info_t ret = { flagged_off64_t::unused(), repli_timestamp_t::invalid };
-        return ret;
-    } else {
-        info_t ret = { blocks[id], timestamps[id] };
-        return ret;
-    }
+index_block_info_t in_memory_index_t::get_block_info(block_id_t id) {
+    return infos_.get(id);
 }
 
 void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
-                                       flagged_off64_t offset) {
-    if (id >= blocks.get_size()) {
-        blocks.set_size(id + 1, flagged_off64_t::unused());
-        timestamps.set_size(id + 1, repli_timestamp_t::invalid);
+                                       flagged_off64_t offset, uint32_t ser_block_size) {
+    if (id >= end_block_id_) {
+        end_block_id_ = id + 1;
     }
 
-    blocks[id] = offset;
-    timestamps[id] = recency;
+    index_block_info_t info(offset, recency, ser_block_size);
+    infos_.set(id, info);
 }
 
-#ifndef NDEBUG
-void in_memory_index_t::print() {
-    printf("LBA:\n");
-    for (unsigned int i = 0; i < blocks.get_size(); i++) {
-        printf("%d %" PRId64 "\n", i, int64_t(blocks[i].the_value_));
-    }
-}
-#endif

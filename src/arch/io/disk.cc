@@ -24,18 +24,17 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...
+using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
 
-// TODO: If two files are on the same disk, should they share part of the IO stack?
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length,
+                                DEBUG_VAR const scoped_array_t<iovec> &bufs);
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
    conflicts, and actually sending them to the disk. */
 class linux_disk_manager_t : public home_thread_mixin_t {
-    typedef conflict_resolving_diskmgr_t<accounting_diskmgr_t::action_t> conflict_resolver_t;
-    typedef stats_diskmgr_t<conflict_resolver_t::action_t> stack_stats_t;
-
 public:
-    struct action_t : public stack_stats_t::action_t {
+    struct action_t : public stats_diskmgr_t::action_t {
         int cb_thread;
         linux_iocallback_t *cb;
     };
@@ -55,7 +54,7 @@ public:
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
-        stack_stats.submit_fun = std::bind(&conflict_resolver_t::submit,
+        stack_stats.submit_fun = std::bind(&conflict_resolving_diskmgr_t::submit,
                                            &conflict_resolver, _1);
         conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
                                                  &accounter, _1);
@@ -63,9 +62,9 @@ public:
         /* Hook up everything's `done_fun`. */
         backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
         backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
-        accounter.done_fun = std::bind(&conflict_resolver_t::done,
+        accounter.done_fun = std::bind(&conflict_resolving_diskmgr_t::done,
                                        &conflict_resolver, _1);
-        conflict_resolver.done_fun = std::bind(&stack_stats_t::done, &stack_stats, _1);
+        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, _1);
         stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
     }
 
@@ -93,13 +92,14 @@ public:
         stack_stats.submit(a);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb,
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
+                      void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
         int calling_thread = get_thread_id();
 
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
-        a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
+        a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
 
@@ -107,6 +107,25 @@ public:
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
                                a));
     }
+
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
+    void submit_writev(fd_t fd, scoped_array_t<iovec> &&bufs, size_t count,
+                       size_t offset, void *account, linux_iocallback_t *cb) {
+        int calling_thread = get_thread_id();
+
+        action_t *a = new action_t;
+        a->make_writev(fd, std::move(bufs), count, offset);
+        a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
+        a->cb = cb;
+        a->cb_thread = calling_thread;
+
+        do_on_thread(home_thread(),
+                     std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
+                               a));
+    }
+#endif  // USE_WRITEV
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
@@ -122,7 +141,7 @@ public:
                                a));
     };
 
-    void done(stack_stats_t::action_t *a) {
+    void done(stats_diskmgr_t::action_t *a) {
         assert_thread();
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
@@ -156,8 +175,8 @@ private:
     it counts operations that have been queued by the backend but not sent to the OS yet
     as having been sent to the OS. */
 
-    stack_stats_t stack_stats;
-    conflict_resolver_t conflict_resolver;
+    stats_diskmgr_t stack_stats;
+    conflict_resolving_diskmgr_t conflict_resolver;
     accounting_diskmgr_t accounter;
     stats_diskmgr_2_t backend_stats;
     pool_diskmgr_t backend;
@@ -224,12 +243,70 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
                                file_account_t *account, linux_iocallback_t *callback,
                                wrap_in_datasyncs_t wrap_in_datasyncs) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
-
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_write(fd.get(), buf, length, offset,
                           account == DEFAULT_DISK_ACCOUNT ? default_account->get_account() : account->get_account(),
                           callback,
                           wrap_in_datasyncs == WRAP_IN_DATASYNCS);
+}
+
+void linux_file_t::writev_async(size_t offset, size_t length,
+                                scoped_array_t<iovec> &&bufs,
+                                file_account_t *account, linux_iocallback_t *callback) {
+    rassert(diskmgr != NULL,
+            "No diskmgr has been constructed (are we running without an event queue?)");
+    verify_aligned_file_access(file_size, offset, length, bufs);
+
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
+    diskmgr->submit_writev(fd.get(), std::move(bufs), length, offset,
+                           account == DEFAULT_DISK_ACCOUNT
+                           ? default_account->get_account()
+                           : account->get_account(),
+                           callback);
+#else  // USE_WRITEV
+    // OS X doesn't have pwritev.  Using lseek followed by a writev would
+    // require adding a mutex for OS X.  We simply break up the writes into
+    // separate write calls.
+
+    struct intermediate_cb_t : public linux_iocallback_t {
+        void on_io_complete() {
+            guarantee(refcount > 0);
+            --refcount;
+            if (refcount == 0) {
+                linux_iocallback_t *local_cb = cb;
+                delete this;
+                local_cb->on_io_complete();
+            }
+        }
+
+        size_t refcount;
+        linux_iocallback_t *cb;
+    };
+
+    intermediate_cb_t *intermediate_cb = new intermediate_cb_t;
+    // Hold a refcount while we launch writes.
+    intermediate_cb->refcount = 1;
+    intermediate_cb->cb = callback;
+
+    int64_t partial_offset = offset;
+    for (size_t i = 0; i < bufs.size(); ++i) {
+        ++intermediate_cb->refcount;
+        diskmgr->submit_write(fd.get(), bufs[i].iov_base, bufs[i].iov_len,
+                              partial_offset, account == DEFAULT_DISK_ACCOUNT
+                              ? default_account->get_account()
+                              : account->get_account(),
+                              intermediate_cb,
+                              false);
+        partial_offset += bufs[i].iov_len;
+    }
+    guarantee(partial_offset - offset == length);
+
+    // Release its refcount.
+    intermediate_cb->on_io_complete();
+#endif  // USE_WRITEV
+
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
@@ -274,10 +351,29 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length,
+                                DEBUG_VAR const scoped_array_t<iovec> &bufs) {
+#ifndef NDEBUG
+    rassert(offset + length <= file_size);
+    rassert(divides(DEVICE_BLOCK_SIZE, offset));
+    rassert(divides(DEVICE_BLOCK_SIZE, length));
+
+    size_t sum = 0;
+    for (size_t i = 0; i < bufs.size(); ++i) {
+        rassert(divides(DEVICE_BLOCK_SIZE, bufs[i].iov_len));
+        rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(bufs[i].iov_base)));
+        sum += bufs[i].iov_len;
+    }
+    rassert(sum == length);
+#endif  // NDEBUG
+}
+
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset,
+                                DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-    rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
+    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
@@ -382,6 +478,28 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
         "\n- the user which was used to start the database is not an owner of the file"
 #endif
         , path, errno_string(open_res.errsv).c_str());
+}
+
+linux_semantic_checking_file_t::linux_semantic_checking_file_t(int fd) : fd_(fd) { }
+
+size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
+                                                              size_t length) {
+    ssize_t res;
+    do {
+        res = ::read(fd_.get(), buf, length);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res != -1, "Could not read from the semantic checker file");
+    return res;
+}
+
+size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
+                                                               size_t length) {
+    ssize_t res;
+    do {
+        res = ::write(fd_.get(), buf, length);
+    } while (res == -1 && errno == EINTR);
+    guarantee_err(res != -1, "Could not write to the semantic checker file");
+    return res;
 }
 
 

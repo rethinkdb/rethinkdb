@@ -60,6 +60,36 @@ tests:
       rb: tbl.map{ |row| row[:id] }.reduce{ |a, b| a + b }
       ot: 4950
 
+    # Map-Reduce
+    - py:
+        - tbl.union(tbl).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.union(tbl).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.union(tbl).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.union(tbl).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.union(tbl).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
+    # Map-Reduce
+    - py:
+        - tbl.coerce_to("array").union(tbl).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.coerce_to("array").union(tbl).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.coerce_to("array").union(tbl).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.coerce_to("array").union(tbl).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.coerce_to("array").union(tbl).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
+    # Map-Reduce
+    - py:
+        - tbl.union(tbl.coerce_to("array")).map(lambda row:row['id']).reduce(lambda a,b:a+b)
+        - tbl.union(tbl.coerce_to("array")).map(r.row['id']).reduce(lambda a,b:a+b)
+      js:
+        - tbl.union(tbl.coerce_to("array")).map(function(row) { return row('id'); }).reduce(function(a,b) { return a.add(b); })
+        - tbl.union(tbl.coerce_to("array")).map(r.row('id')).reduce(function(a,b) { return a.add(b); })
+      rb: tbl.union(tbl.coerce_to("array")).map{ |row| row[:id] }.reduce{ |a, b| a + b }
+      ot: 9900
+
     # Concat-map
     - py: tbl.concat_map(lambda row:[])
       js: tbl.concatMap(function(row) { return []; })
@@ -82,11 +112,26 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: "tbl.order_by(lambda x: x['id'])[0]"
+      js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
+      rb: tbl.order_by{|x| x[:id]}[0]
+      ot: ({'id':0, 'a':0})
+
     - cd: tbl.order_by('a', 'id').nth(0)
       ot: ({'id':0,'a':0})
 
+    - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"
+      js: tbl.orderBy(function (x) { return [x('a'), x('id')]; }).nth(0)
+      rb: tbl.order_by{|x| [x[:a], x[:id]]}[0]
+      ot: ({'id':0, 'a':0})
+
     - cd: tbl.order_by(r.desc('a'), r.asc('id')).nth(0)
       ot: ({'id':3,'a':3})
+
+    - py: "tbl.order_by(r.desc(lambda x: x['a']), lambda x: x['id'])[0]"
+      js: tbl.orderBy(r.desc(function (x) { return x('a'); }), function (x) { return x('id'); }).nth(0)
+      rb: tbl.order_by(r.desc{|x| x[:a]}, lambda {|x| x[:id]})[0]
+      ot: ({'id':3, 'a':3})
 
     - cd: tbl.order_by(r.asc('a'), r.desc('id')).nth(0)
       ot: ({'id':96,'a':0})
@@ -99,6 +144,11 @@ tests:
 
     - cd: tbl.order_by('id', 'missing').nth(0)
       ot: ({'id':0, 'a':0})
+
+    - py: "tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
+      rb: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
+      js: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
+      ot: true
 
 
     # test skip
@@ -119,19 +169,109 @@ tests:
 
     # test slice
     - cd: tbl.slice(1, 3).count()
-      ot: 3
+      ot: 2
     - cd: tbl.slice(-1, -3).count()
       ot: err('RqlRuntimeError', 'Cannot use a negative left index on a stream.', [0])
     - cd: tbl.slice(0, -3).count()
-      ot: err('RqlRuntimeError', 'Cannot use a right index < -1 on a stream', [0])
+      ot: err('RqlRuntimeError', 'Cannot use a right index < -1 on a stream.', [0])
     - cd: tbl.slice(0, -1).count()
-      ot: 100
+      ot: err('RqlRuntimeError', 'Cannot slice to an open right index of -1 on a stream.', [])
     - cd: tbl.slice('foo', 'bar').count()
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])
     - cd: tbl.slice(1, null).count()
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found NULL.', [0])
     - cd: tbl.slice(null, 1).count()
       ot: err('RqlRuntimeError', 'Expected type NUMBER but found NULL.', [0])
+
+    - cd: tbl.slice(12, 20).count()
+      ot: 8
+    - cd: tbl.slice(12, 20, :right_bound => 'closed').count()
+      py: tbl.slice(12, 20, right_bound='closed').count()
+      js: tbl.slice(12, 20, {right_bound:'closed'}).count()
+      ot: 9
+    - cd: tbl.slice(12, 20, :left_bound => 'open').count()
+      py: tbl.slice(12, 20, left_bound='open').count()
+      js: tbl.slice(12, 20, {left_bound:'open'}).count()
+      ot: 7
+    - cd: tbl.slice(12, 20, :left_bound => 'open', :right_bound => 'closed').count()
+      py: tbl.slice(12, 20, left_bound='open', right_bound='closed').count()
+      js: tbl.slice(12, 20, {left_bound:'open', right_bound:'closed'}).count()
+      ot: 8
+
+    - cd: tbl.slice(12, -1).count()
+      ot: err("RqlRuntimeError", "Cannot slice to an open right index of -1 on a stream.", [])
+    - cd: tbl.slice(12, -1, :right_bound => 'closed').count()
+      py: tbl.slice(12, -1, right_bound='closed').count()
+      js: tbl.slice(12, -1, {right_bound:'closed'}).count()
+      ot: 88
+
+    - cd: tbl.slice(12, -2).count()
+      ot: err("RqlRuntimeError", "Cannot use a right index < -1 on a stream.", [])
+    - cd: tbl.slice(12, -2, :right_bound => 'closed').count()
+      py: tbl.slice(12, -2, right_bound='closed').count()
+      js: tbl.slice(12, -2, {right_bound:'closed'}).count()
+      ot: err("RqlRuntimeError", "Cannot use a right index < -1 on a stream.", [])
+
+    - cd: tbl.slice(-12, -2).count()
+      ot: err("RqlRuntimeError", "Cannot use a negative left index on a stream.", [])
+    - cd: tbl.slice(-12, -2, :right_bound => 'closed').count()
+      py: tbl.slice(-12, -2, right_bound='closed').count()
+      js: tbl.slice(-12, -2, {right_bound:'closed'}).count()
+      ot: err("RqlRuntimeError", "Cannot use a negative left index on a stream.", [])
+
+    - cd: tbl.coerce_to('array').slice(12, 20).count()
+      ot: 8
+    - cd: tbl.coerce_to('array').slice(12, 20, :right_bound => 'closed').count()
+      py: tbl.coerce_to('array').slice(12, 20, right_bound='closed').count()
+      js: tbl.coerce_to('array').slice(12, 20, {right_bound:'closed'}).count()
+      ot: 9
+    - cd: tbl.coerce_to('array').slice(12, 20, :left_bound => 'open').count()
+      py: tbl.coerce_to('array').slice(12, 20, left_bound='open').count()
+      js: tbl.coerce_to('array').slice(12, 20, {left_bound:'open'}).count()
+      ot: 7
+    - cd: tbl.coerce_to('array').slice(12, 20, :left_bound => 'open', :right_bound => 'closed').count()
+      py: tbl.coerce_to('array').slice(12, 20, left_bound='open', right_bound='closed').count()
+      js: tbl.coerce_to('array').slice(12, 20, {left_bound:'open', right_bound:'closed'}).count()
+      ot: 8
+
+    - cd: tbl.coerce_to('array').slice(12, -1).count()
+      ot: 87
+    - cd: tbl.coerce_to('array').slice(12, -1, :right_bound => 'closed').count()
+      py: tbl.coerce_to('array').slice(12, -1, right_bound='closed').count()
+      js: tbl.coerce_to('array').slice(12, -1, {right_bound:'closed'}).count()
+      ot: 88
+
+    - cd: tbl.coerce_to('array').slice(12, -2).count()
+      ot: 86
+    - cd: tbl.coerce_to('array').slice(12, -2, :right_bound => 'closed').count()
+      py: tbl.coerce_to('array').slice(12, -2, right_bound='closed').count()
+      js: tbl.coerce_to('array').slice(12, -2, {right_bound:'closed'}).count()
+      ot: 87
+
+    - cd: tbl.coerce_to('array').slice(-12, -2).count()
+      ot: 10
+    - cd: tbl.coerce_to('array').slice(-12, -2, :right_bound => 'closed').count()
+      py: tbl.coerce_to('array').slice(-12, -2, right_bound='closed').count()
+      js: tbl.coerce_to('array').slice(-12, -2, {right_bound:'closed'}).count()
+      ot: 11
+
+    - def: arr = r.expr([1,2,3,4,5])
+    - rb: arr[1..3]
+      ot: ([2, 3, 4])
+    - rb: arr[1...3]
+      py: arr[1:3]
+      ot: ([2, 3])
+    - rb: arr[1..-3]
+      ot: ([2, 3])
+    - rb: arr[1...-3]
+      py: arr[1:-3]
+      ot: ([2])
+    - rb: arr[1..-1]
+      py: arr[1:]
+      ot: ([2,3,4,5])
+    - rb: arr[1...-1]
+      py: arr[1:-1]
+      ot: ([2,3,4])
 
     # test nth
     - cd: tbl.order_by('id').nth(1)
@@ -228,6 +368,15 @@ tests:
 
     - cd: tbl.without('a', 'missing').order_by('id').nth(0)
       ot: ({'id':0})
+
+    - cd: tbl3.without('a', {'b':'c'}).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{}})
+
+    - cd: tbl3.without(['a', {'b':'c'}]).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{}})
+
+    - cd: tbl3.without(['a', {'b':'d'}]).order_by('id').nth(0)
+      ot: ({'id':0, 'b':{'c':0}})
 
     # Coerce a table to an array
     - cd: tbl.limit(5).type_of()

@@ -6,8 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "utils.hpp"
-
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
@@ -25,8 +23,18 @@ public:
     func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static counted_t<func_t> new_identity_func(env_t *env, counted_t<const datum_t> obj,
-                                               const protob_t<const Backtrace> &root);
+    static counted_t<func_t> new_constant_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &root);
+
+    static counted_t<func_t> new_pluck_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &bt_src);
+
+    static counted_t<func_t> new_get_field_func(
+        env_t *env, counted_t<const datum_t> obj,
+        const protob_t<const Backtrace> &bt_src);
+
     static counted_t<func_t> new_eq_comparison_func(
         env_t *env, counted_t<const datum_t> obj,
         const protob_t<const Backtrace> &bt_src);
@@ -45,6 +53,7 @@ public:
 
     std::string print_src() const;
     void set_default_filter_val(counted_t<func_t> func);
+    protob_t<const Term> get_source();
 private:
     // Pointers to this function's arguments.
     scoped_array_t<counted_t<const datum_t> > argptrs;
@@ -98,7 +107,7 @@ public:
         return source.make_child(&source->GetExtension(ql2::extension::backtrace));
     }
 
-    Term get_term() const {
+    const Term &get_term() const {
         return *source;
     }
 

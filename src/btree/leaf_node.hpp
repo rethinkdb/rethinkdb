@@ -3,6 +3,7 @@
 #define BTREE_LEAF_NODE_HPP_
 
 #include <string>
+#include <utility>
 
 #include "buffer_cache/types.hpp"
 #include "errors.hpp"

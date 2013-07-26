@@ -91,11 +91,10 @@ public:
         : eager_datum_stream_t(env, _source->backtrace()), source(_source) { }
     virtual bool is_array() { return source->is_array(); }
     virtual counted_t<const datum_t> as_array() {
-        return is_array() ?
-            eager_datum_stream_t::as_array() :
-            counted_t<const datum_t>();
+        return is_array()
+            ? eager_datum_stream_t::as_array()
+            : counted_t<const datum_t>();
     }
-
 protected:
     const counted_t<datum_stream_t> source;
 };
@@ -165,12 +164,16 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
+                        bool left_bound_open,
                         counted_t<const datum_t> right_bound,
+                        bool right_bound_open,
                         const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         counted_t<const datum_t> left_bound,
+                        bool left_bound_open,
                         counted_t<const datum_t> right_bound,
+                        bool right_bound_open,
                         const std::string &sindex_id,
                         const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
@@ -216,7 +219,7 @@ public:
     slice_datum_stream_t(env_t *env, size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
     counted_t<const datum_t> next_impl();
-    size_t index, left, right;
+    uint64_t index, left, right;
 };
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {
@@ -292,11 +295,28 @@ private:
     bool is_arr_;
 };
 
-class union_datum_stream_t : public eager_datum_stream_t {
+class union_datum_stream_t : public datum_stream_t {
 public:
-    union_datum_stream_t(env_t *env, const std::vector<counted_t<datum_stream_t> > &_streams,
+    union_datum_stream_t(env_t *env,
+                         const std::vector<counted_t<datum_stream_t> > &_streams,
                          const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
+        : datum_stream_t(env, bt_src), streams(_streams), streams_index(0) { }
+
+    // stream -> stream
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
+
+    // stream -> atom
+    virtual counted_t<const datum_t> count();
+    virtual counted_t<const datum_t> reduce(counted_t<val_t> base_val,
+                                            counted_t<func_t> f);
+    virtual counted_t<const datum_t> gmr(counted_t<func_t> g,
+                                         counted_t<func_t> m,
+                                         counted_t<const datum_t> base,
+                                         counted_t<func_t> r);
+    virtual bool is_array();
+    virtual counted_t<const datum_t> as_array();
 private:
     counted_t<const datum_t> next_impl();
 

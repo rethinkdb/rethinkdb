@@ -13,7 +13,7 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "containers/scoped.hpp"
-#include "containers/two_level_array.hpp"
+#include "containers/infinite_array.hpp"
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 
@@ -52,6 +52,7 @@ public:
     block_id_t get_block_id() const;
     const void *get_data_read() const;
     void *get_data_write();
+    void *get_data_write(uint32_t cache_block_size);
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
 
@@ -67,7 +68,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes(internal_buf_lock->get_data_read(), cache->get_block_size().value());
+        crc_computer.process_bytes(internal_buf_lock->get_data_read(), internal_buf_lock->cache_block_size());
         return crc_computer.checksum();
     }
 public:
@@ -134,13 +135,18 @@ public:
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();
-    void create_cache_account(int priority, scoped_ptr_t<typename inner_cache_t::cache_account_type> *out);
+    void create_cache_account(
+            int priority,
+            scoped_ptr_t<typename inner_cache_t::cache_account_type> *out);
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
+                              const counted_t<standard_block_token_t> &token,
+                              repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
     unsigned int num_blocks();
 
-    coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
+    coro_fifo_t &co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
 
 private:
     inner_cache_t inner_cache;
@@ -150,9 +156,9 @@ private:
     friend class scc_buf_lock_t<inner_cache_t>;
 
     /* CRC checking stuff */
-    two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
+    infinite_array_t<crc_t> crc_map;
     /* order checking stuff */
-    two_level_array_t<plain_sink_t, MAX_BLOCK_ID> sink_map;
+    infinite_array_t<plain_sink_t> sink_map;
 };
 
 #include "buffer_cache/semantic_checking.tcc"

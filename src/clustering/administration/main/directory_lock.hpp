@@ -28,7 +28,7 @@ private:
 
 class directory_missing_exc_t : public std::exception {
 public:
-    directory_missing_exc_t(const base_path_t &path) {
+    explicit directory_missing_exc_t(const base_path_t &path) {
         info = strprintf("The directory '%s' does not exist, run 'rethinkdb create -d \"%s\"' and try again.",
                          path.path().c_str(), path.path().c_str());
     }
@@ -70,7 +70,7 @@ private:
 
 class directory_locked_exc_t : public std::exception {
 public:
-    directory_locked_exc_t(const base_path_t &path) {
+    explicit directory_locked_exc_t(const base_path_t &path) {
         info = strprintf("Directory '%s' is already in use, perhaps another instance of rethinkdb is using it.",
                          path.path().c_str());
     }
@@ -82,4 +82,4 @@ private:
     std::string info;
 };
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_MAIN_DIRECTORY_LOCK_HPP_

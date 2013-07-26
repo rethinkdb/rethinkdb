@@ -62,7 +62,9 @@ void lba_disk_structure_t::on_extent_read() {
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account, extent_transaction_t *txn) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency,
+                                     flagged_off64_t offset, uint32_t ser_block_size,
+                                     file_account_t *io_account, extent_transaction_t *txn) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -110,8 +112,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
 
     rassert(!last_extent->full());
 
-    // TODO: timestamp
-    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset), io_account);
+    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset, ser_block_size), io_account);
 }
 
 class lba_writer_t :
