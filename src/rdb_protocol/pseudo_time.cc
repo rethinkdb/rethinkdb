@@ -13,6 +13,7 @@ typedef boost::local_time::local_time_input_facet input_timefmt_t;
 typedef boost::local_time::local_time_facet output_timefmt_t;
 typedef boost::local_time::local_date_time time_t;
 typedef boost::posix_time::ptime ptime_t;
+typedef boost::posix_time::time_duration dur_t;
 typedef boost::gregorian::date date_t;
 
 // This is the complete set of accepted formats by my reading of the ISO 8601
@@ -169,7 +170,7 @@ std::string sanitize_tz(const std::string &tz, const rcheckable_t *target) {
 }
 
 counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
-    boost::posix_time::time_duration dur(t - epoch);
+    dur_t dur(t - epoch);
     double seconds = dur.total_microseconds() / 1000000.0;
     std::string tz = t.zone_as_posix_string();
     tz = sanitize_tz(tz, target);
@@ -195,11 +196,9 @@ counted_t<const datum_t> iso8601_to_time(
 }
 
 const int64_t sec_incr = INT_MAX;
-time_t time_to_boost(counted_t<const datum_t> d) {
-    double raw_sec = d->get(epoch_time_key)->as_num();
+void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     int64_t sec = raw_sec;
     int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
-    ptime_t t(date_t(1970, 1, 1));
 
     // boost::posix_time::seconds doesn't like large numbers, and like any
     // mature library, it reacts by silently overflowing somehwere and producing
@@ -209,11 +208,19 @@ time_t time_to_boost(counted_t<const datum_t> d) {
     while (sec > 0) {
         int64_t diff = std::min(sec, sec_incr);
         sec -= diff;
-        t += boost::posix_time::seconds(diff * sign);
+        *t += boost::posix_time::seconds(diff * sign);
     }
     r_sanity_check(sec == 0);
 
-    t += boost::posix_time::microseconds(microsec);
+    *t += boost::posix_time::microseconds(microsec);
+}
+
+
+time_t time_to_boost(counted_t<const datum_t> d) {
+    double raw_sec = d->get(epoch_time_key)->as_num();
+    ptime_t t(date_t(1970, 1, 1));
+    add_seconds_to_ptime(&t, raw_sec);
+
     if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
         boost::local_time::time_zone_ptr zone(
             new boost::local_time::posix_time_zone(tz->as_str()));
@@ -337,6 +344,21 @@ counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
     return res.to_counted();
 }
 
+counted_t<const datum_t> make_time(
+    int year, int month, int day, int hours, int minutes, double seconds,
+    std::string tz, const rcheckable_t *target) {
+    ptime_t ptime(date_t(year, month, day), dur_t(hours, minutes, 0));
+    add_seconds_to_ptime(&ptime, seconds);
+    tz = sanitize_tz(tz, target);
+    if (tz != "") {
+        boost::local_time::time_zone_ptr zone(
+            new boost::local_time::posix_time_zone(tz));
+        return boost_to_time(time_t(ptime, zone), target);
+    } else {
+        return boost_to_time(time_t(ptime, utc), target);
+    }
+}
+
 counted_t<const datum_t> time_add(counted_t<const datum_t> x,
                                   counted_t<const datum_t> y) {
     counted_t<const datum_t> time, duration;
@@ -395,7 +417,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
     case HOURS: return ptime.time_of_day().hours();
     case MINUTES: return ptime.time_of_day().minutes();
     case SECONDS: {
-        boost::posix_time::time_duration dur = ptime.time_of_day();
+        dur_t dur = ptime.time_of_day();
         double microsec = dur.total_microseconds();
         double sec = dur.total_seconds();
         return dur.seconds() + ((microsec - sec * 1000000) / 1000000.0);

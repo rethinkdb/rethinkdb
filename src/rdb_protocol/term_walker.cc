@@ -199,6 +199,7 @@ private:
         case Term::DATE:
         case Term::TIME_OF_DAY:
         case Term::TIMEZONE:
+        case Term::TIME:
         case Term::YEAR:
         case Term::MONTH:
         case Term::DAY:
@@ -350,6 +351,7 @@ private:
         case Term::DATE:
         case Term::TIME_OF_DAY:
         case Term::TIMEZONE:
+        case Term::TIME:
         case Term::YEAR:
         case Term::MONTH:
         case Term::DAY:

@@ -163,6 +163,39 @@ private:
     pseudo::time_component_t component;
 };
 
+class time_term_t : public op_term_t {
+public:
+    time_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(3, 7)) { }
+private:
+    counted_t<val_t> eval_impl() {
+        if (num_args() != 3 && num_args() != 4 && num_args() != 6 && num_args() != 7) {
+            rfail(base_exc_t::GENERIC,
+                  "Got %zu arguments to TIME (expected 3, 4, 6 or 7).", num_args());
+        }
+        int year = arg(0)->as_int<int>();
+        int month = arg(1)->as_int<int>();
+        int day = arg(2)->as_int<int>();
+        int hours = 0;
+        int minutes = 0;
+        double seconds = 0;
+        std::string tz = "";
+        if (num_args() == 4) {
+            tz = arg(3)->as_str();
+        } else if (num_args() >= 6) {
+            hours = arg(3)->as_int<int>();
+            minutes = arg(4)->as_int<int>();
+            seconds = arg(5)->as_num();
+            if (num_args() == 7) {
+                tz = arg(6)->as_str();
+            }
+        }
+        return new_val(
+            pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
+    }
+    virtual const char *name() const { return "time"; }
+};
+
 counted_t<term_t> make_iso8601_term(env_t *env, protob_t<const Term> term) {
     return make_counted<iso8601_term_t>(env, term);
 }
@@ -193,6 +226,9 @@ counted_t<term_t> make_time_of_day_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_timezone_term(env_t *env, protob_t<const Term> term) {
     return make_counted<timezone_term_t>(env, term);
+}
+counted_t<term_t> make_time_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<time_term_t>(env, term);
 }
 counted_t<term_t> make_portion_term(env_t *env, protob_t<const Term> term,
                                     pseudo::time_component_t component) {

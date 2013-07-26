@@ -117,6 +117,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::DATE:               return make_date_term(env, t);
     case Term::TIME_OF_DAY:        return make_time_of_day_term(env, t);
     case Term::TIMEZONE:           return make_timezone_term(env, t);
+    case Term::TIME:               return make_time_term(env, t);
 
     case Term::YEAR:               return make_portion_term(env, t, pseudo::YEAR);
     case Term::MONTH:              return make_portion_term(env, t, pseudo::MONTH);

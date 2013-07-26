@@ -132,6 +132,7 @@ counted_t<term_t> make_during_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_date_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_time_of_day_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_timezone_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_time_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_portion_term(env_t *env, protob_t<const Term> term,
                                     pseudo::time_component_t component);
 

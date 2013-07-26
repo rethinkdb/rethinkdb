@@ -525,6 +525,8 @@ message Term {
         MINUTES = 134;
         SECONDS = 135;
 
+        TIME = 136;
+
         MONDAY = 107;
         TUESDAY = 108;
         WEDNESDAY = 109;
