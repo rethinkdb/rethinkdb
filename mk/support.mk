@@ -50,6 +50,8 @@ TC_NPM_INT_EXE := $(SUPPORT_DIR)/usr/bin/npm
 TC_LESSC_INT_EXE := $(SUPPORT_DIR)/usr/bin/lessc
 TC_COFFEE_INT_EXE := $(SUPPORT_DIR)/usr/bin/coffee
 TC_HANDLEBARS_INT_EXE := $(SUPPORT_DIR)/usr/bin/handlebars
+TC_BROWSERIFY_INT_EXE := $(SUPPORT_DIR)/usr/bin/browserify
+TC_PROTO2JS_INT_EXE := $(SUPPORT_DIR)/usr/bin/proto2js
 V8_SRC_DIR := $(TC_SRC_DIR)/v8
 V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
@@ -109,6 +111,14 @@ ifdef HANDLEBARS
   support: $(HANDLEBARS)
 endif
 
+ifdef BROWSERIFY
+  support: $(BROWSERIFY)
+endif
+
+ifdef PROTO2JS
+  support: $(PROTO2JS)
+endif
+
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
 	rm -rf $@
@@ -120,9 +130,29 @@ $(TC_LESSC_INT_EXE): $(NODE_MODULES_DIR)/less | $(dir $(TC_LESSC_INT_EXE)).
 	ln -s $(abspath $</bin/lessc) $@
 	touch $@
 
+$(TC_BROWSERIFY_INT_EXE): $(NODE_MODULES_DIR)/browserify | $(dir $(TC_BROWSERIFY_INT_EXE)).
+	$P LN
+	rm -f $@
+	ln -s $(abspath $</bin/cmd.js) $@
+	touch $@
+
+$(TC_PROTO2JS_INT_EXE): $(NODE_MODULES_DIR)/protobufjs | $(dir $(TC_PROTO2JS_INT_EXE)).
+	$P LN
+	rm -f $@
+	ln -s $(abspath $</bin/proto2js) $@
+	touch $@
+
 $(NODE_MODULES_DIR)/less: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I less
 	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.4.0 $(SUPPORT_LOG_REDIRECT)
+
+$(NODE_MODULES_DIR)/browserify: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
+	$P NPM-I browserify
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install browserify@2.18.1 $(SUPPORT_LOG_REDIRECT)
+
+$(NODE_MODULES_DIR)/protobufjs: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
+	$P NPM-I protobufjs
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install protobufjs@1.1.4 $(SUPPORT_LOG_REDIRECT)
 
 $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_EXE)).
 	$P LN

@@ -7,7 +7,7 @@ process.on('uncaughtException', function(err) {
     console.log(err.toString() + err.stack.toString());
 });
 
-var r = require('../../../drivers/javascript/build/rethinkdb');
+var r = require('rethinkdb');
 
 var assertNoError = function(err) {
     if (err) {

@@ -46,9 +46,6 @@ include $(TOP)/mk/install.mk
 # External dependencies
 include $(TOP)/external/build.mk
 
-# Javascript protobuf compiler
-include $(TOP)/external/protobuf-plugin-closure/build.mk
-
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
@@ -77,6 +74,6 @@ include $(TOP)/test/build.mk
 include $(TOP)/mk/local.mk
 
 .PHONY: clean
-clean: build-clean js-clean
+clean: build-clean
 
 endif # CONFIGURE_STATUS = success
