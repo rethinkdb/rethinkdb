@@ -4,6 +4,7 @@
 #include "btree/keys.hpp"
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 
 namespace query_language {
 
@@ -103,7 +104,8 @@ batched_rget_stream_t::batched_rget_stream_t(
     counted_t<const ql::datum_t> left_bound,
     counted_t<const ql::datum_t> right_bound,
     const std::map<std::string, ql::wire_func_t> &_optargs,
-    bool _use_outdated, sorting_t _sorting)
+    bool _use_outdated, sorting_t _sorting,
+    ql::rcheckable_t *_parent)
     : ns_access(_ns_access), interruptor(_interruptor),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       range(key_range_t::closed,
@@ -115,7 +117,8 @@ batched_rget_stream_t::batched_rget_stream_t(
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
       table_scan_backtrace(),
-      sorting(_sorting)
+      sorting(_sorting),
+      parent(_parent)
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
@@ -125,7 +128,7 @@ batched_rget_stream_t::batched_rget_stream_t(
     bool _use_outdated,
     counted_t<const ql::datum_t> _sindex_start_value,
     counted_t<const ql::datum_t> _sindex_end_value,
-    sorting_t _sorting)
+    sorting_t _sorting, ql::rcheckable_t *_parent)
     : ns_access(_ns_access),
       interruptor(_interruptor),
       sindex_id(_sindex_id),
@@ -143,7 +146,8 @@ batched_rget_stream_t::batched_rget_stream_t(
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
       table_scan_backtrace(),
-      sorting(_sorting)
+      sorting(_sorting),
+      parent(_parent)
 { }
 
 boost::optional<rget_item_t> batched_rget_stream_t::head() {
@@ -191,6 +195,10 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
             } else {
                 pop();
                 sorting_buffer.push_back(*item);
+                rcheck_target(parent, ql::base_exc_t::GENERIC,
+                        sorting_buffer.size() > ql::sort_el_limit,
+                        strprintf("In memory sort limit exceeded. This is due to having over "
+                        "%zd index values with a common, long prefix.",  ql::sort_el_limit));
             }
         }
     }

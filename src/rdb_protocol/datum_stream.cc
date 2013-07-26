@@ -119,7 +119,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, counted_t<datum_t>(), counted_t<datum_t>(),
-                      env->get_all_optargs(), use_outdated, sorting))
+                      env->get_all_optargs(), use_outdated, sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
@@ -131,7 +131,8 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
                       env->get_all_optargs(), use_outdated,
-                      counted_t<datum_t>(), counted_t<datum_t>(), sorting))
+                      counted_t<datum_t>(), counted_t<datum_t>(),
+                      sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
@@ -141,7 +142,8 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, left_bound, right_bound,
-                      env->get_all_optargs(), use_outdated, sorting))
+                      env->get_all_optargs(), use_outdated, sorting,
+                      this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
@@ -152,7 +154,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
                       env->get_all_optargs(), use_outdated, left_bound,
-                      right_bound, sorting))
+                      right_bound, sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
