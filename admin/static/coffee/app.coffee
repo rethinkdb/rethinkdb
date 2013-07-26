@@ -150,7 +150,7 @@ collections_ready = ->
 
 collect_reql_doc = ->
     $.ajax
-        url: '/js/reql_docs.json?v='+window.VERSION
+        url: 'js/reql_docs.json?v='+window.VERSION
         dataType: 'json'
         contentType: 'application/json'
         success: set_reql_docs
