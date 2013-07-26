@@ -202,7 +202,6 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
         return boost::shared_ptr<scoped_cJSON_t>();
     } else {
         /* There's data in the sorting_buffer time to sort it. */
-        debugf("Doing some sorting of %zd values.\n", sorting_buffer.size());
         std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                   &rget_item_sindex_key_less);
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
