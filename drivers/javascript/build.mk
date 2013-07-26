@@ -37,10 +37,12 @@ $(JS_PKG_DIR): $(JS_PKG_FILES)
 	cp $(JS_PKG_FILES) $(JS_PKG_DIR)
 
 .PHONY: js-publish
+js-publish: TMPFILE=$(shell mktemp)
 js-publish: $(JS_PKG_DIR)
 	$P PUBLISH-JS $(JS_PKG_DIR)
-	# TODO: why use --force?
-	cd $(JS_PKG_DIR) && npm publish --force
+	mv $(JS_PKG_DIR)/npm-shrinkwrap.json $(TMPFILE)
+	cd $(JS_PKG_DIR) && npm publish
+	mv $(TMPFILE) $(JS_PKG_DIR)/npm-shrinkwrap.json
 
 .PHONY: js-clean
 js-clean:
