@@ -183,6 +183,7 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     } else {
         for (;;) {
             boost::optional<rget_item_t> item = head();
+            std::string skey = (item ? key_to_unescaped_str(item->key) : std::string());
             if (!item) {
                 break;
             } else if (!ql::datum_t::key_is_truncated(item->key)) {
@@ -192,13 +193,24 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
                 } else {
                     break;
                 }
-            } else {
+            } else if (sorting_buffer.empty() ||
+                       ql::datum_t::extract_secondary(skey) == key_in_sorting_buffer) {
+                if (sorting_buffer.empty()) {
+                    key_in_sorting_buffer = ql::datum_t::extract_secondary(skey);
+                }
+
                 pop();
                 sorting_buffer.push_back(*item);
                 rcheck_target(parent, ql::base_exc_t::GENERIC,
-                        sorting_buffer.size() > ql::sort_el_limit,
+                        sorting_buffer.size() < ql::sort_el_limit,
                         strprintf("In memory sort limit exceeded. This is due to having over "
                         "%zd index values with a common, long prefix.",  ql::sort_el_limit));
+            } else {
+                /* We have a truncated key and things in the sorting_buffer but
+                 * the things in the sorting buffer don't have the same
+                 * truncated key as the item. This means we break and start
+                 * returning things from the sorting buffer.. */
+                break;
             }
         }
     }

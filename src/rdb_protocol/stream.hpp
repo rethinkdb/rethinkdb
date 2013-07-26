@@ -137,6 +137,9 @@ private:
      * sorting to save some space. */
     extended_json_deque_t data;
     extended_json_deque_t sorting_buffer;
+
+    std::string key_in_sorting_buffer;
+
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
