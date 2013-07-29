@@ -14,6 +14,10 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
     return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
 }
 
+hinted_json_t json_stream_t::sorting_hint_next() {
+    return std::make_pair(CONTINUE, next());
+}
+
 result_t json_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
     ql::env_t *ql_env,
@@ -175,28 +179,31 @@ bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right
     return json_cmp(left.sindex_key->get(), right.sindex_key->get()) < 0;
 }
 
-boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     if (!sorting_buffer.empty()) {
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return datum;
+        return std::make_pair((is_new_key ? START : CONTINUE), datum);
     } else {
         for (;;) {
             boost::optional<rget_item_t> item = head();
-            std::string skey = (item ? key_to_unescaped_str(item->key) : std::string());
+            std::string key = (item ? key_to_unescaped_str(item->key) : std::string());
+            std::string skey = ql::datum_t::extract_secondary(key);
             if (!item) {
                 break;
             } else if (!ql::datum_t::key_is_truncated(item->key)) {
                 if (sorting_buffer.empty()) {
                     pop();
-                    return item->data;
+                    bool is_new_key = check_and_set_last_key(skey);
+                    return std::make_pair((is_new_key ? START : CONTINUE), item->data);
                 } else {
                     break;
                 }
             } else if (sorting_buffer.empty() ||
-                       ql::datum_t::extract_secondary(skey) == key_in_sorting_buffer) {
+                       skey == key_in_sorting_buffer) {
                 if (sorting_buffer.empty()) {
-                    key_in_sorting_buffer = ql::datum_t::extract_secondary(skey);
+                    key_in_sorting_buffer = skey;
                 }
 
                 pop();
@@ -219,15 +226,20 @@ boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
     if (sorting_buffer.empty()) {
         /* Nothing in the sorting buffer, this means we don't have any data to
          * return so we return nothing. */
-        return boost::shared_ptr<scoped_cJSON_t>();
+        return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
     } else {
         /* There's data in the sorting_buffer time to sort it. */
         std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                   &rget_item_sindex_key_less);
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return datum;
+        return std::make_pair((is_new_key ? START : CONTINUE), datum);
     }
+}
+
+boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
+    return sorting_hint_next().second;
 }
 
 boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &per_op_backtrace) {
@@ -347,6 +359,35 @@ void batched_rget_stream_t::read_more() {
             // No backtrace.
             rfail_toplevel(ql::base_exc_t::GENERIC,
                            "cannot perform read: %s", e.what());
+        }
+    }
+}
+
+bool batched_rget_stream_t::check_and_set_last_key(const std::string &key) {
+    std::string *last_key_str;
+    if (!(last_key_str = boost::get<std::string>(&last_key))) {
+        last_key = key;
+        return true;
+    } else {
+        if (key == *last_key_str) {
+            return false;
+        } else {
+            last_key = key;
+            return true;
+        }
+    }
+}
+bool batched_rget_stream_t::check_and_set_last_key(boost::shared_ptr<scoped_cJSON_t> key) {
+    boost::shared_ptr<scoped_cJSON_t> *last_key_json;
+    if (!(last_key_json = boost::get<boost::shared_ptr<scoped_cJSON_t> >(&last_key))) {
+        last_key = key;
+        return true;
+    } else {
+        if (json_cmp(key->get(), (*last_key_json)->get()) == 0) {
+            return false;
+        } else {
+            last_key = key;
+            return true;
         }
     }
 }

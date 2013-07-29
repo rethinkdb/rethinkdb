@@ -12,6 +12,7 @@ class json_stream_t;
 }
 
 namespace ql {
+typedef query_language::sorting_hint_t sorting_hint_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -56,6 +57,9 @@ public:
 
 protected:
     env_t *env;
+
+    typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
+    virtual hinted_datum_t next_with_sorting_hint();
 
 private:
     static const size_t MAX_BATCH_SIZE = 100;

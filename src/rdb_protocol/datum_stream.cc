@@ -55,6 +55,10 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
     }
 }
 
+datum_stream_t::hinted_datum_t datum_stream_t::next_with_sorting_hint() {
+    return std::make_pair(query_language::CONTINUE, next());
+}
+
 counted_t<const datum_t> eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
