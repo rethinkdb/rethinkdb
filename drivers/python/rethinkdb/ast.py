@@ -392,7 +392,7 @@ class RqlBiOperQuery(RqlQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([name+'='+optargs[name] for name in optargs.keys()])
+        args.extend([T(k, '=', v) for k,v in optargs.items()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -401,7 +401,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([k+'='+v for k,v in optargs.items()])
+        restargs.extend([T(k, '=', v) for k,v in optargs.items()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
