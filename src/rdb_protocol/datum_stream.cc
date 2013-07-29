@@ -55,7 +55,7 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
     }
 }
 
-datum_stream_t::hinted_datum_t datum_stream_t::next_with_sorting_hint() {
+hinted_datum_t datum_stream_t::sorting_hint_next() {
     return std::make_pair(query_language::CONTINUE, next());
 }
 
@@ -247,6 +247,13 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
         }
         return map.to_arr();
     }
+}
+
+hinted_datum_t lazy_datum_stream_t::sorting_hint_next() {
+    query_language::hinted_json_t hinted_json = json_stream->sorting_hint_next();
+    boost::shared_ptr<scoped_cJSON_t> json = hinted_json.second;
+    return std::make_pair(hinted_json.first, 
+            json ? make_counted<datum_t>(json) : counted_t<datum_t>());
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {

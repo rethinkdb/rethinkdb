@@ -13,6 +13,7 @@ class json_stream_t;
 
 namespace ql {
 typedef query_language::sorting_hint_t sorting_hint_t;
+typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -58,8 +59,7 @@ public:
 protected:
     env_t *env;
 
-    typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
-    virtual hinted_datum_t next_with_sorting_hint();
+    virtual hinted_datum_t sorting_hint_next();
 
 private:
     static const size_t MAX_BATCH_SIZE = 100;
@@ -195,6 +195,9 @@ public:
     virtual counted_t<const datum_t> as_array() {
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
+protected:
+    virtual hinted_datum_t sorting_hint_next();
+
 private:
     counted_t<const datum_t> next_impl();
 
