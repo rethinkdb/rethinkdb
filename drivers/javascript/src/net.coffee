@@ -251,7 +251,11 @@ class TcpConnection extends Connection
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
 
-        handshake_complete = false
+        timeout = setTimeout( (()=>
+            @rawSocket.destroy()
+            @emit 'error', new RqlDriverError "Handshake timedout"
+        ), @timeout*1000)
+
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
             buf = new ArrayBuffer 8
@@ -293,12 +297,6 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
-
-        timeout = setTimeout( (()=>
-            @rawSocket.destroy()
-            @emit 'error', new RqlDriverError "Handshake timedout"
-        ), @timeout*1000)
-
 
     close: () ->
         super()
