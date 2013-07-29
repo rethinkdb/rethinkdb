@@ -72,6 +72,7 @@ public:
 private:
     size_t unload_threshold;
     cache_t *cache;
+    // RSI: Change this to a segmented_vector_t (I think).
     std::vector<evictable_t *> array;
 };
 

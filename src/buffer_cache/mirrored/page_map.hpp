@@ -1,8 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 #define BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 
-#include "containers/infinite_array.hpp"
+#include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "buffer_cache/types.hpp"
 #include "serializer/types.hpp"
@@ -29,7 +29,7 @@ public:
     }
 
 private:
-    infinite_array_t<mc_inner_buf_t *> array;
+    two_level_array_t<mc_inner_buf_t *> array;
 
     // The count of non-null array entries.
     size_t count;

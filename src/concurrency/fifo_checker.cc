@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 #include "concurrency/fifo_checker.hpp"
 
@@ -126,16 +126,6 @@ void plain_sink_t::check_out(order_token_t token) {
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);
     }
 }
-
-bool operator==(const tagged_seen_t &x, const tagged_seen_t &y) {
-    return x.value == y.value && x.tag == y.tag;
-}
-
-bool plain_sink_t::operator==(const plain_sink_t &other) const {
-    return ls_pair_ == other.ls_pair_ && have_bucket_ == other.have_bucket_
-        && bucket_ == other.bucket_;
-}
-
 
 void order_checkpoint_t::set_tagappend(const std::string &tagappend) {
     rassert(tagappend_.empty());

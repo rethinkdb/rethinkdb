@@ -2,8 +2,7 @@
 #ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 #define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
-
-#include "containers/infinite_array.hpp"
+#include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -22,7 +21,14 @@ struct index_block_info_t {
           ser_block_size(_ser_block_size) { }
 
 
+    // For two_level_array_t.
+    operator bool() const {
+        return offset == flagged_off64_t::unused()
+            && recency == repli_timestamp_t::invalid
+            && ser_block_size == 0;
+    }
 
+    // RSI: Does anybody use this?  Should two_level_array_t use this?
     bool operator==(const index_block_info_t &other) const {
         return offset == other.offset && recency == other.recency
             && ser_block_size == other.ser_block_size;
@@ -34,7 +40,7 @@ struct index_block_info_t {
 } __attribute__((__packed__));
 
 class in_memory_index_t {
-    infinite_array_t<index_block_info_t> infos_;
+    two_level_array_t<index_block_info_t> infos_;
     block_id_t end_block_id_;
 
 public:
