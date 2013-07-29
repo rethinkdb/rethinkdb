@@ -275,7 +275,7 @@ class TcpConnection extends Connection
                         @buffer = @buffer.slice(i + 1)
                         status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
 
-                        handshake_complete = true
+                        clearTimeout(timeout)
                         if status_str == "SUCCESS"
                             # We're good, finish setting up the connection
                             @rawSocket.on 'data', (buf) =>
@@ -287,16 +287,16 @@ class TcpConnection extends Connection
                             @emit 'error', new RqlDriverError "Server dropped connection with message: \"" + status_str.trim() + "\""
                             return
 
+
             @rawSocket.on 'data', handshake_callback
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close'
 
-        setTimeout( (()=>
-            if not handshake_complete
-                @rawSocket.destroy()
-                @emit 'error', new RqlDriverError "Handshake timedout"
+        timeout = setTimeout( (()=>
+            @rawSocket.destroy()
+            @emit 'error', new RqlDriverError "Handshake timedout"
         ), @timeout*1000)
 
 
