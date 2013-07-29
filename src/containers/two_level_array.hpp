@@ -30,47 +30,44 @@ size of the chunks to use.
 // RSI: Remove this parameter.
 #define FAKE_UNRUNNABLE_MAX_TWO_LEVEL_ARRAY_SIZE (INT_MAX)
 
-template <class value_t, int max_size = FAKE_UNRUNNABLE_MAX_TWO_LEVEL_ARRAY_SIZE, int chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
+template <class value_t, size_t max_size = FAKE_UNRUNNABLE_MAX_TWO_LEVEL_ARRAY_SIZE, size_t chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
 class two_level_array_t {
-public:
-    typedef unsigned int key_t;
-
 private:
-    static const unsigned int num_chunks = max_size / chunk_size + 1;
+    static const size_t num_chunks = max_size / chunk_size + 1;
 
     struct chunk_t {
         chunk_t()
             : count(0), values()   // default-initialize each value in values
             { }
-        unsigned int count;
+        size_t count;
         value_t values[chunk_size];
     };
     chunk_t **chunks;
 
-    static unsigned int chunk_for_key(key_t key) {
-        unsigned int chunk_id = key / chunk_size;
-        rassert(chunk_id < num_chunks, "chunk_id < num_chunks: %u < %u", chunk_id, num_chunks);
+    static size_t chunk_for_key(key_t key) {
+        size_t chunk_id = key / chunk_size;
+        rassert(chunk_id < num_chunks, "chunk_id < num_chunks: %zu < %zu", chunk_id, num_chunks);
         return chunk_id;
     }
-    static unsigned int index_for_key(key_t key) {
+    static size_t index_for_key(key_t key) {
         return key % chunk_size;
     }
 
 public:
-    two_level_array_t() : chunks(new chunk_t*[num_chunks]) {
-        for (unsigned int i = 0; i < num_chunks; i++) {
+    two_level_array_t() : chunks(new chunk_t *[num_chunks]) {
+        for (size_t i = 0; i < num_chunks; i++) {
             chunks[i] = NULL;
         }
     }
     ~two_level_array_t() {
-        for (unsigned int i = 0; i < num_chunks; i++) {
+        for (size_t i = 0; i < num_chunks; i++) {
             delete chunks[i];
         }
         delete[] chunks;
     }
 
-    value_t& operator[](key_t key) {
-        unsigned int chunk_id = chunk_for_key(key);
+    value_t &operator[](size_t key) {
+        size_t chunk_id = chunk_for_key(key);
         if (chunks[chunk_id]) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
@@ -79,8 +76,8 @@ public:
         }
     }
 
-    value_t get(key_t key) const {
-        unsigned int chunk_id = chunk_for_key(key);
+    value_t get(size_t key) const {
+        size_t chunk_id = chunk_for_key(key);
         if (chunks[chunk_id]) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
@@ -88,8 +85,8 @@ public:
         }
     }
 
-    void set(key_t key, value_t value) {
-        unsigned int chunk_id = chunk_for_key(key);
+    void set(size_t key, value_t value) {
+        size_t chunk_id = chunk_for_key(key);
         chunk_t *chunk = chunks[chunk_id];
 
         if (!value && !chunk) {
