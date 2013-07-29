@@ -37,7 +37,6 @@ public:
 
 private:
     static const unsigned int num_chunks = max_size / chunk_size + 1;
-    unsigned int count;
 
     struct chunk_t {
         chunk_t()
@@ -58,7 +57,7 @@ private:
     }
 
 public:
-    two_level_array_t() : count(0), chunks(new chunk_t*[num_chunks]) {
+    two_level_array_t() : chunks(new chunk_t*[num_chunks]) {
         for (unsigned int i = 0; i < num_chunks; i++) {
             chunks[i] = NULL;
         }
@@ -103,12 +102,10 @@ public:
 
         if (chunk->values[index_for_key(key)]) {
             --chunk->count;
-            --count;
         }
         chunk->values[index_for_key(key)] = value;
         if (value) {
             ++chunk->count;
-            ++count;
         }
 
         if (chunk->count == 0) {
