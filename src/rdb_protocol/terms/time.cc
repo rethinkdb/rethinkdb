@@ -181,17 +181,25 @@ private:
         double seconds = 0;
         std::string tz = "";
         if (num_args() == 4) {
-            tz = arg(3)->as_str();
+            tz = parse_tz(arg(3));
         } else if (num_args() >= 6) {
             hours = arg(3)->as_int<int>();
             minutes = arg(4)->as_int<int>();
             seconds = arg(5)->as_num();
             if (num_args() == 7) {
-                tz = arg(6)->as_str();
+                tz = parse_tz(arg(6));
             }
         }
         return new_val(
             pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
+    }
+    std::string parse_tz(counted_t<val_t> v) {
+        counted_t<const datum_t> d = v->as_datum();
+        if (d->get_type() == datum_t::R_NULL) {
+            return "";
+        } else {
+            return d->as_str();
+        }
     }
     virtual const char *name() const { return "time"; }
 };

@@ -4,7 +4,7 @@ tests:
   - def: rt2 = 1375147296.60082
   - def: rt3 = 1375147297.60081
   - def: rt4 = 2375147296.60081
-  - def: rts = r([rt1, rt2, rt3, rt4])
+  - def: rts = [rt1, rt2, rt3, rt4]
 
   - def: t1 = r.epoch_time(rt1)
   - def: t2 = r.epoch_time(rt2)
@@ -143,3 +143,6 @@ tests:
            [false, false, false, false],
            [false, false, false, false],
            [false, false, false, false]]])
+
+  - rb: ts.map{|x| x.date + x.time_of_day}.map{|x| x.to_epoch_time}
+    ot: rts
