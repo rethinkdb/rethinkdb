@@ -66,16 +66,6 @@ public:
         delete[] chunks;
     }
 
-    value_t &operator[](size_t key) {
-        size_t chunk_id = chunk_for_key(key);
-        if (chunks[chunk_id]) {
-            return chunks[chunk_id]->values[index_for_key(key)];
-        } else {
-            chunk_t *chunk = chunks[chunk_id] = new chunk_t;
-            return chunk->values[index_for_key(key)];
-        }
-    }
-
     value_t get(size_t key) const {
         size_t chunk_id = chunk_for_key(key);
         if (chunks[chunk_id]) {
@@ -111,5 +101,53 @@ public:
         }
     }
 };
+
+
+template <class value_t, size_t max_size = FAKE_UNRUNNABLE_MAX_TWO_LEVEL_ARRAY_SIZE, size_t chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
+class two_level_nevershrink_array_t {
+private:
+    static const size_t num_chunks = max_size / chunk_size + 1;
+
+    struct chunk_t {
+        chunk_t()
+            : values()   // default-initialize each value in values
+            { }
+        value_t values[chunk_size];
+    };
+    chunk_t **chunks;
+
+    static size_t chunk_for_key(key_t key) {
+        size_t chunk_id = key / chunk_size;
+        rassert(chunk_id < num_chunks, "chunk_id < num_chunks: %zu < %zu", chunk_id, num_chunks);
+        return chunk_id;
+    }
+    static size_t index_for_key(key_t key) {
+        return key % chunk_size;
+    }
+
+public:
+    two_level_nevershrink_array_t() : chunks(new chunk_t *[num_chunks]) {
+        for (size_t i = 0; i < num_chunks; i++) {
+            chunks[i] = NULL;
+        }
+    }
+    ~two_level_nevershrink_array_t() {
+        for (size_t i = 0; i < num_chunks; i++) {
+            delete chunks[i];
+        }
+        delete[] chunks;
+    }
+
+    value_t &operator[](size_t key) {
+        size_t chunk_id = chunk_for_key(key);
+        if (chunks[chunk_id]) {
+            return chunks[chunk_id]->values[index_for_key(key)];
+        } else {
+            chunk_t *chunk = chunks[chunk_id] = new chunk_t;
+            return chunk->values[index_for_key(key)];
+        }
+    }
+};
+
 
 #endif // CONTAINERS_TWO_LEVEL_ARRAY_HPP_
