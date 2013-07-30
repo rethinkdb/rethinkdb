@@ -4,9 +4,9 @@ tests:
   - cd: r.db('test').table_create('times_api')
     def: tbl = r.table('sindex_api')
 
-  - rb: r([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])
+  - cd: r([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])
     ot: ([1, 2, 3, 4, 5, 6, 7])
-  - rb: r([r.january, r.february, r.march, r.april, r.may, r.june,
+  - cd: r([r.january, r.february, r.march, r.april, r.may, r.june,
            r.july, r.august, r.september, r.october, r.november, r.december])
     ot: ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
