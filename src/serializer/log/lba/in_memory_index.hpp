@@ -28,12 +28,6 @@ struct index_block_info_t {
                  && ser_block_size == 0);
     }
 
-    // RSI: Does anybody use this?  Should two_level_array_t use this?
-    bool operator==(const index_block_info_t &other) const {
-        return offset == other.offset && recency == other.recency
-            && ser_block_size == other.ser_block_size;
-    }
-
     flagged_off64_t offset;
     repli_timestamp_t recency;
     uint32_t ser_block_size;
