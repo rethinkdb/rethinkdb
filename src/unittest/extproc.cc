@@ -27,20 +27,20 @@ uint64_t collatz(uint64_t n) {
 }
 
 // Calculates the nth fibonacci number.
-class fib_job_t : public extproc_job_t {
+class fib_job_t {
 public:
     fib_job_t(size_t n, extproc_pool_t *pool, signal_t *interruptor) :
-        extproc_job_t(pool, &worker_fn, interruptor),
+        extproc_job(pool, &worker_fn, interruptor),
         iterations(n) { }
 
     uint64_t run() {
         write_message_t wm;
         wm << iterations;
-        int res = send_write_message(write_stream(), &wm);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
 
         uint64_t result;
-        res = deserialize(read_stream(), &result);
+        res = deserialize(extproc_job.read_stream(), &result);
         guarantee(res == ARCHIVE_SUCCESS);
         return result;
     }
@@ -59,10 +59,11 @@ private:
         return true;
     }
 
+    extproc_job_t extproc_job;
     size_t iterations;
 };
 
-class collatz_job_t : public extproc_job_t {
+class collatz_job_t {
 public:
     // Streams the collatz numbers starting at the given number, until it hits
     // 1. Waits for a command to proceed in between each result.
@@ -70,35 +71,35 @@ public:
     // NB. The iterated collatz function has been shown to terminate for numbers
     // <= 10 billion.
     collatz_job_t(uint64_t n, extproc_pool_t *pool, signal_t *interruptor) :
-        extproc_job_t(pool, &worker_fn, interruptor),
+        extproc_job(pool, &worker_fn, interruptor),
         last_value(n) {
         // Kick off the worker with the initial value
         write_message_t wm;
         wm << last_value;
-        int res = send_write_message(write_stream(), &wm);
+        int res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
     ~collatz_job_t() {
         // Read out the last number
-        uint64_t res = deserialize(read_stream(), &last_value);
+        uint64_t res = deserialize(extproc_job.read_stream(), &last_value);
         guarantee(res == ARCHIVE_SUCCESS);
 
         // Tell the worker to exit
         write_message_t wm;
         wm << 'q';
-        res = send_write_message(write_stream(), &wm);
+        res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
     }
 
     uint64_t step() {
-        uint64_t res = deserialize(read_stream(), &last_value);
+        uint64_t res = deserialize(extproc_job.read_stream(), &last_value);
         guarantee(res == ARCHIVE_SUCCESS);
 
         // Send the notification to continue
         write_message_t wm;
         wm << 'c';
-        res = send_write_message(write_stream(), &wm);
+        res = send_write_message(extproc_job.write_stream(), &wm);
         guarantee(res == 0);
         return last_value;
     }
@@ -127,6 +128,7 @@ private:
         return true;
     }
 
+    extproc_job_t extproc_job;
     uint64_t last_value;
 };
 
@@ -202,15 +204,15 @@ TEST(ExtProc, MultiJob) {
     }
 }
 
-class base_crash_job_t : public extproc_job_t {
+class base_crash_job_t {
 public:
     base_crash_job_t(extproc_pool_t *pool,
                      bool (*worker_fn) (read_stream_t *, write_stream_t *)) :
-        extproc_job_t(pool, worker_fn, NULL) { }
+        extproc_job(pool, worker_fn, NULL) { }
 
     void read() {
         int data;
-        int res = deserialize(read_stream(), &data);
+        int res = deserialize(extproc_job.read_stream(), &data);
         if (res != ARCHIVE_SUCCESS) {
             throw std::runtime_error("read failed");
         }
@@ -219,11 +221,14 @@ public:
     void write() {
         write_message_t msg;
         msg << 100;
-        int res = send_write_message(write_stream(), &msg);
+        int res = send_write_message(extproc_job.write_stream(), &msg);
         if (res != 0) {
             throw std::runtime_error("read failed");
         }
     }
+
+private:
+    extproc_job_t extproc_job;
 };
 
 class exit_job_t : public base_crash_job_t {
@@ -346,10 +351,10 @@ TEST(ExtProc, CrashedJob) {
     unittest::run_in_thread_pool(boost::bind(run_crashed_job_test));
 }
 
-class hang_job_t : public extproc_job_t {
+class hang_job_t {
 public:
     hang_job_t(extproc_pool_t *pool, signal_t *interruptor) :
-        extproc_job_t(pool, &worker_fn, interruptor) { }
+        extproc_job(pool, &worker_fn, interruptor) { }
 
 private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *) {
@@ -365,6 +370,8 @@ private:
         guarantee(false, "worker should hang");
         return true;
     }
+
+    extproc_job_t extproc_job;
 };
 
 void run_hanging_job_test() {
@@ -388,19 +395,19 @@ TEST(ExtProc, HangingJob) {
     unittest::run_in_thread_pool(boost::bind(run_hanging_job_test));
 }
 
-class corrupt_job_t : public extproc_job_t {
+class corrupt_job_t {
 public:
     explicit corrupt_job_t(extproc_pool_t *pool) :
-        extproc_job_t(pool, &worker_fn, NULL) { }
+        extproc_job(pool, &worker_fn, NULL) { }
 
     void corrupt(bool direction) {
         write_message_t msg;
         msg << direction;
-        int res = send_write_message(write_stream(), &msg);
+        int res = send_write_message(extproc_job.write_stream(), &msg);
         guarantee(res == 0);
 
         if (!direction) {
-            res = send_write_message(write_stream(), &msg);
+            res = send_write_message(extproc_job.write_stream(), &msg);
             guarantee(res == 0);
         }
     }
@@ -422,6 +429,7 @@ private:
         return true;
     }
 
+    extproc_job_t extproc_job;
 };
 
 void run_corrupt_job_test() {

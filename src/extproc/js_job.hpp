@@ -15,7 +15,7 @@
 #include "extproc/extproc_job.hpp"
 #include "extproc/js_runner.hpp"
 
-class js_job_t : public extproc_job_t {
+class js_job_t {
 public:
     js_job_t(extproc_pool_t *pool, signal_t *interruptor);
 
@@ -27,6 +27,7 @@ public:
 private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out);
 
+    extproc_job_t extproc_job;
     DISABLE_COPYING(js_job_t);
 };
 

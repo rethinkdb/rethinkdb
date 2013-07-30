@@ -79,18 +79,18 @@ enum js_task_t {
 
 // The job_t runs in the context of the main rethinkdb process
 js_job_t::js_job_t(extproc_pool_t *pool, signal_t *interruptor) :
-    extproc_job_t(pool, &worker_fn, interruptor) { }
+    extproc_job(pool, &worker_fn, interruptor) { }
 
 js_result_t js_job_t::eval(const std::string &source) {
     js_task_t task = js_task_t::TASK_EVAL;
     write_message_t msg;
     msg.append(&task, sizeof(task));
     msg << source;
-    int res = send_write_message(write_stream(), &msg);
+    int res = send_write_message(extproc_job.write_stream(), &msg);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 
     js_result_t result;
-    res = deserialize(read_stream(), &result);
+    res = deserialize(extproc_job.read_stream(), &result);
     if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
     return result;
 }
@@ -101,11 +101,11 @@ js_result_t js_job_t::call(js_id_t id, std::vector<boost::shared_ptr<scoped_cJSO
     msg.append(&task, sizeof(task));
     msg << id;
     msg << args;
-    int res = send_write_message(write_stream(), &msg);
+    int res = send_write_message(extproc_job.write_stream(), &msg);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 
     js_result_t result;
-    res = deserialize(read_stream(), &result);
+    res = deserialize(extproc_job.read_stream(), &result);
     if (res != ARCHIVE_SUCCESS) { throw js_worker_exc_t("failed to deserialize result from worker"); }
     return result;
 }
@@ -115,7 +115,7 @@ void js_job_t::release(js_id_t id) {
     write_message_t msg;
     msg.append(&task, sizeof(task));
     msg << id;
-    int res = send_write_message(write_stream(), &msg);
+    int res = send_write_message(extproc_job.write_stream(), &msg);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 }
 
@@ -123,7 +123,7 @@ void js_job_t::exit() {
     js_task_t task = js_task_t::TASK_EXIT;
     write_message_t msg;
     msg.append(&task, sizeof(task));
-    int res = send_write_message(write_stream(), &msg);
+    int res = send_write_message(extproc_job.write_stream(), &msg);
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 }
 

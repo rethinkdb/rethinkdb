@@ -16,10 +16,10 @@ public:
     extproc_job_t(extproc_pool_t *_pool,
                   bool (*worker_fn) (read_stream_t *, write_stream_t *),
                   signal_t *interruptor);
-    virtual ~extproc_job_t();
+    ~extproc_job_t();
 
-protected:
-    // All data written and read by the user must be accounted for, or things will break
+    // All data written and read by the user must be accounted for, or the worker will
+    //  have to be killed and restarted
     read_stream_t *read_stream();
     write_stream_t *write_stream();
 

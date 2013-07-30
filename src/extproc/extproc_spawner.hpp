@@ -9,6 +9,10 @@
 // The extproc_spawner_t controls an external process which launches workers
 // This is necessary to avoid some forking problems with tcmalloc, and
 //  should be constructed before the thread pool and extproc pool
+// The problem with tcmalloc is that when forking, it is possible that another
+//  thread has a lock on the thread cache, but this thread disappears when the
+//  fork is performed.  Therefore, when the forked process attempts an allocation,
+//  it will deadlock trying to acquire this lock that no one will ever unlock.
 class extproc_spawner_t {
 public:
     extproc_spawner_t();

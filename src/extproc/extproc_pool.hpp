@@ -35,9 +35,18 @@ private:
     // the eventfd semaphore
     void release_worker(extproc_worker_t *worker, size_t index);
 
-    scoped_array_t<std::atomic<extproc_worker_t*> > workers;
+    // Pointers to all workers available in this instance, when a worker is taken, it
+    //  will be replaced by NULL in the array, and replaced when done
+    scoped_array_t<std::atomic<extproc_worker_t *> > workers;
+
+    // Semaphore to control access to workers, when it is locked, there is guaranteed to
+    //  be a worker available
     cross_thread_semaphore_t worker_semaphore;
+
+    // The interruptor to be pulsed when shutting down
     cond_t interruptor;
+
+    // Crossthreaded interruptors to notify workers on any thread when we are shutting down
     scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > ct_interruptors;
 };
 

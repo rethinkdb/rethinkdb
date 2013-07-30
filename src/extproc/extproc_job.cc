@@ -18,9 +18,11 @@ extproc_job_t::~extproc_job_t() {
 
 // All data written and read by the user must be accounted for, or things will break
 read_stream_t *extproc_job_t::read_stream() {
+    assert_thread();
     return worker->get_read_stream();
 }
 
 write_stream_t *extproc_job_t::write_stream() {
+    assert_thread();
     return worker->get_write_stream();
 }
