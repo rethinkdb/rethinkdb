@@ -2,8 +2,6 @@
 #ifndef CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 #define CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 
-#include <limits.h>
-
 #include <vector>
 
 #include "errors.hpp"
@@ -27,26 +25,26 @@ It is also parameterized at compile-time on the maximum number of elements in th
 size of the chunks to use.
 */
 
-#define TWO_LEVEL_ARRAY_CHUNK_SIZE (1 << 16)
-
 template <class value_t>
 class two_level_array_t {
 private:
+    static const size_t CHUNK_SIZE = 1 << 16;
+
     struct chunk_t {
         chunk_t()
             : count(0), values()   // default-initialize each value in values
             { }
         size_t count;
-        value_t values[TWO_LEVEL_ARRAY_CHUNK_SIZE];
+        value_t values[CHUNK_SIZE];
     };
     std::vector<chunk_t *> chunks;
 
     static size_t chunk_for_key(key_t key) {
-        size_t chunk_id = key / TWO_LEVEL_ARRAY_CHUNK_SIZE;
+        size_t chunk_id = key / CHUNK_SIZE;
         return chunk_id;
     }
     static size_t index_for_key(key_t key) {
-        return key % TWO_LEVEL_ARRAY_CHUNK_SIZE;
+        return key % CHUNK_SIZE;
     }
 
 public:
@@ -104,20 +102,22 @@ public:
 template <class value_t>
 class two_level_nevershrink_array_t {
 private:
+    static const size_t CHUNK_SIZE = 1 << 16;
+
     struct chunk_t {
         chunk_t()
             : values()   // default-initialize each value in values
             { }
-        value_t values[TWO_LEVEL_ARRAY_CHUNK_SIZE];
+        value_t values[CHUNK_SIZE];
     };
     std::vector<chunk_t *> chunks;
 
     static size_t chunk_for_key(key_t key) {
-        size_t chunk_id = key / TWO_LEVEL_ARRAY_CHUNK_SIZE;
+        size_t chunk_id = key / CHUNK_SIZE;
         return chunk_id;
     }
     static size_t index_for_key(key_t key) {
-        return key % TWO_LEVEL_ARRAY_CHUNK_SIZE;
+        return key % CHUNK_SIZE;
     }
 
 public:
