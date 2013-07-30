@@ -849,6 +849,7 @@ fetch_allowed () {
 
 check_v8_pre_3_19 () {
     if contains "$fetch_list" v8; then
+        boolvar V8_PRE_3_19 true
         return
     fi
     require "Use pre-3.19 v8 API"

@@ -3,6 +3,8 @@
 # The rules in this file can download, build and setup some of the rethinkdb dependencies.
 # It is used for portable builds on platforms where these dependencies are not available or are too old.
 
+NODE_INT_VERSION := 0.10.15
+
 V8_DEP :=
 PROTOBUF_DEP :=
 NPM_DEP :=
@@ -30,8 +32,8 @@ TC_BUILD_DIR := $(SUPPORT_DIR)/build
 TC_SRC_DIR := $(SUPPORT_DIR)/src
 TOOLCHAIN_DIR := $(SUPPORT_DIR)/toolchain
 NODE_MODULES_DIR := $(TOOLCHAIN_DIR)/node_modules
-NODE_DIR := $(TC_BUILD_DIR)/node
-NODE_SRC_DIR := $(TC_SRC_DIR)/node
+NODE_DIR := $(TC_BUILD_DIR)/node-v$(NODE_INT_VERSION)
+NODE_SRC_DIR := $(TC_SRC_DIR)/node-v$(NODE_INT_VERSION)
 PROTOC_DIR := $(TC_BUILD_DIR)/protobuf
 PROTOC_SRC_DIR := $(TC_SRC_DIR)/protobuf
 GPERFTOOLS_DIR := $(TC_BUILD_DIR)/gperftools
@@ -45,8 +47,7 @@ TC_PROTOC_INT_BIN_DIR := $(SUPPORT_INST_DIR)/bin
 TC_PROTOC_INT_LIB_DIR := $(SUPPORT_INST_DIR)/lib
 TC_PROTOC_INT_INC_DIR := $(SUPPORT_INST_DIR)/include
 PROTOBUF_INT_LIB := $(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
-TC_NODE_INT_EXE := $(SUPPORT_DIR)/usr/bin/node
-TC_NPM_INT_EXE := $(SUPPORT_DIR)/usr/bin/npm
+TC_NPM_INT_EXE := $(SUPPORT_DIR)/usr/bin/npm-$(NODE_INT_VERSION)
 TC_LESSC_INT_EXE := $(SUPPORT_DIR)/usr/bin/lessc
 TC_COFFEE_INT_EXE := $(SUPPORT_DIR)/usr/bin/coffee
 TC_HANDLEBARS_INT_EXE := $(SUPPORT_DIR)/usr/bin/handlebars
@@ -192,19 +193,19 @@ $(V8_INT_LIB): $(V8_INT_DIR)
 
 $(NODE_SRC_DIR):
 	$P DOWNLOAD node
-	$(GETURL) http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz | ( \
-	  cd $(TC_SRC_DIR) && tar -xzf - && rm -rf node && mv node-v0.8.11 node )
+	rm -rf $@
+	$(GETURL) http://nodejs.org/dist/v$(NODE_INT_VERSION)/node-v$(NODE_INT_VERSION).tar.gz | ( \
+	  cd $(TC_SRC_DIR) && tar -xzf - )
 
-$(TC_NPM_INT_EXE): $(TC_NODE_INT_EXE)
-
-$(TC_NODE_INT_EXE): $(NODE_DIR)
-	$P MAKE node
+$(TC_NPM_INT_EXE): $(NODE_DIR) | $(SUPPORT_DIR)/usr/bin/.
+	$P MAKE npm
+	rm -f $(SUPPORT_DIR_ABS)/usr/bin/npm
 	( unset prefix PREFIX DESTDIR MAKEFLAGS MFLAGS && \
 	  cd $(NODE_DIR) && \
 	  ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && \
 	  $(EXTERN_MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && \
 	  $(EXTERN_MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ) $(SUPPORT_LOG_REDIRECT)
-	touch $@
+	mv $(SUPPORT_DIR_ABS)/usr/bin/npm $@ && touch $@
 
 $(PROTOC_SRC_DIR):
 	$P DOWNLOAD protoc
