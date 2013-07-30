@@ -23,9 +23,9 @@ struct index_block_info_t {
 
     // For two_level_array_t.
     operator bool() const {
-        return offset == flagged_off64_t::unused()
-            && recency == repli_timestamp_t::invalid
-            && ser_block_size == 0;
+        return !(offset == flagged_off64_t::unused()
+                 && recency == repli_timestamp_t::invalid
+                 && ser_block_size == 0);
     }
 
     // RSI: Does anybody use this?  Should two_level_array_t use this?
