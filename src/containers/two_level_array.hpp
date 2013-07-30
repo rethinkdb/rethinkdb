@@ -57,7 +57,7 @@ public:
 
     value_t get(size_t key) const {
         size_t chunk_id = chunk_for_key(key);
-        if (chunk_id < chunks.size() && chunks[chunk_id]) {
+        if (chunk_id < chunks.size() && chunks[chunk_id] != NULL) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
             return value_t();
