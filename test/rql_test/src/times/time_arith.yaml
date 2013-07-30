@@ -4,11 +4,13 @@ tests:
   - def: rt2 = 1375147296.60082
   - def: rt3 = 1375147297.60081
   - def: rt4 = 2375147296.60081
+  - def: rts = r([rt1, rt2, rt3, rt4])
 
   - def: t1 = r.epoch_time(rt1)
   - def: t2 = r.epoch_time(rt2)
   - def: t3 = r.epoch_time(rt3)
   - def: t4 = r.epoch_time(rt4)
+  - def: ts = r([t1, t2, t3, t4])
 
   # We run into double precision with the first one
   - rb: ((t2 - t1) * 100000).do{|x| (x > 0.99) & (x < 1.01)}
@@ -25,36 +27,48 @@ tests:
   - rb: t1 - t4
     ot: -1000000000
 
-  - rb: (t1 + (t2 - t1))
-    ot: rt2
-  - rb: (t1 + (t3 - t1))
-    ot: rt3
-  - rb: (t1 + (t4 - t1))
-    ot: rt4
-  - rb: (t1 + (rt2 - rt1))
-    ot: rt2
-  - rb: (t1 + (rt3 - rt1))
-    ot: rt3
-  - rb: (t1 + (rt4 - rt1))
-    ot: rt4
+  - rb: ts.map{|x| t1 + (x - t1)}.map{|x| x.to_epoch_time}
+    ot: ([rt1, rt2, rt3, rt4])
+  - rb: ts.map{|x| (t1 + x) - t1}.map{|x| x.to_epoch_time}
+    ot: err("RqlRuntimeError", "Expected type NUMBER but found PSEUDOTYPE(TIME).", [])
+  - rb: ts.map{|x| t1 - (t1 - x)}.map{|x| x.to_epoch_time}
+    ot: ([rt1, rt2, rt3, rt4])
 
-  - rb: (t2 - (rt2 - rt1))
-    ot: rt1
-  - rb: (t3 - (rt3 - rt1))
-    ot: rt1
-  - rb: (t4 - (rt4 - rt1))
-    ot: rt1
+  - rb: ts.map{|x| ts.map{|y| [x < y, x <= y, x.eq(y), x.ne(y), x >= y, x > y]}}
+    ot: ([[[false, true,  true,  false, true,  false],
+           [true,  true,  false, true,  false, false],
+           [true,  true,  false, true,  false, false],
+           [true,  true,  false, true,  false, false]],
+          [[false, false, false, true,  true,  true],
+           [false, true,  true,  false, true,  false],
+           [true,  true,  false, true,  false, false],
+           [true,  true,  false, true,  false, false]],
+          [[false, false, false, true,  true,  true],
+           [false, false, false, true,  true,  true],
+           [false, true,  true,  false, true,  false],
+           [true,  true,  false, true,  false, false]],
+          [[false, false, false, true,  true,  true],
+           [false, false, false, true,  true,  true],
+           [false, false, false, true,  true,  true],
+           [false, true,  true,  false, true,  false]]])
 
-  - rb: (t2 + (t1 - t2))
-    ot: rt1
-  - rb: (t3 + (t1 - t3))
-    ot: rt1
-  - rb: (t4 + (t1 - t4))
-    ot: rt1
-  - rb: (t2 + (rt1 - rt2))
-    ot: rt1
-  - rb: (t3 + (rt1 - rt3))
-    ot: rt1
-  - rb: (t4 + (rt1 - rt4))
-    ot: rt1
+  - def: datum_types = r([nil, true, false, 1, "1", [1], {"1" => 1}])
+
+# Test comparisons, from both directions (there was a problem where
+# the directions had different behavior).
+  - rb: datum_types.map{|x| [[x, t1], [t1, x]].map{|xy| xy[0].do{|x| xy[1].do{|y| [x < y, x <= y, x.eq(y), x.ne(y), x >= y, x > y]}}}}
+    ot: ([[[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]],
+          [[true,  true,  false, true,  false, false],
+           [false, false, false, true,  true,  true]]])
 

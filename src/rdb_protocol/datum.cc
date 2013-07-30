@@ -666,6 +666,12 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
+    if (is_pt() && !rhs.is_pt()) {
+        return 1;
+    } else if (!is_pt() && rhs.is_pt()) {
+        return -1;
+    }
+
     if (get_type() != rhs.get_type()) {
         return derived_cmp(get_type(), rhs.get_type());
     }
