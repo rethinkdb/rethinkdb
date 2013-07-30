@@ -246,7 +246,8 @@ class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
                         const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp), src(_src) {
+        : eager_datum_stream_t(env, bt_src),
+        lt_cmp(_lt_cmp), src(_src), is_arr_(false) {
         guarantee(src.has());
         load_data();
     }
@@ -268,7 +269,7 @@ private:
         return is_arr() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
     }
     bool is_arr() {
-        return false;
+        return is_arr_;
     }
     void load_data() {
         guarantee(data.empty());

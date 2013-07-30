@@ -197,6 +197,17 @@ bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right
  * elements had the same index value so it knows what to apply the sorting too.
  * */
 hinted_json_t batched_rget_stream_t::sorting_hint_next() {
+    /* The simple case. No sorting is happening. */
+    if (sorting == UNORDERED) {
+        boost::optional<rget_item_t> item = head();
+        if (item) {
+            pop();
+            return std::make_pair(CONTINUE, item->data);
+        } else {
+            return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
+        }
+    }
+
     if (!sorting_buffer.empty()) {
         /* A non empty sorting buffer means we already got a batch of
          * ambigiously sorted values and sorted them. So now we can just pop
