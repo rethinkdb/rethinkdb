@@ -703,7 +703,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -727,12 +726,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -756,7 +753,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -780,12 +776,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -1266,7 +1260,7 @@ module 'DataExplorerView', ->
             semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             inline_comment: /^(\s)*\/\/.*\n/
-            multiple_line_comment: /^(\s)*\/\*[^]*\*\//
+            multiple_line_comment: /^(\s)*\/\*[^(\*\/)]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
@@ -1354,18 +1348,20 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                    result_inline_comment = @regex.inline_comment.exec query.slice i
-                    if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
-                        continue
-                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
-                    if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
-                        continue
+
 
                     if element.type is null
+                        result_inline_comment = @regex.inline_comment.exec query.slice i
+                        if result_inline_comment?
+                            to_skip = result_inline_comment[0].length-1
+                            start += result_inline_comment[0].length
+                            continue
+                        result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                        if result_multiple_line_comment?
+                            to_skip = result_multiple_line_comment[0].length-1
+                            start += result_multiple_line_comment[0].length
+                            continue
+
                         if start is i
                             result_white = @regex.white_start.exec query.slice i
                             if result_white?
@@ -2333,7 +2329,6 @@ module 'DataExplorerView', ->
                 full_query += @queries[@index]
 
                 try
-                    console.log full_query
                     rdb_query = @evaluate(full_query)
                 catch err
                     @.$('.loading_query_img').hide()
@@ -2518,7 +2513,6 @@ module 'DataExplorerView', ->
             for char, i in query
                 if to_skip > 0
                     to_skip--
-                    start++
                     continue
 
                 if is_parsing_string is true
@@ -2537,15 +2531,17 @@ module 'DataExplorerView', ->
 
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
-                        result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+                        result_query += query.slice(start, i).replace(/\n/g, '')
                         start = i
-                        to_skip = result_inline_comment[0].length
+                        to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
                         start = i
-                        to_skip = result_multiple_line_comment[0].length
+                        to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
                         continue
             if is_parsing_string
                 result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
