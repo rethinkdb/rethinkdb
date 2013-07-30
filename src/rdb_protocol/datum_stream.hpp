@@ -56,12 +56,13 @@ public:
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> > next_batch();
 
+    virtual hinted_datum_t sorting_hint_next();
+
 protected:
     env_t *env;
 
-    virtual hinted_datum_t sorting_hint_next();
-
 private:
+
     static const size_t MAX_BATCH_SIZE = 100;
 
     // Returns NULL upon end of stream.
@@ -245,34 +246,39 @@ class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
                         const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
-          src(_src), data_index(-1), is_arr_(false) {
+        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp), src(_src) {
         guarantee(src.has());
         load_data();
     }
 
     counted_t<const datum_t> next_impl() {
-        r_sanity_check(data_index >= 0);
-        if (data_index >= static_cast<int>(data.size())) {
-            //            ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
-            return counted_t<const datum_t>();
-        } else {
-            counted_t<const datum_t> ret = data[data_index];
-            ++data_index;
-            return ret;
+        if (data.empty()) {
+            load_data();
+            if (data.empty()) {
+                return counted_t<const datum_t>();
+            }
         }
+
+        counted_t<const datum_t> res = data.front();
+        data.pop_front();
+        return res;
     }
 private:
-    virtual counted_t<const datum_t> as_array() {
+    counted_t<const datum_t> as_array() {
         return is_arr() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
     }
     bool is_arr() {
-        return is_arr_;
+        return false;
     }
     void load_data() {
-        if (data_index != -1) return;
-        data_index = 0;
+        guarantee(data.empty());
+
         if (counted_t<const datum_t> arr = src->as_array()) {
+            if (is_arr_) {
+                /* We already loaded data from the array which means there's no
+                 * more data. */
+                return;
+            }
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    base_exc_t::GENERIC,
@@ -282,14 +288,29 @@ private:
                 data.push_back(arr->get(i));
             }
         } else {
-            is_arr_ = false;
-            size_t sort_els = 0;
-            while (counted_t<const datum_t> d = src->next()) {
-                rcheck(++sort_els <= sort_el_limit,
-                       base_exc_t::GENERIC,
-                       strprintf("Can only sort at most %zu elements.",
-                                 sort_el_limit));
-                data.push_back(d);
+            if (next_element) {
+                data.push_back(next_element);
+                next_element = counted_t<const datum_t>();
+            }
+
+            hinted_datum_t d;
+            for (;;) {
+                d = src->sorting_hint_next();
+                if (!d.second) {
+                    break;
+                }
+
+                if (d.first == query_language::START && !data.empty()) {
+                    next_element = d.second;
+                    break;
+                } else {
+                    guarantee(d.first == query_language::CONTINUE);
+                    data.push_back(d.second);
+                    rcheck(data.size() <= sort_el_limit,
+                           base_exc_t::GENERIC,
+                           strprintf("Can only sort at most %zu elements.",
+                                     sort_el_limit));
+                }
             }
         }
         std::sort(data.begin(), data.end(), lt_cmp);
@@ -297,8 +318,8 @@ private:
     T lt_cmp;
     counted_t<datum_stream_t> src;
 
-    int data_index;
-    std::vector<counted_t<const datum_t> > data;
+    std::deque<counted_t<const datum_t> > data;
+    counted_t<const datum_t> next_element;
     bool is_arr_;
 };
 
